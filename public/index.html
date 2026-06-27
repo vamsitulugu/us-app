@@ -3102,6 +3102,7 @@
       }
 
       .sidebar.mob-open {
+        display: flex;
         transform: translateX(250px)
       }
 
@@ -5590,7 +5591,7 @@ function applyRebranding() {
             if (el) el.textContent = 'Saved ✓ ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           } catch (e) { saveLocal(); console.warn('Cloud save:', e.message); }
         }
-        function scheduleSave() { clearTimeout(autoSaveTimer); autoSaveTimer = setTimeout(saveToCloud, 1500); }
+        function scheduleSave() { clearTimeout(autoSaveTimer); autoSaveTimer = setTimeout(saveToCloud, 600); }
         async function syncNow() {
           document.getElementById('syncBtn').textContent = '⏳...';
           await loadFromCloud(); await checkPairStatus(); checkIncomingTouch(); renderAll();
@@ -5907,6 +5908,7 @@ function renderPartnerLastSeen() {
         }
         // ─── CHAT ────────────────────────────────────────────────
         let replyingTo = null, mediaRecorder = null, audioChunks = [], isRecording = false;
+        function isMyMsg(m) { return m.by ? m.by === S.role : !!m.me; }
 
         function renderChat() {
   const el = document.getElementById('chatMsgs');
@@ -5919,7 +5921,7 @@ function renderPartnerLastSeen() {
     if (m._deleted) return; // skip soft-deleted
     const d = m.date || todayStr();
     if (d !== lastDate) { html += `<div class="date-sep"><span>${d === todayStr() ? 'Today' : fmtDate(d)}</span></div>`; lastDate = d; }
-    const isMe = m.me;
+    const isMe = isMyMsg(m);
     const avatar = `<div class="av ${isMe ? 'av1' : 'av2'}" style="width:28px;height:28px;font-size:10px;flex-shrink:0;align-self:flex-end">${isMe ? (S.myName[0] || 'U') : (S.partnerName[0] || 'P')}</div>`;
     let bubbleContent = '';
     if (m.pinned) bubbleContent += `<div style="font-size:9px;color:var(--yellow);font-weight:700;margin-bottom:3px">📌 PINNED</div>`;
@@ -6145,7 +6147,7 @@ document.addEventListener('click', e => {
           if (!input.files[0]) return;
           const reader = new FileReader();
           reader.onload = e => {
-            const msg = { id: Date.now(), text: '', me: true, time: now(), date: todayStr(), mediaUrl: e.target.result, read: false };
+            const msg = { id: Date.now(), text: '', me: true, by: S.role, time: now(), date: todayStr(), mediaUrl: e.target.result, read: false };
             if (replyingTo) { msg.replyTo = replyingTo; cancelReply(); }
             S.chatMessages.push(msg); renderChat(); scheduleSave(); toast('Photo shared! 💕');
           }; reader.readAsDataURL(input.files[0]);
@@ -6188,7 +6190,7 @@ document.addEventListener('click', e => {
           reader.onload = e => {
             const seconds = Math.round(blob.size / 8000); // rough estimate
             const dur = Math.floor(seconds / 60) + ':' + (seconds % 60).toString().padStart(2, '0');
-            const msg = { id: Date.now(), type: 'voice', audioData: e.target.result, duration: dur, me: true, time: now(), date: todayStr(), read: false };
+            const msg = { id: Date.now(), type: 'voice', audioData: e.target.result, duration: dur, me: true, by: S.role, time: now(), date: todayStr(), read: false };
             S.chatMessages.push(msg); renderChat(); scheduleSave(); toast('Voice message sent! 🎙️');
           };
           reader.readAsDataURL(blob);
@@ -6235,7 +6237,7 @@ document.addEventListener('click', e => {
       </div>
     </div>`).join('');
         }
-        function sharePhoto(i) { const p = S.photos[i]; S.chatMessages.push({ id: Date.now(), text: '📷 Shared a memory', me: true, time: now(), date: todayStr(), mediaUrl: p.url }); goto('chat'); renderChat(); scheduleSave(); toast('Shared in chat! 💕'); }
+        function sharePhoto(i) { const p = S.photos[i]; S.chatMessages.push({ id: Date.now(), text: '📷 Shared a memory', me: true, by: S.role, time: now(), date: todayStr(), mediaUrl: p.url }); goto('chat'); renderChat(); scheduleSave(); toast('Shared in chat! 💕'); }
         function delPhoto(i) { S.photos.splice(i, 1); renderPhotos(); scheduleSave(); }
 
         // ─── PROFILE ─────────────────────────────────────────────
@@ -6625,7 +6627,7 @@ document.addEventListener('click', e => {
           const el = document.getElementById('dashRecentMsgs');
           const recent = S.chatMessages.slice(-4);
           if (!recent.length) { el.innerHTML = '<div class="empty" style="padding:8px 0;font-size:12px">No messages yet</div>'; }
-          else { el.innerHTML = recent.map(m => `<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)"><div class="av ${m.me ? 'av1' : 'av2'}" style="width:22px;height:22px;font-size:8px;flex-shrink:0">${m.me ? (S.myName[0] || 'U') : (S.partnerName[0] || 'P')}</div><div style="font-size:12px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.text ? esc(m.text).slice(0, 55) : '📷 Photo'}</div><div style="font-size:10px;color:var(--text3);white-space:nowrap">${esc(m.time || '')}</div></div>`).join(''); }
+          else { el.innerHTML = recent.map(m => `<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)"><div class="av ${isMyMsg(m) ? 'av1' : 'av2'}" style="width:22px;height:22px;font-size:8px;flex-shrink:0">${isMyMsg(m) ? (S.myName[0] || 'U') : (S.partnerName[0] || 'P')}</div><div style="font-size:12px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.text ? esc(m.text).slice(0, 55) : '📷 Photo'}</div><div style="font-size:10px;color:var(--text3);white-space:nowrap">${esc(m.time || '')}</div></div>`).join(''); }
           if (S.anniversary) { const days = Math.max(0, Math.floor((Date.now() - new Date(S.anniversary).getTime()) / 86400000)); document.getElementById('daysTog').textContent = days; }
           // Show hours too for a live feeling
           if (S.anniversary) {
@@ -6752,7 +6754,7 @@ function logOut() { if (!confirm('Log out? You can sign back in anytime. Your da
               checkIncomingTouch();
               renderAll();
               renderPartnerLastSeen();
-            }, 15000);
+            }, 5000);
           }
         }
         let leafletMap = null, myMarker = null, ptMarker = null;
@@ -6886,7 +6888,7 @@ function logOut() { if (!confirm('Log out? You can sign back in anytime. Your da
         function delSong(id) { S.sharedSongs = (S.sharedSongs || []).filter(s => s.id !== id); renderSongs(); scheduleSave(); }
         function sendSongToChat(id) {
           const s = (S.sharedSongs || []).find(x => x.id === id); if (!s) return;
-          S.chatMessages.push({ id: Date.now(), type: 'music', embed: s.embed, me: true, time: now(), date: todayStr(), read: false });
+          S.chatMessages.push({ id: Date.now(), type: 'music', embed: s.embed, me: true, by: S.role, time: now(), date: todayStr(), read: false });
           goto('chat'); renderChat(); scheduleSave(); toast('Sent to chat! 🎵');
         }
         function renderSongs() {
@@ -7362,7 +7364,7 @@ function doSearch(query) {
     (S.chatMessages || []).filter(m => !m._deleted && m.text && m.text.toLowerCase().includes(q))
       .slice(0, 8).forEach(m => results.push({
         cat: 'Chat', ico: '💬', title: m.text.slice(0, 80),
-        sub: (m.me ? 'You' : (S.partnerName || 'Partner')) + ' · ' + (m.date || ''),
+        sub: (isMyMsg(m) ? 'You' : (S.partnerName || 'Partner')) + ' · ' + (m.date || ''),
         action: () => { goto('chat'); closeSearch(); setTimeout(() => scrollToMsg(m.id), 300); }
       }));
   }
@@ -7476,9 +7478,9 @@ function exportChatPDF() {
   const win = window.open('', '_blank');
   if (!win) { toast('Please allow popups to export PDF'); return; }
   const rows = msgs.map(m => {
-    const who = m.me ? (S.myName || 'You') : (S.partnerName || 'Partner');
-    const align = m.me ? 'right' : 'left';
-    const bg = m.me ? '#dceaff' : '#f1f1f1';
+    const who = isMyMsg(m) ? (S.myName || 'You') : (S.partnerName || 'Partner');
+    const align = isMyMsg(m) ? 'right' : 'left';
+    const bg = isMyMsg(m) ? '#dceaff' : '#f1f1f1';
     let body = '';
     if (m.type === 'voice') body = '🎙️ Voice message (' + (m.duration || '') + ')';
     else if (m.mediaUrl) body = (m.text ? esc(m.text) + '<br>' : '') + '<img src="' + m.mediaUrl + '" style="max-width:280px;border-radius:8px;margin-top:4px">';
