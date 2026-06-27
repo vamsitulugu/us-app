@@ -1,0 +1,26 @@
+{
+  "name": "Us With Love",
+  "short_name": "Us With Love",
+  "description": "Your private couple space — chat, memories, habits & more",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a0010",
+  "theme_color": "#c43f6a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["lifestyle", "social"],
+  "screenshots": []
+}
