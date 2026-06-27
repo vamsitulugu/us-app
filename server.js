@@ -36,19 +36,14 @@ const apiLimiter = rateLimit({
 });
 
 // ── CORS ──────────────────────────────────────────────
-// Change 'https://uswith.love' to your actual domain after deployment
-const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? [
-      'https://usapp-pink.vercel.app',
-      process.env.APP_URL || 'https://us-app-api.onrender.com'
-    ]
-  : [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://localhost:3001',
-    'http://127.0.0.1:3001'
+const allowedOrigins = [
+  'https://useverythingtogether.vercel.app',
+  process.env.APP_URL || 'https://us-app-api.onrender.com',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3001'
 ];
-
 app.use(cors({
   origin: function(origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) callback(null, true);
