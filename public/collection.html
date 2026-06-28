@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Collection 🎙️</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --h: 215;
+  --accent: hsl(var(--h),100%,62%);
+  --accent-d: hsl(var(--h),95%,50%);
+  --accent-l: hsl(var(--h),100%,78%);
+  --accent-glow: hsla(var(--h),100%,62%,0.35);
+  --accent2: hsl(300,85%,65%);
+  --accent2-d: hsl(300,80%,52%);
+  --accent2-glow: hsla(300,85%,65%,0.35);
+  --g1: rgba(255,255,255,0.04);
+  --g2: rgba(255,255,255,0.08);
+  --g3: rgba(255,255,255,0.13);
+  --blur: blur(24px) saturate(180%);
+  --ff-serif: 'DM Serif Display',Georgia,serif;
+  --ff-sans: 'Inter',system-ui,sans-serif;
+  --r: 18px; --rs: 12px; --rss: 8px;
+  --white: #ffffff;
+  --text: rgba(255,255,255,0.92);
+  --text2: rgba(255,255,255,0.62);
+  --text3: rgba(255,255,255,0.38);
+  --border: rgba(255,255,255,0.10);
+  --border2: rgba(255,255,255,0.18);
+  --green: #34d399; --green-bg: rgba(52,211,153,0.15);
+  --red: #f87171; --red-bg: rgba(248,113,113,0.15);
+  --yellow: #fbbf24; --yellow-bg: rgba(251,191,36,0.15);
+  --t: all 0.22s cubic-bezier(0.4,0,0.2,1);
+  --t-spring: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:transparent;line-height:1.5}
+
+/* ── TABS ── */
+.col-tabs{display:flex;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;padding:0 16px}
+.col-tabs::-webkit-scrollbar{display:none}
+.col-tab{padding:14px 20px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:var(--t);margin-bottom:-1px}
+.col-tab:hover{color:var(--white)}
+.col-tab.active{color:var(--white);border-bottom-color:var(--accent)}
+
+/* ── HERO STATS ── */
+.col-hero{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px 16px;margin-bottom:2px}
+@media(max-width:500px){.col-hero{grid-template-columns:repeat(2,1fr)}}
+.col-stat{background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:13px 10px;text-align:center;backdrop-filter:var(--blur);transition:var(--t)}
+.col-stat:hover{transform:translateY(-2px)}
+.col-stat-n{font-family:var(--ff-serif);font-size:22px;color:var(--white);line-height:1}
+.col-stat-l{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);margin-top:4px}
+
+/* ── TOOLBAR ── */
+.col-toolbar{display:flex;gap:8px;padding:12px 16px;align-items:center;flex-wrap:wrap}
+.col-search{flex:1;min-width:120px;background:var(--g1);border:1px solid var(--border);border-radius:12px;padding:9px 14px;color:var(--white);font-family:var(--ff-sans);font-size:13px;outline:none;transition:var(--t)}
+.col-search:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.col-filter{padding:7px 13px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--g1);color:var(--text2);transition:var(--t);white-space:nowrap}
+.col-filter:hover{color:var(--white);background:var(--g2)}
+.col-filter.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 10px var(--accent-glow)}
+
+/* ── VOICE LIST ── */
+.voice-list{padding:0 16px;display:flex;flex-direction:column;gap:8px}
+.voice-item{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;border-radius:16px;
+  background:var(--g1);border:1px solid var(--border);
+  transition:var(--t);position:relative;overflow:hidden;
+}
+.voice-item:hover{background:var(--g2);border-color:var(--border2)}
+.voice-item.playing{background:hsla(var(--h),100%,62%,0.1);border-color:hsla(var(--h),100%,62%,0.3)}
+.voice-item.favorited{border-color:rgba(251,191,36,0.3);background:rgba(251,191,36,0.05)}
+.voice-av{
+  width:42px;height:42px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;
+  position:relative;overflow:hidden;border:2px solid rgba(255,255,255,0.2);
+}
+.voice-av.me{background:linear-gradient(135deg,var(--accent),var(--accent-d))}
+.voice-av.partner{background:linear-gradient(135deg,var(--accent2),var(--accent2-d))}
+.voice-play-btn{
+  width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:15px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-d));
+  color:#fff;box-shadow:0 4px 12px var(--accent-glow);transition:var(--t-spring);flex-shrink:0;
+}
+.voice-play-btn:hover{transform:scale(1.08)}
+.voice-play-btn:active{transform:scale(0.95)}
+.voice-play-btn.playing{background:linear-gradient(135deg,var(--accent2),var(--accent2-d));box-shadow:0 4px 12px var(--accent2-glow)}
+.voice-info{flex:1;min-width:0}
+.voice-sender{font-size:12px;font-weight:700;color:var(--white)}
+.voice-date{font-size:11px;color:var(--text3);margin-top:1px}
+.voice-waveform{
+  display:flex;align-items:center;gap:2px;height:28px;flex:1;max-width:120px;
+}
+.voice-waveform span{display:inline-block;border-radius:3px;background:rgba(255,255,255,0.25);width:3px;transition:background 0.2s}
+.voice-item.playing .voice-waveform span{background:var(--accent)}
+.voice-item.playing .voice-waveform span{animation:waveAnim 0.6s ease-in-out infinite alternate}
+.voice-item.playing .voice-waveform span:nth-child(2n){animation-delay:0.1s}
+.voice-item.playing .voice-waveform span:nth-child(3n){animation-delay:0.2s}
+@keyframes waveAnim{from{transform:scaleY(0.4)}to{transform:scaleY(1.0)}}
+.voice-dur{font-size:11px;color:var(--text3);font-weight:600;white-space:nowrap}
+.voice-actions{display:flex;gap:5px;flex-shrink:0}
+.voice-action-btn{width:30px;height:30px;border-radius:8px;border:none;cursor:pointer;background:var(--g2);color:var(--text2);font-size:13px;display:flex;align-items:center;justify-content:center;transition:var(--t)}
+.voice-action-btn:hover{background:var(--g3);color:var(--white)}
+.voice-action-btn.fav{color:var(--yellow)}
+.voice-action-btn.del:hover{background:var(--red-bg);color:var(--red)}
+
+/* ── DATE SEPARATOR ── */
+.col-date-sep{
+  display:flex;align-items:center;gap:10px;padding:12px 16px 6px;
+  font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;
+}
+.col-date-sep::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── PHOTO GRID ── */
+.photo-col-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:0 16px}
+@media(min-width:600px){.photo-col-grid{grid-template-columns:repeat(4,1fr)}}
+.photo-col-item{
+  aspect-ratio:1;position:relative;overflow:hidden;cursor:pointer;
+  border-radius:4px;background:var(--g1);border:1px solid var(--border);transition:var(--t);
+}
+.photo-col-item:hover{transform:scale(1.02);z-index:2;box-shadow:0 8px 24px rgba(0,0,0,0.5)}
+.photo-col-item img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-col-item video{width:100%;height:100%;object-fit:cover;display:block}
+.photo-overlay{
+  position:absolute;inset:0;background:rgba(0,0,0,0.5);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  opacity:0;transition:var(--t);border-radius:4px;
+}
+.photo-col-item:hover .photo-overlay{opacity:1}
+.photo-overlay-date{font-size:9px;color:rgba(255,255,255,0.8);font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
+.photo-fav-badge{position:absolute;top:5px;right:5px;font-size:14px;z-index:1}
+.photo-video-badge{position:absolute;bottom:5px;left:5px;background:rgba(0,0,0,0.6);color:#fff;font-size:9px;padding:2px 6px;border-radius:6px;font-weight:700}
+.photo-action-row{position:absolute;bottom:0;left:0;right:0;padding:8px 6px;display:flex;gap:5px;justify-content:center;background:linear-gradient(to top,rgba(0,0,0,0.8),transparent);opacity:0;transition:var(--t);border-radius:0 0 4px 4px}
+.photo-col-item:hover .photo-action-row{opacity:1}
+.pa-btn{padding:5px 10px;border-radius:8px;border:none;cursor:pointer;font-family:var(--ff-sans);font-size:10px;font-weight:700;color:#fff;background:rgba(255,255,255,0.15);backdrop-filter:blur(8px);transition:var(--t)}
+.pa-btn:hover{background:rgba(255,255,255,0.3)}
+
+/* ── LIGHTBOX ── */
+.col-lightbox{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.96);display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.col-lightbox.open{display:flex}
+.col-lightbox img,.col-lightbox video{max-width:94vw;max-height:80vh;object-fit:contain;border-radius:10px}
+.col-lb-close{position:absolute;top:16px;right:18px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.col-lb-info{margin-top:16px;text-align:center}
+.col-lb-date{font-size:12px;color:rgba(255,255,255,0.7)}
+.col-lb-actions{display:flex;gap:10px;margin-top:12px;justify-content:center}
+.col-lb-btn{padding:8px 18px;border-radius:12px;border:none;cursor:pointer;font-family:var(--ff-sans);font-size:12px;font-weight:600;transition:var(--t)}
+.col-lb-btn.fav{background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(251,191,36,0.3)}
+.col-lb-btn.del{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,0.3)}
+.col-lb-btn.dl{background:var(--g2);color:var(--white);border:1px solid var(--border)}
+
+/* ── EMPTY ── */
+.col-empty{text-align:center;padding:48px 20px}
+.col-empty-ico{font-size:48px;margin-bottom:12px}
+.col-empty-text{font-size:13px;color:var(--text3);line-height:1.7}
+
+/* ── SECTION MONTH ── */
+.photo-month-sep{padding:14px 16px 8px;display:flex;align-items:center;gap:12px}
+.photo-month-label{font-family:var(--ff-serif);font-size:15px;color:var(--white)}
+.photo-month-count{font-size:10px;color:var(--text3);font-weight:700;background:var(--g2);padding:2px 8px;border-radius:10px;border:1px solid var(--border)}
+
+/* ── TOAST ── */
+#colToast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(12px);background:rgba(15,15,15,0.9);backdrop-filter:blur(16px);color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;z-index:9999;opacity:0;transition:all 0.3s;pointer-events:none;white-space:nowrap;box-shadow:0 6px 24px rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);font-family:var(--ff-sans);font-weight:500}
+</style>
+</head>
+<body>
+
+<!-- TABS -->
+<div class="col-tabs">
+  <div class="col-tab active" onclick="switchColTab('voice',this)">🎙️ Voice Messages</div>
+  <div class="col-tab" onclick="switchColTab('photos',this)">📸 Photo Collection</div>
+</div>
+
+<!-- HERO STATS -->
+<div class="col-hero" id="colHero"></div>
+
+<!-- TOOLBAR -->
+<div class="col-toolbar" id="colToolbar">
+  <input type="text" class="col-search" id="colSearch" placeholder="Search..." oninput="renderCurrentTab()">
+</div>
+
+<!-- SECTIONS -->
+<div id="col-section-voice">
+  <div class="voice-list" id="voiceList"></div>
+</div>
+<div id="col-section-photos" style="display:none">
+  <div id="photoColContent"></div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="col-lightbox" id="colLightbox">
+  <button class="col-lb-close" onclick="closeLightbox()">✕</button>
+  <img id="colLbImg" src="" style="display:none">
+  <video id="colLbVid" controls style="display:none"></video>
+  <div class="col-lb-info">
+    <div class="col-lb-date" id="colLbDate"></div>
+    <div class="col-lb-actions">
+      <button class="col-lb-btn fav" id="colLbFavBtn" onclick="lbToggleFav()">⭐ Favorite</button>
+      <button class="col-lb-btn dl" onclick="lbDownload()">⬇️ Save</button>
+      <button class="col-lb-btn del" onclick="lbDelete()">🗑️ Delete</button>
+    </div>
+  </div>
+</div>
+
+<div id="colToast"></div>
+<audio id="voiceAudio" preload="auto"></audio>
+
+<script>
+let colState = {
+  voices: [],   // extracted from parent chatMessages
+  photos: [],   // extracted from parent photos
+  myName: 'You',
+  partnerName: 'Partner',
+  role: 'user1',
+  voiceFavs: JSON.parse(localStorage.getItem('col_voice_favs') || '[]'),
+  photoFavs: JSON.parse(localStorage.getItem('col_photo_favs') || '[]'),
+};
+let currentTab = 'voice';
+let voiceFilter = 'all';
+let photoFilter = 'all';
+let lbCurrentIdx = -1;
+let lbCurrentType = 'photo';
+let currentPlayingIdx = -1;
+const voiceAudio = document.getElementById('voiceAudio');
+
+function loadFromParent() {
+  try {
+    const ps = window.parent?.S;
+    if (!ps) return;
+    colState.myName = ps.myName || 'You';
+    colState.partnerName = ps.partnerName || 'Partner';
+    colState.role = ps.role || 'user1';
+
+    // Extract voice messages from chat
+    colState.voices = (ps.chatMessages || [])
+      .filter(m => m.type === 'voice' && m.audioData && !m._deleted)
+      .map((m, i) => ({
+        id: m.id || i,
+        audioData: m.audioData,
+        duration: m.duration || '0:00',
+        date: m.date || '',
+        time: m.time || '',
+        by: m.by || (m.me ? 'user1' : 'user2'),
+        durationSec: parseDuration(m.duration || '0:00'),
+      })).sort((a,b) => (b.date + b.time).localeCompare(a.date + a.time));
+
+    // Extract photos
+    colState.photos = (ps.photos || [])
+      .map(p => ({ ...p }))
+      .sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+    // Also grab photos from chat
+    const chatPhotos = (ps.chatMessages || [])
+      .filter(m => m.mediaUrl && !m._deleted)
+      .map(m => ({
+        id: 'chat_' + m.id,
+        url: m.mediaUrl,
+        type: 'image',
+        date: m.date || '',
+        name: 'Chat photo',
+        fromChat: true,
+      }));
+    // Merge, deduplicate
+    const existIds = new Set(colState.photos.map(p => p.id));
+    chatPhotos.forEach(p => { if (!existIds.has(p.id)) colState.photos.push(p); });
+    colState.photos.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  } catch(e) { console.warn('colLoad:', e); }
+}
+
+function parseDuration(s) {
+  if (!s) return 0;
+  const parts = s.split(':');
+  return parseInt(parts[0]||0)*60 + parseInt(parts[1]||0);
+}
+
+function escHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function fmtDate(s){ if(!s)return''; try{return new Date(s+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}catch(e){return s}}
+function fmtDateShort(s){ if(!s)return''; try{return new Date(s+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});}catch(e){return s}}
+function fmtMonthYear(s){ if(!s)return''; try{return new Date(s+'T00:00:00').toLocaleDateString('en-IN',{month:'long',year:'numeric'});}catch(e){return s}}
+function todayStr(){return new Date().toISOString().slice(0,10)}
+
+function totalVoiceDuration(){
+  return colState.voices.reduce((s,v)=>s+v.durationSec,0);
+}
+function fmtTotalDur(sec){ const m=Math.floor(sec/60); return m>0?m+'m':'<1m'; }
+
+function renderHero() {
+  const totalSec = totalVoiceDuration();
+  const favVoices = colState.voices.filter(v => colState.voiceFavs.includes(v.id)).length;
+  const favPhotos = colState.photos.filter(p => colState.photoFavs.includes(p.id)).length;
+  document.getElementById('colHero').innerHTML = currentTab === 'voice' ? `
+    <div class="col-stat"><div class="col-stat-n">${colState.voices.length}</div><div class="col-stat-l">Voice Msgs</div></div>
+    <div class="col-stat"><div class="col-stat-n" style="color:var(--yellow)">${favVoices}</div><div class="col-stat-l">Favorites</div></div>
+    <div class="col-stat"><div class="col-stat-n" style="color:var(--accent)">${fmtTotalDur(totalSec)}</div><div class="col-stat-l">Total Duration</div></div>
+    <div class="col-stat"><div class="col-stat-n" style="color:var(--accent2)">${colState.voices.filter(v=>v.by===colState.role).length}</div><div class="col-stat-l">My Messages</div></div>
+  ` : `
+    <div class="col-stat"><div class="col-stat-n">${colState.photos.length}</div><div class="col-stat-l">Total Photos</div></div>
+    <div class="col-stat"><div class="col-stat-n" style="color:var(--yellow)">${favPhotos}</div><div class="col-stat-l">Favorites</div></div>
+    <div class="col-stat"><div class="col-stat-n" style="color:var(--accent)">${colState.photos.filter(p=>p.type==='video').length}</div><div class="col-stat-l">Videos</div></div>
+    <div class="col-stat"><div class="col-stat-n" style="color:var(--accent2)">${colState.photos.filter(p=>p.fromChat).length}</div><div class="col-stat-l">From Chat</div></div>
+  `;
+}
+
+function renderToolbar() {
+  const tb = document.getElementById('colToolbar');
+  const isVoice = currentTab === 'voice';
+  const filters = isVoice
+    ? [{k:'all',l:'All'},{k:'me',l:'My Voice'},{k:'partner',l:'Partner\'s'},{k:'fav',l:'⭐ Favorites'}]
+    : [{k:'all',l:'All'},{k:'image',l:'📸 Photos'},{k:'video',l:'🎬 Videos'},{k:'fav',l:'⭐ Favorites'}];
+  const active = isVoice ? voiceFilter : photoFilter;
+  tb.innerHTML = `
+    <input type="text" class="col-search" id="colSearch" placeholder="Search..." oninput="renderCurrentTab()" value="">
+    ${filters.map(f=>`<div class="col-filter ${active===f.k?'active':''}" onclick="setFilter('${f.k}')">${f.l}</div>`).join('')}
+  `;
+}
+
+function setFilter(f) {
+  if (currentTab === 'voice') voiceFilter = f;
+  else photoFilter = f;
+  renderToolbar();
+  renderCurrentTab();
+}
+
+function getQuery() {
+  const el = document.getElementById('colSearch');
+  return (el?.value || '').toLowerCase();
+}
+
+// ── VOICE RENDER ──
+function renderVoice() {
+  const q = getQuery();
+  let voices = colState.voices.filter(v => {
+    if (q && !v.date.includes(q) && !v.time.includes(q)) return false;
+    if (voiceFilter === 'me') return v.by === colState.role;
+    if (voiceFilter === 'partner') return v.by !== colState.role;
+    if (voiceFilter === 'fav') return colState.voiceFavs.includes(v.id);
+    return true;
+  });
+
+  const el = document.getElementById('voiceList');
+  if (!voices.length) {
+    el.innerHTML = `<div class="col-empty"><div class="col-empty-ico">🎙️</div><div class="col-empty-text">${colState.voices.length?'No voice messages match your filter.':'No voice messages yet. Send voice messages in Chat and they\'ll appear here!'}</div></div>`;
+    return;
+  }
+
+  // Group by date
+  const byDate = {};
+  voices.forEach(v => { const d = v.date || 'Unknown'; if(!byDate[d]) byDate[d]=[]; byDate[d].push(v); });
+
+  el.innerHTML = Object.entries(byDate).map(([date, vlist]) => `
+    <div class="col-date-sep">${date === new Date().toISOString().slice(0,10) ? 'Today' : fmtDate(date)}</div>
+    ${vlist.map((v, i) => {
+      const isMe = v.by === colState.role;
+      const isFav = colState.voiceFavs.includes(v.id);
+      const isPlaying = currentPlayingIdx === v.id;
+      const name = isMe ? colState.myName : colState.partnerName;
+      const initial = name[0] || '?';
+      return `<div class="voice-item${isPlaying?' playing':''}${isFav?' favorited':''}" id="vi-${v.id}">
+        <div class="voice-av ${isMe?'me':'partner'}">${initial}</div>
+        <button class="voice-play-btn${isPlaying?' playing':''}" onclick="playVoice(${JSON.stringify(v.id)},${JSON.stringify(v.audioData||'')})">
+          ${isPlaying ? '⏸' : '▶'}
+        </button>
+        <div class="voice-info">
+          <div class="voice-sender">${escHtml(name)}</div>
+          <div class="voice-date">${v.time || ''}</div>
+        </div>
+        <div class="voice-waveform">${generateWave()}</div>
+        <div class="voice-dur">${v.duration}</div>
+        <div class="voice-actions">
+          <button class="voice-action-btn fav${isFav?' fav':''}" title="Favorite" onclick="toggleVoiceFav(${JSON.stringify(v.id)})">${isFav?'⭐':'☆'}</button>
+          <button class="voice-action-btn" title="Download" onclick="downloadVoice(${JSON.stringify(v.audioData||'')})">⬇️</button>
+          <button class="voice-action-btn del" title="Delete" onclick="deleteVoice(${JSON.stringify(v.id)})">🗑️</button>
+        </div>
+      </div>`;
+    }).join('')}
+  `).join('');
+}
+
+function generateWave() {
+  return Array.from({length:18}, () => `<span style="height:${6+Math.round(Math.random()*14)}px"></span>`).join('');
+}
+
+let currentAudio = null;
+function playVoice(id, audioData) {
+  if (!audioData) { showColToast('Audio not available'); return; }
+  const prevId = currentPlayingIdx;
+  if (currentPlayingIdx === id) {
+    // Pause
+    voiceAudio.pause();
+    currentPlayingIdx = -1;
+    updateVoiceItem(id, false);
+    updateVoiceItem(prevId, false);
+    return;
+  }
+  if (currentPlayingIdx !== -1) updateVoiceItem(currentPlayingIdx, false);
+  currentPlayingIdx = id;
+  voiceAudio.src = audioData;
+  voiceAudio.play().catch(e => showColToast('Cannot play audio: ' + e.message));
+  updateVoiceItem(id, true);
+}
+function updateVoiceItem(id, playing) {
+  const el = document.getElementById('vi-' + id);
+  if (!el) return;
+  el.classList.toggle('playing', playing);
+  const btn = el.querySelector('.voice-play-btn');
+  if (btn) { btn.textContent = playing ? '⏸' : '▶'; btn.classList.toggle('playing', playing); }
+}
+voiceAudio.addEventListener('ended', () => {
+  if (currentPlayingIdx !== -1) { updateVoiceItem(currentPlayingIdx, false); currentPlayingIdx = -1; }
+});
+
+function toggleVoiceFav(id) {
+  const idx = colState.voiceFavs.indexOf(id);
+  if (idx > -1) colState.voiceFavs.splice(idx, 1);
+  else colState.voiceFavs.push(id);
+  localStorage.setItem('col_voice_favs', JSON.stringify(colState.voiceFavs));
+  renderVoice(); renderHero();
+}
+function downloadVoice(audioData) {
+  if (!audioData) return;
+  const a = document.createElement('a');
+  a.href = audioData;
+  a.download = 'voice-' + Date.now() + '.webm';
+  a.click();
+  showColToast('Downloading... ⬇️');
+}
+function deleteVoice(id) {
+  if (!confirm('Delete this voice message?')) return;
+  colState.voices = colState.voices.filter(v => v.id !== id);
+  // Also delete from parent state if possible
+  try {
+    const ps = window.parent?.S;
+    if (ps?.chatMessages) {
+      const m = ps.chatMessages.find(m => m.id === id);
+      if (m) { m._deleted = true; m.audioData = null; m.type = 'deleted'; }
+      window.parent.scheduleSave?.();
+    }
+  } catch(e) {}
+  renderVoice(); renderHero();
+  showColToast('Voice message deleted');
+}
+
+// ── PHOTO RENDER ──
+function renderPhotos() {
+  const q = getQuery();
+  let photos = colState.photos.filter(p => {
+    if (q && !(p.name||'').toLowerCase().includes(q) && !p.date.includes(q)) return false;
+    if (photoFilter === 'image') return p.type !== 'video';
+    if (photoFilter === 'video') return p.type === 'video';
+    if (photoFilter === 'fav') return colState.photoFavs.includes(p.id);
+    return true;
+  });
+
+  const el = document.getElementById('photoColContent');
+  if (!photos.length) {
+    el.innerHTML = `<div class="col-empty"><div class="col-empty-ico">📸</div><div class="col-empty-text">${colState.photos.length?'No photos match your filter.':'No photos yet. Upload memories and they\'ll appear here!'}</div></div>`;
+    return;
+  }
+
+  // Group by month
+  const byMonth = {};
+  photos.forEach(p => {
+    const key = p.date ? p.date.slice(0,7) : 'Unknown';
+    if (!byMonth[key]) byMonth[key] = [];
+    byMonth[key].push(p);
+  });
+
+  el.innerHTML = Object.entries(byMonth).sort((a,b)=>b[0].localeCompare(a[0])).map(([month, list]) => `
+    <div class="photo-month-sep">
+      <div class="photo-month-label">${fmtMonthYear(month+'-01')}</div>
+      <div class="photo-month-count">${list.length} item${list.length!==1?'s':''}</div>
+    </div>
+    <div class="photo-col-grid">
+      ${list.map((p, i) => {
+        const isFav = colState.photoFavs.includes(p.id);
+        const realIdx = colState.photos.indexOf(p);
+        return `<div class="photo-col-item" onclick="openPhotoLightbox(${realIdx})">
+          ${p.type === 'video'
+            ? `<video src="${p.url}" muted preload="metadata"></video><div class="photo-video-badge">▶ VIDEO</div>`
+            : `<img src="${p.url}" loading="lazy" alt="photo">`}
+          ${isFav ? '<div class="photo-fav-badge">⭐</div>' : ''}
+          <div class="photo-overlay"><div class="photo-overlay-date">${p.date||''}</div></div>
+          <div class="photo-action-row">
+            <button class="pa-btn" onclick="event.stopPropagation();togglePhotoFav(${JSON.stringify(p.id)})">${isFav?'★':'☆'}</button>
+            <button class="pa-btn" onclick="event.stopPropagation();downloadPhoto(${JSON.stringify(p.url||'')})">⬇</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `).join('');
+}
+
+function openPhotoLightbox(idx) {
+  lbCurrentIdx = idx;
+  lbCurrentType = 'photo';
+  const p = colState.photos[idx];
+  if (!p) return;
+  const img = document.getElementById('colLbImg');
+  const vid = document.getElementById('colLbVid');
+  if (p.type === 'video') {
+    img.style.display = 'none';
+    vid.style.display = 'block';
+    vid.src = p.url;
+  } else {
+    vid.style.display = 'none';
+    img.style.display = 'block';
+    img.src = p.url;
+  }
+  const isFav = colState.photoFavs.includes(p.id);
+  document.getElementById('colLbDate').textContent = fmtDate(p.date) + (p.name && p.name !== 'camera' ? ' · ' + p.name : '');
+  document.getElementById('colLbFavBtn').textContent = isFav ? '⭐ Unfavorite' : '☆ Favorite';
+  document.getElementById('colLightbox').classList.add('open');
+}
+function closeLightbox() {
+  const vid = document.getElementById('colLbVid');
+  vid.pause(); vid.src = '';
+  document.getElementById('colLightbox').classList.remove('open');
+}
+function lbToggleFav() {
+  const p = colState.photos[lbCurrentIdx]; if (!p) return;
+  const idx = colState.photoFavs.indexOf(p.id);
+  if (idx > -1) colState.photoFavs.splice(idx, 1);
+  else colState.photoFavs.push(p.id);
+  localStorage.setItem('col_photo_favs', JSON.stringify(colState.photoFavs));
+  document.getElementById('colLbFavBtn').textContent = colState.photoFavs.includes(p.id) ? '⭐ Unfavorite' : '☆ Favorite';
+  renderPhotos(); renderHero();
+}
+function lbDownload() {
+  const p = colState.photos[lbCurrentIdx]; if (!p?.url) return;
+  const a = document.createElement('a');
+  a.href = p.url;
+  a.download = 'memory-' + Date.now() + (p.type==='video'?'.mp4':'.jpg');
+  a.click();
+  showColToast('Saving to device ⬇️');
+}
+function lbDelete() {
+  const p = colState.photos[lbCurrentIdx];
+  if (!p || !confirm('Delete this photo?')) return;
+  colState.photos.splice(lbCurrentIdx, 1);
+  try {
+    const ps = window.parent?.S;
+    if (ps?.photos) {
+      ps.photos = ps.photos.filter(x => x.id !== p.id);
+      window.parent.scheduleSave?.();
+      window.parent.renderPhotos?.();
+    }
+  } catch(e) {}
+  closeLightbox();
+  renderPhotos(); renderHero();
+  showColToast('Photo deleted');
+}
+function togglePhotoFav(id) {
+  const idx = colState.photoFavs.indexOf(id);
+  if (idx > -1) colState.photoFavs.splice(idx, 1);
+  else colState.photoFavs.push(id);
+  localStorage.setItem('col_photo_favs', JSON.stringify(colState.photoFavs));
+  renderPhotos(); renderHero();
+}
+function downloadPhoto(url) {
+  if (!url) return;
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'photo-' + Date.now() + '.jpg';
+  a.click();
+  showColToast('Saving... ⬇️');
+}
+
+// ── TAB SWITCHING ──
+function switchColTab(tab, el) {
+  currentTab = tab;
+  document.querySelectorAll('.col-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('col-section-voice').style.display = tab==='voice'?'block':'none';
+  document.getElementById('col-section-photos').style.display = tab==='photos'?'block':'none';
+  renderToolbar();
+  renderHero();
+  renderCurrentTab();
+}
+function renderCurrentTab() {
+  if (currentTab === 'voice') renderVoice();
+  else renderPhotos();
+}
+
+// ── TOAST ──
+let toastTimer;
+function showColToast(msg) {
+  const t = document.getElementById('colToast');
+  t.textContent = msg; t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(12px)'; }, 2600);
+}
+
+// ── PARENT MESSAGES ──
+window.addEventListener('message', e => {
+  if (e.data?.type === 'theme') {
+    const r = document.documentElement;
+    Object.entries(e.data.vars || {}).forEach(([k,v]) => r.style.setProperty(k,v));
+  }
+  if (e.data?.type === 'colRefresh') init();
+});
+
+// ── INIT ──
+function init() {
+  loadFromParent();
+  renderToolbar();
+  renderHero();
+  renderCurrentTab();
+}
+init();
+</script>
+</body>
+</html>

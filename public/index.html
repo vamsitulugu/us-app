@@ -4079,6 +4079,8 @@
       <div class="ni" data-page="calendar"><span class="ico">📅</span>Calendar</div>
       <div class="ni" data-page="map"><span class="ico">📍</span>Live Map</div>
       <div class="ni" data-page="places"><span class="ico">🗺️</span>Places Memory</div>
+      <div class="ni" data-page="lovecounter"><span class="ico">⏱️</span>Love Counter</div>
+      <div class="ni" data-page="collection"><span class="ico">🎙️</span>Collection</div>
       <div class="ni" data-page="music"><span class="ico">🎵</span>Music</div>
       <div class="ni" data-page="games"><span class="ico">🎮</span>Games <span class="games-badge">NEW</span></div>
       <div class="ni" data-page="dreamgoals"><span class="ico">💫</span>Dream Goals <div class="dreams-new-badge"></div></div>
@@ -4210,6 +4212,17 @@
           </div>
         </div>
       </div>
+      <div class="page" id="page-lovecounter">
+  <div class="iframe-page-wrap">
+    <iframe id="lovecounterFrame" src="/lovecounter.html" title="Love Counter" loading="lazy"></iframe>
+  </div>
+</div>
+
+<div class="page" id="page-collection">
+  <div class="iframe-page-wrap">
+    <iframe id="collectionFrame" src="/collection.html" title="Collection" loading="lazy"></iframe>
+  </div>
+</div>
       <div class="page" id="page-dreamhome">
         <div class="card">
           <div class="card-title">🏡 Dream Home Planner<button class="btn btn-accent btn-sm"
@@ -4840,20 +4853,6 @@
           </div>
         </div>
       </div>
-      <div class="page" id="page-music">
-  <div class="card">
-    <div class="card-title">🎵 Share a Song</div>
-    <div style="display:flex;gap:9px">
-      <input type="text" id="spotifyLinkIn" placeholder="Paste a YouTube link or search a song name...">
-      <button class="btn btn-accent" onclick="addSong()">Add 🎵</button>
-    </div>
-    <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.7">💡 <strong style="color:var(--text2)">YouTube links</strong> play right here for both of you. <strong style="color:var(--text2)">Spotify/SoundCloud</strong> open in their app. Type a song name to search YouTube. Note: some YouTube videos block embedding — if you see an error, open in YouTube and copy a different video's link.</div>
-  </div>
-  <div class="card">
-    <div class="card-title">💕 Our Shared Songs</div>
-    <div id="songsList"><div class="empty">No songs shared yet</div></div>
-  </div>
-</div>
       <div class="page" id="page-surprise">
         <div class="card">
           <div class="card-title">🎁 Create a Surprise<button class="btn btn-accent btn-sm"
@@ -5841,7 +5840,8 @@ function renderPartnerLastSeen() {
           dashboard: 'Dashboard', chat: 'Chat 💬', camera: 'Our Memories',
           vault: 'Secret Vault', myspace: 'My Space', bucket: 'Bucket List',
           profile: 'Our Profile', calendar: 'Calendar', money: 'Money',
-          ai: 'AI Love Guide', settings: 'Settings', period: 'Period Tracker',
+          ai: 'AI Love Guide',lovecounter: 'Love Counter ⏱️',
+          collection: 'Collection 🎙️', settings: 'Settings', period: 'Period Tracker',
           fights: 'Fight Log', study: 'Study Together', map: 'Live Map 📍',
           music: 'Music 🎵', capsule: 'Love Capsule 💌', surprise: 'Surprises 🎁',
           level: 'Couple Level 🏆', dreamhome: 'Dream Home 🏡',games: 'Couple Games 🎮',
@@ -5865,13 +5865,14 @@ function renderPartnerLastSeen() {
           if (page === 'fights') renderFights();
           if (page === 'study') renderStudyPage();
           if (page === 'map') renderMapPage();
-          if (page === 'music') renderSongs();
+          if (page === 'music') syncThemeToFrame('musicFrame');
           if (page === 'capsule') renderCapsules();
           if (page === 'surprise') renderSurprises();
           if (page === 'level') renderLevelPage();
           if (page === 'dreamhome') renderDreamHome();
           if (page === 'games') syncThemeToFrame('gamesFrame');
-          if (page === 'music') syncThemeToFrame('musicFrame');
+          if (page === 'lovecounter') syncThemeToFrame('lovecounterFrame');
+          if (page === 'collection') syncThemeToFrame('collectionFrame');  
           if (page === 'dreamgoals') { syncThemeToFrame('dreamgoalsFrame'); syncDreamGoalsToFrame(); }
           if (page === 'places') { syncThemeToFrame('placesFrame'); syncPlacesMemoryToFrame(); }
           closeMobSidebar();
@@ -7883,7 +7884,7 @@ function exportChatPDF() {
         });
         // Patch setTheme to sync iframes
         const _origST = window.setTheme;
-        window.setTheme = function(n, s) { _origST && _origST(n, s); setTimeout(() => ['gamesFrame','musicFrame','dreamgoalsFrame','placesFrame'].forEach(syncThemeToFrame), 150); };
+        window.setTheme = function(n, s) { _origST && _origST(n, s); setTimeout(() => ['gamesFrame','musicFrame','dreamgoalsFrame','placesFrame','lovecounterFrame','collectionFrame'].forEach(syncThemeToFrame), 150); };
 applyRebranding();
 init();
         // Register PWA service worker
