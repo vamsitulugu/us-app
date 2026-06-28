@@ -4046,6 +4046,7 @@
         <span class="couple-names" id="coupleLabel">You & Partner</span>
       </div>
       <div id="partnerLastSeen" style="font-size:10px;color:var(--text3);margin-top:6px;padding-left:2px;display:none"></div>
+<div id="hbSidebarPresence" style="margin-top:2px;padding-left:2px"></div>
       <div class="sync-status sync-on" id="syncPill">
         <div class="pulse pulse-on" id="syncDot"></div><span id="syncText">Synced</span>
       </div>
@@ -4120,8 +4121,8 @@
         <div class="hamburger" id="hamburger" onclick="toggleMobSidebar()">☰</div>
         <div class="tb-title" id="topTitle">Dashboard</div>
       </div>
-       <div class="tb-right">
-        <span style="font-size:10px;color:var(--text3)" id="lastSaved"></span>
+       <span style="font-size:10px;color:var(--text3)" id="lastSaved"></span>
+<div id="hbTopbarPill" class="hb-topbar-pill" onclick="HeartbeatManager.openStats()" title="Heartbeat Stats"></div>
         <button class="ic-btn" onclick="openSearch()" title="Search" style="font-size:16px">🔍</button>
         <button class="btn btn-glass btn-sm" onclick="syncNow()" id="syncBtn">☁️ Sync</button>
       </div>
@@ -4150,6 +4151,10 @@
             <div class="metric-l">Habit Streak</div>
           </div>
         </div>
+        <!-- ═══ HEARTBEAT CONNECTION WIDGET ═══ -->
+        <div id="hbWidgetContainer"></div>
+          <!-- Pulse ring (global, positioned absolute by HB manager) -->
+        <div id="hbPulseRing"></div>
         <div class="card touch-card">
           <div class="card-title" style="justify-content:center">❤️ Send a Touch</div>
           <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Tap the heart — <span
@@ -7902,7 +7907,7 @@ function exportChatPDF() {
               frame.contentWindow.postMessage({ type: 'names', my: S.myName || 'You', partner: S.partnerName || 'Partner' }, '*');
             } catch(e) {}
           };
-          if (frame.contentDocument && frame.contentDocument.readyState === 'complete') doIt();
+          if (frame.conten4tDocument && frame.contentDocument.readyState === 'complete') doIt();
           else frame.addEventListener('load', doIt, { once: true });
         }
         window.addEventListener('message', function(e) {
