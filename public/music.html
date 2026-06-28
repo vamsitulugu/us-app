@@ -148,6 +148,97 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 .empty-pl-ico{font-size:44px;margin-bottom:10px}
 .empty-pl-text{font-size:12px;color:var(--text3);line-height:1.7}
 
+/* ── SONG ACTION SHEET ── */
+.sheet-overlay{position:fixed;inset:0;z-index:900;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center}
+.sheet-overlay.open{display:flex}
+.action-sheet{width:100%;max-width:480px;background:rgba(10,10,24,0.96);backdrop-filter:var(--blur);border:1px solid var(--border2);border-radius:24px 24px 0 0;padding:10px 8px calc(20px + env(safe-area-inset-bottom));animation:sheetUp 0.3s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-handle{width:36px;height:4px;background:var(--border2);border-radius:3px;margin:4px auto 12px}
+.sheet-track-head{display:flex;align-items:center;gap:11px;padding:6px 14px 14px;border-bottom:1px solid var(--border)}
+.sheet-track-art{width:48px;height:48px;border-radius:11px;flex-shrink:0;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:19px;overflow:hidden}
+.sheet-track-art img{width:100%;height:100%;object-fit:cover}
+.sheet-title{font-size:14px;font-weight:600;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sheet-artist{font-size:11px;color:var(--text3);margin-top:2px}
+.sheet-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:14px 6px 4px}
+.sheet-action{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px;border-radius:14px;cursor:pointer;transition:var(--t);background:transparent;border:none}
+.sheet-action:hover{background:var(--g2)}
+.sheet-action .sa-ico{font-size:21px}
+.sheet-action .sa-label{font-size:10px;color:var(--text2);font-weight:500;text-align:center;line-height:1.3}
+.sheet-action.danger .sa-label{color:var(--red)}
+.track-more{background:none;border:none;cursor:pointer;color:var(--text3);font-size:15px;padding:4px 8px;border-radius:6px;transition:var(--t);flex-shrink:0}
+.track-more:hover{background:var(--g2);color:var(--white)}
+.track-fav-badge{font-size:11px}
+
+/* ── KARAOKE MODE ── */
+.karaoke-bg{position:fixed;inset:0;z-index:950;background:radial-gradient(ellipse at 50% 0%,rgba(91,0,160,0.35),rgba(2,2,10,0.97) 70%);display:none;flex-direction:column;overflow:hidden}
+.karaoke-bg.open{display:flex}
+.karaoke-wrap{flex:1;display:flex;flex-direction:column;height:100%;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);position:relative;overflow:hidden}
+.karaoke-topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;position:relative;z-index:2}
+.karaoke-close,.karaoke-icon-btn{background:rgba(255,255,255,0.08);border:1px solid var(--border2);color:#fff;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;transition:var(--t)}
+.karaoke-icon-btn.sm{width:30px;height:30px;font-size:13px}
+.karaoke-close:hover,.karaoke-icon-btn:hover{background:rgba(255,255,255,0.16)}
+.karaoke-icon-btn.danger{color:var(--red)}
+.karaoke-mode-label{font-size:13px;font-weight:700;color:#fff;letter-spacing:0.3px}
+
+.karaoke-bgfx{position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(circle at 50% 30%,hsla(var(--h),100%,60%,0.18),transparent 60%);transition:background 0.4s}
+.karaoke-bgfx.live{background:radial-gradient(circle at 50% 30%,rgba(248,113,113,0.28),transparent 60%);animation:bgPulse 1.4s ease-in-out infinite}
+@keyframes bgPulse{0%,100%{opacity:0.7}50%{opacity:1}}
+
+.karaoke-art-wrap{display:flex;justify-content:center;padding:6px 0 14px;position:relative;z-index:1}
+.karaoke-art{width:168px;height:168px;border-radius:24px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:56px;box-shadow:0 16px 50px rgba(0,0,0,0.5);overflow:hidden;border:1px solid rgba(255,255,255,0.15)}
+.karaoke-art img{width:100%;height:100%;object-fit:cover}
+.karaoke-songinfo{text-align:center;padding:0 20px;position:relative;z-index:1}
+.karaoke-songtitle{font-family:var(--ff-serif);font-size:21px;color:#fff;line-height:1.3}
+.karaoke-songartist{font-size:12px;color:var(--text3);margin-top:3px}
+
+.karaoke-waveform{width:100%;height:54px;display:block;margin-top:10px;position:relative;z-index:1}
+
+.karaoke-lyrics-wrap{flex:1;overflow-y:auto;padding:18px 24px;position:relative;z-index:1;mask-image:linear-gradient(to bottom,transparent,#000 12%,#000 88%,transparent)}
+.karaoke-lyrics-wrap::-webkit-scrollbar{width:0}
+.karaoke-lyrics{display:flex;flex-direction:column;gap:16px;align-items:center;text-align:center;padding:30vh 0}
+.karaoke-line{font-size:17px;color:var(--text3);font-weight:500;transition:all 0.3s ease;line-height:1.5;cursor:pointer}
+.karaoke-line.next{color:var(--text2);font-size:18px}
+.karaoke-line.current{color:#fff;font-size:23px;font-weight:700;text-shadow:0 0 18px var(--accent-glow)}
+.karaoke-no-lyrics{color:var(--text3);font-size:13px;text-align:center;line-height:1.8;padding:30px 10px}
+
+.karaoke-progress-wrap{padding:6px 24px;position:relative;z-index:1}
+.karaoke-progress-bar{height:4px;border-radius:3px;background:rgba(255,255,255,0.12);position:relative;cursor:pointer;overflow:hidden}
+.karaoke-progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width 0.1s linear}
+.karaoke-times{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:5px}
+
+.karaoke-controls{display:flex;align-items:center;justify-content:center;gap:22px;padding:16px 20px;position:relative;z-index:1}
+.karaoke-ctrl-btn{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid var(--border2);color:#fff;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--t)}
+.karaoke-ctrl-btn:hover{background:rgba(255,255,255,0.16)}
+.karaoke-mic-btn{width:66px;height:66px;border-radius:50%;background:linear-gradient(135deg,var(--red),#b00020);border:none;color:#fff;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(248,113,113,0.4);transition:var(--t-spring)}
+.karaoke-mic-btn:hover{transform:scale(1.06)}
+.karaoke-mic-btn.live{animation:micPulse 1s ease-in-out infinite}
+@keyframes micPulse{0%{box-shadow:0 0 0 0 rgba(248,113,113,0.5)}70%{box-shadow:0 0 0 16px rgba(248,113,113,0)}100%{box-shadow:0 0 0 0 rgba(248,113,113,0)}}
+
+.karaoke-rec-controls,.karaoke-preview-controls{display:flex;justify-content:center;gap:10px;padding:0 20px 18px;flex-wrap:wrap;position:relative;z-index:1}
+.karaoke-rec-pill{padding:10px 18px;border-radius:22px;border:1px solid var(--border2);background:rgba(255,255,255,0.08);color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:var(--t);font-family:var(--ff-sans)}
+.karaoke-rec-pill:hover{background:rgba(255,255,255,0.16)}
+.karaoke-rec-pill.danger{background:rgba(248,113,113,0.18);border-color:rgba(248,113,113,0.35);color:var(--red)}
+.karaoke-rec-pill.success{background:rgba(52,211,153,0.18);border-color:rgba(52,211,153,0.35);color:var(--green)}
+
+.karaoke-countdown{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px)}
+.karaoke-countdown-num{font-family:var(--ff-serif);font-size:120px;color:#fff;animation:countPop 0.8s ease}
+@keyframes countPop{0%{transform:scale(0.4);opacity:0}40%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:1}}
+
+.karaoke-history-panel{position:absolute;inset:0;z-index:20;background:rgba(6,6,16,0.97);backdrop-filter:var(--blur);padding:70px 18px 20px;overflow-y:auto}
+.karaoke-history-row{display:flex;align-items:center;gap:10px;padding:11px;border-radius:14px;background:var(--g1);border:1px solid var(--border);margin-bottom:8px}
+.khr-info{flex:1;min-width:0}
+.khr-title{font-size:13px;color:#fff;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.khr-meta{font-size:10px;color:var(--text3);margin-top:2px}
+.khr-actions{display:flex;gap:6px;flex-shrink:0}
+
+@media(max-width:480px){
+  .karaoke-art{width:130px;height:130px;font-size:44px}
+  .karaoke-songtitle{font-size:18px}
+  .karaoke-line.current{font-size:19px}
+  .karaoke-line{font-size:15px}
+  .karaoke-mic-btn{width:58px;height:58px;font-size:21px}
+}
+
 /* ════════════════════════════════════
    MOVIES SECTION
 ════════════════════════════════════ */
@@ -310,8 +401,12 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 
   <!-- PLAYLIST TABS -->
   <div class="pl-tabs">
-    <div class="pl-tab active" onclick="switchPlTab('my',this)">❤️ My Playlist</div>
-    <div class="pl-tab" onclick="switchPlTab('partner',this)">💜 Partner's Playlist</div>
+    <div class="pl-tab active" onclick="switchPlTab('my',this)">🎵 My Playlist</div>
+    <div class="pl-tab" onclick="switchPlTab('partner',this)">💜 Partner Playlist</div>
+    <div class="pl-tab" onclick="switchPlTab('karaoke',this)">🎤 Karaoke</div>
+    <div class="pl-tab" onclick="switchPlTab('videos',this)">🎬 Music Videos</div>
+    <div class="pl-tab" onclick="switchPlTab('favorites',this)">❤️ Favorites</div>
+    <div class="pl-tab" onclick="switchPlTab('recent',this)">🕒 Recently Played</div>
   </div>
 
   <!-- MY PLAYLIST -->
@@ -358,6 +453,45 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
       <div class="upload-sub">Both of you can listen together</div>
     </label>
     <div class="track-list" id="ptTrackList"></div>
+  </div>
+
+  <!-- FAVORITES -->
+  <div id="pl-favorites" style="display:none">
+    <div class="sec-header">
+      <div><div class="sec-title">❤️ Favorites</div><div class="sec-sub" id="favMusicStats">0 songs</div></div>
+    </div>
+    <div class="track-list" id="favTrackList"></div>
+  </div>
+
+  <!-- RECENTLY PLAYED -->
+  <div id="pl-recent" style="display:none">
+    <div class="sec-header">
+      <div><div class="sec-title">🕒 Recently Played</div><div class="sec-sub" id="recentMusicStats">0 songs</div></div>
+    </div>
+    <div class="track-list" id="recentTrackList"></div>
+  </div>
+
+  <!-- KARAOKE -->
+  <div id="pl-karaoke" style="display:none">
+    <div class="sec-header">
+      <div><div class="sec-title">🎤 Karaoke</div><div class="sec-sub">Pick a song to sing along</div></div>
+    </div>
+    <div class="empty-pl" style="padding:20px">
+      <div class="empty-pl-ico">🎤</div>
+      <div class="empty-pl-text">Tap ⋯ on any song below and choose <strong>Sing With Lyrics</strong> to start Karaoke Mode.</div>
+    </div>
+    <div class="track-list" id="karaokeTrackList"></div>
+  </div>
+
+  <!-- MUSIC VIDEOS (placeholder — Phase 5) -->
+  <div id="pl-videos" style="display:none">
+    <div class="sec-header">
+      <div><div class="sec-title">🎬 Music Videos</div><div class="sec-sub">Coming soon</div></div>
+    </div>
+    <div class="empty-pl" style="padding:20px">
+      <div class="empty-pl-ico">🎬</div>
+      <div class="empty-pl-text">Music Videos with Watch Together is being built next.</div>
+    </div>
   </div>
 
 </div><!-- /section-music -->
@@ -524,6 +658,79 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 </div>
 
 <audio id="audioPlayer" preload="auto"></audio>
+
+<div class="sheet-overlay" id="actionSheetOverlay" onclick="if(event.target===this)closeActionSheet()">
+  <div class="action-sheet" id="actionSheet"></div>
+</div>
+
+<div class="song-modal-bg" id="lyricsModal">
+  <div class="song-modal">
+    <div class="sm-title">📜 Lyrics <button class="sm-close" onclick="closeLyricsModal()">✕</button></div>
+    <div class="sm-field">
+      <label>Paste lyrics (one line per line)</label>
+      <textarea id="lyricsText" rows="8" style="width:100%;background:var(--g1);border:1px solid var(--border);border-radius:9px;padding:9px 12px;font-size:13px;color:var(--white);font-family:var(--ff-sans);outline:none;resize:vertical"></textarea>
+    </div>
+    <button class="sm-save-btn" onclick="saveLyrics()">✅ Save Lyrics</button>
+  </div>
+</div>
+
+<!-- ══ KARAOKE MODE ══ -->
+<div class="karaoke-bg" id="karaokeBg">
+  <div class="karaoke-wrap">
+    <div class="karaoke-bgfx" id="karaokeBgFx"></div>
+
+    <div class="karaoke-topbar">
+      <button class="karaoke-close" onclick="closeKaraokeMode()">✕</button>
+      <div class="karaoke-mode-label">🎤 Karaoke</div>
+      <button class="karaoke-icon-btn" onclick="toggleKaraokeHistory()" title="Recordings">📼</button>
+    </div>
+
+    <div class="karaoke-art-wrap">
+      <div class="karaoke-art" id="karaokeArt"><span>🎵</span></div>
+    </div>
+    <div class="karaoke-songinfo">
+      <div class="karaoke-songtitle" id="karaokeSongTitle">Song title</div>
+      <div class="karaoke-songartist" id="karaokeSongArtist">Artist</div>
+    </div>
+
+    <canvas id="karaokeWaveform" class="karaoke-waveform"></canvas>
+
+    <div class="karaoke-lyrics-wrap" id="karaokeLyricsWrap">
+      <div class="karaoke-lyrics" id="karaokeLyrics"></div>
+    </div>
+
+    <div class="karaoke-progress-wrap">
+      <div class="karaoke-progress-bar" id="karaokeProgressArea" onclick="karaokeSeek(event)">
+        <div class="karaoke-progress-fill" id="karaokeProgressFill"></div>
+      </div>
+      <div class="karaoke-times"><span id="karaokeCurTime">0:00</span><span id="karaokeDurTime">0:00</span></div>
+    </div>
+
+    <div class="karaoke-controls">
+      <button class="karaoke-ctrl-btn" onclick="karaokeRestart()" title="Restart">⟲</button>
+      <button class="karaoke-mic-btn" id="karaokeMicBtn" onclick="karaokeStartCountdown()" title="Record">🎙</button>
+      <button class="karaoke-ctrl-btn" onclick="karaokeTogglePlay()" id="karaokePlayBtn">▶</button>
+    </div>
+
+    <div class="karaoke-rec-controls" id="karaokeRecControls" style="display:none">
+      <button class="karaoke-rec-pill" onclick="karaokePauseResume()" id="karaokePauseBtn">⏸ Pause</button>
+      <button class="karaoke-rec-pill danger" onclick="karaokeStopRecording()">⏹ Stop</button>
+    </div>
+
+    <div class="karaoke-preview-controls" id="karaokePreviewControls" style="display:none">
+      <button class="karaoke-rec-pill" onclick="karaokePlayPreview()">▶ Preview</button>
+      <button class="karaoke-rec-pill" onclick="karaokeRestartRecording()">⟲ Re-record</button>
+      <button class="karaoke-rec-pill success" onclick="karaokeSaveRecording()">💾 Save</button>
+      <button class="karaoke-rec-pill danger" onclick="karaokeDiscardRecording()">🗑 Discard</button>
+    </div>
+
+    <div class="karaoke-history-panel" id="karaokeHistoryPanel" style="display:none"></div>
+    <div class="karaoke-countdown" id="karaokeCountdown" style="display:none">
+      <div class="karaoke-countdown-num" id="karaokeCountdownNum">3</div>
+    </div>
+  </div>
+</div>
+
 <div id="mmToast"></div>
 
 <script>
@@ -534,6 +741,7 @@ let musicState = {
   my: [], partner: [],
   currentPlaylist: 'my', currentIdx: -1,
   playing: false, shuffle: false, repeat: false,
+  recordings: [],
 };
 let movieState = {
   movies: [],
@@ -573,7 +781,7 @@ function loadMusicLocal() {
       musicState[pl] = (d[pl]||[]).map(t => {
         let aud = null;
         try { aud = localStorage.getItem('us_aud_'+t.id); } catch(e){}
-        return {...t, audioData: aud};
+        return { favorite:false, playCount:0, lastPlayed:null, lyrics:'', ...t, audioData: aud };
       });
     });
   } catch(e){}
@@ -603,8 +811,13 @@ function switchPlTab(tab, el) {
   currentPlTab = tab;
   document.querySelectorAll('.pl-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById('pl-my').style.display = tab==='my' ? 'block' : 'none';
-  document.getElementById('pl-partner').style.display = tab==='partner' ? 'block' : 'none';
+  ['my','partner','karaoke','videos','favorites','recent'].forEach(id => {
+    const sec = document.getElementById('pl-'+id);
+    if (sec) sec.style.display = (tab===id) ? 'block' : 'none';
+  });
+  if (tab==='favorites') renderFavorites();
+  if (tab==='recent') renderRecent();
+  if (tab==='karaoke') renderKaraokeList();
 }
 
 // ══════════════════════════════════════
@@ -676,6 +889,7 @@ function confirmSongSave() {
     visibility: document.getElementById('smVis').value,
     emoji: EMOJIS_M[Math.floor(Math.random()*EMOJIS_M.length)],
     date: new Date().toISOString().slice(0,10),
+    favorite: false, playCount: 0, lastPlayed: null, lyrics: '',
   };
   musicState[pendingPlaylist].push(track);
   saveMusicLocal();
@@ -691,6 +905,23 @@ function confirmSongSave() {
 function renderMusicTracks() {
   renderPlaylist('my');
   renderPlaylist('partner');
+  renderFavorites();
+  renderRecent();
+  renderKaraokeList();
+}
+function renderTrackRow(t, pl, i, isActive) {
+  return `<div class="track-item${isActive?' active':''}" onclick="playTrack('${pl}',${i})">
+    <div class="track-num">${i+1}</div>
+    <div class="track-playing-anim"><div class="bar-anim"></div><div class="bar-anim"></div><div class="bar-anim"></div></div>
+    <div class="track-art">${t.artData?`<img src="${t.artData}" alt="">`:`<span>${t.emoji||'🎵'}</span>`}</div>
+    <div class="track-info">
+      <div class="track-title">${escH(t.title)}${t.favorite?' <span class="track-fav-badge">❤️</span>':''}</div>
+      <div class="track-artist">${escH(t.artist||'Unknown Artist')}</div>
+    </div>
+    <div class="track-dur">${t.durationFmt||''}</div>
+    <button class="track-more" onclick="event.stopPropagation();openActionSheet('${pl}',${i})" title="More">⋯</button>
+    <button class="track-del" onclick="event.stopPropagation();deleteTrack('${pl}',${i})" title="Delete">🗑️</button>
+  </div>`;
 }
 function renderPlaylist(pl) {
   const tracks = musicState[pl];
@@ -702,20 +933,33 @@ function renderPlaylist(pl) {
     el.innerHTML = `<div class="empty-pl"><div class="empty-pl-ico">${pl==='my'?'🎵':'💜'}</div><div class="empty-pl-text">${pl==='my'?'Your playlist is empty<br>Upload songs from your phone!':'No songs added yet for partner'}</div></div>`;
     return;
   }
-  el.innerHTML = tracks.map((t, i) => {
-    const isActive = musicState.currentPlaylist===pl && musicState.currentIdx===i;
-    return `<div class="track-item${isActive?' active':''}" onclick="playTrack('${pl}',${i})">
-      <div class="track-num">${i+1}</div>
-      <div class="track-playing-anim"><div class="bar-anim"></div><div class="bar-anim"></div><div class="bar-anim"></div></div>
-      <div class="track-art">${t.artData?`<img src="${t.artData}" alt="">`:`<span>${t.emoji||'🎵'}</span>`}</div>
-      <div class="track-info">
-        <div class="track-title">${escH(t.title)}</div>
-        <div class="track-artist">${escH(t.artist||'Unknown Artist')}</div>
-      </div>
-      <div class="track-dur">${t.durationFmt||''}</div>
-      <button class="track-del" onclick="event.stopPropagation();deleteTrack('${pl}',${i})" title="Delete">🗑️</button>
-    </div>`;
-  }).join('');
+  el.innerHTML = tracks.map((t, i) => renderTrackRow(t, pl, i, musicState.currentPlaylist===pl && musicState.currentIdx===i)).join('');
+}
+function getAllTracks() {
+  return [...musicState.my.map((t,i)=>({t,pl:'my',i})), ...musicState.partner.map((t,i)=>({t,pl:'partner',i}))];
+}
+function renderFavorites() {
+  const el = document.getElementById('favTrackList'); if (!el) return;
+  const favs = getAllTracks().filter(x=>x.t.favorite);
+  const statsEl = document.getElementById('favMusicStats');
+  if (statsEl) statsEl.textContent = `${favs.length} song${favs.length!==1?'s':''}`;
+  el.innerHTML = favs.length
+    ? favs.map(x => renderTrackRow(x.t, x.pl, x.i, musicState.currentPlaylist===x.pl && musicState.currentIdx===x.i)).join('')
+    : `<div class="empty-pl"><div class="empty-pl-ico">❤️</div><div class="empty-pl-text">No favorites yet — tap ⋯ on any song to add one</div></div>`;
+}
+function renderRecent() {
+  const el = document.getElementById('recentTrackList'); if (!el) return;
+  const recents = getAllTracks().filter(x=>x.t.lastPlayed).sort((a,b)=>(b.t.lastPlayed||0)-(a.t.lastPlayed||0)).slice(0,30);
+  const statsEl = document.getElementById('recentMusicStats');
+  if (statsEl) statsEl.textContent = `${recents.length} song${recents.length!==1?'s':''}`;
+  el.innerHTML = recents.length
+    ? recents.map(x => renderTrackRow(x.t, x.pl, x.i, musicState.currentPlaylist===x.pl && musicState.currentIdx===x.i)).join('')
+    : `<div class="empty-pl"><div class="empty-pl-ico">🕒</div><div class="empty-pl-text">Nothing played yet</div></div>`;
+}
+function renderKaraokeList() {
+  const el = document.getElementById('karaokeTrackList'); if (!el) return;
+  const all = getAllTracks();
+  el.innerHTML = all.map(x => renderTrackRow(x.t, x.pl, x.i, musicState.currentPlaylist===x.pl && musicState.currentIdx===x.i)).join('');
 }
 
 // ══════════════════════════════════════
@@ -729,6 +973,9 @@ function playTrack(pl, idx) {
   audio.src = t.audioData;
   audio.play().then(() => {
     musicState.playing = true;
+    t.playCount = (t.playCount||0) + 1;
+    t.lastPlayed = Date.now();
+    saveMusicLocal();
     updateNowPlaying(t);
     updatePlayBtn();
     renderMusicTracks();
@@ -1027,8 +1274,418 @@ document.addEventListener('keydown', e => {
   if (e.code==='ArrowLeft' && currentMusicSection==='music') prevSong();
 });
 
+// ══════════════════════════════════════
+// SONG ACTION SHEET
+// ══════════════════════════════════════
+let sheetCtx = null;
+function openActionSheet(pl, idx) {
+  const t = musicState[pl][idx]; if (!t) return;
+  sheetCtx = { pl, idx };
+  const sheet = document.getElementById('actionSheet');
+  sheet.innerHTML = `
+    <div class="sheet-handle"></div>
+    <div class="sheet-track-head">
+      <div class="sheet-track-art">${t.artData?`<img src="${t.artData}" alt="">`:`<span>${t.emoji||'🎵'}</span>`}</div>
+      <div style="min-width:0">
+        <div class="sheet-title">${escH(t.title)}</div>
+        <div class="sheet-artist">${escH(t.artist||'Unknown Artist')}</div>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      ${sheetAction('▶','Play','playFromSheet()')}
+      ${sheetAction('🎤','Sing With Lyrics','singWithLyrics()')}
+      ${sheetAction('🎙','Record Solo','recordSolo()')}
+      ${sheetAction('❤️','Invite Partner','invitePartnerKaraoke()')}
+      ${sheetAction('🎧','Instrumental','instrumentalMode()')}
+      ${sheetAction('📜','Lyrics','openLyricsModal()')}
+      ${sheetAction(t.favorite?'💔':'❤️', t.favorite?'Unfavorite':'Favorite','toggleFavoriteFromSheet()')}
+      ${sheetAction('➕','Move to '+(pl==='my'?'Partner':'My')+' List','moveTrackFromSheet()')}
+      ${sheetAction('📤','Share','shareTrackFromSheet()')}
+      ${sheetAction('🗑','Delete','deleteFromSheet()', true)}
+    </div>`;
+  document.getElementById('actionSheetOverlay').classList.add('open');
+}
+function sheetAction(ico, label, fn, danger) {
+  return `<button class="sheet-action${danger?' danger':''}" onclick="${fn}">
+    <span class="sa-ico">${ico}</span><span class="sa-label">${label}</span>
+  </button>`;
+}
+function closeActionSheet() {
+  document.getElementById('actionSheetOverlay').classList.remove('open');
+  sheetCtx = null;
+}
+function playFromSheet() { if (!sheetCtx) return; playTrack(sheetCtx.pl, sheetCtx.idx); closeActionSheet(); }
+function singWithLyrics() {
+  if (!sheetCtx) return;
+  const { pl, idx } = sheetCtx;
+  closeActionSheet();
+  openKaraokeMode(pl, idx);
+}
+function recordSolo() {
+  if (!sheetCtx) return;
+  const { pl, idx } = sheetCtx;
+  closeActionSheet();
+  openKaraokeMode(pl, idx);
+  setTimeout(karaokeStartCountdown, 350);
+}
+function invitePartnerKaraoke() { closeActionSheet(); showMMToast('❤️ Duet invites ship in Phase 3!'); }
+function instrumentalMode() { closeActionSheet(); showMMToast('🎧 Instrumental Mode ships in Phase 2!'); }
+function toggleFavoriteFromSheet() {
+  if (!sheetCtx) return;
+  const t = musicState[sheetCtx.pl][sheetCtx.idx];
+  t.favorite = !t.favorite;
+  saveMusicLocal(); renderMusicTracks(); closeActionSheet();
+  showMMToast(t.favorite ? 'Added to favorites ❤️' : 'Removed from favorites');
+}
+function moveTrackFromSheet() {
+  if (!sheetCtx) return;
+  const { pl, idx } = sheetCtx;
+  const [t] = musicState[pl].splice(idx, 1);
+  const target = pl === 'my' ? 'partner' : 'my';
+  musicState[target].push(t);
+  saveMusicLocal(); renderMusicTracks(); closeActionSheet();
+  showMMToast(`Moved to ${target === 'my' ? 'My' : "Partner's"} Playlist`);
+}
+function shareTrackFromSheet() {
+  if (!sheetCtx) return;
+  const t = musicState[sheetCtx.pl][sheetCtx.idx];
+  if (navigator.share) navigator.share({ title: t.title, text: `🎵 ${t.title} — ${t.artist||''}` }).catch(()=>{});
+  else showMMToast("Sharing isn't supported on this browser");
+  closeActionSheet();
+}
+function deleteFromSheet() {
+  if (!sheetCtx) return;
+  const { pl, idx } = sheetCtx;
+  closeActionSheet();
+  deleteTrack(pl, idx);
+}
+
+// ══════════════════════════════════════
+// LYRICS
+// ══════════════════════════════════════
+function openLyricsModal() {
+  if (!sheetCtx) return;
+  const t = musicState[sheetCtx.pl][sheetCtx.idx];
+  document.getElementById('lyricsText').value = t.lyrics || '';
+  document.getElementById('lyricsModal').classList.add('open');
+}
+function closeLyricsModal() { document.getElementById('lyricsModal').classList.remove('open'); }
+function saveLyrics() {
+  if (!sheetCtx) { closeLyricsModal(); return; }
+  const t = musicState[sheetCtx.pl][sheetCtx.idx];
+  t.lyrics = document.getElementById('lyricsText').value;
+  saveMusicLocal();
+  closeLyricsModal(); closeActionSheet();
+  showMMToast('Lyrics saved 📜');
+}
+
+// ══════════════════════════════════════
+// KARAOKE MODE
+// ══════════════════════════════════════
+let karaokeState = {
+  open: false, pl: null, idx: null, lyricsLines: [],
+  recState: 'idle', mediaRecorder: null, micStream: null,
+  recordedChunks: [], recordedBlob: null, recordedBlobUrl: null,
+  recordedDurationSec: 0, recStartTime: 0, recElapsedMs: 0, rafId: null,
+};
+let karaokeAudioCtx = null, karaokeAnalyser = null;
+let karaokeMicCtx = null, karaokeMicAnalyser = null;
+let karaokePreviewAudio = null;
+
+function ensureKaraokeAudioGraph() {
+  if (karaokeAudioCtx) return;
+  try {
+    karaokeAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = karaokeAudioCtx.createMediaElementSource(audio);
+    karaokeAnalyser = karaokeAudioCtx.createAnalyser();
+    karaokeAnalyser.fftSize = 256;
+    src.connect(karaokeAnalyser);
+    karaokeAnalyser.connect(karaokeAudioCtx.destination);
+  } catch(e) { /* graph may already exist on this element */ }
+}
+function ensureMicAnalyser(stream) {
+  try {
+    karaokeMicCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = karaokeMicCtx.createMediaStreamSource(stream);
+    karaokeMicAnalyser = karaokeMicCtx.createAnalyser();
+    karaokeMicAnalyser.fftSize = 256;
+    src.connect(karaokeMicAnalyser); // not connected to destination — avoids feedback
+  } catch(e) {}
+}
+
+function parseLyrics(raw) {
+  if (!raw) return [];
+  return raw.split('\n').map(l=>l.trim()).filter(l=>l.length);
+}
+
+function openKaraokeMode(pl, idx) {
+  const t = musicState[pl][idx]; if (!t) return;
+  karaokeState.pl = pl; karaokeState.idx = idx;
+  karaokeState.open = true;
+  karaokeState.recState = 'idle';
+  karaokeState.lyricsLines = parseLyrics(t.lyrics);
+  document.getElementById('karaokeSongTitle').textContent = t.title;
+  document.getElementById('karaokeSongArtist').textContent = t.artist || 'Unknown Artist';
+  document.getElementById('karaokeArt').innerHTML = t.artData ? `<img src="${t.artData}" alt="">` : `<span>${t.emoji||'🎵'}</span>`;
+  renderKaraokeLyrics();
+  document.getElementById('karaokeBg').classList.add('open');
+  ensureKaraokeAudioGraph();
+  if (karaokeAudioCtx && karaokeAudioCtx.state === 'suspended') karaokeAudioCtx.resume().catch(()=>{});
+  if (!(musicState.currentPlaylist===pl && musicState.currentIdx===idx)) playTrack(pl, idx);
+  else if (!musicState.playing) audio.play().catch(()=>{});
+  updateKaraokeRecUI();
+  if (!karaokeState.rafId) karaokeDrawFrame();
+}
+function closeKaraokeMode() {
+  document.getElementById('karaokeBg').classList.remove('open');
+  document.getElementById('karaokeHistoryPanel').style.display = 'none';
+  karaokeState.open = false;
+  if (karaokeState.recState === 'recording' || karaokeState.recState === 'paused') karaokeStopRecording();
+  if (karaokeState.rafId) { cancelAnimationFrame(karaokeState.rafId); karaokeState.rafId = null; }
+}
+
+function renderKaraokeLyrics() {
+  const el = document.getElementById('karaokeLyrics');
+  if (!karaokeState.lyricsLines.length) {
+    el.innerHTML = `<div class="karaoke-no-lyrics">📜 No lyrics added yet.<br>Close Karaoke and use ⋯ → Lyrics to add some.</div>`;
+    return;
+  }
+  el.innerHTML = karaokeState.lyricsLines.map((line,i)=>`<div class="karaoke-line" data-i="${i}" onclick="karaokeJumpToLine(${i})">${escH(line)}</div>`).join('');
+}
+function karaokeJumpToLine(i) {
+  if (!audio.duration || !karaokeState.lyricsLines.length) return;
+  audio.currentTime = (i / karaokeState.lyricsLines.length) * audio.duration;
+}
+function updateKaraokeUI() {
+  if (!karaokeState.open || !audio.duration) return;
+  const pct = audio.currentTime / audio.duration;
+  document.getElementById('karaokeProgressFill').style.width = (pct*100)+'%';
+  document.getElementById('karaokeCurTime').textContent = fmtTime(audio.currentTime);
+  document.getElementById('karaokeDurTime').textContent = fmtTime(audio.duration);
+  if (karaokeState.lyricsLines.length) {
+    const idx = Math.min(karaokeState.lyricsLines.length-1, Math.floor(pct*karaokeState.lyricsLines.length));
+    document.querySelectorAll('.karaoke-line').forEach(l=>l.classList.remove('current','next'));
+    const cur = document.querySelector(`.karaoke-line[data-i="${idx}"]`);
+    const next = document.querySelector(`.karaoke-line[data-i="${idx+1}"]`);
+    if (cur) { cur.classList.add('current'); cur.scrollIntoView({behavior:'smooth', block:'center'}); }
+    if (next) next.classList.add('next');
+  }
+}
+audio.addEventListener('timeupdate', updateKaraokeUI);
+audio.addEventListener('play', () => { if (karaokeState.open) document.getElementById('karaokePlayBtn').textContent = '⏸'; });
+audio.addEventListener('pause', () => { if (karaokeState.open) document.getElementById('karaokePlayBtn').textContent = '▶'; });
+
+function karaokeTogglePlay() {
+  if (karaokeAudioCtx && karaokeAudioCtx.state === 'suspended') karaokeAudioCtx.resume().catch(()=>{});
+  togglePlay();
+}
+function karaokeSeek(e) {
+  if (!audio.duration) return;
+  const bar = document.getElementById('karaokeProgressArea');
+  const rect = bar.getBoundingClientRect();
+  audio.currentTime = ((e.clientX-rect.left)/rect.width)*audio.duration;
+}
+function karaokeRestart() { audio.currentTime = 0; audio.play().catch(()=>{}); }
+
+function karaokeDrawFrame() {
+  if (!karaokeState.open) return;
+  const canvas = document.getElementById('karaokeWaveform');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.width = canvas.clientWidth * dpr;
+  const h = canvas.height = 54 * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,w,h);
+  const analyser = (karaokeState.recState==='recording' && karaokeMicAnalyser) ? karaokeMicAnalyser : karaokeAnalyser;
+  if (analyser) {
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(data);
+    const barCount = 40, step = Math.max(1,Math.floor(data.length/barCount)), barWidth = w/barCount;
+    for (let i=0;i<barCount;i++) {
+      const v = (data[i*step]||0)/255;
+      const barH = Math.max(3*dpr, v*h);
+      ctx.fillStyle = karaokeState.recState==='recording' ? '#f87171' : 'rgba(255,255,255,0.65)';
+      ctx.fillRect(i*barWidth + barWidth*0.15, (h-barH)/2, barWidth*0.7, barH);
+    }
+  }
+  karaokeState.rafId = requestAnimationFrame(karaokeDrawFrame);
+}
+
+// ── Countdown ──
+function karaokeStartCountdown() {
+  if (karaokeState.recState !== 'idle') return;
+  const el = document.getElementById('karaokeCountdown'), num = document.getElementById('karaokeCountdownNum');
+  el.style.display = 'flex'; let n = 3; num.textContent = n;
+  const iv = setInterval(()=>{
+    n--;
+    if (n <= 0) { clearInterval(iv); el.style.display = 'none'; karaokeBeginRecording(); }
+    else num.textContent = n;
+  }, 800);
+}
+
+// ── Recording lifecycle ──
+async function karaokeBeginRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    karaokeState.micStream = stream;
+    ensureMicAnalyser(stream);
+    karaokeState.recordedChunks = [];
+    const mr = new MediaRecorder(stream);
+    mr.ondataavailable = e => { if (e.data.size) karaokeState.recordedChunks.push(e.data); };
+    mr.onstop = karaokeOnRecordingStop;
+    karaokeState.mediaRecorder = mr;
+    karaokeState.recElapsedMs = 0;
+    karaokeState.recStartTime = Date.now();
+    mr.start();
+    karaokeState.recState = 'recording';
+    karaokeRestart();
+    updateKaraokeRecUI();
+  } catch(e) { showMMToast('Microphone access denied'); }
+}
+function karaokePauseResume() {
+  const mr = karaokeState.mediaRecorder; if (!mr) return;
+  if (karaokeState.recState === 'recording') {
+    mr.pause(); audio.pause();
+    karaokeState.recElapsedMs += Date.now() - karaokeState.recStartTime;
+    karaokeState.recState = 'paused';
+  } else if (karaokeState.recState === 'paused') {
+    mr.resume(); audio.play().catch(()=>{});
+    karaokeState.recStartTime = Date.now();
+    karaokeState.recState = 'recording';
+  }
+  updateKaraokeRecUI();
+}
+function karaokeStopRecording() {
+  const mr = karaokeState.mediaRecorder; if (!mr) return;
+  if (karaokeState.recState === 'recording') karaokeState.recElapsedMs += Date.now() - karaokeState.recStartTime;
+  try { mr.stop(); } catch(e){}
+  audio.pause();
+  if (karaokeState.micStream) karaokeState.micStream.getTracks().forEach(t=>t.stop());
+  if (karaokeMicCtx) { karaokeMicCtx.close().catch(()=>{}); karaokeMicCtx = null; karaokeMicAnalyser = null; }
+  karaokeState.recState = 'stopping';
+  updateKaraokeRecUI();
+}
+function karaokeOnRecordingStop() {
+  const blob = new Blob(karaokeState.recordedChunks, { type: 'audio/webm' });
+  if (karaokeState.recordedBlobUrl) URL.revokeObjectURL(karaokeState.recordedBlobUrl);
+  karaokeState.recordedBlob = blob;
+  karaokeState.recordedBlobUrl = URL.createObjectURL(blob);
+  karaokeState.recordedDurationSec = Math.round((karaokeState.recElapsedMs||0)/1000);
+  karaokeState.recState = 'preview';
+  updateKaraokeRecUI();
+}
+function karaokeRestartRecording() { karaokeDiscardRecording(); karaokeState.recState = 'idle'; updateKaraokeRecUI(); }
+function karaokeDiscardRecording() {
+  if (karaokeState.recordedBlobUrl) URL.revokeObjectURL(karaokeState.recordedBlobUrl);
+  karaokeState.recordedBlobUrl = null; karaokeState.recordedBlob = null; karaokeState.recordedDurationSec = 0;
+  karaokeState.recState = 'idle'; updateKaraokeRecUI();
+}
+function karaokePlayPreview() {
+  if (!karaokeState.recordedBlobUrl) return;
+  if (karaokePreviewAudio) karaokePreviewAudio.pause();
+  karaokePreviewAudio = new Audio(karaokeState.recordedBlobUrl);
+  karaokePreviewAudio.play().catch(()=>showMMToast('Cannot play preview'));
+}
+function karaokeSaveRecording() {
+  if (!karaokeState.recordedBlob) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const t = musicState[karaokeState.pl][karaokeState.idx];
+    const rec = {
+      id: Date.now() + Math.random(), trackId: t.id, trackTitle: t.title, trackArtist: t.artist,
+      type: 'solo', audioData: e.target.result,
+      durationSec: karaokeState.recordedDurationSec, durationFmt: fmtTime(karaokeState.recordedDurationSec),
+      date: new Date().toISOString().slice(0,10),
+    };
+    if (!musicState.recordings) musicState.recordings = [];
+    musicState.recordings.unshift(rec);
+    saveRecordingsLocal();
+    karaokeDiscardRecording();
+    renderKaraokeHistory();
+    showMMToast('Recording saved 🎙️');
+  };
+  reader.readAsDataURL(karaokeState.recordedBlob);
+}
+function updateKaraokeRecUI() {
+  const micBtn = document.getElementById('karaokeMicBtn');
+  const recControls = document.getElementById('karaokeRecControls');
+  const previewControls = document.getElementById('karaokePreviewControls');
+  const pauseBtn = document.getElementById('karaokePauseBtn');
+  const bg = document.getElementById('karaokeBgFx');
+  if (!micBtn) return;
+  micBtn.classList.toggle('live', karaokeState.recState==='recording');
+  micBtn.style.display = (karaokeState.recState==='idle') ? 'flex' : 'none';
+  recControls.style.display = (karaokeState.recState==='recording'||karaokeState.recState==='paused') ? 'flex' : 'none';
+  previewControls.style.display = (karaokeState.recState==='preview') ? 'flex' : 'none';
+  if (pauseBtn) pauseBtn.textContent = karaokeState.recState==='paused' ? '▶ Resume' : '⏸ Pause';
+  if (bg) bg.classList.toggle('live', karaokeState.recState==='recording');
+}
+
+// ── History ──
+function toggleKaraokeHistory() {
+  const panel = document.getElementById('karaokeHistoryPanel');
+  const showing = panel.style.display !== 'none';
+  panel.style.display = showing ? 'none' : 'block';
+  if (!showing) renderKaraokeHistory();
+}
+function renderKaraokeHistory() {
+  const panel = document.getElementById('karaokeHistoryPanel'); if (!panel) return;
+  const t = (karaokeState.pl!=null) ? musicState[karaokeState.pl][karaokeState.idx] : null;
+  const recs = (musicState.recordings||[]).filter(r => !t || r.trackId === t.id);
+  if (!recs.length) { panel.innerHTML = `<div class="empty-pl" style="padding:18px"><div class="empty-pl-ico">📼</div><div class="empty-pl-text">No recordings yet for this song</div></div>`; return; }
+  panel.innerHTML = `<div style="text-align:right;margin-bottom:10px"><button class="karaoke-icon-btn sm" onclick="toggleKaraokeHistory()">✕</button></div>` +
+    recs.map(r => `<div class="karaoke-history-row">
+      <div class="khr-info"><div class="khr-title">${escH(r.trackTitle)}</div><div class="khr-meta">${r.durationFmt||''} · ${r.date}</div></div>
+      <div class="khr-actions">
+        <button class="karaoke-icon-btn sm" onclick="playRecording(${r.id})" title="Play">▶</button>
+        <button class="karaoke-icon-btn sm" onclick="exportRecording(${r.id})" title="Export">⬇</button>
+        <button class="karaoke-icon-btn sm danger" onclick="deleteRecording(${r.id})" title="Delete">🗑</button>
+      </div>
+    </div>`).join('');
+}
+function playRecording(id) {
+  const r = (musicState.recordings||[]).find(x=>x.id===id); if (!r||!r.audioData) return;
+  if (karaokePreviewAudio) karaokePreviewAudio.pause();
+  karaokePreviewAudio = new Audio(r.audioData);
+  karaokePreviewAudio.play().catch(()=>showMMToast('Cannot play'));
+}
+function exportRecording(id) {
+  const r = (musicState.recordings||[]).find(x=>x.id===id); if (!r) return;
+  const a = document.createElement('a');
+  a.href = r.audioData;
+  a.download = (r.trackTitle||'recording').replace(/[^a-z0-9]/gi,'_') + '.webm';
+  a.click();
+}
+function deleteRecording(id) {
+  if (!confirm('Delete this recording?')) return;
+  try { localStorage.removeItem('us_rec_'+id); } catch(e){}
+  musicState.recordings = (musicState.recordings||[]).filter(r=>r.id!==id);
+  saveRecordingsLocal();
+  renderKaraokeHistory();
+  showMMToast('Recording deleted');
+}
+
+// ── Recordings persistence (meta + blob split, same pattern as songs) ──
+function saveRecordingsLocal() {
+  try {
+    const meta = (musicState.recordings||[]).map(r=>({...r, audioData:null}));
+    localStorage.setItem('us_recordings_meta_v1', JSON.stringify(meta));
+    (musicState.recordings||[]).forEach(r => { if (r.audioData) { try { localStorage.setItem('us_rec_'+r.id, r.audioData); } catch(e){} } });
+  } catch(e) { showMMToast('Storage full — recording may not save'); }
+}
+function loadRecordingsLocal() {
+  try {
+    const meta = localStorage.getItem('us_recordings_meta_v1');
+    if (!meta) { musicState.recordings = []; return; }
+    musicState.recordings = JSON.parse(meta).map(r => {
+      let aud = null; try { aud = localStorage.getItem('us_rec_'+r.id); } catch(e){}
+      return {...r, audioData: aud};
+    });
+  } catch(e) { musicState.recordings = []; }
+}
+
 // ── INIT ──
 loadMusicLocal();
+loadRecordingsLocal();
 loadMovieLocal();
 renderMusicTracks();
 renderMovieStats();
@@ -1061,6 +1718,37 @@ window.toggleShuffle = toggleShuffle;
 window.toggleRepeat = toggleRepeat;
 window.seekSong = seekSong;
 window.deleteTrack = deleteTrack;
+window.openActionSheet = openActionSheet;
+window.closeActionSheet = closeActionSheet;
+window.playFromSheet = playFromSheet;
+window.singWithLyrics = singWithLyrics;
+window.recordSolo = recordSolo;
+window.invitePartnerKaraoke = invitePartnerKaraoke;
+window.instrumentalMode = instrumentalMode;
+window.toggleFavoriteFromSheet = toggleFavoriteFromSheet;
+window.moveTrackFromSheet = moveTrackFromSheet;
+window.shareTrackFromSheet = shareTrackFromSheet;
+window.deleteFromSheet = deleteFromSheet;
+window.openLyricsModal = openLyricsModal;
+window.closeLyricsModal = closeLyricsModal;
+window.saveLyrics = saveLyrics;
+window.openKaraokeMode = openKaraokeMode;
+window.closeKaraokeMode = closeKaraokeMode;
+window.karaokeJumpToLine = karaokeJumpToLine;
+window.karaokeTogglePlay = karaokeTogglePlay;
+window.karaokeSeek = karaokeSeek;
+window.karaokeRestart = karaokeRestart;
+window.karaokeStartCountdown = karaokeStartCountdown;
+window.karaokePauseResume = karaokePauseResume;
+window.karaokeStopRecording = karaokeStopRecording;
+window.karaokeRestartRecording = karaokeRestartRecording;
+window.karaokeDiscardRecording = karaokeDiscardRecording;
+window.karaokePlayPreview = karaokePlayPreview;
+window.karaokeSaveRecording = karaokeSaveRecording;
+window.toggleKaraokeHistory = toggleKaraokeHistory;
+window.playRecording = playRecording;
+window.exportRecording = exportRecording;
+window.deleteRecording = deleteRecording;
 </script>
 </body>
 </html>
