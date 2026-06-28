@@ -3806,6 +3806,35 @@
   padding: 60px 20px;
   color: var(--text3);
 }
+/* ── IFRAME PAGES ── */
+.iframe-page-wrap {
+  width: 100%;
+  height: calc(100dvh - 118px);
+  overflow: hidden;
+  position: relative;
+}
+.iframe-page-wrap iframe {
+  width: 100%; height: 100%;
+  border: none; display: block; background: transparent;
+}
+@media(max-width: 700px) {
+  .iframe-page-wrap { height: calc(100dvh - 52px - 60px); }
+}
+.games-badge {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff; font-size: 9px; border-radius: 10px;
+  padding: 2px 6px; font-weight: 700; margin-left: auto;
+  animation: badgePulse 2s ease-in-out infinite;
+}
+@keyframes badgePulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50% { opacity:.85; transform:scale(1.08); }
+}
+.dreams-new-badge {
+  width:7px; height:7px; border-radius:50%;
+  background:var(--accent2); box-shadow:0 0 6px var(--accent2-glow);
+  flex-shrink:0; animation:blink 2s ease-in-out infinite;
+}
   </style>
 </head>
 
@@ -3967,6 +3996,8 @@
       <div class="ni" data-page="calendar"><span class="ico">📅</span>Calendar</div>
       <div class="ni" data-page="map"><span class="ico">📍</span>Live Map</div>
       <div class="ni" data-page="music"><span class="ico">🎵</span>Music</div>
+      <div class="ni" data-page="games"><span class="ico">🎮</span>Games <span class="games-badge">NEW</span></div>
+      <div class="ni" data-page="dreamgoals"><span class="ico">💫</span>Dream Goals <div class="dreams-new-badge"></div></div>
       <div class="ni" data-page="money"><span class="ico">💰</span>Money</div>
       <div class="ni" data-page="fights"><span class="ico">⚡</span>Fight Log</div>
       <div class="ni" data-page="capsule"><span class="ico">💌</span>Love Capsule</div>
@@ -5112,7 +5143,27 @@
         </div>
 
       </div>
-
+<!-- ════ GAMES PAGE ════ -->
+      <div class="page" id="page-games">
+        <div class="iframe-page-wrap">
+          <iframe id="gamesFrame" src="/games.html" title="Couple Games" allow="autoplay" loading="lazy"></iframe>
+        </div>
+      </div>
+ 
+      <!-- ════ MUSIC PAGE (REDESIGNED) ════ -->
+      <!-- DELETE your old page-music div and replace with: -->
+      <div class="page" id="page-music">
+        <div class="iframe-page-wrap">
+          <iframe id="musicFrame" src="/music.html" title="Music" allow="autoplay" loading="lazy"></iframe>
+        </div>
+      </div>
+ 
+      <!-- ════ DREAM GOALS PAGE ════ -->
+      <div class="page" id="page-dreamgoals">
+        <div class="iframe-page-wrap">
+          <iframe id="dreamgoalsFrame" src="/dreamgoals.html" title="Dream Goals" allow="autoplay" loading="lazy"></iframe>
+        </div>
+      </div>
       <!-- Mobile Bottom Nav -->
       <nav class="bot-nav" id="botNav">
         <div class="bot-ni active" data-page="dashboard" onclick="gotoMob('dashboard',this)"><span
@@ -5120,6 +5171,7 @@
         <div class="bot-ni" data-page="chat" onclick="gotoMob('chat',this)"><span class="ico">💬</span>Chat</div>
         <div class="bot-ni" data-page="myspace" onclick="gotoMob('myspace',this)"><span class="ico">🌸</span>Space</div>
         <div class="bot-ni" data-page="ai" onclick="gotoMob('ai',this)"><span class="ico">🤖</span>AI</div>
+        <div class="bot-ni" data-page="games" onclick="gotoMob('games',this)"><span class="ico">🎮</span>Games</div>
         <div class="bot-ni" data-page="settings" onclick="gotoMob('settings',this)"><span class="ico">⚙️</span>More
         </div>
       </nav>
@@ -5678,7 +5730,8 @@ function renderPartnerLastSeen() {
           ai: 'AI Love Guide', settings: 'Settings', period: 'Period Tracker',
           fights: 'Fight Log', study: 'Study Together', map: 'Live Map 📍',
           music: 'Music 🎵', capsule: 'Love Capsule 💌', surprise: 'Surprises 🎁',
-          level: 'Couple Level 🏆', dreamhome: 'Dream Home 🏡'
+          level: 'Couple Level 🏆', dreamhome: 'Dream Home 🏡',games: 'Couple Games 🎮',
+          dreamgoals: 'Dream Goals 💫'
         };
         function goto(page) {
           document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -5703,6 +5756,9 @@ function renderPartnerLastSeen() {
           if (page === 'surprise') renderSurprises();
           if (page === 'level') renderLevelPage();
           if (page === 'dreamhome') renderDreamHome();
+          if (page === 'games') syncThemeToFrame('gamesFrame');
+          if (page === 'music') syncThemeToFrame('musicFrame');
+          if (page === 'dreamgoals') { syncThemeToFrame('dreamgoalsFrame'); syncDreamGoalsToFrame(); }
           closeMobSidebar();
         }
         document.querySelectorAll('.ni[data-page]').forEach(el => el.addEventListener('click', () => goto(el.dataset.page)));
@@ -7503,6 +7559,42 @@ function exportChatPDF() {
   setTimeout(() => { win.print(); }, 400);
   toast('Opening print dialog — choose "Save as PDF" 📄');
 }
+// ── IFRAME THEME + DREAM SYNC ──
+        function syncThemeToFrame(frameId) {
+          const frame = document.getElementById(frameId);
+          if (!frame) return;
+          const doIt = () => {
+            try {
+              const root = getComputedStyle(document.documentElement);
+              const vars = {};
+              ['--h','--accent','--accent-d','--accent-l','--accent-glow',
+               '--accent2','--accent2-d','--accent2-glow'].forEach(v => {
+                vars[v] = root.getPropertyValue(v).trim();
+              });
+              frame.contentWindow.postMessage({ type: 'theme', vars }, '*');
+            } catch(e) {}
+          };
+          if (frame.contentDocument && frame.contentDocument.readyState === 'complete') doIt();
+          else frame.addEventListener('load', doIt, { once: true });
+        }
+        function syncDreamGoalsToFrame() {
+          const frame = document.getElementById('dreamgoalsFrame');
+          if (!frame) return;
+          const doIt = () => {
+            try {
+              frame.contentWindow.postMessage({ type: 'names', my: S.myName || 'You', partner: S.partnerName || 'Partner' }, '*');
+              if (S.dreamGoals && S.dreamGoals.length) frame.contentWindow.postMessage({ type: 'syncDreams', dreams: S.dreamGoals }, '*');
+            } catch(e) {}
+          };
+          if (frame.contentDocument && frame.contentDocument.readyState === 'complete') doIt();
+          else frame.addEventListener('load', doIt, { once: true });
+        }
+        window.addEventListener('message', function(e) {
+          if (e.data && e.data.type === 'dreamgoals') { S.dreamGoals = e.data.dreams || []; scheduleSave(); }
+        });
+        // Patch setTheme to sync iframes
+        const _origST = window.setTheme;
+        window.setTheme = function(n, s) { _origST && _origST(n, s); setTimeout(() => ['gamesFrame','musicFrame','dreamgoalsFrame'].forEach(syncThemeToFrame), 150); };
 applyRebranding();
 init();
         // Register PWA service worker
