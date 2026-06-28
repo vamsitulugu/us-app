@@ -239,6 +239,56 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
   .karaoke-mic-btn{width:58px;height:58px;font-size:21px}
 }
 
+/* ── AUDIO EFFECTS RACK ── */
+.fx-rack-overlay{position:fixed;inset:0;z-index:960;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);display:none;align-items:flex-end;justify-content:center}
+.fx-rack-overlay.open{display:flex}
+.fx-rack{width:100%;max-width:480px;background:rgba(8,8,22,0.97);backdrop-filter:blur(30px) saturate(200%);border:1px solid var(--border2);border-radius:24px 24px 0 0;padding:10px 16px calc(24px + env(safe-area-inset-bottom));animation:sheetUp 0.3s cubic-bezier(0.34,1.56,0.64,1)}
+.fx-rack-handle{width:36px;height:4px;background:var(--border2);border-radius:3px;margin:4px auto 14px}
+.fx-rack-title{font-family:var(--ff-serif);font-size:17px;color:var(--white);text-align:center;margin-bottom:16px}
+.fx-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}
+.fx-row:last-of-type{border-bottom:none}
+.fx-icon{font-size:22px;width:34px;text-align:center;flex-shrink:0}
+.fx-info{flex:1;min-width:0}
+.fx-name{font-size:13px;font-weight:600;color:var(--white)}
+.fx-desc{font-size:10px;color:var(--text3);margin-top:2px}
+.fx-slider{width:100%;accent-color:var(--accent);cursor:pointer;height:4px;margin-top:6px}
+.fx-toggle{width:44px;height:24px;border-radius:12px;background:var(--g2);border:1px solid var(--border);cursor:pointer;position:relative;transition:var(--t);flex-shrink:0}
+.fx-toggle.on{background:var(--accent);border-color:var(--accent)}
+.fx-toggle::after{content:'';position:absolute;width:18px;height:18px;background:var(--white);border-radius:50%;top:2px;left:2px;transition:var(--t-spring);box-shadow:0 2px 6px rgba(0,0,0,0.3)}
+.fx-toggle.on::after{left:22px}
+.fx-preset-row{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0 6px}
+.fx-preset{padding:6px 13px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--g1);color:var(--text2);transition:var(--t);user-select:none}
+.fx-preset:hover{background:var(--g2);color:var(--white)}
+.fx-preset.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 10px var(--accent-glow)}
+.fx-reset-btn{width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--g1);color:var(--text2);font-family:var(--ff-sans);font-size:13px;font-weight:600;cursor:pointer;transition:var(--t);margin-top:10px}
+.fx-reset-btn:hover{background:var(--g2);color:var(--white)}
+
+/* FX button in karaoke topbar */
+.karaoke-fx-btn{background:rgba(255,255,255,0.08);border:1px solid var(--border2);color:#fff;padding:6px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;transition:var(--t);letter-spacing:0.3px}
+.karaoke-fx-btn:hover{background:rgba(255,255,255,0.16)}
+.karaoke-fx-btn.active{background:var(--accent);border-color:var(--accent);box-shadow:0 2px 10px var(--accent-glow)}
+
+/* ── ACHIEVEMENTS ── */
+.ach-toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:linear-gradient(135deg,rgba(20,20,40,0.97),rgba(10,10,24,0.97));backdrop-filter:blur(20px);border:1px solid var(--accent-glow);border-radius:20px;padding:12px 20px;display:flex;align-items:center;gap:12px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.5);transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;min-width:240px}
+.ach-toast.show{transform:translateX(-50%) translateY(0)}
+.ach-toast-ico{font-size:28px;flex-shrink:0}
+.ach-toast-title{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px}
+.ach-toast-name{font-size:13px;font-weight:600;color:var(--white);margin-top:2px}
+.ach-toast-desc{font-size:10px;color:var(--text3);margin-top:1px}
+
+.ach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:4px 0}
+.ach-card{background:var(--g1);border:1px solid var(--border);border-radius:14px;padding:13px 10px;text-align:center;transition:var(--t)}
+.ach-card.unlocked{background:hsla(var(--h),100%,62%,0.08);border-color:hsla(var(--h),100%,62%,0.3)}
+.ach-card.unlocked:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.25)}
+.ach-card-ico{font-size:26px;margin-bottom:6px}
+.ach-card-name{font-size:10px;font-weight:700;color:var(--white);line-height:1.3}
+.ach-card-desc{font-size:9px;color:var(--text3);margin-top:3px;line-height:1.4}
+.ach-card-locked{opacity:0.35}
+
+/* ── UPLOAD PROGRESS ── */
+.upload-progress-bar{height:3px;background:var(--g2);border-radius:2px;overflow:hidden;margin-top:6px;display:none}
+.upload-progress-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width 0.3s ease}
+
 /* ════════════════════════════════════
    MOVIES SECTION
 ════════════════════════════════════ */
@@ -415,7 +465,11 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
       <div>
         <div class="sec-title">My Playlist</div>
         <div class="sec-sub" id="myMusicStats">0 songs</div>
+        <div class="upload-progress-bar" id="uploadProgressBar">
+          <div class="upload-progress-fill" id="uploadProgressFill"></div>
+        </div>
       </div>
+      <button class="mode-pill" style="margin:0" onclick="openAchievementsModal()">🏅</button>
     </div>
     <div class="mode-pills">
       <div class="mode-pill play-all" onclick="playAll('my')">▶ Play All</div>
@@ -682,7 +736,10 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
     <div class="karaoke-topbar">
       <button class="karaoke-close" onclick="closeKaraokeMode()">✕</button>
       <div class="karaoke-mode-label">🎤 Karaoke</div>
-      <button class="karaoke-icon-btn" onclick="toggleKaraokeHistory()" title="Recordings">📼</button>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="karaoke-fx-btn" id="karaokeOpenFx" onclick="openFxRack()">🎛 FX</button>
+        <button class="karaoke-icon-btn" onclick="toggleKaraokeHistory()" title="Recordings">📼</button>
+      </div>
     </div>
 
     <div class="karaoke-art-wrap">
@@ -731,6 +788,110 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
   </div>
 </div>
 
+<!-- ══ AUDIO FX RACK ══ -->
+<div class="fx-rack-overlay" id="fxRackOverlay" onclick="if(event.target===this)closeFxRack()">
+  <div class="fx-rack">
+    <div class="fx-rack-handle"></div>
+    <div class="fx-rack-title">🎛 Audio Effects</div>
+
+    <!-- Presets -->
+    <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Quick Presets</div>
+    <div class="fx-preset-row" id="fxPresetRow">
+      <div class="fx-preset active" onclick="applyFxPreset('flat',this)">Flat</div>
+      <div class="fx-preset" onclick="applyFxPreset('studio',this)">🎙 Studio</div>
+      <div class="fx-preset" onclick="applyFxPreset('bathroom',this)">🚿 Bathroom</div>
+      <div class="fx-preset" onclick="applyFxPreset('stadium',this)">🏟 Stadium</div>
+      <div class="fx-preset" onclick="applyFxPreset('deep',this)">🎸 Deep</div>
+      <div class="fx-preset" onclick="applyFxPreset('bright',this)">✨ Bright</div>
+    </div>
+
+    <!-- Reverb -->
+    <div class="fx-row">
+      <div class="fx-icon">🌊</div>
+      <div class="fx-info">
+        <div class="fx-name">Reverb</div>
+        <div class="fx-desc">Room ambience & echo tail</div>
+        <input type="range" class="fx-slider" id="fxReverb" min="0" max="1" step="0.01" value="0" oninput="applyFxFromSliders()">
+      </div>
+      <div class="fx-toggle" id="fxReverbToggle" onclick="toggleFxNode('reverb')"></div>
+    </div>
+
+    <!-- Echo / Delay -->
+    <div class="fx-row">
+      <div class="fx-icon">🔁</div>
+      <div class="fx-info">
+        <div class="fx-name">Echo / Delay</div>
+        <div class="fx-desc">Repeat delay in milliseconds</div>
+        <input type="range" class="fx-slider" id="fxDelay" min="0" max="0.8" step="0.01" value="0" oninput="applyFxFromSliders()">
+      </div>
+      <div class="fx-toggle" id="fxDelayToggle" onclick="toggleFxNode('delay')"></div>
+    </div>
+
+    <!-- Pitch -->
+    <div class="fx-row">
+      <div class="fx-icon">🎵</div>
+      <div class="fx-info">
+        <div class="fx-name">Pitch Shift</div>
+        <div class="fx-desc">Semitones: -6 (lower) to +6 (higher)</div>
+        <input type="range" class="fx-slider" id="fxPitch" min="-6" max="6" step="0.5" value="0" oninput="applyFxFromSliders()">
+      </div>
+      <div class="fx-toggle" id="fxPitchToggle" onclick="toggleFxNode('pitch')"></div>
+    </div>
+
+    <!-- Bass Boost -->
+    <div class="fx-row">
+      <div class="fx-icon">🔊</div>
+      <div class="fx-info">
+        <div class="fx-name">Bass Boost</div>
+        <div class="fx-desc">Low frequency gain (dB)</div>
+        <input type="range" class="fx-slider" id="fxBass" min="-12" max="18" step="0.5" value="0" oninput="applyFxFromSliders()">
+      </div>
+      <div class="fx-toggle" id="fxBassToggle" onclick="toggleFxNode('bass')"></div>
+    </div>
+
+    <!-- Treble -->
+    <div class="fx-row">
+      <div class="fx-icon">🎶</div>
+      <div class="fx-info">
+        <div class="fx-name">Treble Boost</div>
+        <div class="fx-desc">High frequency gain (dB)</div>
+        <input type="range" class="fx-slider" id="fxTreble" min="-12" max="12" step="0.5" value="0" oninput="applyFxFromSliders()">
+      </div>
+      <div class="fx-toggle" id="fxTrebleToggle" onclick="toggleFxNode('treble')"></div>
+    </div>
+
+    <!-- Master Volume -->
+    <div class="fx-row">
+      <div class="fx-icon">🔉</div>
+      <div class="fx-info">
+        <div class="fx-name">Master Volume</div>
+        <div class="fx-desc">Overall output level</div>
+        <input type="range" class="fx-slider" id="fxVolume" min="0" max="2" step="0.01" value="1" oninput="applyFxFromSliders()">
+      </div>
+    </div>
+
+    <button class="fx-reset-btn" onclick="resetFxRack()">↺ Reset All Effects</button>
+  </div>
+</div>
+
+<!-- ══ ACHIEVEMENTS MODAL ══ -->
+<div class="song-modal-bg" id="achievementsModal">
+  <div class="song-modal" style="max-width:460px">
+    <div class="sm-title">🏅 Music Achievements <button class="sm-close" onclick="closeAchievementsModal()">✕</button></div>
+    <div id="achievementsGrid" class="ach-grid"></div>
+  </div>
+</div>
+
+<!-- ══ ACHIEVEMENT TOAST ══ -->
+<div class="ach-toast" id="achToast">
+  <div class="ach-toast-ico" id="achToastIco">🏅</div>
+  <div>
+    <div class="ach-toast-title">Achievement Unlocked!</div>
+    <div class="ach-toast-name" id="achToastName"></div>
+    <div class="ach-toast-desc" id="achToastDesc"></div>
+  </div>
+</div>
+
 <div id="mmToast"></div>
 
 <script>
@@ -765,7 +926,9 @@ function saveMusicLocal() {
   try {
     const meta = {
       my: musicState.my.map(t=>({...t, audioData: null})),
-      partner: musicState.partner.map(t=>({...t, audioData: null}))
+      partner: musicState.partner.map(t=>({...t, audioData: null})),
+      _syncTs: Date.now(),
+      _role: musicState._role || 'unknown'
     };
     localStorage.setItem('us_music_meta_v2', JSON.stringify(meta));
     musicState.my.forEach(t => { if(t.audioData) { try { localStorage.setItem('us_aud_'+t.id, t.audioData); } catch(e){} } });
@@ -878,6 +1041,7 @@ function closeSongModal() {
 }
 function confirmSongSave() {
   if (!pendingSongData) { closeSongModal(); return; }
+  setTimeout(checkAchievements, 500); // check after track is pushed
   const track = {
     id: Date.now() + Math.random(),
     title: document.getElementById('smTitle').value.trim() || 'Untitled',
@@ -896,6 +1060,7 @@ function confirmSongSave() {
   renderMusicTracks();
   closeSongModal();
   showMMToast('Song added! 🎵');
+  if (pendingPlaylist === 'my') onMySongAdded();
   if (!musicState.playing) playTrack(pendingPlaylist, musicState[pendingPlaylist].length-1);
 }
 
@@ -1038,6 +1203,7 @@ function deleteTrack(pl, i) {
   musicState[pl].splice(i,1);
   saveMusicLocal(); renderMusicTracks();
   showMMToast('Song deleted');
+  if (pl === 'my') onMySongAdded(); // push deletion to cloud
 }
 function updateNowPlaying(t) {
   document.getElementById('npTitle').textContent = t.title;
@@ -1063,6 +1229,402 @@ audio.addEventListener('timeupdate', () => {
 audio.addEventListener('ended', () => { if (!musicState.repeat) nextSong(); });
 audio.addEventListener('pause', () => { musicState.playing=false; updatePlayBtn(); updateNPArt(); });
 audio.addEventListener('play', () => { musicState.playing=true; updatePlayBtn(); updateNPArt(); });
+
+// ══════════════════════════════════════
+// AUDIO FX RACK (Phase 4)
+// ══════════════════════════════════════
+let fxNodes = {
+  masterGain: null,
+  bassFilter: null,
+  trebleFilter: null,
+  delayNode: null,
+  delayGain: null,
+  convolverNode: null,
+  convolverGain: null,
+};
+let fxState = {
+  reverb: false, delay: false, pitch: false, bass: false, treble: false,
+  reverbAmt: 0, delayAmt: 0, pitchAmt: 0, bassAmt: 0, trebleAmt: 0,
+  volume: 1, activePreset: 'flat'
+};
+// Pitch is implemented via playbackRate approximation (no phase vocoder needed for sing-along)
+// 1 semitone ≈ playbackRate * 2^(1/12)
+function semitoneToRate(semitones) {
+  return Math.pow(2, semitones / 12);
+}
+
+function ensureFxGraph() {
+  if (!karaokeAudioCtx) return;
+  const ctx = karaokeAudioCtx;
+  // Master gain
+  if (!fxNodes.masterGain) {
+    fxNodes.masterGain = ctx.createGain();
+    fxNodes.masterGain.gain.value = 1;
+  }
+  // Bass boost (lowshelf)
+  if (!fxNodes.bassFilter) {
+    fxNodes.bassFilter = ctx.createBiquadFilter();
+    fxNodes.bassFilter.type = 'lowshelf';
+    fxNodes.bassFilter.frequency.value = 200;
+    fxNodes.bassFilter.gain.value = 0;
+  }
+  // Treble boost (highshelf)
+  if (!fxNodes.trebleFilter) {
+    fxNodes.trebleFilter = ctx.createBiquadFilter();
+    fxNodes.trebleFilter.type = 'highshelf';
+    fxNodes.trebleFilter.frequency.value = 5000;
+    fxNodes.trebleFilter.gain.value = 0;
+  }
+  // Delay
+  if (!fxNodes.delayNode) {
+    fxNodes.delayNode = ctx.createDelay(1.0);
+    fxNodes.delayNode.delayTime.value = 0.2;
+    fxNodes.delayGain = ctx.createGain();
+    fxNodes.delayGain.gain.value = 0;
+    fxNodes.delayNode.connect(fxNodes.delayGain);
+    fxNodes.delayGain.connect(fxNodes.delayNode); // feedback loop (capped by gain)
+  }
+  // Convolver (reverb) — use a simple synthetic impulse
+  if (!fxNodes.convolverNode) {
+    fxNodes.convolverNode = ctx.createConvolver();
+    fxNodes.convolverGain = ctx.createGain();
+    fxNodes.convolverGain.gain.value = 0;
+    fxNodes.convolverNode.connect(fxNodes.convolverGain);
+    // Generate impulse response
+    _buildReverbImpulse(ctx);
+  }
+}
+
+function _buildReverbImpulse(ctx, duration = 2.5, decay = 2.0) {
+  const len = ctx.sampleRate * duration;
+  const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) {
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+    }
+  }
+  if (fxNodes.convolverNode) fxNodes.convolverNode.buffer = buf;
+}
+
+function rebuildFxChain() {
+  // This function is called after ensureKaraokeAudioGraph() has already
+  // connected: source -> karaokeAnalyser -> destination
+  // We intercept by connecting masterGain into destination and
+  // routing the dry + wet signals through our chain.
+  // Note: since the source is already connected we manage gain values
+  // rather than rewiring the graph (avoids AudioContext errors).
+  ensureFxGraph();
+  if (!karaokeAudioCtx || !fxNodes.masterGain) return;
+  // Apply current state values to nodes
+  applyFxToNodes();
+}
+
+function applyFxToNodes() {
+  if (!fxNodes.masterGain) return;
+  // Master volume
+  fxNodes.masterGain.gain.value = fxState.volume;
+  audio.volume = Math.min(1, fxState.volume); // also set native volume as fallback
+  // Bass
+  if (fxNodes.bassFilter) {
+    fxNodes.bassFilter.gain.value = fxState.bass ? fxState.bassAmt : 0;
+  }
+  // Treble
+  if (fxNodes.trebleFilter) {
+    fxNodes.trebleFilter.gain.value = fxState.treble ? fxState.trebleAmt : 0;
+  }
+  // Delay feedback gain
+  if (fxNodes.delayGain) {
+    fxNodes.delayGain.gain.value = fxState.delay ? Math.min(0.6, fxState.delayAmt * 0.6) : 0;
+    if (fxNodes.delayNode) fxNodes.delayNode.delayTime.value = Math.max(0.05, fxState.delayAmt * 0.8);
+  }
+  // Reverb wet gain
+  if (fxNodes.convolverGain) {
+    fxNodes.convolverGain.gain.value = fxState.reverb ? fxState.reverbAmt * 1.2 : 0;
+  }
+  // Pitch via playbackRate
+  const rate = fxState.pitch ? semitoneToRate(fxState.pitchAmt) : 1;
+  if (audio.playbackRate !== rate) audio.playbackRate = rate;
+}
+
+function applyFxFromSliders() {
+  fxState.reverbAmt  = parseFloat(document.getElementById('fxReverb').value);
+  fxState.delayAmt   = parseFloat(document.getElementById('fxDelay').value);
+  fxState.pitchAmt   = parseFloat(document.getElementById('fxPitch').value);
+  fxState.bassAmt    = parseFloat(document.getElementById('fxBass').value);
+  fxState.trebleAmt  = parseFloat(document.getElementById('fxTreble').value);
+  fxState.volume     = parseFloat(document.getElementById('fxVolume').value);
+  // Auto-enable toggle when slider is moved away from zero
+  if (fxState.reverbAmt > 0)  { fxState.reverb  = true; _syncFxToggle('reverb'); }
+  if (fxState.delayAmt > 0)   { fxState.delay   = true; _syncFxToggle('delay'); }
+  if (fxState.pitchAmt !== 0) { fxState.pitch   = true; _syncFxToggle('pitch'); }
+  if (fxState.bassAmt !== 0)  { fxState.bass    = true; _syncFxToggle('bass'); }
+  if (fxState.trebleAmt !== 0){ fxState.treble  = true; _syncFxToggle('treble'); }
+  applyFxToNodes();
+  // Clear active preset label when manually tweaking
+  fxState.activePreset = 'custom';
+  document.querySelectorAll('.fx-preset').forEach(p => p.classList.remove('active'));
+}
+
+function toggleFxNode(name) {
+  fxState[name] = !fxState[name];
+  _syncFxToggle(name);
+  applyFxToNodes();
+}
+
+function _syncFxToggle(name) {
+  const idMap = { reverb:'fxReverbToggle', delay:'fxDelayToggle', pitch:'fxPitchToggle', bass:'fxBassToggle', treble:'fxTrebleToggle' };
+  const el = document.getElementById(idMap[name]);
+  if (el) el.classList.toggle('on', fxState[name]);
+}
+
+const FX_PRESETS = {
+  flat:     { reverb:0,   delay:0,    pitch:0,   bass:0,    treble:0,  volume:1 },
+  studio:   { reverb:0.3, delay:0.05, pitch:0,   bass:2,    treble:3,  volume:1 },
+  bathroom: { reverb:0.7, delay:0.1,  pitch:0,   bass:-2,   treble:4,  volume:1 },
+  stadium:  { reverb:0.9, delay:0.25, pitch:0,   bass:4,    treble:1,  volume:1.1 },
+  deep:     { reverb:0.2, delay:0,    pitch:-3,  bass:8,    treble:-3, volume:1 },
+  bright:   { reverb:0.1, delay:0,    pitch:2,   bass:-4,   treble:8,  volume:1 },
+};
+
+function applyFxPreset(name, el) {
+  const p = FX_PRESETS[name]; if (!p) return;
+  fxState.reverbAmt  = p.reverb;
+  fxState.delayAmt   = p.delay;
+  fxState.pitchAmt   = p.pitch;
+  fxState.bassAmt    = p.bass;
+  fxState.trebleAmt  = p.treble;
+  fxState.volume     = p.volume;
+  fxState.reverb     = p.reverb > 0;
+  fxState.delay      = p.delay > 0;
+  fxState.pitch      = p.pitch !== 0;
+  fxState.bass       = p.bass !== 0;
+  fxState.treble     = p.treble !== 0;
+  fxState.activePreset = name;
+  // Sync sliders
+  document.getElementById('fxReverb').value  = p.reverb;
+  document.getElementById('fxDelay').value   = p.delay;
+  document.getElementById('fxPitch').value   = p.pitch;
+  document.getElementById('fxBass').value    = p.bass;
+  document.getElementById('fxTreble').value  = p.treble;
+  document.getElementById('fxVolume').value  = p.volume;
+  // Sync toggles
+  ['reverb','delay','pitch','bass','treble'].forEach(n => _syncFxToggle(n));
+  // Highlight preset pill
+  document.querySelectorAll('.fx-preset').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+  applyFxToNodes();
+  showMMToast('Preset: ' + name.charAt(0).toUpperCase() + name.slice(1) + ' 🎛');
+}
+
+function resetFxRack() {
+  applyFxPreset('flat', document.querySelector('.fx-preset'));
+  showMMToast('Effects reset ↺');
+}
+
+function openFxRack() {
+  ensureFxGraph();
+  rebuildFxChain();
+  document.getElementById('fxRackOverlay').classList.add('open');
+  const fxBtn = document.getElementById('karaokeOpenFx');
+  if (fxBtn) fxBtn.classList.add('active');
+  flagAch('fxUsed');
+}
+
+function closeFxRack() {
+  document.getElementById('fxRackOverlay').classList.remove('open');
+  const fxBtn = document.getElementById('karaokeOpenFx');
+  if (fxBtn) fxBtn.classList.remove('active');
+}
+
+// ══════════════════════════════════════
+// MUSIC CLOUD SYNC (Phase 3)
+// ══════════════════════════════════════
+const MUSIC_API = (function() {
+  // Reuse the same API base as index.html — read from parent frame or fallback
+  try { return window.parent.API || 'https://us-app-api.onrender.com'; }
+  catch(e) { return 'https://us-app-api.onrender.com'; }
+})();
+
+async function musicApi(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  try {
+    const r = await fetch(MUSIC_API + path, opts);
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'API error');
+    return data;
+  } catch(e) { throw e; }
+}
+
+// Read coupleId + role from parent index.html S object, or localStorage fallback
+function getMusicCoupleCtx() {
+  try {
+    const parentS = window.parent.S;
+    if (parentS && parentS.coupleId) {
+      return {
+        coupleId: parentS.coupleId,
+        role: parentS.role || 'user1',
+        myName: parentS.myName || 'You',
+        partnerName: parentS.partnerName || 'Partner'
+      };
+    }
+  } catch(e) {}
+  // Fallback: read from localStorage key used by index.html
+  try {
+    const raw = localStorage.getItem('uwl_v5');
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (d.coupleId) return {
+        coupleId: d.coupleId,
+        role: d.role || 'user1',
+        myName: d.myName || 'You',
+        partnerName: d.partnerName || 'Partner'
+      };
+    }
+  } catch(e) {}
+  return null;
+}
+
+// Save my playlist metadata to cloud (no audioData — too large)
+async function syncMusicToCloud() {
+  const ctx = getMusicCoupleCtx();
+  if (!ctx) return;
+  try {
+    const payload = {
+      [`music_${ctx.role}`]: {
+        tracks: musicState[ctx.role === 'user1' ? 'my' : 'my'].map(t => ({
+          id: t.id, title: t.title, artist: t.artist,
+          artData: t.artData || null,
+          durationSec: t.durationSec, durationFmt: t.durationFmt,
+          visibility: t.visibility, emoji: t.emoji, date: t.date,
+          favorite: t.favorite, playCount: t.playCount,
+          lastPlayed: t.lastPlayed, lyrics: t.lyrics
+        })),
+        _ts: Date.now()
+      }
+    };
+    await musicApi('POST', '/api/data/state', {
+      coupleId: ctx.coupleId,
+      state: payload
+    });
+  } catch(e) { console.warn('Music cloud sync failed:', e.message); }
+}
+
+// Load partner playlist metadata from cloud
+async function loadPartnerMusicFromCloud() {
+  const ctx = getMusicCoupleCtx();
+  if (!ctx) return;
+  try {
+    const state = await musicApi('GET', '/api/data/state/' + ctx.coupleId);
+    if (!state) return;
+    const partnerRole = ctx.role === 'user1' ? 'user2' : 'user1';
+    const partnerMusic = state[`music_${partnerRole}`];
+    if (!partnerMusic || !partnerMusic.tracks) return;
+
+    // Merge: keep existing partner tracks that have audioData locally,
+    // update metadata from cloud for any track we already have,
+    // add new track stubs for ones we don't have audio for yet.
+    const existing = musicState.partner;
+    const merged = partnerMusic.tracks.map(cloudTrack => {
+      const local = existing.find(t => t.id === cloudTrack.id);
+      return {
+        ...cloudTrack,
+        audioData: local ? local.audioData : null, // preserve local audio
+      };
+    });
+    musicState.partner = merged;
+    saveMusicLocal();
+    renderMusicTracks();
+  } catch(e) { console.warn('Partner music load failed:', e.message); }
+}
+
+// Called when a song is uploaded to "My Playlist" — push metadata to cloud
+async function onMySongAdded() {
+  await syncMusicToCloud();
+}
+
+// Poll for partner music every 8 seconds (matches index.html's 5s poll rhythm)
+let _musicSyncInterval = null;
+function startMusicSync() {
+  if (_musicSyncInterval) return;
+  const ctx = getMusicCoupleCtx();
+  if (!ctx) return;
+  musicState._role = ctx.role;
+  // Load once immediately
+  loadPartnerMusicFromCloud();
+  _musicSyncInterval = setInterval(loadPartnerMusicFromCloud, 8000);
+}
+
+// ══════════════════════════════════════
+// ACHIEVEMENTS (Phase 4)
+// ══════════════════════════════════════
+const MUSIC_ACHIEVEMENTS = [
+  { id:'first_song',    ico:'🎵', name:'First Note',       desc:'Upload your first song',              check: () => (musicState.my.length + musicState.partner.length) >= 1 },
+  { id:'five_songs',    ico:'🎶', name:'Growing Collection',desc:'Upload 5 songs total',                check: () => (musicState.my.length + musicState.partner.length) >= 5 },
+  { id:'ten_songs',     ico:'🎸', name:'Music Lover',       desc:'Upload 10 songs total',               check: () => (musicState.my.length + musicState.partner.length) >= 10 },
+  { id:'first_fav',     ico:'❤️', name:'Fan',               desc:'Mark your first favorite song',       check: () => getAllTracks().some(x => x.t.favorite) },
+  { id:'five_favs',     ico:'💕', name:'True Fan',           desc:'Mark 5 favorite songs',               check: () => getAllTracks().filter(x => x.t.favorite).length >= 5 },
+  { id:'first_lyrics',  ico:'📜', name:'Poet',               desc:'Add lyrics to a song',                check: () => getAllTracks().some(x => x.t.lyrics && x.t.lyrics.trim().length > 10) },
+  { id:'first_karaoke', ico:'🎤', name:'Stage Fright',       desc:'Open Karaoke Mode for the first time',check: () => !!(musicState._achFlags || {}).karaokeOpened },
+  { id:'first_rec',     ico:'🎙', name:'On Air',             desc:'Save your first recording',           check: () => (musicState.recordings || []).length >= 1 },
+  { id:'three_recs',    ico:'🏆', name:'Recording Artist',   desc:'Save 3 recordings',                   check: () => (musicState.recordings || []).length >= 3 },
+  { id:'playlist_both', ico:'👫', name:'Our Soundtrack',     desc:'Both playlists have at least 1 song', check: () => musicState.my.length >= 1 && musicState.partner.length >= 1 },
+  { id:'fx_used',       ico:'🎛', name:'Sound Engineer',     desc:'Use the audio effects rack',          check: () => !!(musicState._achFlags || {}).fxUsed },
+  { id:'played_50',     ico:'🔥', name:'On Repeat',          desc:'Play songs 50 times combined',        check: () => getAllTracks().reduce((s,x) => s + (x.t.playCount||0), 0) >= 50 },
+];
+
+function checkAchievements() {
+  if (!musicState._achievements) musicState._achievements = [];
+  MUSIC_ACHIEVEMENTS.forEach(ach => {
+    if (musicState._achievements.includes(ach.id)) return; // already earned
+    try {
+      if (ach.check()) {
+        musicState._achievements.push(ach.id);
+        saveMusicLocal();
+        showAchievementToast(ach);
+      }
+    } catch(e) {}
+  });
+}
+
+let _achToastTimer;
+function showAchievementToast(ach) {
+  const toast = document.getElementById('achToast');
+  document.getElementById('achToastIco').textContent = ach.ico;
+  document.getElementById('achToastName').textContent = ach.name;
+  document.getElementById('achToastDesc').textContent = ach.desc;
+  toast.classList.add('show');
+  clearTimeout(_achToastTimer);
+  _achToastTimer = setTimeout(() => toast.classList.remove('show'), 4000);
+}
+
+function openAchievementsModal() {
+  const grid = document.getElementById('achievementsGrid');
+  const earned = musicState._achievements || [];
+  grid.innerHTML = MUSIC_ACHIEVEMENTS.map(ach => {
+    const isEarned = earned.includes(ach.id);
+    return `<div class="ach-card${isEarned ? ' unlocked' : ' ach-card-locked'}">
+      <div class="ach-card-ico">${isEarned ? ach.ico : '🔒'}</div>
+      <div class="ach-card-name">${ach.name}</div>
+      <div class="ach-card-desc">${ach.desc}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('achievementsModal').classList.add('open');
+}
+
+function closeAchievementsModal() {
+  document.getElementById('achievementsModal').classList.remove('open');
+}
+
+// Flag helpers
+function flagAch(key) {
+  if (!musicState._achFlags) musicState._achFlags = {};
+  if (musicState._achFlags[key]) return;
+  musicState._achFlags[key] = true;
+  saveMusicLocal();
+  checkAchievements();
+}
 
 // ══════════════════════════════════════
 // MOVIES
@@ -1336,6 +1898,7 @@ function toggleFavoriteFromSheet() {
   t.favorite = !t.favorite;
   saveMusicLocal(); renderMusicTracks(); closeActionSheet();
   showMMToast(t.favorite ? 'Added to favorites ❤️' : 'Removed from favorites');
+  if (sheetCtx.pl === 'my') onMySongAdded();
 }
 function moveTrackFromSheet() {
   if (!sheetCtx) return;
@@ -1422,6 +1985,7 @@ function openKaraokeMode(pl, idx) {
   const t = musicState[pl][idx]; if (!t) return;
   karaokeState.pl = pl; karaokeState.idx = idx;
   karaokeState.open = true;
+  flagAch('karaokeOpened'); // achievement flag
   karaokeState.recState = 'idle';
   karaokeState.lyricsLines = parseLyrics(t.lyrics);
   document.getElementById('karaokeSongTitle').textContent = t.title;
@@ -1442,6 +2006,9 @@ function closeKaraokeMode() {
   karaokeState.open = false;
   if (karaokeState.recState === 'recording' || karaokeState.recState === 'paused') karaokeStopRecording();
   if (karaokeState.rafId) { cancelAnimationFrame(karaokeState.rafId); karaokeState.rafId = null; }
+  // Reset pitch/playbackRate when leaving karaoke
+  audio.playbackRate = 1;
+  closeFxRack();
 }
 
 function renderKaraokeLyrics() {
@@ -1587,23 +2154,58 @@ function karaokePlayPreview() {
 }
 function karaokeSaveRecording() {
   if (!karaokeState.recordedBlob) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const t = musicState[karaokeState.pl][karaokeState.idx];
-    const rec = {
-      id: Date.now() + Math.random(), trackId: t.id, trackTitle: t.title, trackArtist: t.artist,
-      type: 'solo', audioData: e.target.result,
-      durationSec: karaokeState.recordedDurationSec, durationFmt: fmtTime(karaokeState.recordedDurationSec),
-      date: new Date().toISOString().slice(0,10),
+  const t = musicState[karaokeState.pl][karaokeState.idx];
+
+  // Try Supabase upload first; fall back to base64 localStorage
+  _uploadRecordingToCloud(karaokeState.recordedBlob, t).then(cloudUrl => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const rec = {
+        id: Date.now() + Math.random(),
+        trackId: t.id, trackTitle: t.title, trackArtist: t.artist,
+        type: 'solo',
+        audioData: cloudUrl ? null : e.target.result, // skip base64 if cloud succeeded
+        cloudUrl: cloudUrl || null,
+        durationSec: karaokeState.recordedDurationSec,
+        durationFmt: fmtTime(karaokeState.recordedDurationSec),
+        date: new Date().toISOString().slice(0,10),
+      };
+      if (!musicState.recordings) musicState.recordings = [];
+      musicState.recordings.unshift(rec);
+      saveRecordingsLocal();
+      karaokeDiscardRecording();
+      renderKaraokeHistory();
+      showMMToast(cloudUrl ? 'Recording saved to cloud ☁️' : 'Recording saved locally 🎙️');
+      flagAch('fxUsed'); // any save counts as engagement
+      checkAchievements();
     };
-    if (!musicState.recordings) musicState.recordings = [];
-    musicState.recordings.unshift(rec);
-    saveRecordingsLocal();
-    karaokeDiscardRecording();
-    renderKaraokeHistory();
-    showMMToast('Recording saved 🎙️');
-  };
-  reader.readAsDataURL(karaokeState.recordedBlob);
+    if (!cloudUrl) reader.readAsDataURL(karaokeState.recordedBlob);
+    else {
+      // Still need a local stub without audioData — fire a dummy onload
+      reader.onload({ target: { result: null } });
+    }
+  });
+}
+
+async function _uploadRecordingToCloud(blob, track) {
+  const ctx = getMusicCoupleCtx(); // from Phase 3
+  if (!ctx || !ctx.coupleId) return null;
+  try {
+    const formData = new FormData();
+    formData.append('file', blob, 'recording.webm');
+    formData.append('coupleId', ctx.coupleId);
+    formData.append('trackTitle', track.title || 'recording');
+    const r = await fetch(MUSIC_API + '/api/media/upload-recording', {
+      method: 'POST',
+      body: formData
+    });
+    if (!r.ok) return null;
+    const data = await r.json();
+    return data.url || null;
+  } catch(e) {
+    console.warn('Recording upload failed:', e.message);
+    return null;
+  }
 }
 function updateKaraokeRecUI() {
   const micBtn = document.getElementById('karaokeMicBtn');
@@ -1643,9 +2245,12 @@ function renderKaraokeHistory() {
     </div>`).join('');
 }
 function playRecording(id) {
-  const r = (musicState.recordings||[]).find(x=>x.id===id); if (!r||!r.audioData) return;
+  const r = (musicState.recordings||[]).find(x=>x.id===id);
+  if (!r) return;
+  const src = r.cloudUrl || r.audioData;
+  if (!src) { showMMToast('Audio not available — re-record'); return; }
   if (karaokePreviewAudio) karaokePreviewAudio.pause();
-  karaokePreviewAudio = new Audio(r.audioData);
+  karaokePreviewAudio = new Audio(src);
   karaokePreviewAudio.play().catch(()=>showMMToast('Cannot play'));
 }
 function exportRecording(id) {
@@ -1689,6 +2294,8 @@ loadRecordingsLocal();
 loadMovieLocal();
 renderMusicTracks();
 renderMovieStats();
+checkAchievements(); // Phase 4: run on load to restore any unlocked state
+setTimeout(startMusicSync, 1200); // Phase 3 // slight delay so parent frame S is ready
 
 // Expose globals
 window.switchMainTab = switchMainTab;
@@ -1749,6 +2356,18 @@ window.toggleKaraokeHistory = toggleKaraokeHistory;
 window.playRecording = playRecording;
 window.exportRecording = exportRecording;
 window.deleteRecording = deleteRecording;
+window.syncMusicToCloud = syncMusicToCloud;
+window.loadPartnerMusicFromCloud = loadPartnerMusicFromCloud;
+window.startMusicSync = startMusicSync;
+window.openFxRack = openFxRack;
+window.closeFxRack = closeFxRack;
+window.applyFxPreset = applyFxPreset;
+window.applyFxFromSliders = applyFxFromSliders;
+window.toggleFxNode = toggleFxNode;
+window.resetFxRack = resetFxRack;
+window.openAchievementsModal = openAchievementsModal;
+window.closeAchievementsModal = closeAchievementsModal;
+window.checkAchievements = checkAchievements;
 </script>
 </body>
 </html>

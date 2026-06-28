@@ -52,5 +52,40 @@ router.delete('/delete', async (req, res) => {
     await supabase.storage.from(bucket || 'couple-photos').remove([path]);
     return res.json({ ok: true });
 });
+// ── POST /api/media/upload-recording ──────────────────
+// Stores karaoke recordings in 'couple-recordings' bucket.
+// Returns a signed URL (7-day expiry) — recordings are private.
+router.post('/upload-recording', upload.single('file'), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No file provided' });
+    const { coupleId, trackTitle } = req.body;
+    if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
+
+    const safe  = (trackTitle || 'recording').replace(/[^a-z0-9]/gi, '_').slice(0, 40);
+    const name  = `${coupleId}/${Date.now()}_${safe}.webm`;
+    const bucket = 'couple-recordings';
+
+    const { error } = await supabase.storage
+        .from(bucket)
+        .upload(name, req.file.buffer, {
+            contentType: req.file.mimetype || 'audio/webm',
+            upsert: false
+        });
+
+    if (error) return res.status(500).json({ error: error.message });
+
+    const { data: signed } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(name, 60 * 60 * 24 * 7); // 7-day signed URL
+
+    return res.json({ url: signed.signedUrl, path: name });
+});
+
+// ── DELETE /api/media/delete-recording ────────────────
+router.delete('/delete-recording', async (req, res) => {
+    const { path } = req.body;
+    if (!path) return res.status(400).json({ error: 'path required' });
+    await supabase.storage.from('couple-recordings').remove([path]);
+    return res.json({ ok: true });
+});
 
 module.exports = router;
