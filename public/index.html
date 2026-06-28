@@ -4078,6 +4078,7 @@
       <div class="ni" data-page="bucket"><span class="ico">🌟</span>Bucket List</div>
       <div class="ni" data-page="calendar"><span class="ico">📅</span>Calendar</div>
       <div class="ni" data-page="map"><span class="ico">📍</span>Live Map</div>
+      <div class="ni" data-page="globe"><span class="ico">🌍</span>Memory Globe</div>
       <div class="ni" data-page="places"><span class="ico">🗺️</span>Places Memory</div>
       <div class="ni" data-page="lovecounter"><span class="ico">⏱️</span>Love Counter</div>
       <div class="ni" data-page="collection"><span class="ico">🎙️</span>Collection</div>
@@ -4221,6 +4222,11 @@
 <div class="page" id="page-collection">
   <div class="iframe-page-wrap">
     <iframe id="collectionFrame" src="/collection.html" title="Collection" loading="lazy"></iframe>
+  </div>
+</div>
+<div class="page" id="page-globe">
+  <div class="iframe-page-wrap">
+    <iframe id="globeFrame" src="/globe.html" title="Memory Globe" loading="lazy"></iframe>
   </div>
 </div>
       <div class="page" id="page-dreamhome">
@@ -5280,6 +5286,7 @@
         <div class="bot-ni" data-page="chat" onclick="gotoMob('chat',this)"><span class="ico">💬</span>Chat</div>
         <div class="bot-ni" data-page="myspace" onclick="gotoMob('myspace',this)"><span class="ico">🌸</span>Space</div>
         <div class="bot-ni" data-page="ai" onclick="gotoMob('ai',this)"><span class="ico">🤖</span>AI</div>
+        <div class="bot-ni" data-page="globe" onclick="gotoMob('globe',this)"><span class="ico">🌍</span>Globe</div>
         <div class="bot-ni" data-page="games" onclick="gotoMob('games',this)"><span class="ico">🎮</span>Games</div>
         <div class="bot-ni" data-page="settings" onclick="gotoMob('settings',this)"><span class="ico">⚙️</span>More
         </div>
@@ -5844,9 +5851,9 @@ function renderPartnerLastSeen() {
           collection: 'Collection 🎙️', settings: 'Settings', period: 'Period Tracker',
           fights: 'Fight Log', study: 'Study Together', map: 'Live Map 📍',
           music: 'Music 🎵', capsule: 'Love Capsule 💌', surprise: 'Surprises 🎁',
-          level: 'Couple Level 🏆', dreamhome: 'Dream Home 🏡',games: 'Couple Games 🎮',
+          level: 'Couple Level 🏆',globe: 'Memory Globe 🌍', dreamhome: 'Dream Home 🏡',games: 'Couple Games 🎮',
           dreamgoals: 'Dream Goals 💫', places: 'Places Memory 🗺️'
-        };
+        };q
         function goto(page) {
           document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
           document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
@@ -5872,7 +5879,8 @@ function renderPartnerLastSeen() {
           if (page === 'dreamhome') renderDreamHome();
           if (page === 'games') syncThemeToFrame('gamesFrame');
           if (page === 'lovecounter') syncThemeToFrame('lovecounterFrame');
-          if (page === 'collection') syncThemeToFrame('collectionFrame');  
+          if (page === 'collection') syncThemeToFrame('collectionFrame'); 
+          if (page === 'globe') syncThemeToFrame('globeFrame'); 
           if (page === 'dreamgoals') { syncThemeToFrame('dreamgoalsFrame'); syncDreamGoalsToFrame(); }
           if (page === 'places') { syncThemeToFrame('placesFrame'); syncPlacesMemoryToFrame(); }
           closeMobSidebar();

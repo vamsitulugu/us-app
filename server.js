@@ -7,7 +7,7 @@ const authRoutes  = require('./routes/auth');
 const dataRoutes  = require('./routes/data');
 const aiRoutes    = require('./routes/ai');
 const mediaRoutes = require('./routes/media');
-
+const globeRoutes = require('./routes/globe');
 const helmet      = require('helmet');
 const rateLimit   = require('express-rate-limit');
 const compression = require('compression');
@@ -15,6 +15,7 @@ const compression = require('compression');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+app.use('/api/globe', globeRoutes);
 // ── Security headers ───────────────────────────────────
 app.use(helmet({
   contentSecurityPolicy: false, // disabled because inline scripts in index.html
