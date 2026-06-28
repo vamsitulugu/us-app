@@ -45,3 +45,24 @@ self.addEventListener('fetch', e => {
       .catch(() => caches.match(e.request).then(r => r || caches.match('/index.html')))
   );
 });
+
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+      for (const client of clientList) if ('focus' in client) return client.focus();
+      if (clients.openWindow) return clients.openWindow('/');
+    })
+  );
+});
+
+// Required for true push delivery even when the app is fully closed —
+// only fires if your backend sends a Web Push message to this device.
+self.addEventListener('push', function(event) {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch(e) {}
+  event.waitUntil(self.registration.showNotification(data.title || 'US 💕', {
+    body: data.body || '', icon: '/icons/icon-192.png', badge: '/icons/icon-192.png',
+    vibrate: [200,100,200], tag: 'us-app-love'
+  }));
+});

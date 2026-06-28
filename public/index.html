@@ -3835,6 +3835,45 @@
   background:var(--accent2); box-shadow:0 0 6px var(--accent2-glow);
   flex-shrink:0; animation:blink 2s ease-in-out infinite;
 }
+
+/* ════ MISS YOU & VIRTUAL HUG ════ */
+.connect-btns-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:4px}
+.connect-btn-wrap{display:flex;flex-direction:column;align-items:center;gap:8px}
+.connect-action-btn{width:84px;height:84px;border-radius:26px;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#fff;transition:var(--t-spring);position:relative}
+.connect-action-btn .connect-btn-ico{font-size:28px}
+.connect-action-btn .connect-btn-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px}
+.connect-action-btn:hover{transform:scale(1.06)}
+.connect-action-btn:active{transform:scale(0.92)}
+.connect-action-btn.missyou-btn{background:linear-gradient(135deg,#ff6b9d,#c2185b);box-shadow:0 8px 24px rgba(255,107,157,0.4)}
+.connect-action-btn.hug-btn{background:linear-gradient(135deg,var(--accent2),var(--accent2-d));box-shadow:0 8px 24px var(--accent2-glow)}
+.connect-action-btn.missyou-sent,.connect-action-btn.hug-sent{animation:connectPulseSend 0.6s ease}
+@keyframes connectPulseSend{0%{transform:scale(1)}40%{transform:scale(0.85)}70%{transform:scale(1.12)}100%{transform:scale(1)}}
+.connect-stat{font-size:11px;color:var(--text3);text-align:center;max-width:120px;line-height:1.4}
+.connect-stat strong{color:var(--white);font-weight:700}
+
+.love-overlay{position:fixed;inset:0;z-index:9996;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(4,4,12,0.88);backdrop-filter:blur(16px);animation:loveOverlayIn 0.3s ease}
+.love-overlay.active{display:flex}
+@keyframes loveOverlayIn{from{opacity:0}to{opacity:1}}
+.love-card{background:rgba(255,255,255,0.06);backdrop-filter:blur(30px) saturate(200%);border:1px solid var(--border2);border-radius:28px;padding:40px 32px;text-align:center;max-width:380px;width:100%;animation:loveCardPop 0.5s cubic-bezier(0.34,1.56,0.64,1);position:relative;overflow:hidden}
+@keyframes loveCardPop{from{opacity:0;transform:scale(0.7) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.love-card::before{content:'';position:absolute;inset:-40%;background:radial-gradient(circle,var(--missglow,rgba(255,107,157,0.35)) 0%,transparent 65%);animation:loveGlow 2.2s ease-in-out infinite;pointer-events:none}
+@keyframes loveGlow{0%,100%{opacity:0.5;transform:scale(0.9)}50%{opacity:1;transform:scale(1.15)}}
+.love-card-ico{font-size:72px;position:relative;z-index:1;animation:loveIcoBeat 1.1s ease-in-out infinite;filter:drop-shadow(0 6px 20px rgba(255,107,157,0.5))}
+@keyframes loveIcoBeat{0%,100%{transform:scale(1)}20%{transform:scale(1.22)}40%{transform:scale(0.96)}60%{transform:scale(1.14)}}
+.love-card-title{position:relative;z-index:1;font-family:var(--ff-serif);font-size:22px;color:var(--white);margin-top:14px}
+.love-card-sub{position:relative;z-index:1;font-size:13px;color:var(--text2);margin-top:6px;line-height:1.6}
+.love-card-meta{position:relative;z-index:1;font-size:11px;color:var(--text3);margin-top:10px;display:flex;gap:8px;justify-content:center;align-items:center}
+.love-card-actions{position:relative;z-index:1;display:flex;gap:10px;margin-top:22px;justify-content:center;flex-wrap:wrap}
+.hug-float-wrap{position:absolute;inset:0;overflow:hidden;pointer-events:none;border-radius:28px}
+.hug-float-heart{position:absolute;bottom:-10%;font-size:20px;animation:hugFloatUp 2.6s ease-in forwards;opacity:0.9}
+@keyframes hugFloatUp{0%{transform:translateY(0) scale(0.6) rotate(0deg);opacity:0}15%{opacity:1}100%{transform:translateY(-340px) scale(1.1) rotate(25deg);opacity:0}}
+.hug-avatars{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;margin-top:6px}
+.hug-av{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;border:3px solid rgba(255,255,255,0.35);position:relative;overflow:hidden}
+.hug-av img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.hug-av.a{background:linear-gradient(135deg,var(--accent),var(--accent-d));margin-right:-10px;animation:hugLean 1.4s ease-in-out infinite}
+.hug-av.b{background:linear-gradient(135deg,var(--accent2),var(--accent2-d));margin-left:-10px;animation:hugLeanR 1.4s ease-in-out infinite}
+@keyframes hugLean{0%,100%{transform:rotate(0deg) translateX(0)}50%{transform:rotate(-5deg) translateX(3px)}}
+@keyframes hugLeanR{0%,100%{transform:rotate(0deg) translateX(0)}50%{transform:rotate(5deg) translateX(-3px)}}
   </style>
 </head>
 
@@ -3851,6 +3890,50 @@
   </div>
   <!-- TOUCH RIPPLE -->
   <div id="touchRipple"><span>💓</span></div>
+
+  <!-- MISS YOU OVERLAY -->
+  <div class="love-overlay" id="missYouOverlay" onclick="if(event.target===this)closeMissYouPopup()">
+    <div class="love-card" style="--missglow:rgba(255,107,157,0.4)">
+      <div class="love-card-ico">💔</div>
+      <div class="love-card-title" id="missYouTitle">Someone misses you</div>
+      <div class="love-card-sub" id="missYouSub"></div>
+      <div class="love-card-meta" id="missYouMeta"></div>
+      <div class="love-card-actions">
+        <button class="btn btn-accent btn-sm" onclick="sendMissYouBack()">💌 Miss them too</button>
+        <button class="btn btn-glass btn-sm" onclick="closeMissYouPopup()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HUG REQUEST OVERLAY -->
+  <div class="love-overlay" id="hugRequestOverlay">
+    <div class="love-card" style="--missglow:hsla(300,85%,65%,0.4)">
+      <div class="hug-float-wrap" id="hugFloatWrap"></div>
+      <div class="love-card-ico">🤗</div>
+      <div class="love-card-title" id="hugReqTitle">A hug is waiting for you</div>
+      <div class="love-card-sub" id="hugReqSub"></div>
+      <div class="love-card-actions">
+        <button class="btn btn-accent btn-sm" onclick="acceptHug()">🤗 Accept Hug</button>
+        <button class="btn btn-glass btn-sm" onclick="closeHugRequestPopup()">Later</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HUG SHARED OVERLAY -->
+  <div class="love-overlay" id="hugSharedOverlay">
+    <div class="love-card" style="--missglow:hsla(300,85%,65%,0.4)">
+      <div class="hug-float-wrap" id="hugSharedFloatWrap"></div>
+      <div class="hug-avatars">
+        <div class="hug-av a" id="hugAvA">U</div>
+        <div class="hug-av b" id="hugAvB">P</div>
+      </div>
+      <div class="love-card-title" style="margin-top:18px">You shared a virtual hug ❤️</div>
+      <div class="love-card-sub" id="hugSharedSub">Total hugs shared: 0</div>
+      <div class="love-card-actions">
+        <button class="btn btn-accent btn-sm" onclick="closeHugSharedPopup()">💕 Close</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ALARM RING -->
   <div class="alarm-ring" id="alarmRing">
@@ -3995,6 +4078,7 @@
       <div class="ni" data-page="bucket"><span class="ico">🌟</span>Bucket List</div>
       <div class="ni" data-page="calendar"><span class="ico">📅</span>Calendar</div>
       <div class="ni" data-page="map"><span class="ico">📍</span>Live Map</div>
+      <div class="ni" data-page="places"><span class="ico">🗺️</span>Places Memory</div>
       <div class="ni" data-page="music"><span class="ico">🎵</span>Music</div>
       <div class="ni" data-page="games"><span class="ico">🎮</span>Games <span class="games-badge">NEW</span></div>
       <div class="ni" data-page="dreamgoals"><span class="ico">💫</span>Dream Goals <div class="dreams-new-badge"></div></div>
@@ -4067,6 +4151,25 @@
           <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Tap the heart — <span
               id="touchPartnerName">they'll</span> feel it</div>
           <button class="touch-heart-btn" id="touchHeartBtn" onclick="sendTouch()">❤️</button>
+        </div>
+        <div class="card" id="connectCard">
+          <div class="card-title" style="justify-content:center">💕 Stay Connected</div>
+          <div class="connect-btns-row">
+            <div class="connect-btn-wrap">
+              <button class="connect-action-btn missyou-btn" id="missYouBtn" onclick="sendMissYou()">
+                <span class="connect-btn-ico">💔</span>
+                <span class="connect-btn-label">Miss You</span>
+              </button>
+              <div class="connect-stat" id="missYouStat">Tap to let them know</div>
+            </div>
+            <div class="connect-btn-wrap">
+              <button class="connect-action-btn hug-btn" id="hugBtn" onclick="sendHug()">
+                <span class="connect-btn-ico">🤗</span>
+                <span class="connect-btn-label">Send Hug</span>
+              </button>
+              <div class="connect-stat" id="hugStat">0 hugs shared</div>
+            </div>
+          </div>
         </div>
         <div class="card" id="countdownCard" style="display:none">
           <div class="card-title">🎉 Upcoming Celebrations</div>
@@ -5164,6 +5267,13 @@
           <iframe id="dreamgoalsFrame" src="/dreamgoals.html" title="Dream Goals" allow="autoplay" loading="lazy"></iframe>
         </div>
       </div>
+
+      <!-- ════ PLACES MEMORY PAGE ════ -->
+      <div class="page" id="page-places">
+        <div class="iframe-page-wrap">
+          <iframe id="placesFrame" src="/places.html" title="Places Memory" allow="autoplay" loading="lazy"></iframe>
+        </div>
+      </div>
       <!-- Mobile Bottom Nav -->
       <nav class="bot-nav" id="botNav">
         <div class="bot-ni active" data-page="dashboard" onclick="gotoMob('dashboard',this)"><span
@@ -5501,7 +5611,10 @@ function applyRebranding() {
           milestones: [], wellness: {}, periods: [], symptoms: {}, fights: [],
           mySubjects: [], myTimetable: [], reminders: [], ptSubjects: [], ptTimetable: [],
           myLoc: null, ptLoc: null, places: {}, capsules: [], surprises: [],
-          sharedSongs: [], xp: 0, badges: [], dreamBoard: [], finGoals: {}
+          sharedSongs: [], xp: 0, badges: [], dreamBoard: [], finGoals: {},
+          missYou: null, missCounts: { user1: 0, user2: 0 },
+          hug: null, hugStats: { total: 0, user1: 0, user2: 0 },
+          placesMemories: []
         };
         let camStream = null, camFacing = 'environment', pinEntry = [], autoSaveTimer = null, alarmCheckInterval = null;
 
@@ -5646,7 +5759,7 @@ function applyRebranding() {
         function scheduleSave() { clearTimeout(autoSaveTimer); autoSaveTimer = setTimeout(saveToCloud, 600); }
         async function syncNow() {
           document.getElementById('syncBtn').textContent = '⏳...';
-          await loadFromCloud(); await checkPairStatus(); checkIncomingTouch(); renderAll();
+          await loadFromCloud(); await checkPairStatus(); checkIncomingTouch(); checkIncomingMissYou(); checkIncomingHug(); renderAll();
           document.getElementById('syncBtn').textContent = '☁️ Sync'; toast('Synced! ☁️');
         }
         function updateSyncStatus(ok) {
@@ -5711,6 +5824,7 @@ function renderPartnerLastSeen() {
           toast('Sent a touch to ' + (S.partnerName || 'them') + ' 💓');
           spawnPetals(6);
         }
+    
         function checkIncomingTouch() {
           if (!S.touch || S.touch.from === S.role) return;
           if (S.touch.ts <= lastTouchSeen) return;
@@ -5731,7 +5845,7 @@ function renderPartnerLastSeen() {
           fights: 'Fight Log', study: 'Study Together', map: 'Live Map 📍',
           music: 'Music 🎵', capsule: 'Love Capsule 💌', surprise: 'Surprises 🎁',
           level: 'Couple Level 🏆', dreamhome: 'Dream Home 🏡',games: 'Couple Games 🎮',
-          dreamgoals: 'Dream Goals 💫'
+          dreamgoals: 'Dream Goals 💫', places: 'Places Memory 🗺️'
         };
         function goto(page) {
           document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -5759,6 +5873,7 @@ function renderPartnerLastSeen() {
           if (page === 'games') syncThemeToFrame('gamesFrame');
           if (page === 'music') syncThemeToFrame('musicFrame');
           if (page === 'dreamgoals') { syncThemeToFrame('dreamgoalsFrame'); syncDreamGoalsToFrame(); }
+          if (page === 'places') { syncThemeToFrame('placesFrame'); syncPlacesMemoryToFrame(); }
           closeMobSidebar();
         }
         document.querySelectorAll('.ni[data-page]').forEach(el => el.addEventListener('click', () => goto(el.dataset.page)));
@@ -5961,6 +6076,163 @@ function renderPartnerLastSeen() {
       </div>
     </div>
   </div>`;
+        }
+        // ─── MISS YOU FEATURE ──────────────────────────────────────
+        let lastMissSeen = parseInt(localStorage.getItem('uwl_lastMissSeen') || '0');
+
+        function sendMissYou() {
+          const ts = Date.now();
+          S.missYou = { from: S.role, ts };
+          if (!S.missCounts) S.missCounts = { user1: 0, user2: 0 };
+          S.missCounts[S.role] = (S.missCounts[S.role] || 0) + 1;
+          lastMissSeen = ts;
+          localStorage.setItem('uwl_lastMissSeen', String(ts));
+          scheduleSave();
+          renderMissYouStats();
+          const btn = document.getElementById('missYouBtn');
+          if (btn) { btn.classList.add('missyou-sent'); setTimeout(() => btn.classList.remove('missyou-sent'), 650); }
+          toast('💔 Sent — ' + (S.partnerName || 'they') + ' will know you miss them');
+          spawnPetals(6);
+        }
+        function sendMissYouBack() { closeMissYouPopup(); sendMissYou(); }
+
+        function checkIncomingMissYou() {
+          if (!S.missYou || S.missYou.from === S.role) return;
+          if (S.missYou.ts <= lastMissSeen) return;
+          lastMissSeen = S.missYou.ts;
+          localStorage.setItem('uwl_lastMissSeen', String(lastMissSeen));
+          if (navigator.vibrate) navigator.vibrate([150, 80, 150, 80, 300]);
+          showMissYouPopup(S.missYou);
+          fireBackgroundNotification('💔 ' + (S.partnerName || 'Someone') + ' misses you', (S.partnerName || 'Your partner') + ' is thinking of you right now 💕');
+          renderMissYouStats();
+        }
+
+        function showMissYouPopup(data) {
+          document.getElementById('missYouTitle').textContent = (S.partnerName || 'Your partner') + ' misses you 💔';
+          const count = (S.missCounts || {})[data.from] || 1;
+          document.getElementById('missYouSub').textContent = (S.partnerName || 'They') + ' has missed you ' + count + ' time' + (count === 1 ? '' : 's') + ' so far.';
+          const d = new Date(data.ts);
+          document.getElementById('missYouMeta').textContent = '🕒 ' + d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' · ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          document.getElementById('missYouOverlay').classList.add('active');
+          spawnPetals(8);
+        }
+        function closeMissYouPopup() { document.getElementById('missYouOverlay').classList.remove('active'); }
+
+        function renderMissYouStats() {
+          const mc = S.missCounts || { user1: 0, user2: 0 };
+          const partnerRole = S.role === 'user1' ? 'user2' : 'user1';
+          const el = document.getElementById('missYouStat');
+          if (el) el.innerHTML = '<strong>' + (S.partnerName || 'Partner') + '</strong> missed you ' + (mc[partnerRole] || 0) + 'x<br>You missed them ' + (mc[S.role] || 0) + 'x';
+        }
+
+        // ─── VIRTUAL HUG FEATURE ───────────────────────────────────
+        let lastHugSeen = parseInt(localStorage.getItem('uwl_lastHugSeen') || '0');
+        let lastHugResultSeen = parseInt(localStorage.getItem('uwl_lastHugResultSeen') || '0');
+
+        function sendHug() {
+          const id = Date.now();
+          S.hug = { id, from: S.role, ts: id, status: 'pending' };
+          lastHugSeen = id;
+          localStorage.setItem('uwl_lastHugSeen', String(id));
+          scheduleSave();
+          const btn = document.getElementById('hugBtn');
+          if (btn) { btn.classList.add('hug-sent'); setTimeout(() => btn.classList.remove('hug-sent'), 650); }
+          toast('🤗 Hug sent — waiting for ' + (S.partnerName || 'them') + ' to accept');
+          spawnPetals(5);
+        }
+
+        function checkIncomingHug() {
+          if (!S.hug) return;
+          if (S.hug.status === 'pending' && S.hug.from !== S.role && S.hug.id > lastHugSeen) {
+            lastHugSeen = S.hug.id;
+            localStorage.setItem('uwl_lastHugSeen', String(lastHugSeen));
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 100, 50, 250]);
+            showHugRequestPopup();
+            fireBackgroundNotification('🤗 ' + (S.partnerName || 'Someone') + ' sent you a hug', 'Tap to accept and hug back 💕');
+          }
+          if (S.hug.status === 'accepted' && S.hug.acceptedTs && S.hug.acceptedTs > lastHugResultSeen) {
+            lastHugResultSeen = S.hug.acceptedTs;
+            localStorage.setItem('uwl_lastHugResultSeen', String(lastHugResultSeen));
+            showHugSharedPopup();
+          }
+        }
+
+        function showHugRequestPopup() {
+          document.getElementById('hugReqTitle').textContent = (S.partnerName || 'Your partner') + ' is sending you a hug 🤗';
+          document.getElementById('hugReqSub').textContent = 'Tap Accept to hug them back';
+          spawnFloatingHearts('hugFloatWrap');
+          document.getElementById('hugRequestOverlay').classList.add('active');
+        }
+        function closeHugRequestPopup() { document.getElementById('hugRequestOverlay').classList.remove('active'); }
+
+        function acceptHug() {
+          if (!S.hug || S.hug.status !== 'pending') { closeHugRequestPopup(); return; }
+          S.hug.status = 'accepted';
+          S.hug.acceptedTs = Date.now();
+          S.hug.acceptedBy = S.role;
+          if (!S.hugStats) S.hugStats = { total: 0, user1: 0, user2: 0 };
+          S.hugStats.total = (S.hugStats.total || 0) + 1;
+          S.hugStats[S.hug.from] = (S.hugStats[S.hug.from] || 0) + 1;
+          lastHugResultSeen = S.hug.acceptedTs;
+          localStorage.setItem('uwl_lastHugResultSeen', String(lastHugResultSeen));
+          closeHugRequestPopup();
+          scheduleSave();
+          showHugSharedPopup();
+          addXP(6);
+        }
+
+        function showHugSharedPopup() {
+          setAvText('hugAvA', (S.myName || 'U')[0]); setAvText('hugAvB', (S.partnerName || 'P')[0]);
+          if (S.myAvatar) setAvImg('hugAvA', S.myAvatar);
+          if (S.partnerAvatar) setAvImg('hugAvB', S.partnerAvatar);
+          const total = (S.hugStats || {}).total || 0;
+          document.getElementById('hugSharedSub').textContent = 'Total hugs shared: ' + total;
+          spawnFloatingHearts('hugSharedFloatWrap');
+          document.getElementById('hugSharedOverlay').classList.add('active');
+          spawnPetals(14);
+          renderHugStats();
+          setTimeout(closeHugSharedPopup, 4500);
+        }
+        function closeHugSharedPopup() { document.getElementById('hugSharedOverlay').classList.remove('active'); }
+
+        function renderHugStats() {
+          const hs = S.hugStats || { total: 0 };
+          const el = document.getElementById('hugStat');
+          if (el) el.textContent = (hs.total || 0) + ' hug' + (hs.total === 1 ? '' : 's') + ' shared';
+        }
+
+        function spawnFloatingHearts(wrapId) {
+          const wrap = document.getElementById(wrapId);
+          if (!wrap) return;
+          wrap.innerHTML = '';
+          const hearts = ['💕', '❤️', '🤗', '💗', '✨'];
+          for (let i = 0; i < 10; i++) {
+            const h = document.createElement('div');
+            h.className = 'hug-float-heart';
+            h.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+            h.style.left = (10 + Math.random() * 80) + '%';
+            h.style.animationDelay = (Math.random() * 0.8) + 's';
+            h.style.fontSize = (16 + Math.random() * 14) + 'px';
+            wrap.appendChild(h);
+          }
+        }
+
+        // ─── BACKGROUND NOTIFICATIONS ────────────────────────
+        // Fires while the PWA tab is open (foreground or backgrounded).
+        // For notifications when the app is fully CLOSED, you need backend
+        // Web Push — see note at the end of this patch set.
+        function fireBackgroundNotification(title, body) {
+          if (!('Notification' in window) || Notification.permission !== 'granted') return;
+          if (document.visibilityState === 'visible' && document.hasFocus()) return;
+          const show = (reg) => {
+            if (reg && reg.showNotification) {
+              reg.showNotification(title, { body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', vibrate: [200, 100, 200], tag: 'us-app-love', renotify: true });
+            } else {
+              new Notification(title, { body, icon: '/icons/icon-192.png' });
+            }
+          };
+          if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistration().then(reg => show(reg)).catch(() => show(null));
+          else show(null);
         }
         // ─── CHAT ────────────────────────────────────────────────
         let replyingTo = null, mediaRecorder = null, audioChunks = [], isRecording = false;
@@ -6762,7 +7034,7 @@ function logOut() { if (!confirm('Log out? You can sign back in anytime. Your da
           applyNames(); renderChat(); renderPhotos(); renderBucket(); renderHabits();
           renderJournal(); renderNotes(); renderMoney(); renderCalendar();
           renderDashboard(); renderCountdowns(); renderWellnessMoods(); renderWellnessSummary();
-          renderFights(); renderStudyPage(); renderReminders();
+          renderFights(); renderStudyPage(); renderReminders(); renderMissYouStats(); renderHugStats();
           if (S.anniversary) { const d = Math.max(0, Math.floor((Date.now() - new Date(S.anniversary).getTime()) / 86400000)); document.getElementById('daysTog').textContent = d; }
           const today = todayStr(); const w = (S.wellness || {})[today] || {};
           const wi = document.getElementById('waterIn'), si = document.getElementById('sleepIn'), ei = document.getElementById('exerciseIn');
@@ -6801,6 +7073,8 @@ function logOut() { if (!confirm('Log out? You can sign back in anytime. Your da
             loadFromCloud().then(() => {
               checkPairStatus();
               checkIncomingTouch();
+              checkIncomingMissYou();
+              checkIncomingHug();
               renderAll();
             }).catch(() => { });
             startAlarmCheck();
@@ -6808,6 +7082,8 @@ function logOut() { if (!confirm('Log out? You can sign back in anytime. Your da
               await loadFromCloud();
               await checkPairStatus();
               checkIncomingTouch();
+              checkIncomingMissYou();
+              checkIncomingHug();
               renderAll();
               renderPartnerLastSeen();
             }, 5000);
@@ -7589,12 +7865,25 @@ function exportChatPDF() {
           if (frame.contentDocument && frame.contentDocument.readyState === 'complete') doIt();
           else frame.addEventListener('load', doIt, { once: true });
         }
+        function syncPlacesMemoryToFrame() {
+          const frame = document.getElementById('placesFrame');
+          if (!frame) return;
+          const doIt = () => {
+            try {
+              frame.contentWindow.postMessage({ type: 'names', my: S.myName || 'You', partner: S.partnerName || 'Partner' }, '*');
+              if (S.placesMemories && S.placesMemories.length) frame.contentWindow.postMessage({ type: 'syncPlaces', places: S.placesMemories }, '*');
+            } catch(e) {}
+          };
+          if (frame.contentDocument && frame.contentDocument.readyState === 'complete') doIt();
+          else frame.addEventListener('load', doIt, { once: true });
+        }
         window.addEventListener('message', function(e) {
           if (e.data && e.data.type === 'dreamgoals') { S.dreamGoals = e.data.dreams || []; scheduleSave(); }
+          if (e.data && e.data.type === 'placesmemory') { S.placesMemories = e.data.places || []; scheduleSave(); }
         });
         // Patch setTheme to sync iframes
         const _origST = window.setTheme;
-        window.setTheme = function(n, s) { _origST && _origST(n, s); setTimeout(() => ['gamesFrame','musicFrame','dreamgoalsFrame'].forEach(syncThemeToFrame), 150); };
+        window.setTheme = function(n, s) { _origST && _origST(n, s); setTimeout(() => ['gamesFrame','musicFrame','dreamgoalsFrame','placesFrame'].forEach(syncThemeToFrame), 150); };
 applyRebranding();
 init();
         // Register PWA service worker
