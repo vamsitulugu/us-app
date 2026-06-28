@@ -32,10 +32,20 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
     // Vault: private signed URL (expires in 7 days)
     if (bucket === 'vault-media') {
-        const { data: signed } = await supabase.storage
-            .from(bucket)
-            .createSignedUrl(name, 60 * 60 * 24 * 7);
-        return res.json({ url: signed.signedUrl, path: name });
+        const { data: signed, error: signError } =
+await supabase.storage
+.from(bucket)
+.createSignedUrl(name, 60 * 60 * 24 * 7);
+
+if(signError)
+    return res.status(500).json({
+        error: signError.message
+    });
+
+return res.json({
+    url: signed.signedUrl,
+    path:name
+});
     }
 
     // ✅ FIX: Regular photos — return public URL
