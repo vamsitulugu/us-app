@@ -463,6 +463,15 @@
   <script src="controls.js"></script>
   <script src="scene.js"></script>
 
+  <!-- Phase 7 — Environment/Weather + the clock-null (getElapsedTime) fix patches.
+       scene_p7_patch.js MUST load right after scene.js (it wraps HomeScene.init/dispose). -->
+  <script src="scene_p7_patch.js"></script>
+  <script src="weather.js"></script>
+  <script src="sky.js"></script>
+  <script src="environment.js"></script>
+  <script src="environment_sync.js"></script>
+  <script src="scene_p7_patch2.js"></script>
+
   <!-- Phase 3+ modules (stubs until generated) -->
   <script src="rooms.js"></script>
   <script src="furniture.js"></script>

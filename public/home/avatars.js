@@ -404,6 +404,7 @@ const HomeAvatars = (() => {
 
   // ── Per-frame update (called from scene.js loop) ──
   function update(dt) {
+    if (!clock) return;   // not initialized yet — scene.js's loop can call this before HomeAvatars.init() runs
     const elapsed = clock.getElapsedTime();
     if (avatars.user1) avatars.user1.update(dt, elapsed);
     if (avatars.user2) avatars.user2.update(dt, elapsed);

@@ -1,47 +1,58 @@
-US ❤️
+US/
 │
-├── .env
-├── .gitignore
+├── server.js
 ├── package.json
-├── package-lock.json
+├── PROJECT_OVERVIEW.md
+├── PROJECT_STRUCTURE.md
 │
 ├── middleware/
-│   └── supabase.js
+│   ├── supabase.js
+│   ├── auth.js
+│   └── upload.js
 │
 ├── routes/
-│   ├── ai.js
 │   ├── auth.js
-│   ├── data.js
-│   ├── globe.js
-│   ├── home.js
+│   ├── chat.js
 │   ├── media.js
-│   └── meetplanner.js
+│   ├── music.js
+│   ├── movies.js
+│   ├── memory.js
+│   ├── globe.js
+│   ├── meetplanner.js
+│   ├── heartbeat.js
+│   ├── home.js
+│   ├── home_living.js
+│   ├── weather.js
+│   ├── gifts.js
+│   ├── achievements.js
+│   ├── collection.js
+│   ├── notifications.js
+│   ├── sync.js
+│   └── settings.js
 │
 ├── public/
-│   ├── index.html                     # Main Application
-│   ├── landing.html                   # Landing Page
-│   ├── collection.html                # Collection
-│   ├── dreamgoals.html                # Dream Goals
-│   ├── games.html                     # Games
-│   ├── globe.html                     # Memory Globe
-│   ├── lovecounter.html               # Love Counter
-│   ├── meetplanner.html               # Live Meet Planner
-│   ├── meetplanner.js
-│   ├── music.html                     # Music & Karaoke Module
-│   ├── places.html                    # Places & Memories
-│   ├── manifest.json                  # PWA Manifest
-│   ├── sw.js                          # Service Worker
-│   ├── index_patch.js
 │   │
-│   ├── icons/
-│   │   ├── background-chat.png
-│   │   ├── icon-192.png
-│   │   └── icon-512.png
+│   ├── index.html
+│   ├── styles/
+│   ├── js/
+│   ├── css/
+│   ├── assets/
 │   │
-│   └── home/                          # Virtual Home Module
+│   ├── music/
+│   ├── movies/
+│   ├── chat/
+│   ├── globe/
+│   ├── planner/
+│   ├── collection/
+│   ├── games/
+│   ├── dreams/
+│   │
+│   └── home/
+│       │
 │       ├── home.html
-│       ├── renderer.js
+│       │
 │       ├── scene.js
+│       ├── renderer.js
 │       ├── camera.js
 │       ├── controls.js
 │       ├── lighting.js
@@ -49,8 +60,51 @@ US ❤️
 │       ├── furniture.js
 │       ├── furniture_ext.js
 │       ├── memories.js
+│       ├── movement.js
+│       ├── interactions.js
+│       ├── avatars.js
+│       ├── pets.js
+│       ├── ai_behavior.js
+│       ├── realtime_living.js
+│       ├── audio_living.js
+│       ├── perf_living.js
+│       │
+│       ├── weather.js
+│       ├── sky.js
+│       ├── environment.js
+│       ├── fireplace.js
+│       ├── window_system.js
+│       ├── ambient_audio.js
+│       ├── particles.js
+│       ├── effects.js
+│       ├── environment_sync.js
+│       ├── perf_p7.js
+│       ├── scene_p7_patch.js
+│       ├── scene_p7_patch2.js
+│       │
 │       ├── api.js
-│       ├── utils.js
-│       └── server.js
+│       ├── server.js
+│       └── utils.js
 │
-└── (node_modules/ and .git excluded)
+├── sql/
+│   ├── schema.sql
+│   ├── phase4.sql
+│   ├── phase5.sql
+│   ├── phase6.sql
+│   └── phase7.sql
+│
+├── storage/
+│   ├── couple-photos/
+│   ├── vault-media/
+│   ├── couple-recordings/
+│   ├── gifts/
+│   ├── memories/
+│   ├── avatars/
+│   └── home-assets/
+│
+└── docs/
+    ├── README.md
+    ├── API.md
+    ├── DATABASE.md
+    ├── DEPLOYMENT.md
+    └── CHANGELOG.md
