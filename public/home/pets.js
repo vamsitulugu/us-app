@@ -336,6 +336,7 @@ const HomePets = (() => {
   }
 
   function update(dt) {
+    if (!clock) return;
     const elapsed = clock.getElapsedTime();
     pets.forEach(p => p.update(dt, elapsed));
   }
