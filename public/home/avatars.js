@@ -101,7 +101,7 @@ const HomeAvatars = (() => {
       const body = new THREE.Group();
 
       const torso = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.22, 0.55, 4, 8),
+        new THREE.CylinderGeometry(0.22, 0.22, 0.55, 8),
         new THREE.MeshStandardMaterial({ color: outfitColor, roughness: 0.85 })
       );
       torso.position.y = 1.05;
@@ -118,7 +118,7 @@ const HomeAvatars = (() => {
       body.add(head);
       this.headBone = head; // until real GLTF replaces it
 
-      const legGeo = new THREE.CapsuleGeometry(0.09, 0.5, 4, 8);
+      const legGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.5, 8);
       const legMat = new THREE.MeshStandardMaterial({ color: 0x2a2a3a, roughness: 0.9 });
       const legL = new THREE.Mesh(legGeo, legMat); legL.position.set(-0.11, 0.45, 0); legL.castShadow = true;
       const legR = new THREE.Mesh(legGeo, legMat); legR.position.set( 0.11, 0.45, 0); legR.castShadow = true;

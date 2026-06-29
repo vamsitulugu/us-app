@@ -86,7 +86,7 @@ const HomePets = (() => {
       const body = new THREE.Group();
 
       const torso = new THREE.Mesh(
-        new THREE.CapsuleGeometry(def.scale * 0.55, def.scale * 1.1, 4, 8),
+        new THREE.CylinderGeometry(def.scale * 0.55, def.scale * 0.55, def.scale * 1.1, 8),
         new THREE.MeshStandardMaterial({ color: def.color, roughness: 0.85 })
       );
       torso.rotation.z = Math.PI / 2;

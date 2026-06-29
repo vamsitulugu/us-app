@@ -552,27 +552,30 @@
     // Placed after rooms exist (so avatars/pets land on a real floor)
     // and before loadProgress(100), so the loading screen doesn't
     // disappear before avatars/pets have been added to the scene.
+    // Each module is guarded individually (same pattern as HomeRooms
+    // above) so a missing/404'd Phase-6 file degrades gracefully
+    // instead of aborting the entire boot.
     if (window.HomeAvatars) {
       const scn = HomeScene.getScene();
       const cam = HomeScene.getCamera();
       const rnd = HomeScene.getRenderer();
 
       HomeAvatars.init(scn);
-      HomeMovement.init(cam, canvas, scn);
-      HomeInteractions.init(scn);
-      HomePets.init(scn);
-      HomeAIBehavior.init(scn);
-      HomeRealtimeLiving.init();
-      HomeAudioLiving.init();
-      HomePerfLiving.init(rnd);
-      HomeInteractionUI.init(cam, canvas);
+      if (window.HomeMovement)        HomeMovement.init(cam, canvas, scn);
+      if (window.HomeInteractions)    HomeInteractions.init(scn);
+      if (window.HomePets)            HomePets.init(scn);
+      if (window.HomeAIBehavior)      HomeAIBehavior.init(scn);
+      if (window.HomeRealtimeLiving)  HomeRealtimeLiving.init();
+      if (window.HomeAudioLiving)     HomeAudioLiving.init();
+      if (window.HomePerfLiving)      HomePerfLiving.init(rnd);
+      if (window.HomeInteractionUI)   HomeInteractionUI.init(cam, canvas);
 
       HomeAvatars.loadCustomization();
 
-      if (HomePerfLiving.getIsMobile()) {
+      if (window.HomePerfLiving && HomePerfLiving.getIsMobile && HomePerfLiving.getIsMobile()) {
         const joyEl = document.getElementById('homeJoystick');
         joyEl.style.display = 'block';
-        HomeMovement.initJoystick(joyEl);
+        if (window.HomeMovement) HomeMovement.initJoystick(joyEl);
       }
     }
 
