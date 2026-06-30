@@ -5199,6 +5199,7 @@ vercel-live-feedback {
             </div>
             <div id="settingsPairStatus" style="font-size:11px;color:var(--text3);margin-top:10px">💌 Waiting for
               partner</div>
+            <button class="btn btn-danger btn-sm" id="removePartnerBtn" style="margin-top:12px;display:none" onclick="confirmRemovePartner()">💔 Remove Partner</button>
           </div>
         </div>
 
@@ -5726,7 +5727,56 @@ function applyRebranding() {
           placesMemories: []
         };
         let camStream = null, camFacing = 'environment', pinEntry = [], autoSaveTimer = null, alarmCheckInterval = null;
-
+        // ─── PROFILE SYNC (role-tagged, prevents name/bday clobbering) ──
+function roleKey() { return S.role === 'user1' ? 'u1' : 'u2'; }
+function otherKey() { return S.role === 'user1' ? 'u2' : 'u1'; }
+function pushMyProfile() {
+  if (!S.profile) S.profile = {};
+  S.profile[roleKey()] = { name: S.myName || '', bday: S.myBday || '', avatar: S.myAvatar || '' };
+}
+function pullPartnerProfile() {
+  const p = (S.profile || {})[otherKey()];
+  if (p) {
+    if (p.name) S.partnerName = p.name;
+    if (p.bday !== undefined) S.ptBday = p.bday;
+    if (p.avatar) S.partnerAvatar = p.avatar;
+  }
+}
+function syncLoveCounterToFrame() {
+  const frame = document.getElementById('lovecounterFrame');
+  if (!frame) return;
+  const send = () => {
+    try {
+      frame.contentWindow.postMessage({ type: 'lcUpdate', state: {
+        anniversary: S.anniversary || '', myName: S.myName || 'You', partnerName: S.partnerName || 'Partner',
+        myBday: S.myBday || '', ptBday: S.ptBday || '', milestones: S.milestones || [], events: S.events || []
+      }}, '*');
+    } catch(e) {}
+  };
+  if (frame.contentDocument && frame.contentDocument.readyState === 'complete') send();
+  else frame.addEventListener('load', send, { once: true });
+}
+function confirmRemovePartner() {
+  if (!S.paired) { toast('No partner is currently connected'); return; }
+  const sure = confirm('Remove ' + (S.partnerName || 'your partner') + ' from this space?\n\nThis only removes the connection — all chats, photos, memories and history stay safe. You can both pair with someone new afterward.');
+  if (!sure) return;
+  if (!confirm('Are you absolutely sure? This cannot be undone.')) return;
+  removePartner();
+}
+async function removePartner() {
+  if (!S.coupleId) return;
+  try {
+    const data = await api('POST', '/api/auth/unpair', { coupleId: S.coupleId, requestingRole: S.role });
+    S.paired = false; S.partnerName = 'Partner'; S.partnerAvatar = '';
+    if (S.profile) delete S.profile[otherKey()];
+    if (data.newConnectCode) S.connectCode = data.newConnectCode;
+    saveLocal(); applyNames(); updatePairStatus(); renderAll();
+    toast('💔 Partner removed. Your data is safe — share your new code to pair again.');
+    if (S.role === 'user2') {
+      setTimeout(() => { localStorage.removeItem('uwl_v5'); window.location.href = '/landing.html'; }, 2500);
+    }
+  } catch (e) { toast('Could not remove partner: ' + e.message); }
+}
         // ─── PERSISTENCE (localStorage) ─────────────────────────
         function loadLocal() { try { const r = localStorage.getItem('uwl_v5'); if (r) Object.assign(S, JSON.parse(r)); } catch (e) { } }
         function saveLocal() { try { localStorage.setItem('uwl_v5', JSON.stringify(S)); } catch (e) { } }
@@ -5792,7 +5842,8 @@ function applyRebranding() {
             S.ptBday = document.getElementById('authPtBday').value || '';
             S.coupleId = data.coupleId; S.connectCode = data.connectCode; S.myName = data.myName;
             S.partnerName = data.partnerName; S.role = 'user1'; S.setupDone = true; S.paired = false;
-            saveLocal(); document.getElementById('authOverlay').style.display = 'none';
+            pushMyProfile(); saveLocal(); saveToCloud();
+            document.getElementById('authOverlay').style.display = 'none';
             applyNames(); renderAll(); updatePairStatus(); toast('Welcome, ' + name + '! Share your connect code 💕'); spawnPetals(); startAlarmCheck();
           } catch (e) { errEl.textContent = 'Error: ' + e.message; errEl.style.display = 'block'; }
           finally { btn.textContent = 'Create Our Space ✨'; btn.disabled = false; }
@@ -5811,7 +5862,8 @@ function applyRebranding() {
             S.partnerName = data.partnerName; S.anniversary = data.anniversary || '';
             S.role = 'user2'; S.setupDone = true; S.paired = true;
             saveLocal(); document.getElementById('authOverlay').style.display = 'none';
-            await loadFromCloud(); applyNames(); renderAll(); updatePairStatus();
+            await loadFromCloud(); pushMyProfile(); pullPartnerProfile(); saveToCloud();
+            applyNames(); renderAll(); updatePairStatus(); syncLoveCounterToFrame();
             toast('Connected with ' + data.partnerName + '! 💕'); spawnPetals(); startAlarmCheck();
           } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
           finally { btn.textContent = 'Connect with Partner 💕'; btn.disabled = false; }
@@ -5850,9 +5902,11 @@ function applyRebranding() {
         });
       }
     }
-            updateSyncStatus(true);
+            pullPartnerProfile();
+    updateSyncStatus(true);
             const el = document.getElementById('lastSaved');
             if (el) el.textContent = 'Synced ✓ ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            syncLoveCounterToFrame();
           } catch (e) { console.warn('Cloud load:', e.message); updateSyncStatus(false); }
         }
         async function saveToCloud() {
@@ -5883,6 +5937,8 @@ function applyRebranding() {
           else { pill.className = 'sync-status sync-off'; dot.className = 'pulse pulse-off'; txt.textContent = 'Waiting for partner'; }
           const jb = document.getElementById('profJoinBtn');
           if (jb) jb.style.display = S.paired ? 'none' : 'block';
+          const rpb = document.getElementById('removePartnerBtn');
+          if (rpb) rpb.style.display = S.paired ? 'inline-flex' : 'none';
           const p1 = document.getElementById('profPairStatus'); if (p1) p1.textContent = msg;
           const p2 = document.getElementById('settingsPairStatus'); if (p2) p2.textContent = msg;
           renderPartnerLastSeen();
@@ -5911,9 +5967,21 @@ function renderPartnerLastSeen() {
           try {
             const c = await api('GET', '/api/auth/couple/' + S.coupleId);
             const was = S.paired; S.paired = !!c.paired;
-            S.partnerName = (S.role === 'user1' ? c.user2_name : c.user1_name) || S.partnerName;
+            if (S.paired) {
+              S.partnerName = (S.role === 'user1' ? c.user2_name : c.user1_name) || S.partnerName;
+            }
             applyNames(); updatePairStatus();
             if (!was && S.paired) { toast('💕 ' + S.partnerName + ' joined! You are now linked.'); spawnPetals(); }
+            if (was && !S.paired) {
+              if (c.connect_code) S.connectCode = c.connect_code;
+              S.partnerAvatar = ''; if (S.profile) delete S.profile[otherKey()];
+              toast('💔 The partner connection was removed.', 4000);
+              if (S.role === 'user2') {
+                setTimeout(() => { localStorage.removeItem('uwl_v5'); window.location.href = '/landing.html'; }, 2500);
+                return;
+              }
+              S.partnerName = 'Partner'; renderAll();
+            }
             saveLocal();
           } catch (e) { console.warn('Pair check:', e.message); }
         }
@@ -5981,7 +6049,7 @@ function renderPartnerLastSeen() {
           if (page === 'level') renderLevelPage();
           if (page === 'dreamhome') renderDreamHome();
           if (page === 'games') syncThemeToFrame('gamesFrame');
-          if (page === 'lovecounter') syncThemeToFrame('lovecounterFrame');
+          if (page === 'lovecounter') { syncThemeToFrame('lovecounterFrame'); syncLoveCounterToFrame(); }
           if (page === 'collection') syncThemeToFrame('collectionFrame'); 
           if (page === 'globe') syncThemeToFrame('globeFrame'); 
           if (page === 'dreamgoals') { syncThemeToFrame('dreamgoalsFrame'); syncDreamGoalsToFrame(); }
@@ -6042,6 +6110,7 @@ function renderPartnerLastSeen() {
 
         // ─── NAMES / AVATARS ─────────────────────────────────────
         function applyNames() {
+          pullPartnerProfile();
           const m = S.myName || 'You', p = S.partnerName || 'Partner';
           document.getElementById('coupleLabel').textContent = m + ' & ' + p;
           setAvText('sbAv1', m[0] || 'U'); setAvText('sbAv2', p[0] || 'P');
@@ -6167,7 +6236,9 @@ function renderPartnerLastSeen() {
   S.anniversary = document.getElementById('setAnniv').value || '';
   S.myBday = document.getElementById('setMyBday').value || '';
   S.ptBday = document.getElementById('setPtBday').value || '';
+  pushMyProfile();
   applyNames(); scheduleSave(); renderDashboard(); toast('Settings saved! 💕'); spawnPetals(5);
+  syncLoveCounterToFrame();
 }
         function updateThemeSwatches() { document.querySelectorAll('.theme-swatch').forEach(b => b.classList.toggle('active', b.dataset.theme === S.theme)); }
         function renderSettingsPhotoHero() {
@@ -7199,6 +7270,7 @@ function logOut() { if (!confirm('Log out? You can sign back in anytime. Your da
               checkIncomingHug();
               renderAll();
               renderPartnerLastSeen();
+              syncLoveCounterToFrame();
             }, 5000);
           }
         }

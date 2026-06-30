@@ -150,6 +150,44 @@ router.post('/pair', async (req, res) => {
     paired: true
   });
 });
+// ── POST /api/auth/unpair ──────────────────────────────
+// Removes the partner relationship ONLY. Never touches
+// app_state, messages, photos, journal, transactions, etc —
+// all of it stays attached to coupleId untouched.
+router.post('/unpair', async (req, res) => {
+  const { coupleId, requestingRole } = req.body;
+  if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
+
+  const { data: couple, error: fetchErr } = await supabase
+    .from('couples')
+    .select('id, paired, connect_code')
+    .eq('id', coupleId)
+    .maybeSingle();
+
+  if (fetchErr || !couple) return res.status(404).json({ error: 'Couple not found' });
+  if (!couple.paired) return res.status(409).json({ error: 'No active partner to remove' });
+
+  let newCode;
+  for (let i = 0; i < 10; i++) {
+    newCode = genCode();
+    const { data } = await supabase.from('couples').select('id').eq('connect_code', newCode).maybeSingle();
+    if (!data) break;
+  }
+
+  const { error: updateErr } = await supabase
+    .from('couples')
+    .update({
+      paired: false,
+      user2_name: 'Partner',
+      connect_code: newCode,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', coupleId);
+
+  if (updateErr) return res.status(500).json({ error: updateErr.message });
+
+  return res.json({ ok: true, newConnectCode: newCode, unpairedBy: requestingRole || null });
+});
 // ── POST /api/auth/register ────────────────────────────
 router.post('/register', async (req, res) => {
   const { email, password, myName, partnerName, anniversary } = req.body;
