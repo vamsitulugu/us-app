@@ -3959,13 +3959,6 @@ vercel-live-feedback {
   overflow: visible;
 }
 
-/* Ensure ALL fixed/absolute direct body children don't affect flex layout */
-body > [style*="position: absolute"],
-body > [style*="position:absolute"] {
-  position: fixed !important;
-  width: 0 !important;
-  height: 0 !important;
-}
   </style>
 </head>
 
@@ -8026,7 +8019,41 @@ init();
           });
         }
       </script>
+<script>
+// ══════════════════════════════════════════
+// VERCEL WIDGET LAYOUT FIX
+// Vercel injects <vercel-live-feedback style="position:absolute">
+// which breaks body flex layout. We force it to fixed + zero size.
+// ══════════════════════════════════════════
+(function fixVercelWidget() {
+  function applyFix() {
+    const el = document.querySelector('vercel-live-feedback');
+    if (el) {
+      el.style.cssText = 'position:fixed!important;width:0!important;height:0!important;overflow:visible!important;pointer-events:none!important;top:auto!important;left:auto!important;bottom:0!important;right:0!important;';
+    }
+  }
 
+  // Fix immediately if already injected
+  applyFix();
+
+  // Watch for future injection (Vercel injects it after load)
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      m.addedNodes.forEach(function(node) {
+        if (node.tagName && node.tagName.toLowerCase() === 'vercel-live-feedback') {
+          // Override inline style immediately and keep watching
+          applyFix();
+          // Also watch for attribute changes (Vercel may reset style)
+          const attrObs = new MutationObserver(applyFix);
+          attrObs.observe(node, { attributes: true, attributeFilter: ['style'] });
+        }
+      });
+    });
+  });
+
+  observer.observe(document.body, { childList: true });
+})();
+</script>
 </body>
 
 </html>
