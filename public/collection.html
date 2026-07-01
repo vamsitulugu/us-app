@@ -59,6 +59,9 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 .col-filter{padding:7px 13px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--g1);color:var(--text2);transition:var(--t);white-space:nowrap}
 .col-filter:hover{color:var(--white);background:var(--g2)}
 .col-filter.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 10px var(--accent-glow)}
+.col-sort-select{padding:8px 12px;border-radius:12px;font-size:11px;font-weight:600;border:1px solid var(--border);background:var(--g1);color:var(--text2);font-family:var(--ff-sans);cursor:pointer;outline:none}
+.col-sort-select:focus{border-color:var(--accent)}
+.col-sort-select option{background:#0d0d1f;color:#fff}
 
 /* ── VOICE LIST ── */
 .voice-list{padding:0 16px;display:flex;flex-direction:column;gap:8px}
@@ -91,13 +94,13 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 .voice-sender{font-size:12px;font-weight:700;color:var(--white)}
 .voice-date{font-size:11px;color:var(--text3);margin-top:1px}
 .voice-waveform{
-  display:flex;align-items:center;gap:2px;height:28px;flex:1;max-width:120px;
+  display:flex;align-items:center;gap:2px;height:28px;flex:1;max-width:120px;cursor:pointer;position:relative;
 }
 .voice-waveform span{display:inline-block;border-radius:3px;background:rgba(255,255,255,0.25);width:3px;transition:background 0.2s}
-.voice-item.playing .voice-waveform span{background:var(--accent)}
-.voice-item.playing .voice-waveform span{animation:waveAnim 0.6s ease-in-out infinite alternate}
-.voice-item.playing .voice-waveform span:nth-child(2n){animation-delay:0.1s}
-.voice-item.playing .voice-waveform span:nth-child(3n){animation-delay:0.2s}
+.voice-item.playing .voice-waveform span.wf-played{background:var(--accent)}
+.voice-item.playing .voice-waveform span.wf-active-anim{animation:waveAnim 0.6s ease-in-out infinite alternate}
+.voice-item.playing .voice-waveform span:nth-child(2n).wf-active-anim{animation-delay:0.1s}
+.voice-item.playing .voice-waveform span:nth-child(3n).wf-active-anim{animation-delay:0.2s}
 @keyframes waveAnim{from{transform:scaleY(0.4)}to{transform:scaleY(1.0)}}
 .voice-dur{font-size:11px;color:var(--text3);font-weight:600;white-space:nowrap}
 .voice-actions{display:flex;gap:5px;flex-shrink:0}
@@ -105,6 +108,20 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 .voice-action-btn:hover{background:var(--g3);color:var(--white)}
 .voice-action-btn.fav{color:var(--yellow)}
 .voice-action-btn.del:hover{background:var(--red-bg);color:var(--red)}
+.voice-lib-badge{font-size:9px;font-weight:700;background:hsla(var(--h),100%,62%,0.18);color:var(--accent);border:1px solid hsla(var(--h),100%,62%,0.3);border-radius:8px;padding:2px 6px;flex-shrink:0}
+.voice-seek-wrap{position:relative;flex:1;max-width:120px}
+.voice-seek-fill{position:absolute;top:0;left:0;bottom:0;background:hsla(var(--h),100%,62%,0.18);border-radius:6px;pointer-events:none;transition:width 0.1s linear;z-index:0}
+.voice-waveform{position:relative;z-index:1}
+.voice-select-toggle{padding:6px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--g1);color:var(--text2);white-space:nowrap;transition:var(--t)}
+.voice-select-toggle.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* Bulk select bar */
+.col-bulkbar{display:none;align-items:center;gap:10px;padding:9px 16px;background:hsla(var(--h),100%,62%,0.1);border-top:1px solid hsla(var(--h),100%,62%,0.25);border-bottom:1px solid hsla(var(--h),100%,62%,0.25);font-size:12px;color:var(--text2);position:sticky;top:0;z-index:5}
+.col-bulkbar.active{display:flex}
+.col-bulkbar button{padding:6px 12px;border-radius:10px;border:1px solid var(--border);background:var(--g2);color:var(--white);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff-sans)}
+.voice-select-chk{width:18px;height:18px;border-radius:6px;border:2px solid var(--border2);flex-shrink:0;cursor:pointer;display:none;align-items:center;justify-content:center;font-size:11px;color:#fff}
+.col-select-mode .voice-select-chk{display:flex}
+.voice-select-chk.checked{background:var(--accent);border-color:var(--accent)}
 
 /* ── DATE SEPARATOR ── */
 .col-date-sep{
@@ -169,6 +186,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <!-- TABS -->
 <div class="col-tabs">
   <div class="col-tab active" onclick="switchColTab('voice',this)">🎙️ Voice Messages</div>
+  <div class="col-tab" onclick="switchColTab('library',this)">💾 Library</div>
   <div class="col-tab" onclick="switchColTab('photos',this)">📸 Photo Collection</div>
 </div>
 
@@ -180,9 +198,20 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
   <input type="text" class="col-search" id="colSearch" placeholder="Search..." oninput="renderCurrentTab()">
 </div>
 
+<!-- BULK BAR -->
+<div class="col-bulkbar" id="colBulkBar">
+  <span id="colBulkCount">0 selected</span>
+  <button onclick="bulkExportToLibrary()">💾 Export to Library</button>
+  <button onclick="bulkDelete()">🗑️ Delete</button>
+  <button onclick="exitSelectMode()">Cancel</button>
+</div>
+
 <!-- SECTIONS -->
 <div id="col-section-voice">
   <div class="voice-list" id="voiceList"></div>
+</div>
+<div id="col-section-library" style="display:none">
+  <div class="voice-list" id="libraryList"></div>
 </div>
 <div id="col-section-photos" style="display:none">
   <div id="photoColContent"></div>
@@ -209,6 +238,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <script>
 let colState = {
   voices: [],   // extracted from parent chatMessages
+  library: [],  // exported voice messages — persist independently of chat
   photos: [],   // extracted from parent photos
   myName: 'You',
   partnerName: 'Partner',
@@ -219,10 +249,43 @@ let colState = {
 let currentTab = 'voice';
 let voiceFilter = 'all';
 let photoFilter = 'all';
+let voiceSort = 'newest'; // newest | oldest | duration | favorites
+let selectMode = false;
+let selectedIds = new Set();
 let lbCurrentIdx = -1;
 let lbCurrentType = 'photo';
 let currentPlayingIdx = -1;
+let currentPlayingSrc = null;
+let seekRAF = null;
+const waveformCache = {}; // id -> array of peak heights (0-1)
 const voiceAudio = document.getElementById('voiceAudio');
+let sharedAudioCtx = null;
+
+function loadLibraryLocal() {
+  try { colState.library = JSON.parse(localStorage.getItem('col_voice_library') || '[]'); } catch(e) { colState.library = []; }
+}
+function saveLibraryLocal() {
+  try { localStorage.setItem('col_voice_library', JSON.stringify(colState.library)); } catch(e) { showColToast('Storage full — could not save to library'); }
+}
+// Push/pull library through the parent app's cloud-synced state (S.voiceLibrary)
+// so both partners see exported voice messages without touching chat history.
+function pushLibraryToParent() {
+  try {
+    const ps = window.parent?.S;
+    if (!ps) return;
+    ps.voiceLibrary = colState.library.map(v => ({ ...v }));
+    window.parent.scheduleSave?.();
+  } catch(e) {}
+}
+function pullLibraryFromParent() {
+  try {
+    const ps = window.parent?.S;
+    if (!ps || !Array.isArray(ps.voiceLibrary)) return;
+    // Merge cloud library with local — cloud is source of truth for shared items
+    colState.library = ps.voiceLibrary.map(v => ({ ...v }));
+    saveLibraryLocal();
+  } catch(e) {}
+}
 
 function loadFromParent() {
   try {
@@ -249,6 +312,8 @@ function loadFromParent() {
     colState.photos = (ps.photos || [])
       .map(p => ({ ...p }))
       .sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+    pullLibraryFromParent();
 
     // Also grab photos from chat
     const chatPhotos = (ps.chatMessages || [])
@@ -289,34 +354,94 @@ function renderHero() {
   const totalSec = totalVoiceDuration();
   const favVoices = colState.voices.filter(v => colState.voiceFavs.includes(v.id)).length;
   const favPhotos = colState.photos.filter(p => colState.photoFavs.includes(p.id)).length;
-  document.getElementById('colHero').innerHTML = currentTab === 'voice' ? `
+  if (currentTab === 'voice') {
+    document.getElementById('colHero').innerHTML = `
     <div class="col-stat"><div class="col-stat-n">${colState.voices.length}</div><div class="col-stat-l">Voice Msgs</div></div>
     <div class="col-stat"><div class="col-stat-n" style="color:var(--yellow)">${favVoices}</div><div class="col-stat-l">Favorites</div></div>
     <div class="col-stat"><div class="col-stat-n" style="color:var(--accent)">${fmtTotalDur(totalSec)}</div><div class="col-stat-l">Total Duration</div></div>
-    <div class="col-stat"><div class="col-stat-n" style="color:var(--accent2)">${colState.voices.filter(v=>v.by===colState.role).length}</div><div class="col-stat-l">My Messages</div></div>
-  ` : `
+    <div class="col-stat"><div class="col-stat-n" style="color:var(--accent2)">${colState.voices.filter(v=>v.by===colState.role).length}</div><div class="col-stat-l">My Messages</div></div>`;
+  } else if (currentTab === 'library') {
+    document.getElementById('colHero').innerHTML = `
+    <div class="col-stat"><div class="col-stat-n">${colState.library.length}</div><div class="col-stat-l">Saved</div></div>
+    <div class="col-stat"><div class="col-stat-n" style="color:var(--yellow)">${colState.library.filter(v=>colState.voiceFavs.includes(v.id)).length}</div><div class="col-stat-l">Favorites</div></div>
+    <div class="col-stat"><div class="col-stat-n" style="color:var(--accent)">${fmtTotalDur(colState.library.reduce((s,v)=>s+(v.durationSec||0),0))}</div><div class="col-stat-l">Total Duration</div></div>
+    <div class="col-stat"><div class="col-stat-n" style="color:var(--accent2)">${colState.library.filter(v=>v.by===colState.role).length}</div><div class="col-stat-l">Mine</div></div>`;
+  } else {
+    document.getElementById('colHero').innerHTML = `
     <div class="col-stat"><div class="col-stat-n">${colState.photos.length}</div><div class="col-stat-l">Total Photos</div></div>
     <div class="col-stat"><div class="col-stat-n" style="color:var(--yellow)">${favPhotos}</div><div class="col-stat-l">Favorites</div></div>
     <div class="col-stat"><div class="col-stat-n" style="color:var(--accent)">${colState.photos.filter(p=>p.type==='video').length}</div><div class="col-stat-l">Videos</div></div>
-    <div class="col-stat"><div class="col-stat-n" style="color:var(--accent2)">${colState.photos.filter(p=>p.fromChat).length}</div><div class="col-stat-l">From Chat</div></div>
-  `;
+    <div class="col-stat"><div class="col-stat-n" style="color:var(--accent2)">${colState.photos.filter(p=>p.fromChat).length}</div><div class="col-stat-l">From Chat</div></div>`;
+  }
 }
 
 function renderToolbar() {
   const tb = document.getElementById('colToolbar');
-  const isVoice = currentTab === 'voice';
-  const filters = isVoice
-    ? [{k:'all',l:'All'},{k:'me',l:'My Voice'},{k:'partner',l:'Partner\'s'},{k:'fav',l:'⭐ Favorites'}]
+  const isVoiceLike = currentTab === 'voice' || currentTab === 'library';
+  const filters = isVoiceLike
+    ? [{k:'all',l:'All'},{k:'me',l:'My Voice'},{k:'partner',l:'Partner\'s'},{k:'fav',l:'⭐ Favorites'},{k:'recent',l:'🕒 Recent'},{k:'longest',l:'⏱ Longest'}]
     : [{k:'all',l:'All'},{k:'image',l:'📸 Photos'},{k:'video',l:'🎬 Videos'},{k:'fav',l:'⭐ Favorites'}];
-  const active = isVoice ? voiceFilter : photoFilter;
+  const active = isVoiceLike ? voiceFilter : photoFilter;
+  const oldQ = document.getElementById('colSearch')?.value || '';
   tb.innerHTML = `
-    <input type="text" class="col-search" id="colSearch" placeholder="Search..." oninput="renderCurrentTab()" value="">
+    <input type="text" class="col-search" id="colSearch" placeholder="Search sender, date, duration..." oninput="renderCurrentTab()" value="${escHtml(oldQ)}">
     ${filters.map(f=>`<div class="col-filter ${active===f.k?'active':''}" onclick="setFilter('${f.k}')">${f.l}</div>`).join('')}
+    ${isVoiceLike ? `
+    <select class="col-sort-select" onchange="setSort(this.value)">
+      <option value="newest" ${voiceSort==='newest'?'selected':''}>Sort: Newest</option>
+      <option value="oldest" ${voiceSort==='oldest'?'selected':''}>Sort: Oldest</option>
+      <option value="duration" ${voiceSort==='duration'?'selected':''}>Sort: Duration</option>
+      <option value="favorites" ${voiceSort==='favorites'?'selected':''}>Sort: Favorites</option>
+    </select>
+    <div class="voice-select-toggle ${selectMode?'on':''}" onclick="toggleSelectMode()">${selectMode?'✓ Selecting':'☑ Select'}</div>
+    ` : ''}
   `;
+}
+function setSort(v) { voiceSort = v; renderCurrentTab(); }
+function toggleSelectMode() {
+  selectMode = !selectMode;
+  if (!selectMode) selectedIds.clear();
+  document.getElementById('voiceList')?.classList.toggle('col-select-mode', selectMode);
+  document.getElementById('libraryList')?.classList.toggle('col-select-mode', selectMode);
+  renderToolbar();
+  renderCurrentTab();
+  updateBulkBar();
+}
+function exitSelectMode() { selectMode = false; selectedIds.clear(); renderToolbar(); renderCurrentTab(); updateBulkBar(); }
+function updateBulkBar() {
+  const bar = document.getElementById('colBulkBar');
+  bar.classList.toggle('active', selectMode && selectedIds.size > 0);
+  document.getElementById('colBulkCount').textContent = selectedIds.size + ' selected';
+}
+function toggleSelect(id) {
+  if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
+  updateBulkBar();
+  const row = document.querySelector(`[data-vid="${id}"] .voice-select-chk`);
+  if (row) row.classList.toggle('checked', selectedIds.has(id));
+}
+function applySortFilterSearch(list, q) {
+  let out = list.filter(v => {
+    const senderName = (v.by === colState.role ? colState.myName : colState.partnerName).toLowerCase();
+    if (q && !v.date.includes(q) && !v.time.includes(q) && !senderName.includes(q) && !(v.duration||'').includes(q)) return false;
+    if (voiceFilter === 'me') return v.by === colState.role;
+    if (voiceFilter === 'partner') return v.by !== colState.role;
+    if (voiceFilter === 'fav') return colState.voiceFavs.includes(v.id);
+    if (voiceFilter === 'recent') return true; // filtered further after sort
+    if (voiceFilter === 'longest') return true;
+    return true;
+  });
+  if (voiceFilter === 'recent') out = out.slice().sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).slice(0,20);
+  if (voiceFilter === 'longest') out = out.slice().sort((a,b)=>b.durationSec-a.durationSec).slice(0,20);
+
+  if (voiceSort === 'newest') out.sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
+  else if (voiceSort === 'oldest') out.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  else if (voiceSort === 'duration') out.sort((a,b)=>b.durationSec-a.durationSec);
+  else if (voiceSort === 'favorites') out.sort((a,b)=>(colState.voiceFavs.includes(b.id)?1:0)-(colState.voiceFavs.includes(a.id)?1:0));
+  return out;
 }
 
 function setFilter(f) {
-  if (currentTab === 'voice') voiceFilter = f;
+  if (currentTab === 'voice' || currentTab === 'library') voiceFilter = f;
   else photoFilter = f;
   renderToolbar();
   renderCurrentTab();
@@ -327,20 +452,25 @@ function getQuery() {
   return (el?.value || '').toLowerCase();
 }
 
-// ── VOICE RENDER ──
+// ── VOICE RENDER (shared by Voice + Library tabs) ──
 function renderVoice() {
   const q = getQuery();
-  let voices = colState.voices.filter(v => {
-    if (q && !v.date.includes(q) && !v.time.includes(q)) return false;
-    if (voiceFilter === 'me') return v.by === colState.role;
-    if (voiceFilter === 'partner') return v.by !== colState.role;
-    if (voiceFilter === 'fav') return colState.voiceFavs.includes(v.id);
-    return true;
-  });
+  const voices = applySortFilterSearch(colState.voices, q);
+  renderVoiceListInto('voiceList', voices, false);
+}
+function renderLibrary() {
+  const q = getQuery();
+  const lib = applySortFilterSearch(colState.library, q);
+  renderVoiceListInto('libraryList', lib, true);
+}
 
-  const el = document.getElementById('voiceList');
+function renderVoiceListInto(elId, voices, isLibrary) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.classList.toggle('col-select-mode', selectMode);
   if (!voices.length) {
-    el.innerHTML = `<div class="col-empty"><div class="col-empty-ico">🎙️</div><div class="col-empty-text">${colState.voices.length?'No voice messages match your filter.':'No voice messages yet. Send voice messages in Chat and they\'ll appear here!'}</div></div>`;
+    const source = isLibrary ? colState.library : colState.voices;
+    el.innerHTML = `<div class="col-empty"><div class="col-empty-ico">${isLibrary?'💾':'🎙️'}</div><div class="col-empty-text">${source.length?'No voice messages match your filter.':(isLibrary?'Your library is empty. Select messages in Voice Messages and tap Export to Library.':'No voice messages yet. Send voice messages in Chat and they\'ll appear here!')}</div></div>`;
     return;
   }
 
@@ -350,35 +480,94 @@ function renderVoice() {
 
   el.innerHTML = Object.entries(byDate).map(([date, vlist]) => `
     <div class="col-date-sep">${date === new Date().toISOString().slice(0,10) ? 'Today' : fmtDate(date)}</div>
-    ${vlist.map((v, i) => {
+    ${vlist.map((v) => {
       const isMe = v.by === colState.role;
       const isFav = colState.voiceFavs.includes(v.id);
       const isPlaying = currentPlayingIdx === v.id;
+      const isChecked = selectedIds.has(v.id);
       const name = isMe ? colState.myName : colState.partnerName;
       const initial = name[0] || '?';
-      return `<div class="voice-item${isPlaying?' playing':''}${isFav?' favorited':''}" id="vi-${v.id}">
+      const inLibrary = colState.library.some(x => x.id === v.id);
+      return `<div class="voice-item${isPlaying?' playing':''}${isFav?' favorited':''}" id="vi-${v.id}" data-vid="${v.id}" onclick="voiceRowClick(event,${JSON.stringify(v.id)},${isLibrary})">
+        <div class="voice-select-chk ${isChecked?'checked':''}" onclick="event.stopPropagation();toggleSelect(${JSON.stringify(v.id)})">${isChecked?'✓':''}</div>
         <div class="voice-av ${isMe?'me':'partner'}">${initial}</div>
-        <button class="voice-play-btn${isPlaying?' playing':''}" onclick="playVoice(${JSON.stringify(v.id)},${JSON.stringify(v.audioData||'')})">
+        <button class="voice-play-btn${isPlaying?' playing':''}" onclick="event.stopPropagation();playVoice(${JSON.stringify(v.id)},${JSON.stringify(v.audioData||'')})">
           ${isPlaying ? '⏸' : '▶'}
         </button>
         <div class="voice-info">
-          <div class="voice-sender">${escHtml(name)}</div>
+          <div class="voice-sender">${escHtml(name)} ${!isLibrary && inLibrary ? '<span class="voice-lib-badge">SAVED</span>' : ''}</div>
           <div class="voice-date">${v.time || ''}</div>
         </div>
-        <div class="voice-waveform">${generateWave()}</div>
+        <div class="voice-waveform" id="wf-${v.id}" onclick="event.stopPropagation();seekWaveform(event,${JSON.stringify(v.id)})">
+          <div class="voice-seek-fill" id="wfseek-${v.id}" style="width:0%"></div>
+          ${renderWaveBars(v)}
+        </div>
         <div class="voice-dur">${v.duration}</div>
         <div class="voice-actions">
-          <button class="voice-action-btn fav${isFav?' fav':''}" title="Favorite" onclick="toggleVoiceFav(${JSON.stringify(v.id)})">${isFav?'⭐':'☆'}</button>
-          <button class="voice-action-btn" title="Download" onclick="downloadVoice(${JSON.stringify(v.audioData||'')})">⬇️</button>
-          <button class="voice-action-btn del" title="Delete" onclick="deleteVoice(${JSON.stringify(v.id)})">🗑️</button>
+          <button class="voice-action-btn fav${isFav?' fav':''}" title="Favorite" onclick="event.stopPropagation();toggleVoiceFav(${JSON.stringify(v.id)})">${isFav?'⭐':'☆'}</button>
+          ${!isLibrary ? `<button class="voice-action-btn" title="Export to Library" onclick="event.stopPropagation();exportToLibrary(${JSON.stringify(v.id)})">💾</button>` : ''}
+          <button class="voice-action-btn" title="Export / Download" onclick="event.stopPropagation();downloadVoice(${JSON.stringify(v.audioData||'')})">⬇️</button>
+          <button class="voice-action-btn del" title="Delete" onclick="event.stopPropagation();deleteVoice(${JSON.stringify(v.id)},${isLibrary})">🗑️</button>
         </div>
       </div>`;
     }).join('')}
   `).join('');
+
+  // Kick off real-waveform generation for any items missing cached peaks
+  voices.forEach(v => { if (v.audioData && !waveformCache[v.id]) generateRealWaveform(v.id, v.audioData); });
 }
 
-function generateWave() {
+function voiceRowClick(e, id, isLibrary) {
+  if (selectMode) toggleSelect(id);
+}
+
+function renderWaveBars(v) {
+  const peaks = waveformCache[v.id];
+  if (peaks) {
+    return peaks.map(p => `<span style="height:${Math.max(4, Math.round(p*26))}px"></span>`).join('');
+  }
+  // Fallback placeholder bars while real waveform decodes (or if decode fails)
   return Array.from({length:18}, () => `<span style="height:${6+Math.round(Math.random()*14)}px"></span>`).join('');
+}
+
+// ── REAL WAVEFORM (decoded from actual audio data via Web Audio) ──
+async function generateRealWaveform(id, audioData) {
+  try {
+    if (!sharedAudioCtx) sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const resp = await fetch(audioData);
+    const buf = await resp.arrayBuffer();
+    const audioBuf = await sharedAudioCtx.decodeAudioData(buf.slice(0));
+    const raw = audioBuf.getChannelData(0);
+    const samples = 32;
+    const blockSize = Math.max(1, Math.floor(raw.length / samples));
+    const peaks = [];
+    for (let i = 0; i < samples; i++) {
+      let sum = 0;
+      const start = i * blockSize;
+      for (let j = 0; j < blockSize; j++) sum += Math.abs(raw[start + j] || 0);
+      peaks.push(Math.min(1, (sum / blockSize) * 4));
+    }
+    waveformCache[id] = peaks;
+    const wf = document.getElementById('wf-' + id);
+    if (wf) {
+      const seekEl = wf.querySelector('.voice-seek-fill');
+      wf.innerHTML = (seekEl ? seekEl.outerHTML : '') + renderWaveBars({ id });
+    }
+  } catch(e) {
+    // Decoding failed (e.g. unsupported format) — keep placeholder bars
+    waveformCache[id] = null;
+  }
+}
+
+function seekWaveform(e, id) {
+  if (currentPlayingIdx !== id || !voiceAudio.duration) { playVoice(id, findVoiceById(id)?.audioData); return; }
+  const wf = document.getElementById('wf-' + id);
+  const rect = wf.getBoundingClientRect();
+  const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+  voiceAudio.currentTime = pct * voiceAudio.duration;
+}
+function findVoiceById(id) {
+  return colState.voices.find(v => v.id === id) || colState.library.find(v => v.id === id);
 }
 
 let currentAudio = null;
@@ -391,23 +580,40 @@ function playVoice(id, audioData) {
     currentPlayingIdx = -1;
     updateVoiceItem(id, false);
     updateVoiceItem(prevId, false);
+    stopSeekLoop();
     return;
   }
   if (currentPlayingIdx !== -1) updateVoiceItem(currentPlayingIdx, false);
   currentPlayingIdx = id;
+  currentPlayingSrc = audioData;
   voiceAudio.src = audioData;
   voiceAudio.play().catch(e => showColToast('Cannot play audio: ' + e.message));
   updateVoiceItem(id, true);
+  startSeekLoop(id);
 }
+function startSeekLoop(id) {
+  stopSeekLoop();
+  function tick() {
+    if (currentPlayingIdx !== id) return;
+    const fill = document.getElementById('wfseek-' + id);
+    if (fill && voiceAudio.duration) {
+      fill.style.width = ((voiceAudio.currentTime / voiceAudio.duration) * 100) + '%';
+    }
+    seekRAF = requestAnimationFrame(tick);
+  }
+  seekRAF = requestAnimationFrame(tick);
+}
+function stopSeekLoop() { if (seekRAF) cancelAnimationFrame(seekRAF); seekRAF = null; }
 function updateVoiceItem(id, playing) {
   const el = document.getElementById('vi-' + id);
   if (!el) return;
   el.classList.toggle('playing', playing);
   const btn = el.querySelector('.voice-play-btn');
   if (btn) { btn.textContent = playing ? '⏸' : '▶'; btn.classList.toggle('playing', playing); }
+  if (!playing) { const fill = document.getElementById('wfseek-' + id); if (fill) fill.style.width = '0%'; }
 }
 voiceAudio.addEventListener('ended', () => {
-  if (currentPlayingIdx !== -1) { updateVoiceItem(currentPlayingIdx, false); currentPlayingIdx = -1; }
+  if (currentPlayingIdx !== -1) { updateVoiceItem(currentPlayingIdx, false); currentPlayingIdx = -1; stopSeekLoop(); }
 });
 
 function toggleVoiceFav(id) {
@@ -415,7 +621,7 @@ function toggleVoiceFav(id) {
   if (idx > -1) colState.voiceFavs.splice(idx, 1);
   else colState.voiceFavs.push(id);
   localStorage.setItem('col_voice_favs', JSON.stringify(colState.voiceFavs));
-  renderVoice(); renderHero();
+  renderCurrentTab(); renderHero();
 }
 function downloadVoice(audioData) {
   if (!audioData) return;
@@ -425,10 +631,17 @@ function downloadVoice(audioData) {
   a.click();
   showColToast('Downloading... ⬇️');
 }
-function deleteVoice(id) {
+function deleteVoice(id, isLibrary) {
   if (!confirm('Delete this voice message?')) return;
+  if (isLibrary) {
+    colState.library = colState.library.filter(v => v.id !== id);
+    saveLibraryLocal(); pushLibraryToParent();
+    renderCurrentTab(); renderHero();
+    showColToast('Removed from library');
+    return;
+  }
   colState.voices = colState.voices.filter(v => v.id !== id);
-  // Also delete from parent state if possible
+  // Also delete from parent state if possible (chat-sourced items only)
   try {
     const ps = window.parent?.S;
     if (ps?.chatMessages) {
@@ -437,8 +650,52 @@ function deleteVoice(id) {
       window.parent.scheduleSave?.();
     }
   } catch(e) {}
-  renderVoice(); renderHero();
+  renderCurrentTab(); renderHero();
   showColToast('Voice message deleted');
+}
+
+// ── EXPORT TO LIBRARY (copy, chat history stays untouched) ──
+function exportToLibrary(id) {
+  const v = colState.voices.find(x => x.id === id);
+  if (!v) return;
+  if (colState.library.some(x => x.id === id)) { showColToast('Already saved to Library'); return; }
+  colState.library.push({ ...v });
+  saveLibraryLocal();
+  pushLibraryToParent();
+  renderCurrentTab();
+  showColToast('💾 Saved to Library — chat history untouched');
+}
+function bulkExportToLibrary() {
+  if (!selectedIds.size) return;
+  let added = 0;
+  selectedIds.forEach(id => {
+    if (colState.library.some(x => x.id === id)) return;
+    const v = colState.voices.find(x => x.id === id) || colState.library.find(x => x.id === id);
+    if (v) { colState.library.push({ ...v }); added++; }
+  });
+  saveLibraryLocal(); pushLibraryToParent();
+  showColToast('💾 Exported ' + added + ' message' + (added===1?'':'s') + ' to Library');
+  exitSelectMode();
+}
+function bulkDelete() {
+  if (!selectedIds.size) return;
+  if (!confirm('Delete ' + selectedIds.size + ' selected voice message(s)?')) return;
+  const isLib = currentTab === 'library';
+  selectedIds.forEach(id => {
+    if (isLib) colState.library = colState.library.filter(v => v.id !== id);
+    else {
+      colState.voices = colState.voices.filter(v => v.id !== id);
+      try {
+        const ps = window.parent?.S;
+        const m = ps?.chatMessages?.find(m => m.id === id);
+        if (m) { m._deleted = true; m.audioData = null; m.type = 'deleted'; }
+      } catch(e) {}
+    }
+  });
+  if (isLib) { saveLibraryLocal(); pushLibraryToParent(); }
+  else { try { window.parent.scheduleSave?.(); } catch(e) {} }
+  showColToast('Deleted ' + selectedIds.size + ' message(s)');
+  exitSelectMode();
 }
 
 // ── PHOTO RENDER ──
@@ -569,9 +826,11 @@ function downloadPhoto(url) {
 // ── TAB SWITCHING ──
 function switchColTab(tab, el) {
   currentTab = tab;
+  selectMode = false; selectedIds.clear(); updateBulkBar();
   document.querySelectorAll('.col-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('col-section-voice').style.display = tab==='voice'?'block':'none';
+  document.getElementById('col-section-library').style.display = tab==='library'?'block':'none';
   document.getElementById('col-section-photos').style.display = tab==='photos'?'block':'none';
   renderToolbar();
   renderHero();
@@ -579,7 +838,19 @@ function switchColTab(tab, el) {
 }
 function renderCurrentTab() {
   if (currentTab === 'voice') renderVoice();
+  else if (currentTab === 'library') renderLibrary();
   else renderPhotos();
+}
+
+// ── REALTIME SYNC — poll parent for new chat voices + partner library updates ──
+let colSyncInterval = null;
+function startColSync() {
+  if (colSyncInterval) return;
+  colSyncInterval = setInterval(() => {
+    loadFromParent();
+    renderHero();
+    renderCurrentTab();
+  }, 4000);
 }
 
 // ── TOAST ──
@@ -602,10 +873,12 @@ window.addEventListener('message', e => {
 
 // ── INIT ──
 function init() {
+  loadLibraryLocal();
   loadFromParent();
   renderToolbar();
   renderHero();
   renderCurrentTab();
+  startColSync();
 }
 init();
 </script>
