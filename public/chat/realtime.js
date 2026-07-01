@@ -1,4 +1,4 @@
-const API = window.__API_BASE__ || '';
+
 const ChatRealtime = (() => {
   let client = null, channel = null, presenceChannel = null;
 

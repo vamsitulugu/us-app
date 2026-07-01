@@ -2,9 +2,10 @@ const ChatQueue = (() => {
   let flushing = false;
 
   async function enqueue(payload) {
-    await ChatDB.outboxAdd(payload);
-    flush();
-  }
+  const item = { ...payload, client_id: payload.clientId || payload.client_id };
+  await ChatDB.outboxAdd(item);
+  flush();
+}
 
   async function flush() {
     if (flushing || !navigator.onLine) return;
