@@ -4,7 +4,8 @@
 const express  = require('express');
 const supabase = require('../middleware/supabase');
 const router   = express.Router();
-
+let _sendPushToPartner;
+try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch(_) {}
 // ─── FULL STATE (save/load entire app) ─────────────────
 
 router.get('/state/:coupleId', async (req, res) => {
@@ -29,7 +30,44 @@ router.post('/state', async (req, res) => {
     state:      state,
     updated_at: new Date().toISOString()
   }, { onConflict: 'couple_id' });
-
+if (_sendPushToPartner && coupleId && state) {
+  const role = state.role;
+  // Only push for real actions, not background heartbeat saves
+  const lastMsg = (state.chatMessages || []).filter(m => !m._deleted).slice(-1)[0];
+  if (lastMsg && lastMsg.by === role) {
+    _sendPushToPartner(coupleId, role, {
+      title: '💬 New message',
+      body: lastMsg.text ? lastMsg.text.slice(0, 80) : (lastMsg.mediaUrl ? '📷 Photo' : '🎙️ Voice'),
+      icon: '/icons/icon-192.png',
+      tag: 'chat-msg',
+      url: '/?page=chat'
+    }).catch(() => {});
+  }
+  if (state.touch && state.touch.from === role) {
+    _sendPushToPartner(coupleId, role, {
+      title: '💓 Touch',
+      body: (state.myName || 'Your partner') + ' sent you a touch',
+      icon: '/icons/icon-192.png',
+      tag: 'touch'
+    }).catch(() => {});
+  }
+  if (state.missYou && state.missYou.from === role) {
+    _sendPushToPartner(coupleId, role, {
+      title: '💔 Miss You',
+      body: (state.myName || 'Your partner') + ' misses you',
+      icon: '/icons/icon-192.png',
+      tag: 'missyou'
+    }).catch(() => {});
+  }
+  if (state.hug && state.hug.from === role && state.hug.status === 'pending') {
+    _sendPushToPartner(coupleId, role, {
+      title: '🤗 Virtual Hug',
+      body: (state.myName || 'Your partner') + ' sent you a hug!',
+      icon: '/icons/icon-192.png',
+      tag: 'hug'
+    }).catch(() => {});
+  }
+}
   if (error) return res.status(500).json({ error: error.message });
   return res.json({ ok: true, savedAt: new Date().toISOString() });
 });

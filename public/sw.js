@@ -1,20 +1,16 @@
-// Service Worker for Us With Love PWA
-const CACHE = 'uwl-v2';
+// Service Worker for US 💕 PWA — v3
+const CACHE = 'uwl-v3';
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
   'https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap'
 ];
 
-// Install — cache shell
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(OFFLINE_ASSETS))
-  );
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(OFFLINE_ASSETS)));
   self.skipWaiting();
 });
 
-// Activate — clean old caches
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
@@ -24,21 +20,15 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Fetch — network first, fallback to cache for the app shell
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-  
-  // Always go to network for API calls
-  if (url.pathname.startsWith('/api/')) return;
-  
-  // For everything else: try network, fallback to cache
+  if (url.pathname.startsWith('/api/')) return; // never intercept API
   e.respondWith(
     fetch(e.request)
       .then(res => {
-        // Cache successful GET responses
         if (e.request.method === 'GET' && res.status === 200) {
           const clone = res.clone();
-          caches.open(CACHE).then(cache => cache.put(e.request, clone));
+          caches.open(CACHE).then(c => c.put(e.request, clone));
         }
         return res;
       })
@@ -46,23 +36,36 @@ self.addEventListener('fetch', e => {
   );
 });
 
-self.addEventListener('notificationclick', function(event) {
-  event.notification.close();
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
-      for (const client of clientList) if ('focus' in client) return client.focus();
-      if (clients.openWindow) return clients.openWindow('/');
+// ── PUSH: fires even when app is fully closed ──────────
+self.addEventListener('push', e => {
+  let data = { title: 'US 💕', body: '', icon: '/icons/icon-192.png' };
+  try { if (e.data) Object.assign(data, e.data.json()); } catch (_) {}
+  e.waitUntil(
+    self.registration.showNotification(data.title, {
+      body:    data.body,
+      icon:    data.icon    || '/icons/icon-192.png',
+      badge:   '/icons/icon-192.png',
+      vibrate: [200, 100, 200, 100, 400],
+      tag:     data.tag     || 'us-app',
+      renotify: true,
+      data:    { url: data.url || '/' }
     })
   );
 });
 
-// Required for true push delivery even when the app is fully closed —
-// only fires if your backend sends a Web Push message to this device.
-self.addEventListener('push', function(event) {
-  let data = {};
-  try { data = event.data ? event.data.json() : {}; } catch(e) {}
-  event.waitUntil(self.registration.showNotification(data.title || 'US 💕', {
-    body: data.body || '', icon: '/icons/icon-192.png', badge: '/icons/icon-192.png',
-    vibrate: [200,100,200], tag: 'us-app-love'
-  }));
+// ── NOTIFICATION CLICK: open or focus app ─────────────
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const target = (e.notification.data && e.notification.data.url) || '/';
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const c of list) {
+        if (c.url.includes(self.location.origin) && 'focus' in c) {
+          c.postMessage({ type: 'notification_click', url: target });
+          return c.focus();
+        }
+      }
+      return clients.openWindow(target);
+    })
+  );
 });

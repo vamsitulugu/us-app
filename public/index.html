@@ -727,10 +727,11 @@
   height: calc(100dvh - 118px);
   position: relative;
   overflow: hidden;
+  background: transparent;
 }
 
 .chat-bg-fixed {
-  position: absolute;
+  position: fixed;
   inset: 0;
   background-color: #0a0a14;
   background-image: url('/icons/background-chat.png');
@@ -738,7 +739,9 @@
   background-size: 520px auto;
   z-index: 0;
   pointer-events: none;
+  display: none; /* hidden by default, shown only on chat page */
 }
+body.chat-active .chat-bg-fixed { display: block; }
 
 .chat-msgs {
   flex: 1;
@@ -751,6 +754,7 @@
   position: relative;
   z-index: 1;
   background: transparent;
+  overscroll-behavior: contain;
 }
 
 .chat-msgs::-webkit-scrollbar { width: 3px }
@@ -5865,6 +5869,7 @@ async function removePartner() {
             await loadFromCloud(); pushMyProfile(); pullPartnerProfile(); saveToCloud();
             applyNames(); renderAll(); updatePairStatus(); syncLoveCounterToFrame();
             toast('Connected with ' + data.partnerName + '! 💕'); spawnPetals(); startAlarmCheck();
+            if (Notification.permission === 'granted') setTimeout(registerPushSubscription, 2000);
           } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
           finally { btn.textContent = 'Connect with Partner 💕'; btn.disabled = false; }
         }
@@ -5900,6 +5905,10 @@ async function removePartner() {
             m.type = 'deleted';
           }
         });
+      }
+      // Always sort by timestamp after cloud merge to prevent ordering bugs
+      if (S.chatMessages) {
+        S.chatMessages.sort((a, b) => a.id - b.id);
       }
     }
             pullPartnerProfile();
@@ -6033,7 +6042,12 @@ function renderPartnerLastSeen() {
           const ni = document.querySelector('.ni[data-page="' + page + '"]'); if (ni) ni.classList.add('active');
           document.getElementById('topTitle').textContent = pageTitles[page] || page;
           if (page !== 'camera' && camStream) stopCamera();
-          if (page === 'chat') { setTimeout(() => { const el = document.getElementById('chatMsgs'); if(el) el.scrollTop = el.scrollHeight; }, 100); }
+          if (page === 'chat') {
+  document.body.classList.add('chat-active');
+  setTimeout(() => { _chatScrollToBottom(true); }, 100);
+} else {
+  document.body.classList.remove('chat-active');
+}
           if (page === 'calendar') renderCalendar();
           if (page === 'dashboard') renderDashboard();
           if (page === 'money') renderMoney();
@@ -6420,42 +6434,89 @@ function renderPartnerLastSeen() {
         }
         // ─── CHAT ────────────────────────────────────────────────
         let replyingTo = null, mediaRecorder = null, audioChunks = [], isRecording = false;
-        function isMyMsg(m) { return m.by ? m.by === S.role : !!m.me; }
+        function isMyMsg(m) {
+  // Authoritative: use the `by` role field
+  if (m.by) return m.by === S.role;
+  // Legacy fallback for old messages: use `me` but only trust it if
+  // the message has no `by` AND was not synced (i.e. originated locally).
+  // We cannot trust `me:true` from cloud-synced messages — mark them neutral.
+  return false;
+}
 
-        function renderChat() {
+        // ── Chat scroll helpers ─────────────────────────────
+let _chatIsAtBottom = true;
+function _chatScrollToBottom(instant) {
   const el = document.getElementById('chatMsgs');
-  if (!S.chatMessages.length) {
+  if (!el) return;
+  if (instant) {
+    el.scrollTop = el.scrollHeight;
+  } else {
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }
+}
+function _chatUpdateScrollBtn() {
+  const el = document.getElementById('chatMsgs');
+  const btn = document.getElementById('scrollToBottomBtn');
+  if (!btn || !el) return;
+  const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  _chatIsAtBottom = atBottom;
+  btn.style.display = atBottom ? 'none' : 'flex';
+}
+
+function renderChat() {
+  const el = document.getElementById('chatMsgs');
+  if (!el) return;
+
+  // Preserve scroll position to prevent jumping during re-renders
+  const wasAtBottom = _chatIsAtBottom;
+  const prevScrollTop = el.scrollTop;
+  const prevScrollHeight = el.scrollHeight;
+
+  // Sort messages chronologically by id (timestamp)
+  const msgs = [...(S.chatMessages || [])].sort((a, b) => a.id - b.id);
+
+  if (!msgs.length) {
     el.innerHTML = '<div class="empty" style="padding:40px 18px"><div style="font-size:48px;margin-bottom:12px">💬</div><div>Your private chat syncs between both devices</div></div>';
     return;
   }
+
   let html = '', lastDate = '';
-  S.chatMessages.forEach((m, idx) => {
-    if (m._deleted) return; // skip soft-deleted
+  msgs.forEach((m, idx) => {
+    if (m._deleted) return;
     const d = m.date || todayStr();
-    if (d !== lastDate) { html += `<div class="date-sep"><span>${d === todayStr() ? 'Today' : fmtDate(d)}</span></div>`; lastDate = d; }
+    if (d !== lastDate) {
+      html += `<div class="date-sep"><span>${d === todayStr() ? 'Today' : fmtDate(d)}</span></div>`;
+      lastDate = d;
+    }
     const isMe = isMyMsg(m);
-    const avatar = `<div class="av ${isMe ? 'av1' : 'av2'}" style="width:28px;height:28px;font-size:10px;flex-shrink:0;align-self:flex-end">${isMe ? (S.myName[0] || 'U') : (S.partnerName[0] || 'P')}</div>`;
+    const senderInitial = isMe ? (S.myName[0] || 'U') : (S.partnerName[0] || 'P');
+    const avatar = `<div class="av ${isMe ? 'av1' : 'av2'}" style="width:28px;height:28px;font-size:10px;flex-shrink:0;align-self:flex-end">${senderInitial}</div>`;
+
     let bubbleContent = '';
     if (m.pinned) bubbleContent += `<div style="font-size:9px;color:var(--yellow);font-weight:700;margin-bottom:3px">📌 PINNED</div>`;
     if (m.replyTo) {
-      const orig = S.chatMessages.find(x => x.id === m.replyTo);
-      bubbleContent += `<div class="reply-preview" onclick="scrollToMsg(${m.replyTo})">↩ ${orig ? esc((orig.text || '📷 Photo').slice(0, 60)) : 'Deleted message'}</div>`;
+      const orig = msgs.find(x => x.id === m.replyTo);
+      bubbleContent += `<div class="reply-preview" onclick="scrollToMsg('${m.replyTo}')">↩ ${orig ? esc((orig.text || '📷 Photo').slice(0, 60)) : 'Deleted message'}</div>`;
     }
     if (m.type === 'music') {
       bubbleContent += `<iframe src="${esc(m.embed)}" width="230" height="80" frameborder="0" allow="encrypted-media" style="border-radius:10px"></iframe>`;
     } else if (m.type === 'voice') {
-      bubbleContent += `<div class="voice-msg"><button class="voice-play" onclick="playVoice(${idx})" id="vplay-${idx}">▶</button><div class="voice-waveform" id="vwave-${idx}">${generateWaveform()}</div><span class="voice-dur">${m.duration || '0:00'}</span></div>`;
+      bubbleContent += `<div class="voice-msg"><button class="voice-play" onclick="playVoice(${m.id})" id="vplay-${m.id}">▶</button><div class="voice-waveform" id="vwave-${m.id}">${generateWaveform()}</div><span class="voice-dur">${m.duration || '0:00'}</span></div>`;
     } else if (m.mediaUrl) {
-      bubbleContent += m.text ? `<div style="font-size:13px;margin-bottom:6px">${esc(m.text)}</div>` : '';
+      if (m.text) bubbleContent += `<div style="font-size:13px;margin-bottom:6px">${esc(m.text)}</div>`;
       bubbleContent += `<img src="${esc(m.mediaUrl)}" class="msg-img" alt="photo" onclick="openImgViewer('${esc(m.mediaUrl)}')" title="Click to view">`;
     } else {
-      bubbleContent += esc(m.text);
+      bubbleContent += esc(m.text || '');
     }
+
     const reactions = (m.reactions || {});
-    const reactHTML = Object.entries(reactions).map(([e, n]) => `<div class="reaction-chip" onclick="toggleReaction(${idx},'${e}')">${e} ${n}</div>`).join('');
-    // TIME always right-aligned at bottom
-    const timeHtml = `<div style="display:flex;justify-content:flex-end;align-items:center;gap:3px;margin-top:2px;float:right;margin-left:8px;position:relative;bottom:0px"><span style="font-size:11px;color:${isMe?'rgba(255,255,255,0.6)':'rgba(255,255,255,0.45)'};">${esc(m.time || '')}</span>${isMe ? `<span style="font-size:13px;color:${m.read?'var(--accent)':'rgba(255,255,255,0.5)'};line-height:1">${m.read?'✓✓':'✓'}</span>` : ''}</div><div style="clear:both"></div>`;
-    html += `<div class="msg ${isMe ? 'me' : 'them'}" id="msg-${m.id}" style="position:relative" oncontextmenu="showMsgCtx(event,${idx});return false;" ontouchstart="msgTouchStart(event,${idx})" ontouchend="msgTouchEnd()">
+    const reactHTML = Object.entries(reactions).map(([em, n]) =>
+      `<div class="reaction-chip" onclick="toggleReactionById('${m.id}','${em}')">${em} ${n}</div>`
+    ).join('');
+
+    const timeHtml = `<div style="display:flex;justify-content:flex-end;align-items:center;gap:3px;margin-top:2px;float:right;margin-left:8px"><span style="font-size:11px;color:${isMe ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.45)'};">${esc(m.time || '')}</span>${isMe ? `<span style="font-size:13px;color:${m.read ? 'var(--accent)' : 'rgba(255,255,255,0.5)'};line-height:1">${m.read ? '✓✓' : '✓'}</span>` : ''}</div><div style="clear:both"></div>`;
+
+    html += `<div class="msg ${isMe ? 'me' : 'them'}" id="msg-${m.id}" style="position:relative" oncontextmenu="showMsgCtx(event,'${m.id}');return false;" ontouchstart="msgTouchStart(event,'${m.id}')" ontouchend="msgTouchEnd()">
       ${!isMe ? avatar : ''}
       <div style="max-width:100%">
         <div class="bubble">${bubbleContent}${timeHtml}</div>
@@ -6464,55 +6525,65 @@ function renderPartnerLastSeen() {
       ${isMe ? avatar : ''}
     </div>`;
   });
-  // Pinned messages banner
-  const pinned = S.chatMessages.filter(m => m.pinned);
+
+  // Pinned banner
+  const pinned = msgs.filter(m => m.pinned && !m._deleted);
   const pb = document.getElementById('pinnedBanner');
   if (pb) {
     if (pinned.length) {
+      const latest = pinned[pinned.length - 1];
       pb.className = 'pin-banner active';
-      pb.style.cssText = 'display:flex;flex-direction:column;gap:4px;padding:8px 14px';
-      pb.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between">
-        <span>📌 ${pinned.length} pinned message${pinned.length>1?'s':''}</span>
-        <span style="font-size:10px;color:var(--text3);cursor:pointer" onclick="this.closest('.pin-banner').querySelector('.pin-list').style.display=this.closest('.pin-banner').querySelector('.pin-list').style.display==='none'?'block':'none'">${pinned.length>1?'▾ Show all':''}</span>
-      </div>
-      <div class="pin-list" style="${pinned.length>1?'display:none':''}">
-        ${pinned.map((m,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-top:${i>0?'1px solid rgba(251,191,36,0.2)':'none'};cursor:pointer" onclick="scrollToMsg(${m.id})">
-          <span style="font-size:10px">📌</span>
-          <span style="font-size:11px;color:var(--yellow);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${esc((m.text||'📷 Photo').slice(0,50))}</span>
-          <span style="font-size:9px;color:var(--text3)">${m.time||''}</span>
-        </div>`).join('')}
-      </div>`;
+      pb.innerHTML = `<span style="font-size:14px">📌</span>
+        <div style="flex:1;min-width:0;cursor:pointer" onclick="scrollToMsg('${latest.id}')">
+          <div style="font-size:9px;font-weight:700;color:var(--yellow);text-transform:uppercase">Pinned Message${pinned.length > 1 ? ' (' + pinned.length + ')' : ''}</div>
+          <div style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(255,255,255,0.8)">${esc((latest.text || '📷 Photo').slice(0, 60))}</div>
+        </div>
+        <button onclick="event.stopPropagation();togglePinnedList()" style="background:none;border:none;color:var(--yellow);cursor:pointer;font-size:18px">›</button>`;
     } else {
       pb.className = 'pin-banner';
-      pb.style.cssText = '';
+      pb.innerHTML = '';
     }
   }
+
   el.innerHTML = html;
-  el.scrollTop = el.scrollHeight;
-  updateScrollBtn();
+
+  // Restore scroll position without jump
+  if (wasAtBottom) {
+    el.scrollTop = el.scrollHeight;
+  } else {
+    // Maintain relative position (new messages above don't jump you)
+    const newScrollHeight = el.scrollHeight;
+    el.scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight);
+  }
+  _chatUpdateScrollBtn();
 }
 
         function generateWaveform() {
           return Array.from({ length: 18 }, (_, i) => `<span style="height:${8 + Math.round(Math.random() * 14)}px"></span>`).join('');
         }
 
-        function playVoice(idx) {
-          const m = S.chatMessages[idx];
-          if (!m || !m.audioData) return;
-          const btn = document.getElementById('vplay-' + idx);
-          const wave = document.getElementById('vwave-' + idx);
-          const audio = new Audio(m.audioData);
-          btn.textContent = '⏸';
-          wave.classList.add('playing');
-          audio.play();
-          audio.onended = () => { btn.textContent = '▶'; wave.classList.remove('playing'); };
-          audio.onerror = () => { btn.textContent = '▶'; wave.classList.remove('playing'); toast('Could not play audio'); };
-        }
+        function playVoice(msgId) {
+  const m = (S.chatMessages || []).find(x => x.id == msgId);
+  if (!m || !m.audioData) return;
+  const btn = document.getElementById('vplay-' + msgId);
+  const wave = document.getElementById('vwave-' + msgId);
+  const audio = new Audio(m.audioData);
+  if (btn) btn.textContent = '⏸';
+  if (wave) wave.classList.add('playing');
+  audio.play();
+  audio.onended = () => { if (btn) btn.textContent = '▶'; if (wave) wave.classList.remove('playing'); };
+  audio.onerror = () => { if (btn) btn.textContent = '▶'; if (wave) wave.classList.remove('playing'); toast('Could not play audio'); };
+}
 
         function scrollToMsg(id) {
-          const el = document.getElementById('msg-' + id);
-          if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.style.background = 'var(--g2)'; setTimeout(() => el.style.background = '', 1200); }
-        }
+  const el = document.getElementById('msg-' + id);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.style.transition = 'background 0.3s ease';
+    el.style.background = 'var(--g2)';
+    setTimeout(() => { el.style.background = ''; }, 1200);
+  }
+}
 
         function setReply(idx) {
           const m = S.chatMessages[idx]; if (!m) return;
@@ -6539,9 +6610,7 @@ function renderPartnerLastSeen() {
           setTimeout(() => document.addEventListener('click', () => picker.remove(), { once: true }), 50);
         }
         function scrollToBottom() {
-  const el = document.getElementById('chatMsgs');
-  el.scrollTop = el.scrollHeight;
-  updateScrollBtn();
+  _chatScrollToBottom(false);
 }
 
 function updateScrollBtn() {
@@ -6553,36 +6622,38 @@ function updateScrollBtn() {
 }
         // ─── CONTEXT MENU ─────────────────────────────────────────
 let msgTouchTimer = null;
-function msgTouchStart(e, idx) { msgTouchTimer = setTimeout(() => showMsgCtx(e, idx), 550); }
+function msgTouchStart(e, id) { msgTouchTimer = setTimeout(() => showMsgCtx(e, id), 550); }
 function msgTouchEnd() { clearTimeout(msgTouchTimer); }
 
-function showMsgCtx(e, idx) {
+function msgTouchStart(e, id) { msgTouchTimer = setTimeout(() => showMsgCtx(e, id), 550); }
+function msgTouchEnd() { clearTimeout(msgTouchTimer); }
+
+function showMsgCtx(e, msgId) {
   e.preventDefault();
   document.querySelectorAll('.msg-ctx-menu').forEach(m => m.remove());
-  const m = S.chatMessages[idx]; if (!m) return;
+  const m = (S.chatMessages || []).find(x => x.id == msgId);
+  if (!m) return;
+  const idx = S.chatMessages.indexOf(m);
   const emojis = ['❤️','😂','😮','😢','🔥','👏','💕','✨','😍','🥹'];
   const menu = document.createElement('div');
   menu.className = 'msg-ctx-menu';
   menu.innerHTML = `
     <div class="msg-ctx-emoji-row">
-      ${emojis.map(em => `<div class="msg-ctx-emoji" onclick="ctxReact(${idx},'${em}')">${em}</div>`).join('')}
-      <div class="msg-ctx-emoji plus" onclick="showMoreReactions(${idx})">+</div>
+      ${emojis.map(em => `<div class="msg-ctx-emoji" onclick="ctxReactById('${msgId}','${em}')">${em}</div>`).join('')}
+      <div class="msg-ctx-emoji plus" onclick="showMoreReactionsById('${msgId}')">+</div>
     </div>
-    <div class="msg-ctx-item" onclick="setReply(${idx});closeCtx()"><span class="msg-ctx-icon">↩️</span> Reply</div>
-    <div class="msg-ctx-item" onclick="ctxReact(${idx},'❤️');closeCtx()"><span class="msg-ctx-icon">😊</span> React</div>
-    <div class="msg-ctx-item" onclick="pinMsg(${idx});closeCtx()"><span class="msg-ctx-icon">${m.pinned ? '📌' : '📍'}</span> ${m.pinned ? 'Unpin' : 'Pin'}</div>
-    <div class="msg-ctx-item" onclick="starMsg(${idx});closeCtx()"><span class="msg-ctx-icon">${m.starred ? '⭐' : '☆'}</span> ${m.starred ? 'Unstar' : 'Star'}</div>
-    ${m.text ? `<div class="msg-ctx-item" onclick="copyMsgText(${idx});closeCtx()"><span class="msg-ctx-icon">📋</span> Copy</div>` : ''}
-    <div class="msg-ctx-item danger" onclick="deleteChatMsg(${idx});closeCtx()"><span class="msg-ctx-icon">🗑️</span> Delete</div>
+    <div class="msg-ctx-item" onclick="setReplyById('${msgId}');closeCtx()"><span class="msg-ctx-icon">↩️</span> Reply</div>
+    <div class="msg-ctx-item" onclick="pinMsgById('${msgId}');closeCtx()"><span class="msg-ctx-icon">${m.pinned ? '📌' : '📍'}</span> ${m.pinned ? 'Unpin' : 'Pin'}</div>
+    <div class="msg-ctx-item" onclick="starMsgById('${msgId}');closeCtx()"><span class="msg-ctx-icon">${m.starred ? '⭐' : '☆'}</span> ${m.starred ? 'Unstar' : 'Star'}</div>
+    ${m.text ? `<div class="msg-ctx-item" onclick="copyMsgTextById('${msgId}');closeCtx()"><span class="msg-ctx-icon">📋</span> Copy</div>` : ''}
+    <div class="msg-ctx-item danger" onclick="deleteChatMsgById('${msgId}');closeCtx()"><span class="msg-ctx-icon">🗑️</span> Delete</div>
   `;
-  // Append first (hidden) to measure height
   menu.style.visibility = 'hidden';
   document.body.appendChild(menu);
   const mh = menu.offsetHeight || 260;
   const mw = menu.offsetWidth || 200;
   const cx = e.clientX || (e.touches?.[0]?.clientX || 100);
   const cy = e.clientY || (e.touches?.[0]?.clientY || 100);
-  // Smart positioning: flip up if too close to bottom, flip left if too close to right
   const x = Math.min(cx, window.innerWidth - mw - 12);
   const y = cy + mh > window.innerHeight - 10 ? Math.max(10, cy - mh) : cy;
   menu.style.left = x + 'px';
@@ -6591,32 +6662,65 @@ function showMsgCtx(e, idx) {
   setTimeout(() => document.addEventListener('click', closeCtx, { once: true }), 10);
 }
 function closeCtx() { document.querySelectorAll('.msg-ctx-menu').forEach(m => m.remove()); }
-function ctxReact(idx, emoji) { toggleReaction(idx, emoji); }
-function pinMsg(idx) { const m = S.chatMessages[idx]; if (m) { m.pinned = !m.pinned; renderChat(); scheduleSave(); toast(m.pinned ? '📌 Message pinned' : 'Unpinned'); } }
-function starMsg(idx) { const m = S.chatMessages[idx]; if (m) { m.starred = !m.starred; renderChat(); scheduleSave(); toast(m.starred ? '⭐ Starred' : 'Unstarred'); } }
-function copyMsgText(idx) { const m = S.chatMessages[idx]; if (m?.text) { navigator.clipboard?.writeText(m.text).then(() => toast('Copied!')).catch(() => toast(m.text)); } }
-
-function deleteChatMsg(idx) {
-  const msg = S.chatMessages[idx];
-  if (!msg) return;
-  // Soft-delete: mark as deleted instead of splicing so cloud sync doesn't resurrect it
-  msg._deleted = true;
-  msg.text = '';
-  msg.mediaUrl = null;
-  msg.audioData = null;
-  msg.type = 'deleted';
-  renderChat();
-  scheduleSave();
-  toast('Message deleted');
+function ctxReactById(msgId, emoji) { toggleReactionById(msgId, emoji); }
+function setReplyById(msgId) {
+  const m = (S.chatMessages || []).find(x => x.id == msgId);
+  if (!m) return;
+  replyingTo = m.id;
+  document.getElementById('replyBar').classList.add('active');
+  document.getElementById('replyBarText').textContent = (m.text || '📷 Photo').slice(0, 80);
+  document.getElementById('chatIn').focus();
 }
-function showMoreReactions(idx) {
+function pinMsgById(msgId) {
+  const m = (S.chatMessages || []).find(x => x.id == msgId);
+  if (m) { m.pinned = !m.pinned; renderChat(); scheduleSave(); toast(m.pinned ? '📌 Pinned' : 'Unpinned'); }
+}
+function starMsgById(msgId) {
+  const m = (S.chatMessages || []).find(x => x.id == msgId);
+  if (m) { m.starred = !m.starred; renderChat(); scheduleSave(); toast(m.starred ? '⭐ Starred' : 'Unstarred'); }
+}
+function copyMsgTextById(msgId) {
+  const m = (S.chatMessages || []).find(x => x.id == msgId);
+  if (m?.text) navigator.clipboard?.writeText(m.text).then(() => toast('Copied!')).catch(() => toast(m.text));
+}
+function deleteChatMsgById(msgId) {
+  const m = (S.chatMessages || []).find(x => x.id == msgId);
+  if (!m) return;
+  m._deleted = true; m.text = ''; m.mediaUrl = null; m.audioData = null; m.type = 'deleted';
+  renderChat(); scheduleSave(); toast('Message deleted');
+}
+function toggleReactionById(msgId, emoji) {
+  const m = (S.chatMessages || []).find(x => x.id == msgId);
+  if (!m) return;
+  if (!m.reactions) m.reactions = {};
+  if (m.reactions[emoji]) { m.reactions[emoji]--; if (!m.reactions[emoji]) delete m.reactions[emoji]; }
+  else m.reactions[emoji] = (m.reactions[emoji] || 0) + 1;
+  renderChat(); scheduleSave();
+}
+function showMoreReactionsById(msgId) {
   closeCtx();
   const more = ['💓','💞','💘','💝','🌹','🥰','😘','😏','🤣','😭','🙏','👍','👎','🤝','🫶','🎉','🔥','💯','✅','❌'];
   const picker = document.createElement('div');
-  picker.style.cssText = `position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(14,14,26,0.97);backdrop-filter:blur(20px);border:1px solid var(--border2);border-radius:16px;padding:14px;z-index:5001;box-shadow:0 8px 32px rgba(0,0,0,0.5)`;
-  picker.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:6px;max-width:280px">${more.map(em => `<span style="font-size:24px;cursor:pointer;padding:4px;border-radius:8px" onclick="ctxReact(${idx},'${em}');this.closest('div[style]').remove()">${em}</span>`).join('')}</div>`;
+  picker.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(14,14,26,0.97);backdrop-filter:blur(20px);border:1px solid var(--border2);border-radius:16px;padding:14px;z-index:5001;box-shadow:0 8px 32px rgba(0,0,0,0.5)';
+  picker.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:6px;max-width:280px">${more.map(em => `<span style="font-size:24px;cursor:pointer;padding:4px;border-radius:8px" onclick="ctxReactById('${msgId}','${em}');this.closest('div[style]').remove()">${em}</span>`).join('')}</div>`;
   document.body.appendChild(picker);
   setTimeout(() => document.addEventListener('click', () => picker.remove(), { once: true }), 50);
+}
+function togglePinnedList() {
+  const pinned = (S.chatMessages || []).filter(m => m.pinned && !m._deleted).sort((a,b) => a.id - b.id);
+  if (!pinned.length) return;
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;padding:16px';
+  overlay.innerHTML = `<div style="background:rgba(8,8,20,0.95);border:1px solid var(--border2);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px;max-height:60dvh;overflow-y:auto">
+    <div style="font-family:var(--ff-serif);font-size:17px;color:var(--white);margin-bottom:14px">📌 Pinned Messages</div>
+    ${pinned.map(m => `<div style="display:flex;gap:12px;padding:10px;background:var(--g1);border-radius:12px;margin-bottom:8px;cursor:pointer;border:1px solid var(--border)" onclick="scrollToMsg('${m.id}');this.closest('div[style*=fixed]').remove()">
+      <div style="font-size:13px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)">${esc((m.text || '📷 Photo').slice(0, 80))}</div>
+      <div style="font-size:10px;color:var(--text3);white-space:nowrap">${m.time || ''}</div>
+    </div>`).join('')}
+    <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;margin-top:8px;padding:12px;background:var(--g2);border:1px solid var(--border);border-radius:12px;color:var(--text);cursor:pointer;font-family:var(--ff-sans)">Close</button>
+  </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
 }
 
 // ─── EMOJI PICKER ─────────────────────────────────────────
@@ -6648,22 +6752,47 @@ document.addEventListener('click', e => {
         }
 
         async function sendChat() {
-          const inp = document.getElementById('chatIn'); const txt = inp.value.trim(); if (!txt) return;
-          inp.value = ''; inp.style.height = 'auto';
-          const msg = { id: Date.now(), text: txt, me: true, time: now(), date: todayStr(), read: false };
-          if (replyingTo) { msg.replyTo = replyingTo; cancelReply(); }
-          S.chatMessages.push(msg); renderChat(); scheduleSave(); addXP(1);
-        }
-
+  const inp = document.getElementById('chatIn');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  inp.value = '';
+  inp.style.height = 'auto';
+  const msg = {
+    id: Date.now(),
+    text: txt,
+    by: S.role,        // authoritative ownership field
+    time: now(),
+    date: todayStr(),
+    read: false
+  };
+  if (replyingTo) { msg.replyTo = replyingTo; cancelReply(); }
+  S.chatMessages.push(msg);
+  _chatScrollToBottom(true); // instant scroll for own message
+  renderChat();
+  scheduleSave();
+  addXP(1);
+}
         function sendPhotoMsg(input) {
-          if (!input.files[0]) return;
-          const reader = new FileReader();
-          reader.onload = e => {
-            const msg = { id: Date.now(), text: '', me: true, by: S.role, time: now(), date: todayStr(), mediaUrl: e.target.result, read: false };
-            if (replyingTo) { msg.replyTo = replyingTo; cancelReply(); }
-            S.chatMessages.push(msg); renderChat(); scheduleSave(); toast('Photo shared! 💕');
-          }; reader.readAsDataURL(input.files[0]);
-        }
+  if (!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const msg = {
+      id: Date.now(),
+      by: S.role,
+      time: now(),
+      date: todayStr(),
+      mediaUrl: e.target.result,
+      read: false
+    };
+    if (replyingTo) { msg.replyTo = replyingTo; cancelReply(); }
+    S.chatMessages.push(msg);
+    _chatScrollToBottom(true);
+    renderChat();
+    scheduleSave();
+    toast('Photo shared! 💕');
+  };
+  reader.readAsDataURL(input.files[0]);
+}
 
         // ── Voice recording ──
         async function toggleRecord() {
@@ -6709,7 +6838,7 @@ document.addEventListener('click', e => {
         }
 
         // Auto-grow textarea
-        document.getElementById('chatMsgs').addEventListener('scroll', updateScrollBtn);
+        document.getElementById('chatMsgs').addEventListener('scroll', _chatUpdateScrollBtn, { passive: true });
         document.addEventListener('input', e => { if (e.target.classList.contains('chat-in')) { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'; } });
 
         // ─── CAMERA / PHOTOS ─────────────────────────────────────
@@ -7262,6 +7391,7 @@ function logOut() { if (!confirm('Log out? You can sign back in anytime. Your da
               renderAll();
             }).catch(() => { });
             startAlarmCheck();
+            if (Notification.permission === 'granted') setTimeout(registerPushSubscription, 2000);
             setInterval(async () => {
               await loadFromCloud();
               await checkPairStatus();
@@ -8080,7 +8210,57 @@ function exportChatPDF() {
         // Patch setTheme to sync iframes
         const _origST = window.setTheme;
         window.setTheme = function(n, s) { _origST && _origST(n, s); setTimeout(() => ['gamesFrame','musicFrame','dreamgoalsFrame','placesFrame','lovecounterFrame','collectionFrame','meetplannerFrame'].forEach(syncThemeToFrame), 150); };
-applyRebranding();
+// ── PUSH NOTIFICATION SUBSCRIPTION ─────────────────────
+async function registerPushSubscription() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  if (Notification.permission === 'denied') return;
+  if (!S.coupleId) return;
+  try {
+    // Get VAPID public key from server
+    const keyRes = await fetch(API + '/api/push/vapidkey');
+    const { publicKey } = await keyRes.json();
+    if (!publicKey) return; // VAPID not configured
+
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      // Convert base64url VAPID key to Uint8Array
+      const raw = atob(publicKey.replace(/-/g,'+').replace(/_/g,'/'));
+      const key = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) key[i] = raw.charCodeAt(i);
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: key
+      });
+    }
+    // Send subscription to server
+    await fetch(API + '/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        coupleId: S.coupleId,
+        role: S.role,
+        subscription: sub.toJSON()
+      })
+    });
+  } catch(e) {
+    console.warn('Push subscription:', e.message);
+  }
+}
+
+// Hook into existing notification permission request
+const _origReqNotif = window.requestNotifPerm;
+window.requestNotifPerm = async function() {
+  if (_origReqNotif) await _origReqNotif();
+  if (Notification.permission === 'granted') await registerPushSubscription();
+};
+
+// Auto-register if permission already granted
+if (Notification.permission === 'granted' && S.coupleId) {
+  setTimeout(registerPushSubscription, 3000);
+}
+
+        applyRebranding();
 init();
         // Register PWA service worker
         if ('serviceWorker' in navigator) {

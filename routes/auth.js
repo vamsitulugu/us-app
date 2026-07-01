@@ -188,6 +188,58 @@ router.post('/unpair', async (req, res) => {
 
   return res.json({ ok: true, newConnectCode: newCode, unpairedBy: requestingRole || null });
 });
+// ── POST /api/push/subscribe ───────────────────────────
+// Saves a Web Push subscription for a device.
+// Requires VAPID keys in .env: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_EMAIL
+const webpush = require('web-push');
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    'mailto:' + (process.env.VAPID_EMAIL || 'admin@usapp.love'),
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
+
+router.post('/push/subscribe', async (req, res) => {
+  const { coupleId, role, subscription } = req.body;
+  if (!coupleId || !role || !subscription) return res.status(400).json({ error: 'Missing fields' });
+
+  const { error } = await supabase.from('push_subscriptions').upsert({
+    couple_id: coupleId,
+    role,
+    subscription: JSON.stringify(subscription),
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'couple_id,role' });
+
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ ok: true });
+});
+
+router.get('/push/vapidkey', (req, res) => {
+  res.json({ publicKey: process.env.VAPID_PUBLIC_KEY || '' });
+});
+
+// ── Helper: send push to partner ─────────────────────
+// Call this from data.js whenever state is saved
+async function sendPushToPartner(coupleId, senderRole, payload) {
+  if (!process.env.VAPID_PUBLIC_KEY) return;
+  const partnerRole = senderRole === 'user1' ? 'user2' : 'user1';
+  const { data } = await supabase.from('push_subscriptions')
+    .select('subscription').eq('couple_id', coupleId).eq('role', partnerRole).maybeSingle();
+  if (!data) return;
+  try {
+    await webpush.sendNotification(JSON.parse(data.subscription), JSON.stringify(payload));
+  } catch (err) {
+    // Subscription expired — remove it
+    if (err.statusCode === 410) {
+      await supabase.from('push_subscriptions').delete()
+        .eq('couple_id', coupleId).eq('role', partnerRole);
+    }
+  }
+}
+
+module.exports = router;
+module.exports.sendPushToPartner = sendPushToPartner;
 // ── POST /api/auth/register ────────────────────────────
 router.post('/register', async (req, res) => {
   const { email, password, myName, partnerName, anniversary } = req.body;
