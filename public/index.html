@@ -2622,8 +2622,8 @@ body.chat-active .chat-bg-fixed { display: block; }
 .emoji-grid{display:flex;flex-wrap:wrap;gap:4px}
 .ep-emoji{font-size:22px;cursor:pointer;padding:5px;border-radius:8px;transition:all 0.15s;user-select:none}
 .ep-emoji:hover{background:var(--g2);transform:scale(1.15)}
-.pin-banner{background:var(--yellow-bg);border:1px solid rgba(251,191,36,0.3);border-radius:var(--rs);padding:8px 14px;font-size:12px;color:var(--yellow);margin:0 16px 6px;display:none}
-.pin-banner.active{display:flex;align-items:center;gap:8px}
+.pin-banner{background:var(--yellow-bg);border:1px solid rgba(251,191,36,0.3);border-radius:var(--rs);padding:8px 14px;font-size:12px;color:var(--yellow);margin:0 16px 6px;display:none;position:relative;z-index:2}
+.pin-banner.active{display:flex;align-items:center;gap:10px}
     /* ════ CHAT REPLY PREVIEW ════ */
     .reply-preview {
       background: var(--g2);
@@ -5784,7 +5784,17 @@ async function removePartner() {
         // ─── PERSISTENCE (localStorage) ─────────────────────────
         function loadLocal() { try { const r = localStorage.getItem('uwl_v5'); if (r) Object.assign(S, JSON.parse(r)); } catch (e) { } }
         function saveLocal() { try { localStorage.setItem('uwl_v5', JSON.stringify(S)); } catch (e) { } }
-
+        function migrateLegacyChatOwnership() {
+  let changed = false;
+  (S.chatMessages || []).forEach(m => {
+    if (!m.by && m.me === true) {
+      // This device created it locally under the old scheme — safe to tag as ours.
+      m.by = S.role;
+      changed = true;
+    }
+  });
+  if (changed) saveLocal();
+}
         // ─── API ─────────────────────────────────────────────────
         async function api(method, path, body) {
           const opts = { method, headers: { 'Content-Type': 'application/json' } };
@@ -5877,6 +5887,8 @@ async function removePartner() {
         // ─── CLOUD SYNC ──────────────────────────────────────────
         async function loadFromCloud() {
   if (!S.coupleId) return;
+  if (_loadInFlight) return; // prevent overlapping fetch/merge race
+  _loadInFlight = true;
   try {
     const state = await api('GET', '/api/data/state/' + S.coupleId);
     if (state) {
@@ -5906,8 +5918,15 @@ async function removePartner() {
           }
         });
       }
-      // Always sort by timestamp after cloud merge to prevent ordering bugs
+      // Dedupe by id (protects against rare save/load race duplicating a message),
+      // then always sort by timestamp to keep chronological order.
       if (S.chatMessages) {
+        const seen = new Set();
+        S.chatMessages = S.chatMessages.filter(m => {
+          if (seen.has(m.id)) return false;
+          seen.add(m.id);
+          return true;
+        });
         S.chatMessages.sort((a, b) => a.id - b.id);
       }
     }
@@ -5917,9 +5936,13 @@ async function removePartner() {
             if (el) el.textContent = 'Synced ✓ ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             syncLoveCounterToFrame();
           } catch (e) { console.warn('Cloud load:', e.message); updateSyncStatus(false); }
+          finally { _loadInFlight = false; }
         }
-        async function saveToCloud() {
+        let _isSaving = false, _saveQueued = false;
+async function saveToCloud() {
           if (!S.coupleId) { saveLocal(); return; }
+          if (_isSaving) { _saveQueued = true; return; } // avoid overlapping writes
+          _isSaving = true;
           try {
             const st = { ...S }; delete st.coupleId; delete st.connectCode;
             await api('POST', '/api/data/state', { coupleId: S.coupleId, state: st });
@@ -5927,7 +5950,12 @@ async function removePartner() {
             const el = document.getElementById('lastSaved');
             if (el) el.textContent = 'Saved ✓ ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           } catch (e) { saveLocal(); console.warn('Cloud save:', e.message); }
+          finally {
+            _isSaving = false;
+            if (_saveQueued) { _saveQueued = false; scheduleSave(); }
+          }
         }
+        let _loadInFlight = false;
         function scheduleSave() { clearTimeout(autoSaveTimer); autoSaveTimer = setTimeout(saveToCloud, 600); }
         async function syncNow() {
           document.getElementById('syncBtn').textContent = '⏳...';
@@ -6044,7 +6072,7 @@ function renderPartnerLastSeen() {
           if (page !== 'camera' && camStream) stopCamera();
           if (page === 'chat') {
   document.body.classList.add('chat-active');
-  setTimeout(() => { _chatScrollToBottom(true); }, 100);
+  setTimeout(() => { _chatScrollToBottom(true); markIncomingMsgsRead(); }, 100);
 } else {
   document.body.classList.remove('chat-active');
 }
@@ -6462,7 +6490,13 @@ function _chatUpdateScrollBtn() {
   _chatIsAtBottom = atBottom;
   btn.style.display = atBottom ? 'none' : 'flex';
 }
-
+function markIncomingMsgsRead() {
+  let changed = false;
+  (S.chatMessages || []).forEach(m => {
+    if (!m._deleted && !isMyMsg(m) && m.read !== true) { m.read = true; changed = true; }
+  });
+  if (changed) { renderChat(); scheduleSave(); }
+}
 function renderChat() {
   const el = document.getElementById('chatMsgs');
   if (!el) return;
@@ -7363,6 +7397,7 @@ function logOut() { if (!confirm('Log out? You can sign back in anytime. Your da
         // ─── INIT ────────────────────────────────────────────────
         async function init() {
   loadLocal(); // always load from localStorage first — instant, never blank
+  migrateLegacyChatOwnership();
   if (!S.coupleId) {
     window.location.href = '/landing.html';
     return;
@@ -7401,6 +7436,10 @@ function logOut() { if (!confirm('Log out? You can sign back in anytime. Your da
               renderAll();
               renderPartnerLastSeen();
               syncLoveCounterToFrame();
+              const chatPage = document.getElementById('page-chat');
+              if (chatPage && chatPage.classList.contains('active') && document.hasFocus()) {
+                markIncomingMsgsRead();
+              }
             }, 5000);
           }
         }
