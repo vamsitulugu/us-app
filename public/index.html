@@ -4930,36 +4930,101 @@ vercel-live-feedback {
           </div>
         </div>
       </div>
-      <div class="page" id="page-map">
-        <div class="card">
-          <div class="card-title">📍 Live Together Map<button class="btn btn-glass btn-sm"
-              onclick="shareMyLocation()">📡 Share My Location</button></div>
-          <div id="mapView"
-            style="width:100%;height:320px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border)"></div>
-          <div class="period-stats" style="margin-top:14px">
-            <div class="pstat">
-              <div class="pstat-n" id="mapDistance">—</div>
-              <div class="pstat-l">Distance</div>
-            </div>
-            <div class="pstat">
-              <div class="pstat-n" id="mapETA">—</div>
-              <div class="pstat-l">ETA (drive)</div>
-            </div>
-            <div class="pstat">
-              <div class="pstat-n" id="mapUpdated">—</div>
-              <div class="pstat-l">Last Updated</div>
-            </div>
-          </div>
-          <div id="mapTravelNote" class="info-banner" style="margin-top:12px;display:none"></div>
-        </div>
-        <div class="card">
-          <div class="card-title">📌 Saved Places<button class="btn btn-accent btn-sm" onclick="openM('placeModal')">+
-              Add Place</button></div>
-          <div id="placesList">
-            <div class="empty">No places saved — add Home, College, Office</div>
-          </div>
-        </div>
+      <!-- ═══════════════════════════════════════════════════════════════
+     REPLACE the existing <div class="page" id="page-map"> ... </div>
+     block in index.html with this markup.
+     Then add <script src="/livemap.js"></script> right before the
+     closing </body> tag (after your main app script + index_patch.js).
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-map">
+
+  <!-- Permission / offline banners -->
+  <div id="lmPermBanner" class="info-banner" style="display:none;border-color:rgba(248,113,113,0.3);background:rgba(248,113,113,0.08);color:var(--red)"></div>
+  <div id="lmOfflineBanner" class="info-banner" style="display:none;border-color:rgba(251,191,36,0.3);background:rgba(251,191,36,0.08);color:var(--yellow)">📡 You're offline — showing last known positions</div>
+
+  <div class="card">
+    <div class="card-title">
+      📍 Live Together Map
+      <div style="display:flex;gap:6px;align-items:center">
+        <div class="toggle" id="lmTrackToggle" onclick="LiveMap.toggleTracking()" title="Live tracking on/off"></div>
       </div>
+    </div>
+
+    <!-- Presence row -->
+    <div style="display:flex;gap:10px;margin-bottom:12px">
+      <div style="flex:1;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;display:flex;align-items:center;gap:8px">
+        <div class="av av1" style="width:26px;height:26px;font-size:10px" id="lmAv1">U</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;font-weight:600;color:var(--white)" id="lmMyName">You</div>
+          <div style="font-size:9px;color:var(--text3)" id="lmMyStatus">Starting…</div>
+        </div>
+        <div id="lmMyDot" style="width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0"></div>
+      </div>
+      <div style="flex:1;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;display:flex;align-items:center;gap:8px">
+        <div class="av av2" style="width:26px;height:26px;font-size:10px" id="lmAv2">P</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;font-weight:600;color:var(--white)" id="lmPtName">Partner</div>
+          <div style="font-size:9px;color:var(--text3)" id="lmPtStatus">—</div>
+        </div>
+        <div id="lmPtDot" style="width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0"></div>
+      </div>
+    </div>
+
+    <div id="mapView" style="width:100%;height:340px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border)"></div>
+
+    <div class="period-stats" style="margin-top:14px">
+      <div class="pstat"><div class="pstat-n" id="mapDistance">—</div><div class="pstat-l">Distance</div></div>
+      <div class="pstat"><div class="pstat-n" id="mapETA">—</div><div class="pstat-l">ETA (drive)</div></div>
+      <div class="pstat"><div class="pstat-n" id="mapUpdated">—</div><div class="pstat-l">Last Updated</div></div>
+    </div>
+    <div id="mapTravelNote" class="info-banner" style="margin-top:12px;display:none"></div>
+  </div>
+
+  <!-- MY IMPORTANT PLACES -->
+  <div class="card">
+    <div class="card-title">
+      🏠 My Important Places
+      <button class="btn btn-accent btn-sm" onclick="LiveMap.openPlaceModal('self')">+ Add Place</button>
+    </div>
+    <div id="myPlacesList"><div class="empty">No places saved yet — add Home, College, Office…</div></div>
+  </div>
+
+  <!-- PARTNER IMPORTANT PLACES -->
+  <div class="card">
+    <div class="card-title">💜 Partner Important Places</div>
+    <div id="ptPlacesList"><div class="empty">Synced once your partner adds places</div></div>
+  </div>
+
+</div>
+
+<!-- ADD PLACE MODAL -->
+<div class="modal-bg" id="lmPlaceModal">
+  <div class="modal">
+    <div class="modal-title">📌 Add Important Place<button class="modal-close" onclick="closeM('lmPlaceModal')">✕</button></div>
+    <div class="field"><label>Category</label>
+      <select id="lmPlaceCat" onchange="LiveMap.onCatChange()">
+        <option value="Home">🏠 Home</option>
+        <option value="College">🎓 College</option>
+        <option value="Office">🏢 Office</option>
+        <option value="Hostel">🏨 Hostel</option>
+        <option value="Cafe">☕ Favorite Cafe</option>
+        <option value="Restaurant">🍽️ Favorite Restaurant</option>
+        <option value="Gym">💪 Gym</option>
+        <option value="Custom">📍 Custom</option>
+      </select>
+    </div>
+    <div class="field" id="lmPlaceCustomNameWrap" style="display:none">
+      <label>Place Name</label><input type="text" id="lmPlaceCustomName" placeholder="e.g. Mom's House">
+    </div>
+    <button class="btn btn-glass btn-sm" onclick="LiveMap.useCurrentLocForPlace()">📡 Use My Current Location</button>
+    <div class="row2" style="margin-top:10px">
+      <div class="field"><label>Latitude</label><input type="number" id="lmPlaceLat" step="0.000001"></div>
+      <div class="field"><label>Longitude</label><input type="number" id="lmPlaceLng" step="0.000001"></div>
+    </div>
+    <div class="field"><label>Address (optional)</label><input type="text" id="lmPlaceAddress" placeholder="e.g. 12 MG Road"></div>
+    <button class="btn btn-accent" onclick="LiveMap.savePlace()">Save Place 📌</button>
+  </div>
+</div>
       <div class="page" id="page-surprise">
         <div class="card">
           <div class="card-title">🎁 Create a Surprise<button class="btn btn-accent btn-sm"
@@ -8344,7 +8409,9 @@ init();
 
   observer.observe(document.body, { childList: true });
 })();
+
 </script>
+<script src="/livemap.js"></script>
 </body>
 
 </html>

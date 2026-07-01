@@ -1,9 +1,13 @@
 // ═══════════════════════════════════════════════════════
-//  Meet Planner Routes — Live Meet Planner feature
-//  Free-API only (OSM/Nominatim/Open-Meteo/OSRM/Overpass
-//  calls happen client-side in meetplanner.html).
-//  This file only persists plans + pushes completed
-//  meetups into Memory Globe (globe_memories table).
+//  Meet Planner Routes v2 — City-based multi-stop itineraries
+//  Free-API only (Nominatim / Overpass / OSRM calls happen
+//  client-side in meetplanner.html — no keys, no server proxy).
+//  This file persists plans + pushes completed meetups into
+//  Memory Globe (globe_memories table).
+//
+//  Drop-in replacement for routes/meetplanner.js — all v1
+//  fields (loc1/loc2/mid*) are still accepted for backward
+//  compatibility with any already-saved plans.
 // ═══════════════════════════════════════════════════════
 const express  = require('express');
 const supabase = require('../middleware/supabase');
@@ -35,7 +39,7 @@ router.get('/plan/:id', async (req, res) => {
   return res.json(data);
 });
 
-// ─── CREATE plan ────────────────────────────────────────
+// ─── CREATE plan (v2: city + stops) ────────────────────
 router.post('/', async (req, res) => {
   const { coupleId, plan } = req.body;
   if (!coupleId || !plan) return res.status(400).json({ error: 'Missing data' });
@@ -48,6 +52,8 @@ router.post('/', async (req, res) => {
       meet_date:    plan.meetDate || null,
       budget:       plan.budget ?? null,
       currency:     plan.currency || 'INR',
+
+      // v1 legacy fields — kept so old clients / old saved plans still work
       loc1_label:   plan.loc1Label || null,
       loc1_lat:     plan.loc1Lat ?? null,
       loc1_lng:     plan.loc1Lng ?? null,
@@ -56,12 +62,22 @@ router.post('/', async (req, res) => {
       loc2_lng:     plan.loc2Lng ?? null,
       mid_lat:      plan.midLat ?? null,
       mid_lng:      plan.midLng ?? null,
-      mid_city:     plan.midCity || null,
+      mid_city:     plan.midCity || plan.cityName || null,
       mid_state:    plan.midState || null,
       mid_country:  plan.midCountry || null,
+
+      // v2 fields
+      city_name:          plan.cityName || null,
+      city_lat:           plan.cityLat ?? null,
+      city_lng:           plan.cityLng ?? null,
+      stops:              plan.stops || [],
+      route_geometry:     plan.routeGeometry || null,
+      total_distance_km:  plan.totalDistanceKm ?? null,
+      total_duration_min: plan.totalDurationMin ?? null,
+
       travel_mode:  plan.travelMode || 'car',
-      distance_km:  plan.distanceKm ?? null,
-      duration_min: plan.durationMin ?? null,
+      distance_km:  plan.distanceKm ?? plan.totalDistanceKm ?? null,
+      duration_min: plan.durationMin ?? plan.totalDurationMin ?? null,
       checklist:    plan.checklist || [],
       notes:        plan.notes || null,
       status:       'planned',
@@ -74,7 +90,7 @@ router.post('/', async (req, res) => {
   return res.json(data);
 });
 
-// ─── UPDATE plan (edit details, checklist, status, etc.) ─
+// ─── UPDATE plan (edit details, stops, checklist, status) ─
 router.patch('/:id', async (req, res) => {
   const { coupleId, plan } = req.body;
   if (!coupleId || !plan) return res.status(400).json({ error: 'Missing data' });
@@ -86,6 +102,9 @@ router.patch('/:id', async (req, res) => {
     loc2Label: 'loc2_label', loc2Lat: 'loc2_lat', loc2Lng: 'loc2_lng',
     midLat: 'mid_lat', midLng: 'mid_lng', midCity: 'mid_city',
     midState: 'mid_state', midCountry: 'mid_country',
+    cityName: 'city_name', cityLat: 'city_lat', cityLng: 'city_lng',
+    stops: 'stops', routeGeometry: 'route_geometry',
+    totalDistanceKm: 'total_distance_km', totalDurationMin: 'total_duration_min',
     travelMode: 'travel_mode', distanceKm: 'distance_km', durationMin: 'duration_min',
     checklist: 'checklist', notes: 'notes', status: 'status'
   };
@@ -130,19 +149,30 @@ router.post('/:id/complete', async (req, res) => {
   if (planErr) return res.status(500).json({ error: planErr.message });
   if (!plan) return res.status(404).json({ error: 'Plan not found' });
 
-  // Already synced — don't create a duplicate Memory Globe entry
   if (plan.globe_synced && plan.globe_memory_id) {
     return res.json({ ok: true, alreadySynced: true, globeMemoryId: plan.globe_memory_id, plan });
   }
 
-  // Build the globe_memories row, matching routes/globe.js's insert shape exactly
+  // Build itinerary summary — prefer v2 stops, fall back to v1 midpoint text
+  let itineraryText;
+  const stops = Array.isArray(plan.stops) ? plan.stops : [];
+  if (stops.length) {
+    const ordered = [...stops].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    itineraryText = 'Itinerary: ' + ordered.map(s => s.name).join(' → ') + '.';
+  } else {
+    itineraryText = `Met up at the midpoint between ${plan.loc1_label || 'Partner A'} and ${plan.loc2_label || 'Partner B'}.`;
+  }
+
+  const cityLabel = plan.city_name || plan.mid_city || 'Our Meetup Spot';
+  const anchor = stops.find(s => s.isAnchor) || stops[0];
+
   const memoryPayload = {
     couple_id:        coupleId,
-    city:             plan.mid_city || 'Our Meetup Spot',
+    city:             cityLabel,
     country:          plan.mid_country || '',
     state:            plan.mid_state || null,
-    lat:              plan.mid_lat,
-    lng:              plan.mid_lng,
+    lat:              anchor?.lat ?? plan.city_lat ?? plan.mid_lat,
+    lng:              anchor?.lng ?? plan.city_lng ?? plan.mid_lng,
     trip_name:        plan.title || 'Our Meetup',
     date_from:        plan.meet_date || new Date().toISOString().slice(0, 10),
     date_to:          plan.meet_date || null,
@@ -152,13 +182,15 @@ router.post('/:id/complete', async (req, res) => {
     trip_cost:        plan.budget ?? null,
     currency:         plan.currency || 'INR',
     notes:            [
-                        `Met up at the midpoint between ${plan.loc1_label || 'Partner A'} and ${plan.loc2_label || 'Partner B'}.`,
+                        itineraryText,
+                        plan.total_distance_km ? `Total distance: ${plan.total_distance_km} km.` : '',
+                        plan.total_duration_min ? `Total travel time: ${Math.round(plan.total_duration_min)} min.` : '',
                         plan.notes || '',
                         extraNotes || ''
                       ].filter(Boolean).join(' '),
     favorite_moment:  null,
-    restaurants:      [],
-    hotels:           [],
+    restaurants:      stops.filter(s => s.category === 'restaurant').map(s => s.name),
+    hotels:           stops.filter(s => s.category === 'hotel').map(s => s.name),
     gifts:            [],
     by_role:          plan.created_by || 'user1'
   };
@@ -171,7 +203,6 @@ router.post('/:id/complete', async (req, res) => {
 
   if (globeErr) return res.status(500).json({ error: 'Failed to create Memory Globe entry: ' + globeErr.message });
 
-  // Attach photos as globe_memory_media rows, same shape globe.js uses
   if (Array.isArray(photos) && photos.length) {
     const mediaRows = photos.map(p => ({
       memory_id:  globeMemory.id,
@@ -182,7 +213,6 @@ router.post('/:id/complete', async (req, res) => {
     await supabase.from('globe_memory_media').insert(mediaRows);
   }
 
-  // Mark the plan as completed + synced, with the guard fields set
   const { data: updatedPlan, error: updateErr } = await supabase
     .from('meetup_plans')
     .update({

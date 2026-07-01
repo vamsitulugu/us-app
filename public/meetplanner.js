@@ -1,850 +1,599 @@
-// ═══════════════════════════════════════════════════════
-//  Live Meet Planner — client logic
-//  Free APIs only: Nominatim, Open-Meteo, OSRM, Overpass
-// ═══════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════
+   MEET PLANNER v2 — client logic
+   City-based multi-destination search → optimized route → itinerary
+   Free APIs only: Nominatim (geocode/search), Overpass (POIs), OSRM (routing)
+   ══════════════════════════════════════════════════════════════ */
 'use strict';
 
-const MP_API = 'https://us-app-api.onrender.com';
+const API = 'https://us-app-api.onrender.com';
 
-let mpCoupleId = null, mpRole = 'user1', mpMyName = 'You', mpPartnerName = 'Partner';
-let mpLoc1 = null, mpLoc2 = null; // {label, lat, lng, city, state, country}
-let mpMidpoint = null; // {lat, lng, city, state, country}
-let mpTravelMode = 'car';
-let mpRouteData = {}; // cache per mode: {car:{distanceKm,durationMin}, ...}
-let mpChecklist = [];
-let mpPlans = [];
-let mpMap = null, mpMapMarkers = [];
-let mpPoiCache = {}; // cat -> [{name,lat,lng,dist,tags}]
-let mpPoiCat = 'cafe';
-let mpCompletePhotos = [];
-let mpLocSearchTimer = { 1: null, 2: null };
-let mpCountdownTimer = null;
+/* ── LOCAL STATE FROM PARENT APP (same-origin localStorage) ── */
+let AppS = {};
+try { AppS = JSON.parse(localStorage.getItem('uwl_v5') || '{}'); } catch (e) {}
+const coupleId = AppS.coupleId || null;
+const myRole   = AppS.role || 'user1';
+let myName      = AppS.myName || 'You';
+let partnerName = AppS.partnerName || 'Partner';
 
-const MP_MOODS = ['😊 Happy', '🥰 Romantic', '😌 Peaceful', '🤩 Excited', '🥹 Emotional', '😴 Relaxed'];
-
-const MP_TRAVEL_MODES = [
-  { id: 'car',    ico: '🚗', label: 'Car',    osrmProfile: 'driving', speedKmh: 55  },
-  { id: 'taxi',   ico: '🚖', label: 'Taxi',   osrmProfile: 'driving', speedKmh: 50  },
-  { id: 'bike',   ico: '🚴', label: 'Cycle',  osrmProfile: 'cycling', speedKmh: 16  },
-  { id: 'walk',   ico: '🚶', label: 'Walk',   osrmProfile: 'foot',    speedKmh: 5   },
-  { id: 'bus',    ico: '🚌', label: 'Bus',    osrmProfile: 'driving', speedKmh: 35  },
-  { id: 'train',  ico: '🚆', label: 'Train',  osrmProfile: null,      speedKmh: 70  },
-  { id: 'flight', ico: '✈️', label: 'Flight', osrmProfile: null,      speedKmh: 550 },
-];
-
-const MP_POI_CATS = {
-  cafe:       { ico: '☕', overpass: '["amenity"="cafe"]' },
-  restaurant: { ico: '🍽', overpass: '["amenity"="restaurant"]' },
-  park:       { ico: '🌳', overpass: '["leisure"="park"]' },
-  hotel:      { ico: '🏨', overpass: '["tourism"="hotel"]' },
-  attraction: { ico: '🎬', overpass: '["tourism"="attraction"]' },
-  shop:       { ico: '🛍', overpass: '["shop"]' },
-};
-
-// ─── OFFLINE CACHE ──────────────────────────────────────
-function mpSaveCache() {
-  try { localStorage.setItem('mp_cache', JSON.stringify({ plans: mpPlans, ts: Date.now() })); } catch (e) {}
-}
-function mpLoadCache() {
-  try {
-    const raw = localStorage.getItem('mp_cache');
-    if (raw) mpPlans = (JSON.parse(raw).plans) || [];
-  } catch (e) {}
-}
-
-// ─── TOAST (matches existing pages) ────────────────────
-let _mpToastTimer;
-function mpToast(msg, dur = 2800) {
-  const t = document.getElementById('mpToast');
-  if (!t) return;
-  t.textContent = msg;
-  t.style.opacity = '1';
-  t.style.transform = 'translateX(-50%) translateY(0)';
-  clearTimeout(_mpToastTimer);
-  _mpToastTimer = setTimeout(() => {
-    t.style.opacity = '0';
-    t.style.transform = 'translateX(-50%) translateY(12px)';
-  }, dur);
-}
-
-function mpEsc(s) {
-  return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-function mpFmtDate(s) {
-  if (!s) return '—';
-  try { return new Date(s + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); }
-  catch (e) { return s; }
-}
-
-// ─── THEME / NAMES SYNC (matches globe.html / places.html pattern) ──
 window.addEventListener('message', e => {
-  if (!e.data) return;
-  if (e.data.type === 'theme') {
-    const root = document.documentElement;
-    Object.entries(e.data.vars || {}).forEach(([k, v]) => root.style.setProperty(k, v));
-  }
-  if (e.data.type === 'names') {
-    mpMyName = e.data.my || 'You';
-    mpPartnerName = e.data.partner || 'Partner';
-    mpApplyNames();
+  if (!e.data || !e.data.type) return;
+  if (e.data.type === 'names') { myName = e.data.my || myName; partnerName = e.data.partner || partnerName; renderHero(); }
+  if (e.data.type === 'theme' && e.data.vars) {
+    Object.entries(e.data.vars).forEach(([k, v]) => { if (v) document.documentElement.style.setProperty(k, v); });
   }
 });
 
-function mpApplyNames() {
-  const l1 = document.getElementById('mpLoc1Label');
-  const l2 = document.getElementById('mpLoc2Label');
-  if (l1) l1.textContent = mpMyName + "'s Location";
-  if (l2) l2.textContent = mpPartnerName + "'s Location";
-  const av1 = document.getElementById('mpAv1');
-  const av2 = document.getElementById('mpAv2');
-  if (av1) av1.textContent = (mpMyName || 'U')[0];
-  if (av2) av2.textContent = (mpPartnerName || 'P')[0];
+function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function toast(msg, dur = 3000) { const t = document.getElementById('mpToast'); if (!t) return; t.textContent = msg; t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)'; clearTimeout(window._mpToastTimer); window._mpToastTimer = setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(12px)'; }, dur); }
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+function haversine(a, b) {
+  const R = 6371, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180;
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+function openM(id) { document.getElementById(id).classList.add('open'); }
+function mpCloseModal(id) { document.getElementById(id).classList.remove('open'); }
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.mp-modal-bg').forEach(bg => bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('open'); }));
+});
+
+/* ── STATE ─────────────────────────────────────────────────── */
+const MP = {
+  city: null,            // { name, lat, lng, bbox: [south,north,west,east], display }
+  poiCat: 'hotel',
+  poiResults: [],
+  stops: [],             // selected + ordered: { id, name, cat, icon, lat, lng, address, isAnchor }
+  travelMode: 'car',
+  route: { geometry: null, distanceKm: 0, durationMin: 0, legs: [] },
+  checklist: [],
+  savedPlans: [],
+  map: null, viewMap: null,
+  routeLayer: null, stopMarkers: [],
+};
+
+const CAT_META = {
+  hotel:         { ico: '🏨', label: 'Hotel',         query: '["tourism"="hotel"]' },
+  tourist:       { ico: '🗿', label: 'Tourist Place',  query: '["tourism"="attraction"]' },
+  cafe:          { ico: '☕', label: 'Cafe',           query: '["amenity"="cafe"]' },
+  restaurant:    { ico: '🍽️', label: 'Restaurant',     query: '["amenity"="restaurant"]' },
+  mall:          { ico: '🛍️', label: 'Shopping Mall',  query: '["shop"="mall"]' },
+  park:          { ico: '🌳', label: 'Park',           query: '["leisure"="park"]' },
+  museum:        { ico: '🏛️', label: 'Museum',         query: '["tourism"="museum"]' },
+  temple:        { ico: '🛕', label: 'Temple',         query: '["amenity"="place_of_worship"]' },
+  entertainment: { ico: '🎬', label: 'Entertainment',  query: '["amenity"~"cinema|theatre|nightclub"]' },
+  custom:        { ico: '📍', label: 'Custom' },
+};
+const MODE_META = {
+  car:     { ico: '🚗', label: 'Car',     kmh: null /* uses OSRM duration */ },
+  bike:    { ico: '🏍️', label: 'Bike',    kmh: 32 },
+  cycle:   { ico: '🚲', label: 'Cycle',   kmh: 15 },
+  walk:    { ico: '🚶', label: 'Walk',    kmh: 5 },
+  transit: { ico: '🚌', label: 'Transit', kmh: 22 },
+};
+
+/* ── HERO ──────────────────────────────────────────────────── */
+function renderHero() {
+  const el = document.getElementById('mpHero'); if (!el) return;
+  const upcoming = MP.savedPlans.filter(p => p.status === 'planned').length;
+  const completed = MP.savedPlans.filter(p => p.status === 'completed').length;
+  el.innerHTML = `
+    <div class="mp-stat"><div class="mp-stat-n">${MP.savedPlans.length}</div><div class="mp-stat-l">Total Plans</div></div>
+    <div class="mp-stat"><div class="mp-stat-n">${upcoming}</div><div class="mp-stat-l">Upcoming</div></div>
+    <div class="mp-stat"><div class="mp-stat-n">${completed}</div><div class="mp-stat-l">Completed</div></div>
+    <div class="mp-stat"><div class="mp-stat-n">${MP.stops.length}</div><div class="mp-stat-l">Stops Selected</div></div>`;
 }
 
-// ─── INIT: read coupleId/role from parent's localStorage key ──
-function mpReadLocalState() {
-  try {
-    const raw = localStorage.getItem('uwl_v5');
-    if (raw) {
-      const s = JSON.parse(raw);
-      mpCoupleId = s.coupleId || null;
-      mpRole = s.role || 'user1';
-      mpMyName = s.myName || 'You';
-      mpPartnerName = s.partnerName || 'Partner';
-    }
-  } catch (e) {}
-}
-
-// ─── TAB SWITCHING ──────────────────────────────────────
+/* ── TABS ──────────────────────────────────────────────────── */
 function mpSwitchTab(tab, el) {
   document.querySelectorAll('.mp-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.mp-sec').forEach(s => s.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('mp-sec-' + tab).classList.add('active');
-  if (tab === 'saved') mpRenderSavedList();
-  if (tab === 'result' && mpMap) setTimeout(() => mpMap.invalidateSize(), 80);
+  if (tab === 'saved') mpLoadSavedPlans();
+  if (tab === 'result') setTimeout(() => { if (MP.map) MP.map.invalidateSize(); }, 100);
 }
 
-// ─── LOCATION SEARCH (Nominatim) — mirrors globe.html's searchLocation ──
-function mpSearchLoc(which, q) {
-  clearTimeout(mpLocSearchTimer[which]);
-  const resEl = document.getElementById('mpLocResults' + which);
-  if (!q || q.length < 3) { resEl.classList.remove('show'); return; }
-  mpLocSearchTimer[which] = setTimeout(async () => {
+/* ── CITY SEARCH (Nominatim) ──────────────────────────────── */
+let _cityDebounce;
+function mpSearchCity(q) {
+  clearTimeout(_cityDebounce);
+  const box = document.getElementById('mpCityResults');
+  if (!q || q.trim().length < 2) { box.classList.remove('show'); return; }
+  _cityDebounce = setTimeout(async () => {
     try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&addressdetails=1`, {
-        headers: { 'Accept-Language': 'en' }
-      });
+      const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&featureType=city&q=${encodeURIComponent(q)}`;
+      const r = await fetch(url, { headers: { 'Accept-Language': 'en' } });
       const data = await r.json();
-      if (!data.length) {
-        resEl.innerHTML = '<div class="mp-loc-result-item" style="cursor:default;color:var(--text3)">No results found</div>';
-        resEl.classList.add('show');
-        return;
-      }
-      resEl.innerHTML = data.map(d => {
-        const city = d.address?.city || d.address?.town || d.address?.village || d.address?.county || d.name || q;
-        const country = d.address?.country || '';
-        const state = d.address?.state || '';
-        const label = d.display_name.split(',').slice(0, 2).join(',');
-        return `<div class="mp-loc-result-item" onclick="mpSelectLoc(${which},'${mpEsc(label)}',${d.lat},${d.lon},'${mpEsc(city)}','${mpEsc(state)}','${mpEsc(country)}')">
-          <div class="nm">${mpEsc(city)}</div>
-          <div class="sb">${mpEsc(state ? state + ', ' : '')}${mpEsc(country)}</div>
-        </div>`;
-      }).join('');
-      resEl.classList.add('show');
-    } catch (e) { console.warn('Nominatim search:', e); }
-  }, 400);
+      if (!data.length) { box.innerHTML = '<div class="mp-loc-result-item">No cities found</div>'; box.classList.add('show'); return; }
+      box.innerHTML = data.map((d, i) => `
+        <div class="mp-loc-result-item" onclick="mpPickCity(${i})">
+          <div class="nm">${esc(d.display_name.split(',')[0])}</div>
+          <div class="sb">${esc(d.display_name)}</div>
+        </div>`).join('');
+      box.classList.add('show');
+      window._mpCityCandidates = data;
+    } catch (e) { toast('City search failed — check connection'); }
+  }, 350);
 }
-
-function mpSelectLoc(which, label, lat, lng, city, state, country) {
-  const loc = { label, lat: parseFloat(lat), lng: parseFloat(lng), city, state, country };
-  if (which === 1) mpLoc1 = loc; else mpLoc2 = loc;
-  document.getElementById('mpLoc' + which + 'Input').value = label;
-  document.getElementById('mpLocResults' + which).classList.remove('show');
-  mpUpdateFindBtnState();
-}
-
-function mpUseGeo(which) {
-  if (!navigator.geolocation) { mpToast('Geolocation not supported on this device'); return; }
-  mpToast('Getting your location... 📡');
-  navigator.geolocation.getCurrentPosition(async pos => {
-    const lat = pos.coords.latitude, lng = pos.coords.longitude;
-    try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`, {
-        headers: { 'Accept-Language': 'en' }
-      });
-      const d = await r.json();
-      const city = d.address?.city || d.address?.town || d.address?.village || d.address?.county || 'Current Location';
-      const state = d.address?.state || '';
-      const country = d.address?.country || '';
-      const label = city + (state ? ', ' + state : '') + (country ? ', ' + country : '');
-      mpSelectLoc(which, label, lat, lng, city, state, country);
-      mpToast('📍 Location set!');
-    } catch (e) {
-      mpSelectLoc(which, 'Current Location', lat, lng, 'Current Location', '', '');
-      mpToast('📍 Location set (reverse-geocode unavailable)');
-    }
-  }, () => mpToast('Location permission denied'), { enableHighAccuracy: true, timeout: 10000 });
-}
-
-function mpUpdateFindBtnState() {
-  const btn = document.getElementById('mpFindBtn');
-  if (btn) btn.disabled = !(mpLoc1 && mpLoc2);
-}
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('.mp-loc-field')) {
-    document.querySelectorAll('.mp-loc-results').forEach(r => r.classList.remove('show'));
-  }
-});
-
-// ─── HAVERSINE DISTANCE (km) ────────────────────────────
-function mpHaversine(a, b) {
-  const R = 6371;
-  const dLat = (b.lat - a.lat) * Math.PI / 180;
-  const dLng = (b.lng - a.lng) * Math.PI / 180;
-  const x = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
-}
-
-// ─── FIND MIDPOINT (main flow) ──────────────────────────
-async function mpFindMidpoint() {
-  if (!mpLoc1 || !mpLoc2) { mpToast('Pick both locations first'); return; }
-  const btn = document.getElementById('mpFindBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="mp-spinner"></span> Finding midpoint...';
-
-  // Geographic midpoint (simple average — good enough for same-region trips;
-  // for very long distances this is an approximation, which is expected for a free-API tool)
-  const midLat = (mpLoc1.lat + mpLoc2.lat) / 2;
-  const midLng = (mpLoc1.lng + mpLoc2.lng) / 2;
-
-  mpMidpoint = { lat: midLat, lng: midLng, city: '', state: '', country: '' };
-
-  try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${midLat}&lon=${midLng}&format=json&addressdetails=1`, {
-      headers: { 'Accept-Language': 'en' }
-    });
-    const d = await r.json();
-    mpMidpoint.city = d.address?.city || d.address?.town || d.address?.village || d.address?.county || 'Midpoint';
-    mpMidpoint.state = d.address?.state || '';
-    mpMidpoint.country = d.address?.country || '';
-    mpMidpoint.displayName = d.display_name || '';
-  } catch (e) {
-    mpMidpoint.city = 'Midpoint';
-    mpMidpoint.displayName = '';
-  }
-
-  // Reset cached route/poi/weather data for fresh search
-  mpRouteData = {};
-  mpPoiCache = {};
-
-  mpRenderMidpointResult();
-  await mpFetchAllTravelModes();
-  await mpFetchWeather();
-  await mpFetchPois(mpPoiCat);
-  mpRenderChecklistCard();
-  mpRenderCountdownCard();
-
-  document.getElementById('mpSaveBtn').style.display = 'block';
-
-  btn.disabled = false;
-  btn.innerHTML = '💕 Find Our Midpoint';
-
-  // Jump to result tab
-  mpSwitchTab('result', document.querySelector('.mp-tab[data-tab="result"]'));
-  mpToast('Found your midpoint! 💕');
-}
-
-function mpRenderMidpointResult() {
-  document.getElementById('mpMidpointCard').style.display = 'block';
-  document.getElementById('mpTravelCard').style.display = 'block';
-  document.getElementById('mpWeatherCard').style.display = 'block';
-  document.getElementById('mpPoiCard').style.display = 'block';
-  document.getElementById('mpChecklistCard').style.display = 'block';
-
-  const sub = [mpMidpoint.city, mpMidpoint.state, mpMidpoint.country].filter(Boolean).join(', ');
-  document.getElementById('mpMidpointSub').textContent = sub ? '· ' + sub : '';
-
-  const distYou = mpHaversine(mpLoc1, mpMidpoint);
-  const distPt = mpHaversine(mpLoc2, mpMidpoint);
-  const distTotal = mpHaversine(mpLoc1, mpLoc2);
-
-  document.getElementById('mpDistVal').textContent = distTotal < 1 ? Math.round(distTotal * 1000) + ' m' : distTotal.toFixed(1) + ' km';
-  document.getElementById('mpYouDist').textContent = distYou < 1 ? Math.round(distYou * 1000) + ' m' : distYou.toFixed(1) + ' km';
-  document.getElementById('mpPtDist').textContent = distPt < 1 ? Math.round(distPt * 1000) + ' m' : distPt.toFixed(1) + ' km';
-
-  mpRenderMap();
-  mpRenderModeRow();
-}
-
-// ─── MAP (Leaflet, matches index.html / globe.html style) ───
-function mpRenderMap() {
-  const mapDiv = document.getElementById('mpMapView');
-  if (!mapDiv) return;
-  if (!mpMap && window.L) {
-    mpMap = L.map('mpMapView', { zoomControl: true });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(mpMap);
-  }
-  if (!mpMap) return;
-
-  mpMapMarkers.forEach(m => mpMap.removeLayer(m));
-  mpMapMarkers = [];
-
-  const icon1 = L.divIcon({ html: `<div style="background:var(--accent);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.35)">${mpEsc((mpMyName||'U')[0])}</div>`, className: '', iconSize: [28, 28] });
-  const icon2 = L.divIcon({ html: `<div style="background:var(--accent2);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.35)">${mpEsc((mpPartnerName||'P')[0])}</div>`, className: '', iconSize: [28, 28] });
-  const iconMid = L.divIcon({ html: `<div style="background:linear-gradient(135deg,var(--accent),var(--accent2));width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid #fff;box-shadow:0 0 0 5px rgba(255,255,255,0.15),0 4px 14px rgba(0,0,0,0.4)">❤️</div>`, className: '', iconSize: [38, 38] });
-
-  const m1 = L.marker([mpLoc1.lat, mpLoc1.lng], { icon: icon1 }).addTo(mpMap);
-  const m2 = L.marker([mpLoc2.lat, mpLoc2.lng], { icon: icon2 }).addTo(mpMap);
-  const m3 = L.marker([mpMidpoint.lat, mpMidpoint.lng], { icon: iconMid }).addTo(mpMap);
-  mpMapMarkers.push(m1, m2, m3);
-
-  const line = L.polyline([[mpLoc1.lat, mpLoc1.lng], [mpMidpoint.lat, mpMidpoint.lng], [mpLoc2.lat, mpLoc2.lng]], {
-    color: 'var(--accent)', weight: 2, opacity: 0.55, dashArray: '6,8'
-  }).addTo(mpMap);
-  mpMapMarkers.push(line);
-
-  mpMap.fitBounds([[mpLoc1.lat, mpLoc1.lng], [mpLoc2.lat, mpLoc2.lng], [mpMidpoint.lat, mpMidpoint.lng]], { padding: [40, 40] });
-  setTimeout(() => mpMap.invalidateSize(), 100);
-}
-
-// ─── TRAVEL MODES (OSRM where possible, estimate otherwise) ──
-function mpRenderModeRow() {
-  const row = document.getElementById('mpModeRow');
-  row.innerHTML = MP_TRAVEL_MODES.map(m => `
-    <div class="mp-mode-pill${m.id === mpTravelMode ? ' active' : ''}" data-mode="${m.id}" onclick="mpSelectMode('${m.id}')">
-      <span class="ico">${m.ico}</span>
-      <span class="lbl">${m.label}</span>
-      <span class="eta" id="mpEta-${m.id}">…</span>
-    </div>
-  `).join('');
-  mpUpdateModeDisplay();
-}
-
-async function mpFetchAllTravelModes() {
-  // Try OSRM for car/bike/walk (free public OSRM demo server)
-  const osrmModes = MP_TRAVEL_MODES.filter(m => m.osrmProfile);
-  for (const m of osrmModes) {
-    try {
-      const url = `https://router.project-osrm.org/route/v1/${m.osrmProfile}/${mpLoc1.lng},${mpLoc1.lat};${mpLoc2.lng},${mpLoc2.lat}?overview=false`;
-      const r = await fetch(url);
-      const d = await r.json();
-      if (d.routes && d.routes[0]) {
-        mpRouteData[m.id] = {
-          distanceKm: d.routes[0].distance / 1000,
-          durationMin: d.routes[0].duration / 60,
-          source: 'osrm'
-        };
-      } else {
-        mpEstimateMode(m);
-      }
-    } catch (e) {
-      mpEstimateMode(m);
-    }
-    const etaEl = document.getElementById('mpEta-' + m.id);
-    if (etaEl && mpRouteData[m.id]) etaEl.textContent = mpFmtDuration(mpRouteData[m.id].durationMin);
-  }
-  // Estimate-only modes (bus uses driving distance, train/flight use straight-line)
-  MP_TRAVEL_MODES.filter(m => !m.osrmProfile).forEach(m => {
-    mpEstimateMode(m);
-    const etaEl = document.getElementById('mpEta-' + m.id);
-    if (etaEl) etaEl.textContent = mpFmtDuration(mpRouteData[m.id].durationMin);
+function mpPickCity(i) {
+  const d = window._mpCityCandidates[i];
+  _setCity({
+    name: d.display_name.split(',')[0],
+    display: d.display_name,
+    lat: parseFloat(d.lat), lng: parseFloat(d.lon),
+    bbox: d.boundingbox ? d.boundingbox.map(parseFloat) : null // [south,north,west,east]
   });
-  // Bus: reuse car distance/duration but slower average speed
-  if (mpRouteData.car) {
-    mpRouteData.bus = {
-      distanceKm: mpRouteData.car.distanceKm,
-      durationMin: (mpRouteData.car.distanceKm / 35) * 60,
-      source: 'estimate'
-    };
-    const etaEl = document.getElementById('mpEta-bus');
-    if (etaEl) etaEl.textContent = mpFmtDuration(mpRouteData.bus.durationMin);
-  }
-  mpUpdateModeDisplay();
+  document.getElementById('mpCityResults').classList.remove('show');
+  document.getElementById('mpCityInput').value = '';
+}
+function mpUseGeoForCity() {
+  if (!navigator.geolocation) { toast('Geolocation not supported'); return; }
+  toast('Getting your location...');
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const { latitude: lat, longitude: lng } = pos.coords;
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+      const d = await r.json();
+      const name = d.address?.city || d.address?.town || d.address?.county || d.display_name.split(',')[0];
+      _setCity({ name, display: d.display_name, lat, lng, bbox: d.boundingbox ? d.boundingbox.map(parseFloat) : null });
+    } catch (e) { toast('Could not resolve your city'); }
+  }, () => toast('Location permission denied'));
+}
+function _setCity(city) {
+  MP.city = city;
+  MP.stops = []; MP.poiResults = [];
+  document.getElementById('mpCityBadge').classList.add('show');
+  document.getElementById('mpCityBadgeLbl').textContent = city.name;
+  document.getElementById('mpDestCard').style.display = 'block';
+  document.getElementById('mpStopsCard').style.display = 'none';
+  mpSearchPOI(); // auto-load default category (hotel)
+  renderHero();
+}
+function mpChangeCity() {
+  document.getElementById('mpCityBadge').classList.remove('show');
+  document.getElementById('mpDestCard').style.display = 'none';
+  document.getElementById('mpStopsCard').style.display = 'none';
+  MP.city = null; MP.stops = [];
+  renderHero();
 }
 
-function mpEstimateMode(m) {
-  const straightKm = mpHaversine(mpLoc1, mpLoc2);
-  // Flight/train get a small routing-inefficiency multiplier vs straight-line
-  const distanceKm = m.id === 'flight' ? straightKm * 1.05 : straightKm * 1.15;
-  mpRouteData[m.id] = {
-    distanceKm,
-    durationMin: (distanceKm / m.speedKmh) * 60 + (m.id === 'flight' ? 90 : 0), // +90min flight overhead (airport time)
-    source: 'estimate'
-  };
-}
-
-function mpFmtDuration(min) {
-  if (min == null || isNaN(min)) return '—';
-  if (min < 60) return Math.round(min) + ' min';
-  const h = Math.floor(min / 60), m = Math.round(min % 60);
-  return h + 'h' + (m > 0 ? ' ' + m + 'm' : '');
-}
-
-function mpSelectMode(modeId) {
-  mpTravelMode = modeId;
-  document.querySelectorAll('.mp-mode-pill').forEach(p => p.classList.toggle('active', p.dataset.mode === modeId));
-  mpUpdateModeDisplay();
-}
-
-function mpUpdateModeDisplay() {
-  const rd = mpRouteData[mpTravelMode];
-  document.getElementById('mpEtaVal').textContent = rd ? mpFmtDuration(rd.durationMin) : '—';
-  document.getElementById('mpDistVal2').textContent = rd ? (rd.distanceKm < 1 ? Math.round(rd.distanceKm * 1000) + ' m' : rd.distanceKm.toFixed(1) + ' km') : '—';
-}
-
-// ─── WEATHER (Open-Meteo) ───────────────────────────────
-async function mpFetchWeather() {
-  const grid = document.getElementById('mpWeatherGrid');
-  grid.innerHTML = Array.from({ length: 5 }).map(() => '<div class="mp-weather-card"><div class="mp-skel" style="height:40px"></div></div>').join('');
-  try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${mpMidpoint.lat}&longitude=${mpMidpoint.lng}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,windspeed_10m_max&timezone=auto`;
-    const r = await fetch(url);
-    const d = await r.json();
-    const cw = d.current_weather || {};
-    const daily = d.daily || {};
-    const wcodeMap = { 0: '☀️', 1: '🌤', 2: '⛅', 3: '☁️', 45: '🌫', 48: '🌫', 51: '🌦', 61: '🌧', 63: '🌧', 65: '🌧', 71: '🌨', 73: '🌨', 75: '❄️', 80: '🌦', 95: '⛈' };
-    const wico = wcodeMap[cw.weathercode] ?? '🌤';
-
-    grid.innerHTML = `
-      <div class="mp-weather-card"><div class="mp-weather-ico">${wico}</div><div class="mp-weather-v">${Math.round(cw.temperature ?? 0)}°C</div><div class="mp-weather-l">Now</div></div>
-      <div class="mp-weather-card"><div class="mp-weather-ico">🌡</div><div class="mp-weather-v">${Math.round(daily.temperature_2m_max?.[0] ?? 0)}° / ${Math.round(daily.temperature_2m_min?.[0] ?? 0)}°</div><div class="mp-weather-l">High / Low</div></div>
-      <div class="mp-weather-card"><div class="mp-weather-ico">🌧</div><div class="mp-weather-v">${daily.precipitation_probability_max?.[0] ?? 0}%</div><div class="mp-weather-l">Rain Chance</div></div>
-      <div class="mp-weather-card"><div class="mp-weather-ico">💨</div><div class="mp-weather-v">${Math.round(daily.windspeed_10m_max?.[0] ?? cw.windspeed ?? 0)} km/h</div><div class="mp-weather-l">Wind</div></div>
-      <div class="mp-weather-card"><div class="mp-weather-ico">🌅</div><div class="mp-weather-v">${mpFmtTime(daily.sunrise?.[0])}</div><div class="mp-weather-l">Sunrise</div></div>
-      <div class="mp-weather-card"><div class="mp-weather-ico">🌇</div><div class="mp-weather-v">${mpFmtTime(daily.sunset?.[0])}</div><div class="mp-weather-l">Sunset</div></div>
-    `;
-    mpMidpoint.weatherSummary = `${wico} ${Math.round(cw.temperature ?? 0)}°C`;
-  } catch (e) {
-    grid.innerHTML = '<div class="mp-empty" style="grid-column:1/-1;padding:20px"><div class="mp-empty-ico">🌤</div><div class="mp-empty-text">Weather unavailable right now</div></div>';
-  }
-}
-function mpFmtTime(iso) {
-  if (!iso) return '—';
-  try { return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); } catch (e) { return '—'; }
-}
-
-// ─── NEARBY PLACES (Overpass API) ───────────────────────
+/* ── POI SEARCH (Overpass) ────────────────────────────────── */
 function mpSetPoiCat(cat, el) {
-  mpPoiCat = cat;
-  document.querySelectorAll('.mp-poi-chip').forEach(c => c.classList.toggle('active', c.dataset.cat === cat));
-  mpFetchPois(cat);
+  MP.poiCat = cat;
+  document.querySelectorAll('.mp-poi-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  mpSearchPOI();
 }
-
-async function mpFetchPois(cat) {
+async function mpSearchPOI() {
+  if (!MP.city) return;
   const listEl = document.getElementById('mpPoiList');
-  if (mpPoiCache[cat]) { mpRenderPoiList(mpPoiCache[cat]); return; }
-  listEl.innerHTML = Array.from({ length: 4 }).map(() => '<div class="mp-poi-item"><div class="mp-skel" style="width:36px;height:36px;border-radius:10px;flex-shrink:0"></div><div style="flex:1"><div class="mp-skel" style="width:70%;margin-bottom:5px"></div><div class="mp-skel" style="width:40%;height:10px"></div></div></div>').join('');
-
-  const filter = MP_POI_CATS[cat].overpass;
-  const radius = 4000; // 4km around midpoint
-  const query = `[out:json][timeout:15];(node${filter}(around:${radius},${mpMidpoint.lat},${mpMidpoint.lng});way${filter}(around:${radius},${mpMidpoint.lat},${mpMidpoint.lng}););out center 25;`;
-
+  listEl.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text3)"><span class="mp-spinner"></span> Searching ${CAT_META[MP.poiCat].label.toLowerCase()}s in ${esc(MP.city.name)}...</div>`;
+  const meta = CAT_META[MP.poiCat];
+  const { lat, lng } = MP.city;
+  const radius = 12000; // 12km around city center
+  const query = `[out:json][timeout:20];(node${meta.query}(around:${radius},${lat},${lng});way${meta.query}(around:${radius},${lat},${lng}););out center 30;`;
   try {
-    const r = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      body: 'data=' + encodeURIComponent(query)
-    });
-    const d = await r.json();
-    const items = (d.elements || []).map(el => {
-      const lat = el.lat || el.center?.lat;
-      const lng = el.lon || el.center?.lon;
-      if (!lat || !lng) return null;
-      const dist = mpHaversine(mpMidpoint, { lat, lng });
+    const r = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: query });
+    const data = await r.json();
+    const items = (data.elements || []).map(el => {
+      const p = el.center || el;
+      const tags = el.tags || {};
       return {
-        name: el.tags?.name || 'Unnamed ' + cat,
-        lat, lng, dist,
-        openingHours: el.tags?.opening_hours || null,
-        cuisine: el.tags?.cuisine || null,
-        website: el.tags?.website || null,
+        id: 'osm_' + el.type + el.id,
+        name: tags.name || meta.label,
+        cat: MP.poiCat, icon: meta.ico,
+        lat: p.lat, lng: p.lon,
+        address: [tags['addr:street'], tags['addr:suburb']].filter(Boolean).join(', '),
+        distKm: haversine({ lat, lng }, { lat: p.lat, lng: p.lon })
       };
-    }).filter(Boolean).sort((a, b) => a.dist - b.dist).slice(0, 15);
-
-    mpPoiCache[cat] = items;
-    mpRenderPoiList(items);
+    }).filter(x => x.lat && x.lng).sort((a, b) => a.distKm - b.distKm).slice(0, 25);
+    MP.poiResults = items;
+    _renderPoiList();
   } catch (e) {
-    listEl.innerHTML = '<div class="mp-empty" style="padding:20px"><div class="mp-empty-ico">📍</div><div class="mp-empty-text">Couldn\'t load nearby places — check your connection</div></div>';
+    listEl.innerHTML = '<div class="mp-loc-result-item">Search failed — try again or use custom search</div>';
   }
 }
-
-function mpRenderPoiList(items) {
+async function mpCustomSearch() {
+  const q = document.getElementById('mpCustomSearchInput').value.trim();
+  if (!q || !MP.city) return;
   const listEl = document.getElementById('mpPoiList');
-  if (!items.length) {
-    listEl.innerHTML = '<div class="mp-empty" style="padding:24px"><div class="mp-empty-ico">📍</div><div class="mp-empty-text">No places found nearby in this category</div></div>';
-    return;
-  }
-  const ico = MP_POI_CATS[mpPoiCat].ico;
-  listEl.innerHTML = items.map(p => `
-    <div class="mp-poi-item" onclick="mpFlyToPoi(${p.lat},${p.lng})">
-      <div class="mp-poi-ico">${ico}</div>
+  listEl.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text3)"><span class="mp-spinner"></span> Searching "${esc(q)}"...</div>`;
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=15&q=${encodeURIComponent(q + ' ' + MP.city.name)}`;
+    const r = await fetch(url);
+    const data = await r.json();
+    MP.poiResults = data.map(d => ({
+      id: 'nom_' + d.place_id, name: d.display_name.split(',')[0], cat: 'custom', icon: CAT_META.custom.ico,
+      lat: parseFloat(d.lat), lng: parseFloat(d.lon),
+      address: d.display_name, distKm: haversine(MP.city, { lat: parseFloat(d.lat), lng: parseFloat(d.lon) })
+    }));
+    document.querySelectorAll('.mp-poi-chip').forEach(c => c.classList.remove('active'));
+    _renderPoiList();
+  } catch (e) { listEl.innerHTML = '<div class="mp-loc-result-item">Search failed</div>'; }
+}
+function _renderPoiList() {
+  const listEl = document.getElementById('mpPoiList');
+  if (!MP.poiResults.length) { listEl.innerHTML = '<div class="mp-loc-result-item">No results nearby — try another category or search term</div>'; return; }
+  listEl.innerHTML = MP.poiResults.map((p, i) => {
+    const sel = MP.stops.some(s => s.id === p.id);
+    return `<div class="mp-poi-item ${sel ? 'selected' : ''}" onclick="mpToggleStop(${i})">
+      <div class="mp-poi-ico">${p.icon}</div>
       <div class="mp-poi-body">
-        <div class="mp-poi-name">${mpEsc(p.name)}</div>
-        <div class="mp-poi-meta">
-          ${p.cuisine ? `<span>${mpEsc(p.cuisine)}</span>` : ''}
-          ${p.openingHours ? `<span>🕒 ${mpEsc(p.openingHours.slice(0, 24))}</span>` : ''}
-        </div>
+        <div class="mp-poi-name">${esc(p.name)}</div>
+        <div class="mp-poi-meta">${p.distKm != null ? p.distKm.toFixed(1) + ' km away' : ''}${p.address ? ' · ' + esc(p.address.slice(0, 40)) : ''}</div>
       </div>
-      <div class="mp-poi-dist">${p.dist < 1 ? Math.round(p.dist * 1000) + 'm' : p.dist.toFixed(1) + 'km'}</div>
-    </div>
-  `).join('');
-}
-
-function mpFlyToPoi(lat, lng) {
-  if (!mpMap) return;
-  mpMap.setView([lat, lng], 15);
-  mpSwitchTab('result', document.querySelector('.mp-tab[data-tab="result"]'));
-  setTimeout(() => mpMap.invalidateSize(), 80);
-}
-
-// ─── CHECKLIST ───────────────────────────────────────────
-const MP_DEFAULT_CHECKLIST = ['Confirm time with partner', 'Check travel route', 'Book a table if needed', 'Charge your phone 🔋'];
-
-function mpRenderChecklistCard() {
-  if (!mpChecklist.length) {
-    mpChecklist = MP_DEFAULT_CHECKLIST.map(t => ({ id: 'c' + Date.now() + Math.random().toString(36).slice(2, 6), text: t, done: false }));
-  }
-  mpRenderChecklistList();
-}
-function mpRenderChecklistList() {
-  const el = document.getElementById('mpChecklistList');
-  if (!mpChecklist.length) { el.innerHTML = '<div class="mp-empty" style="padding:14px"><div class="mp-empty-text">No checklist items yet</div></div>'; return; }
-  el.innerHTML = mpChecklist.map(c => `
-    <div class="mp-check-row">
-      <div class="mp-cb${c.done ? ' done' : ''}" onclick="mpToggleCheck('${c.id}')">${c.done ? '✓' : ''}</div>
-      <div class="mp-check-text${c.done ? ' done' : ''}">${mpEsc(c.text)}</div>
-      <button class="mp-check-del" onclick="mpDelCheck('${c.id}')">✕</button>
-    </div>
-  `).join('');
-}
-function mpAddChecklistItem() {
-  const inp = document.getElementById('mpChecklistInput');
-  const v = inp.value.trim();
-  if (!v) return;
-  mpChecklist.push({ id: 'c' + Date.now() + Math.random().toString(36).slice(2, 6), text: v, done: false });
-  inp.value = '';
-  mpRenderChecklistList();
-}
-function mpToggleCheck(id) {
-  const c = mpChecklist.find(x => x.id === id);
-  if (c) c.done = !c.done;
-  mpRenderChecklistList();
-}
-function mpDelCheck(id) {
-  mpChecklist = mpChecklist.filter(x => x.id !== id);
-  mpRenderChecklistList();
-}
-
-// ─── COUNTDOWN ───────────────────────────────────────────
-function mpRenderCountdownCard() {
-  const dateVal = document.getElementById('mpDate').value;
-  const card = document.getElementById('mpCountdownCard');
-  if (!dateVal) { card.style.display = 'none'; return; }
-  card.style.display = 'block';
-  clearInterval(mpCountdownTimer);
-  mpUpdateCountdown(dateVal);
-  mpCountdownTimer = setInterval(() => mpUpdateCountdown(dateVal), 1000 * 30);
-}
-function mpUpdateCountdown(dateVal) {
-  const target = new Date(dateVal + 'T00:00:00').getTime();
-  const now = Date.now();
-  const diff = Math.max(0, target - now);
-  const days = Math.floor(diff / 86400000);
-  const hours = Math.floor((diff % 86400000) / 3600000);
-  const mins = Math.floor((diff % 3600000) / 60000);
-  const row = document.getElementById('mpCountdownRow');
-  if (!row) return;
-  if (diff <= 0) {
-    row.innerHTML = `<div class="mp-cd-box" style="min-width:180px"><div class="mp-cd-n">🎉</div><div class="mp-cd-l">It's today!</div></div>`;
-    return;
-  }
-  row.innerHTML = `
-    <div class="mp-cd-box"><div class="mp-cd-n">${days}</div><div class="mp-cd-l">Days</div></div>
-    <div class="mp-cd-box"><div class="mp-cd-n">${hours}</div><div class="mp-cd-l">Hours</div></div>
-    <div class="mp-cd-box"><div class="mp-cd-n">${mins}</div><div class="mp-cd-l">Mins</div></div>
-  `;
-}
-
-// ─── API HELPER ─────────────────────────────────────────
-async function mpApi(method, path, body) {
-  const opts = { method, headers: { 'Content-Type': 'application/json' } };
-  if (body) opts.body = JSON.stringify(body);
-  const r = await fetch(MP_API + path, opts);
-  const data = await r.json();
-  if (!r.ok) throw new Error(data.error || 'Request failed');
-  return data;
-}
-
-// ─── SAVE PLAN ───────────────────────────────────────────
-async function mpSavePlan() {
-  if (!mpCoupleId) { mpToast('Please pair your account first'); return; }
-  if (!mpMidpoint || !mpLoc1 || !mpLoc2) { mpToast('Find your midpoint first'); return; }
-
-  const title = document.getElementById('mpTitle').value.trim() || 'Our Meetup';
-  const meetDate = document.getElementById('mpDate').value || null;
-  const budget = parseFloat(document.getElementById('mpBudget').value) || null;
-  const rd = mpRouteData[mpTravelMode] || {};
-
-  const planPayload = {
-    title, meetDate, budget, currency: 'INR',
-    loc1Label: mpLoc1.label, loc1Lat: mpLoc1.lat, loc1Lng: mpLoc1.lng,
-    loc2Label: mpLoc2.label, loc2Lat: mpLoc2.lat, loc2Lng: mpLoc2.lng,
-    midLat: mpMidpoint.lat, midLng: mpMidpoint.lng,
-    midCity: mpMidpoint.city, midState: mpMidpoint.state, midCountry: mpMidpoint.country,
-    travelMode: mpTravelMode, distanceKm: rd.distanceKm || null, durationMin: rd.durationMin || null,
-    checklist: mpChecklist,
-    notes: mpMidpoint.weatherSummary ? `Weather at midpoint: ${mpMidpoint.weatherSummary}` : '',
-    createdBy: mpRole
-  };
-
-  try {
-    const saved = await mpApi('POST', '/api/meetplanner', { coupleId: mpCoupleId, plan: planPayload });
-    mpPlans.unshift(saved);
-    mpSaveCache();
-    mpToast('Meetup saved! 💌');
-    mpSwitchTab('saved', document.querySelector('.mp-tab[data-tab="saved"]'));
-  } catch (e) {
-    // Offline fallback — keep locally, sync later
-    const offlinePlan = { ...planPayload, id: 'local_' + Date.now(), status: 'planned', _offline: true };
-    mpPlans.unshift(offlinePlan);
-    mpSaveCache();
-    mpToast('Saved offline — will sync when back online 📡');
-    mpSwitchTab('saved', document.querySelector('.mp-tab[data-tab="saved"]'));
-  }
-}
-
-// ─── LOAD PLANS ──────────────────────────────────────────
-async function mpLoadPlans() {
-  if (!mpCoupleId) { mpRenderSavedList(); return; }
-  try {
-    const data = await mpApi('GET', '/api/meetplanner/' + mpCoupleId);
-    mpPlans = data;
-    mpSaveCache();
-    document.getElementById('mpOfflineBanner').classList.remove('show');
-  } catch (e) {
-    mpLoadCache();
-    document.getElementById('mpOfflineBanner').classList.add('show');
-  }
-  mpRenderHero();
-  mpRenderSavedList();
-}
-
-function mpRenderHero() {
-  const total = mpPlans.length;
-  const completed = mpPlans.filter(p => p.status === 'completed').length;
-  const planned = mpPlans.filter(p => p.status === 'planned').length;
-  const totalBudget = mpPlans.reduce((s, p) => s + (parseFloat(p.budget) || 0), 0);
-  document.getElementById('mpHero').innerHTML = `
-    <div class="mp-stat"><div class="mp-stat-n">${total}</div><div class="mp-stat-l">Total Meetups</div></div>
-    <div class="mp-stat"><div class="mp-stat-n" style="color:var(--yellow)">${planned}</div><div class="mp-stat-l">Planned</div></div>
-    <div class="mp-stat"><div class="mp-stat-n" style="color:var(--green)">${completed}</div><div class="mp-stat-l">Completed</div></div>
-    <div class="mp-stat"><div class="mp-stat-n" style="color:var(--accent2)">₹${Math.round(totalBudget).toLocaleString('en-IN')}</div><div class="mp-stat-l">Total Budget</div></div>
-  `;
-}
-
-function mpRenderSavedList() {
-  const el = document.getElementById('mpSavedList');
-  if (!mpPlans.length) {
-    el.innerHTML = `<div class="mp-empty"><div class="mp-empty-ico">💌</div><div class="mp-empty-text">No meetups saved yet.<br>Plan your first one in the "Plan New" tab!</div></div>`;
-    return;
-  }
-  const sorted = mpPlans.slice().sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
-  el.innerHTML = sorted.map(p => {
-    const checklistDone = (p.checklist || []).filter(c => c.done).length;
-    const checklistTotal = (p.checklist || []).length;
-    return `
-    <div class="mp-plan-card">
-      <div class="mp-plan-top">
-        <div class="mp-plan-title">📍 ${mpEsc(p.title)}</div>
-        <div class="mp-plan-status ${p.status}">${p.status === 'completed' ? '✅ Done' : '⏳ Planned'}</div>
-      </div>
-      <div class="mp-plan-meta">
-        ${p.meet_date ? `<span>📅 ${mpFmtDate(p.meet_date)}</span>` : ''}
-        ${p.mid_city ? `<span>📍 ${mpEsc(p.mid_city)}</span>` : ''}
-        ${p.budget ? `<span>💰 ₹${Number(p.budget).toLocaleString('en-IN')}</span>` : ''}
-        ${checklistTotal ? `<span>✅ ${checklistDone}/${checklistTotal}</span>` : ''}
-        ${p._offline ? `<span style="color:var(--yellow)">📡 Not synced yet</span>` : ''}
-      </div>
-      <div class="mp-plan-actions">
-        ${p.status !== 'completed' ? `<button class="mp-btn mp-btn-accent mp-btn-sm" onclick="mpOpenCompleteModal('${p.id}')">🎉 Mark Complete</button>` : ''}
-        <button class="mp-btn mp-btn-glass mp-btn-sm" onclick="mpOpenEditModal('${p.id}')">✏️ Edit</button>
-        <button class="mp-btn mp-btn-danger mp-btn-sm" onclick="mpDeletePlan('${p.id}')">🗑️ Delete</button>
-      </div>
+      <div class="mp-poi-check">${sel ? '✓' : ''}</div>
     </div>`;
   }).join('');
 }
+function mpToggleStop(i) {
+  const p = MP.poiResults[i];
+  const idx = MP.stops.findIndex(s => s.id === p.id);
+  if (idx >= 0) MP.stops.splice(idx, 1);
+  else MP.stops.push({ ...p, isAnchor: p.cat === 'hotel' && !MP.stops.some(s => s.isAnchor) });
+  _renderPoiList();
+  _renderStopsList();
+  renderHero();
+}
 
-// ─── EDIT PLAN ───────────────────────────────────────────
-function mpOpenEditModal(id) {
-  const p = mpPlans.find(x => x.id === id);
-  if (!p) return;
+/* ── STOPS LIST (selected destinations, editable order) ─────── */
+function _renderStopsList() {
+  const card = document.getElementById('mpStopsCard');
+  const countEl = document.getElementById('mpStopsCount');
+  const listEl = document.getElementById('mpStopsList');
+  const buildBtn = document.getElementById('mpBuildBtn');
+  if (!MP.stops.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  countEl.textContent = MP.stops.length + ' selected';
+  listEl.innerHTML = MP.stops.map((s, i) => `
+    <div class="mp-stop-row">
+      <div class="mp-stop-num">${i + 1}</div>
+      <div class="mp-stop-body">
+        <div class="mp-stop-name">${s.icon} ${esc(s.name)}${s.isAnchor ? '<span class="mp-anchor-badge">Start/End</span>' : ''}</div>
+        <div class="mp-stop-cat">${esc(CAT_META[s.cat]?.label || s.cat)}</div>
+      </div>
+      <div class="mp-stop-actions">
+        <button class="mp-stop-btn" onclick="mpMoveStop(${i},-1)" title="Move up">↑</button>
+        <button class="mp-stop-btn" onclick="mpMoveStop(${i},1)" title="Move down">↓</button>
+        <button class="mp-stop-btn danger" onclick="mpRemoveStop(${i})" title="Remove">✕</button>
+      </div>
+    </div>`).join('');
+  buildBtn.disabled = MP.stops.length < 2;
+}
+function mpMoveStop(i, dir) {
+  const j = i + dir; if (j < 0 || j >= MP.stops.length) return;
+  [MP.stops[i], MP.stops[j]] = [MP.stops[j], MP.stops[i]];
+  _renderStopsList();
+}
+function mpRemoveStop(i) { MP.stops.splice(i, 1); _renderStopsList(); _renderPoiList(); renderHero(); }
+
+/* ── ROUTE OPTIMIZATION (nearest-neighbor TSP heuristic) ─────── */
+function _optimizeOrder(stops) {
+  if (stops.length <= 2) return [...stops];
+  const anchor = stops.find(s => s.isAnchor);
+  const rest = stops.filter(s => s !== anchor);
+  const start = anchor || stops[0];
+  const pool = anchor ? [...rest] : stops.slice(1);
+  const ordered = [start];
+  let current = start;
+  while (pool.length) {
+    let bestIdx = 0, bestDist = Infinity;
+    pool.forEach((p, idx) => {
+      const d = haversine(current, p);
+      if (d < bestDist) { bestDist = d; bestIdx = idx; }
+    });
+    current = pool.splice(bestIdx, 1)[0];
+    ordered.push(current);
+  }
+  if (anchor) ordered.push(anchor); // round trip back to hotel
+  return ordered;
+}
+
+/* ── BUILD ROUTE (optimize + OSRM routing) ───────────────────── */
+async function mpBuildRoute() {
+  if (MP.stops.length < 2) { toast('Select at least 2 destinations'); return; }
+  document.getElementById('mpResultEmpty').style.display = 'none';
+  document.getElementById('mpRouteCard').style.display = 'block';
+  document.getElementById('mpChecklistCard').style.display = 'block';
+  document.getElementById('mpSaveBtn').style.display = 'flex';
+  document.querySelectorAll('.mp-tab')[1].click();
+
+  MP.stops = _optimizeOrder(MP.stops);
+  _renderModeRow();
+  await _computeRouteForMode();
+  _renderStopsList();
+}
+function _renderModeRow() {
+  const el = document.getElementById('mpModeRow'); if (!el) return;
+  el.innerHTML = Object.entries(MODE_META).map(([k, m]) => `
+    <div class="mp-mode-pill ${MP.travelMode === k ? 'active' : ''}" onclick="mpSetMode('${k}')">
+      <div class="ico">${m.ico}</div><div class="lbl">${m.label}</div>
+    </div>`).join('');
+}
+async function mpSetMode(mode) {
+  MP.travelMode = mode;
+  _renderModeRow();
+  await _computeRouteForMode();
+}
+
+async function _computeRouteForMode() {
+  const coords = MP.stops.map(s => `${s.lng},${s.lat}`).join(';');
+  let distanceKm = 0, durationMin = 0, geometry = null, legs = [];
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`;
+    const r = await fetch(url);
+    const data = await r.json();
+    if (data.routes && data.routes[0]) {
+      const route = data.routes[0];
+      distanceKm = route.distance / 1000;
+      geometry = route.geometry;
+      legs = route.legs.map(l => ({ distanceKm: l.distance / 1000, durationMin: l.duration / 60 }));
+      const modeMeta = MODE_META[MP.travelMode];
+      durationMin = modeMeta.kmh ? (distanceKm / modeMeta.kmh) * 60 : route.duration / 60;
+    } else throw new Error('no route');
+  } catch (e) {
+    // Fallback: straight-line distance chain + speed-based estimate
+    for (let i = 0; i < MP.stops.length - 1; i++) {
+      const d = haversine(MP.stops[i], MP.stops[i + 1]);
+      distanceKm += d;
+      legs.push({ distanceKm: d, durationMin: (d / (MODE_META[MP.travelMode].kmh || 30)) * 60 });
+    }
+    durationMin = (distanceKm / (MODE_META[MP.travelMode].kmh || 30)) * 60;
+    geometry = { type: 'LineString', coordinates: MP.stops.map(s => [s.lng, s.lat]) };
+  }
+  MP.route = { geometry, distanceKm, durationMin, legs };
+  _renderRouteMap();
+  _renderRouteStats();
+  _renderItinerarySummary();
+}
+
+function _renderRouteStats() {
+  document.getElementById('mpTotalDist').textContent = MP.route.distanceKm.toFixed(1) + ' km';
+  document.getElementById('mpTotalTime').textContent = MP.route.durationMin >= 60
+    ? Math.floor(MP.route.durationMin / 60) + 'h ' + Math.round(MP.route.durationMin % 60) + 'm'
+    : Math.round(MP.route.durationMin) + ' min';
+  document.getElementById('mpStopCount2').textContent = MP.stops.length;
+}
+function _renderItinerarySummary() {
+  const el = document.getElementById('mpItinerarySummary'); if (!el) return;
+  el.innerHTML = `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+    <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">📋 Roadmap</div>
+    ${MP.stops.map((s, i) => `
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);padding:4px 0">
+        <span style="width:20px;height:20px;border-radius:50%;background:var(--g2);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--white);flex-shrink:0">${i + 1}</span>
+        <span>${s.icon} ${esc(s.name)}</span>
+        ${i < MP.stops.length - 1 ? `<span style="margin-left:auto;color:var(--text3);font-size:10px">${(MP.route.legs[i]?.distanceKm || 0).toFixed(1)} km</span>` : ''}
+      </div>
+      ${i < MP.stops.length - 1 ? '<div style="padding-left:9px;color:var(--text3);font-size:11px">↓</div>' : ''}
+    `).join('')}
+  </div>`;
+}
+
+/* ── MAP RENDERING ────────────────────────────────────────── */
+function _renderRouteMap() {
+  if (!window.L) return;
+  if (!MP.map) {
+    MP.map = L.map('mpMapView', { zoomControl: true }).setView([MP.city.lat, MP.city.lng], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(MP.map);
+  }
+  if (MP.routeLayer) MP.map.removeLayer(MP.routeLayer);
+  MP.stopMarkers.forEach(m => MP.map.removeLayer(m));
+  MP.stopMarkers = [];
+
+  if (MP.route.geometry) {
+    const latlngs = MP.route.geometry.coordinates.map(c => [c[1], c[0]]);
+    MP.routeLayer = L.polyline(latlngs, { color: 'var(--accent, #5b9bff)'.includes('var') ? '#5b9bff' : '#5b9bff', weight: 4, opacity: 0.85 }).addTo(MP.map);
+  }
+  MP.stops.forEach((s, i) => {
+    const icon = L.divIcon({
+      html: `<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#5b9bff,#ff6bd6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.4)">${i + 1}</div>`,
+      className: '', iconSize: [28, 28]
+    });
+    const m = L.marker([s.lat, s.lng], { icon }).addTo(MP.map).bindPopup(`<b>${esc(s.name)}</b><br>${esc(CAT_META[s.cat]?.label || s.cat)}`);
+    MP.stopMarkers.push(m);
+  });
+  const bounds = MP.stops.map(s => [s.lat, s.lng]);
+  if (bounds.length) MP.map.fitBounds(bounds, { padding: [40, 40] });
+  setTimeout(() => MP.map.invalidateSize(), 150);
+}
+
+/* ── CHECKLIST ────────────────────────────────────────────── */
+function mpAddChecklistItem() {
+  const inp = document.getElementById('mpChecklistInput');
+  const v = inp.value.trim(); if (!v) return;
+  MP.checklist.push({ id: Date.now(), text: v, done: false });
+  inp.value = ''; _renderChecklist();
+}
+function mpToggleChecklist(id) { const c = MP.checklist.find(x => x.id === id); if (c) c.done = !c.done; _renderChecklist(); }
+function mpDelChecklist(id) { MP.checklist = MP.checklist.filter(x => x.id !== id); _renderChecklist(); }
+function _renderChecklist() {
+  const el = document.getElementById('mpChecklistList'); if (!el) return;
+  if (!MP.checklist.length) { el.innerHTML = '<div style="text-align:center;padding:14px;color:var(--text3);font-size:12px">Add packing/travel reminders</div>'; return; }
+  el.innerHTML = MP.checklist.map(c => `
+    <div class="mp-check-row">
+      <div class="mp-cb ${c.done ? 'done' : ''}" onclick="mpToggleChecklist(${c.id})">${c.done ? '✓' : ''}</div>
+      <div class="mp-check-text ${c.done ? 'done' : ''}">${esc(c.text)}</div>
+      <button class="mp-check-del" onclick="mpDelChecklist(${c.id})">✕</button>
+    </div>`).join('');
+}
+
+/* ── SAVE PLAN ────────────────────────────────────────────── */
+async function mpSavePlan() {
+  if (!coupleId) { toast('Not connected to your couple space'); return; }
+  const title = document.getElementById('mpTitle').value.trim() || ('Meetup in ' + (MP.city?.name || ''));
+  const plan = {
+    title,
+    meetDate: document.getElementById('mpDate').value || null,
+    budget: parseFloat(document.getElementById('mpBudget').value) || null,
+    currency: 'INR',
+    cityName: MP.city?.name || null,
+    cityLat: MP.city?.lat ?? null,
+    cityLng: MP.city?.lng ?? null,
+    stops: MP.stops.map((s, i) => ({ ...s, order: i })),
+    routeGeometry: MP.route.geometry,
+    totalDistanceKm: MP.route.distanceKm,
+    totalDurationMin: MP.route.durationMin,
+    travelMode: MP.travelMode,
+    checklist: MP.checklist,
+    createdBy: myRole
+  };
+  try {
+    await api('POST', '/api/meetplanner', { coupleId, plan });
+    toast('Itinerary saved! 💾');
+    mpSwitchTab('saved', document.querySelectorAll('.mp-tab')[2]);
+  } catch (e) { toast('Save failed: ' + e.message); }
+}
+
+/* ── SAVED PLANS LIST ─────────────────────────────────────── */
+async function mpLoadSavedPlans() {
+  if (!coupleId) return;
+  const el = document.getElementById('mpSavedList');
+  el.innerHTML = `<div style="text-align:center;padding:30px;color:var(--text3)"><span class="mp-spinner"></span> Loading...</div>`;
+  try {
+    const data = await api('GET', '/api/meetplanner/' + coupleId);
+    MP.savedPlans = data || [];
+    renderHero();
+    if (!MP.savedPlans.length) {
+      el.innerHTML = `<div class="mp-empty"><div class="mp-empty-ico">💌</div><div class="mp-empty-text">No saved meetups yet.<br>Plan one in the "Plan New" tab!</div></div>`;
+      return;
+    }
+    el.innerHTML = MP.savedPlans.map(p => {
+      const stops = Array.isArray(p.stops) ? [...p.stops].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [];
+      const routeText = stops.length ? stops.map(s => (s.icon || '📍') + ' ' + s.name).join(' → ') : (p.mid_city || p.city_name || '');
+      return `<div class="mp-plan-card" onclick="mpViewPlan('${p.id}')">
+        <div class="mp-plan-top">
+          <div class="mp-plan-title">${esc(p.title)}</div>
+          <div class="mp-plan-status ${p.status}">${p.status === 'completed' ? '✅ Completed' : '📅 Planned'}</div>
+        </div>
+        <div class="mp-plan-meta">
+          ${p.city_name ? '🏙️ ' + esc(p.city_name) : ''}
+          ${p.meet_date ? '📅 ' + esc(p.meet_date) : ''}
+          ${p.total_distance_km ? '📏 ' + Number(p.total_distance_km).toFixed(1) + ' km' : ''}
+          ${p.budget ? '💰 ₹' + p.budget : ''}
+        </div>
+        <div class="mp-plan-route">${esc(routeText.slice(0, 140))}${routeText.length > 140 ? '…' : ''}</div>
+        <div class="mp-plan-actions" onclick="event.stopPropagation()">
+          ${p.status !== 'completed' ? `<button class="mp-btn mp-btn-accent mp-btn-sm" onclick="mpOpenComplete('${p.id}')">🎉 Mark Complete</button>` : ''}
+          <button class="mp-btn mp-btn-glass mp-btn-sm" onclick="mpOpenEdit('${p.id}')">✏️ Edit</button>
+          <button class="mp-btn mp-btn-danger mp-btn-sm" onclick="mpDeletePlan('${p.id}')">🗑️ Delete</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (e) { el.innerHTML = `<div class="mp-empty"><div class="mp-empty-ico">⚠️</div><div class="mp-empty-text">Couldn't load saved meetups.<br>${esc(e.message)}</div></div>`; }
+}
+
+function mpViewPlan(id) {
+  const p = MP.savedPlans.find(x => String(x.id) === String(id)); if (!p) return;
+  document.getElementById('mpViewTitle').textContent = p.title;
+  const stops = Array.isArray(p.stops) ? [...p.stops].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [];
+  document.getElementById('mpViewStops').innerHTML = stops.map((s, i) => `
+    <div class="mp-stop-row" style="margin-bottom:6px">
+      <div class="mp-stop-num">${i + 1}</div>
+      <div class="mp-stop-body"><div class="mp-stop-name">${s.icon || '📍'} ${esc(s.name)}</div></div>
+    </div>`).join('') || '<div style="color:var(--text3);font-size:12px">No stops recorded for this plan.</div>';
+  openM('mpViewModal');
+  setTimeout(() => {
+    if (MP.viewMap) { MP.viewMap.remove(); MP.viewMap = null; }
+    if (!stops.length) return;
+    MP.viewMap = L.map('mpViewMap').setView([stops[0].lat, stops[0].lng], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(MP.viewMap);
+    const latlngs = stops.map(s => [s.lat, s.lng]);
+    if (p.route_geometry?.coordinates) L.polyline(p.route_geometry.coordinates.map(c => [c[1], c[0]]), { color: '#5b9bff', weight: 4 }).addTo(MP.viewMap);
+    else L.polyline(latlngs, { color: '#5b9bff', weight: 3, dashArray: '6,6' }).addTo(MP.viewMap);
+    stops.forEach((s, i) => {
+      const icon = L.divIcon({ html: `<div style="width:24px;height:24px;border-radius:50%;background:#5b9bff;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid #fff">${i + 1}</div>`, className: '', iconSize: [24, 24] });
+      L.marker([s.lat, s.lng], { icon }).addTo(MP.viewMap);
+    });
+    MP.viewMap.fitBounds(latlngs, { padding: [30, 30] });
+    setTimeout(() => MP.viewMap.invalidateSize(), 100);
+  }, 80);
+}
+
+/* ── EDIT ─────────────────────────────────────────────────── */
+function mpOpenEdit(id) {
+  const p = MP.savedPlans.find(x => String(x.id) === String(id)); if (!p) return;
+  document.getElementById('mpEditPlanId').value = p.id;
   document.getElementById('mpEditTitle').value = p.title || '';
   document.getElementById('mpEditDate').value = p.meet_date || '';
   document.getElementById('mpEditBudget').value = p.budget || '';
   document.getElementById('mpEditNotes').value = p.notes || '';
-  document.getElementById('mpEditPlanId').value = id;
-  document.getElementById('mpEditModal').classList.add('open');
+  openM('mpEditModal');
 }
 async function mpSaveEdit() {
   const id = document.getElementById('mpEditPlanId').value;
-  const updates = {
-    title: document.getElementById('mpEditTitle').value.trim() || 'Our Meetup',
-    meetDate: document.getElementById('mpEditDate').value || null,
-    budget: parseFloat(document.getElementById('mpEditBudget').value) || null,
-    notes: document.getElementById('mpEditNotes').value.trim()
-  };
   try {
-    const updated = await mpApi('PATCH', '/api/meetplanner/' + id, { coupleId: mpCoupleId, plan: updates });
-    const idx = mpPlans.findIndex(x => x.id === id);
-    if (idx > -1) mpPlans[idx] = updated;
-    mpSaveCache();
-    mpCloseModal('mpEditModal');
-    mpRenderSavedList();
-    mpRenderHero();
-    mpToast('Meetup updated! 💕');
-  } catch (e) {
-    mpToast('Could not update — check your connection');
-  }
+    await api('PATCH', '/api/meetplanner/' + id, {
+      coupleId,
+      plan: {
+        title: document.getElementById('mpEditTitle').value.trim(),
+        meetDate: document.getElementById('mpEditDate').value || null,
+        budget: parseFloat(document.getElementById('mpEditBudget').value) || null,
+        notes: document.getElementById('mpEditNotes').value.trim() || null
+      }
+    });
+    mpCloseModal('mpEditModal'); toast('Updated ✏️'); mpLoadSavedPlans();
+  } catch (e) { toast('Update failed: ' + e.message); }
 }
-
-// ─── DELETE PLAN ─────────────────────────────────────────
 async function mpDeletePlan(id) {
   if (!confirm('Delete this meetup plan?')) return;
-  try {
-    await mpApi('DELETE', '/api/meetplanner/' + id, { coupleId: mpCoupleId });
-  } catch (e) {}
-  mpPlans = mpPlans.filter(x => x.id !== id);
-  mpSaveCache();
-  mpRenderSavedList();
-  mpRenderHero();
-  mpToast('Meetup removed');
+  try { await api('DELETE', '/api/meetplanner/' + id, { coupleId }); toast('Deleted'); mpLoadSavedPlans(); }
+  catch (e) { toast('Delete failed: ' + e.message); }
 }
 
-// ─── COMPLETE → MEMORY GLOBE ─────────────────────────────
-function mpOpenCompleteModal(id) {
+/* ── COMPLETE → MEMORY GLOBE ──────────────────────────────── */
+const MOODS = ['😍 Amazing', '🥰 Sweet', '😂 Fun', '😌 Relaxing', '🥹 Emotional', '🎉 Exciting'];
+let _completePhotos = [];
+function mpOpenComplete(id) {
   document.getElementById('mpCompletePlanId').value = id;
   document.getElementById('mpCompleteMood').value = '';
   document.getElementById('mpCompleteNotes').value = '';
-  mpCompletePhotos = [];
-  mpRenderCompletePhotoThumbs();
-  document.getElementById('mpCompleteMoodPicker').innerHTML = MP_MOODS.map(m =>
-    `<div class="mp-mood-opt" onclick="mpSelectCompleteMood(this,'${m}')">${m}</div>`
-  ).join('');
-  document.getElementById('mpCompleteModal').classList.add('open');
+  _completePhotos = [];
+  document.getElementById('mpCompletePhotoThumbs').innerHTML = '';
+  document.getElementById('mpCompleteMoodPicker').innerHTML = MOODS.map(m => `<div class="mp-mood-opt" onclick="mpPickMood(this,'${m}')">${m}</div>`).join('');
+  openM('mpCompleteModal');
 }
-function mpSelectCompleteMood(el, mood) {
-  document.querySelectorAll('#mpCompleteMoodPicker .mp-mood-opt').forEach(x => x.classList.remove('sel'));
+function mpPickMood(el, mood) {
+  document.querySelectorAll('.mp-mood-opt').forEach(o => o.classList.remove('sel'));
   el.classList.add('sel');
   document.getElementById('mpCompleteMood').value = mood;
 }
 function mpLoadCompletePhotos(input) {
-  Array.from(input.files).forEach(f => {
+  Array.from(input.files).forEach(file => {
     const r = new FileReader();
-    r.onload = e => { mpCompletePhotos.push(e.target.result); mpRenderCompletePhotoThumbs(); };
-    r.readAsDataURL(f);
+    r.onload = e => { _completePhotos.push(e.target.result); _renderCompleteThumbs(); };
+    r.readAsDataURL(file);
   });
 }
-function mpRenderCompletePhotoThumbs() {
-  document.getElementById('mpCompletePhotoThumbs').innerHTML = mpCompletePhotos.map((p, i) => `
-    <div class="mp-photo-thumb"><img src="${p}"><button onclick="mpCompletePhotos.splice(${i},1);mpRenderCompletePhotoThumbs()">✕</button></div>
-  `).join('');
+function _renderCompleteThumbs() {
+  document.getElementById('mpCompletePhotoThumbs').innerHTML = _completePhotos.map((p, i) => `
+    <div class="mp-photo-thumb"><img src="${p}"><button onclick="mpRemoveCompletePhoto(${i})">✕</button></div>`).join('');
 }
-
+function mpRemoveCompletePhoto(i) { _completePhotos.splice(i, 1); _renderCompleteThumbs(); }
 async function mpConfirmComplete() {
   const id = document.getElementById('mpCompletePlanId').value;
-  const mood = document.getElementById('mpCompleteMood').value;
-  const extraNotes = document.getElementById('mpCompleteNotes').value.trim();
-
-  if (!mpCoupleId) { mpToast('Please pair your account first'); return; }
-
   try {
-    const result = await mpApi('POST', `/api/meetplanner/${id}/complete`, {
-      coupleId: mpCoupleId, mood, photos: mpCompletePhotos, extraNotes
+    await api('POST', '/api/meetplanner/' + id + '/complete', {
+      coupleId,
+      mood: document.getElementById('mpCompleteMood').value || null,
+      photos: _completePhotos,
+      extraNotes: document.getElementById('mpCompleteNotes').value.trim() || null
     });
     mpCloseModal('mpCompleteModal');
-    const idx = mpPlans.findIndex(x => x.id === id);
-    if (idx > -1) mpPlans[idx] = result.plan;
-    mpSaveCache();
-    mpRenderSavedList();
-    mpRenderHero();
-    if (result.alreadySynced) {
-      mpToast('Already saved to Memory Globe 🌍');
-    } else {
-      mpToast('Meetup complete! Added to Memory Globe 🌍💕');
-      mpSpawnHearts();
-    }
-  } catch (e) {
-    mpToast('Could not complete — check your connection: ' + e.message);
-  }
+    toast('Saved to Memory Globe! 🌍💕');
+    mpLoadSavedPlans();
+  } catch (e) { toast('Failed: ' + e.message); }
 }
 
-function mpSpawnHearts() {
-  for (let i = 0; i < 10; i++) {
-    setTimeout(() => {
-      const p = document.createElement('div');
-      p.style.cssText = `position:fixed;pointer-events:none;z-index:9999;font-size:${18 + Math.random() * 18}px;left:${20 + Math.random() * 60}vw;bottom:${30 + Math.random() * 20}px;animation:mpRiseUp ${1.5 + Math.random() * 1.5}s cubic-bezier(0.16,1,0.3,1) forwards;--rot:${Math.random() > 0.5 ? '360deg' : '-360deg'}`;
-      p.textContent = ['❤️', '💕', '🌍', '✨', '💫'][Math.floor(Math.random() * 5)];
-      if (!document.getElementById('mpRiseUpStyle')) {
-        const s = document.createElement('style');
-        s.id = 'mpRiseUpStyle';
-        s.textContent = `@keyframes mpRiseUp{0%{transform:translateY(0) rotate(0) scale(1);opacity:1}100%{transform:translateY(-80vh) rotate(var(--rot)) scale(0.3);opacity:0}}`;
-        document.head.appendChild(s);
-      }
-      document.body.appendChild(p);
-      setTimeout(() => p.remove(), 3500);
-    }, i * 120);
-  }
-}
-
-// ─── MODAL HELPERS ───────────────────────────────────────
-function mpCloseModal(id) { document.getElementById(id).classList.remove('open'); }
+/* ── INIT ─────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('.mp-modal-bg').forEach(bg => {
-    bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('open'); });
-  });
+  renderHero();
+  if (coupleId) mpLoadSavedPlans();
+  document.getElementById('mpDate').value = new Date().toISOString().slice(0, 10);
 });
-
-// ─── DATE FIELD WIRES COUNTDOWN LIVE ─────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  const dateInput = document.getElementById('mpDate');
-  if (dateInput) {
-    dateInput.addEventListener('change', () => { if (mpMidpoint) mpRenderCountdownCard(); });
-  }
-});
-
-// ─── ONLINE/OFFLINE DETECTION ────────────────────────────
-window.addEventListener('online', () => {
-  document.getElementById('mpOfflineBanner').classList.remove('show');
-  mpSyncOfflinePlans();
-});
-window.addEventListener('offline', () => {
-  document.getElementById('mpOfflineBanner').classList.add('show');
-});
-
-async function mpSyncOfflinePlans() {
-  const offline = mpPlans.filter(p => p._offline);
-  if (!offline.length || !mpCoupleId) return;
-  for (const p of offline) {
-    try {
-      const { _offline, id, status, ...payload } = p;
-      const saved = await mpApi('POST', '/api/meetplanner', { coupleId: mpCoupleId, plan: payload });
-      const idx = mpPlans.findIndex(x => x.id === id);
-      if (idx > -1) mpPlans[idx] = saved;
-    } catch (e) { /* still offline or server issue, leave as-is */ }
-  }
-  mpSaveCache();
-  mpRenderSavedList();
-  mpRenderHero();
-}
-
-// ─── INIT ────────────────────────────────────────────────
-async function mpInit() {
-  mpReadLocalState();
-  mpApplyNames();
-  mpLoadCache();
-  mpRenderHero();
-  await mpLoadPlans();
-  if (navigator.onLine === false) document.getElementById('mpOfflineBanner').classList.add('show');
-}
-
-mpInit();
