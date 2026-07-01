@@ -6,7 +6,8 @@
     if (!window.S || !S.coupleId) return setTimeout(boot, 400);
     ChatRealtime.init(SUPABASE_URL, SUPABASE_ANON_KEY, S.coupleId, S.role, S.myName);
     await ChatEngine.init(S.coupleId, S.role);
-
+    ChatEngine.deliverAll(S.role);
+      window.addEventListener('online', () => { ChatEngine.deliverAll(S.role); ChatQueue.flush(); });
     const chatIn = document.getElementById('chatIn');
     chatIn?.addEventListener('input', () => TypingManager.onLocalInput(S.role));
 

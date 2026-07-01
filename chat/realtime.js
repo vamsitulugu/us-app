@@ -1,3 +1,4 @@
+const API = window.__API_BASE__ || '';
 const ChatRealtime = (() => {
   let client = null, channel = null, presenceChannel = null;
 
@@ -12,6 +13,12 @@ const ChatRealtime = (() => {
           const norm = ChatQueue.normalize(row);
           ChatStore.upsert(norm);
           ChatDB.put(norm);
+          if (row.sender_role !== role && !row.delivered) {
+            fetch(API + '/api/chat/' + row.id + '/delivered', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ coupleId })
+            }).catch(()=>{});
+          }
         })
       .on('broadcast', { event: 'typing' }, ({ payload }) => {
         if (payload.role !== role) TypingManager.onRemoteTyping(payload);

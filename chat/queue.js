@@ -12,6 +12,7 @@ const ChatQueue = (() => {
     try {
       const items = await ChatDB.outboxAll();
       for (const item of items) {
+        item._attempts = (item._attempts || 0) + 1;
         try {
           const res = await fetch(API + '/api/chat', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -19,11 +20,19 @@ const ChatQueue = (() => {
           });
           if (!res.ok) throw new Error('send failed');
           const saved = await res.json();
-          ChatStore.upsert(normalize(saved));
-          await ChatDB.put(normalize(saved));
-          await ChatDB.outboxRemove(item.clientId);
+          const norm = normalize(saved);
+          ChatStore.upsert(norm);
+          await ChatDB.put(norm);
+          await ChatDB.outboxRemove(item.client_id || item.clientId);
         } catch (e) {
-          break; // stop on first failure, retry later (backoff via interval)
+          if (item._attempts >= 5) {
+            const failing = ChatStore.get(item.client_id || item.clientId);
+            if (failing) { failing._status = 'failed'; ChatStore.upsert(failing); }
+            await ChatDB.outboxRemove(item.client_id || item.clientId); // stop retrying, user must tap retry
+          } else {
+            await ChatDB.outboxAdd(item); // re-queue with incremented attempts
+          }
+          break;
         }
       }
     } finally { flushing = false; }
@@ -39,7 +48,17 @@ const ChatQueue = (() => {
       created_at: row.created_at, _status: 'sent'
     };
   }
-
+async function retry(clientId) {
+  const msg = ChatStore.get(clientId);
+  if (!msg) return;
+  msg._status = 'sending'; ChatStore.upsert(msg);
+  await enqueue({
+    clientId: msg.client_id, coupleId: msg.couple_id, senderRole: msg.sender_role,
+    type: msg.type, text: msg.text, mediaUrl: msg.media_url,
+    audioData: msg.audio_data, duration: msg.duration, replyTo: msg.reply_to
+  });
+}
+// add `retry` to the returned object: return { enqueue, flush, normalize, retry };
   window.addEventListener('online', flush);
   setInterval(flush, 4000);
 

@@ -36,7 +36,12 @@ const Render = (() => {
     if (m.type === 'photo') inner = `<img src="${esc(m.media_url)}" class="msg-img" loading="lazy">`;
     else if (m.type === 'voice') inner = `🎙️ ${esc(m.duration || '')}`;
     else inner = esc(m.text || '');
-    const status = m._status === 'sending' ? '⏳' : m._status === 'failed' ? '⚠️' : (m.read ? '✓✓' : '✓');
+    const status = m._status === 'failed'
+      ? `<span class="tick-sent" style="color:var(--red);cursor:pointer" onclick="retrySend('${m.client_id}')" title="Tap to retry">⚠ Retry</span>`
+      : m._status === 'sending' ? '⏳'
+      : m.read ? '<span class="tick-read">✓✓</span>'
+      : m.delivered ? '<span class="tick-sent">✓✓</span>'
+      : '<span class="tick-sent">✓</span>';
     return `<div class="bubble">${inner}<div style="float:right;font-size:10px;opacity:.6;margin-left:8px">${status}</div><div style="clear:both"></div></div>`;
   }
 
