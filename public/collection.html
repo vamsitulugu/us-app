@@ -59,8 +59,6 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 .col-filter{padding:7px 13px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--g1);color:var(--text2);transition:var(--t);white-space:nowrap}
 .col-filter:hover{color:var(--white);background:var(--g2)}
 .col-filter.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 10px var(--accent-glow)}
-.col-sort{padding:7px 11px;border-radius:12px;font-size:11px;font-weight:600;border:1px solid var(--border);background:var(--g1);color:var(--text2);font-family:var(--ff-sans);outline:none;cursor:pointer}
-.col-sort:focus{border-color:var(--accent)}
 
 /* ── VOICE LIST ── */
 .voice-list{padding:0 16px;display:flex;flex-direction:column;gap:8px}
@@ -78,7 +76,6 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
   display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;
   position:relative;overflow:hidden;border:2px solid rgba(255,255,255,0.2);
 }
-.voice-av img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
 .voice-av.me{background:linear-gradient(135deg,var(--accent),var(--accent-d))}
 .voice-av.partner{background:linear-gradient(135deg,var(--accent2),var(--accent2-d))}
 .voice-play-btn{
@@ -93,26 +90,21 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 .voice-info{flex:1;min-width:0}
 .voice-sender{font-size:12px;font-weight:700;color:var(--white)}
 .voice-date{font-size:11px;color:var(--text3);margin-top:1px}
-.voice-seek-wrap{margin-top:6px}
-.voice-seek-bar{height:22px;display:flex;align-items:center;cursor:pointer;position:relative}
 .voice-waveform{
-  display:flex;align-items:center;gap:2px;height:22px;flex:1;pointer-events:none;
+  display:flex;align-items:center;gap:2px;height:28px;flex:1;max-width:120px;
 }
-.voice-waveform span{display:inline-block;border-radius:3px;background:rgba(255,255,255,0.25);width:3px;transition:background 0.15s}
-.voice-item.playing .voice-waveform span.played{background:var(--accent)}
-.voice-item.playing .voice-waveform span{animation:none}
-.voice-item.playing.actively-animating .voice-waveform span{animation:waveAnim 0.6s ease-in-out infinite alternate}
-.voice-item.playing.actively-animating .voice-waveform span:nth-child(2n){animation-delay:0.1s}
-.voice-item.playing.actively-animating .voice-waveform span:nth-child(3n){animation-delay:0.2s}
+.voice-waveform span{display:inline-block;border-radius:3px;background:rgba(255,255,255,0.25);width:3px;transition:background 0.2s}
+.voice-item.playing .voice-waveform span{background:var(--accent)}
+.voice-item.playing .voice-waveform span{animation:waveAnim 0.6s ease-in-out infinite alternate}
+.voice-item.playing .voice-waveform span:nth-child(2n){animation-delay:0.1s}
+.voice-item.playing .voice-waveform span:nth-child(3n){animation-delay:0.2s}
 @keyframes waveAnim{from{transform:scaleY(0.4)}to{transform:scaleY(1.0)}}
 .voice-dur{font-size:11px;color:var(--text3);font-weight:600;white-space:nowrap}
-.voice-actions{display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+.voice-actions{display:flex;gap:5px;flex-shrink:0}
 .voice-action-btn{width:30px;height:30px;border-radius:8px;border:none;cursor:pointer;background:var(--g2);color:var(--text2);font-size:13px;display:flex;align-items:center;justify-content:center;transition:var(--t)}
 .voice-action-btn:hover{background:var(--g3);color:var(--white)}
 .voice-action-btn.fav{color:var(--yellow)}
-.voice-action-btn.exported{color:var(--green)}
 .voice-action-btn.del:hover{background:var(--red-bg);color:var(--red)}
-.voice-exported-badge{font-size:9px;font-weight:700;color:var(--green);background:var(--green-bg);border:1px solid rgba(52,211,153,0.3);border-radius:8px;padding:1px 6px;margin-top:2px;display:inline-block}
 
 /* ── DATE SEPARATOR ── */
 .col-date-sep{
@@ -215,57 +207,22 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <audio id="voiceAudio" preload="auto"></audio>
 
 <script>
-// ══════════════════════════════════════════════════════════
-// STATE
-// A "voiceLibrary" is now the source of truth for Collection.
-// New voice messages are auto-imported from parent chat, but once
-// imported they persist locally even if the chat message is later
-// deleted (matches "export without affecting chat history").
-// ══════════════════════════════════════════════════════════
 let colState = {
-  voices: [],         // rendered/derived list (library + live merge)
-  photos: [],
+  voices: [],   // extracted from parent chatMessages
+  photos: [],   // extracted from parent photos
   myName: 'You',
   partnerName: 'Partner',
-  myAvatar: '',
-  partnerAvatar: '',
   role: 'user1',
   voiceFavs: JSON.parse(localStorage.getItem('col_voice_favs') || '[]'),
   photoFavs: JSON.parse(localStorage.getItem('col_photo_favs') || '[]'),
-  voiceLibraryIds: JSON.parse(localStorage.getItem('col_voice_lib_ids') || '[]'), // explicitly "exported" ids
 };
-let voiceLibrary = []; // persisted full records {id, audioData, duration, durationSec, date, time, by}
 let currentTab = 'voice';
 let voiceFilter = 'all';
-let voiceSort = 'newest';
 let photoFilter = 'all';
 let lbCurrentIdx = -1;
 let lbCurrentType = 'photo';
 let currentPlayingIdx = -1;
 const voiceAudio = document.getElementById('voiceAudio');
-
-// ── VOICE LIBRARY PERSISTENCE ──
-// Metadata (small) goes in one localStorage key; each audio blob (large)
-// gets its own key, same pattern the rest of the app uses for photos/songs.
-function loadVoiceLibrary() {
-  try {
-    const meta = JSON.parse(localStorage.getItem('col_voice_library_meta') || '[]');
-    voiceLibrary = meta.map(v => {
-      let aud = null;
-      try { aud = localStorage.getItem('col_voice_aud_' + v.id); } catch(e) {}
-      return { ...v, audioData: aud };
-    });
-  } catch(e) { voiceLibrary = []; }
-}
-function saveVoiceLibrary() {
-  try {
-    const meta = voiceLibrary.map(v => ({ ...v, audioData: undefined }));
-    localStorage.setItem('col_voice_library_meta', JSON.stringify(meta));
-    voiceLibrary.forEach(v => {
-      if (v.audioData) { try { localStorage.setItem('col_voice_aud_' + v.id, v.audioData); } catch(e) {} }
-    });
-  } catch(e) { showColToast('Storage full — some recordings may not persist'); }
-}
 
 function loadFromParent() {
   try {
@@ -273,44 +230,38 @@ function loadFromParent() {
     if (!ps) return;
     colState.myName = ps.myName || 'You';
     colState.partnerName = ps.partnerName || 'Partner';
-    colState.myAvatar = ps.myAvatar || '';
-    colState.partnerAvatar = ps.partnerAvatar || '';
     colState.role = ps.role || 'user1';
 
-    // Live voice messages currently in chat (both partners — chatMessages
-    // already contains both users' messages once cloud-synced).
-    const liveVoices = (ps.chatMessages || [])
+    // Extract voice messages from chat
+    colState.voices = (ps.chatMessages || [])
       .filter(m => m.type === 'voice' && m.audioData && !m._deleted)
-      .map(m => ({
-        id: m.id,
+      .map((m, i) => ({
+        id: m.id || i,
         audioData: m.audioData,
         duration: m.duration || '0:00',
-        durationSec: parseDuration(m.duration || '0:00'),
         date: m.date || '',
         time: m.time || '',
         by: m.by || (m.me ? 'user1' : 'user2'),
-      }));
+        durationSec: parseDuration(m.duration || '0:00'),
+      })).sort((a,b) => (b.date + b.time).localeCompare(a.date + a.time));
 
-    // Auto-import any new live voice message into the persisted library
-    const libIds = new Set(voiceLibrary.map(v => v.id));
-    let added = false;
-    liveVoices.forEach(v => {
-      if (!libIds.has(v.id)) { voiceLibrary.push(v); libIds.add(v.id); added = true; }
-    });
-    if (added) saveVoiceLibrary();
-
-    // Final render list = library merged with any live-only fields (freshness),
-    // but library entries survive even after chat deletion.
-    const liveById = new Map(liveVoices.map(v => [v.id, v]));
-    colState.voices = voiceLibrary.map(v => liveById.get(v.id) || v)
-      .sort((a,b) => (b.date+b.time).localeCompare(a.date+a.time));
-
-    // Photos (unchanged behavior)
-    colState.photos = (ps.photos || []).map(p => ({ ...p }))
+    // Extract photos
+    colState.photos = (ps.photos || [])
+      .map(p => ({ ...p }))
       .sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+    // Also grab photos from chat
     const chatPhotos = (ps.chatMessages || [])
       .filter(m => m.mediaUrl && !m._deleted)
-      .map(m => ({ id:'chat_'+m.id, url:m.mediaUrl, type:'image', date:m.date||'', name:'Chat photo', fromChat:true }));
+      .map(m => ({
+        id: 'chat_' + m.id,
+        url: m.mediaUrl,
+        type: 'image',
+        date: m.date || '',
+        name: 'Chat photo',
+        fromChat: true,
+      }));
+    // Merge, deduplicate
     const existIds = new Set(colState.photos.map(p => p.id));
     chatPhotos.forEach(p => { if (!existIds.has(p.id)) colState.photos.push(p); });
     colState.photos.sort((a,b) => (b.date||'').localeCompare(a.date||''));
@@ -329,7 +280,9 @@ function fmtDateShort(s){ if(!s)return''; try{return new Date(s+'T00:00:00').toL
 function fmtMonthYear(s){ if(!s)return''; try{return new Date(s+'T00:00:00').toLocaleDateString('en-IN',{month:'long',year:'numeric'});}catch(e){return s}}
 function todayStr(){return new Date().toISOString().slice(0,10)}
 
-function totalVoiceDuration(){ return colState.voices.reduce((s,v)=>s+(v.durationSec||0),0); }
+function totalVoiceDuration(){
+  return colState.voices.reduce((s,v)=>s+v.durationSec,0);
+}
 function fmtTotalDur(sec){ const m=Math.floor(sec/60); return m>0?m+'m':'<1m'; }
 
 function renderHero() {
@@ -353,20 +306,12 @@ function renderToolbar() {
   const tb = document.getElementById('colToolbar');
   const isVoice = currentTab === 'voice';
   const filters = isVoice
-    ? [{k:'all',l:'All'},{k:'me',l:'My Voice'},{k:'partner',l:"Partner's"},{k:'fav',l:'⭐ Favorites'},{k:'recent',l:'🕒 Recently Played'},{k:'longest',l:'⏱ Longest'}]
+    ? [{k:'all',l:'All'},{k:'me',l:'My Voice'},{k:'partner',l:'Partner\'s'},{k:'fav',l:'⭐ Favorites'}]
     : [{k:'all',l:'All'},{k:'image',l:'📸 Photos'},{k:'video',l:'🎬 Videos'},{k:'fav',l:'⭐ Favorites'}];
   const active = isVoice ? voiceFilter : photoFilter;
-  const sortHtml = isVoice ? `
-    <select class="col-sort" id="voiceSortSel" onchange="voiceSort=this.value;renderCurrentTab()">
-      <option value="newest" ${voiceSort==='newest'?'selected':''}>Newest first</option>
-      <option value="oldest" ${voiceSort==='oldest'?'selected':''}>Oldest first</option>
-      <option value="duration" ${voiceSort==='duration'?'selected':''}>Longest duration</option>
-      <option value="fav" ${voiceSort==='fav'?'selected':''}>Favorites first</option>
-    </select>` : '';
   tb.innerHTML = `
     <input type="text" class="col-search" id="colSearch" placeholder="Search..." oninput="renderCurrentTab()" value="">
     ${filters.map(f=>`<div class="col-filter ${active===f.k?'active':''}" onclick="setFilter('${f.k}')">${f.l}</div>`).join('')}
-    ${sortHtml}
   `;
 }
 
@@ -390,22 +335,8 @@ function renderVoice() {
     if (voiceFilter === 'me') return v.by === colState.role;
     if (voiceFilter === 'partner') return v.by !== colState.role;
     if (voiceFilter === 'fav') return colState.voiceFavs.includes(v.id);
-    if (voiceFilter === 'recent') return !!v.lastPlayedTs;
-    if (voiceFilter === 'longest') return true; // sorting handles this
     return true;
   });
-
-  // Sorting
-  if (voiceFilter === 'recent') {
-    voices.sort((a,b) => (b.lastPlayedTs||0) - (a.lastPlayedTs||0));
-  } else if (voiceFilter === 'longest') {
-    voices.sort((a,b) => (b.durationSec||0) - (a.durationSec||0));
-  } else {
-    if (voiceSort === 'oldest') voices.sort((a,b) => (a.date+a.time).localeCompare(b.date+b.time));
-    else if (voiceSort === 'duration') voices.sort((a,b) => (b.durationSec||0) - (a.durationSec||0));
-    else if (voiceSort === 'fav') voices.sort((a,b) => (colState.voiceFavs.includes(b.id)?1:0) - (colState.voiceFavs.includes(a.id)?1:0));
-    else voices.sort((a,b) => (b.date+b.time).localeCompare(a.date+a.time)); // newest
-  }
 
   const el = document.getElementById('voiceList');
   if (!voices.length) {
@@ -413,107 +344,68 @@ function renderVoice() {
     return;
   }
 
-  // Group by date (skip grouping for recent/longest since sort order matters more than date)
-  const grouped = (voiceFilter === 'recent' || voiceFilter === 'longest');
-  if (grouped) {
-    el.innerHTML = voices.map(v => renderVoiceRow(v)).join('');
-    return;
-  }
+  // Group by date
   const byDate = {};
   voices.forEach(v => { const d = v.date || 'Unknown'; if(!byDate[d]) byDate[d]=[]; byDate[d].push(v); });
+
   el.innerHTML = Object.entries(byDate).map(([date, vlist]) => `
-    <div class="col-date-sep">${date === todayStr() ? 'Today' : fmtDate(date)}</div>
-    ${vlist.map(v => renderVoiceRow(v)).join('')}
+    <div class="col-date-sep">${date === new Date().toISOString().slice(0,10) ? 'Today' : fmtDate(date)}</div>
+    ${vlist.map((v, i) => {
+      const isMe = v.by === colState.role;
+      const isFav = colState.voiceFavs.includes(v.id);
+      const isPlaying = currentPlayingIdx === v.id;
+      const name = isMe ? colState.myName : colState.partnerName;
+      const initial = name[0] || '?';
+      return `<div class="voice-item${isPlaying?' playing':''}${isFav?' favorited':''}" id="vi-${v.id}">
+        <div class="voice-av ${isMe?'me':'partner'}">${initial}</div>
+        <button class="voice-play-btn${isPlaying?' playing':''}" onclick="playVoice(${JSON.stringify(v.id)},${JSON.stringify(v.audioData||'')})">
+          ${isPlaying ? '⏸' : '▶'}
+        </button>
+        <div class="voice-info">
+          <div class="voice-sender">${escHtml(name)}</div>
+          <div class="voice-date">${v.time || ''}</div>
+        </div>
+        <div class="voice-waveform">${generateWave()}</div>
+        <div class="voice-dur">${v.duration}</div>
+        <div class="voice-actions">
+          <button class="voice-action-btn fav${isFav?' fav':''}" title="Favorite" onclick="toggleVoiceFav(${JSON.stringify(v.id)})">${isFav?'⭐':'☆'}</button>
+          <button class="voice-action-btn" title="Download" onclick="downloadVoice(${JSON.stringify(v.audioData||'')})">⬇️</button>
+          <button class="voice-action-btn del" title="Delete" onclick="deleteVoice(${JSON.stringify(v.id)})">🗑️</button>
+        </div>
+      </div>`;
+    }).join('')}
   `).join('');
 }
 
-function renderVoiceRow(v) {
-  const isMe = v.by === colState.role;
-  const isFav = colState.voiceFavs.includes(v.id);
-  const isPlaying = currentPlayingIdx === v.id;
-  const isExported = colState.voiceLibraryIds.includes(v.id);
-  const name = isMe ? colState.myName : colState.partnerName;
-  const avatarSrc = isMe ? colState.myAvatar : colState.partnerAvatar;
-  const initial = name[0] || '?';
-  return `<div class="voice-item${isPlaying?' playing':''}${isFav?' favorited':''}" id="vi-${v.id}">
-    <div class="voice-av ${isMe?'me':'partner'}">${avatarSrc ? `<img src="${avatarSrc}" alt="">` : initial}</div>
-    <button class="voice-play-btn${isPlaying?' playing':''}" onclick="playVoice(${JSON.stringify(v.id)})">
-      ${isPlaying ? '⏸' : '▶'}
-    </button>
-    <div class="voice-info">
-      <div class="voice-sender">${escHtml(name)} ${isExported ? '<span class="voice-exported-badge">📤 In Library</span>' : ''}</div>
-      <div class="voice-date">${v.time || ''} · ${fmtDateShort(v.date)}</div>
-      <div class="voice-seek-wrap">
-        <div class="voice-seek-bar" onclick="seekVoice(event,${JSON.stringify(v.id)})">
-          <div class="voice-waveform" id="wf-${v.id}">${generateWave(v.id)}</div>
-        </div>
-      </div>
-    </div>
-    <div class="voice-dur">${v.duration}</div>
-    <div class="voice-actions">
-      <button class="voice-action-btn fav${isFav?' fav':''}" title="Favorite" onclick="toggleVoiceFav(${JSON.stringify(v.id)})">${isFav?'⭐':'☆'}</button>
-      <button class="voice-action-btn${isExported?' exported':''}" title="Export to Collection library" onclick="exportVoice(${JSON.stringify(v.id)})">${isExported?'✅':'📤'}</button>
-      <button class="voice-action-btn" title="Download" onclick="downloadVoice(${JSON.stringify(v.id)})">⬇️</button>
-      <button class="voice-action-btn del" title="Delete" onclick="deleteVoice(${JSON.stringify(v.id)})">🗑️</button>
-    </div>
-  </div>`;
+function generateWave() {
+  return Array.from({length:18}, () => `<span style="height:${6+Math.round(Math.random()*14)}px"></span>`).join('');
 }
 
-let _waveCache = {};
-function generateWave(id) {
-  if (!_waveCache[id]) _waveCache[id] = Array.from({length:24}, () => 5+Math.round(Math.random()*15));
-  return _waveCache[id].map((h,i) => `<span data-i="${i}" style="height:${h}px"></span>`).join('');
-}
-
-function findVoice(id) { return colState.voices.find(v => v.id === id || String(v.id) === String(id)); }
-
-function playVoice(id) {
-  const v = findVoice(id);
-  if (!v || !v.audioData) { showColToast('Audio not available'); return; }
+let currentAudio = null;
+function playVoice(id, audioData) {
+  if (!audioData) { showColToast('Audio not available'); return; }
   const prevId = currentPlayingIdx;
   if (currentPlayingIdx === id) {
+    // Pause
     voiceAudio.pause();
     currentPlayingIdx = -1;
     updateVoiceItem(id, false);
+    updateVoiceItem(prevId, false);
     return;
   }
   if (currentPlayingIdx !== -1) updateVoiceItem(currentPlayingIdx, false);
   currentPlayingIdx = id;
-  voiceAudio.src = v.audioData;
+  voiceAudio.src = audioData;
   voiceAudio.play().catch(e => showColToast('Cannot play audio: ' + e.message));
   updateVoiceItem(id, true);
-
-  // Track "recently played"
-  const libEntry = voiceLibrary.find(x => x.id === id);
-  if (libEntry) { libEntry.lastPlayedTs = Date.now(); saveVoiceLibrary(); }
-  const stateEntry = findVoice(id);
-  if (stateEntry) stateEntry.lastPlayedTs = Date.now();
-}
-function seekVoice(e, id) {
-  e.stopPropagation();
-  if (currentPlayingIdx !== id) { playVoice(id); }
-  const bar = e.currentTarget;
-  const rect = bar.getBoundingClientRect();
-  const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-  if (voiceAudio.duration) voiceAudio.currentTime = pct * voiceAudio.duration;
 }
 function updateVoiceItem(id, playing) {
   const el = document.getElementById('vi-' + id);
   if (!el) return;
   el.classList.toggle('playing', playing);
-  el.classList.toggle('actively-animating', playing);
   const btn = el.querySelector('.voice-play-btn');
   if (btn) { btn.textContent = playing ? '⏸' : '▶'; btn.classList.toggle('playing', playing); }
 }
-voiceAudio.addEventListener('timeupdate', () => {
-  if (currentPlayingIdx === -1 || !voiceAudio.duration) return;
-  const wf = document.getElementById('wf-' + currentPlayingIdx);
-  if (!wf) return;
-  const pct = voiceAudio.currentTime / voiceAudio.duration;
-  const bars = wf.querySelectorAll('span');
-  const activeCount = Math.floor(pct * bars.length);
-  bars.forEach((b,i) => b.classList.toggle('played', i < activeCount));
-});
 voiceAudio.addEventListener('ended', () => {
   if (currentPlayingIdx !== -1) { updateVoiceItem(currentPlayingIdx, false); currentPlayingIdx = -1; }
 });
@@ -525,35 +417,18 @@ function toggleVoiceFav(id) {
   localStorage.setItem('col_voice_favs', JSON.stringify(colState.voiceFavs));
   renderVoice(); renderHero();
 }
-function exportVoice(id) {
-  // Explicitly mark as part of the permanent library (separate from auto-import,
-  // this is the user-facing "export" action requested).
-  if (!colState.voiceLibraryIds.includes(id)) {
-    colState.voiceLibraryIds.push(id);
-    localStorage.setItem('col_voice_lib_ids', JSON.stringify(colState.voiceLibraryIds));
-    showColToast('📤 Exported to Collection library — safe even if deleted from Chat');
-  } else {
-    showColToast('Already in your Collection library ✅');
-  }
-  renderVoice();
-}
-function downloadVoice(id) {
-  const v = findVoice(id);
-  if (!v?.audioData) return;
+function downloadVoice(audioData) {
+  if (!audioData) return;
   const a = document.createElement('a');
-  a.href = v.audioData;
-  a.download = 'voice-' + (v.date||'') + '-' + Date.now() + '.webm';
+  a.href = audioData;
+  a.download = 'voice-' + Date.now() + '.webm';
   a.click();
   showColToast('Downloading... ⬇️');
 }
 function deleteVoice(id) {
-  if (!confirm('Delete this voice message from your Collection library?')) return;
-  voiceLibrary = voiceLibrary.filter(v => v.id !== id);
-  saveVoiceLibrary();
+  if (!confirm('Delete this voice message?')) return;
   colState.voices = colState.voices.filter(v => v.id !== id);
-  colState.voiceLibraryIds = colState.voiceLibraryIds.filter(x => x !== id);
-  localStorage.setItem('col_voice_lib_ids', JSON.stringify(colState.voiceLibraryIds));
-  // Also delete from parent chat if it still exists there
+  // Also delete from parent state if possible
   try {
     const ps = window.parent?.S;
     if (ps?.chatMessages) {
@@ -566,7 +441,7 @@ function deleteVoice(id) {
   showColToast('Voice message deleted');
 }
 
-// ── PHOTO RENDER (unchanged) ──
+// ── PHOTO RENDER ──
 function renderPhotos() {
   const q = getQuery();
   let photos = colState.photos.filter(p => {
@@ -583,6 +458,7 @@ function renderPhotos() {
     return;
   }
 
+  // Group by month
   const byMonth = {};
   photos.forEach(p => {
     const key = p.date ? p.date.slice(0,7) : 'Unknown';
@@ -596,7 +472,7 @@ function renderPhotos() {
       <div class="photo-month-count">${list.length} item${list.length!==1?'s':''}</div>
     </div>
     <div class="photo-col-grid">
-      ${list.map((p) => {
+      ${list.map((p, i) => {
         const isFav = colState.photoFavs.includes(p.id);
         const realIdx = colState.photos.indexOf(p);
         return `<div class="photo-col-item" onclick="openPhotoLightbox(${realIdx})">
@@ -721,32 +597,15 @@ window.addEventListener('message', e => {
     const r = document.documentElement;
     Object.entries(e.data.vars || {}).forEach(([k,v]) => r.style.setProperty(k,v));
   }
-  if (e.data?.type === 'colRefresh') refresh();
+  if (e.data?.type === 'colRefresh') init();
 });
-
-// ── REALTIME SYNC ──
-// Parent app syncs cloud state (which includes both partners' chat
-// messages) roughly every 5s. We poll the same shared object here so
-// new voice messages from either side appear without a manual refresh.
-function refresh() {
-  loadFromParent();
-  renderHero();
-  renderCurrentTab();
-}
-let _colSyncInterval = null;
-function startColSync() {
-  if (_colSyncInterval) return;
-  _colSyncInterval = setInterval(refresh, 4000);
-}
 
 // ── INIT ──
 function init() {
-  loadVoiceLibrary();
   loadFromParent();
   renderToolbar();
   renderHero();
   renderCurrentTab();
-  startColSync();
 }
 init();
 </script>
