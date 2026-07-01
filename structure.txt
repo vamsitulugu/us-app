@@ -1,5 +1,5 @@
 Folder PATH listing for volume OS
-Volume serial number is 000000C6 7C9F:DF56
+Volume serial number is 0000000F 7C9F:DF56
 C:.
 |   .env
 |   .gitignore
@@ -10,17 +10,6 @@ C:.
 |   server.js
 |   structure.txt
 |   
-+---chat
-|       chatEngine.js
-|       idb.js
-|       init.js
-|       presence.js
-|       queue.js
-|       realtime.js
-|       render.js
-|       store.js
-|       typing.js
-|       
 +---middleware
 |       supabase.js
 |       
@@ -2903,81 +2892,6 @@ C:.
 |           package.json
 |           README.md
 |           test.js
-|           
-+---public
-|   |   collection.html
-|   |   dashboard_chat_patch.js
-|   |   dreamgoals.html
-|   |   games.html
-|   |   globe.html
-|   |   index.html
-|   |   index_patch.js
-|   |   landing.html
-|   |   livemap.js
-|   |   lovecounter.html
-|   |   manifest.json
-|   |   meetplanner.html
-|   |   meetplanner.js
-|   |   music.html
-|   |   music_patch.js
-|   |   places.html
-|   |   server.js
-|   |   sw.js
-|   |   
-|   +---chat
-|   |       chat-ui-patch.js
-|   |       chat-ui.css
-|   |       queue.js
-|   |       render.js
-|   |       
-|   +---home
-|   |       ai_behavior.js
-|   |       ambient_audio.js
-|   |       api.js
-|   |       audio_living.js
-|   |       avatars.js
-|   |       camera.js
-|   |       camera_director.js
-|   |       controls.js
-|   |       daily_routine.js
-|   |       effects.js
-|   |       emotion_engine.js
-|   |       environment.js
-|   |       environment_sync.js
-|   |       event_engine.js
-|   |       fireplace.js
-|   |       furniture.js
-|   |       furniture_ext.js
-|   |       home.html
-|   |       home_living.js
-|   |       home_scripts.html
-|   |       interactions.js
-|   |       lighting.js
-|   |       memories.js
-|   |       movement.js
-|   |       npc_behavior.js
-|   |       particles.js
-|   |       perf_living.js
-|   |       perf_p7.js
-|   |       pets.js
-|   |       realtime_living.js
-|   |       relationship_engine.js
-|   |       renderer.js
-|   |       rooms.js
-|   |       scene.js
-|   |       scene_p7_patch.js
-|   |       scene_p7_patch2.js
-|   |       scene_p8_patch.js
-|   |       sky.js
-|   |       smart_furniture.js
-|   |       utils.js
-|   |       weather.js
-|   |       window_system.js
-|   |       
-|   \---icons
-|           background-chat.png
-|           icon-192.png
-|           icon-512.png
 |           
 \---routes
         ai.js
