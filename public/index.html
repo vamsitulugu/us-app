@@ -4245,31 +4245,46 @@ vercel-live-feedback {
         <div id="hbWidgetContainer"></div>
           <!-- Pulse ring (global, positioned absolute by HB manager) -->
         <div id="hbPulseRing"></div>
-        <div class="card touch-card">
-          <div class="card-title" style="justify-content:center">❤️ Send a Touch</div>
-          <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Tap the heart — <span
-              id="touchPartnerName">they'll</span> feel it</div>
-          <button class="touch-heart-btn" id="touchHeartBtn" onclick="sendTouch()">❤️</button>
-        </div>
-        <div class="card" id="connectCard">
-          <div class="card-title" style="justify-content:center">💕 Stay Connected</div>
-          <div class="connect-btns-row">
-            <div class="connect-btn-wrap">
-              <button class="connect-action-btn missyou-btn" id="missYouBtn" onclick="sendMissYou()">
-                <span class="connect-btn-ico">💔</span>
-                <span class="connect-btn-label">Miss You</span>
-              </button>
-              <div class="connect-stat" id="missYouStat">Tap to let them know</div>
-            </div>
-            <div class="connect-btn-wrap">
-              <button class="connect-action-btn hug-btn" id="hugBtn" onclick="sendHug()">
-                <span class="connect-btn-ico">🤗</span>
-                <span class="connect-btn-label">Send Hug</span>
-              </button>
-              <div class="connect-stat" id="hugStat">0 hugs shared</div>
-            </div>
-          </div>
-        </div>
+        <div class="card cc-card" id="connectionCard">
+  <div class="card-title" style="justify-content:center">💕 Stay Connected</div>
+ 
+  <div class="cc-actions">
+    <button class="cc-btn cc-touch" id="ccTouchBtn" onclick="ConnCard.sendTouch()">
+      <span class="cc-ico">❤️</span><span class="cc-lbl">Touch</span>
+    </button>
+    <button class="cc-btn cc-hug" id="ccHugBtn" onclick="ConnCard.sendHug()">
+      <span class="cc-ico">🤗</span><span class="cc-lbl">Hug</span>
+    </button>
+    <button class="cc-btn cc-miss" id="ccMissBtn" onclick="ConnCard.sendMissYou()">
+      <span class="cc-ico">🥺</span><span class="cc-lbl">Miss You</span>
+    </button>
+  </div>
+ 
+  <div id="ccBurstLayer" class="cc-burst-layer"></div>
+ 
+  <div class="cc-stats">
+    <div class="cc-stat">
+      <div class="cc-stat-ico">❤️</div>
+      <div class="cc-stat-v" id="ccLastInteraction">—</div>
+      <div class="cc-stat-l">Last Interaction</div>
+    </div>
+    <div class="cc-stat">
+      <div class="cc-stat-ico">🤗</div>
+      <div class="cc-stat-v" id="ccHugTotal">0</div>
+      <div class="cc-stat-l">Hugs Shared</div>
+    </div>
+    <div class="cc-stat">
+      <div class="cc-stat-ico">🥺</div>
+      <div class="cc-stat-v" id="ccMissTotal">0</div>
+      <div class="cc-stat-l">Miss You</div>
+    </div>
+    <div class="cc-stat">
+      <div class="cc-stat-ico">🕒</div>
+      <div class="cc-stat-v" id="ccLastReceived">—</div>
+      <div class="cc-stat-l">Last Received</div>
+    </div>
+  </div>
+</div>
         <div class="card" id="countdownCard" style="display:none">
           <div class="card-title">🎉 Upcoming Celebrations</div>
           <div id="countdownList"></div>
@@ -4350,7 +4365,8 @@ vercel-live-feedback {
    
 <div class="page" id="page-chat">
   <div class="chat-wrap">
-    <div class="chat-bg-fixed" id="chatBgFixed"></div>
+    <button class="wp-fab" onclick="ChatWallpaper.open()" title="Change wallpaper">🖼️</button>
+    <div id="chatWallpaperLayer" class="chat-wallpaper-layer"></div>
     <div class="pin-banner" id="pinnedBanner"></div>
     <div class="reply-bar" id="replyBar">
       <div>
@@ -5023,6 +5039,57 @@ vercel-live-feedback {
     </div>
     <div class="field"><label>Address (optional)</label><input type="text" id="lmPlaceAddress" placeholder="e.g. 12 MG Road"></div>
     <button class="btn btn-accent" onclick="LiveMap.savePlace()">Save Place 📌</button>
+  </div>
+</div>
+<div class="modal-bg" id="wpModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">🖼️ Chat Wallpaper<button class="modal-close" onclick="ChatWallpaper.close()">✕</button></div>
+ 
+    <div class="wp-preview-wrap">
+      <div id="wpPreview" class="wp-preview"></div>
+      <div class="wp-preview-hint" id="wpPreviewHint">Upload a photo to preview</div>
+    </div>
+ 
+    <div style="display:flex;gap:8px;margin:12px 0">
+      <label class="btn btn-glass btn-sm" style="cursor:pointer;flex:1;justify-content:center">
+        📁 Upload Photo
+        <input type="file" accept="image/*" style="display:none" onchange="ChatWallpaper.onFile(this)">
+      </label>
+      <button class="btn btn-danger btn-sm" onclick="ChatWallpaper.reset()">↺ Reset Default</button>
+    </div>
+ 
+    <div id="wpCropWrap" style="display:none">
+      <div class="wp-crop-box" id="wpCropBox">
+        <img id="wpCropImg" alt="crop preview" draggable="false">
+      </div>
+      <div class="field" style="margin-top:10px">
+        <label>Zoom</label>
+        <input type="range" id="wpZoom" min="100" max="300" value="100" oninput="ChatWallpaper.onZoom(this.value)">
+      </div>
+      <div style="font-size:10px;color:var(--text3);text-align:center;margin-bottom:8px">Drag the photo to reposition</div>
+    </div>
+ 
+    <div class="field">
+      <label>Blur Intensity</label>
+      <input type="range" id="wpBlur" min="0" max="20" value="0" oninput="ChatWallpaper.updateFilters()">
+    </div>
+    <div class="field">
+      <label>Brightness</label>
+      <input type="range" id="wpBrightness" min="30" max="150" value="100" oninput="ChatWallpaper.updateFilters()">
+    </div>
+    <div class="field">
+      <label>Dark Overlay</label>
+      <input type="range" id="wpOverlay" min="0" max="90" value="35" oninput="ChatWallpaper.updateFilters()">
+    </div>
+    <div class="field">
+      <label>Wallpaper Opacity</label>
+      <input type="range" id="wpOpacity" min="10" max="100" value="100" oninput="ChatWallpaper.updateFilters()">
+    </div>
+ 
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn btn-glass btn-sm" style="flex:1;justify-content:center" onclick="ChatWallpaper.close()">Cancel</button>
+      <button class="btn btn-accent btn-sm" style="flex:1;justify-content:center" onclick="ChatWallpaper.apply()">✓ Apply Wallpaper</button>
+    </div>
   </div>
 </div>
       <div class="page" id="page-surprise">
@@ -8412,6 +8479,7 @@ init();
 
 </script>
 <script src="/livemap.js"></script>
+<script src="/dashboard_chat_patch.js"></script>
 </body>
 
 </html>
