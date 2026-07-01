@@ -6427,7 +6427,7 @@ function renderPartnerLastSeen() {
         }
         function clearChatHistory() {
           if (!confirm('Clear all chat messages? This cannot be undone.')) return;
-          S.chatMessages = []; renderChat(); scheduleSave(); toast('Chat cleared');
+          S.chatMessages = [];  scheduleSave(); toast('Chat cleared');
         }
         function importData() {
           const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json';
@@ -6667,7 +6667,7 @@ function markIncomingMsgsRead() {
   (S.chatMessages || []).forEach(m => {
     if (!m._deleted && !isMyMsg(m) && m.read !== true) { m.read = true; changed = true; }
   });
-  if (changed) { renderChat(); scheduleSave(); }
+  if (changed) {  scheduleSave(); }
 }
 
 
@@ -6786,7 +6786,7 @@ function setReplyById(msgId) {
 }
 function starMsgById(msgId) {
   const m = (S.chatMessages || []).find(x => x.id == msgId);
-  if (m) { m.starred = !m.starred; renderChat(); scheduleSave(); toast(m.starred ? '⭐ Starred' : 'Unstarred'); }
+  if (m) { m.starred = !m.starred; scheduleSave(); toast(m.starred ? '⭐ Starred' : 'Unstarred'); }
 }
 function copyMsgTextById(msgId) {
   const m = (S.chatMessages || []).find(x => x.id == msgId);
@@ -6844,7 +6844,7 @@ document.addEventListener('click', e => {
           if (!m.reactions) m.reactions = {};
           if (m.reactions[emoji]) { m.reactions[emoji]--; if (!m.reactions[emoji]) delete m.reactions[emoji]; }
           else m.reactions[emoji] = (m.reactions[emoji] || 0) + 1;
-          renderChat(); scheduleSave();
+          scheduleSave();
         }
 
         // ── Voice recording ──
@@ -6885,7 +6885,7 @@ document.addEventListener('click', e => {
             const seconds = Math.round(blob.size / 8000); // rough estimate
             const dur = Math.floor(seconds / 60) + ':' + (seconds % 60).toString().padStart(2, '0');
             const msg = { id: Date.now(), type: 'voice', audioData: e.target.result, duration: dur, me: true, by: S.role, time: now(), date: todayStr(), read: false };
-            S.chatMessages.push(msg); renderChat(); scheduleSave(); toast('Voice message sent! 🎙️');
+            S.chatMessages.push(msg); scheduleSave(); toast('Voice message sent! 🎙️');
           };
           reader.readAsDataURL(blob);
         }
@@ -6931,7 +6931,7 @@ document.addEventListener('click', e => {
       </div>
     </div>`).join('');
         }
-        function sharePhoto(i) { const p = S.photos[i]; S.chatMessages.push({ id: Date.now(), text: '📷 Shared a memory', me: true, by: S.role, time: now(), date: todayStr(), mediaUrl: p.url }); goto('chat'); renderChat(); scheduleSave(); toast('Shared in chat! 💕'); }
+        function sharePhoto(i) { const p = S.photos[i]; S.chatMessages.push({ id: Date.now(), text: '📷 Shared a memory', me: true, by: S.role, time: now(), date: todayStr(), mediaUrl: p.url }); goto('chat');  scheduleSave(); toast('Shared in chat! 💕'); }
         function delPhoto(i) { S.photos.splice(i, 1); renderPhotos(); scheduleSave(); }
 
         // ─── PROFILE ─────────────────────────────────────────────
@@ -7397,7 +7397,7 @@ function logOut() { if (!confirm('Log out? You can sign back in anytime. Your da
         }
         // ─── RENDER ALL ──────────────────────────────────────────
         function renderAll() {
-          applyNames(); renderChat(); renderPhotos(); renderBucket(); renderHabits();
+          applyNames();  renderPhotos(); renderBucket(); renderHabits();
           renderJournal(); renderNotes(); renderMoney(); renderCalendar();
           renderDashboard(); renderCountdowns(); renderWellnessMoods(); renderWellnessSummary();
           renderFights(); renderStudyPage(); renderReminders(); renderMissYouStats(); renderHugStats();
@@ -7594,7 +7594,7 @@ function logOut() { if (!confirm('Log out? You can sign back in anytime. Your da
         function sendSongToChat(id) {
           const s = (S.sharedSongs || []).find(x => x.id === id); if (!s) return;
           S.chatMessages.push({ id: Date.now(), type: 'music', embed: s.embed, me: true, by: S.role, time: now(), date: todayStr(), read: false });
-          goto('chat'); renderChat(); scheduleSave(); toast('Sent to chat! 🎵');
+          goto('chat'); scheduleSave(); toast('Sent to chat! 🎵');
         }
         function renderSongs() {
   const el = document.getElementById('songsList'); if (!el) return;

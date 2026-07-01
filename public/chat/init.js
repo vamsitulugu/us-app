@@ -1,3 +1,9 @@
+// top of chat/init.js, before boot()
+window.renderChat = window.renderChat || function () {
+  if (window.Render && typeof Render.mount === 'function') Render.mount();
+};
+
+
 (function () {
   const SUPABASE_URL = window.__SUPABASE_URL__;      // inject via server-rendered <script> or /api/config
   const SUPABASE_ANON_KEY = window.__SUPABASE_ANON_KEY__;
