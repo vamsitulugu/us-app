@@ -44,14 +44,15 @@ const Chat = (() => {
      API CALLS
   ══════════════════════════════════════════════════════════════ */
   async function apiCall(method, path, body) {
-    const opts = { method, headers: { 'Content-Type': 'application/json' } };
-    if (body) opts.body = JSON.stringify(body);
-    const r = await fetch(API + path, opts);
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || 'Chat API error');
-    return data;
-  }
-
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  let data;
+  try { data = await r.json(); }
+  catch (e) { data = { error: 'Non-JSON response (status ' + r.status + ')' }; }
+  if (!r.ok) throw new Error(data.error || 'Chat API error');
+  return data;
+}
   async function fetchMessages(after) {
     const cid = coupleId(); if (!cid) return [];
     return apiCall('GET', `/api/chat/${cid}?after=${after || 0}&limit=250`);
@@ -97,6 +98,7 @@ const Chat = (() => {
   }
 
   async function refresh() {
+    if (!coupleId()) return;
     try {
       const fresh = await fetchMessages(lastId);
       if (fresh && fresh.length) {
@@ -128,9 +130,11 @@ const Chat = (() => {
      PRESENCE / TYPING
   ══════════════════════════════════════════════════════════════ */
   async function pushPresence(status) {
+    if (!coupleId()) return;
     try { await apiCall('POST', `/api/chat/${coupleId()}/presence`, { role: myRole(), status }); } catch (e) {}
   }
   async function pollPresence() {
+    if (!coupleId()) return;
     try {
       const rows = await apiCall('GET', `/api/chat/${coupleId()}/presence`);
       const p = (rows || []).find(r => r.role === otherRole());
@@ -430,6 +434,7 @@ const Chat = (() => {
   ══════════════════════════════════════════════════════════════ */
   let markReadDebounce = null;
   function markRead() {
+    if (!coupleId()) return;
     clearTimeout(markReadDebounce);
     markReadDebounce = setTimeout(async () => {
       try { await apiCall('POST', `/api/chat/${coupleId()}/read`, { role: myRole() }); refresh(); } catch (e) {}
