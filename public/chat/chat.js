@@ -719,6 +719,10 @@ async function toggleStar(id) {
         <div class="msg-gift-name">${esc(meta.name || 'A gift')}</div>
       </div>`;
     }
+    if (m.type === 'call_log') {
+      const meta = m.media_meta || {};
+      return `<div class="msg-call-log">${esc(m.text)}</div>`;
+    }
     if (m.type === 'voice') {
       const dur = (m.media_meta && m.media_meta.duration) || 0;
       const durLabel = String(Math.floor(dur / 60)).padStart(2, '0') + ':' + String(dur % 60).padStart(2, '0');

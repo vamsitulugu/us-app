@@ -16,6 +16,7 @@
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <link rel="stylesheet" href="/chat/chat.css">
+  <link rel="stylesheet" href="/chat/call.css">
   <style>
     /* ════════════════════════════════════════════
    RESET & ROOT VARIABLES
@@ -3890,9 +3891,11 @@ vercel-live-feedback {
         <div class="chat-header-status" id="chatHeaderStatus">offline</div>
       </div>
       <div class="chat-header-actions">
-        <button class="ic-btn" style="width:34px;height:34px;font-size:14px" onclick="Chat.openStarred()" title="Starred">⭐</button>
-        <button class="ic-btn" style="width:34px;height:34px;font-size:14px" onclick="Chat.openSearch()" title="Search">🔍</button>
-      </div>
+  <button class="ic-btn" style="width:34px;height:34px;font-size:14px" onclick="Call.startCall('voice')" title="Voice Call">🎙️</button>
+  <button class="ic-btn" style="width:34px;height:34px;font-size:14px" onclick="Call.startCall('video')" title="Video Call">📹</button>
+  <button class="ic-btn" style="width:34px;height:34px;font-size:14px" onclick="Chat.openStarred()" title="Starred">⭐</button>
+  <button class="ic-btn" style="width:34px;height:34px;font-size:14px" onclick="Chat.openSearch()" title="Search">🔍</button>
+</div>
     </div>
 
     <div class="chat-search-bar" id="chatSearchBar">
@@ -7439,6 +7442,7 @@ init();
 </script>
 <script src="/livemap.js"></script>
 <script src="/chat/chat.js"></script>
+<script src="/chat/call.js"></script>
 <script src="/dashboard_chat_patch.js"></script>
 
 </body>
