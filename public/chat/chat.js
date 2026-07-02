@@ -252,7 +252,7 @@ function injectPickerButtons() {
   /* ══════════════════════════════════════════════════════════════
      API CALLS
   ══════════════════════════════════════════════════════════════ */
-  async function apiCall(method, path, body) {
+ async function apiCall(method, path, body) {
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (body) opts.body = JSON.stringify(body);
   let r;
@@ -272,9 +272,15 @@ function injectPickerButtons() {
   return data;
 }
   async function fetchMessages(after) {
-    const cid = coupleId(); if (!cid) return [];
-    return apiCall('GET', `/api/chat/${cid}?after=${after || 0}&limit=250`);
-  }
+  const cid = coupleId(); if (!cid) return [];
+  return apiCall('GET', `/api/chat/${cid}?after=${after || 0}&limit=250`);
+}
+
+async function sendToServer(row) {
+  const cid = coupleId();
+  if (!cid) throw new Error('No coupleId set — cannot send message yet');
+  return apiCall('POST', '/api/chat', { coupleId: cid, senderRole: myRole(), ...row });
+}
 
   async function sendToServer(row) {
     return apiCall('POST', '/api/chat', { coupleId: coupleId(), senderRole: myRole(), ...row });
