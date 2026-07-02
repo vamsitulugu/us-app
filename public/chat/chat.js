@@ -364,29 +364,32 @@ const Chat = (() => {
   const QUICK_REACTIONS = ['❤️', '😂', '😮', '😢', '🙏', '🔥'];
 
   async function react(id, emoji) {
-    const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
-    if (!m.reactions) m.reactions = {};
-    Object.keys(m.reactions).forEach(e => { m.reactions[e] = (m.reactions[e] || []).filter(r => r !== myRole()); if (!m.reactions[e].length) delete m.reactions[e]; });
-    const already = false; // optimistic simple toggle-on
-    m.reactions[emoji] = [...(m.reactions[emoji] || []), myRole()];
-    render();
-    try { const saved = await apiCall('POST', `/api/chat/${id}/react`, { coupleId: coupleId(), role: myRole(), emoji }); const idx = messages.findIndex(x => x.id === id); if (idx >= 0) messages[idx] = saved; render(); }
-    catch (e) {}
-    closeReactionPicker();
-  }
+  const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
+  if (m._pending) { toast('Still sending — try again in a moment'); return; }
+  if (!m.reactions) m.reactions = {};
+  Object.keys(m.reactions).forEach(e => { m.reactions[e] = (m.reactions[e] || []).filter(r => r !== myRole()); if (!m.reactions[e].length) delete m.reactions[e]; });
+  m.reactions[emoji] = [...(m.reactions[emoji] || []), myRole()];
+  render();
+  try { const saved = await apiCall('POST', `/api/chat/${id}/react`, { coupleId: coupleId(), role: myRole(), emoji }); const idx = messages.findIndex(x => x.id === id); if (idx >= 0) messages[idx] = saved; render(); }
+  catch (e) {}
+  closeReactionPicker();
+}
 
-  async function togglePin(id) {
-    const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
-    m.pinned = !m.pinned; render(); closeCtxMenu();
-    try { await apiCall('POST', `/api/chat/${id}/pin`, { coupleId: coupleId(), pinned: m.pinned }); } catch (e) {}
-  }
-  async function toggleStar(id) {
-    const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
-    const has = (m.starred_by || []).includes(myRole());
-    m.starred_by = has ? m.starred_by.filter(r => r !== myRole()) : [...(m.starred_by || []), myRole()];
-    render(); closeCtxMenu();
-    try { await apiCall('POST', `/api/chat/${id}/star`, { coupleId: coupleId(), role: myRole() }); } catch (e) {}
-  }
+async function togglePin(id) {
+  const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
+  if (m._pending) { toast('Still sending — try again in a moment'); closeCtxMenu(); return; }
+  m.pinned = !m.pinned; render(); closeCtxMenu();
+  try { await apiCall('POST', `/api/chat/${id}/pin`, { coupleId: coupleId(), pinned: m.pinned }); } catch (e) {}
+}
+
+async function toggleStar(id) {
+  const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
+  if (m._pending) { toast('Still sending — try again in a moment'); closeCtxMenu(); return; }
+  const has = (m.starred_by || []).includes(myRole());
+  m.starred_by = has ? m.starred_by.filter(r => r !== myRole()) : [...(m.starred_by || []), myRole()];
+  render(); closeCtxMenu();
+  try { await apiCall('POST', `/api/chat/${id}/star`, { coupleId: coupleId(), role: myRole() }); } catch (e) {}
+}
 
   function setReply(id) {
     const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
@@ -752,7 +755,7 @@ ontouchstart="Chat._touchStart(event,'${m.id}')" ontouchend="Chat._touchEnd(even
     box.style.display = 'block';
     if (!hits.length) { box.innerHTML = '<div class="search-none">No messages found</div>'; return; }
     box.innerHTML = hits.slice(-30).reverse().map(m => `
-      <div class="search-hit" onclick="Chat.scrollToMsg(${m.id});Chat.closeSearch()">
+      <div class="search-hit" onclick="Chat.scrollToMsg('${m.id}');Chat.closeSearch()">
         <div class="search-hit-who">${isMine(m) ? (window.S?.myName || 'You') : (window.S?.partnerName || 'Partner')} · ${fmtTime(m.created_at)}</div>
         <div class="search-hit-text">${esc(m.text)}</div>
       </div>`).join('');
