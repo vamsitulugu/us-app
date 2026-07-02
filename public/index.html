@@ -5496,7 +5496,7 @@ async function removePartner() {
     if (state) {
       const protect = ['coupleId', 'connectCode', 'myName', 'partnerName',
         'role', 'setupDone', 'theme', 'vaultPin',
-        'myAvatar', 'partnerAvatar'];
+        'myAvatar', 'partnerAvatar', 'paired'];
       const saved = {};
       protect.forEach(k => { if (S[k] !== undefined) saved[k] = S[k]; });
       Object.assign(S, state);
@@ -5584,14 +5584,18 @@ async function checkPairStatus() {
     const nowPaired = !!c.paired;
 
     if (nowPaired) {
-      _unpairStrikes = 0;
-      S.paired = true;
-      S.partnerName = (S.role === 'user1' ? c.user2_name : c.user1_name) || S.partnerName;
-      applyNames(); updatePairStatus();
-      if (!was) { toast('💕 ' + S.partnerName + ' joined! You are now linked.'); spawnPetals(); }
-      saveLocal();
-      return;
-    }
+  _unpairStrikes = 0;
+  S.paired = true;
+  S.partnerName = (S.role === 'user1' ? c.user2_name : c.user1_name) || S.partnerName;
+  applyNames(); updatePairStatus();
+  if (!was) {
+    toast('💕 ' + S.partnerName + ' joined! You are now linked.');
+    spawnPetals();
+    _justPairedAt = Date.now(); // give this device the same 20s grace window
+  }
+  saveLocal();
+  return;
+}
 
     // nowPaired is false
     if (!was) { saveLocal(); return; } // was never paired, nothing to do

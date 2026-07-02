@@ -285,16 +285,21 @@ function injectPickerButtons() {
   /* ══════════════════════════════════════════════════════════════
      INIT / POLLING / REALTIME
   ══════════════════════════════════════════════════════════════ */
-  async function init() {
+  let _chatBooted = false;
+async function init() {
     if (!coupleId()) { setTimeout(init, 500); return; }
     loadCache();
     render();
     injectPickerButtons();
     await refresh();
     startPolling();
-    trySupabaseRealtime();
     markRead();
     pushPresence('online');
+
+    if (_chatBooted) return; // everything below runs exactly once
+    _chatBooted = true;
+
+    trySupabaseRealtime();
     window.addEventListener('online', flushOfflineQueue);
     window.addEventListener('beforeunload', () => pushPresence('offline'));
     document.addEventListener('visibilitychange', () => {
