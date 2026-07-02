@@ -40,6 +40,215 @@ const Chat = (() => {
   function isMine(m) { return m.sender_role === myRole(); }
   function uuid() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8); return v.toString(16); }); }
 
+/* ══════════════════════════════════════════════════════════════
+     EMOJI / GIF / STICKER / GIFT PICKER
+  ══════════════════════════════════════════════════════════════ */
+  const GIPHY_KEY = 'dc6zaTOxFJmzC'; // Giphy's public demo key — swap for your own free key from developers.giphy.com before real launch (rate-limited)
+
+  const EMOJI_SET = ['😀','😂','🥰','😍','😘','😊','😉','😎','🤩','😇','🙂','😌','🥺','😢','😭','😤','😡','😱','🥳','😴',
+    '❤️','🧡','💛','💚','💙','💜','🖤','🤍','💕','💞','💓','💗','💖','💘','💝','💔','❣️','💟','💌','💋',
+    '👍','👎','👏','🙌','🤝','🙏','💪','✌️','🤞','👋','🤗','🫂','😽','😻','🥹','🤤','😏','🙃','🫶','✨'];
+
+  const STICKER_SET = [
+    { emoji:'😘', name:'Kiss' }, { emoji:'🥰', name:'In Love' }, { emoji:'🤗', name:'Hug' },
+    { emoji:'💑', name:'Us' }, { emoji:'💍', name:'Forever' }, { emoji:'🌹', name:'Rose' },
+    { emoji:'🍫', name:'Sweet' }, { emoji:'🎀', name:'Cute' }, { emoji:'🫶', name:'My Heart' },
+    { emoji:'😻', name:'Adore' }, { emoji:'🥹', name:'Emotional' }, { emoji:'💃', name:'Dance' },
+  ];
+
+  const GIFT_ITEMS = [
+    { emoji:'🌹', name:'Rose' }, { emoji:'🍫', name:'Chocolate Box' }, { emoji:'💐', name:'Bouquet' },
+    { emoji:'🧸', name:'Teddy Bear' }, { emoji:'💎', name:'Diamond' }, { emoji:'🎂', name:'Cake' },
+    { emoji:'🍾', name:'Celebration' }, { emoji:'👑', name:'Crown' }, { emoji:'💍', name:'Ring' },
+    { emoji:'🎁', name:'Surprise Gift' }, { emoji:'🦋', name:'Butterfly' }, { emoji:'🌠', name:'Shooting Star' },
+  ];
+
+  let pickerOpen = false, pickerTab = 'emoji';
+
+  function ensurePickerEl() {
+    let el = document.getElementById('chatPickerPanel');
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'chatPickerPanel';
+    el.className = 'chat-picker-panel';
+    el.innerHTML = `
+      <div class="picker-tabs">
+        <div class="picker-tab active" data-tab="emoji" onclick="Chat.switchPickerTab('emoji')">😀 Emoji</div>
+        <div class="picker-tab" data-tab="gif" onclick="Chat.switchPickerTab('gif')">🎬 GIF</div>
+        <div class="picker-tab" data-tab="sticker" onclick="Chat.switchPickerTab('sticker')">🩷 Stickers</div>
+        <div class="picker-tab" data-tab="gift" onclick="Chat.switchPickerTab('gift')">🎁 Gifts</div>
+        <button class="picker-close" onclick="Chat.closePicker()">✕</button>
+      </div>
+      <div class="picker-body" id="pickerBody"></div>`;
+    const wrap = document.querySelector('.chat-page-wrap');
+    if (wrap) wrap.insertBefore(el, wrap.querySelector('.chat-composer-banner') || wrap.querySelector('.chat-composer'));
+    return el;
+  }
+
+  function togglePicker(tab) {
+    const panel = ensurePickerEl();
+    if (pickerOpen && pickerTab === tab) { closePicker(); return; }
+    pickerOpen = true;
+    panel.classList.add('open');
+    switchPickerTab(tab || 'emoji');
+  }
+  function closePicker() {
+    pickerOpen = false;
+    document.getElementById('chatPickerPanel')?.classList.remove('open');
+  }
+  function switchPickerTab(tab) {
+    pickerTab = tab;
+    document.querySelectorAll('.picker-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    const body = document.getElementById('pickerBody');
+    if (!body) return;
+    if (tab === 'emoji') {
+      body.innerHTML = `<div class="picker-emoji-grid">${EMOJI_SET.map(e => `<span class="picker-emoji" onclick="Chat.insertEmoji('${e}')">${e}</span>`).join('')}</div>`;
+    } else if (tab === 'sticker') {
+      body.innerHTML = `<div class="picker-sticker-grid">${STICKER_SET.map(s => `<div class="picker-sticker" onclick="Chat.sendSticker('${s.emoji}')"><div class="picker-sticker-emoji">${s.emoji}</div><div class="picker-sticker-name">${s.name}</div></div>`).join('')}</div>`;
+    } else if (tab === 'gift') {
+      body.innerHTML = `<div class="picker-sticker-grid">${GIFT_ITEMS.map(g => `<div class="picker-sticker picker-gift" onclick='Chat.sendGift(${JSON.stringify(g)})'><div class="picker-sticker-emoji">${g.emoji}</div><div class="picker-sticker-name">${g.name}</div></div>`).join('')}</div>`;
+    } else if (tab === 'gif') {
+      body.innerHTML = `
+        <div class="picker-gif-search"><input type="text" id="gifSearchInput" placeholder="Search GIFs..." oninput="Chat.searchGifs(this.value)"></div>
+        <div class="picker-gif-grid" id="gifGrid"><div class="picker-loading">Loading trending GIFs...</div></div>`;
+      searchGifs('');
+    }
+  }
+function injectPickerButtons() {
+    const bar = document.querySelector('.chat-composer');
+    if (!bar || document.getElementById('chatEmojiBtn')) return;
+    const sendBtn = bar.querySelector('.chat-composer-btn.send');
+    const emojiBtn = document.createElement('button');
+    emojiBtn.id = 'chatEmojiBtn';
+    emojiBtn.className = 'chat-composer-btn';
+    emojiBtn.innerHTML = '😀';
+    emojiBtn.onclick = () => togglePicker('emoji');
+    const gifBtn = document.createElement('button');
+    gifBtn.id = 'chatGifBtn';
+    gifBtn.className = 'chat-composer-btn';
+    gifBtn.innerHTML = '🎬';
+    gifBtn.onclick = () => togglePicker('gif');
+    const giftBtn = document.createElement('button');
+    giftBtn.id = 'chatGiftBtn';
+    giftBtn.className = 'chat-composer-btn';
+    giftBtn.innerHTML = '🎁';
+    giftBtn.onclick = () => togglePicker('gift');
+    bar.insertBefore(emojiBtn, sendBtn);
+    bar.insertBefore(gifBtn, sendBtn);
+    bar.insertBefore(giftBtn, sendBtn);
+  }
+  function insertEmoji(e) {
+    const input = document.getElementById('chatIn');
+    if (!input) return;
+    input.value += e;
+    autoGrow(input);
+    input.focus();
+    onTypingInput();
+  }
+
+  let gifDebounce = null;
+  async function searchGifs(query) {
+    clearTimeout(gifDebounce);
+    gifDebounce = setTimeout(async () => {
+      const grid = document.getElementById('gifGrid');
+      if (!grid) return;
+      grid.innerHTML = '<div class="picker-loading">Searching...</div>';
+      try {
+        const url = query.trim()
+          ? `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_KEY}&q=${encodeURIComponent(query)}&limit=24&rating=pg-13`
+          : `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_KEY}&limit=24&rating=pg-13`;
+        const r = await fetch(url);
+        const data = await r.json();
+        const gifs = data.data || [];
+        if (!gifs.length) { grid.innerHTML = '<div class="picker-loading">No GIFs found</div>'; return; }
+        grid.innerHTML = gifs.map(g => {
+          const thumb = g.images.fixed_width_small?.url || g.images.fixed_width?.url;
+          const full  = g.images.fixed_width?.url || g.images.original?.url;
+          return `<img class="picker-gif-item" src="${thumb}" loading="lazy" onclick="Chat.sendGif('${full}')">`;
+        }).join('');
+      } catch (e) {
+        grid.innerHTML = '<div class="picker-loading">GIF search unavailable — check connection</div>';
+      }
+    }, 350);
+  }
+
+  async function sendGif(url) {
+    closePicker();
+    const clientId = uuid();
+    const optimistic = {
+      id: 'tmp_' + clientId, client_id: clientId, _pending: true,
+      couple_id: coupleId(), sender_role: myRole(), type: 'gif',
+      text: null, media_url: url, reply_to: replyingTo ? replyingTo.id : null,
+      reactions: {}, starred_by: [], pinned: false, delivered: false, read: false,
+      created_at: new Date().toISOString()
+    };
+    messages.push(optimistic); saveCache(); render(); scrollToBottom(true);
+    const replySnapshot = replyingTo; clearReply();
+    try {
+      const saved = await sendToServer({ clientId, type: 'gif', mediaUrl: url, replyTo: replySnapshot?.id });
+      const idx = messages.findIndex(m => m.client_id === clientId);
+      if (idx >= 0) messages[idx] = saved;
+      lastId = Math.max(lastId, saved.id);
+      saveCache(); render();
+    } catch (e) {
+      const idx = messages.findIndex(m => m.client_id === clientId);
+      if (idx >= 0) messages[idx]._failed = true;
+      render(); toast('GIF failed to send');
+    }
+  }
+
+  async function sendSticker(emoji) {
+    closePicker();
+    const clientId = uuid();
+    const optimistic = {
+      id: 'tmp_' + clientId, client_id: clientId, _pending: true,
+      couple_id: coupleId(), sender_role: myRole(), type: 'sticker',
+      text: emoji, media_url: null, reply_to: null,
+      reactions: {}, starred_by: [], pinned: false, delivered: false, read: false,
+      created_at: new Date().toISOString()
+    };
+    messages.push(optimistic); saveCache(); render(); scrollToBottom(true);
+    try {
+      const saved = await sendToServer({ clientId, type: 'sticker', text: emoji });
+      const idx = messages.findIndex(m => m.client_id === clientId);
+      if (idx >= 0) messages[idx] = saved;
+      lastId = Math.max(lastId, saved.id);
+      saveCache(); render();
+      if (typeof window.spawnPetals === 'function') window.spawnPetals(4);
+    } catch (e) {
+      const idx = messages.findIndex(m => m.client_id === clientId);
+      if (idx >= 0) messages[idx]._failed = true;
+      render();
+    }
+  }
+
+  async function sendGift(gift) {
+    closePicker();
+    const clientId = uuid();
+    const optimistic = {
+      id: 'tmp_' + clientId, client_id: clientId, _pending: true,
+      couple_id: coupleId(), sender_role: myRole(), type: 'gift',
+      text: null, media_url: null, media_meta: gift, reply_to: null,
+      reactions: {}, starred_by: [], pinned: false, delivered: false, read: false,
+      created_at: new Date().toISOString()
+    };
+    messages.push(optimistic); saveCache(); render(); scrollToBottom(true);
+    try {
+      const saved = await sendToServer({ clientId, type: 'gift', mediaMeta: gift, text: null });
+      const idx = messages.findIndex(m => m.client_id === clientId);
+      if (idx >= 0) messages[idx] = saved;
+      lastId = Math.max(lastId, saved.id);
+      saveCache(); render();
+      if (typeof window.spawnPetals === 'function') window.spawnPetals(12);
+      if (typeof window.addXP === 'function') window.addXP(4);
+      toast('🎁 Sent ' + gift.name + '!');
+    } catch (e) {
+      const idx = messages.findIndex(m => m.client_id === clientId);
+      if (idx >= 0) messages[idx]._failed = true;
+      render();
+    }
+  }
+  
   /* ══════════════════════════════════════════════════════════════
      API CALLS
   ══════════════════════════════════════════════════════════════ */
@@ -80,6 +289,7 @@ const Chat = (() => {
     if (!coupleId()) { setTimeout(init, 500); return; }
     loadCache();
     render();
+    injectPickerButtons();
     await refresh();
     startPolling();
     trySupabaseRealtime();
@@ -496,6 +706,19 @@ async function toggleStar(id) {
     if (m.type === 'image') {
       return `<img src="${m.media_url}" class="msg-img" loading="lazy" onclick="Chat.viewImage('${m.media_url}')">`;
     }
+    if (m.type === 'gif') {
+      return `<img src="${m.media_url}" class="msg-img msg-gif" loading="lazy" onclick="Chat.viewImage('${m.media_url}')">`;
+    }
+    if (m.type === 'sticker') {
+      return `<div class="msg-sticker">${m.text}</div>`;
+    }
+    if (m.type === 'gift') {
+      const meta = m.media_meta || {};
+      return `<div class="msg-gift" onclick="Chat.playGiftAnim(this)">
+        <div class="msg-gift-emoji">${esc(meta.emoji || '🎁')}</div>
+        <div class="msg-gift-name">${esc(meta.name || 'A gift')}</div>
+      </div>`;
+    }
     if (m.type === 'voice') {
       const dur = (m.media_meta && m.media_meta.duration) || 0;
       const durLabel = String(Math.floor(dur / 60)).padStart(2, '0') + ':' + String(dur % 60).padStart(2, '0');
@@ -507,6 +730,12 @@ async function toggleStar(id) {
     }
     const editedTag = m.edited ? '<span class="edited-tag">edited</span>' : '';
     return `<div class="msg-text">${esc(m.text || '').replace(/\n/g, '<br>')}${editedTag}</div>`;
+  }
+
+  function playGiftAnim(el) {
+    el.classList.add('gift-pop');
+    if (typeof window.spawnPetals === 'function') window.spawnPetals(10);
+    setTimeout(() => el.classList.remove('gift-pop'), 900);
   }
 
   function renderBubble(m) {
@@ -784,6 +1013,8 @@ ontouchstart="Chat._touchStart(event,'${m.id}')" ontouchend="Chat._touchEnd(even
     openCtxMenu, closeCtxMenu, _touchStart, _touchEnd,
     viewImage, playVoice, scrollToMsg, scrollToBottom, onChatScroll,
     openSearch, closeSearch, runSearch, openStarred, markRead,
+    togglePicker, closePicker, switchPickerTab, searchGifs, sendGif,
+    sendSticker, sendGift, playGiftAnim,
   };
 })();
 
