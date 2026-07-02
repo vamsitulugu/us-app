@@ -202,20 +202,21 @@ const Chat = (() => {
     } catch (e) { m._failed = true; render(); toast('Still failing — check connection'); }
   }
 
-  async function flushOfflineQueue() {
-    if (!offlineQueue.length) return;
-    toast('📡 Back online — sending queued messages...');
-    const q = [...offlineQueue]; offlineQueue = [];
-    for (const item of q) {
-      try {
-        const saved = await sendToServer({ clientId: item.clientId, type: item.type, text: item.text, mediaUrl: item.mediaUrl, mediaMeta: item.mediaMeta, replyTo: item.replyTo });
-        const idx = messages.findIndex(m => m.client_id === item.clientId);
-        if (idx >= 0) messages[idx] = saved; else messages.push(saved);
-      } catch (e) { offlineQueue.push(item); }
-    }
-    messages.sort((a, b) => (a.id || 0) - (b.id || 0));
-    saveCache(); render();
+ async function flushOfflineQueue() {
+  if (!offlineQueue.length) return;
+  toast('📡 Back online — sending queued messages...');
+  const q = [...offlineQueue]; offlineQueue = [];
+  for (const item of q) {
+    if (!item.text && !item.mediaUrl) continue; // skip empty/corrupt queued items
+    try {
+      const saved = await sendToServer({ clientId: item.clientId, type: item.type, text: item.text, mediaUrl: item.mediaUrl, mediaMeta: item.mediaMeta, replyTo: item.replyTo });
+      const idx = messages.findIndex(m => m.client_id === item.clientId);
+      if (idx >= 0) messages[idx] = saved; else messages.push(saved);
+    } catch (e) { /* drop failed retries instead of re-queuing forever */ }
   }
+  messages.sort((a, b) => (a.id || 0) - (b.id || 0));
+  saveCache(); render();
+}
 
   async function sendImage(file) {
     if (!file) return;
