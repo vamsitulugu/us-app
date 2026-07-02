@@ -71,6 +71,7 @@ app.use('/api/data', require('./routes/data'));
 app.use('/api/location', require('./routes/location'));
 app.use('/api/globe', require('./routes/globe'));
 app.use('/api/home', require('./routes/home'));
+app.use('/api/chat', require('./routes/chat'));
 // ── Health check ───────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

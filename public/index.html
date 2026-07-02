@@ -15,6 +15,7 @@
     href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="/chat/chat.css">
   <style>
     /* ════════════════════════════════════════════
    RESET & ROOT VARIABLES
@@ -3671,7 +3672,7 @@ vercel-live-feedback {
           <div class="mood" onclick="quickMood(this,'🤩 Excited')">🤩</div>
         </div>
       </div>
-      
+      <div class="ni" data-page="chat"><span class="ico">💬</span>Chat<span data-chat-badge></span></div>
       <div class="ni" data-page="camera"><span class="ico">📷</span>Memories</div>
       <div class="ni" data-page="profile"><span class="ico">💑</span>Our Profile</div>
     </div>
@@ -3874,6 +3875,56 @@ vercel-live-feedback {
         <div class="note-grid" id="dreamBoardGrid"></div>
       </div>
       <!-- ════ CHAT ════ -->
+<div class="page" id="page-chat">
+  <div class="chat-page-wrap">
+    <div class="chat-select-toolbar" id="chatSelectToolbar">
+      <button onclick="Chat.exitSelectMode()">✕</button>
+      <div class="cnt" id="chatSelectCount">1 selected</div>
+      <button onclick="Chat.deleteSelected()">🗑️ Delete</button>
+    </div>
+
+    <div class="chat-header">
+      <div class="chat-header-av" id="chatHeaderAv">P</div>
+      <div class="chat-header-info">
+        <div class="chat-header-name" id="chatHeaderName">Partner</div>
+        <div class="chat-header-status" id="chatHeaderStatus">offline</div>
+      </div>
+      <div class="chat-header-actions">
+        <button class="ic-btn" style="width:34px;height:34px;font-size:14px" onclick="Chat.openStarred()" title="Starred">⭐</button>
+        <button class="ic-btn" style="width:34px;height:34px;font-size:14px" onclick="Chat.openSearch()" title="Search">🔍</button>
+      </div>
+    </div>
+
+    <div class="chat-search-bar" id="chatSearchBar">
+      <div class="search-row">
+        <input type="text" id="chatSearchInput" placeholder="Search messages..." oninput="Chat.runSearch(this.value)">
+        <button class="btn-ghost btn-sm" onclick="Chat.closeSearch()">Cancel</button>
+      </div>
+      <div class="chat-search-results" id="chatSearchResults"></div>
+    </div>
+
+    <div class="chat-pinned-bar" id="chatPinnedBar"></div>
+
+    <div class="chat-msgs" id="chatMsgs" onscroll="Chat.onChatScroll()"></div>
+    <button class="chat-jump-btn" id="chatJumpBtn" onclick="Chat.scrollToBottom(true)">
+      ⬇<span class="chat-jump-badge" data-chat-badge></span>
+    </button>
+
+    <div class="chat-composer-banner" id="chatComposerBanner"></div>
+
+    <div class="chat-composer">
+      <label class="chat-composer-btn" style="cursor:pointer">📷
+        <input type="file" accept="image/*" style="display:none" onchange="Chat.onImagePick(this)">
+      </label>
+      <textarea id="chatIn" rows="1" placeholder="Type a message..."
+        oninput="Chat.onTypingInput(); this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,120)+'px'"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();Chat.sendText();}"></textarea>
+      <span class="chat-rec-timer" id="chatRecTimer" style="display:none">00:00</span>
+      <button class="chat-composer-btn" id="chatRecBtn" onclick="Chat.toggleRecord()" title="Voice message">🎙️</button>
+      <button class="chat-composer-btn send" onclick="Chat.sendText()">➤</button>
+    </div>
+  </div>
+</div>
    
 
 
@@ -4944,7 +4995,7 @@ vercel-live-feedback {
       <nav class="bot-nav" id="botNav">
         <div class="bot-ni active" data-page="dashboard" onclick="gotoMob('dashboard',this)"><span
             class="ico">🏠</span>Home</div>
-        
+        <div class="bot-ni" data-page="chat" onclick="gotoMob('chat',this)"><span class="ico">💬</span>Chat<span data-chat-badge></span></div>
         <div class="bot-ni" data-page="myspace" onclick="gotoMob('myspace',this)"><span class="ico">🌸</span>Space</div>
         <div class="bot-ni" data-page="ai" onclick="gotoMob('ai',this)"><span class="ico">🤖</span>AI</div>
         <div class="bot-ni" data-page="globe" onclick="gotoMob('globe',this)"><span class="ico">🌍</span>Globe</div>
@@ -5215,7 +5266,10 @@ vercel-live-feedback {
       </div>
 
       <div class="toast" id="toast"></div>
-
+<script>
+  window.__SUPABASE_URL__ = 'YOUR_SUPABASE_URL';
+  window.__SUPABASE_ANON_KEY__ = 'YOUR_SUPABASE_ANON_KEY';
+</script>
       <!-- ════════════════════════════════════════════
      JAVASCRIPT
 ════════════════════════════════════════════ -->
@@ -5570,7 +5624,7 @@ function renderPartnerLastSeen() {
           ai: 'AI Love Guide',lovecounter: 'Love Counter ⏱️',
           collection: 'Collection 🎙️', settings: 'Settings', period: 'Period Tracker',
           fights: 'Fight Log', study: 'Study Together', map: 'Live Map 📍',
-          music: 'Music 🎵', capsule: 'Love Capsule 💌', surprise: 'Surprises 🎁',
+          music: 'Music 🎵', capsule: 'Love Capsule 💌', surprise: 'Surprises 🎁',chat: 'Chat 💬',
           level: 'Couple Level 🏆',globe: 'Memory Globe 🌍', dreamhome: 'Dream Home 🏡',games: 'Couple Games 🎮',
           dreamgoals: 'Dream Goals 💫', places: 'Places Memory 🗺️', meetplanner: 'Meet Planner 💕'
         };
@@ -7384,6 +7438,7 @@ init();
 
 </script>
 <script src="/livemap.js"></script>
+<script src="/chat/chat.js"></script>
 <script src="/dashboard_chat_patch.js"></script>
 
 </body>
