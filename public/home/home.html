@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+  <title>Virtual Home — US ❤️</title>
+  <style>
+    /* ══════════════════════════════════════════════
+       RESET & ROOT — inherits US app design tokens
+    ══════════════════════════════════════════════ */
+    *, *::before, *::after {
+      box-sizing: border-box; margin: 0; padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    :root {
+      --h: 215;
+      --accent:       hsl(var(--h), 100%, 62%);
+      --accent-d:     hsl(var(--h), 95%,  50%);
+      --accent-glow:  hsla(var(--h), 100%, 62%, 0.35);
+      --accent2:      hsl(300, 85%, 65%);
+      --accent2-d:    hsl(300, 80%, 52%);
+      --accent2-glow: hsla(300, 85%, 65%, 0.35);
+      --g1: rgba(255,255,255,0.04);
+      --g2: rgba(255,255,255,0.08);
+      --g3: rgba(255,255,255,0.13);
+      --blur: blur(20px) saturate(160%);
+      --ff-serif: 'DM Serif Display', Georgia, serif;
+      --ff-sans:  'Inter', system-ui, sans-serif;
+      --r:  16px; --rs: 10px;
+      --white: #ffffff;
+      --text:  rgba(255,255,255,0.92);
+      --text2: rgba(255,255,255,0.62);
+      --text3: rgba(255,255,255,0.38);
+      --border:  rgba(255,255,255,0.10);
+      --border2: rgba(255,255,255,0.18);
+      --green: #34d399; --red: #f87171; --yellow: #fbbf24;
+      --t: all 0.22s cubic-bezier(0.4,0,0.2,1);
+      --t-spring: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    body {
+      font-family: var(--ff-sans);
+      color: var(--text);
+      background: #020209;
+      width: 100vw; height: 100dvh;
+      overflow: hidden;
+    }
+
+    /* ══════════════════════════════════════════════
+       LOADING SCREEN
+    ══════════════════════════════════════════════ */
+    #loadScreen {
+      position: fixed; inset: 0; z-index: 9999;
+      background: #020209;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 20px;
+    }
+    #loadScreen.hidden { display: none; }
+    .load-house {
+      font-size: 72px;
+      animation: loadBounce 1.4s ease-in-out infinite;
+    }
+    @keyframes loadBounce {
+      0%,100% { transform: translateY(0) scale(1); }
+      40%     { transform: translateY(-14px) scale(1.08); }
+      60%     { transform: translateY(-7px) scale(1.04); }
+    }
+    .load-title {
+      font-family: var(--ff-serif);
+      font-size: 26px; color: var(--white);
+      letter-spacing: -0.5px;
+    }
+    .load-sub {
+      font-size: 12px; color: var(--text3);
+      letter-spacing: 1.5px; text-transform: uppercase;
+    }
+    .load-bar-wrap {
+      width: 200px; height: 3px;
+      background: var(--g2); border-radius: 2px; overflow: hidden;
+    }
+    .load-bar {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 2px;
+      transition: width 0.4s ease;
+    }
+
+    /* ══════════════════════════════════════════════
+       CANVAS
+    ══════════════════════════════════════════════ */
+    #homeCanvas {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      display: block; cursor: grab;
+      touch-action: none;
+    }
+    #homeCanvas:active { cursor: grabbing; }
+
+    /* ══════════════════════════════════════════════
+       TOP BAR
+    ══════════════════════════════════════════════ */
+    #topBar {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 100;
+      padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      background: linear-gradient(to bottom, rgba(2,2,9,0.82) 0%, transparent 100%);
+      pointer-events: none;
+    }
+    #topBar > * { pointer-events: auto; }
+    .tb-left { display: flex; align-items: center; gap: 10px; }
+    .home-logo {
+      font-family: var(--ff-serif);
+      font-size: 18px; color: var(--white);
+      display: flex; align-items: center; gap: 7px;
+    }
+    .home-logo-ico {
+      width: 32px; height: 32px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+    .tb-room-label {
+      font-size: 12px; color: var(--text2); font-weight: 500;
+      background: var(--g1); border: 1px solid var(--border);
+      border-radius: 8px; padding: 3px 10px;
+      backdrop-filter: blur(12px);
+    }
+    .tb-right { display: flex; align-items: center; gap: 8px; }
+    .ic-btn {
+      background: rgba(255,255,255,0.07); backdrop-filter: blur(12px);
+      border: 1px solid var(--border2); border-radius: 10px;
+      color: var(--white); font-size: 15px;
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: var(--t); flex-shrink: 0;
+    }
+    .ic-btn:hover { background: rgba(255,255,255,0.12); transform: scale(1.05); }
+    .ic-btn:active { transform: scale(0.93); }
+    #fpsCounter {
+      font-size: 10px; color: var(--text3);
+      font-variant-numeric: tabular-nums;
+      display: none;
+    }
+
+    /* ══════════════════════════════════════════════
+       ROOM NAV — bottom pill strip
+    ══════════════════════════════════════════════ */
+    #roomNav {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 100;
+      display: flex; gap: 6px;
+      background: rgba(4,4,16,0.78); backdrop-filter: var(--blur);
+      border: 1px solid var(--border2);
+      border-radius: 22px; padding: 6px 8px;
+      max-width: calc(100vw - 32px);
+      overflow-x: auto; scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+    }
+    #roomNav::-webkit-scrollbar { display: none; }
+    .room-tab {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      padding: 6px 10px; border-radius: 16px; cursor: pointer;
+      transition: var(--t-spring); flex-shrink: 0;
+      scroll-snap-align: start;
+      border: 1px solid transparent;
+      min-width: 56px;
+    }
+    .room-tab:hover { background: var(--g2); }
+    .room-tab.active {
+      background: linear-gradient(135deg, var(--accent-glow), var(--accent2-glow));
+      border-color: var(--border2);
+    }
+    .room-tab .rt-ico  { font-size: 18px; line-height: 1; }
+    .room-tab .rt-lbl  { font-size: 9px; color: var(--text2); font-weight: 600;
+                          letter-spacing: 0.3px; white-space: nowrap; }
+    .room-tab.active .rt-lbl { color: var(--white); }
+
+    /* ══════════════════════════════════════════════
+       LEFT PANEL — Settings drawer
+    ══════════════════════════════════════════════ */
+    #settingsPanel {
+      position: fixed; left: 0; top: 0; bottom: 0;
+      width: 280px; z-index: 200;
+      transform: translateX(-100%);
+      transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
+      background: rgba(4,4,16,0.94); backdrop-filter: var(--blur);
+      border-right: 1px solid var(--border2);
+      display: flex; flex-direction: column; overflow-y: auto;
+      padding: 20px 16px 32px;
+      gap: 18px;
+    }
+    #settingsPanel.open { transform: translateX(0); }
+    .sp-title {
+      font-family: var(--ff-serif); font-size: 18px; color: var(--white);
+      padding-bottom: 12px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .sp-section { display: flex; flex-direction: column; gap: 8px; }
+    .sp-label {
+      font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px;
+      color: var(--text3); font-weight: 700;
+    }
+    .sp-row {
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .sp-chip {
+      padding: 5px 12px; border-radius: 20px; cursor: pointer;
+      font-size: 12px; font-weight: 500; color: var(--text2);
+      background: var(--g1); border: 1px solid var(--border);
+      transition: var(--t);
+    }
+    .sp-chip:hover { background: var(--g2); color: var(--white); }
+    .sp-chip.active {
+      background: linear-gradient(135deg, hsla(var(--h),100%,62%,0.22), hsla(300,85%,65%,0.18));
+      border-color: var(--border2); color: var(--white);
+    }
+    .sp-toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 0;
+    }
+    .sp-toggle-lbl { font-size: 13px; color: var(--text2); }
+    .toggle {
+      width: 40px; height: 22px; border-radius: 11px;
+      background: var(--g2); border: 1px solid var(--border);
+      cursor: pointer; position: relative; transition: var(--t);
+      flex-shrink: 0;
+    }
+    .toggle.on { background: var(--accent); border-color: var(--accent); }
+    .toggle::after {
+      content: ''; position: absolute; top: 2px; left: 2px;
+      width: 16px; height: 16px; border-radius: 50%; background: #fff;
+      transition: var(--t); box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+    .toggle.on::after { left: 20px; }
+
+    /* ══════════════════════════════════════════════
+       OVERLAY backdrop (settings panel)
+    ══════════════════════════════════════════════ */
+    #panelOverlay {
+      position: fixed; inset: 0; z-index: 199;
+      background: rgba(2,2,9,0.5); backdrop-filter: blur(4px);
+      display: none; cursor: pointer;
+    }
+    #panelOverlay.show { display: block; }
+
+    /* ══════════════════════════════════════════════
+       EDIT MODE banner
+    ══════════════════════════════════════════════ */
+    #editBanner {
+      position: fixed; top: 62px; left: 50%; transform: translateX(-50%);
+      z-index: 150; display: none;
+      background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.35);
+      backdrop-filter: blur(12px); border-radius: 12px;
+      padding: 7px 16px; font-size: 12px; font-weight: 600;
+      color: var(--yellow); gap: 10px; align-items: center;
+    }
+    #editBanner.show { display: flex; }
+    #editBanner button {
+      background: rgba(251,191,36,0.18); border: 1px solid rgba(251,191,36,0.3);
+      border-radius: 8px; color: var(--yellow); font-size: 11px;
+      padding: 3px 10px; cursor: pointer; font-weight: 700;
+    }
+
+    /* ══════════════════════════════════════════════
+       PARTNER PRESENCE dot
+    ══════════════════════════════════════════════ */
+    #partnerPresence {
+      position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+      z-index: 110; display: none;
+      background: rgba(4,4,16,0.82); backdrop-filter: blur(12px);
+      border: 1px solid var(--border2); border-radius: 20px;
+      padding: 5px 12px; font-size: 11px; color: var(--text2);
+      align-items: center; gap: 6px;
+    }
+    #partnerPresence.show { display: flex; }
+    .presence-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+      animation: blink 2s ease-in-out infinite; flex-shrink: 0;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ══════════════════════════════════════════════
+       TOAST
+    ══════════════════════════════════════════════ */
+    #homeToast {
+      position: fixed; bottom: 90px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(12,12,28,0.92); backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.15); border-radius: 12px;
+      padding: 10px 18px; font-size: 13px; color: #fff;
+      z-index: 9998; opacity: 0; transition: all 0.3s ease;
+      pointer-events: none; white-space: nowrap;
+    }
+    #homeToast.show {
+      opacity: 1; transform: translateX(-50%) translateY(0);
+    }
+
+    /* ══════════════════════════════════════════════
+       CONTEXT MENU (right-click / long-press on furniture)
+    ══════════════════════════════════════════════ */
+    #ctxMenu {
+      position: fixed; z-index: 500; display: none;
+      background: rgba(4,4,16,0.94); backdrop-filter: var(--blur);
+      border: 1px solid var(--border2); border-radius: 14px;
+      padding: 6px; min-width: 160px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    #ctxMenu.show { display: block; }
+    .ctx-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: 8px; cursor: pointer;
+      font-size: 13px; color: var(--text2);
+      transition: var(--t);
+    }
+    .ctx-item:hover { background: var(--g2); color: var(--white); }
+    .ctx-item.danger { color: var(--red); }
+    .ctx-item.danger:hover { background: rgba(248,113,113,0.1); }
+    .ctx-sep { height: 1px; background: var(--border); margin: 4px 0; }
+
+    /* ══════════════════════════════════════════════
+       MEDIA — font import
+    ══════════════════════════════════════════════ */
+    @media (max-width: 480px) {
+      #roomNav { bottom: 12px; padding: 5px 6px; }
+      .room-tab { min-width: 48px; padding: 5px 7px; }
+      .room-tab .rt-ico { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ════ LOADING ════ -->
+  <div id="loadScreen">
+    <div class="load-house">🏠</div>
+    <div class="load-title">Virtual Home</div>
+    <div class="load-sub">Setting up your space…</div>
+    <div class="load-bar-wrap">
+      <div class="load-bar" id="loadBar"></div>
+    </div>
+  </div>
+
+  <!-- ════ CANVAS ════ -->
+  <canvas id="homeCanvas"></canvas>
+
+  <!-- ════ TOP BAR ════ -->
+  <div id="topBar">
+    <div class="tb-left">
+      <div class="home-logo">
+        <div class="home-logo-ico">🏠</div>
+        Home
+      </div>
+      <div class="tb-room-label" id="roomLabel">Living Room</div>
+    </div>
+    <div class="tb-right">
+      <span id="fpsCounter"></span>
+      <button class="ic-btn" id="editToggleBtn" onclick="toggleEditMode()" title="Move Furniture">✏️</button>
+      <button class="ic-btn" onclick="openSettings()" title="Settings">⚙️</button>
+    </div>
+  </div>
+
+  <!-- ════ EDIT MODE BANNER ════ -->
+  <div id="editBanner">
+    ✏️ Edit Mode — drag furniture to move
+    <button onclick="toggleEditMode()">Done</button>
+  </div>
+
+  <!-- ════ PARTNER PRESENCE ════ -->
+  <div id="partnerPresence">
+    <div class="presence-dot"></div>
+    <span id="partnerPresenceText">Partner is in the Living Room</span>
+  </div>
+
+  <!-- ════ ROOM NAV ════ -->
+  <nav id="roomNav" aria-label="Rooms"></nav>
+
+  <!-- ════ PANEL OVERLAY ════ -->
+  <div id="panelOverlay" onclick="closeSettings()"></div>
+
+  <!-- ════ SETTINGS PANEL ════ -->
+  <div id="settingsPanel">
+    <div class="sp-title">
+      ⚙️ Home Settings
+      <button class="ic-btn" onclick="closeSettings()" style="font-size:13px">✕</button>
+    </div>
+
+    <div class="sp-section">
+      <div class="sp-label">Time of Day</div>
+      <div class="sp-row" id="todRow">
+        <div class="sp-chip active" data-tod="day"    onclick="pickTOD(this,'day')">☀️ Day</div>
+        <div class="sp-chip"       data-tod="sunset"  onclick="pickTOD(this,'sunset')">🌇 Sunset</div>
+        <div class="sp-chip"       data-tod="night"   onclick="pickTOD(this,'night')">🌙 Night</div>
+      </div>
+    </div>
+
+    <div class="sp-section">
+      <div class="sp-label">Weather</div>
+      <div class="sp-row" id="weatherRow">
+        <div class="sp-chip active" data-w="clear" onclick="pickWeather(this,'clear')">🌤️ Clear</div>
+        <div class="sp-chip"        data-w="rain"  onclick="pickWeather(this,'rain')">🌧️ Rain</div>
+        <div class="sp-chip"        data-w="snow"  onclick="pickWeather(this,'snow')">❄️ Snow</div>
+      </div>
+    </div>
+
+    <div class="sp-section">
+      <div class="sp-label">Theme</div>
+      <div class="sp-row" id="themeRow">
+        <div class="sp-chip active" data-theme="cozy"    onclick="pickTheme(this,'cozy')">🕯️ Cozy</div>
+        <div class="sp-chip"        data-theme="modern"  onclick="pickTheme(this,'modern')">🏙️ Modern</div>
+        <div class="sp-chip"        data-theme="nature"  onclick="pickTheme(this,'nature')">🌿 Nature</div>
+        <div class="sp-chip"        data-theme="fantasy" onclick="pickTheme(this,'fantasy')">✨ Fantasy</div>
+      </div>
+    </div>
+
+    <div class="sp-section">
+      <div class="sp-label">Ambience</div>
+      <div class="sp-toggle-row">
+        <span class="sp-toggle-lbl">🔥 Fireplace</span>
+        <div class="toggle" id="fireplaceToggle" onclick="toggleFireplace()"></div>
+      </div>
+      <div class="sp-toggle-row">
+        <span class="sp-toggle-lbl">📺 TV On</span>
+        <div class="toggle" id="tvToggle" onclick="toggleTV()"></div>
+      </div>
+      <div class="sp-toggle-row">
+        <span class="sp-toggle-lbl">🎵 Ambient Audio</span>
+        <div class="toggle" id="audioToggle" onclick="toggleAudio()"></div>
+      </div>
+    </div>
+
+    <div class="sp-section">
+      <div class="sp-label">Performance</div>
+      <div class="sp-toggle-row">
+        <span class="sp-toggle-lbl">Show FPS</span>
+        <div class="toggle" id="fpsToggle" onclick="toggleFPS()"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ CONTEXT MENU ════ -->
+  <div id="ctxMenu">
+    <div class="ctx-item" onclick="ctxRotate()">🔄 Rotate</div>
+    <div class="ctx-item" onclick="ctxColorPick()">🎨 Change Color</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item danger" onclick="ctxDelete()">🗑️ Remove</div>
+  </div>
+
+  <!-- ════ TOAST ════ -->
+  <div id="homeToast"></div>
+
+  <!-- ADD: mobile movement joystick (Phase 6) -->
+  <div id="homeJoystick" style="position:fixed;left:20px;
+    bottom:max(20px,env(safe-area-inset-bottom));z-index:50;display:none"></div>
+  <!-- ════ THREE.JS ════ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+ 
+<!-- ── Phase 1-3: Core scene ─────────────────── -->
+<script src="/home/utils.js"></script>
+<script src="/home/api.js"></script>
+<script src="/home/renderer.js"></script>
+<script src="/home/camera.js"></script>
+<script src="/home/lighting.js"></script>
+<script src="/home/controls.js"></script>
+<script src="/home/scene.js"></script>
+<script src="/home/rooms.js"></script>
+ 
+<!-- ── Phase 4-5: Avatars & memories ─────────── -->
+<script src="/home/avatars.js"></script>
+<script src="/home/movement.js"></script>
+<script src="/home/furniture.js"></script>
+<script src="/home/memories.js"></script>
+<script src="/home/pets.js"></script>
+ 
+<!-- ── Phase 6: Living World ─────────────────── -->
+<script src="/home/interactions.js"></script>
+<script src="/home/realtime_living.js"></script>
+<script src="/home/perf_living.js"></script>
+<script src="/home/home_living.js"></script>
+ 
+<!-- ── Phase 7: Environment ──────────────────── -->
+<script src="/home/weather.js"></script>
+<script src="/home/sky.js"></script>
+<script src="/home/environment.js"></script>
+<script src="/home/fireplace.js"></script>
+<script src="/home/window_system.js"></script>
+<script src="/home/particles.js"></script>
+<script src="/home/effects.js"></script>
+<script src="/home/environment_sync.js"></script>
+ 
+<!-- Phase 7 patches (load after P7 modules) -->
+<script src="/home/scene_p7_patch.js"></script>
+<script src="/home/scene_p7_patch2.js"></script>
+ 
+<!-- ── Phase 8: Smart Living System ─────────── -->
+<script src="/home/home_state.js"></script>
+<script src="/home/daily_routine.js"></script>
+<script src="/home/relationship_engine.js"></script>
+<script src="/home/npc_behavior.js"></script>
+<script src="/home/smart_furniture.js"></script>
+<script src="/home/ambient_audio.js"></script>
+<script src="/home/camera_director.js"></script>
+<script src="/home/event_engine.js"></script>
+<script src="/home/emotion_engine.js"></script>
+ 
+<!-- Phase 8 patch — must be last -->
+<script src="/home/scene_p8_patch.js"></script>
+  <script>
+  // ════════════════════════════════════════════════
+  //  home.html bootstrap — wires all modules together
+  // ════════════════════════════════════════════════
+
+  let _ctx = null;         // context menu target object
+  let _audioOn  = false;
+  const _settings = {
+    tod: 'day', weather: 'clear', theme: 'cozy',
+    fireplace: false, tv: false, audio: false
+  };
+
+  // ── Progress bar helper ─────────────────────
+  function loadProgress(pct) {
+    document.getElementById('loadBar').style.width = pct + '%';
+  }
+
+  // ── Boot sequence ───────────────────────────
+  async function boot() {
+    loadProgress(10);
+
+    // 1. Init Three.js scene
+    const canvas = document.getElementById('homeCanvas');
+    HomeScene.init(canvas);
+    loadProgress(30);
+
+    // 2. Build room nav
+    buildRoomNav();
+    loadProgress(45);
+
+    // 3. Load settings from server
+    const cid = HomeUtils.getCoupleId();
+    if (cid) {
+      try {
+        const s = await HomeAPI.settings.get(cid);
+        if (s) {
+          _settings.tod     = s.time_of_day  || 'day';
+          _settings.weather = s.weather      || 'clear';
+          _settings.theme   = s.theme        || 'cozy';
+          applySettingChips();
+          HomeScene.setTimeOfDay(_settings.tod);
+          HomeScene.setWeather(_settings.weather);
+          // Switch to saved room
+          if (s.active_room) switchRoom(s.active_room, true);
+        }
+      } catch(e) { /* use defaults */ }
+    }
+    loadProgress(70);
+
+    // 4. Build rooms (Phase 3) — falls back to placeholder if rooms.js failed to load
+    if (window.HomeRooms) {
+      HomeRooms.init(HomeScene.getScene());
+    } else {
+      addFloorPlane();
+    }
+    loadProgress(90);
+// ════ ADD: Phase 6 — Living World init ════
+    // Placed after rooms exist (so avatars/pets land on a real floor)
+    // and before loadProgress(100), so the loading screen doesn't
+    // disappear before avatars/pets have been added to the scene.
+    // Each module is guarded individually (same pattern as HomeRooms
+    // above) so a missing/404'd Phase-6 file degrades gracefully
+    // instead of aborting the entire boot.
+    if (window.HomeAvatars) {
+      const scn = HomeScene.getScene();
+      const cam = HomeScene.getCamera();
+      const rnd = HomeScene.getRenderer();
+
+      HomeAvatars.init(scn);
+      if (window.HomeMovement)        HomeMovement.init(cam, canvas, scn);
+      if (window.HomeInteractions)    HomeInteractions.init(scn);
+      if (window.HomePets)            HomePets.init(scn);
+      if (window.HomeAIBehavior)      HomeAIBehavior.init(scn);
+      if (window.HomeRealtimeLiving)  HomeRealtimeLiving.init();
+      if (window.HomeAudioLiving)     HomeAudioLiving.init();
+      if (window.HomePerfLiving)      HomePerfLiving.init(rnd);
+      if (window.HomeInteractionUI)   HomeInteractionUI.init(cam, canvas);
+
+      HomeAvatars.loadCustomization();
+
+      if (window.HomePerfLiving && HomePerfLiving.getIsMobile && HomePerfLiving.getIsMobile()) {
+        const joyEl = document.getElementById('homeJoystick');
+        joyEl.style.display = 'block';
+        if (window.HomeMovement) HomeMovement.initJoystick(joyEl);
+      }
+    }
+
+    loadProgress(100);
+    await delay(400);
+    document.getElementById('loadScreen').classList.add('hidden');
+
+    startPresenceHeartbeat();
+  }
+
+  // ── Floor placeholder (replaced by rooms.js in Phase 3) ──
+  function addFloorPlane() {
+    const geo = new THREE.PlaneGeometry(30, 30);
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0x1a1025, roughness: 0.9, metalness: 0.05
+    });
+    const floor = new THREE.Mesh(geo, mat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    floor.name = 'tempFloor';
+    HomeScene.add(floor);
+
+    // Grid helper (subtle)
+    const grid = new THREE.GridHelper(30, 30, 0x2a2040, 0x1e1830);
+    grid.name = 'tempGrid';
+    HomeScene.add(grid);
+
+    // Placeholder "coming soon" objects until rooms.js is loaded
+    addPlaceholderObjects();
+  }
+
+  function addPlaceholderObjects() {
+    const sc = HomeScene.getScene();
+    // Central glowing sphere as placeholder
+    const geo = new THREE.SphereGeometry(0.4, 24, 24);
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0x6060ff, emissive: 0x3030aa,
+      emissiveIntensity: 0.8, roughness: 0.2, metalness: 0.4
+    });
+    const sphere = new THREE.Mesh(geo, mat);
+    sphere.position.set(0, 0.4, 0);
+    sphere.castShadow = true;
+    sphere.name = 'placeholder';
+    sc.add(sphere);
+
+    // Animate it a bit in scene loop
+    let t = 0;
+    const _orig = HomeScene.state;
+    const tick = () => {
+      if (!sphere.parent) return;
+      t += 0.016;
+      sphere.position.y  = 0.4 + Math.sin(t * 1.2) * 0.12;
+      sphere.rotation.y += 0.01;
+      requestAnimationFrame(tick);
+    };
+    tick();
+  }
+
+  // ── Room nav ─────────────────────────────────
+  function buildRoomNav() {
+    const nav = document.getElementById('roomNav');
+    nav.innerHTML = '';
+    Object.entries(ROOMS).forEach(([key, room]) => {
+      const el = document.createElement('div');
+      el.className = 'room-tab' + (key === 'living' ? ' active' : '');
+      el.dataset.room = key;
+      el.innerHTML = `<div class="rt-ico">${room.icon}</div><div class="rt-lbl">${room.label.split(' ')[0]}</div>`;
+      el.onclick = () => switchRoom(key);
+      nav.appendChild(el);
+    });
+  }
+
+  function switchRoom(roomName, immediate = false) {
+    document.querySelectorAll('.room-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.room === roomName);
+    });
+    const label = ROOMS[roomName]?.label || roomName;
+    document.getElementById('roomLabel').textContent = label;
+    HomeScene.goToRoom(roomName, immediate);
+  }
+
+  // ── Settings ─────────────────────────────────
+  function openSettings()  {
+    document.getElementById('settingsPanel').classList.add('open');
+    document.getElementById('panelOverlay').classList.add('show');
+  }
+  function closeSettings() {
+    document.getElementById('settingsPanel').classList.remove('open');
+    document.getElementById('panelOverlay').classList.remove('show');
+  }
+
+  function pickTOD(el, tod) {
+    document.querySelectorAll('#todRow .sp-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    _settings.tod = tod;
+    HomeScene.setTimeOfDay(tod);
+  }
+  function pickWeather(el, w) {
+    document.querySelectorAll('#weatherRow .sp-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    _settings.weather = w;
+    HomeScene.setWeather(w);
+  }
+  function pickTheme(el, theme) {
+    document.querySelectorAll('#themeRow .sp-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    _settings.theme = theme;
+    HomeUtils.toast('Theme: ' + theme);
+    const cid = HomeUtils.getCoupleId();
+    if (cid) HomeAPI.settings.save(cid, { theme }).catch(() => {});
+  }
+
+  function toggleFireplace() {
+    _settings.fireplace = !_settings.fireplace;
+    HomeScene.state.fireplace = _settings.fireplace;
+    document.getElementById('fireplaceToggle').classList.toggle('on', _settings.fireplace);
+  }
+  function toggleTV() {
+    _settings.tv = !_settings.tv;
+    HomeScene.state.tvOn = _settings.tv;
+    document.getElementById('tvToggle').classList.toggle('on', _settings.tv);
+  }
+  function toggleAudio() {
+    _settings.audio = !_settings.audio;
+    document.getElementById('audioToggle').classList.toggle('on', _settings.audio);
+    if (window.HomeAudio) HomeAudio.toggle(_settings.audio);
+  }
+  function toggleFPS() {
+    const el = document.getElementById('fpsCounter');
+    const tog = document.getElementById('fpsToggle');
+    const show = el.style.display === 'none' || !el.style.display;
+    el.style.display = show ? 'block' : 'none';
+    tog.classList.toggle('on', show);
+  }
+
+  function applySettingChips() {
+    document.querySelectorAll('#todRow .sp-chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.tod === _settings.tod);
+    });
+    document.querySelectorAll('#weatherRow .sp-chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.w === _settings.weather);
+    });
+    document.querySelectorAll('#themeRow .sp-chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.theme === _settings.theme);
+    });
+  }
+
+  // ── Edit mode ────────────────────────────────
+  function toggleEditMode() {
+    const s = HomeScene.state;
+    s.editMode = !s.editMode;
+    document.getElementById('editBanner').classList.toggle('show', s.editMode);
+    document.getElementById('editToggleBtn').style.background = s.editMode
+      ? 'rgba(251,191,36,0.2)' : '';
+    HomeControls.setEnabled(!s.editMode);
+    HomeUtils.toast(s.editMode ? '✏️ Edit mode on — drag furniture' : '✓ Edits saved');
+  }
+
+  // ── Context menu ─────────────────────────────
+  function openCtxMenu(obj, x, y) {
+    _ctx = obj;
+    const m = document.getElementById('ctxMenu');
+    m.style.left = Math.min(x, window.innerWidth  - 180) + 'px';
+    m.style.top  = Math.min(y, window.innerHeight - 140) + 'px';
+    m.classList.add('show');
+    document.addEventListener('click', closeCtxOnce, { once: true });
+  }
+  function closeCtxMenu() {
+    document.getElementById('ctxMenu').classList.remove('show');
+    _ctx = null;
+  }
+  function closeCtxOnce() { closeCtxMenu(); }
+  function ctxRotate() {
+    if (!_ctx) return;
+    _ctx.rotation.y += Math.PI / 4;
+    closeCtxMenu();
+    if (_ctx.userData?.dbId) {
+      HomeAPI.furniture.update(_ctx.userData.dbId, { rot_y: _ctx.rotation.y }).catch(() => {});
+    }
+  }
+  function ctxColorPick() { closeCtxMenu(); HomeUtils.toast('Color picker coming in Phase 4'); }
+  function ctxDelete() {
+    if (!_ctx) return;
+    if (_ctx.userData?.dbId) {
+      HomeAPI.furniture.remove(_ctx.userData.dbId).catch(() => {});
+    }
+    HomeScene.remove(_ctx);
+    closeCtxMenu();
+    HomeUtils.toast('Removed');
+  }
+
+  // ── Presence heartbeat ────────────────────────
+  function startPresenceHeartbeat() {
+    const cid  = HomeUtils.getCoupleId();
+    const role = HomeUtils.getMyRole();
+    if (!cid) return;
+
+    function sendPresence() {
+      const room = HomeScene.state.currentRoom;
+      HomeAPI.presence.update({ coupleId: cid, userRole: role, room }).catch(() => {});
+    }
+    sendPresence();
+    setInterval(sendPresence, 20000);
+
+    // Poll partner presence
+    async function pollPresence() {
+      try {
+        const all = await HomeAPI.presence.get(cid);
+        const partner = all.find(p => p.user_role !== role);
+        if (partner) {
+          const since = Date.now() - new Date(partner.last_seen).getTime();
+          if (since < 35000) {           // seen in last 35 s
+            const room  = ROOMS[partner.room]?.label || partner.room;
+            const pName = HomeUtils.getPartnerName();
+            document.getElementById('partnerPresenceText').textContent =
+              `${pName} is in the ${room}`;
+            document.getElementById('partnerPresence').classList.add('show');
+          } else {
+            document.getElementById('partnerPresence').classList.remove('show');
+          }
+        }
+      } catch(e) {}
+    }
+    pollPresence();
+    setInterval(pollPresence, 25000);
+  }
+
+  // ── Toast override to use DOM element ────────
+  // (overrides HomeUtils.toast for this page)
+  HomeUtils.toast = function(msg, type) {
+    const el = document.getElementById('homeToast');
+    el.textContent = msg;
+    el.style.borderColor = type === 'error'   ? 'rgba(248,113,113,0.4)'
+                         : type === 'success' ? 'rgba(52,211,153,0.4)'
+                         : 'rgba(255,255,255,0.15)';
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), 2800);
+  };
+
+  // ── Pause when tab/iframe hidden ─────────────
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) HomeScene.pause();
+    else                 HomeScene.resume();
+  });
+
+  // ── Keyboard shortcuts ───────────────────────
+  document.addEventListener('keydown', e => {
+    if (e.target.closest('input,textarea')) return;
+    if (e.key === 'e' || e.key === 'E') toggleEditMode();
+    if (e.key === 's' || e.key === 'S') openSettings();
+    if (e.key === 'Escape') { closeSettings(); closeCtxMenu(); }
+
+    // Number keys 1-9 switch rooms
+    const idx = parseInt(e.key) - 1;
+    const keys = Object.keys(ROOMS);
+    if (idx >= 0 && idx < keys.length) switchRoom(keys[idx]);
+  });
+
+  // ── Utility ──────────────────────────────────
+  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  // ── Start ────────────────────────────────────
+  boot().catch(err => {
+    console.error('Virtual Home boot error:', err);
+    document.getElementById('loadScreen').innerHTML =
+      `<div style="text-align:center;padding:40px">
+        <div style="font-size:48px">⚠️</div>
+        <div style="font-size:16px;color:#fff;margin-top:12px">Could not load Virtual Home</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:8px">${err.message}</div>
+      </div>`;
+  });
+  </script>
+</body>
+</html>

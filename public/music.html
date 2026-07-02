@@ -1,0 +1,2373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Music & Movies 🎵🎬</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --h: 215;
+  --accent: hsl(var(--h),100%,62%);
+  --accent-d: hsl(var(--h),95%,50%);
+  --accent-l: hsl(var(--h),100%,78%);
+  --accent-glow: hsla(var(--h),100%,62%,0.35);
+  --accent2: hsl(300,85%,65%);
+  --accent2-d: hsl(300,80%,52%);
+  --accent2-glow: hsla(300,85%,65%,0.35);
+  --g1: rgba(255,255,255,0.04);
+  --g2: rgba(255,255,255,0.08);
+  --g3: rgba(255,255,255,0.13);
+  --blur: blur(24px) saturate(180%);
+  --blur-sm: blur(12px) saturate(150%);
+  --ff-serif: 'DM Serif Display',Georgia,serif;
+  --ff-sans: 'Inter',system-ui,sans-serif;
+  --r: 18px; --rs: 12px; --rss: 8px;
+  --white: #ffffff;
+  --text: rgba(255,255,255,0.92);
+  --text2: rgba(255,255,255,0.62);
+  --text3: rgba(255,255,255,0.38);
+  --border: rgba(255,255,255,0.10);
+  --border2: rgba(255,255,255,0.18);
+  --green: #34d399; --green-bg: rgba(52,211,153,0.15);
+  --red: #f87171; --red-bg: rgba(248,113,113,0.15);
+  --yellow: #fbbf24; --yellow-bg: rgba(251,191,36,0.15);
+  --t: all 0.22s cubic-bezier(0.4,0,0.2,1);
+  --t-spring: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:transparent;line-height:1.5;overflow-x:hidden}
+
+/* ── MAIN TABS ── */
+.main-tabs{display:flex;border-bottom:2px solid var(--border);padding:0 16px;background:rgba(5,5,18,0.6);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100}
+.main-tab{padding:14px 22px;font-size:14px;font-weight:600;color:var(--text2);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:var(--t);margin-bottom:-2px;letter-spacing:0.2px}
+.main-tab:hover{color:var(--white)}
+.main-tab.active{color:var(--white);border-bottom-color:var(--accent)}
+.main-tab.movies-tab.active{border-bottom-color:var(--accent2)}
+
+/* ── NOW PLAYING BAR ── */
+.now-playing-bar{
+  background:rgba(5,5,18,0.92);backdrop-filter:blur(24px) saturate(200%);
+  border-bottom:1px solid var(--border2);padding:10px 16px;
+  transition:all 0.3s;
+}
+.now-playing-bar.hidden{display:none}
+.np-inner{display:flex;align-items:center;gap:12px}
+.np-art{
+  width:44px;height:44px;border-radius:10px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+  position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.15);
+}
+.np-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.np-art.spinning{animation:spinArt 8s linear infinite}
+@keyframes spinArt{from{filter:hue-rotate(0deg)}to{filter:hue-rotate(360deg)}}
+.np-info{flex:1;min-width:0}
+.np-title{font-size:13px;font-weight:600;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-artist{font-size:11px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-progress{margin-top:5px;cursor:pointer}
+.np-bar{height:3px;background:rgba(255,255,255,0.12);border-radius:2px;position:relative;overflow:hidden}
+.np-bar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width 0.1s linear}
+.np-times{display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:2px}
+.np-controls{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.nc-btn{background:none;border:none;cursor:pointer;color:var(--text2);font-size:15px;padding:6px;border-radius:8px;transition:var(--t)}
+.nc-btn:hover{color:var(--white);background:var(--g2)}
+.nc-btn.play{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-d));color:#fff;font-size:13px;box-shadow:0 4px 12px var(--accent-glow);display:flex;align-items:center;justify-content:center}
+.nc-btn.play:hover{filter:brightness(1.1);transform:scale(1.07)}
+.nc-btn.active{color:var(--accent)}
+
+/* ── PLAYLIST SECTION TABS ── */
+.pl-tabs{display:flex;border-bottom:1px solid var(--border);padding:0 16px;overflow-x:auto;scrollbar-width:none}
+.pl-tabs::-webkit-scrollbar{display:none}
+.pl-tab{padding:12px 18px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:var(--t);margin-bottom:-1px}
+.pl-tab:hover{color:var(--white)}
+.pl-tab.active{color:var(--white);border-bottom-color:var(--accent)}
+
+/* ── UPLOAD ZONE ── */
+.upload-zone{
+  margin:14px 16px;border-radius:16px;border:2px dashed var(--border2);
+  background:var(--g1);padding:22px 16px;text-align:center;
+  cursor:pointer;transition:var(--t);position:relative;overflow:hidden;
+}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:hsla(var(--h),100%,62%,0.06)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{font-size:30px;margin-bottom:8px}
+.upload-text{font-size:13px;font-weight:600;color:var(--white);margin-bottom:3px}
+.upload-sub{font-size:11px;color:var(--text3)}
+.fmt-chips{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.fmt-chip{padding:2px 8px;border-radius:8px;background:var(--g2);border:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text3)}
+
+/* ── SECTION HEADER ── */
+.sec-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px}
+.sec-title{font-family:var(--ff-serif);font-size:17px;color:var(--white)}
+.sec-sub{font-size:10px;color:var(--text3);margin-top:2px}
+
+/* ── MODE PILLS ── */
+.mode-pills{display:flex;gap:7px;padding:4px 16px 12px;flex-wrap:wrap}
+.mode-pill{padding:5px 13px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--g1);color:var(--text2);transition:var(--t);user-select:none;white-space:nowrap}
+.mode-pill:hover{background:var(--g2);color:var(--white)}
+.mode-pill.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 10px var(--accent-glow)}
+.mode-pill.play-all{background:linear-gradient(135deg,var(--accent),var(--accent-d));color:#fff;border-color:transparent;box-shadow:0 2px 10px var(--accent-glow)}
+.mode-pill.play-all-pt{background:linear-gradient(135deg,var(--accent2),var(--accent2-d));color:#fff;border-color:transparent;box-shadow:0 2px 10px var(--accent2-glow)}
+
+/* ── TRACK LIST ── */
+.track-list{padding:0 16px 8px}
+.track-item{
+  display:flex;align-items:center;gap:11px;padding:9px 11px;
+  border-radius:12px;transition:var(--t);cursor:pointer;
+  border:1px solid transparent;margin-bottom:2px;position:relative;
+}
+.track-item:hover{background:var(--g2);border-color:var(--border)}
+.track-item.active{background:hsla(var(--h),100%,62%,0.1);border-color:hsla(var(--h),100%,62%,0.25)}
+.track-num{width:20px;text-align:center;font-size:11px;color:var(--text3);flex-shrink:0}
+.track-item.active .track-num{display:none}
+.track-playing-anim{width:20px;display:none;align-items:center;justify-content:center;gap:2px;flex-shrink:0;height:16px}
+.track-item.active .track-playing-anim{display:flex}
+.bar-anim{width:3px;border-radius:2px;background:var(--accent);animation:barA 0.8s ease-in-out infinite}
+.bar-anim:nth-child(1){height:6px}
+.bar-anim:nth-child(2){height:10px;animation-delay:0.15s}
+.bar-anim:nth-child(3){height:14px;animation-delay:0.3s}
+@keyframes barA{0%,100%{transform:scaleY(0.4)}50%{transform:scaleY(1)}}
+.track-art{
+  width:42px;height:42px;border-radius:9px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;font-size:17px;
+  position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.1);
+}
+.track-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.track-info{flex:1;min-width:0}
+.track-title{font-size:13px;font-weight:500;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track-artist{font-size:10px;color:var(--text3);margin-top:1px}
+.track-dur{font-size:11px;color:var(--text3);flex-shrink:0}
+.track-del{background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:4px 6px;border-radius:6px;transition:var(--t);opacity:0;flex-shrink:0}
+.track-item:hover .track-del{opacity:1}
+.track-del:hover{background:var(--red-bg);color:var(--red)}
+
+/* ── EMPTY STATE ── */
+.empty-pl{text-align:center;padding:36px 20px}
+.empty-pl-ico{font-size:44px;margin-bottom:10px}
+.empty-pl-text{font-size:12px;color:var(--text3);line-height:1.7}
+
+/* ── SONG ACTION SHEET ── */
+.sheet-overlay{position:fixed;inset:0;z-index:900;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center}
+.sheet-overlay.open{display:flex}
+.action-sheet{width:100%;max-width:480px;background:rgba(10,10,24,0.96);backdrop-filter:var(--blur);border:1px solid var(--border2);border-radius:24px 24px 0 0;padding:10px 8px calc(20px + env(safe-area-inset-bottom));animation:sheetUp 0.3s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-handle{width:36px;height:4px;background:var(--border2);border-radius:3px;margin:4px auto 12px}
+.sheet-track-head{display:flex;align-items:center;gap:11px;padding:6px 14px 14px;border-bottom:1px solid var(--border)}
+.sheet-track-art{width:48px;height:48px;border-radius:11px;flex-shrink:0;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:19px;overflow:hidden}
+.sheet-track-art img{width:100%;height:100%;object-fit:cover}
+.sheet-title{font-size:14px;font-weight:600;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sheet-artist{font-size:11px;color:var(--text3);margin-top:2px}
+.sheet-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:14px 6px 4px}
+.sheet-action{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px;border-radius:14px;cursor:pointer;transition:var(--t);background:transparent;border:none}
+.sheet-action:hover{background:var(--g2)}
+.sheet-action .sa-ico{font-size:21px}
+.sheet-action .sa-label{font-size:10px;color:var(--text2);font-weight:500;text-align:center;line-height:1.3}
+.sheet-action.danger .sa-label{color:var(--red)}
+.track-more{background:none;border:none;cursor:pointer;color:var(--text3);font-size:15px;padding:4px 8px;border-radius:6px;transition:var(--t);flex-shrink:0}
+.track-more:hover{background:var(--g2);color:var(--white)}
+.track-fav-badge{font-size:11px}
+
+/* ── KARAOKE MODE ── */
+.karaoke-bg{position:fixed;inset:0;z-index:950;background:radial-gradient(ellipse at 50% 0%,rgba(91,0,160,0.35),rgba(2,2,10,0.97) 70%);display:none;flex-direction:column;overflow:hidden}
+.karaoke-bg.open{display:flex}
+.karaoke-wrap{flex:1;display:flex;flex-direction:column;height:100%;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);position:relative;overflow:hidden}
+.karaoke-topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;position:relative;z-index:2}
+.karaoke-close,.karaoke-icon-btn{background:rgba(255,255,255,0.08);border:1px solid var(--border2);color:#fff;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;transition:var(--t)}
+.karaoke-icon-btn.sm{width:30px;height:30px;font-size:13px}
+.karaoke-close:hover,.karaoke-icon-btn:hover{background:rgba(255,255,255,0.16)}
+.karaoke-icon-btn.danger{color:var(--red)}
+.karaoke-mode-label{font-size:13px;font-weight:700;color:#fff;letter-spacing:0.3px}
+
+.karaoke-bgfx{position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(circle at 50% 30%,hsla(var(--h),100%,60%,0.18),transparent 60%);transition:background 0.4s}
+.karaoke-bgfx.live{background:radial-gradient(circle at 50% 30%,rgba(248,113,113,0.28),transparent 60%);animation:bgPulse 1.4s ease-in-out infinite}
+@keyframes bgPulse{0%,100%{opacity:0.7}50%{opacity:1}}
+
+.karaoke-art-wrap{display:flex;justify-content:center;padding:6px 0 14px;position:relative;z-index:1}
+.karaoke-art{width:168px;height:168px;border-radius:24px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:56px;box-shadow:0 16px 50px rgba(0,0,0,0.5);overflow:hidden;border:1px solid rgba(255,255,255,0.15)}
+.karaoke-art img{width:100%;height:100%;object-fit:cover}
+.karaoke-songinfo{text-align:center;padding:0 20px;position:relative;z-index:1}
+.karaoke-songtitle{font-family:var(--ff-serif);font-size:21px;color:#fff;line-height:1.3}
+.karaoke-songartist{font-size:12px;color:var(--text3);margin-top:3px}
+
+.karaoke-waveform{width:100%;height:54px;display:block;margin-top:10px;position:relative;z-index:1}
+
+.karaoke-lyrics-wrap{flex:1;overflow-y:auto;padding:18px 24px;position:relative;z-index:1;mask-image:linear-gradient(to bottom,transparent,#000 12%,#000 88%,transparent)}
+.karaoke-lyrics-wrap::-webkit-scrollbar{width:0}
+.karaoke-lyrics{display:flex;flex-direction:column;gap:16px;align-items:center;text-align:center;padding:30vh 0}
+.karaoke-line{font-size:17px;color:var(--text3);font-weight:500;transition:all 0.3s ease;line-height:1.5;cursor:pointer}
+.karaoke-line.next{color:var(--text2);font-size:18px}
+.karaoke-line.current{color:#fff;font-size:23px;font-weight:700;text-shadow:0 0 18px var(--accent-glow)}
+.karaoke-no-lyrics{color:var(--text3);font-size:13px;text-align:center;line-height:1.8;padding:30px 10px}
+
+.karaoke-progress-wrap{padding:6px 24px;position:relative;z-index:1}
+.karaoke-progress-bar{height:4px;border-radius:3px;background:rgba(255,255,255,0.12);position:relative;cursor:pointer;overflow:hidden}
+.karaoke-progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width 0.1s linear}
+.karaoke-times{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:5px}
+
+.karaoke-controls{display:flex;align-items:center;justify-content:center;gap:22px;padding:16px 20px;position:relative;z-index:1}
+.karaoke-ctrl-btn{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid var(--border2);color:#fff;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--t)}
+.karaoke-ctrl-btn:hover{background:rgba(255,255,255,0.16)}
+.karaoke-mic-btn{width:66px;height:66px;border-radius:50%;background:linear-gradient(135deg,var(--red),#b00020);border:none;color:#fff;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(248,113,113,0.4);transition:var(--t-spring)}
+.karaoke-mic-btn:hover{transform:scale(1.06)}
+.karaoke-mic-btn.live{animation:micPulse 1s ease-in-out infinite}
+@keyframes micPulse{0%{box-shadow:0 0 0 0 rgba(248,113,113,0.5)}70%{box-shadow:0 0 0 16px rgba(248,113,113,0)}100%{box-shadow:0 0 0 0 rgba(248,113,113,0)}}
+
+.karaoke-rec-controls,.karaoke-preview-controls{display:flex;justify-content:center;gap:10px;padding:0 20px 18px;flex-wrap:wrap;position:relative;z-index:1}
+.karaoke-rec-pill{padding:10px 18px;border-radius:22px;border:1px solid var(--border2);background:rgba(255,255,255,0.08);color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:var(--t);font-family:var(--ff-sans)}
+.karaoke-rec-pill:hover{background:rgba(255,255,255,0.16)}
+.karaoke-rec-pill.danger{background:rgba(248,113,113,0.18);border-color:rgba(248,113,113,0.35);color:var(--red)}
+.karaoke-rec-pill.success{background:rgba(52,211,153,0.18);border-color:rgba(52,211,153,0.35);color:var(--green)}
+
+.karaoke-countdown{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px)}
+.karaoke-countdown-num{font-family:var(--ff-serif);font-size:120px;color:#fff;animation:countPop 0.8s ease}
+@keyframes countPop{0%{transform:scale(0.4);opacity:0}40%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:1}}
+
+.karaoke-history-panel{position:absolute;inset:0;z-index:20;background:rgba(6,6,16,0.97);backdrop-filter:var(--blur);padding:70px 18px 20px;overflow-y:auto}
+.karaoke-history-row{display:flex;align-items:center;gap:10px;padding:11px;border-radius:14px;background:var(--g1);border:1px solid var(--border);margin-bottom:8px}
+.khr-info{flex:1;min-width:0}
+.khr-title{font-size:13px;color:#fff;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.khr-meta{font-size:10px;color:var(--text3);margin-top:2px}
+.khr-actions{display:flex;gap:6px;flex-shrink:0}
+
+@media(max-width:480px){
+  .karaoke-art{width:130px;height:130px;font-size:44px}
+  .karaoke-songtitle{font-size:18px}
+  .karaoke-line.current{font-size:19px}
+  .karaoke-line{font-size:15px}
+  .karaoke-mic-btn{width:58px;height:58px;font-size:21px}
+}
+
+/* ── AUDIO EFFECTS RACK ── */
+.fx-rack-overlay{position:fixed;inset:0;z-index:960;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);display:none;align-items:flex-end;justify-content:center}
+.fx-rack-overlay.open{display:flex}
+.fx-rack{width:100%;max-width:480px;background:rgba(8,8,22,0.97);backdrop-filter:blur(30px) saturate(200%);border:1px solid var(--border2);border-radius:24px 24px 0 0;padding:10px 16px calc(24px + env(safe-area-inset-bottom));animation:sheetUp 0.3s cubic-bezier(0.34,1.56,0.64,1)}
+.fx-rack-handle{width:36px;height:4px;background:var(--border2);border-radius:3px;margin:4px auto 14px}
+.fx-rack-title{font-family:var(--ff-serif);font-size:17px;color:var(--white);text-align:center;margin-bottom:16px}
+.fx-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}
+.fx-row:last-of-type{border-bottom:none}
+.fx-icon{font-size:22px;width:34px;text-align:center;flex-shrink:0}
+.fx-info{flex:1;min-width:0}
+.fx-name{font-size:13px;font-weight:600;color:var(--white)}
+.fx-desc{font-size:10px;color:var(--text3);margin-top:2px}
+.fx-slider{width:100%;accent-color:var(--accent);cursor:pointer;height:4px;margin-top:6px}
+.fx-toggle{width:44px;height:24px;border-radius:12px;background:var(--g2);border:1px solid var(--border);cursor:pointer;position:relative;transition:var(--t);flex-shrink:0}
+.fx-toggle.on{background:var(--accent);border-color:var(--accent)}
+.fx-toggle::after{content:'';position:absolute;width:18px;height:18px;background:var(--white);border-radius:50%;top:2px;left:2px;transition:var(--t-spring);box-shadow:0 2px 6px rgba(0,0,0,0.3)}
+.fx-toggle.on::after{left:22px}
+.fx-preset-row{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0 6px}
+.fx-preset{padding:6px 13px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--g1);color:var(--text2);transition:var(--t);user-select:none}
+.fx-preset:hover{background:var(--g2);color:var(--white)}
+.fx-preset.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 10px var(--accent-glow)}
+.fx-reset-btn{width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--g1);color:var(--text2);font-family:var(--ff-sans);font-size:13px;font-weight:600;cursor:pointer;transition:var(--t);margin-top:10px}
+.fx-reset-btn:hover{background:var(--g2);color:var(--white)}
+
+/* FX button in karaoke topbar */
+.karaoke-fx-btn{background:rgba(255,255,255,0.08);border:1px solid var(--border2);color:#fff;padding:6px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;transition:var(--t);letter-spacing:0.3px}
+.karaoke-fx-btn:hover{background:rgba(255,255,255,0.16)}
+.karaoke-fx-btn.active{background:var(--accent);border-color:var(--accent);box-shadow:0 2px 10px var(--accent-glow)}
+
+/* ── ACHIEVEMENTS ── */
+.ach-toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:linear-gradient(135deg,rgba(20,20,40,0.97),rgba(10,10,24,0.97));backdrop-filter:blur(20px);border:1px solid var(--accent-glow);border-radius:20px;padding:12px 20px;display:flex;align-items:center;gap:12px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.5);transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;min-width:240px}
+.ach-toast.show{transform:translateX(-50%) translateY(0)}
+.ach-toast-ico{font-size:28px;flex-shrink:0}
+.ach-toast-title{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px}
+.ach-toast-name{font-size:13px;font-weight:600;color:var(--white);margin-top:2px}
+.ach-toast-desc{font-size:10px;color:var(--text3);margin-top:1px}
+
+.ach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:4px 0}
+.ach-card{background:var(--g1);border:1px solid var(--border);border-radius:14px;padding:13px 10px;text-align:center;transition:var(--t)}
+.ach-card.unlocked{background:hsla(var(--h),100%,62%,0.08);border-color:hsla(var(--h),100%,62%,0.3)}
+.ach-card.unlocked:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.25)}
+.ach-card-ico{font-size:26px;margin-bottom:6px}
+.ach-card-name{font-size:10px;font-weight:700;color:var(--white);line-height:1.3}
+.ach-card-desc{font-size:9px;color:var(--text3);margin-top:3px;line-height:1.4}
+.ach-card-locked{opacity:0.35}
+
+/* ── UPLOAD PROGRESS ── */
+.upload-progress-bar{height:3px;background:var(--g2);border-radius:2px;overflow:hidden;margin-top:6px;display:none}
+.upload-progress-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width 0.3s ease}
+
+/* ════════════════════════════════════
+   MOVIES SECTION
+════════════════════════════════════ */
+#section-movies{display:none}
+
+/* ── MOVIE TOOLBAR ── */
+.movie-toolbar{display:flex;gap:8px;padding:14px 16px;align-items:center;flex-wrap:wrap}
+.movie-search{flex:1;min-width:140px;background:var(--g1);border:1px solid var(--border);border-radius:12px;padding:9px 13px;color:var(--white);font-family:var(--ff-sans);font-size:13px;outline:none;transition:var(--t)}
+.movie-search:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.movie-filter{padding:7px 13px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--g1);color:var(--text2);transition:var(--t);white-space:nowrap}
+.movie-filter:hover{color:var(--white);background:var(--g2)}
+.movie-filter.active{background:var(--accent2);border-color:var(--accent2);color:#fff;box-shadow:0 2px 10px var(--accent2-glow)}
+.movie-add-btn{padding:9px 18px;border-radius:20px;border:none;cursor:pointer;font-family:var(--ff-sans);font-size:12px;font-weight:700;background:linear-gradient(135deg,var(--accent2),var(--accent2-d));color:#fff;box-shadow:0 4px 14px var(--accent2-glow);transition:var(--t-spring);flex-shrink:0}
+.movie-add-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+
+/* ── MOVIE GRID ── */
+.movie-tabs{display:flex;border-bottom:1px solid var(--border);padding:0 16px;overflow-x:auto;scrollbar-width:none}
+.movie-tabs::-webkit-scrollbar{display:none}
+.movie-tab{padding:12px 18px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:var(--t);margin-bottom:-1px}
+.movie-tab:hover{color:var(--white)}
+.movie-tab.active{color:var(--white);border-bottom-color:var(--accent2)}
+.movie-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;padding:14px 16px 24px}
+@media(max-width:500px){.movie-grid{grid-template-columns:repeat(2,1fr);gap:10px}}
+@media(min-width:800px){.movie-grid{grid-template-columns:repeat(4,1fr)}}
+
+.movie-card{border-radius:14px;overflow:hidden;border:1px solid var(--border);background:var(--g1);backdrop-filter:var(--blur);transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.25s;cursor:pointer;position:relative}
+.movie-card:hover{transform:translateY(-5px) scale(1.02);box-shadow:0 18px 44px rgba(0,0,0,0.4)}
+.movie-poster{width:100%;aspect-ratio:2/3;position:relative;overflow:hidden;background:linear-gradient(135deg,var(--g2),var(--g3))}
+.movie-poster img{width:100%;height:100%;object-fit:cover;display:block}
+.movie-poster-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:40px;background:linear-gradient(135deg,var(--g2),rgba(0,0,0,0.3))}
+.movie-status-badge{position:absolute;top:7px;left:7px;padding:3px 7px;border-radius:8px;font-size:9px;font-weight:700;backdrop-filter:blur(8px)}
+.status-watched{background:rgba(52,211,153,0.85);color:#000}
+.status-watching{background:rgba(91,155,255,0.85);color:#fff}
+.status-watchlist{background:rgba(251,191,36,0.85);color:#000}
+.movie-fav{position:absolute;top:7px;right:7px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;border:none;transition:var(--t)}
+.movie-fav:hover{transform:scale(1.15)}
+.movie-rating-overlay{position:absolute;bottom:0;left:0;right:0;padding:6px 8px;background:linear-gradient(to top,rgba(0,0,0,0.85),transparent);display:flex;align-items:center;gap:4px}
+.movie-stars{font-size:10px;color:var(--yellow)}
+.movie-rating-num{font-size:10px;font-weight:700;color:var(--white)}
+.movie-card-info{padding:10px 10px 12px}
+.movie-card-title{font-size:12px;font-weight:600;color:var(--white);line-height:1.35;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.movie-card-meta{font-size:10px;color:var(--text3);display:flex;gap:6px;flex-wrap:wrap}
+.movie-genre-tag{padding:2px 6px;border-radius:6px;background:var(--g2);border:1px solid var(--border);font-size:9px;font-weight:700;color:var(--text2)}
+
+/* ── MOVIE DETAIL MODAL ── */
+.mm-bg{position:fixed;inset:0;z-index:800;background:rgba(0,0,0,0.75);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
+.mm-bg.open{display:flex}
+.mm-modal{background:rgba(8,8,20,0.95);backdrop-filter:blur(30px) saturate(200%);border:1px solid var(--border2);border-radius:22px;width:100%;max-width:500px;padding:0;color:var(--white);box-shadow:0 24px 80px rgba(0,0,0,0.6);animation:mmIn 0.35s cubic-bezier(0.34,1.56,0.64,1);overflow:hidden;margin:auto}
+@keyframes mmIn{from{opacity:0;transform:scale(0.88) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.mm-header{padding:20px 22px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.mm-title{font-family:var(--ff-serif);font-size:19px;color:var(--white)}
+.mm-close{background:none;border:none;cursor:pointer;color:var(--text2);font-size:20px;padding:4px 8px;border-radius:8px;transition:var(--t)}
+.mm-close:hover{background:var(--g1);color:var(--white)}
+.mm-body{padding:20px 22px;max-height:80vh;overflow-y:auto}
+.mm-body::-webkit-scrollbar{width:3px}
+.mm-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:99px}
+.mm-field{margin-bottom:13px}
+.mm-field label{display:block;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px}
+.mm-field input,.mm-field textarea,.mm-field select{width:100%;background:var(--g1);border:1px solid var(--border);border-radius:10px;padding:10px 13px;font-size:13px;color:var(--white);font-family:var(--ff-sans);outline:none;transition:var(--t)}
+.mm-field textarea{resize:vertical;min-height:70px;line-height:1.6}
+.mm-field input:focus,.mm-field textarea:focus,.mm-field select:focus{border-color:var(--accent2);box-shadow:0 0 0 3px var(--accent2-glow)}
+.mm-field select option{background:#0d0d1f;color:#fff}
+.mm-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mm-poster-upload{border:2px dashed var(--border2);border-radius:12px;padding:16px;text-align:center;cursor:pointer;position:relative;transition:var(--t);overflow:hidden;min-height:90px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px}
+.mm-poster-upload:hover{border-color:var(--accent2);background:hsla(300,85%,65%,0.05)}
+.mm-poster-upload input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.mm-poster-preview{width:60px;height:80px;border-radius:8px;object-fit:cover;border:1px solid var(--border)}
+.mm-stars-input{display:flex;gap:6px;flex-direction:row-reverse;justify-content:flex-end}
+.mm-star-btn{background:none;border:none;cursor:pointer;font-size:22px;transition:var(--t);padding:2px}
+.mm-star-btn:hover,.mm-star-btn.active{filter:drop-shadow(0 0 5px rgba(251,191,36,0.6))}
+.mm-save-btn{width:100%;padding:13px;border-radius:13px;border:none;cursor:pointer;font-family:var(--ff-sans);font-size:14px;font-weight:600;background:linear-gradient(135deg,var(--accent2),var(--accent2-d));color:#fff;box-shadow:0 6px 20px var(--accent2-glow);transition:var(--t);margin-top:8px}
+.mm-save-btn:hover{filter:brightness(1.1)}
+
+/* ── MOVIE DETAIL VIEW ── */
+.mv-detail-bg{position:fixed;inset:0;z-index:900;background:rgba(2,2,8,0.94);backdrop-filter:blur(6px);display:none;overflow-y:auto}
+.mv-detail-bg.open{display:block}
+.mv-detail-wrap{max-width:680px;margin:0 auto;padding-bottom:40px}
+.mv-banner{height:260px;position:relative;overflow:hidden;background:linear-gradient(135deg,#0d0d1f,#1a0d2e)}
+.mv-banner img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;filter:blur(20px) scale(1.1);opacity:0.4}
+.mv-banner-poster{position:absolute;bottom:-30px;left:24px;width:100px;height:150px;border-radius:12px;overflow:hidden;border:3px solid rgba(255,255,255,0.3);box-shadow:0 8px 30px rgba(0,0,0,0.5);z-index:2}
+.mv-banner-poster img{width:100%;height:100%;object-fit:cover}
+.mv-banner-poster-placeholder{width:100%;height:100%;background:linear-gradient(135deg,var(--accent2),var(--accent2-d));display:flex;align-items:center;justify-content:center;font-size:36px}
+.mv-banner-close{position:absolute;top:16px;right:16px;z-index:3;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,0.5);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.mv-banner-actions{position:absolute;top:16px;right:62px;display:flex;gap:8px;z-index:3}
+.mv-banner-btn{padding:7px 14px;border-radius:20px;border:none;cursor:pointer;font-family:var(--ff-sans);font-size:11px;font-weight:700;backdrop-filter:blur(10px);transition:var(--t)}
+.mv-banner-btn.edit{background:rgba(255,255,255,0.15);color:#fff}
+.mv-banner-btn.delete{background:rgba(248,113,113,0.25);color:var(--red)}
+.mv-banner-btn:hover{transform:scale(1.05)}
+.mv-detail-body{padding:50px 24px 20px}
+.mv-detail-title{font-family:var(--ff-serif);font-size:26px;color:var(--white);margin-bottom:6px}
+.mv-detail-meta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.mv-stars-display{color:var(--yellow);font-size:14px}
+.mv-year{font-size:12px;color:var(--text3);background:var(--g2);padding:3px 9px;border-radius:8px;border:1px solid var(--border)}
+.mv-status-chip{padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700}
+.mv-section-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;margin-top:18px}
+.mv-section-text{font-size:13px;color:var(--text2);line-height:1.75;padding:12px;background:var(--g1);border-radius:12px;border:1px solid var(--border)}
+.mv-fav-scene{font-size:13px;color:var(--text2);line-height:1.75;padding:12px;background:linear-gradient(135deg,hsla(300,85%,65%,0.08),hsla(var(--h),100%,62%,0.05));border-radius:12px;border:1px solid var(--border2)}
+
+/* ── ADD/EDIT MUSIC MODAL ── */
+.song-modal-bg{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:16px}
+.song-modal-bg.open{display:flex}
+.song-modal{background:rgba(8,8,20,0.93);backdrop-filter:blur(30px) saturate(200%);border:1px solid var(--border2);border-radius:20px;width:100%;max-width:400px;padding:22px;color:var(--white);animation:mmIn 0.3s ease}
+.sm-title{font-family:var(--ff-serif);font-size:18px;color:var(--white);margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.sm-close{background:none;border:none;cursor:pointer;color:var(--text2);font-size:18px;padding:3px 7px;border-radius:6px;transition:var(--t)}
+.sm-close:hover{background:var(--g1);color:var(--white)}
+.sm-field{margin-bottom:12px}
+.sm-field label{display:block;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px}
+.sm-field input,.sm-field select{width:100%;background:var(--g1);border:1px solid var(--border);border-radius:9px;padding:9px 12px;font-size:13px;color:var(--white);font-family:var(--ff-sans);outline:none;transition:var(--t)}
+.sm-field input:focus,.sm-field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.sm-field select option{background:#0d0d1f;color:#fff}
+.sm-art-preview{width:56px;height:56px;border-radius:10px;object-fit:cover;border:1px solid var(--border);display:none;margin-top:6px}
+.sm-save-btn{width:100%;padding:12px;border-radius:12px;border:none;cursor:pointer;font-family:var(--ff-sans);font-size:13px;font-weight:600;background:linear-gradient(135deg,var(--accent),var(--accent-d));color:#fff;box-shadow:0 4px 16px var(--accent-glow);transition:var(--t);margin-top:6px}
+.sm-save-btn:hover{filter:brightness(1.1)}
+
+/* ── STATS BAR ── */
+.stats-row{display:flex;gap:10px;padding:12px 16px;overflow-x:auto;scrollbar-width:none}
+.stats-row::-webkit-scrollbar{display:none}
+.stat-box{flex-shrink:0;padding:10px 14px;border-radius:12px;background:var(--g1);border:1px solid var(--border);text-align:center;min-width:70px}
+.stat-box-n{font-family:var(--ff-serif);font-size:20px;color:var(--white)}
+.stat-box-l{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;font-weight:600}
+
+/* ── TOAST ── */
+#mmToast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(12px);background:rgba(15,15,15,0.9);backdrop-filter:blur(16px);color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;z-index:9999;opacity:0;transition:all 0.3s;pointer-events:none;white-space:nowrap;box-shadow:0 6px 24px rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);font-family:var(--ff-sans);font-weight:500}
+</style>
+</head>
+<body>
+
+<!-- ═══ MAIN TABS ═══ -->
+<div class="main-tabs">
+  <div class="main-tab active" onclick="switchMainTab('music',this)">🎵 Music</div>
+  <div class="main-tab movies-tab" onclick="switchMainTab('movies',this)">🎬 Movies</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MUSIC SECTION
+══════════════════════════════════════ -->
+<div id="section-music">
+
+  <!-- NOW PLAYING -->
+  <div class="now-playing-bar hidden" id="nowPlayingBar">
+    <div class="np-inner">
+      <div class="np-art" id="npArt"><span id="npEmoji">🎵</span></div>
+      <div class="np-info">
+        <div class="np-title" id="npTitle">No song playing</div>
+        <div class="np-artist" id="npArtist">Upload songs to start</div>
+        <div class="np-progress" onclick="seekSong(event)" id="npProgressArea">
+          <div class="np-bar"><div class="np-bar-fill" id="npBarFill" style="width:0%"></div></div>
+          <div class="np-times"><span id="npCurrent">0:00</span><span id="npDuration">0:00</span></div>
+        </div>
+      </div>
+      <div class="np-controls">
+        <button class="nc-btn" id="shuffleBtn" onclick="toggleShuffle()" title="Shuffle">⇄</button>
+        <button class="nc-btn" onclick="prevSong()">⏮</button>
+        <button class="nc-btn play" id="playBtn" onclick="togglePlay()">▶</button>
+        <button class="nc-btn" onclick="nextSong()">⏭</button>
+        <button class="nc-btn" id="repeatBtn" onclick="toggleRepeat()" title="Repeat">↩</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLAYLIST TABS -->
+  <div class="pl-tabs">
+    <div class="pl-tab active" onclick="switchPlTab('my',this)">🎵 My Playlist</div>
+    <div class="pl-tab" onclick="switchPlTab('partner',this)">💜 Partner Playlist</div>
+    <div class="pl-tab" onclick="switchPlTab('karaoke',this)">🎤 Karaoke</div>
+    <div class="pl-tab" onclick="switchPlTab('videos',this)">🎬 Music Videos</div>
+    <div class="pl-tab" onclick="switchPlTab('favorites',this)">❤️ Favorites</div>
+    <div class="pl-tab" onclick="switchPlTab('recent',this)">🕒 Recently Played</div>
+  </div>
+
+  <!-- MY PLAYLIST -->
+  <div id="pl-my">
+    <div class="sec-header">
+      <div>
+        <div class="sec-title">My Playlist</div>
+        <div class="sec-sub" id="myMusicStats">0 songs</div>
+        <div class="upload-progress-bar" id="uploadProgressBar">
+          <div class="upload-progress-fill" id="uploadProgressFill"></div>
+        </div>
+      </div>
+      <button class="mode-pill" style="margin:0" onclick="openAchievementsModal()">🏅</button>
+    </div>
+    <div class="mode-pills">
+      <div class="mode-pill play-all" onclick="playAll('my')">▶ Play All</div>
+      <div class="mode-pill" id="myShufflePill" onclick="toggleShuffle()">⇄ Shuffle</div>
+      <div class="mode-pill" id="myRepeatPill" onclick="toggleRepeat()">↩ Repeat</div>
+    </div>
+    <label class="upload-zone" id="myUploadZone">
+      <input type="file" multiple accept="audio/*" onchange="handleFileUpload(event,'my')">
+      <div class="upload-icon">🎵</div>
+      <div class="upload-text">Tap to upload songs from your phone</div>
+      <div class="upload-sub">MP3, M4A, WAV, OGG, FLAC supported</div>
+      <div class="fmt-chips">
+        <span class="fmt-chip">MP3</span><span class="fmt-chip">M4A</span>
+        <span class="fmt-chip">WAV</span><span class="fmt-chip">OGG</span><span class="fmt-chip">FLAC</span>
+      </div>
+    </label>
+    <div class="track-list" id="myTrackList"></div>
+  </div>
+
+  <!-- PARTNER PLAYLIST -->
+  <div id="pl-partner" style="display:none">
+    <div class="sec-header">
+      <div>
+        <div class="sec-title">Partner's Playlist</div>
+        <div class="sec-sub" id="ptMusicStats">0 songs</div>
+      </div>
+    </div>
+    <div class="mode-pills">
+      <div class="mode-pill play-all-pt" onclick="playAll('partner')">▶ Play All</div>
+    </div>
+    <label class="upload-zone" style="border-color:hsla(300,85%,65%,0.3)">
+      <input type="file" multiple accept="audio/*" onchange="handleFileUpload(event,'partner')">
+      <div class="upload-icon">💜</div>
+      <div class="upload-text">Upload partner's songs</div>
+      <div class="upload-sub">Both of you can listen together</div>
+    </label>
+    <div class="track-list" id="ptTrackList"></div>
+  </div>
+
+  <!-- FAVORITES -->
+  <div id="pl-favorites" style="display:none">
+    <div class="sec-header">
+      <div><div class="sec-title">❤️ Favorites</div><div class="sec-sub" id="favMusicStats">0 songs</div></div>
+    </div>
+    <div class="track-list" id="favTrackList"></div>
+  </div>
+
+  <!-- RECENTLY PLAYED -->
+  <div id="pl-recent" style="display:none">
+    <div class="sec-header">
+      <div><div class="sec-title">🕒 Recently Played</div><div class="sec-sub" id="recentMusicStats">0 songs</div></div>
+    </div>
+    <div class="track-list" id="recentTrackList"></div>
+  </div>
+
+  <!-- KARAOKE -->
+  <div id="pl-karaoke" style="display:none">
+    <div class="sec-header">
+      <div><div class="sec-title">🎤 Karaoke</div><div class="sec-sub">Pick a song to sing along</div></div>
+    </div>
+    <div class="empty-pl" style="padding:20px">
+      <div class="empty-pl-ico">🎤</div>
+      <div class="empty-pl-text">Tap ⋯ on any song below and choose <strong>Sing With Lyrics</strong> to start Karaoke Mode.</div>
+    </div>
+    <div class="track-list" id="karaokeTrackList"></div>
+  </div>
+
+  <!-- MUSIC VIDEOS (placeholder — Phase 5) -->
+  <div id="pl-videos" style="display:none">
+    <div class="sec-header">
+      <div><div class="sec-title">🎬 Music Videos</div><div class="sec-sub">Coming soon</div></div>
+    </div>
+    <div class="empty-pl" style="padding:20px">
+      <div class="empty-pl-ico">🎬</div>
+      <div class="empty-pl-text">Music Videos with Watch Together is being built next.</div>
+    </div>
+  </div>
+
+</div><!-- /section-music -->
+
+<!-- ══════════════════════════════════════
+     MOVIES SECTION
+══════════════════════════════════════ -->
+<div id="section-movies">
+
+  <!-- STATS -->
+  <div class="stats-row" id="movieStatsRow"></div>
+
+  <!-- TOOLBAR -->
+  <div class="movie-toolbar">
+    <input type="text" class="movie-search" id="movieSearch" placeholder="Search movies..." oninput="renderMovies()">
+    <div class="movie-filter active" data-f="all" onclick="setMovieFilter('all',this)">All</div>
+    <div class="movie-filter" data-f="watched" onclick="setMovieFilter('watched',this)">✅ Watched</div>
+    <div class="movie-filter" data-f="watchlist" onclick="setMovieFilter('watchlist',this)">🌟 Watchlist</div>
+    <div class="movie-filter" data-f="fav" onclick="setMovieFilter('fav',this)">⭐ Favorites</div>
+    <button class="movie-add-btn" onclick="openMovieModal()">+ Add Movie</button>
+  </div>
+
+  <!-- MOVIE OWNER TABS -->
+  <div class="movie-tabs">
+    <div class="movie-tab active" onclick="switchMovieTab('my',this)">❤️ My Movies</div>
+    <div class="movie-tab" onclick="switchMovieTab('partner',this)">💜 Partner's Movies</div>
+    <div class="movie-tab" onclick="switchMovieTab('both',this)">💕 Watched Together</div>
+  </div>
+
+  <div class="movie-grid" id="movieGrid"></div>
+
+</div><!-- /section-movies -->
+
+<!-- ══ SONG DETAILS MODAL ══ -->
+<div class="song-modal-bg" id="songModal">
+  <div class="song-modal">
+    <div class="sm-title">🎵 Song Details <button class="sm-close" onclick="closeSongModal()">✕</button></div>
+    <div class="sm-field">
+      <label>Title</label>
+      <input type="text" id="smTitle" placeholder="Song title...">
+    </div>
+    <div class="sm-field">
+      <label>Artist</label>
+      <input type="text" id="smArtist" placeholder="Artist name...">
+    </div>
+    <div class="sm-field">
+      <label>Album Art (optional)</label>
+      <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:var(--text2);background:var(--g2);border:1px solid var(--border);border-radius:8px;padding:7px 12px">
+        📷 Upload Art
+        <input type="file" accept="image/*" style="display:none" onchange="loadSongArt(this)">
+      </label>
+      <img id="smArtPreview" class="sm-art-preview" src="" alt="">
+    </div>
+    <div class="sm-field">
+      <label>Visibility</label>
+      <select id="smVis">
+        <option value="both">👥 Both can hear</option>
+        <option value="my">❤️ Only Me</option>
+        <option value="partner">💜 Partner Only</option>
+      </select>
+    </div>
+    <button class="sm-save-btn" onclick="confirmSongSave()">✅ Save Song</button>
+  </div>
+</div>
+
+<!-- ══ MOVIE ADD/EDIT MODAL ══ -->
+<div class="mm-bg" id="movieModal">
+  <div class="mm-modal">
+    <div class="mm-header">
+      <div class="mm-title" id="movieModalTitle">🎬 Add Movie</div>
+      <button class="mm-close" onclick="closeMovieModal()">✕</button>
+    </div>
+    <div class="mm-body">
+      <div class="mm-field" style="text-align:center;margin-bottom:16px">
+        <label>Movie Poster</label>
+        <label class="mm-poster-upload">
+          <input type="file" accept="image/*" onchange="loadMoviePoster(this)">
+          <span id="posterUploadContent">
+            <div style="font-size:28px;margin-bottom:5px">🎬</div>
+            <div style="font-size:12px;color:var(--text3)">Upload poster</div>
+          </span>
+        </label>
+      </div>
+      <div class="mm-field">
+        <label>Movie Name *</label>
+        <input type="text" id="mvTitle" placeholder="e.g. Interstellar">
+      </div>
+      <div class="mm-row2">
+        <div class="mm-field">
+          <label>Year</label>
+          <input type="number" id="mvYear" placeholder="2024" min="1900" max="2030">
+        </div>
+        <div class="mm-field">
+          <label>Genre</label>
+          <select id="mvGenre">
+            <option value="Romance">💕 Romance</option>
+            <option value="Action">💥 Action</option>
+            <option value="Comedy">😂 Comedy</option>
+            <option value="Drama">🎭 Drama</option>
+            <option value="Thriller">😰 Thriller</option>
+            <option value="Horror">👻 Horror</option>
+            <option value="Sci-Fi">🚀 Sci-Fi</option>
+            <option value="Fantasy">🧙 Fantasy</option>
+            <option value="Animation">🎨 Animation</option>
+            <option value="Documentary">📽️ Documentary</option>
+            <option value="Bollywood">🎪 Bollywood</option>
+            <option value="Other">🎬 Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="mm-field">
+        <label>Your Rating</label>
+        <div class="mm-stars-input" id="mvStarsInput">
+          <button class="mm-star-btn" data-v="5" onclick="setMovieRating(5)">⭐</button>
+          <button class="mm-star-btn" data-v="4" onclick="setMovieRating(4)">⭐</button>
+          <button class="mm-star-btn" data-v="3" onclick="setMovieRating(3)">⭐</button>
+          <button class="mm-star-btn" data-v="2" onclick="setMovieRating(2)">⭐</button>
+          <button class="mm-star-btn" data-v="1" onclick="setMovieRating(1)">⭐</button>
+        </div>
+        <input type="hidden" id="mvRating" value="0">
+      </div>
+      <div class="mm-field">
+        <label>Watch Status</label>
+        <select id="mvStatus">
+          <option value="watchlist">🌟 Want to Watch</option>
+          <option value="watching">🍿 Currently Watching</option>
+          <option value="watched">✅ Watched</option>
+        </select>
+      </div>
+      <div class="mm-field">
+        <label>Personal Review</label>
+        <textarea id="mvReview" placeholder="What did you think about this movie?"></textarea>
+      </div>
+      <div class="mm-field">
+        <label>Favorite Scene / Quote</label>
+        <textarea id="mvScene" placeholder="A scene or quote you loved..."></textarea>
+      </div>
+      <div class="mm-field">
+        <label>This movie belongs to</label>
+        <select id="mvOwner">
+          <option value="my">❤️ My List</option>
+          <option value="partner">💜 Partner's List</option>
+          <option value="both">💕 Watched Together</option>
+        </select>
+      </div>
+      <input type="hidden" id="mvEditId">
+      <button class="mm-save-btn" onclick="saveMovie()">🎬 Save Movie</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MOVIE DETAIL ══ -->
+<div class="mv-detail-bg" id="mvDetailBg">
+  <div class="mv-detail-wrap">
+    <div class="mv-banner" id="mvDetailBanner">
+      <button class="mv-banner-close" onclick="closeMvDetail()">✕</button>
+      <div class="mv-banner-actions">
+        <button class="mv-banner-btn edit" onclick="editCurrentMovie()">✏️ Edit</button>
+        <button class="mv-banner-btn delete" onclick="deleteCurrentMovie()">🗑️</button>
+      </div>
+    </div>
+    <div class="mv-detail-body" id="mvDetailBody"></div>
+  </div>
+</div>
+
+<audio id="audioPlayer" preload="auto"></audio>
+
+<div class="sheet-overlay" id="actionSheetOverlay" onclick="if(event.target===this)closeActionSheet()">
+  <div class="action-sheet" id="actionSheet"></div>
+</div>
+
+<div class="song-modal-bg" id="lyricsModal">
+  <div class="song-modal">
+    <div class="sm-title">📜 Lyrics <button class="sm-close" onclick="closeLyricsModal()">✕</button></div>
+    <div class="sm-field">
+      <label>Paste lyrics (one line per line)</label>
+      <textarea id="lyricsText" rows="8" style="width:100%;background:var(--g1);border:1px solid var(--border);border-radius:9px;padding:9px 12px;font-size:13px;color:var(--white);font-family:var(--ff-sans);outline:none;resize:vertical"></textarea>
+    </div>
+    <button class="sm-save-btn" onclick="saveLyrics()">✅ Save Lyrics</button>
+  </div>
+</div>
+
+<!-- ══ KARAOKE MODE ══ -->
+<div class="karaoke-bg" id="karaokeBg">
+  <div class="karaoke-wrap">
+    <div class="karaoke-bgfx" id="karaokeBgFx"></div>
+
+    <div class="karaoke-topbar">
+      <button class="karaoke-close" onclick="closeKaraokeMode()">✕</button>
+      <div class="karaoke-mode-label">🎤 Karaoke</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="karaoke-fx-btn" id="karaokeOpenFx" onclick="openFxRack()">🎛 FX</button>
+        <button class="karaoke-icon-btn" onclick="toggleKaraokeHistory()" title="Recordings">📼</button>
+      </div>
+    </div>
+
+    <div class="karaoke-art-wrap">
+      <div class="karaoke-art" id="karaokeArt"><span>🎵</span></div>
+    </div>
+    <div class="karaoke-songinfo">
+      <div class="karaoke-songtitle" id="karaokeSongTitle">Song title</div>
+      <div class="karaoke-songartist" id="karaokeSongArtist">Artist</div>
+    </div>
+
+    <canvas id="karaokeWaveform" class="karaoke-waveform"></canvas>
+
+    <div class="karaoke-lyrics-wrap" id="karaokeLyricsWrap">
+      <div class="karaoke-lyrics" id="karaokeLyrics"></div>
+    </div>
+
+    <div class="karaoke-progress-wrap">
+      <div class="karaoke-progress-bar" id="karaokeProgressArea" onclick="karaokeSeek(event)">
+        <div class="karaoke-progress-fill" id="karaokeProgressFill"></div>
+      </div>
+      <div class="karaoke-times"><span id="karaokeCurTime">0:00</span><span id="karaokeDurTime">0:00</span></div>
+    </div>
+
+    <div class="karaoke-controls">
+      <button class="karaoke-ctrl-btn" onclick="karaokeRestart()" title="Restart">⟲</button>
+      <button class="karaoke-mic-btn" id="karaokeMicBtn" onclick="karaokeStartCountdown()" title="Record">🎙</button>
+      <button class="karaoke-ctrl-btn" onclick="karaokeTogglePlay()" id="karaokePlayBtn">▶</button>
+    </div>
+
+    <div class="karaoke-rec-controls" id="karaokeRecControls" style="display:none">
+      <button class="karaoke-rec-pill" onclick="karaokePauseResume()" id="karaokePauseBtn">⏸ Pause</button>
+      <button class="karaoke-rec-pill danger" onclick="karaokeStopRecording()">⏹ Stop</button>
+    </div>
+
+    <div class="karaoke-preview-controls" id="karaokePreviewControls" style="display:none">
+      <button class="karaoke-rec-pill" onclick="karaokePlayPreview()">▶ Preview</button>
+      <button class="karaoke-rec-pill" onclick="karaokeRestartRecording()">⟲ Re-record</button>
+      <button class="karaoke-rec-pill success" onclick="karaokeSaveRecording()">💾 Save</button>
+      <button class="karaoke-rec-pill danger" onclick="karaokeDiscardRecording()">🗑 Discard</button>
+    </div>
+
+    <div class="karaoke-history-panel" id="karaokeHistoryPanel" style="display:none"></div>
+    <div class="karaoke-countdown" id="karaokeCountdown" style="display:none">
+      <div class="karaoke-countdown-num" id="karaokeCountdownNum">3</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ AUDIO FX RACK ══ -->
+<div class="fx-rack-overlay" id="fxRackOverlay" onclick="if(event.target===this)closeFxRack()">
+  <div class="fx-rack">
+    <div class="fx-rack-handle"></div>
+    <div class="fx-rack-title">🎛 Audio Effects</div>
+
+    <!-- Presets -->
+    <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Quick Presets</div>
+    <div class="fx-preset-row" id="fxPresetRow">
+      <div class="fx-preset active" onclick="applyFxPreset('flat',this)">Flat</div>
+      <div class="fx-preset" onclick="applyFxPreset('studio',this)">🎙 Studio</div>
+      <div class="fx-preset" onclick="applyFxPreset('bathroom',this)">🚿 Bathroom</div>
+      <div class="fx-preset" onclick="applyFxPreset('stadium',this)">🏟 Stadium</div>
+      <div class="fx-preset" onclick="applyFxPreset('deep',this)">🎸 Deep</div>
+      <div class="fx-preset" onclick="applyFxPreset('bright',this)">✨ Bright</div>
+    </div>
+
+    <!-- Reverb -->
+    <div class="fx-row">
+      <div class="fx-icon">🌊</div>
+      <div class="fx-info">
+        <div class="fx-name">Reverb</div>
+        <div class="fx-desc">Room ambience & echo tail</div>
+        <input type="range" class="fx-slider" id="fxReverb" min="0" max="1" step="0.01" value="0" oninput="applyFxFromSliders()">
+      </div>
+      <div class="fx-toggle" id="fxReverbToggle" onclick="toggleFxNode('reverb')"></div>
+    </div>
+
+    <!-- Echo / Delay -->
+    <div class="fx-row">
+      <div class="fx-icon">🔁</div>
+      <div class="fx-info">
+        <div class="fx-name">Echo / Delay</div>
+        <div class="fx-desc">Repeat delay in milliseconds</div>
+        <input type="range" class="fx-slider" id="fxDelay" min="0" max="0.8" step="0.01" value="0" oninput="applyFxFromSliders()">
+      </div>
+      <div class="fx-toggle" id="fxDelayToggle" onclick="toggleFxNode('delay')"></div>
+    </div>
+
+    <!-- Pitch -->
+    <div class="fx-row">
+      <div class="fx-icon">🎵</div>
+      <div class="fx-info">
+        <div class="fx-name">Pitch Shift</div>
+        <div class="fx-desc">Semitones: -6 (lower) to +6 (higher)</div>
+        <input type="range" class="fx-slider" id="fxPitch" min="-6" max="6" step="0.5" value="0" oninput="applyFxFromSliders()">
+      </div>
+      <div class="fx-toggle" id="fxPitchToggle" onclick="toggleFxNode('pitch')"></div>
+    </div>
+
+    <!-- Bass Boost -->
+    <div class="fx-row">
+      <div class="fx-icon">🔊</div>
+      <div class="fx-info">
+        <div class="fx-name">Bass Boost</div>
+        <div class="fx-desc">Low frequency gain (dB)</div>
+        <input type="range" class="fx-slider" id="fxBass" min="-12" max="18" step="0.5" value="0" oninput="applyFxFromSliders()">
+      </div>
+      <div class="fx-toggle" id="fxBassToggle" onclick="toggleFxNode('bass')"></div>
+    </div>
+
+    <!-- Treble -->
+    <div class="fx-row">
+      <div class="fx-icon">🎶</div>
+      <div class="fx-info">
+        <div class="fx-name">Treble Boost</div>
+        <div class="fx-desc">High frequency gain (dB)</div>
+        <input type="range" class="fx-slider" id="fxTreble" min="-12" max="12" step="0.5" value="0" oninput="applyFxFromSliders()">
+      </div>
+      <div class="fx-toggle" id="fxTrebleToggle" onclick="toggleFxNode('treble')"></div>
+    </div>
+
+    <!-- Master Volume -->
+    <div class="fx-row">
+      <div class="fx-icon">🔉</div>
+      <div class="fx-info">
+        <div class="fx-name">Master Volume</div>
+        <div class="fx-desc">Overall output level</div>
+        <input type="range" class="fx-slider" id="fxVolume" min="0" max="2" step="0.01" value="1" oninput="applyFxFromSliders()">
+      </div>
+    </div>
+
+    <button class="fx-reset-btn" onclick="resetFxRack()">↺ Reset All Effects</button>
+  </div>
+</div>
+
+<!-- ══ ACHIEVEMENTS MODAL ══ -->
+<div class="song-modal-bg" id="achievementsModal">
+  <div class="song-modal" style="max-width:460px">
+    <div class="sm-title">🏅 Music Achievements <button class="sm-close" onclick="closeAchievementsModal()">✕</button></div>
+    <div id="achievementsGrid" class="ach-grid"></div>
+  </div>
+</div>
+
+<!-- ══ ACHIEVEMENT TOAST ══ -->
+<div class="ach-toast" id="achToast">
+  <div class="ach-toast-ico" id="achToastIco">🏅</div>
+  <div>
+    <div class="ach-toast-title">Achievement Unlocked!</div>
+    <div class="ach-toast-name" id="achToastName"></div>
+    <div class="ach-toast-desc" id="achToastDesc"></div>
+  </div>
+</div>
+
+<div id="mmToast"></div>
+
+<script>
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+let musicState = {
+  my: [], partner: [],
+  currentPlaylist: 'my', currentIdx: -1,
+  playing: false, shuffle: false, repeat: false,
+  recordings: [],
+};
+let movieState = {
+  movies: [],
+  filter: 'all',
+  tab: 'my',
+  editId: null,
+  detailId: null,
+  pendingPoster: '',
+  pendingRating: 0,
+};
+let pendingSongData = null, pendingPlaylist = 'my', pendingSongArt = '';
+let currentMusicSection = 'music', currentPlTab = 'my';
+
+const audio = document.getElementById('audioPlayer');
+const EMOJIS_M = ['🎵','🎶','🎸','🎹','🎺','🎻','🥁','🎼','🎤','🎧','🎷','🪗'];
+
+// ══════════════════════════════════════
+// PERSIST
+// ══════════════════════════════════════
+function saveMusicLocal() {
+  try {
+    const meta = {
+      my: musicState.my.map(t=>({...t, audioData: null})),
+      partner: musicState.partner.map(t=>({...t, audioData: null})),
+      _syncTs: Date.now(),
+      _role: musicState._role || 'unknown'
+    };
+    localStorage.setItem('us_music_meta_v2', JSON.stringify(meta));
+    musicState.my.forEach(t => { if(t.audioData) { try { localStorage.setItem('us_aud_'+t.id, t.audioData); } catch(e){} } });
+    musicState.partner.forEach(t => { if(t.audioData) { try { localStorage.setItem('us_aud_'+t.id, t.audioData); } catch(e){} } });
+  } catch(e) { showMMToast('Storage full — some songs may not save'); }
+}
+function loadMusicLocal() {
+  try {
+    const meta = localStorage.getItem('us_music_meta_v2');
+    if (!meta) return;
+    const d = JSON.parse(meta);
+    ['my','partner'].forEach(pl => {
+      musicState[pl] = (d[pl]||[]).map(t => {
+        let aud = null;
+        try { aud = localStorage.getItem('us_aud_'+t.id); } catch(e){}
+        return { favorite:false, playCount:0, lastPlayed:null, lyrics:'', ...t, audioData: aud };
+      });
+    });
+  } catch(e){}
+}
+function saveMovieLocal() {
+  try { localStorage.setItem('us_movies_v2', JSON.stringify(movieState.movies)); } catch(e){}
+}
+function loadMovieLocal() {
+  try {
+    const d = localStorage.getItem('us_movies_v2');
+    if (d) movieState.movies = JSON.parse(d);
+  } catch(e){}
+}
+
+// ══════════════════════════════════════
+// MAIN TABS
+// ══════════════════════════════════════
+function switchMainTab(tab, el) {
+  currentMusicSection = tab;
+  document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('section-music').style.display = tab==='music' ? 'block' : 'none';
+  document.getElementById('section-movies').style.display = tab==='movies' ? 'block' : 'none';
+  if (tab === 'movies') { renderMovieStats(); renderMovies(); }
+}
+function switchPlTab(tab, el) {
+  currentPlTab = tab;
+  document.querySelectorAll('.pl-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  ['my','partner','karaoke','videos','favorites','recent'].forEach(id => {
+    const sec = document.getElementById('pl-'+id);
+    if (sec) sec.style.display = (tab===id) ? 'block' : 'none';
+  });
+  if (tab==='favorites') renderFavorites();
+  if (tab==='recent') renderRecent();
+  if (tab==='karaoke') renderKaraokeList();
+}
+
+// ══════════════════════════════════════
+// FILE UPLOAD
+// ══════════════════════════════════════
+let uploadQueue = [];
+function handleFileUpload(e, playlist) {
+  const files = Array.from(e.target.files).filter(f => f.type.startsWith('audio/') || f.name.match(/\.(mp3|m4a|wav|ogg|flac|aac|opus)$/i));
+  if (!files.length) { showMMToast('No valid audio files selected'); return; }
+  pendingPlaylist = playlist;
+  uploadQueue = [...files];
+  processNextUpload();
+}
+function processNextUpload() {
+  if (!uploadQueue.length) return;
+  const file = uploadQueue.shift();
+  const reader = new FileReader();
+  reader.onload = e => {
+    const audioData = e.target.result;
+    const tmpAudio = new Audio(audioData);
+    tmpAudio.onloadedmetadata = () => {
+      const dur = Math.floor(tmpAudio.duration || 0);
+      let name = file.name.replace(/\.[^/.]+$/,'');
+      let title = name, artist = 'Unknown Artist';
+      const di = name.indexOf(' - ');
+      if (di > -1) { artist = name.slice(0,di).trim(); title = name.slice(di+3).trim(); }
+      pendingSongData = { audioData, durationSec: dur, durationFmt: fmtTime(dur) };
+      document.getElementById('smTitle').value = title;
+      document.getElementById('smArtist').value = artist;
+      pendingSongArt = '';
+      document.getElementById('smArtPreview').style.display = 'none';
+      document.getElementById('smVis').value = 'both';
+      document.getElementById('songModal').classList.add('open');
+    };
+    tmpAudio.onerror = () => {
+      pendingSongData = { audioData, durationSec: 0, durationFmt: '' };
+      document.getElementById('smTitle').value = file.name.replace(/\.[^/.]+$/,'');
+      document.getElementById('smArtist').value = '';
+      document.getElementById('songModal').classList.add('open');
+    };
+  };
+  reader.readAsDataURL(file);
+}
+function loadSongArt(input) {
+  if (!input.files[0]) return;
+  const r = new FileReader();
+  r.onload = e => {
+    pendingSongArt = e.target.result;
+    const img = document.getElementById('smArtPreview');
+    img.src = pendingSongArt; img.style.display = 'block';
+  };
+  r.readAsDataURL(input.files[0]);
+}
+function closeSongModal() {
+  document.getElementById('songModal').classList.remove('open');
+  pendingSongData = null;
+  if (uploadQueue.length) setTimeout(processNextUpload, 300);
+}
+function confirmSongSave() {
+  if (!pendingSongData) { closeSongModal(); return; }
+  setTimeout(checkAchievements, 500); // check after track is pushed
+  const track = {
+    id: Date.now() + Math.random(),
+    title: document.getElementById('smTitle').value.trim() || 'Untitled',
+    artist: document.getElementById('smArtist').value.trim() || 'Unknown Artist',
+    artData: pendingSongArt,
+    audioData: pendingSongData.audioData,
+    durationSec: pendingSongData.durationSec,
+    durationFmt: pendingSongData.durationFmt,
+    visibility: document.getElementById('smVis').value,
+    emoji: EMOJIS_M[Math.floor(Math.random()*EMOJIS_M.length)],
+    date: new Date().toISOString().slice(0,10),
+    favorite: false, playCount: 0, lastPlayed: null, lyrics: '',
+  };
+  musicState[pendingPlaylist].push(track);
+  saveMusicLocal();
+  renderMusicTracks();
+  closeSongModal();
+  showMMToast('Song added! 🎵');
+  if (pendingPlaylist === 'my') onMySongAdded();
+  if (!musicState.playing) playTrack(pendingPlaylist, musicState[pendingPlaylist].length-1);
+}
+
+// ══════════════════════════════════════
+// RENDER MUSIC
+// ══════════════════════════════════════
+function renderMusicTracks() {
+  renderPlaylist('my');
+  renderPlaylist('partner');
+  renderFavorites();
+  renderRecent();
+  renderKaraokeList();
+}
+function renderTrackRow(t, pl, i, isActive) {
+  return `<div class="track-item${isActive?' active':''}" onclick="playTrack('${pl}',${i})">
+    <div class="track-num">${i+1}</div>
+    <div class="track-playing-anim"><div class="bar-anim"></div><div class="bar-anim"></div><div class="bar-anim"></div></div>
+    <div class="track-art">${t.artData?`<img src="${t.artData}" alt="">`:`<span>${t.emoji||'🎵'}</span>`}</div>
+    <div class="track-info">
+      <div class="track-title">${escH(t.title)}${t.favorite?' <span class="track-fav-badge">❤️</span>':''}</div>
+      <div class="track-artist">${escH(t.artist||'Unknown Artist')}</div>
+    </div>
+    <div class="track-dur">${t.durationFmt||''}</div>
+    <button class="track-more" onclick="event.stopPropagation();openActionSheet('${pl}',${i})" title="More">⋯</button>
+    <button class="track-del" onclick="event.stopPropagation();deleteTrack('${pl}',${i})" title="Delete">🗑️</button>
+  </div>`;
+}
+function renderPlaylist(pl) {
+  const tracks = musicState[pl];
+  const el = document.getElementById(pl+'TrackList');
+  const statsEl = document.getElementById(pl==='my'?'myMusicStats':'ptMusicStats');
+  const totalDur = tracks.reduce((s,t)=>s+(t.durationSec||0),0);
+  if (statsEl) statsEl.textContent = `${tracks.length} song${tracks.length!==1?'s':''} · ${fmtDurLong(totalDur)}`;
+  if (!tracks.length) {
+    el.innerHTML = `<div class="empty-pl"><div class="empty-pl-ico">${pl==='my'?'🎵':'💜'}</div><div class="empty-pl-text">${pl==='my'?'Your playlist is empty<br>Upload songs from your phone!':'No songs added yet for partner'}</div></div>`;
+    return;
+  }
+  el.innerHTML = tracks.map((t, i) => renderTrackRow(t, pl, i, musicState.currentPlaylist===pl && musicState.currentIdx===i)).join('');
+}
+function getAllTracks() {
+  return [...musicState.my.map((t,i)=>({t,pl:'my',i})), ...musicState.partner.map((t,i)=>({t,pl:'partner',i}))];
+}
+function renderFavorites() {
+  const el = document.getElementById('favTrackList'); if (!el) return;
+  const favs = getAllTracks().filter(x=>x.t.favorite);
+  const statsEl = document.getElementById('favMusicStats');
+  if (statsEl) statsEl.textContent = `${favs.length} song${favs.length!==1?'s':''}`;
+  el.innerHTML = favs.length
+    ? favs.map(x => renderTrackRow(x.t, x.pl, x.i, musicState.currentPlaylist===x.pl && musicState.currentIdx===x.i)).join('')
+    : `<div class="empty-pl"><div class="empty-pl-ico">❤️</div><div class="empty-pl-text">No favorites yet — tap ⋯ on any song to add one</div></div>`;
+}
+function renderRecent() {
+  const el = document.getElementById('recentTrackList'); if (!el) return;
+  const recents = getAllTracks().filter(x=>x.t.lastPlayed).sort((a,b)=>(b.t.lastPlayed||0)-(a.t.lastPlayed||0)).slice(0,30);
+  const statsEl = document.getElementById('recentMusicStats');
+  if (statsEl) statsEl.textContent = `${recents.length} song${recents.length!==1?'s':''}`;
+  el.innerHTML = recents.length
+    ? recents.map(x => renderTrackRow(x.t, x.pl, x.i, musicState.currentPlaylist===x.pl && musicState.currentIdx===x.i)).join('')
+    : `<div class="empty-pl"><div class="empty-pl-ico">🕒</div><div class="empty-pl-text">Nothing played yet</div></div>`;
+}
+function renderKaraokeList() {
+  const el = document.getElementById('karaokeTrackList'); if (!el) return;
+  const all = getAllTracks();
+  el.innerHTML = all.map(x => renderTrackRow(x.t, x.pl, x.i, musicState.currentPlaylist===x.pl && musicState.currentIdx===x.i)).join('');
+}
+
+// ══════════════════════════════════════
+// PLAYBACK
+// ══════════════════════════════════════
+function playTrack(pl, idx) {
+  const t = musicState[pl][idx]; if (!t) return;
+  if (!t.audioData) { showMMToast('Audio not available — re-upload song'); return; }
+  musicState.currentPlaylist = pl;
+  musicState.currentIdx = idx;
+  audio.src = t.audioData;
+  audio.play().then(() => {
+    musicState.playing = true;
+    t.playCount = (t.playCount||0) + 1;
+    t.lastPlayed = Date.now();
+    saveMusicLocal();
+    updateNowPlaying(t);
+    updatePlayBtn();
+    renderMusicTracks();
+    document.getElementById('nowPlayingBar').classList.remove('hidden');
+  }).catch(e => showMMToast('Cannot play: ' + e.message));
+}
+function togglePlay() {
+  if (!audio.src || audio.src === window.location.href) { showMMToast('Select a song first'); return; }
+  if (musicState.playing) { audio.pause(); musicState.playing = false; }
+  else { audio.play(); musicState.playing = true; }
+  updatePlayBtn();
+  updateNPArt();
+}
+function prevSong() {
+  const tracks = musicState[musicState.currentPlaylist];
+  if (!tracks.length) return;
+  let idx = musicState.currentIdx - 1;
+  if (idx < 0) idx = tracks.length - 1;
+  playTrack(musicState.currentPlaylist, idx);
+}
+function nextSong() {
+  const tracks = musicState[musicState.currentPlaylist];
+  if (!tracks.length) return;
+  let idx = musicState.shuffle ? Math.floor(Math.random()*tracks.length) : musicState.currentIdx + 1;
+  if (idx >= tracks.length) idx = 0;
+  playTrack(musicState.currentPlaylist, idx);
+}
+function playAll(pl) {
+  const tracks = musicState[pl]; if (!tracks.length) { showMMToast('No songs to play'); return; }
+  playTrack(pl, musicState.shuffle ? Math.floor(Math.random()*tracks.length) : 0);
+}
+function toggleShuffle() {
+  musicState.shuffle = !musicState.shuffle;
+  document.getElementById('shuffleBtn').classList.toggle('active', musicState.shuffle);
+  document.getElementById('myShufflePill').classList.toggle('active', musicState.shuffle);
+  showMMToast(musicState.shuffle ? 'Shuffle on 🔀' : 'Shuffle off');
+}
+function toggleRepeat() {
+  musicState.repeat = !musicState.repeat;
+  audio.loop = musicState.repeat;
+  document.getElementById('repeatBtn').classList.toggle('active', musicState.repeat);
+  document.getElementById('myRepeatPill').classList.toggle('active', musicState.repeat);
+  showMMToast(musicState.repeat ? 'Repeat on 🔁' : 'Repeat off');
+}
+function seekSong(e) {
+  if (!audio.duration) return;
+  const bar = document.getElementById('npProgressArea');
+  const rect = bar.getBoundingClientRect();
+  audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
+}
+function deleteTrack(pl, i) {
+  if (!confirm('Delete this song?')) return;
+  const t = musicState[pl][i];
+  try { localStorage.removeItem('us_aud_'+t.id); } catch(e){}
+  if (musicState.currentPlaylist===pl && musicState.currentIdx===i) {
+    audio.pause(); musicState.playing=false; musicState.currentIdx=-1;
+    document.getElementById('nowPlayingBar').classList.add('hidden');
+    updatePlayBtn();
+  }
+  musicState[pl].splice(i,1);
+  saveMusicLocal(); renderMusicTracks();
+  showMMToast('Song deleted');
+  if (pl === 'my') onMySongAdded(); // push deletion to cloud
+}
+function updateNowPlaying(t) {
+  document.getElementById('npTitle').textContent = t.title;
+  document.getElementById('npArtist').textContent = t.artist || 'Unknown Artist';
+  const art = document.getElementById('npArt');
+  if (t.artData) { art.innerHTML = `<img src="${t.artData}" alt="">`; }
+  else { art.innerHTML = `<span id="npEmoji">${t.emoji||'🎵'}</span>`; }
+  updateNPArt();
+}
+function updateNPArt() {
+  document.getElementById('npArt').classList.toggle('spinning', musicState.playing);
+}
+function updatePlayBtn() {
+  document.getElementById('playBtn').textContent = musicState.playing ? '⏸' : '▶';
+}
+
+audio.addEventListener('timeupdate', () => {
+  if (!audio.duration) return;
+  document.getElementById('npBarFill').style.width = (audio.currentTime/audio.duration*100)+'%';
+  document.getElementById('npCurrent').textContent = fmtTime(audio.currentTime);
+  document.getElementById('npDuration').textContent = fmtTime(audio.duration);
+});
+audio.addEventListener('ended', () => { if (!musicState.repeat) nextSong(); });
+audio.addEventListener('pause', () => { musicState.playing=false; updatePlayBtn(); updateNPArt(); });
+audio.addEventListener('play', () => { musicState.playing=true; updatePlayBtn(); updateNPArt(); });
+
+// ══════════════════════════════════════
+// AUDIO FX RACK (Phase 4)
+// ══════════════════════════════════════
+let fxNodes = {
+  masterGain: null,
+  bassFilter: null,
+  trebleFilter: null,
+  delayNode: null,
+  delayGain: null,
+  convolverNode: null,
+  convolverGain: null,
+};
+let fxState = {
+  reverb: false, delay: false, pitch: false, bass: false, treble: false,
+  reverbAmt: 0, delayAmt: 0, pitchAmt: 0, bassAmt: 0, trebleAmt: 0,
+  volume: 1, activePreset: 'flat'
+};
+// Pitch is implemented via playbackRate approximation (no phase vocoder needed for sing-along)
+// 1 semitone ≈ playbackRate * 2^(1/12)
+function semitoneToRate(semitones) {
+  return Math.pow(2, semitones / 12);
+}
+
+function ensureFxGraph() {
+  if (!karaokeAudioCtx) return;
+  const ctx = karaokeAudioCtx;
+  // Master gain
+  if (!fxNodes.masterGain) {
+    fxNodes.masterGain = ctx.createGain();
+    fxNodes.masterGain.gain.value = 1;
+  }
+  // Bass boost (lowshelf)
+  if (!fxNodes.bassFilter) {
+    fxNodes.bassFilter = ctx.createBiquadFilter();
+    fxNodes.bassFilter.type = 'lowshelf';
+    fxNodes.bassFilter.frequency.value = 200;
+    fxNodes.bassFilter.gain.value = 0;
+  }
+  // Treble boost (highshelf)
+  if (!fxNodes.trebleFilter) {
+    fxNodes.trebleFilter = ctx.createBiquadFilter();
+    fxNodes.trebleFilter.type = 'highshelf';
+    fxNodes.trebleFilter.frequency.value = 5000;
+    fxNodes.trebleFilter.gain.value = 0;
+  }
+  // Delay
+  if (!fxNodes.delayNode) {
+    fxNodes.delayNode = ctx.createDelay(1.0);
+    fxNodes.delayNode.delayTime.value = 0.2;
+    fxNodes.delayGain = ctx.createGain();
+    fxNodes.delayGain.gain.value = 0;
+    fxNodes.delayNode.connect(fxNodes.delayGain);
+    fxNodes.delayGain.connect(fxNodes.delayNode); // feedback loop (capped by gain)
+  }
+  // Convolver (reverb) — use a simple synthetic impulse
+  if (!fxNodes.convolverNode) {
+    fxNodes.convolverNode = ctx.createConvolver();
+    fxNodes.convolverGain = ctx.createGain();
+    fxNodes.convolverGain.gain.value = 0;
+    fxNodes.convolverNode.connect(fxNodes.convolverGain);
+    // Generate impulse response
+    _buildReverbImpulse(ctx);
+  }
+}
+
+function _buildReverbImpulse(ctx, duration = 2.5, decay = 2.0) {
+  const len = ctx.sampleRate * duration;
+  const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) {
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+    }
+  }
+  if (fxNodes.convolverNode) fxNodes.convolverNode.buffer = buf;
+}
+
+function rebuildFxChain() {
+  // This function is called after ensureKaraokeAudioGraph() has already
+  // connected: source -> karaokeAnalyser -> destination
+  // We intercept by connecting masterGain into destination and
+  // routing the dry + wet signals through our chain.
+  // Note: since the source is already connected we manage gain values
+  // rather than rewiring the graph (avoids AudioContext errors).
+  ensureFxGraph();
+  if (!karaokeAudioCtx || !fxNodes.masterGain) return;
+  // Apply current state values to nodes
+  applyFxToNodes();
+}
+
+function applyFxToNodes() {
+  if (!fxNodes.masterGain) return;
+  // Master volume
+  fxNodes.masterGain.gain.value = fxState.volume;
+  audio.volume = Math.min(1, fxState.volume); // also set native volume as fallback
+  // Bass
+  if (fxNodes.bassFilter) {
+    fxNodes.bassFilter.gain.value = fxState.bass ? fxState.bassAmt : 0;
+  }
+  // Treble
+  if (fxNodes.trebleFilter) {
+    fxNodes.trebleFilter.gain.value = fxState.treble ? fxState.trebleAmt : 0;
+  }
+  // Delay feedback gain
+  if (fxNodes.delayGain) {
+    fxNodes.delayGain.gain.value = fxState.delay ? Math.min(0.6, fxState.delayAmt * 0.6) : 0;
+    if (fxNodes.delayNode) fxNodes.delayNode.delayTime.value = Math.max(0.05, fxState.delayAmt * 0.8);
+  }
+  // Reverb wet gain
+  if (fxNodes.convolverGain) {
+    fxNodes.convolverGain.gain.value = fxState.reverb ? fxState.reverbAmt * 1.2 : 0;
+  }
+  // Pitch via playbackRate
+  const rate = fxState.pitch ? semitoneToRate(fxState.pitchAmt) : 1;
+  if (audio.playbackRate !== rate) audio.playbackRate = rate;
+}
+
+function applyFxFromSliders() {
+  fxState.reverbAmt  = parseFloat(document.getElementById('fxReverb').value);
+  fxState.delayAmt   = parseFloat(document.getElementById('fxDelay').value);
+  fxState.pitchAmt   = parseFloat(document.getElementById('fxPitch').value);
+  fxState.bassAmt    = parseFloat(document.getElementById('fxBass').value);
+  fxState.trebleAmt  = parseFloat(document.getElementById('fxTreble').value);
+  fxState.volume     = parseFloat(document.getElementById('fxVolume').value);
+  // Auto-enable toggle when slider is moved away from zero
+  if (fxState.reverbAmt > 0)  { fxState.reverb  = true; _syncFxToggle('reverb'); }
+  if (fxState.delayAmt > 0)   { fxState.delay   = true; _syncFxToggle('delay'); }
+  if (fxState.pitchAmt !== 0) { fxState.pitch   = true; _syncFxToggle('pitch'); }
+  if (fxState.bassAmt !== 0)  { fxState.bass    = true; _syncFxToggle('bass'); }
+  if (fxState.trebleAmt !== 0){ fxState.treble  = true; _syncFxToggle('treble'); }
+  applyFxToNodes();
+  // Clear active preset label when manually tweaking
+  fxState.activePreset = 'custom';
+  document.querySelectorAll('.fx-preset').forEach(p => p.classList.remove('active'));
+}
+
+function toggleFxNode(name) {
+  fxState[name] = !fxState[name];
+  _syncFxToggle(name);
+  applyFxToNodes();
+}
+
+function _syncFxToggle(name) {
+  const idMap = { reverb:'fxReverbToggle', delay:'fxDelayToggle', pitch:'fxPitchToggle', bass:'fxBassToggle', treble:'fxTrebleToggle' };
+  const el = document.getElementById(idMap[name]);
+  if (el) el.classList.toggle('on', fxState[name]);
+}
+
+const FX_PRESETS = {
+  flat:     { reverb:0,   delay:0,    pitch:0,   bass:0,    treble:0,  volume:1 },
+  studio:   { reverb:0.3, delay:0.05, pitch:0,   bass:2,    treble:3,  volume:1 },
+  bathroom: { reverb:0.7, delay:0.1,  pitch:0,   bass:-2,   treble:4,  volume:1 },
+  stadium:  { reverb:0.9, delay:0.25, pitch:0,   bass:4,    treble:1,  volume:1.1 },
+  deep:     { reverb:0.2, delay:0,    pitch:-3,  bass:8,    treble:-3, volume:1 },
+  bright:   { reverb:0.1, delay:0,    pitch:2,   bass:-4,   treble:8,  volume:1 },
+};
+
+function applyFxPreset(name, el) {
+  const p = FX_PRESETS[name]; if (!p) return;
+  fxState.reverbAmt  = p.reverb;
+  fxState.delayAmt   = p.delay;
+  fxState.pitchAmt   = p.pitch;
+  fxState.bassAmt    = p.bass;
+  fxState.trebleAmt  = p.treble;
+  fxState.volume     = p.volume;
+  fxState.reverb     = p.reverb > 0;
+  fxState.delay      = p.delay > 0;
+  fxState.pitch      = p.pitch !== 0;
+  fxState.bass       = p.bass !== 0;
+  fxState.treble     = p.treble !== 0;
+  fxState.activePreset = name;
+  // Sync sliders
+  document.getElementById('fxReverb').value  = p.reverb;
+  document.getElementById('fxDelay').value   = p.delay;
+  document.getElementById('fxPitch').value   = p.pitch;
+  document.getElementById('fxBass').value    = p.bass;
+  document.getElementById('fxTreble').value  = p.treble;
+  document.getElementById('fxVolume').value  = p.volume;
+  // Sync toggles
+  ['reverb','delay','pitch','bass','treble'].forEach(n => _syncFxToggle(n));
+  // Highlight preset pill
+  document.querySelectorAll('.fx-preset').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+  applyFxToNodes();
+  showMMToast('Preset: ' + name.charAt(0).toUpperCase() + name.slice(1) + ' 🎛');
+}
+
+function resetFxRack() {
+  applyFxPreset('flat', document.querySelector('.fx-preset'));
+  showMMToast('Effects reset ↺');
+}
+
+function openFxRack() {
+  ensureFxGraph();
+  rebuildFxChain();
+  document.getElementById('fxRackOverlay').classList.add('open');
+  const fxBtn = document.getElementById('karaokeOpenFx');
+  if (fxBtn) fxBtn.classList.add('active');
+  flagAch('fxUsed');
+}
+
+function closeFxRack() {
+  document.getElementById('fxRackOverlay').classList.remove('open');
+  const fxBtn = document.getElementById('karaokeOpenFx');
+  if (fxBtn) fxBtn.classList.remove('active');
+}
+
+// ══════════════════════════════════════
+// MUSIC CLOUD SYNC (Phase 3)
+// ══════════════════════════════════════
+const MUSIC_API = (function() {
+  // Reuse the same API base as index.html — read from parent frame or fallback
+  try { return window.parent.API || 'https://us-app-api.onrender.com'; }
+  catch(e) { return 'https://us-app-api.onrender.com'; }
+})();
+
+async function musicApi(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  try {
+    const r = await fetch(MUSIC_API + path, opts);
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'API error');
+    return data;
+  } catch(e) { throw e; }
+}
+
+// Read coupleId + role from parent index.html S object, or localStorage fallback
+function getMusicCoupleCtx() {
+  try {
+    const parentS = window.parent.S;
+    if (parentS && parentS.coupleId) {
+      return {
+        coupleId: parentS.coupleId,
+        role: parentS.role || 'user1',
+        myName: parentS.myName || 'You',
+        partnerName: parentS.partnerName || 'Partner'
+      };
+    }
+  } catch(e) {}
+  // Fallback: read from localStorage key used by index.html
+  try {
+    const raw = localStorage.getItem('uwl_v5');
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (d.coupleId) return {
+        coupleId: d.coupleId,
+        role: d.role || 'user1',
+        myName: d.myName || 'You',
+        partnerName: d.partnerName || 'Partner'
+      };
+    }
+  } catch(e) {}
+  return null;
+}
+
+// Save my playlist metadata to cloud (no audioData — too large)
+async function syncMusicToCloud() {
+  const ctx = getMusicCoupleCtx();
+  if (!ctx) return;
+  try {
+    const payload = {
+      [`music_${ctx.role}`]: {
+        tracks: musicState[ctx.role === 'user1' ? 'my' : 'my'].map(t => ({
+          id: t.id, title: t.title, artist: t.artist,
+          artData: t.artData || null,
+          durationSec: t.durationSec, durationFmt: t.durationFmt,
+          visibility: t.visibility, emoji: t.emoji, date: t.date,
+          favorite: t.favorite, playCount: t.playCount,
+          lastPlayed: t.lastPlayed, lyrics: t.lyrics
+        })),
+        _ts: Date.now()
+      }
+    };
+    await musicApi('POST', '/api/data/state', {
+      coupleId: ctx.coupleId,
+      state: payload
+    });
+  } catch(e) { console.warn('Music cloud sync failed:', e.message); }
+}
+
+// Load partner playlist metadata from cloud
+async function loadPartnerMusicFromCloud() {
+  const ctx = getMusicCoupleCtx();
+  if (!ctx) return;
+  try {
+    const state = await musicApi('GET', '/api/data/state/' + ctx.coupleId);
+    if (!state) return;
+    const partnerRole = ctx.role === 'user1' ? 'user2' : 'user1';
+    const partnerMusic = state[`music_${partnerRole}`];
+    if (!partnerMusic || !partnerMusic.tracks) return;
+
+    // Merge: keep existing partner tracks that have audioData locally,
+    // update metadata from cloud for any track we already have,
+    // add new track stubs for ones we don't have audio for yet.
+    const existing = musicState.partner;
+    const merged = partnerMusic.tracks.map(cloudTrack => {
+      const local = existing.find(t => t.id === cloudTrack.id);
+      return {
+        ...cloudTrack,
+        audioData: local ? local.audioData : null, // preserve local audio
+      };
+    });
+    musicState.partner = merged;
+    saveMusicLocal();
+    renderMusicTracks();
+  } catch(e) { console.warn('Partner music load failed:', e.message); }
+}
+
+// Called when a song is uploaded to "My Playlist" — push metadata to cloud
+async function onMySongAdded() {
+  await syncMusicToCloud();
+}
+
+// Poll for partner music every 8 seconds (matches index.html's 5s poll rhythm)
+let _musicSyncInterval = null;
+function startMusicSync() {
+  if (_musicSyncInterval) return;
+  const ctx = getMusicCoupleCtx();
+  if (!ctx) return;
+  musicState._role = ctx.role;
+  // Load once immediately
+  loadPartnerMusicFromCloud();
+  _musicSyncInterval = setInterval(loadPartnerMusicFromCloud, 8000);
+}
+
+// ══════════════════════════════════════
+// ACHIEVEMENTS (Phase 4)
+// ══════════════════════════════════════
+const MUSIC_ACHIEVEMENTS = [
+  { id:'first_song',    ico:'🎵', name:'First Note',       desc:'Upload your first song',              check: () => (musicState.my.length + musicState.partner.length) >= 1 },
+  { id:'five_songs',    ico:'🎶', name:'Growing Collection',desc:'Upload 5 songs total',                check: () => (musicState.my.length + musicState.partner.length) >= 5 },
+  { id:'ten_songs',     ico:'🎸', name:'Music Lover',       desc:'Upload 10 songs total',               check: () => (musicState.my.length + musicState.partner.length) >= 10 },
+  { id:'first_fav',     ico:'❤️', name:'Fan',               desc:'Mark your first favorite song',       check: () => getAllTracks().some(x => x.t.favorite) },
+  { id:'five_favs',     ico:'💕', name:'True Fan',           desc:'Mark 5 favorite songs',               check: () => getAllTracks().filter(x => x.t.favorite).length >= 5 },
+  { id:'first_lyrics',  ico:'📜', name:'Poet',               desc:'Add lyrics to a song',                check: () => getAllTracks().some(x => x.t.lyrics && x.t.lyrics.trim().length > 10) },
+  { id:'first_karaoke', ico:'🎤', name:'Stage Fright',       desc:'Open Karaoke Mode for the first time',check: () => !!(musicState._achFlags || {}).karaokeOpened },
+  { id:'first_rec',     ico:'🎙', name:'On Air',             desc:'Save your first recording',           check: () => (musicState.recordings || []).length >= 1 },
+  { id:'three_recs',    ico:'🏆', name:'Recording Artist',   desc:'Save 3 recordings',                   check: () => (musicState.recordings || []).length >= 3 },
+  { id:'playlist_both', ico:'👫', name:'Our Soundtrack',     desc:'Both playlists have at least 1 song', check: () => musicState.my.length >= 1 && musicState.partner.length >= 1 },
+  { id:'fx_used',       ico:'🎛', name:'Sound Engineer',     desc:'Use the audio effects rack',          check: () => !!(musicState._achFlags || {}).fxUsed },
+  { id:'played_50',     ico:'🔥', name:'On Repeat',          desc:'Play songs 50 times combined',        check: () => getAllTracks().reduce((s,x) => s + (x.t.playCount||0), 0) >= 50 },
+];
+
+function checkAchievements() {
+  if (!musicState._achievements) musicState._achievements = [];
+  MUSIC_ACHIEVEMENTS.forEach(ach => {
+    if (musicState._achievements.includes(ach.id)) return; // already earned
+    try {
+      if (ach.check()) {
+        musicState._achievements.push(ach.id);
+        saveMusicLocal();
+        showAchievementToast(ach);
+      }
+    } catch(e) {}
+  });
+}
+
+let _achToastTimer;
+function showAchievementToast(ach) {
+  const toast = document.getElementById('achToast');
+  document.getElementById('achToastIco').textContent = ach.ico;
+  document.getElementById('achToastName').textContent = ach.name;
+  document.getElementById('achToastDesc').textContent = ach.desc;
+  toast.classList.add('show');
+  clearTimeout(_achToastTimer);
+  _achToastTimer = setTimeout(() => toast.classList.remove('show'), 4000);
+}
+
+function openAchievementsModal() {
+  const grid = document.getElementById('achievementsGrid');
+  const earned = musicState._achievements || [];
+  grid.innerHTML = MUSIC_ACHIEVEMENTS.map(ach => {
+    const isEarned = earned.includes(ach.id);
+    return `<div class="ach-card${isEarned ? ' unlocked' : ' ach-card-locked'}">
+      <div class="ach-card-ico">${isEarned ? ach.ico : '🔒'}</div>
+      <div class="ach-card-name">${ach.name}</div>
+      <div class="ach-card-desc">${ach.desc}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('achievementsModal').classList.add('open');
+}
+
+function closeAchievementsModal() {
+  document.getElementById('achievementsModal').classList.remove('open');
+}
+
+// Flag helpers
+function flagAch(key) {
+  if (!musicState._achFlags) musicState._achFlags = {};
+  if (musicState._achFlags[key]) return;
+  musicState._achFlags[key] = true;
+  saveMusicLocal();
+  checkAchievements();
+}
+
+// ══════════════════════════════════════
+// MOVIES
+// ══════════════════════════════════════
+const GENRE_EMOJIS = {Romance:'💕',Action:'💥',Comedy:'😂',Drama:'🎭',Thriller:'😰',Horror:'👻','Sci-Fi':'🚀',Fantasy:'🧙',Animation:'🎨',Documentary:'📽️',Bollywood:'🎪',Other:'🎬'};
+const STATUS_LABELS = {watchlist:'🌟 Watchlist',watching:'🍿 Watching',watched:'✅ Watched'};
+const STATUS_CLS = {watchlist:'status-watchlist',watching:'status-watching',watched:'status-watched'};
+
+function switchMovieTab(tab, el) {
+  movieState.tab = tab;
+  document.querySelectorAll('.movie-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderMovies();
+}
+function setMovieFilter(f, el) {
+  movieState.filter = f;
+  document.querySelectorAll('.movie-filter').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderMovies();
+}
+function renderMovieStats() {
+  const mv = movieState.movies;
+  const watched = mv.filter(m=>m.status==='watched').length;
+  const wl = mv.filter(m=>m.status==='watchlist').length;
+  const favs = mv.filter(m=>m.fav).length;
+  const avgR = mv.length ? (mv.reduce((s,m)=>s+(m.rating||0),0)/mv.length).toFixed(1) : '—';
+  document.getElementById('movieStatsRow').innerHTML = `
+    <div class="stat-box"><div class="stat-box-n">${mv.length}</div><div class="stat-box-l">Total</div></div>
+    <div class="stat-box"><div class="stat-box-n" style="color:var(--green)">${watched}</div><div class="stat-box-l">Watched</div></div>
+    <div class="stat-box"><div class="stat-box-n" style="color:var(--yellow)">${wl}</div><div class="stat-box-l">Watchlist</div></div>
+    <div class="stat-box"><div class="stat-box-n" style="color:var(--accent2)">${favs}</div><div class="stat-box-l">Favorites</div></div>
+    <div class="stat-box"><div class="stat-box-n" style="color:var(--accent)">⭐${avgR}</div><div class="stat-box-l">Avg Rating</div></div>
+  `;
+}
+function renderMovies() {
+  renderMovieStats();
+  const q = (document.getElementById('movieSearch').value||'').toLowerCase();
+  let list = movieState.movies.filter(m => {
+    if (movieState.tab !== 'both' && m.owner !== movieState.tab) return false;
+    if (movieState.tab === 'both' && m.owner !== 'both') return false;
+    if (movieState.filter === 'watched' && m.status !== 'watched') return false;
+    if (movieState.filter === 'watchlist' && m.status !== 'watchlist') return false;
+    if (movieState.filter === 'fav' && !m.fav) return false;
+    if (q && !(m.title||'').toLowerCase().includes(q) && !(m.genre||'').toLowerCase().includes(q)) return false;
+    return true;
+  }).sort((a,b) => b.id - a.id);
+  const grid = document.getElementById('movieGrid');
+  if (!list.length) {
+    grid.innerHTML = `<div class="empty-pl" style="grid-column:1/-1"><div class="empty-pl-ico">🎬</div><div class="empty-pl-text">${movieState.movies.length ? 'No movies match your filter.' : 'No movies added yet!<br>Tap + Add Movie to start your list.'}</div></div>`;
+    return;
+  }
+  grid.innerHTML = list.map(m => `
+    <div class="movie-card" onclick="openMvDetail('${m.id}')">
+      <div class="movie-poster">
+        ${m.poster ? `<img src="${m.poster}" alt="${escH(m.title)}" loading="lazy">` : `<div class="movie-poster-placeholder">${GENRE_EMOJIS[m.genre]||'🎬'}</div>`}
+        <span class="movie-status-badge ${STATUS_CLS[m.status]||''}">${STATUS_LABELS[m.status]||''}</span>
+        <button class="movie-fav" onclick="event.stopPropagation();toggleMovieFav('${m.id}')">${m.fav?'⭐':'☆'}</button>
+        ${m.rating ? `<div class="movie-rating-overlay"><span class="movie-stars">${'⭐'.repeat(m.rating)}</span><span class="movie-rating-num">${m.rating}/5</span></div>` : ''}
+      </div>
+      <div class="movie-card-info">
+        <div class="movie-card-title">${escH(m.title)}</div>
+        <div class="movie-card-meta">
+          ${m.year ? `<span>${m.year}</span>` : ''}
+          <span class="movie-genre-tag">${GENRE_EMOJIS[m.genre]||'🎬'} ${escH(m.genre||'')}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+function toggleMovieFav(id) {
+  const m = movieState.movies.find(x=>x.id===id); if (!m) return;
+  m.fav = !m.fav; saveMovieLocal(); renderMovies();
+}
+
+// MOVIE MODAL
+function openMovieModal(editId) {
+  movieState.editId = editId || null;
+  const mv = editId ? movieState.movies.find(x=>x.id===editId) : null;
+  document.getElementById('movieModalTitle').textContent = mv ? '✏️ Edit Movie' : '🎬 Add Movie';
+  document.getElementById('mvTitle').value = mv?.title||'';
+  document.getElementById('mvYear').value = mv?.year||'';
+  document.getElementById('mvGenre').value = mv?.genre||'Romance';
+  document.getElementById('mvStatus').value = mv?.status||'watchlist';
+  document.getElementById('mvReview').value = mv?.review||'';
+  document.getElementById('mvScene').value = mv?.scene||'';
+  document.getElementById('mvOwner').value = mv?.owner||movieState.tab||'my';
+  document.getElementById('mvEditId').value = editId||'';
+  movieState.pendingPoster = mv?.poster||'';
+  movieState.pendingRating = mv?.rating||0;
+  updateMovieStarsUI(movieState.pendingRating);
+  document.getElementById('mvRating').value = movieState.pendingRating;
+  // Poster preview
+  const pc = document.getElementById('posterUploadContent');
+  if (mv?.poster) { pc.innerHTML = `<img class="mm-poster-preview" src="${mv.poster}" alt="">`; }
+  else { pc.innerHTML = `<div style="font-size:28px;margin-bottom:5px">🎬</div><div style="font-size:12px;color:var(--text3)">Upload poster</div>`; }
+  document.getElementById('movieModal').classList.add('open');
+}
+function closeMovieModal() { document.getElementById('movieModal').classList.remove('open'); }
+function loadMoviePoster(input) {
+  if (!input.files[0]) return;
+  const r = new FileReader();
+  r.onload = e => {
+    movieState.pendingPoster = e.target.result;
+    document.getElementById('posterUploadContent').innerHTML = `<img class="mm-poster-preview" src="${movieState.pendingPoster}" alt="">`;
+  };
+  r.readAsDataURL(input.files[0]);
+}
+function setMovieRating(v) {
+  movieState.pendingRating = v;
+  document.getElementById('mvRating').value = v;
+  updateMovieStarsUI(v);
+}
+function updateMovieStarsUI(v) {
+  document.querySelectorAll('.mm-star-btn').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.dataset.v) <= v);
+    btn.textContent = parseInt(btn.dataset.v) <= v ? '⭐' : '☆';
+  });
+}
+function saveMovie() {
+  const title = document.getElementById('mvTitle').value.trim();
+  if (!title) { showMMToast('Enter a movie name ⚠️'); return; }
+  const editId = document.getElementById('mvEditId').value;
+  const movie = {
+    id: editId || String(Date.now()),
+    title,
+    year: document.getElementById('mvYear').value,
+    genre: document.getElementById('mvGenre').value,
+    rating: parseInt(document.getElementById('mvRating').value)||0,
+    status: document.getElementById('mvStatus').value,
+    review: document.getElementById('mvReview').value.trim(),
+    scene: document.getElementById('mvScene').value.trim(),
+    owner: document.getElementById('mvOwner').value,
+    poster: movieState.pendingPoster,
+    fav: editId ? (movieState.movies.find(x=>x.id===editId)?.fav||false) : false,
+  };
+  if (editId) { const i = movieState.movies.findIndex(x=>x.id===editId); if(i>-1) movieState.movies[i]=movie; }
+  else movieState.movies.push(movie);
+  saveMovieLocal(); closeMovieModal(); renderMovies();
+  showMMToast(editId ? 'Movie updated! 🎬' : 'Movie added! 🎬');
+}
+
+// MOVIE DETAIL
+function openMvDetail(id) {
+  movieState.detailId = id;
+  const m = movieState.movies.find(x=>x.id===id); if (!m) return;
+  const banner = document.getElementById('mvDetailBanner');
+  banner.innerHTML = `
+    ${m.poster?`<img src="${m.poster}" alt="${escH(m.title)}">`:''}
+    <div class="mv-banner-poster">${m.poster?`<img src="${m.poster}" alt="">`:`<div class="mv-banner-poster-placeholder">${GENRE_EMOJIS[m.genre]||'🎬'}</div>`}</div>
+    <button class="mv-banner-close" onclick="closeMvDetail()">✕</button>
+    <div class="mv-banner-actions">
+      <button class="mv-banner-btn edit" onclick="editCurrentMovie()">✏️ Edit</button>
+      <button class="mv-banner-btn delete" onclick="deleteCurrentMovie()">🗑️</button>
+    </div>
+  `;
+  const stars = m.rating ? '⭐'.repeat(m.rating)+'☆'.repeat(5-m.rating) : '☆☆☆☆☆';
+  document.getElementById('mvDetailBody').innerHTML = `
+    <div class="mv-detail-title">${escH(m.title)}</div>
+    <div class="mv-detail-meta">
+      <span class="mv-stars-display">${stars}</span>
+      ${m.year?`<span class="mv-year">${m.year}</span>`:''}
+      <span class="mv-status-chip ${STATUS_CLS[m.status]||''}">${STATUS_LABELS[m.status]||''}</span>
+      <span class="movie-genre-tag">${GENRE_EMOJIS[m.genre]||'🎬'} ${escH(m.genre||'')}</span>
+    </div>
+    ${m.review?`<div class="mv-section-title">📝 My Review</div><div class="mv-section-text">${escH(m.review)}</div>`:''}
+    ${m.scene?`<div class="mv-section-title">❤️ Favorite Scene</div><div class="mv-fav-scene">${escH(m.scene)}</div>`:''}
+    <div style="margin-top:18px;display:flex;gap:9px">
+      <button onclick="toggleMovieFav('${m.id}');closeMvDetail();openMvDetail('${m.id}')" style="flex:1;padding:11px;border-radius:12px;border:1px solid var(--border);background:${m.fav?'var(--yellow-bg)':'var(--g2)'};color:${m.fav?'var(--yellow)':'var(--text2)'};cursor:pointer;font-family:var(--ff-sans);font-size:12px;font-weight:600;transition:var(--t)">${m.fav?'⭐ Unfavorite':'☆ Favorite'}</button>
+    </div>
+  `;
+  document.getElementById('mvDetailBg').classList.add('open');
+  document.getElementById('mvDetailBg').scrollTop = 0;
+}
+function closeMvDetail() { document.getElementById('mvDetailBg').classList.remove('open'); }
+function editCurrentMovie() { closeMvDetail(); openMovieModal(movieState.detailId); }
+function deleteCurrentMovie() {
+  if (!confirm('Delete this movie?')) return;
+  movieState.movies = movieState.movies.filter(x=>x.id!==movieState.detailId);
+  saveMovieLocal(); closeMvDetail(); renderMovies(); renderMovieStats();
+  showMMToast('Movie deleted');
+}
+
+// ══════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════
+function escH(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function fmtTime(s){if(isNaN(s))return'0:00';const m=Math.floor(s/60),sec=Math.floor(s%60);return m+':'+(sec+'').padStart(2,'0')}
+function fmtDurLong(sec){if(!sec)return'';const m=Math.floor(sec/60);return m>0?m+'m '+(sec%60)+'s':sec+'s'}
+let _toastT;
+function showMMToast(msg){
+  const t=document.getElementById('mmToast');
+  t.textContent=msg;t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0)';
+  clearTimeout(_toastT);_toastT=setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(-50%) translateY(12px)';},2800);
+}
+
+// Theme from parent
+window.addEventListener('message', e => {
+  if (e.data?.type==='theme') {
+    const r=document.documentElement;
+    Object.entries(e.data.vars||{}).forEach(([k,v])=>r.style.setProperty(k,v));
+  }
+});
+
+// ── KEYBOARD SHORTCUTS ──
+document.addEventListener('keydown', e => {
+  if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+  if (e.code==='Space'){e.preventDefault();togglePlay();}
+  if (e.code==='ArrowRight' && currentMusicSection==='music') nextSong();
+  if (e.code==='ArrowLeft' && currentMusicSection==='music') prevSong();
+});
+
+// ══════════════════════════════════════
+// SONG ACTION SHEET
+// ══════════════════════════════════════
+let sheetCtx = null;
+function openActionSheet(pl, idx) {
+  const t = musicState[pl][idx]; if (!t) return;
+  sheetCtx = { pl, idx };
+  const sheet = document.getElementById('actionSheet');
+  sheet.innerHTML = `
+    <div class="sheet-handle"></div>
+    <div class="sheet-track-head">
+      <div class="sheet-track-art">${t.artData?`<img src="${t.artData}" alt="">`:`<span>${t.emoji||'🎵'}</span>`}</div>
+      <div style="min-width:0">
+        <div class="sheet-title">${escH(t.title)}</div>
+        <div class="sheet-artist">${escH(t.artist||'Unknown Artist')}</div>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      ${sheetAction('▶','Play','playFromSheet()')}
+      ${sheetAction('🎤','Sing With Lyrics','singWithLyrics()')}
+      ${sheetAction('🎙','Record Solo','recordSolo()')}
+      ${sheetAction('❤️','Invite Partner','invitePartnerKaraoke()')}
+      ${sheetAction('🎧','Instrumental','instrumentalMode()')}
+      ${sheetAction('📜','Lyrics','openLyricsModal()')}
+      ${sheetAction(t.favorite?'💔':'❤️', t.favorite?'Unfavorite':'Favorite','toggleFavoriteFromSheet()')}
+      ${sheetAction('➕','Move to '+(pl==='my'?'Partner':'My')+' List','moveTrackFromSheet()')}
+      ${sheetAction('📤','Share','shareTrackFromSheet()')}
+      ${sheetAction('🗑','Delete','deleteFromSheet()', true)}
+    </div>`;
+  document.getElementById('actionSheetOverlay').classList.add('open');
+}
+function sheetAction(ico, label, fn, danger) {
+  return `<button class="sheet-action${danger?' danger':''}" onclick="${fn}">
+    <span class="sa-ico">${ico}</span><span class="sa-label">${label}</span>
+  </button>`;
+}
+function closeActionSheet() {
+  document.getElementById('actionSheetOverlay').classList.remove('open');
+  sheetCtx = null;
+}
+function playFromSheet() { if (!sheetCtx) return; playTrack(sheetCtx.pl, sheetCtx.idx); closeActionSheet(); }
+function singWithLyrics() {
+  if (!sheetCtx) return;
+  const { pl, idx } = sheetCtx;
+  closeActionSheet();
+  openKaraokeMode(pl, idx);
+}
+function recordSolo() {
+  if (!sheetCtx) return;
+  const { pl, idx } = sheetCtx;
+  closeActionSheet();
+  openKaraokeMode(pl, idx);
+  setTimeout(karaokeStartCountdown, 350);
+}
+function invitePartnerKaraoke() { closeActionSheet(); showMMToast('❤️ Duet invites ship in Phase 3!'); }
+function instrumentalMode() { closeActionSheet(); showMMToast('🎧 Instrumental Mode ships in Phase 2!'); }
+function toggleFavoriteFromSheet() {
+  if (!sheetCtx) return;
+  const t = musicState[sheetCtx.pl][sheetCtx.idx];
+  t.favorite = !t.favorite;
+  saveMusicLocal(); renderMusicTracks(); closeActionSheet();
+  showMMToast(t.favorite ? 'Added to favorites ❤️' : 'Removed from favorites');
+  if (sheetCtx.pl === 'my') onMySongAdded();
+}
+function moveTrackFromSheet() {
+  if (!sheetCtx) return;
+  const { pl, idx } = sheetCtx;
+  const [t] = musicState[pl].splice(idx, 1);
+  const target = pl === 'my' ? 'partner' : 'my';
+  musicState[target].push(t);
+  saveMusicLocal(); renderMusicTracks(); closeActionSheet();
+  showMMToast(`Moved to ${target === 'my' ? 'My' : "Partner's"} Playlist`);
+}
+function shareTrackFromSheet() {
+  if (!sheetCtx) return;
+  const t = musicState[sheetCtx.pl][sheetCtx.idx];
+  if (navigator.share) navigator.share({ title: t.title, text: `🎵 ${t.title} — ${t.artist||''}` }).catch(()=>{});
+  else showMMToast("Sharing isn't supported on this browser");
+  closeActionSheet();
+}
+function deleteFromSheet() {
+  if (!sheetCtx) return;
+  const { pl, idx } = sheetCtx;
+  closeActionSheet();
+  deleteTrack(pl, idx);
+}
+
+// ══════════════════════════════════════
+// LYRICS
+// ══════════════════════════════════════
+function openLyricsModal() {
+  if (!sheetCtx) return;
+  const t = musicState[sheetCtx.pl][sheetCtx.idx];
+  document.getElementById('lyricsText').value = t.lyrics || '';
+  document.getElementById('lyricsModal').classList.add('open');
+}
+function closeLyricsModal() { document.getElementById('lyricsModal').classList.remove('open'); }
+function saveLyrics() {
+  if (!sheetCtx) { closeLyricsModal(); return; }
+  const t = musicState[sheetCtx.pl][sheetCtx.idx];
+  t.lyrics = document.getElementById('lyricsText').value;
+  saveMusicLocal();
+  closeLyricsModal(); closeActionSheet();
+  showMMToast('Lyrics saved 📜');
+}
+
+// ══════════════════════════════════════
+// KARAOKE MODE
+// ══════════════════════════════════════
+let karaokeState = {
+  open: false, pl: null, idx: null, lyricsLines: [],
+  recState: 'idle', mediaRecorder: null, micStream: null,
+  recordedChunks: [], recordedBlob: null, recordedBlobUrl: null,
+  recordedDurationSec: 0, recStartTime: 0, recElapsedMs: 0, rafId: null,
+};
+let karaokeAudioCtx = null, karaokeAnalyser = null;
+let karaokeMicCtx = null, karaokeMicAnalyser = null;
+let karaokePreviewAudio = null;
+
+function ensureKaraokeAudioGraph() {
+  if (karaokeAudioCtx) return;
+  try {
+    karaokeAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = karaokeAudioCtx.createMediaElementSource(audio);
+    karaokeAnalyser = karaokeAudioCtx.createAnalyser();
+    karaokeAnalyser.fftSize = 256;
+    src.connect(karaokeAnalyser);
+    karaokeAnalyser.connect(karaokeAudioCtx.destination);
+  } catch(e) { /* graph may already exist on this element */ }
+}
+function ensureMicAnalyser(stream) {
+  try {
+    karaokeMicCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = karaokeMicCtx.createMediaStreamSource(stream);
+    karaokeMicAnalyser = karaokeMicCtx.createAnalyser();
+    karaokeMicAnalyser.fftSize = 256;
+    src.connect(karaokeMicAnalyser); // not connected to destination — avoids feedback
+  } catch(e) {}
+}
+
+function parseLyrics(raw) {
+  if (!raw) return [];
+  return raw.split('\n').map(l=>l.trim()).filter(l=>l.length);
+}
+
+function openKaraokeMode(pl, idx) {
+  const t = musicState[pl][idx]; if (!t) return;
+  karaokeState.pl = pl; karaokeState.idx = idx;
+  karaokeState.open = true;
+  flagAch('karaokeOpened'); // achievement flag
+  karaokeState.recState = 'idle';
+  karaokeState.lyricsLines = parseLyrics(t.lyrics);
+  document.getElementById('karaokeSongTitle').textContent = t.title;
+  document.getElementById('karaokeSongArtist').textContent = t.artist || 'Unknown Artist';
+  document.getElementById('karaokeArt').innerHTML = t.artData ? `<img src="${t.artData}" alt="">` : `<span>${t.emoji||'🎵'}</span>`;
+  renderKaraokeLyrics();
+  document.getElementById('karaokeBg').classList.add('open');
+  ensureKaraokeAudioGraph();
+  if (karaokeAudioCtx && karaokeAudioCtx.state === 'suspended') karaokeAudioCtx.resume().catch(()=>{});
+  if (!(musicState.currentPlaylist===pl && musicState.currentIdx===idx)) playTrack(pl, idx);
+  else if (!musicState.playing) audio.play().catch(()=>{});
+  updateKaraokeRecUI();
+  if (!karaokeState.rafId) karaokeDrawFrame();
+}
+function closeKaraokeMode() {
+  document.getElementById('karaokeBg').classList.remove('open');
+  document.getElementById('karaokeHistoryPanel').style.display = 'none';
+  karaokeState.open = false;
+  if (karaokeState.recState === 'recording' || karaokeState.recState === 'paused') karaokeStopRecording();
+  if (karaokeState.rafId) { cancelAnimationFrame(karaokeState.rafId); karaokeState.rafId = null; }
+  // Reset pitch/playbackRate when leaving karaoke
+  audio.playbackRate = 1;
+  closeFxRack();
+}
+
+function renderKaraokeLyrics() {
+  const el = document.getElementById('karaokeLyrics');
+  if (!karaokeState.lyricsLines.length) {
+    el.innerHTML = `<div class="karaoke-no-lyrics">📜 No lyrics added yet.<br>Close Karaoke and use ⋯ → Lyrics to add some.</div>`;
+    return;
+  }
+  el.innerHTML = karaokeState.lyricsLines.map((line,i)=>`<div class="karaoke-line" data-i="${i}" onclick="karaokeJumpToLine(${i})">${escH(line)}</div>`).join('');
+}
+function karaokeJumpToLine(i) {
+  if (!audio.duration || !karaokeState.lyricsLines.length) return;
+  audio.currentTime = (i / karaokeState.lyricsLines.length) * audio.duration;
+}
+function updateKaraokeUI() {
+  if (!karaokeState.open || !audio.duration) return;
+  const pct = audio.currentTime / audio.duration;
+  document.getElementById('karaokeProgressFill').style.width = (pct*100)+'%';
+  document.getElementById('karaokeCurTime').textContent = fmtTime(audio.currentTime);
+  document.getElementById('karaokeDurTime').textContent = fmtTime(audio.duration);
+  if (karaokeState.lyricsLines.length) {
+    const idx = Math.min(karaokeState.lyricsLines.length-1, Math.floor(pct*karaokeState.lyricsLines.length));
+    document.querySelectorAll('.karaoke-line').forEach(l=>l.classList.remove('current','next'));
+    const cur = document.querySelector(`.karaoke-line[data-i="${idx}"]`);
+    const next = document.querySelector(`.karaoke-line[data-i="${idx+1}"]`);
+    if (cur) { cur.classList.add('current'); cur.scrollIntoView({behavior:'smooth', block:'center'}); }
+    if (next) next.classList.add('next');
+  }
+}
+audio.addEventListener('timeupdate', updateKaraokeUI);
+audio.addEventListener('play', () => { if (karaokeState.open) document.getElementById('karaokePlayBtn').textContent = '⏸'; });
+audio.addEventListener('pause', () => { if (karaokeState.open) document.getElementById('karaokePlayBtn').textContent = '▶'; });
+
+function karaokeTogglePlay() {
+  if (karaokeAudioCtx && karaokeAudioCtx.state === 'suspended') karaokeAudioCtx.resume().catch(()=>{});
+  togglePlay();
+}
+function karaokeSeek(e) {
+  if (!audio.duration) return;
+  const bar = document.getElementById('karaokeProgressArea');
+  const rect = bar.getBoundingClientRect();
+  audio.currentTime = ((e.clientX-rect.left)/rect.width)*audio.duration;
+}
+function karaokeRestart() { audio.currentTime = 0; audio.play().catch(()=>{}); }
+
+function karaokeDrawFrame() {
+  if (!karaokeState.open) return;
+  const canvas = document.getElementById('karaokeWaveform');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.width = canvas.clientWidth * dpr;
+  const h = canvas.height = 54 * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,w,h);
+  const analyser = (karaokeState.recState==='recording' && karaokeMicAnalyser) ? karaokeMicAnalyser : karaokeAnalyser;
+  if (analyser) {
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(data);
+    const barCount = 40, step = Math.max(1,Math.floor(data.length/barCount)), barWidth = w/barCount;
+    for (let i=0;i<barCount;i++) {
+      const v = (data[i*step]||0)/255;
+      const barH = Math.max(3*dpr, v*h);
+      ctx.fillStyle = karaokeState.recState==='recording' ? '#f87171' : 'rgba(255,255,255,0.65)';
+      ctx.fillRect(i*barWidth + barWidth*0.15, (h-barH)/2, barWidth*0.7, barH);
+    }
+  }
+  karaokeState.rafId = requestAnimationFrame(karaokeDrawFrame);
+}
+
+// ── Countdown ──
+function karaokeStartCountdown() {
+  if (karaokeState.recState !== 'idle') return;
+  const el = document.getElementById('karaokeCountdown'), num = document.getElementById('karaokeCountdownNum');
+  el.style.display = 'flex'; let n = 3; num.textContent = n;
+  const iv = setInterval(()=>{
+    n--;
+    if (n <= 0) { clearInterval(iv); el.style.display = 'none'; karaokeBeginRecording(); }
+    else num.textContent = n;
+  }, 800);
+}
+
+// ── Recording lifecycle ──
+async function karaokeBeginRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    karaokeState.micStream = stream;
+    ensureMicAnalyser(stream);
+    karaokeState.recordedChunks = [];
+    const mr = new MediaRecorder(stream);
+    mr.ondataavailable = e => { if (e.data.size) karaokeState.recordedChunks.push(e.data); };
+    mr.onstop = karaokeOnRecordingStop;
+    karaokeState.mediaRecorder = mr;
+    karaokeState.recElapsedMs = 0;
+    karaokeState.recStartTime = Date.now();
+    mr.start();
+    karaokeState.recState = 'recording';
+    karaokeRestart();
+    updateKaraokeRecUI();
+  } catch(e) { showMMToast('Microphone access denied'); }
+}
+function karaokePauseResume() {
+  const mr = karaokeState.mediaRecorder; if (!mr) return;
+  if (karaokeState.recState === 'recording') {
+    mr.pause(); audio.pause();
+    karaokeState.recElapsedMs += Date.now() - karaokeState.recStartTime;
+    karaokeState.recState = 'paused';
+  } else if (karaokeState.recState === 'paused') {
+    mr.resume(); audio.play().catch(()=>{});
+    karaokeState.recStartTime = Date.now();
+    karaokeState.recState = 'recording';
+  }
+  updateKaraokeRecUI();
+}
+function karaokeStopRecording() {
+  const mr = karaokeState.mediaRecorder; if (!mr) return;
+  if (karaokeState.recState === 'recording') karaokeState.recElapsedMs += Date.now() - karaokeState.recStartTime;
+  try { mr.stop(); } catch(e){}
+  audio.pause();
+  if (karaokeState.micStream) karaokeState.micStream.getTracks().forEach(t=>t.stop());
+  if (karaokeMicCtx) { karaokeMicCtx.close().catch(()=>{}); karaokeMicCtx = null; karaokeMicAnalyser = null; }
+  karaokeState.recState = 'stopping';
+  updateKaraokeRecUI();
+}
+function karaokeOnRecordingStop() {
+  const blob = new Blob(karaokeState.recordedChunks, { type: 'audio/webm' });
+  if (karaokeState.recordedBlobUrl) URL.revokeObjectURL(karaokeState.recordedBlobUrl);
+  karaokeState.recordedBlob = blob;
+  karaokeState.recordedBlobUrl = URL.createObjectURL(blob);
+  karaokeState.recordedDurationSec = Math.round((karaokeState.recElapsedMs||0)/1000);
+  karaokeState.recState = 'preview';
+  updateKaraokeRecUI();
+}
+function karaokeRestartRecording() { karaokeDiscardRecording(); karaokeState.recState = 'idle'; updateKaraokeRecUI(); }
+function karaokeDiscardRecording() {
+  if (karaokeState.recordedBlobUrl) URL.revokeObjectURL(karaokeState.recordedBlobUrl);
+  karaokeState.recordedBlobUrl = null; karaokeState.recordedBlob = null; karaokeState.recordedDurationSec = 0;
+  karaokeState.recState = 'idle'; updateKaraokeRecUI();
+}
+function karaokePlayPreview() {
+  if (!karaokeState.recordedBlobUrl) return;
+  if (karaokePreviewAudio) karaokePreviewAudio.pause();
+  karaokePreviewAudio = new Audio(karaokeState.recordedBlobUrl);
+  karaokePreviewAudio.play().catch(()=>showMMToast('Cannot play preview'));
+}
+function karaokeSaveRecording() {
+  if (!karaokeState.recordedBlob) return;
+  const t = musicState[karaokeState.pl][karaokeState.idx];
+
+  // Try Supabase upload first; fall back to base64 localStorage
+  _uploadRecordingToCloud(karaokeState.recordedBlob, t).then(cloudUrl => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const rec = {
+        id: Date.now() + Math.random(),
+        trackId: t.id, trackTitle: t.title, trackArtist: t.artist,
+        type: 'solo',
+        audioData: cloudUrl ? null : e.target.result, // skip base64 if cloud succeeded
+        cloudUrl: cloudUrl || null,
+        durationSec: karaokeState.recordedDurationSec,
+        durationFmt: fmtTime(karaokeState.recordedDurationSec),
+        date: new Date().toISOString().slice(0,10),
+      };
+      if (!musicState.recordings) musicState.recordings = [];
+      musicState.recordings.unshift(rec);
+      saveRecordingsLocal();
+      karaokeDiscardRecording();
+      renderKaraokeHistory();
+      showMMToast(cloudUrl ? 'Recording saved to cloud ☁️' : 'Recording saved locally 🎙️');
+      flagAch('fxUsed'); // any save counts as engagement
+      checkAchievements();
+    };
+    if (!cloudUrl) reader.readAsDataURL(karaokeState.recordedBlob);
+    else {
+      // Still need a local stub without audioData — fire a dummy onload
+      reader.onload({ target: { result: null } });
+    }
+  });
+}
+
+async function _uploadRecordingToCloud(blob, track) {
+  const ctx = getMusicCoupleCtx(); // from Phase 3
+  if (!ctx || !ctx.coupleId) return null;
+  try {
+    const formData = new FormData();
+    formData.append('file', blob, 'recording.webm');
+    formData.append('coupleId', ctx.coupleId);
+    formData.append('trackTitle', track.title || 'recording');
+    const r = await fetch(MUSIC_API + '/api/media/upload-recording', {
+      method: 'POST',
+      body: formData
+    });
+    if (!r.ok) return null;
+    const data = await r.json();
+    return data.url || null;
+  } catch(e) {
+    console.warn('Recording upload failed:', e.message);
+    return null;
+  }
+}
+function updateKaraokeRecUI() {
+  const micBtn = document.getElementById('karaokeMicBtn');
+  const recControls = document.getElementById('karaokeRecControls');
+  const previewControls = document.getElementById('karaokePreviewControls');
+  const pauseBtn = document.getElementById('karaokePauseBtn');
+  const bg = document.getElementById('karaokeBgFx');
+  if (!micBtn) return;
+  micBtn.classList.toggle('live', karaokeState.recState==='recording');
+  micBtn.style.display = (karaokeState.recState==='idle') ? 'flex' : 'none';
+  recControls.style.display = (karaokeState.recState==='recording'||karaokeState.recState==='paused') ? 'flex' : 'none';
+  previewControls.style.display = (karaokeState.recState==='preview') ? 'flex' : 'none';
+  if (pauseBtn) pauseBtn.textContent = karaokeState.recState==='paused' ? '▶ Resume' : '⏸ Pause';
+  if (bg) bg.classList.toggle('live', karaokeState.recState==='recording');
+}
+
+// ── History ──
+function toggleKaraokeHistory() {
+  const panel = document.getElementById('karaokeHistoryPanel');
+  const showing = panel.style.display !== 'none';
+  panel.style.display = showing ? 'none' : 'block';
+  if (!showing) renderKaraokeHistory();
+}
+function renderKaraokeHistory() {
+  const panel = document.getElementById('karaokeHistoryPanel'); if (!panel) return;
+  const t = (karaokeState.pl!=null) ? musicState[karaokeState.pl][karaokeState.idx] : null;
+  const recs = (musicState.recordings||[]).filter(r => !t || r.trackId === t.id);
+  if (!recs.length) { panel.innerHTML = `<div class="empty-pl" style="padding:18px"><div class="empty-pl-ico">📼</div><div class="empty-pl-text">No recordings yet for this song</div></div>`; return; }
+  panel.innerHTML = `<div style="text-align:right;margin-bottom:10px"><button class="karaoke-icon-btn sm" onclick="toggleKaraokeHistory()">✕</button></div>` +
+    recs.map(r => `<div class="karaoke-history-row">
+      <div class="khr-info"><div class="khr-title">${escH(r.trackTitle)}</div><div class="khr-meta">${r.durationFmt||''} · ${r.date}</div></div>
+      <div class="khr-actions">
+        <button class="karaoke-icon-btn sm" onclick="playRecording(${r.id})" title="Play">▶</button>
+        <button class="karaoke-icon-btn sm" onclick="exportRecording(${r.id})" title="Export">⬇</button>
+        <button class="karaoke-icon-btn sm danger" onclick="deleteRecording(${r.id})" title="Delete">🗑</button>
+      </div>
+    </div>`).join('');
+}
+function playRecording(id) {
+  const r = (musicState.recordings||[]).find(x=>x.id===id);
+  if (!r) return;
+  const src = r.cloudUrl || r.audioData;
+  if (!src) { showMMToast('Audio not available — re-record'); return; }
+  if (karaokePreviewAudio) karaokePreviewAudio.pause();
+  karaokePreviewAudio = new Audio(src);
+  karaokePreviewAudio.play().catch(()=>showMMToast('Cannot play'));
+}
+function exportRecording(id) {
+  const r = (musicState.recordings||[]).find(x=>x.id===id); if (!r) return;
+  const a = document.createElement('a');
+  a.href = r.audioData;
+  a.download = (r.trackTitle||'recording').replace(/[^a-z0-9]/gi,'_') + '.webm';
+  a.click();
+}
+function deleteRecording(id) {
+  if (!confirm('Delete this recording?')) return;
+  try { localStorage.removeItem('us_rec_'+id); } catch(e){}
+  musicState.recordings = (musicState.recordings||[]).filter(r=>r.id!==id);
+  saveRecordingsLocal();
+  renderKaraokeHistory();
+  showMMToast('Recording deleted');
+}
+
+// ── Recordings persistence (meta + blob split, same pattern as songs) ──
+function saveRecordingsLocal() {
+  try {
+    const meta = (musicState.recordings||[]).map(r=>({...r, audioData:null}));
+    localStorage.setItem('us_recordings_meta_v1', JSON.stringify(meta));
+    (musicState.recordings||[]).forEach(r => { if (r.audioData) { try { localStorage.setItem('us_rec_'+r.id, r.audioData); } catch(e){} } });
+  } catch(e) { showMMToast('Storage full — recording may not save'); }
+}
+function loadRecordingsLocal() {
+  try {
+    const meta = localStorage.getItem('us_recordings_meta_v1');
+    if (!meta) { musicState.recordings = []; return; }
+    musicState.recordings = JSON.parse(meta).map(r => {
+      let aud = null; try { aud = localStorage.getItem('us_rec_'+r.id); } catch(e){}
+      return {...r, audioData: aud};
+    });
+  } catch(e) { musicState.recordings = []; }
+}
+
+// ── INIT ──
+loadMusicLocal();
+loadRecordingsLocal();
+loadMovieLocal();
+renderMusicTracks();
+renderMovieStats();
+checkAchievements(); // Phase 4: run on load to restore any unlocked state
+setTimeout(startMusicSync, 1200); // Phase 3 // slight delay so parent frame S is ready
+
+// Expose globals
+window.switchMainTab = switchMainTab;
+window.switchPlTab = switchPlTab;
+window.switchMovieTab = switchMovieTab;
+window.openMovieModal = openMovieModal;
+window.closeMovieModal = closeMovieModal;
+window.closeSongModal = closeSongModal;
+window.confirmSongSave = confirmSongSave;
+window.loadSongArt = loadSongArt;
+window.loadMoviePoster = loadMoviePoster;
+window.setMovieRating = setMovieRating;
+window.saveMovie = saveMovie;
+window.openMvDetail = openMvDetail;
+window.closeMvDetail = closeMvDetail;
+window.editCurrentMovie = editCurrentMovie;
+window.deleteCurrentMovie = deleteCurrentMovie;
+window.toggleMovieFav = toggleMovieFav;
+window.setMovieFilter = setMovieFilter;
+window.renderMovies = renderMovies;
+window.handleFileUpload = handleFileUpload;
+window.togglePlay = togglePlay;
+window.prevSong = prevSong;
+window.nextSong = nextSong;
+window.playAll = playAll;
+window.toggleShuffle = toggleShuffle;
+window.toggleRepeat = toggleRepeat;
+window.seekSong = seekSong;
+window.deleteTrack = deleteTrack;
+window.openActionSheet = openActionSheet;
+window.closeActionSheet = closeActionSheet;
+window.playFromSheet = playFromSheet;
+window.singWithLyrics = singWithLyrics;
+window.recordSolo = recordSolo;
+window.invitePartnerKaraoke = invitePartnerKaraoke;
+window.instrumentalMode = instrumentalMode;
+window.toggleFavoriteFromSheet = toggleFavoriteFromSheet;
+window.moveTrackFromSheet = moveTrackFromSheet;
+window.shareTrackFromSheet = shareTrackFromSheet;
+window.deleteFromSheet = deleteFromSheet;
+window.openLyricsModal = openLyricsModal;
+window.closeLyricsModal = closeLyricsModal;
+window.saveLyrics = saveLyrics;
+window.openKaraokeMode = openKaraokeMode;
+window.closeKaraokeMode = closeKaraokeMode;
+window.karaokeJumpToLine = karaokeJumpToLine;
+window.karaokeTogglePlay = karaokeTogglePlay;
+window.karaokeSeek = karaokeSeek;
+window.karaokeRestart = karaokeRestart;
+window.karaokeStartCountdown = karaokeStartCountdown;
+window.karaokePauseResume = karaokePauseResume;
+window.karaokeStopRecording = karaokeStopRecording;
+window.karaokeRestartRecording = karaokeRestartRecording;
+window.karaokeDiscardRecording = karaokeDiscardRecording;
+window.karaokePlayPreview = karaokePlayPreview;
+window.karaokeSaveRecording = karaokeSaveRecording;
+window.toggleKaraokeHistory = toggleKaraokeHistory;
+window.playRecording = playRecording;
+window.exportRecording = exportRecording;
+window.deleteRecording = deleteRecording;
+window.syncMusicToCloud = syncMusicToCloud;
+window.loadPartnerMusicFromCloud = loadPartnerMusicFromCloud;
+window.startMusicSync = startMusicSync;
+window.openFxRack = openFxRack;
+window.closeFxRack = closeFxRack;
+window.applyFxPreset = applyFxPreset;
+window.applyFxFromSliders = applyFxFromSliders;
+window.toggleFxNode = toggleFxNode;
+window.resetFxRack = resetFxRack;
+window.openAchievementsModal = openAchievementsModal;
+window.closeAchievementsModal = closeAchievementsModal;
+window.checkAchievements = checkAchievements;
+</script>
+</body>
+</html>

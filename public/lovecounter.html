@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Love Counter 💕</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --h: 215;
+  --accent: hsl(var(--h),100%,62%);
+  --accent-d: hsl(var(--h),95%,50%);
+  --accent-l: hsl(var(--h),100%,78%);
+  --accent-glow: hsla(var(--h),100%,62%,0.35);
+  --accent2: hsl(300,85%,65%);
+  --accent2-d: hsl(300,80%,52%);
+  --accent2-glow: hsla(300,85%,65%,0.35);
+  --g1: rgba(255,255,255,0.04);
+  --g2: rgba(255,255,255,0.08);
+  --g3: rgba(255,255,255,0.13);
+  --blur: blur(24px) saturate(180%);
+  --ff-serif: 'DM Serif Display',Georgia,serif;
+  --ff-sans: 'Inter',system-ui,sans-serif;
+  --r: 18px; --rs: 12px; --rss: 8px;
+  --white: #ffffff;
+  --text: rgba(255,255,255,0.92);
+  --text2: rgba(255,255,255,0.62);
+  --text3: rgba(255,255,255,0.38);
+  --border: rgba(255,255,255,0.10);
+  --border2: rgba(255,255,255,0.18);
+  --green: #34d399; --green-bg: rgba(52,211,153,0.15);
+  --red: #f87171; --red-bg: rgba(248,113,113,0.15);
+  --yellow: #fbbf24; --yellow-bg: rgba(251,191,36,0.15);
+  --t: all 0.22s cubic-bezier(0.4,0,0.2,1);
+  --t-spring: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:transparent;line-height:1.5;overflow-x:hidden}
+
+/* ── HERO COUNTER ── */
+.lc-hero {
+  padding: 24px 16px 20px;
+  text-align: center;
+  position: relative;
+}
+.lc-hero-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text3);
+  margin-bottom: 8px;
+}
+.lc-hero-names {
+  font-family: var(--ff-serif);
+  font-size: 22px;
+  color: var(--white);
+  margin-bottom: 20px;
+}
+.lc-hero-names span { color: var(--accent2); }
+
+/* ── MAIN COUNTER RING ── */
+.lc-ring-wrap {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto 24px;
+}
+.lc-ring-svg {
+  position: absolute;
+  inset: 0;
+  animation: ringPulse 4s ease-in-out infinite;
+}
+@keyframes ringPulse {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+.lc-ring-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.lc-ring-days {
+  font-family: var(--ff-serif);
+  font-size: 52px;
+  color: var(--white);
+  line-height: 1;
+  text-shadow: 0 0 40px var(--accent-glow);
+  animation: countFlip 0.3s ease;
+}
+.lc-ring-unit {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent);
+}
+.lc-ring-anniv {
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 2px;
+}
+@keyframes countFlip {
+  from { opacity: 0; transform: translateY(-4px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── TIME GRID ── */
+.lc-time-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 0 16px;
+  margin-bottom: 20px;
+}
+@media(max-width:400px) { .lc-time-grid { grid-template-columns: repeat(2, 1fr); } }
+.lc-time-card {
+  background: var(--g1);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px 10px;
+  text-align: center;
+  backdrop-filter: var(--blur);
+  position: relative;
+  overflow: hidden;
+  transition: var(--t);
+}
+.lc-time-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+.lc-time-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--card-line, linear-gradient(90deg, var(--accent), var(--accent2)));
+}
+.lc-time-n {
+  font-family: var(--ff-serif);
+  font-size: 28px;
+  color: var(--white);
+  line-height: 1;
+  margin-bottom: 5px;
+  transition: all 0.2s;
+}
+.lc-time-l {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text3);
+}
+.lc-time-card.seconds .lc-time-n {
+  color: var(--accent2);
+  text-shadow: 0 0 20px var(--accent2-glow);
+}
+.lc-time-card.hours .lc-time-n { color: var(--accent); }
+
+/* ── LIVE INDICATOR ── */
+.lc-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--green);
+  background: var(--green-bg);
+  border: 1px solid rgba(52,211,153,0.25);
+  border-radius: 20px;
+  padding: 4px 12px;
+  margin-bottom: 20px;
+}
+.lc-live-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: liveBlink 1.5s ease-in-out infinite;
+}
+@keyframes liveBlink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ── SECTION CARDS ── */
+.lc-section { padding: 0 16px; margin-bottom: 20px; }
+.lc-card {
+  background: var(--g1);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 18px;
+  backdrop-filter: var(--blur);
+  transition: var(--t);
+  position: relative;
+  overflow: hidden;
+}
+.lc-card:hover { box-shadow: 0 8px 28px rgba(0,0,0,0.25); }
+.lc-card-title {
+  font-family: var(--ff-serif);
+  font-size: 16px;
+  color: var(--white);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── BIRTHDAY COUNTDOWN ── */
+.lc-bday-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.lc-bday-card {
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.lc-bday-card.me { background: linear-gradient(135deg, hsla(var(--h),100%,62%,0.12), hsla(var(--h),100%,62%,0.04)); border-color: hsla(var(--h),100%,62%,0.2); }
+.lc-bday-card.pt { background: linear-gradient(135deg, hsla(300,85%,65%,0.12), hsla(300,85%,65%,0.04)); border-color: hsla(300,85%,65%,0.2); }
+.lc-bday-emoji { font-size: 28px; margin-bottom: 8px; }
+.lc-bday-name { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+.lc-bday-days { font-family: var(--ff-serif); font-size: 34px; color: var(--white); line-height: 1; }
+.lc-bday-label { font-size: 10px; color: var(--text3); margin-top: 4px; font-weight: 600; }
+.lc-bday-date { font-size: 10px; color: var(--text2); margin-top: 6px; padding: 4px 10px; background: var(--g2); border-radius: 10px; display: inline-block; }
+.lc-bday-card.today .lc-bday-days { color: var(--yellow); animation: bdayPulse 0.5s ease-in-out infinite alternate; }
+@keyframes bdayPulse { from{transform:scale(1)} to{transform:scale(1.08)} }
+
+/* ── ANNIVERSARY SECTION ── */
+.lc-anniv-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.lc-anniv-chip {
+  flex: 1;
+  min-width: 80px;
+  background: var(--g2);
+  border: 1px solid var(--border);
+  border-radius: var(--rs);
+  padding: 12px;
+  text-align: center;
+}
+.lc-anniv-n { font-family: var(--ff-serif); font-size: 22px; color: var(--white); }
+.lc-anniv-l { font-size: 9px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px; }
+
+/* ── UPCOMING CELEBRATIONS ── */
+.lc-celeb-list { display: flex; flex-direction: column; gap: 10px; }
+.lc-celeb-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  background: var(--g1);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  transition: var(--t);
+}
+.lc-celeb-item:hover { background: var(--g2); transform: translateX(3px); }
+.lc-celeb-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--icon-bg, var(--g2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.lc-celeb-info { flex: 1; min-width: 0; }
+.lc-celeb-name { font-size: 13px; font-weight: 600; color: var(--white); }
+.lc-celeb-date { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.lc-celeb-countdown {
+  font-family: var(--ff-serif);
+  font-size: 22px;
+  color: var(--white);
+  flex-shrink: 0;
+  text-align: right;
+}
+.lc-celeb-countdown small { display: block; font-family: var(--ff-sans); font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; }
+.lc-celeb-today { color: var(--yellow) !important; animation: bdayPulse 0.7s ease-in-out infinite alternate; }
+
+/* ── MILESTONES TIMELINE ── */
+.lc-milestone-list { display: flex; flex-direction: column; gap: 0; }
+.lc-ms-item {
+  display: flex;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.lc-ms-item:last-child { border-bottom: none; }
+.lc-ms-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  margin-top: 4px;
+  box-shadow: 0 0 0 4px var(--accent-glow);
+}
+.lc-ms-title { font-size: 13px; font-weight: 600; color: var(--white); }
+.lc-ms-date { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.lc-ms-years { font-size: 10px; color: var(--accent); font-weight: 700; margin-top: 3px; background: hsla(var(--h),100%,62%,0.12); display: inline-block; padding: 2px 8px; border-radius: 8px; border: 1px solid hsla(var(--h),100%,62%,0.2); }
+
+/* ── EMPTY STATE ── */
+.lc-empty { text-align: center; padding: 24px; color: var(--text3); font-size: 12px; }
+
+/* ── HEARTS FLOAT ── */
+.lc-float-hearts { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.lc-heart { position: absolute; font-size: 18px; animation: floatHeart linear infinite; opacity: 0; }
+@keyframes floatHeart {
+  0% { opacity: 0; transform: translateY(0) scale(0.5) rotate(0deg); }
+  10% { opacity: 0.7; }
+  90% { opacity: 0.4; }
+  100% { opacity: 0; transform: translateY(-100vh) scale(1.2) rotate(360deg); }
+}
+
+/* ── NO DATE OVERLAY ── */
+.lc-no-date {
+  text-align: center;
+  padding: 40px 20px;
+}
+.lc-no-date-ico { font-size: 52px; margin-bottom: 14px; }
+.lc-no-date-title { font-family: var(--ff-serif); font-size: 20px; color: var(--white); margin-bottom: 8px; }
+.lc-no-date-sub { font-size: 13px; color: var(--text2); margin-bottom: 20px; line-height: 1.65; }
+.lc-no-date-btn {
+  padding: 12px 24px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--ff-sans);
+  font-size: 13px;
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--accent), var(--accent-d));
+  color: #fff;
+  box-shadow: 0 4px 16px var(--accent-glow);
+  transition: var(--t);
+}
+.lc-no-date-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+</style>
+</head>
+<body>
+
+<!-- Floating ambient hearts -->
+<div class="lc-float-hearts" id="floatHearts"></div>
+
+<div id="lcMain"></div>
+
+<script>
+// ── STATE FROM PARENT ──
+let lcState = {
+  anniversary: '',
+  myName: 'You',
+  partnerName: 'Partner',
+  myBday: '',
+  ptBday: '',
+  milestones: [],
+  events: [],
+};
+
+function loadFromParent() {
+  try {
+    const ps = window.parent?.S;
+    if (!ps) return false;
+    lcState.anniversary = ps.anniversary || '';
+    lcState.myName = ps.myName || 'You';
+    lcState.partnerName = ps.partnerName || 'Partner';
+    lcState.myBday = ps.myBday || '';
+    lcState.ptBday = ps.ptBday || '';
+    lcState.milestones = ps.milestones || [];
+    lcState.events = ps.events || [];
+    return true;
+  } catch(e) { return false; }
+}
+
+// ── HELPERS ──
+function pad(n) { return String(n).padStart(2, '0'); }
+function fmtDate(s) {
+  if (!s) return '—';
+  try { return new Date(s + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }); }
+  catch(e) { return s; }
+}
+function fmtDateShort(s) {
+  if (!s) return '—';
+  try { return new Date(s + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }); }
+  catch(e) { return s; }
+}
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+
+function getCounterData(startDateStr) {
+  if (!startDateStr) return null;
+  const start = new Date(startDateStr + 'T00:00:00');
+  const now = new Date();
+  const totalMs = now - start;
+  if (totalMs < 0) return null;
+  const totalSecs = Math.floor(totalMs / 1000);
+  const totalMins = Math.floor(totalMs / 60000);
+  const totalHours = Math.floor(totalMs / 3600000);
+  const totalDays = Math.floor(totalMs / 86400000);
+  const totalWeeks = Math.floor(totalDays / 7);
+  const totalMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+  const totalYears = Math.floor(totalMonths / 12);
+  const secs = now.getSeconds();
+  const mins = now.getMinutes();
+  const hours = now.getHours();
+  return { totalSecs, totalMins, totalHours, totalDays, totalWeeks, totalMonths, totalYears, secs, mins, hours };
+}
+
+function getDaysUntilNextBirthday(dateStr) {
+  if (!dateStr) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const bd = new Date(dateStr + 'T00:00:00');
+  let next = new Date(today.getFullYear(), bd.getMonth(), bd.getDate());
+  if (next < today) next.setFullYear(today.getFullYear() + 1);
+  return Math.round((next - today) / 86400000);
+}
+
+function getDaysUntilNextAnniv(dateStr) {
+  if (!dateStr) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(dateStr + 'T00:00:00');
+  let next = new Date(today.getFullYear(), d.getMonth(), d.getDate());
+  if (next < today) next.setFullYear(today.getFullYear() + 1);
+  return Math.round((next - today) / 86400000);
+}
+
+function getAge(dateStr) {
+  if (!dateStr) return null;
+  const bd = new Date(dateStr + 'T00:00:00');
+  const today = new Date();
+  let age = today.getFullYear() - bd.getFullYear();
+  const m = today.getMonth() - bd.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < bd.getDate())) age--;
+  return age;
+}
+
+// ── RENDER ──
+function render() {
+  loadFromParent();
+  const el = document.getElementById('lcMain');
+
+  if (!lcState.anniversary) {
+    el.innerHTML = `
+      <div class="lc-no-date">
+        <div class="lc-no-date-ico">💕</div>
+        <div class="lc-no-date-title">No Anniversary Set</div>
+        <div class="lc-no-date-sub">Set your "Together Since" date in Settings or Profile to see your love counter.</div>
+        <button class="lc-no-date-btn" onclick="try{window.parent.goto('settings')}catch(e){}">⚙️ Open Settings</button>
+      </div>`;
+    return;
+  }
+
+  const cd = getCounterData(lcState.anniversary);
+  if (!cd) { el.innerHTML = `<div class="lc-empty">Invalid date.</div>`; return; }
+
+  const myBdayDays = getDaysUntilNextBirthday(lcState.myBday);
+  const ptBdayDays = getDaysUntilNextBirthday(lcState.ptBday);
+  const annivDays = getDaysUntilNextAnniv(lcState.anniversary);
+  const myAge = getAge(lcState.myBday);
+  const ptAge = getAge(lcState.ptBday);
+
+  // Upcoming celebrations
+  const celebrations = [];
+  if (lcState.anniversary) celebrations.push({ name: 'Anniversary 💍', icon: '💍', iconBg: 'linear-gradient(135deg,rgba(91,155,255,0.2),rgba(91,155,255,0.05))', days: annivDays, date: fmtDateShort(lcState.anniversary) });
+  if (lcState.myBday) celebrations.push({ name: `${lcState.myName}'s Birthday 🎂`, icon: '🎂', iconBg: 'linear-gradient(135deg,rgba(251,191,36,0.2),rgba(251,191,36,0.05))', days: myBdayDays, date: fmtDateShort(lcState.myBday) });
+  if (lcState.ptBday) celebrations.push({ name: `${lcState.partnerName}'s Birthday 🎂`, icon: '🎂', iconBg: 'linear-gradient(135deg,rgba(255,107,157,0.2),rgba(255,107,157,0.05))', days: ptBdayDays, date: fmtDateShort(lcState.ptBday) });
+  // Add upcoming events
+  const today = todayStr();
+  const upcomingEvts = (lcState.events || []).filter(e => e.date >= today).sort((a,b) => a.date.localeCompare(b.date)).slice(0, 4);
+  upcomingEvts.forEach(ev => {
+    const d = new Date(ev.date + 'T00:00:00');
+    const t = new Date(); t.setHours(0,0,0,0);
+    const daysLeft = Math.round((d - t) / 86400000);
+    celebrations.push({ name: ev.title, icon: '📅', iconBg: 'var(--g2)', days: daysLeft, date: fmtDateShort(ev.date) });
+  });
+  celebrations.sort((a,b) => a.days - b.days);
+
+  // Ring circumference
+  const yearFrac = (cd.totalDays % 365) / 365;
+  const circumference = 2 * Math.PI * 88;
+  const dashOffset = circumference - yearFrac * circumference;
+
+  el.innerHTML = `
+    <div class="lc-hero">
+      <div class="lc-hero-label">Together Since ${fmtDate(lcState.anniversary)}</div>
+      <div class="lc-hero-names">${lcState.myName} <span>♥</span> ${lcState.partnerName}</div>
+
+      <div class="lc-ring-wrap">
+        <svg class="lc-ring-svg" viewBox="0 0 200 200" width="200" height="200">
+          <defs>
+            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="hsl(var(--h),100%,62%)"/>
+              <stop offset="100%" stop-color="hsl(300,85%,65%)"/>
+            </linearGradient>
+            <filter id="ringGlow">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+            </filter>
+          </defs>
+          <!-- Background ring -->
+          <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="12"/>
+          <!-- Progress ring -->
+          <circle cx="100" cy="100" r="88" fill="none"
+            stroke="url(#ringGrad)" stroke-width="12"
+            stroke-dasharray="${circumference.toFixed(1)}"
+            stroke-dashoffset="${dashOffset.toFixed(1)}"
+            stroke-linecap="round"
+            transform="rotate(-90 100 100)"
+            style="transition: stroke-dashoffset 1s ease; filter: url(#ringGlow)"
+          />
+          <!-- Tick marks every 30 degrees -->
+          ${Array.from({length:12},(_,i)=>{
+            const a = i*30*Math.PI/180 - Math.PI/2;
+            const x1 = 100+80*Math.cos(a), y1=100+80*Math.sin(a);
+            const x2 = 100+88*Math.cos(a), y2=100+88*Math.sin(a);
+            return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>`;
+          }).join('')}
+        </svg>
+        <div class="lc-ring-inner">
+          <div class="lc-ring-days" id="lcDays">${cd.totalDays.toLocaleString()}</div>
+          <div class="lc-ring-unit">Days Together</div>
+          <div class="lc-ring-anniv">${cd.totalYears} yr${cd.totalYears!==1?'s':''} ${cd.totalMonths % 12} mo</div>
+        </div>
+      </div>
+
+      <div class="lc-live"><div class="lc-live-dot"></div>Live Updating</div>
+    </div>
+
+    <!-- TIME BREAKDOWN -->
+    <div class="lc-time-grid">
+      <div class="lc-time-card" style="--card-line:linear-gradient(90deg,var(--accent),var(--accent2))">
+        <div class="lc-time-n" id="lcYears">${cd.totalYears}</div>
+        <div class="lc-time-l">Years</div>
+      </div>
+      <div class="lc-time-card" style="--card-line:linear-gradient(90deg,var(--accent2),var(--accent))">
+        <div class="lc-time-n" id="lcMonths">${cd.totalMonths.toLocaleString()}</div>
+        <div class="lc-time-l">Months</div>
+      </div>
+      <div class="lc-time-card" style="--card-line:linear-gradient(90deg,#34d399,var(--accent))">
+        <div class="lc-time-n" id="lcWeeks">${cd.totalWeeks.toLocaleString()}</div>
+        <div class="lc-time-l">Weeks</div>
+      </div>
+      <div class="lc-time-card hours" style="--card-line:linear-gradient(90deg,var(--accent),#34d399)">
+        <div class="lc-time-n" id="lcHours">${cd.totalHours.toLocaleString()}</div>
+        <div class="lc-time-l">Hours</div>
+      </div>
+      <div class="lc-time-card" style="--card-line:linear-gradient(90deg,var(--yellow),var(--accent))">
+        <div class="lc-time-n" id="lcMins">${cd.totalMins.toLocaleString()}</div>
+        <div class="lc-time-l">Minutes</div>
+      </div>
+      <div class="lc-time-card seconds" style="--card-line:linear-gradient(90deg,var(--accent2),#f87171)">
+        <div class="lc-time-n" id="lcSecs">${cd.totalSecs.toLocaleString()}</div>
+        <div class="lc-time-l">Seconds</div>
+      </div>
+    </div>
+
+    <!-- BIRTHDAY COUNTDOWNS -->
+    ${(lcState.myBday || lcState.ptBday) ? `
+    <div class="lc-section">
+      <div class="lc-card">
+        <div class="lc-card-title">🎂 Birthday Countdowns</div>
+        <div class="lc-bday-row">
+          ${lcState.myBday ? `
+          <div class="lc-bday-card me ${myBdayDays===0?'today':''}">
+            <div class="lc-bday-emoji">${myBdayDays===0?'🎉':'🎂'}</div>
+            <div class="lc-bday-name">${lcState.myName}</div>
+            <div class="lc-bday-days" id="lcMyBday">${myBdayDays===0?'🎉':myBdayDays}</div>
+            <div class="lc-bday-label">${myBdayDays===0?'Happy Birthday!':'days away'}</div>
+            <div class="lc-bday-date">🎈 ${fmtDateShort(lcState.myBday)}${myAge!==null?' · Age '+(myBdayDays===0?myAge:myAge+1):''}</div>
+          </div>` : `<div class="lc-bday-card me" style="opacity:0.4"><div class="lc-bday-emoji">🎂</div><div class="lc-bday-name">${lcState.myName}</div><div class="lc-bday-days">—</div><div class="lc-bday-label">Not set</div></div>`}
+          ${lcState.ptBday ? `
+          <div class="lc-bday-card pt ${ptBdayDays===0?'today':''}">
+            <div class="lc-bday-emoji">${ptBdayDays===0?'🎉':'🎂'}</div>
+            <div class="lc-bday-name">${lcState.partnerName}</div>
+            <div class="lc-bday-days" id="lcPtBday">${ptBdayDays===0?'🎉':ptBdayDays}</div>
+            <div class="lc-bday-label">${ptBdayDays===0?'Happy Birthday!':'days away'}</div>
+            <div class="lc-bday-date">🎈 ${fmtDateShort(lcState.ptBday)}${ptAge!==null?' · Age '+(ptBdayDays===0?ptAge:ptAge+1):''}</div>
+          </div>` : `<div class="lc-bday-card pt" style="opacity:0.4"><div class="lc-bday-emoji">🎂</div><div class="lc-bday-name">${lcState.partnerName}</div><div class="lc-bday-days">—</div><div class="lc-bday-label">Not set</div></div>`}
+        </div>
+      </div>
+    </div>` : ''}
+
+    <!-- ANNIVERSARY BREAKDOWN -->
+    <div class="lc-section">
+      <div class="lc-card">
+        <div class="lc-card-title">💍 Wedding Anniversary</div>
+        <div class="lc-anniv-row">
+          <div class="lc-anniv-chip">
+            <div class="lc-anniv-n">${annivDays}</div>
+            <div class="lc-anniv-l">Days Until</div>
+          </div>
+          <div class="lc-anniv-chip">
+            <div class="lc-anniv-n">${cd.totalYears}</div>
+            <div class="lc-anniv-l">Years Strong</div>
+          </div>
+          <div class="lc-anniv-chip">
+            <div class="lc-anniv-n">${cd.totalMonths % 12}</div>
+            <div class="lc-anniv-l">Extra Months</div>
+          </div>
+          <div class="lc-anniv-chip">
+            <div class="lc-anniv-n">${cd.totalDays % 30}</div>
+            <div class="lc-anniv-l">Extra Days</div>
+          </div>
+        </div>
+        ${annivDays === 0 ? `<div style="margin-top:14px;padding:14px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:12px;text-align:center;font-size:14px;color:var(--yellow);font-weight:600">🎉 Happy Anniversary! Today is your special day!</div>` : `<div style="margin-top:12px;font-size:12px;color:var(--text3);text-align:center">Next anniversary in <strong style="color:var(--white)">${annivDays}</strong> day${annivDays!==1?'s':''} · ${fmtDate(lcState.anniversary)}</div>`}
+      </div>
+    </div>
+
+    <!-- UPCOMING CELEBRATIONS -->
+    ${celebrations.length ? `
+    <div class="lc-section">
+      <div class="lc-card">
+        <div class="lc-card-title">🎉 Upcoming Celebrations</div>
+        <div class="lc-celeb-list">
+          ${celebrations.map(c => `
+          <div class="lc-celeb-item">
+            <div class="lc-celeb-icon" style="background:${c.iconBg}">${c.icon}</div>
+            <div class="lc-celeb-info">
+              <div class="lc-celeb-name">${c.name}</div>
+              <div class="lc-celeb-date">📅 ${c.date}</div>
+            </div>
+            <div class="lc-celeb-countdown ${c.days===0?'lc-celeb-today':''}">
+              ${c.days === 0 ? '🎉' : c.days}
+              <small>${c.days===0?'Today!':c.days===1?'Tomorrow':'days'}</small>
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>` : ''}
+
+    <!-- MILESTONES -->
+    ${lcState.milestones && lcState.milestones.length ? `
+    <div class="lc-section">
+      <div class="lc-card">
+        <div class="lc-card-title">💫 Love Milestones</div>
+        <div class="lc-milestone-list">
+          ${[...lcState.milestones].sort((a,b)=>a.date.localeCompare(b.date)).map(m => {
+            const mDate = new Date(m.date + 'T00:00:00');
+            const yrs = Math.floor((new Date() - mDate) / (365.25*86400000));
+            return `<div class="lc-ms-item">
+              <div class="lc-ms-dot"></div>
+              <div>
+                <div class="lc-ms-title">${m.type||'💫'} ${m.title}</div>
+                <div class="lc-ms-date">${fmtDate(m.date)}</div>
+                ${yrs>0?`<div class="lc-ms-years">${yrs} year${yrs!==1?'s':''} ago</div>`:'<div class="lc-ms-years">This year ✨</div>'}
+                ${m.note?`<div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5">${m.note}</div>`:''}
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>` : ''}
+
+    <div style="height:20px"></div>
+  `;
+}
+
+// ── LIVE UPDATE ──
+function updateLive() {
+  if (!lcState.anniversary) return;
+  const cd = getCounterData(lcState.anniversary);
+  if (!cd) return;
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = typeof val === 'number' ? val.toLocaleString() : val; };
+  set('lcDays', cd.totalDays);
+  set('lcYears', cd.totalYears);
+  set('lcMonths', cd.totalMonths);
+  set('lcWeeks', cd.totalWeeks);
+  set('lcHours', cd.totalHours);
+  set('lcMins', cd.totalMins);
+  set('lcSecs', cd.totalSecs);
+}
+
+// ── AMBIENT HEARTS ──
+function spawnHeart() {
+  const wrap = document.getElementById('floatHearts');
+  if (!wrap) return;
+  const hearts = ['💕','❤️','💗','💖','✨'];
+  const h = document.createElement('div');
+  h.className = 'lc-heart';
+  h.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+  h.style.left = (Math.random() * 100) + 'vw';
+  h.style.bottom = '-30px';
+  h.style.fontSize = (12 + Math.random() * 12) + 'px';
+  const dur = 8 + Math.random() * 6;
+  h.style.animationDuration = dur + 's';
+  h.style.animationDelay = (Math.random() * 2) + 's';
+  wrap.appendChild(h);
+  setTimeout(() => h.remove(), (dur + 2) * 1000);
+}
+
+// ── THEME FROM PARENT ──
+window.addEventListener('message', e => {
+  if (e.data?.type === 'theme') {
+    const r = document.documentElement;
+    Object.entries(e.data.vars || {}).forEach(([k,v]) => r.style.setProperty(k, v));
+  }
+  if (e.data?.type === 'lcUpdate') {
+    Object.assign(lcState, e.data.state || {});
+    render();
+  }
+});
+
+// ── INIT ──
+render();
+setInterval(updateLive, 1000);
+setInterval(spawnHeart, 3000);
+spawnHeart(); spawnHeart();
+</script>
+</body>
+</html>4

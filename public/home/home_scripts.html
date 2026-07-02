@@ -1,0 +1,60 @@
+<!-- ═══════════════════════════════════════════
+     Virtual Home — Script loading order
+     Drop this block into home.html to replace
+     the existing <script> tags at the bottom.
+     All Phase 1-8 modules listed in correct order.
+═══════════════════════════════════════════════ -->
+
+<!-- ── Three.js ──────────────────────────────── -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<!-- ── Phase 1-3: Core scene ─────────────────── -->
+<script src="/home/utils.js"></script>
+<script src="/home/api.js"></script>
+<script src="/home/renderer.js"></script>
+<script src="/home/camera.js"></script>
+<script src="/home/lighting.js"></script>
+<script src="/home/controls.js"></script>
+<script src="/home/scene.js"></script>
+<script src="/home/rooms.js"></script>
+
+<!-- ── Phase 4-5: Avatars & memories ─────────── -->
+<script src="/home/avatars.js"></script>
+<script src="/home/movement.js"></script>
+<script src="/home/furniture.js"></script>
+<script src="/home/memories.js"></script>
+<script src="/home/pets.js"></script>
+
+<!-- ── Phase 6: Living World ─────────────────── -->
+<script src="/home/interactions.js"></script>
+<script src="/home/realtime_living.js"></script>
+<script src="/home/perf_living.js"></script>
+<script src="/home/home_living.js"></script>
+
+<!-- ── Phase 7: Environment ──────────────────── -->
+<script src="/home/weather.js"></script>
+<script src="/home/sky.js"></script>
+<script src="/home/environment.js"></script>
+<script src="/home/fireplace.js"></script>
+<script src="/home/window_system.js"></script>
+<script src="/home/particles.js"></script>
+<script src="/home/effects.js"></script>
+<script src="/home/environment_sync.js"></script>
+
+<!-- Phase 7 patches (load after P7 modules) -->
+<script src="/home/scene_p7_patch.js"></script>
+<script src="/home/scene_p7_patch2.js"></script>
+
+<!-- ── Phase 8: Smart Living System ─────────── -->
+<script src="/home/home_state.js"></script>
+<script src="/home/daily_routine.js"></script>
+<script src="/home/relationship_engine.js"></script>
+<script src="/home/npc_behavior.js"></script>
+<script src="/home/smart_furniture.js"></script>
+<script src="/home/ambient_audio.js"></script>
+<script src="/home/camera_director.js"></script>
+<script src="/home/event_engine.js"></script>
+<script src="/home/emotion_engine.js"></script>
+
+<!-- Phase 8 patch — must be last -->
+<script src="/home/scene_p8_patch.js"></script>

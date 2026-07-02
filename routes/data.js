@@ -33,16 +33,7 @@ router.post('/state', async (req, res) => {
 if (_sendPushToPartner && coupleId && state) {
   const role = state.role;
   // Only push for real actions, not background heartbeat saves
-  const lastMsg = (state.chatMessages || []).filter(m => !m._deleted).slice(-1)[0];
-  if (lastMsg && lastMsg.by === role) {
-    _sendPushToPartner(coupleId, role, {
-      title: '💬 New message',
-      body: lastMsg.text ? lastMsg.text.slice(0, 80) : (lastMsg.mediaUrl ? '📷 Photo' : '🎙️ Voice'),
-      icon: '/icons/icon-192.png',
-      tag: 'chat-msg',
-      url: '/?page=chat'
-    }).catch(() => {});
-  }
+
   if (state.touch && state.touch.from === role) {
     _sendPushToPartner(coupleId, role, {
       title: '💓 Touch',
@@ -72,46 +63,6 @@ if (_sendPushToPartner && coupleId && state) {
   return res.json({ ok: true, savedAt: new Date().toISOString() });
 });
 
-// ─── CHAT MESSAGES ─────────────────────────────────────
-
-router.get('/chat/:coupleId', async (req, res) => {
-  let query = supabase
-    .from('messages')
-    .select('*')
-    .eq('couple_id', req.params.coupleId)
-    .order('created_at', { ascending: true })
-    .limit(200);
-
-  if (req.query.since) query = query.gt('created_at', req.query.since);
-
-  const { data, error } = await query;
-  if (error) return res.status(500).json({ error: error.message });
-  return res.json(data || []);
-});
-
-router.post('/chat', async (req, res) => {
-  const { coupleId, text, senderRole, mediaUrl, mediaType } = req.body;
-  if (!coupleId || (!text && !mediaUrl)) return res.status(400).json({ error: 'Missing data' });
-
-  const { data, error } = await supabase.from('messages').insert({
-    couple_id:   coupleId,
-    text:        text || '',
-    sender_role: senderRole || 'user1',
-    media_url:   mediaUrl || null,
-    media_type:  mediaType || null,
-    created_at:  new Date().toISOString()
-  }).select().single();
-
-  if (error) return res.status(500).json({ error: error.message });
-  return res.json(data);
-});
-
-router.delete('/chat/:messageId', async (req, res) => {
-  const { coupleId } = req.body;
-  await supabase.from('messages').delete()
-    .eq('id', req.params.messageId).eq('couple_id', coupleId);
-  return res.json({ ok: true });
-});
 
 // ─── EVENTS / CALENDAR ─────────────────────────────────
 
