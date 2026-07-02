@@ -5340,6 +5340,7 @@ function applyRebranding() {
           hug: null, hugStats: { total: 0, user1: 0, user2: 0 },
           placesMemories: []
         };
+        window.S = S;
         let camStream = null, camFacing = 'environment', pinEntry = [], autoSaveTimer = null, alarmCheckInterval = null;
         // ─── PROFILE SYNC (role-tagged, prevents name/bday clobbering) ──
 function roleKey() { return S.role === 'user1' ? 'u1' : 'u2'; }
@@ -5588,15 +5589,14 @@ async function checkPairStatus() {
   S.paired = true;
   S.partnerName = (S.role === 'user1' ? c.user2_name : c.user1_name) || S.partnerName;
   applyNames(); updatePairStatus();
-  if (!was && !S._pairToastShown) {
-  S._pairToastShown = true;
+  const toastKey = 'uwl_pairToastShown_' + S.coupleId;
+if (!localStorage.getItem(toastKey)) {
+  localStorage.setItem(toastKey, '1');
   toast('💕 ' + S.partnerName + ' joined! You are now linked.');
   spawnPetals();
   setJustPairedAt(Date.now());
-  saveLocal();
-} else if (!was) {
-  saveLocal();
 }
+saveLocal();
   return;
 }
 
