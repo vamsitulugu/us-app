@@ -322,7 +322,7 @@ const Chat = (() => {
      EDIT / DELETE
   ══════════════════════════════════════════════════════════════ */
   function startEdit(id) {
-    const m = messages.find(x => x.id === id); if (!m || !isMine(m) || m.type !== 'text') return;
+    const m = messages.find(x => String(x.id) === String(id)); if (!m || !isMine(m) || m.type !== 'text') return;
     editingId = id;
     const input = document.getElementById('chatIn');
     if (input) { input.value = m.text || ''; input.focus(); autoGrow(input); }
@@ -335,13 +335,13 @@ const Chat = (() => {
     const input = document.getElementById('chatIn'); if (input) input.value = '';
     renderComposerBanner();
     if (!text) return;
-    const m = messages.find(x => x.id === id); if (m) { m.text = text; m.edited = true; render(); }
+    const m = messages.find(x => String(x.id) === String(id)); if (m) { m.text = text; m.edited = true; render(); }
     try { await apiCall('PATCH', `/api/chat/${id}`, { coupleId: coupleId(), senderRole: myRole(), text }); refresh(); }
     catch (e) { toast('Edit failed'); }
   }
 
   async function deleteMessage(id, mode) {
-    const m = messages.find(x => x.id === id); if (!m) return;
+    const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
     if (mode === 'everyone') { m.deleted = true; m.text = null; m.media_url = null; }
     else { messages = messages.filter(x => x.id !== id); }
     saveCache(); render(); closeCtxMenu();
@@ -349,7 +349,7 @@ const Chat = (() => {
     catch (e) { toast('Delete failed to sync'); }
   }
   function confirmDelete(id) {
-    const m = messages.find(x => x.id === id); if (!m) return;
+    const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
     const mine = isMine(m);
     showActionSheet([
       mine ? { label: '🗑️ Delete for everyone', danger: true, action: () => deleteMessage(id, 'everyone') } : null,
@@ -364,7 +364,7 @@ const Chat = (() => {
   const QUICK_REACTIONS = ['❤️', '😂', '😮', '😢', '🙏', '🔥'];
 
   async function react(id, emoji) {
-    const m = messages.find(x => x.id === id); if (!m) return;
+    const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
     if (!m.reactions) m.reactions = {};
     Object.keys(m.reactions).forEach(e => { m.reactions[e] = (m.reactions[e] || []).filter(r => r !== myRole()); if (!m.reactions[e].length) delete m.reactions[e]; });
     const already = false; // optimistic simple toggle-on
@@ -376,12 +376,12 @@ const Chat = (() => {
   }
 
   async function togglePin(id) {
-    const m = messages.find(x => x.id === id); if (!m) return;
+    const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
     m.pinned = !m.pinned; render(); closeCtxMenu();
     try { await apiCall('POST', `/api/chat/${id}/pin`, { coupleId: coupleId(), pinned: m.pinned }); } catch (e) {}
   }
   async function toggleStar(id) {
-    const m = messages.find(x => x.id === id); if (!m) return;
+    const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
     const has = (m.starred_by || []).includes(myRole());
     m.starred_by = has ? m.starred_by.filter(r => r !== myRole()) : [...(m.starred_by || []), myRole()];
     render(); closeCtxMenu();
@@ -389,14 +389,14 @@ const Chat = (() => {
   }
 
   function setReply(id) {
-    const m = messages.find(x => x.id === id); if (!m) return;
+    const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
     replyingTo = m; renderComposerBanner(); closeCtxMenu();
     document.getElementById('chatIn')?.focus();
   }
   function clearReply() { replyingTo = null; renderComposerBanner(); }
 
   function forwardMessage(id) {
-    const m = messages.find(x => x.id === id); if (!m) return;
+    const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
     toast('Forward: paste into a new message manually for now 💌');
     const input = document.getElementById('chatIn');
     if (input && m.type === 'text') { input.value = m.text || ''; autoGrow(input); input.focus(); }
@@ -404,7 +404,7 @@ const Chat = (() => {
   }
 
   function copyText(id) {
-    const m = messages.find(x => x.id === id); if (!m || !m.text) return;
+    const m = messages.find(x => String(x.id) === String(id)); if (!m || !m.text) return;
     navigator.clipboard?.writeText(m.text).then(() => toast('Copied 📋'));
     closeCtxMenu();
   }
@@ -475,7 +475,7 @@ const Chat = (() => {
     const r = m.reactions || {};
     const keys = Object.keys(r).filter(k => r[k] && r[k].length);
     if (!keys.length) return '';
-    return `<div class="msg-reactions">${keys.map(e => `<span class="reaction-pill ${r[e].includes(myRole()) ? 'mine' : ''}" onclick="Chat.react(${m.id},'${e}')">${e} ${r[e].length > 1 ? r[e].length : ''}</span>`).join('')}</div>`;
+    return `<div class="msg-reactions">${keys.map(e => `<span class="reaction-pill ${r[e].includes(myRole()) ? 'mine' : ''}" onclick="Chat.react('${m.id}','${e}')">${e} ${r[e].length > 1 ? r[e].length : ''}</span>`).join('')}</div>`;
   }
 
   function replyPreviewHtml(m) {
@@ -484,7 +484,7 @@ const Chat = (() => {
     if (!orig) return '<div class="msg-reply-ref msg-reply-missing">Original message unavailable</div>';
     const who = isMine(orig) ? (window.S?.myName || 'You') : (window.S?.partnerName || 'Partner');
     const preview = orig.type === 'text' ? (orig.text || '').slice(0, 60) : (orig.type === 'image' ? '📷 Photo' : orig.type === 'voice' ? '🎙️ Voice message' : '🎬 Video');
-    return `<div class="msg-reply-ref" onclick="Chat.scrollToMsg(${orig.id})"><div class="reply-ref-name">${esc(who)}</div><div class="reply-ref-text">${esc(preview)}</div></div>`;
+    return `<div class="msg-reply-ref" onclick="Chat.scrollToMsg('${orig.id}')"><div class="reply-ref-name">${esc(who)}</div><div class="reply-ref-text">${esc(preview)}</div></div>`;
   }
 
   function bubbleContent(m) {
@@ -512,9 +512,9 @@ const Chat = (() => {
     const isSelected = selectedIds.has(m.id);
     return `
     <div class="msg-row ${mine ? 'me' : 'them'} ${isSelected ? 'selected' : ''}" data-id="${m.id}"
-      onclick="${selecting ? `Chat.toggleSelect(${m.id})` : (m._failed ? `Chat.retryMessage('${m.client_id}')` : '')}"
-      oncontextmenu="Chat.openCtxMenu(event,${m.id});return false;"
-      ontouchstart="Chat._touchStart(event,${m.id})" ontouchend="Chat._touchEnd(event)">
+      onclick="${selecting ? `Chat.toggleSelect('${m.id}')` : (m._failed ? `Chat.retryMessage('${m.client_id}')` : '')}"
+oncontextmenu="Chat.openCtxMenu(event,'${m.id}');return false;"
+ontouchstart="Chat._touchStart(event,'${m.id}')" ontouchend="Chat._touchEnd(event)">
       ${selecting ? `<div class="msg-select-check ${isSelected ? 'checked' : ''}">${isSelected ? '✓' : ''}</div>` : ''}
       <div class="msg-bubble-wrap">
         ${m.pinned ? '<div class="pin-flag">📌 Pinned</div>' : ''}
@@ -590,7 +590,7 @@ const Chat = (() => {
     if (!pinned.length) { bar.style.display = 'none'; return; }
     const latest = pinned[pinned.length - 1];
     bar.style.display = 'flex';
-    bar.innerHTML = `<span class="pin-ico">📌</span><span class="pin-text" onclick="Chat.scrollToMsg(${latest.id})">${esc((latest.text || (latest.type === 'image' ? 'Photo' : 'Voice message')).slice(0, 50))}</span><span class="pin-count">${pinned.length > 1 ? pinned.length : ''}</span>`;
+    bar.innerHTML = `<span class="pin-ico">📌</span><span class="pin-text" onclick="Chat.scrollToMsg('${latest.id}')">${esc((latest.text || (latest.type === 'image' ? 'Photo' : 'Voice message')).slice(0, 50))}</span><span class="pin-count">${pinned.length > 1 ? pinned.length : ''}</span>`;
   }
 
   function renderComposerBanner() {
@@ -648,7 +648,7 @@ const Chat = (() => {
   function openCtxMenu(e, id) {
     if (e.preventDefault) e.preventDefault();
     if (navigator.vibrate) navigator.vibrate(30);
-    const m = messages.find(x => x.id === id); if (!m || m.deleted) return;
+    const m = messages.find(x => String(x.id) === String(id)); if (!m || m.deleted) return;
     const mine = isMine(m);
     closeCtxMenu();
     const menu = document.createElement('div');
@@ -665,7 +665,7 @@ const Chat = (() => {
       { label: '🗑️ Delete', danger: true, action: () => confirmDelete(id) },
     ].filter(Boolean);
     menu.innerHTML = `
-      <div class="ctx-reactions">${QUICK_REACTIONS.map(em => `<span class="ctx-emoji" onclick="Chat.react(${id},'${em}')">${em}</span>`).join('')}</div>
+      <div class="ctx-reactions">${QUICK_REACTIONS.map(em => `<span class="ctx-emoji" onclick="Chat.react('${id}','${em}')">${em}</span>`).join('')}</div>
       ${items.map((it, i) => `<div class="ctx-item ${it.danger ? 'danger' : ''}" data-i="${i}">${it.label}</div>`).join('')}
     `;
     document.body.appendChild(menu);
