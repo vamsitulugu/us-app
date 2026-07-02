@@ -76,7 +76,7 @@ const Chat = (() => {
      INIT / POLLING / REALTIME
   ══════════════════════════════════════════════════════════════ */
   async function init() {
-    if (!coupleId()) return;
+    if (!coupleId()) { setTimeout(init, 500); return; }
     loadCache();
     render();
     await refresh();

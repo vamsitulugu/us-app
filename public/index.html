@@ -6580,8 +6580,8 @@ function logOut() { if (!confirm('Log out? You can sign back in anytime. Your da
               syncLoveCounterToFrame();
               const chatPage = document.getElementById('page-chat');
               if (chatPage && chatPage.classList.contains('active') && document.hasFocus()) {
-                markIncomingMsgsRead();
-              }
+                if (window.Chat && typeof Chat.markRead === 'function') Chat.markRead();
+}
             }, 5000);
           }
         }
