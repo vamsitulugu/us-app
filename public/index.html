@@ -5475,6 +5475,8 @@ async function removePartner() {
             S.coupleId = data.coupleId; S.connectCode = data.connectCode; S.myName = data.myName;
             S.partnerName = data.partnerName; S.anniversary = data.anniversary || '';
             S.role = 'user2'; S.setupDone = true; S.paired = true;
+            S.role = 'user2'; S.setupDone = true; S.paired = true;
+            _justPairedAt = Date.now();
             saveLocal(); document.getElementById('authOverlay').style.display = 'none';
             await loadFromCloud(); pushMyProfile(); pullPartnerProfile(); saveToCloud();
             applyNames(); renderAll(); updatePairStatus(); syncLoveCounterToFrame();
@@ -5485,9 +5487,9 @@ async function removePartner() {
         }
 
         // ─── CLOUD SYNC ──────────────────────────────────────────
-        async function loadFromCloud() {
+ async function loadFromCloud() {
   if (!S.coupleId) return;
-  if (_loadInFlight) return; // prevent overlapping fetch/merge race
+  if (_loadInFlight) return;
   _loadInFlight = true;
   try {
     const state = await api('GET', '/api/data/state/' + S.coupleId);
@@ -5497,16 +5499,17 @@ async function removePartner() {
         'myAvatar', 'partnerAvatar'];
       const saved = {};
       protect.forEach(k => { if (S[k] !== undefined) saved[k] = S[k]; });
-      
+      Object.assign(S, state);
+      Object.assign(S, saved);
     }
-            pullPartnerProfile();
+    pullPartnerProfile();
     updateSyncStatus(true);
-            const el = document.getElementById('lastSaved');
-            if (el) el.textContent = 'Synced ✓ ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            syncLoveCounterToFrame();
-          } catch (e) { console.warn('Cloud load:', e.message); updateSyncStatus(false); }
-          finally { _loadInFlight = false; }
-        }
+    const el = document.getElementById('lastSaved');
+    if (el) el.textContent = 'Synced ✓ ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    syncLoveCounterToFrame();
+  } catch (e) { console.warn('Cloud load:', e.message); updateSyncStatus(false); }
+  finally { _loadInFlight = false; }
+}
         let _isSaving = false, _saveQueued = false;
 async function saveToCloud() {
           if (!S.coupleId) { saveLocal(); return; }
@@ -5568,29 +5571,57 @@ function renderPartnerLastSeen() {
   el.style.display = 'block';
   el.textContent = '🟢 ' + (S.partnerName || 'Partner') + ' active ' + fmtLastSeen(ts);
 }
-        async function checkPairStatus() {
-          if (!S.coupleId) return;
-          try {
-            const c = await api('GET', '/api/auth/couple/' + S.coupleId);
-            const was = S.paired; S.paired = !!c.paired;
-            if (S.paired) {
-              S.partnerName = (S.role === 'user1' ? c.user2_name : c.user1_name) || S.partnerName;
-            }
-            applyNames(); updatePairStatus();
-            if (!was && S.paired) { toast('💕 ' + S.partnerName + ' joined! You are now linked.'); spawnPetals(); }
-            if (was && !S.paired) {
-              if (c.connect_code) S.connectCode = c.connect_code;
-              S.partnerAvatar = ''; if (S.profile) delete S.profile[otherKey()];
-              toast('💔 The partner connection was removed.', 4000);
-              if (S.role === 'user2') {
-                setTimeout(() => { localStorage.removeItem('uwl_v5'); window.location.href = '/landing.html'; }, 2500);
-                return;
-              }
-              S.partnerName = 'Partner'; renderAll();
-            }
-            saveLocal();
-          } catch (e) { console.warn('Pair check:', e.message); }
-        }
+       let _justPairedAt = 0;
+let _unpairStrikes = 0;
+
+async function checkPairStatus() {
+  if (!S.coupleId) return;
+  // Grace period: never trust an "unpaired" result within 20s of a successful pair/join
+  const inGracePeriod = (Date.now() - _justPairedAt) < 20000;
+  try {
+    const c = await api('GET', '/api/auth/couple/' + S.coupleId);
+    const was = S.paired;
+    const nowPaired = !!c.paired;
+
+    if (nowPaired) {
+      _unpairStrikes = 0;
+      S.paired = true;
+      S.partnerName = (S.role === 'user1' ? c.user2_name : c.user1_name) || S.partnerName;
+      applyNames(); updatePairStatus();
+      if (!was) { toast('💕 ' + S.partnerName + ' joined! You are now linked.'); spawnPetals(); }
+      saveLocal();
+      return;
+    }
+
+    // nowPaired is false
+    if (!was) { saveLocal(); return; } // was never paired, nothing to do
+
+    if (inGracePeriod) {
+      console.warn('Ignoring unpair signal — still in post-pair grace period');
+      return; // don't touch S.paired, don't log out
+    }
+
+    _unpairStrikes++;
+    if (_unpairStrikes < 2) {
+      console.warn('Unpair signal strike ' + _unpairStrikes + ' — waiting for confirmation');
+      return; // require 2 consecutive confirmations before trusting it
+    }
+
+    // Confirmed unpair
+    S.paired = false;
+    _unpairStrikes = 0;
+    if (c.connect_code) S.connectCode = c.connect_code;
+    S.partnerAvatar = ''; if (S.profile) delete S.profile[otherKey()];
+    applyNames(); updatePairStatus();
+    toast('💔 The partner connection was removed.', 4000);
+    if (S.role === 'user2') {
+      setTimeout(() => { localStorage.removeItem('uwl_v5'); window.location.href = '/landing.html'; }, 2500);
+      return;
+    }
+    S.partnerName = 'Partner'; renderAll();
+    saveLocal();
+  } catch (e) { console.warn('Pair check:', e.message); }
+}
         function copyCode() {
           const code = S.connectCode || '—';
           navigator.clipboard ? navigator.clipboard.writeText(code).then(() => toast('Code copied: ' + code + ' 📋')) : toast('Your code: ' + code);
@@ -6542,7 +6573,7 @@ function logOut() { if (!confirm('Log out? You can sign back in anytime. Your da
         // ─── INIT ────────────────────────────────────────────────
         async function init() {
   loadLocal(); // always load from localStorage first — instant, never blank
-
+syncAuthOverlay();
   if (!S.coupleId) {
     window.location.href = '/landing.html';
     return;
@@ -7392,7 +7423,26 @@ window.requestNotifPerm = async function() {
 if (Notification.permission === 'granted' && S.coupleId) {
   setTimeout(registerPushSubscription, 3000);
 }
+function syncAuthOverlay() {
+  const ov = document.getElementById('authOverlay');
+  if (!ov) return;
+  const shouldShow = !(S.setupDone && S.coupleId);
+  ov.style.display = shouldShow ? 'flex' : 'none';
+}
 
+// Re-sync whenever the page is restored from bfcache (common on mobile)
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted) {
+    loadLocal();
+    syncAuthOverlay();
+    if (S.setupDone && S.coupleId) { renderAll(); updatePairStatus(); }
+  }
+});
+
+// Re-sync on tab focus too, cheap safety net
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') syncAuthOverlay();
+});
         applyRebranding();
 init();
         // Register PWA service worker
