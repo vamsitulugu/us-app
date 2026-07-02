@@ -6539,7 +6539,7 @@ function logOut() { if (!confirm('Log out? You can sign back in anytime. Your da
         // ─── INIT ────────────────────────────────────────────────
         async function init() {
   loadLocal(); // always load from localStorage first — instant, never blank
-  migrateLegacyChatOwnership();
+
   if (!S.coupleId) {
     window.location.href = '/landing.html';
     return;
