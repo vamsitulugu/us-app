@@ -5381,7 +5381,7 @@ async function removePartner() {
   if (!S.coupleId) return;
   try {
     const data = await api('POST', '/api/auth/unpair', { coupleId: S.coupleId, requestingRole: S.role });
-    S.paired = false; S.partnerName = 'Partner'; S.partnerAvatar = '';
+    S.paired = false; S.partnerName = 'Partner'; S.partnerAvatar = ''; S._pairToastShown = false;
     if (S.profile) delete S.profile[otherKey()];
     if (data.newConnectCode) S.connectCode = data.newConnectCode;
     saveLocal(); applyNames(); updatePairStatus(); renderAll();
@@ -5458,7 +5458,7 @@ async function removePartner() {
             S.partnerName = data.partnerName; S.role = 'user1'; S.setupDone = true; S.paired = false;
             pushMyProfile(); saveLocal(); saveToCloud();
             document.getElementById('authOverlay').style.display = 'none';
-            applyNames(); renderAll(); updatePairStatus(); toast('Welcome, ' + name + '! Share your connect code 💕'); spawnPetals(); startAlarmCheck();
+            applyNames(); renderAll(); updatePairStatus(); toast('Welcome, ' + name + '! Share your connect code 💕'); spawnPetals(); startAlarmCheck(); startSyncLoop();
           } catch (e) { errEl.textContent = 'Error: ' + e.message; errEl.style.display = 'block'; }
           finally { btn.textContent = 'Create Our Space ✨'; btn.disabled = false; }
         }
@@ -5480,7 +5480,7 @@ async function removePartner() {
             saveLocal(); document.getElementById('authOverlay').style.display = 'none';
             await loadFromCloud(); pushMyProfile(); pullPartnerProfile(); saveToCloud();
             applyNames(); renderAll(); updatePairStatus(); syncLoveCounterToFrame();
-            toast('Connected with ' + data.partnerName + '! 💕'); spawnPetals(); startAlarmCheck();
+            toast('Connected with ' + data.partnerName + '! 💕'); spawnPetals(); startAlarmCheck(); startSyncLoop();
             if (Notification.permission === 'granted') setTimeout(registerPushSubscription, 2000);
           } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
           finally { btn.textContent = 'Connect with Partner 💕'; btn.disabled = false; }
@@ -5588,12 +5588,15 @@ async function checkPairStatus() {
   S.paired = true;
   S.partnerName = (S.role === 'user1' ? c.user2_name : c.user1_name) || S.partnerName;
   applyNames(); updatePairStatus();
-  if (!was) {
+  if (!was && !S._pairToastShown) {
+    S._pairToastShown = true;
     toast('💕 ' + S.partnerName + ' joined! You are now linked.');
     spawnPetals();
     _justPairedAt = Date.now(); // give this device the same 20s grace window
+    saveLocal();
+  } else if (!was) {
+    saveLocal();
   }
-  saveLocal();
   return;
 }
 
@@ -5613,6 +5616,7 @@ async function checkPairStatus() {
 
     // Confirmed unpair
     S.paired = false;
+    S._pairToastShown = false;
     _unpairStrikes = 0;
     if (c.connect_code) S.connectCode = c.connect_code;
     S.partnerAvatar = ''; if (S.profile) delete S.profile[otherKey()];
@@ -6607,21 +6611,28 @@ syncAuthOverlay();
             }).catch(() => { });
             startAlarmCheck();
             if (Notification.permission === 'granted') setTimeout(registerPushSubscription, 2000);
-            setInterval(async () => {
-              await loadFromCloud();
-              await checkPairStatus();
-              checkIncomingTouch();
-              checkIncomingMissYou();
-              checkIncomingHug();
-              renderAll();
-              renderPartnerLastSeen();
-              syncLoveCounterToFrame();
-              const chatPage = document.getElementById('page-chat');
-              if (chatPage && chatPage.classList.contains('active') && document.hasFocus()) {
-                if (window.Chat && typeof Chat.markRead === 'function') Chat.markRead();
-}
-            }, 5000);
+            startSyncLoop();
           }
+        }
+
+        let _syncLoopStarted = false;
+        function startSyncLoop() {
+          if (_syncLoopStarted) return;
+          _syncLoopStarted = true;
+          setInterval(async () => {
+            await loadFromCloud();
+            await checkPairStatus();
+            checkIncomingTouch();
+            checkIncomingMissYou();
+            checkIncomingHug();
+            renderAll();
+            renderPartnerLastSeen();
+            syncLoveCounterToFrame();
+            const chatPage = document.getElementById('page-chat');
+            if (chatPage && chatPage.classList.contains('active') && document.hasFocus()) {
+              if (window.Chat && typeof Chat.markRead === 'function') Chat.markRead();
+            }
+          }, 5000);
         }
         let leafletMap = null, myMarker = null, ptMarker = null;
         function haversine(a, b) {

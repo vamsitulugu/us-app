@@ -255,11 +255,20 @@ function injectPickerButtons() {
   async function apiCall(method, path, body) {
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (body) opts.body = JSON.stringify(body);
-  const r = await fetch(API + path, opts);
+  let r;
+  try {
+    r = await fetch(API + path, opts);
+  } catch (netErr) {
+    console.error('[Chat] Network/CORS failure calling', API + path, netErr);
+    throw new Error('Cannot reach chat server (network/CORS): ' + netErr.message);
+  }
   let data;
   try { data = await r.json(); }
   catch (e) { data = { error: 'Non-JSON response (status ' + r.status + ')' }; }
-  if (!r.ok) throw new Error(data.error || 'Chat API error');
+  if (!r.ok) {
+    console.error('[Chat] API error', r.status, path, data);
+    throw new Error(data.error || ('Chat API error ' + r.status));
+  }
   return data;
 }
   async function fetchMessages(after) {
@@ -291,7 +300,8 @@ async function init() {
     loadCache();
     render();
     injectPickerButtons();
-    await refresh();
+    try { await refresh(); }
+    catch (e) { console.error('[Chat] initial refresh failed:', e); toast('Chat couldn\'t load: ' + e.message, 5000); }
     startPolling();
     markRead();
     pushPresence('online');
