@@ -800,8 +800,9 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <!-- MapLibre for street-level Street View -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/3.6.2/maplibre-gl.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/3.6.2/maplibre-gl.min.js"></script>
+<!-- MapLibre for street-level Street View -->
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
 <script>
 'use strict';
 // ═══════════════════════════════════════════
@@ -1257,6 +1258,7 @@ function animate() {
   if (atmosphere) { atmosphere.rotation.copy(globe.rotation); }
   
   camera.position.z = currentZoom;
+  if (window._debugZoom !== Math.round(currentZoom*100)) { window._debugZoom = Math.round(currentZoom*100); console.log('zoom:', currentZoom.toFixed(2)); }
 if (!isAnimatingCamera) {
   // Derive current camera-facing lat/lng even with no pin selected
   const facingLng = ((-currentRotY) * 180 / Math.PI + 180) % 360 - 180;
@@ -2950,6 +2952,12 @@ function maybeEnterStreetView() {
 }
 
 function enterStreetView(lat, lng, memberData) {
+  if (typeof maplibregl === 'undefined') {
+    toast('⚠️ Street map library failed to load — check your network/ad-blocker');
+    console.error('AdaptiveGlobe: maplibregl is undefined, street view cannot render');
+    streetViewActive = false;
+    return;
+  }
   streetViewActive = true;
   const el = document.getElementById('streetView');
   el.style.display = 'block';
