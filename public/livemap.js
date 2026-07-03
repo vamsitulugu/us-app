@@ -260,24 +260,24 @@ const LiveMap = (() => {
     console.warn('LiveMap: ignoring invalid coords for', who, lat, lng);
     return;
   }
-    const name = who === 'my' ? (S.myName || 'U') : (S.partnerName || 'P');
-    const avatar = who === 'my' ? S.myAvatar : S.partnerAvatar;
-    const cls = who === 'my' ? 'av1' : 'av2';
-    const size = who === 'my' ? 30 : 38;
-    const inner = avatar
-      ? `<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0">`
-      : esc(name[0] || (who === 'my' ? 'U' : 'P'));
-    const color = who === 'my' ? 'var(--accent)' : 'var(--accent2)';
-    const html = `<div style="position:relative;width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;color:#fff;font-size:${size*0.4}px;font-weight:700;border:3px solid #fff;box-shadow:0 0 0 4px ${who==='my'?'rgba(91,155,255,0.35)':'rgba(255,107,175,0.35)'},0 4px 14px rgba(0,0,0,0.4)">${inner}</div>`;
-    const icon = L.divIcon({ html, className: '', iconSize: [size, size] });
-    if (who === 'my') {
-      if (!st.myMarker) st.myMarker = L.marker([lat, lng], { icon, zIndexOffset: 400 }).addTo(st.map);
-      else st.myMarker.setIcon(icon);
-    } else {
-      if (!st.ptMarker) st.ptMarker = L.marker([lat, lng], { icon, zIndexOffset: 500 }).addTo(st.map);
-      else st.ptMarker.setIcon(icon);
-    }
+  const name = who === 'my' ? (S.myName || 'U') : (S.partnerName || 'P');
+  const avatar = who === 'my' ? S.myAvatar : S.partnerAvatar;
+  const cls = who === 'my' ? 'av1' : 'av2';
+  const size = who === 'my' ? 30 : 38;
+  const inner = avatar
+    ? `<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0">`
+    : esc(name[0] || (who === 'my' ? 'U' : 'P'));
+  const color = who === 'my' ? 'var(--accent)' : 'var(--accent2)';
+  const html = `<div style="position:relative;width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;color:#fff;font-size:${size*0.4}px;font-weight:700;border:3px solid #fff;box-shadow:0 0 0 4px ${who==='my'?'rgba(91,155,255,0.35)':'rgba(255,107,175,0.35)'},0 4px 14px rgba(0,0,0,0.4)">${inner}</div>`;
+  const icon = L.divIcon({ html, className: '', iconSize: [size, size] });
+  if (who === 'my') {
+    if (!st.myMarker) st.myMarker = L.marker([lat, lng], { icon, zIndexOffset: 400 }).addTo(st.map);
+    else st.myMarker.setIcon(icon);
+  } else {
+    if (!st.ptMarker) st.ptMarker = L.marker([lat, lng], { icon, zIndexOffset: 500 }).addTo(st.map);
+    else st.ptMarker.setIcon(icon);
   }
+}
 
   let _animRunning = false;
   function _tickAnim() {
@@ -316,7 +316,7 @@ const LiveMap = (() => {
     setTimeout(() => st.map.invalidateSize(), 100);
   }
 
-  function _fitBoth() {
+ function _fitBoth() {
   if (!st.map) return;
   const pts = [];
   if (S.myLoc && S.myLoc.lat != null && S.myLoc.lng != null) pts.push([S.myLoc.lat, S.myLoc.lng]);
@@ -405,24 +405,24 @@ const LiveMap = (() => {
 
   /* ── PAGE LIFECYCLE ──────────────────────────────────────── */
   function onEnterPage() {
-    st.pageActive = true;
-    _initMap();
-    migrateLegacyPlaces();
-    document.getElementById('lmMyName').textContent = S.myName || 'You';
-    document.getElementById('lmPtName').textContent = S.partnerName || 'Partner';
-    document.getElementById('lmAv1').textContent = (S.myName || 'U')[0];
-    document.getElementById('lmAv2').textContent = (S.partnerName || 'P')[0];
-    if (S.myAvatar) { const e = document.getElementById('lmAv1'); e.innerHTML = `<img src="${S.myAvatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`; }
-    if (S.partnerAvatar) { const e = document.getElementById('lmAv2'); e.innerHTML = `<img src="${S.partnerAvatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`; }
-    if (S.myLoc && S.myLoc.lat != null && S.myLoc.lng != null) _animateMarker('my', S.myLoc.lat, S.myLoc.lng);
-    if (S.ptLoc && S.ptLoc.lat != null && S.ptLoc.lng != null) _animateMarker('pt', S.ptLoc.lat, S.ptLoc.lng);
-    _renderPlacesLists();
-    _fitBoth();
-    startTracking();
-    _startPolling();
-    window.addEventListener('online', _pollOnce);
-    window.addEventListener('offline', () => { const el = document.getElementById('lmOfflineBanner'); if (el) el.style.display = 'flex'; });
-  }
+  st.pageActive = true;
+  _initMap();
+  migrateLegacyPlaces();
+  document.getElementById('lmMyName').textContent = S.myName || 'You';
+  document.getElementById('lmPtName').textContent = S.partnerName || 'Partner';
+  document.getElementById('lmAv1').textContent = (S.myName || 'U')[0];
+  document.getElementById('lmAv2').textContent = (S.partnerName || 'P')[0];
+  if (S.myAvatar) { const e = document.getElementById('lmAv1'); e.innerHTML = `<img src="${S.myAvatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`; }
+  if (S.partnerAvatar) { const e = document.getElementById('lmAv2'); e.innerHTML = `<img src="${S.partnerAvatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`; }
+  if (S.myLoc && S.myLoc.lat != null && S.myLoc.lng != null) _animateMarker('my', S.myLoc.lat, S.myLoc.lng);
+  if (S.ptLoc && S.ptLoc.lat != null && S.ptLoc.lng != null) _animateMarker('pt', S.ptLoc.lat, S.ptLoc.lng);
+  _renderPlacesLists();
+  _fitBoth();
+  startTracking();
+  _startPolling();
+  window.addEventListener('online', _pollOnce);
+  window.addEventListener('offline', () => { const el = document.getElementById('lmOfflineBanner'); if (el) el.style.display = 'flex'; });
+}
   function onLeavePage() {
     st.pageActive = false;
     _stopPolling();
