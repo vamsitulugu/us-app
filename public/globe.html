@@ -1257,7 +1257,14 @@ function animate() {
   if (atmosphere) { atmosphere.rotation.copy(globe.rotation); }
   
   camera.position.z = currentZoom;
-if (!isAnimatingCamera && selectedPin) maybeEnterStreetView();
+if (!isAnimatingCamera) {
+  // Derive current camera-facing lat/lng even with no pin selected
+  const facingLng = ((-currentRotY) * 180 / Math.PI + 180) % 360 - 180;
+  const facingLat = Math.max(-85, Math.min(85, currentRotX * 180 / Math.PI));
+  lastHoverLat = selectedPin ? selectedPin.lat : facingLat;
+  lastHoverLng = selectedPin ? selectedPin.lng : facingLng;
+  maybeEnterStreetView();
+}
   // Pulse markers (extra pulse for the selected one)
   markers3D.forEach((m, i) => {
     const isSel = selectedPin && selectedPin.city === m.city && selectedPin.country === m.country;
@@ -1279,7 +1286,7 @@ const mouse = new THREE.Vector2();
 // ── Cinematic camera state ──
 let isAnimatingCamera = false;
 let selectedPin = null;
-const MIN_ZOOM = 1.6, MAX_ZOOM = 5, PIN_ZOOM = 1.75;
+const MIN_ZOOM = 1.15, MAX_ZOOM = 5, PIN_ZOOM = 1.3;
 
 function flyToLatLng(lat, lng, zoomTo, onDone) {
   isAnimatingCamera = true;
@@ -2771,7 +2778,7 @@ let liveEnabled = false, liveWatchId = null, livePollTimer = null;
 let liveMarkers = { me: null, partner: null };
 let liveTrail = { me: null, partner: null };
 let lastPing = { lat: null, lng: null, t: 0 };
-
+let lastHoverLat = null, lastHoverLng = null;
 function toggleLiveLocation() {
   liveEnabled ? stopLiveLocation() : startLiveLocation();
 }
@@ -2931,13 +2938,15 @@ const STREET_ZOOM_TRIGGER = 1.78; // globe zoom level that auto-triggers street 
 let streetViewActive = false;
 
 function maybeEnterStreetView() {
-  if (streetViewActive || !selectedPin) return;
-  const t = (STREET_ZOOM_TRIGGER + 0.35 - targetZoom) / 0.35; // 0→1 as you approach trigger
+  if (streetViewActive) return;
+  const target = selectedPin || { lat: lastHoverLat, lng: lastHoverLng, city: null, country: null };
+  if (!target || target.lat == null) return;
+  const t = (STREET_ZOOM_TRIGGER + 0.35 - targetZoom) / 0.35;
   const el = document.getElementById('streetView');
   if (t > 0 && el.style.display === 'none' && targetZoom > STREET_ZOOM_TRIGGER) {
     el.style.display = 'block'; el.style.opacity = String(Math.max(0, Math.min(1, t * 0.6)));
   }
-  if (targetZoom <= STREET_ZOOM_TRIGGER) enterStreetView(selectedPin.lat, selectedPin.lng, selectedPin);
+  if (targetZoom <= STREET_ZOOM_TRIGGER) enterStreetView(target.lat, target.lng, target);
 }
 
 function enterStreetView(lat, lng, memberData) {
@@ -2947,15 +2956,31 @@ function enterStreetView(lat, lng, memberData) {
   requestAnimationFrame(() => { el.style.opacity = '1'; });
 
   if (!streetMap) {
-    streetMap = new maplibregl.Map({
-      container: 'streetMapDiv',
-      style: 'https://tiles.openfreemap.org/styles/liberty',
-      center: [lng, lat], zoom: 15, pitch: 45, attributionControl: false
+  streetMap = new maplibregl.Map({
+    container: 'streetMapDiv',
+    style: 'https://tiles.openfreemap.org/styles/liberty',
+    center: [lng, lat], zoom: 16, pitch: 55, attributionControl: false
+  });
+  streetMap.addControl(new maplibregl.NavigationControl(), 'top-right');
+  streetMap.on('load', () => {
+    if (streetMap.getLayer('building-3d')) return;
+    streetMap.addLayer({
+      id: 'building-3d',
+      source: 'openmaptiles',
+      'source-layer': 'building',
+      type: 'fill-extrusion',
+      minzoom: 14,
+      paint: {
+        'fill-extrusion-color': '#8899aa',
+        'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 8],
+        'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
+        'fill-extrusion-opacity': 0.75
+      }
     });
-    streetMap.addControl(new maplibregl.NavigationControl(), 'top-right');
-  } else {
-    streetMap.jumpTo({ center: [lng, lat], zoom: 15, pitch: 45 });
-  }
+  });
+} else {
+  streetMap.jumpTo({ center: [lng, lat], zoom: 16, pitch: 55 });
+}
 
   if (memberData && memberData.city) {
     const key = memberData.city + ',' + memberData.country;
