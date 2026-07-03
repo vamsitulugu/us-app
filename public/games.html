@@ -549,7 +549,6 @@ const GAMES = [
 
 
 window.GAMES = GAMES;
-window.Hub = Hub;
 window.GameCore = GameCore;
 window.GameChannel = GameChannel;
 window.Snd = Snd;
@@ -736,7 +735,7 @@ const Hub = {
   }
 };
 window.addEventListener('message', e=>{ if(e.data?.type==='theme'){ const r=document.documentElement; Object.entries(e.data.vars||{}).forEach(([k,v])=>{ if(v) r.style.setProperty(k,v); }); } });
-
+window.Hub = Hub;
 /* ═══════════════════════════════════════════════════════
    GAME 1 — LOVE ADVENTURE
 ═══════════════════════════════════════════════════════ */
