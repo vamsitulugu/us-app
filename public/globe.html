@@ -916,7 +916,7 @@ function initGlobe() {
   // Camera
   camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 1000);
   camera.position.z = targetZoom;
-
+  window.camera = camera; 
   // Renderer
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setSize(W, H);
@@ -1243,7 +1243,6 @@ function animate() {
   currentRotX += (targetRotX - currentRotX) * 0.08;
   currentRotY += (targetRotY - currentRotY) * 0.08;
   currentZoom += (targetZoom - currentZoom) * 0.08;
-  currentZoom += (targetZoom - currentZoom) * 0.08;
   AdaptiveGlobe.update(currentZoom, selectedPin ? selectedPin.country : null, currentRotY, currentRotX);
   // Recluster when the zoom bucket changes meaningfully
   const zBucket = Math.round(currentZoom * 8);
@@ -1258,7 +1257,7 @@ function animate() {
   if (atmosphere) { atmosphere.rotation.copy(globe.rotation); }
   
   camera.position.z = currentZoom;
-  if (window._debugZoom !== Math.round(currentZoom*100)) { window._debugZoom = Math.round(currentZoom*100); console.log('zoom:', currentZoom.toFixed(2)); }
+  
 if (!isAnimatingCamera) {
   // Derive current camera-facing lat/lng even with no pin selected
   const facingLng = ((-currentRotY) * 180 / Math.PI + 180) % 360 - 180;
@@ -1457,10 +1456,11 @@ function handleHover(clientX, clientY) {
   mouse.set(ndc.x, ndc.y);
   raycaster.setFromCamera(mouse, camera);
   const hits = raycaster.intersectObjects(markers3D.map(m => m.mesh));
-if (!hits.length && handleCountryGlowClick(e.clientX, e.clientY)) { hideTip(); return; }
-if (hits.length) {
+  if (!hits.length && handleCountryGlowClick(clientX, clientY)) { hideTip(); return; }
+  if (hits.length) {
     const m = markers3D.find(x => x.mesh === hits[0].object);
     if (m) {
+      const tip = document.getElementById('cityTooltip'); // ← add this line
       document.getElementById('ttCity').textContent = m.isCluster ? `${m.clusterCities.length} places` : m.city;
       document.getElementById('ttMeta').textContent = m.isCluster ? m.clusterCities.map(c=>c.city).slice(0,3).join(', ') : m.country;
       document.getElementById('ttCount').textContent = m.count + ' memor' + (m.count===1?'y':'ies');
@@ -2081,12 +2081,7 @@ function renderAddForm(data) {
   `;
 
   // Click outside loc results to close
-  document.addEventListener('click', e => {
-    if (!e.target.closest('#formLocSearch') && !e.target.closest('#locResults')) {
-      const lr = document.getElementById('locResults');
-      if (lr) lr.classList.remove('show');
-    }
-  });
+  
 }
 
 function selectMood(el, mood) {
@@ -3103,6 +3098,12 @@ function renderBookmarkStars() {
 // START
 // ═══════════════════════════════════════════
 init();
+document.addEventListener('click', e => {
+  if (!e.target.closest('#formLocSearch') && !e.target.closest('#locResults')) {
+    const lr = document.getElementById('locResults');
+    if (lr) lr.classList.remove('show');
+  }
+});
 </script>
 </body>
 </html>

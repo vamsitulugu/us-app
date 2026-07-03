@@ -305,14 +305,6 @@ window.AdaptiveGlobe = (function () {
       }
       s.userData.visible = !behind && !overlap;
       if (!overlap && !behind) shown.push({ x: sx, y: sy });
-      if (bucket !== currentBucket && window.camera) {
-        currentBucket = bucket;
-        cullOverlaps(countryLabels, window.camera, 46);
-        cullOverlaps(cityLabels, window.camera, 40);
-        cityLabels.children.forEach(s => {
-          if (s.userData.visible !== false) s.userData.visible = inFrustum(s.position, window.camera);
-        });
-      }
     });
   }
 
@@ -544,9 +536,9 @@ window.AdaptiveGlobe = (function () {
         currentBucket = bucket;
         cullOverlaps(countryLabels, window.camera, 46);
         cullOverlaps(cityLabels, window.camera, 40);
-        cullOverlaps(mountainGroup, window.camera, 40);
-        cityLabels.children.forEach(s => { if (s.userData.visible !== false) s.userData.visible = inFrustum(s.position, window.camera); });
-        mountainGroup.children.forEach(s => { if (s.userData.visible !== false) s.userData.visible = inFrustum(s.position, window.camera); });
+        cityLabels.children.forEach(s => {
+          if (s.userData.visible !== false) s.userData.visible = inFrustum(s.position, window.camera);
+        });
       }
     }
   };
