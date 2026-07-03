@@ -1521,6 +1521,28 @@ const TOD = {
    INIT
 ═══════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════
+   EXPOSE GLOBALS FOR ADDON PACKS (couple-games-addon.js etc.)
+   Top-level const/function in a classic <script> tag do NOT
+   attach to window — addon scripts that check window.X or
+   call window.X() need these explicitly exported.
+═══════════════════════════════════════════════════════ */
+window.GameCore = GameCore;
+window.GameChannel = GameChannel;
+window.GAMES = GAMES;
+window.ACHIEVEMENTS = ACHIEVEMENTS;
+window.Snd = Snd;
+window.Hub = Hub;
+window.ID = ID;
+window.toast = toast;
+window.confetti = confetti;
+window.showReward = showReward;
+window.closeReward = closeReward;
+window.esc = esc;
+window.rand = rand;
+window.uid = uid;
+window.todayStr = todayStr;
+
 Hub.init();
 
 </script>
