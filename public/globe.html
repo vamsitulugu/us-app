@@ -795,6 +795,7 @@
 
 <!-- Three.js for globe -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="/js/globe-adaptive.js"></script>
 <!-- Leaflet for flat map -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -1029,7 +1030,7 @@ function initGlobe() {
   });
   atmosphere = new THREE.Mesh(atmGeo, atmMat);
   scene.add(atmosphere);
-
+  AdaptiveGlobe.init(globe); 
   // ── Outer soft halo (very subtle, thin) ──
   const glowGeo = new THREE.SphereGeometry(1.1, 32, 32);
   const glowMat = new THREE.MeshBasicMaterial({
@@ -1241,6 +1242,8 @@ function animate() {
   currentRotX += (targetRotX - currentRotX) * 0.08;
   currentRotY += (targetRotY - currentRotY) * 0.08;
   currentZoom += (targetZoom - currentZoom) * 0.08;
+  currentZoom += (targetZoom - currentZoom) * 0.08;
+  AdaptiveGlobe.update(currentZoom, selectedPin ? selectedPin.country : null, currentRotY, currentRotX);
   // Recluster when the zoom bucket changes meaningfully
   const zBucket = Math.round(currentZoom * 8);
   if (zBucket !== window._lastZBucket) {
@@ -2929,6 +2932,11 @@ let streetViewActive = false;
 
 function maybeEnterStreetView() {
   if (streetViewActive || !selectedPin) return;
+  const t = (STREET_ZOOM_TRIGGER + 0.35 - targetZoom) / 0.35; // 0→1 as you approach trigger
+  const el = document.getElementById('streetView');
+  if (t > 0 && el.style.display === 'none' && targetZoom > STREET_ZOOM_TRIGGER) {
+    el.style.display = 'block'; el.style.opacity = String(Math.max(0, Math.min(1, t * 0.6)));
+  }
   if (targetZoom <= STREET_ZOOM_TRIGGER) enterStreetView(selectedPin.lat, selectedPin.lng, selectedPin);
 }
 
