@@ -192,13 +192,13 @@ const LiveMap = (() => {
         const theirs = data[S.role === 'user1' ? 'user2' : 'user1'];
         if (mine) st.myLast = mine;
         if (theirs) {
-          const changed = !st.ptLast || st.ptLast.lat !== theirs.lat || st.ptLast.lng !== theirs.lng;
-          st.ptLast = theirs;
-          if (changed && S.ptLoc?.lat !== theirs.lat) {
-            S.ptLoc = { lat: theirs.lat, lng: theirs.lng, ts: Date.parse(theirs.updatedAt), moving: theirs.moving };
-            _animateMarker('pt', theirs.lat, theirs.lng);
-          }
-        }
+  const changed = !st.ptLast || st.ptLast.lat !== theirs.lat || st.ptLast.lng !== theirs.lng;
+  st.ptLast = theirs;
+  if (changed && theirs.lat != null && theirs.lng != null && S.ptLoc?.lat !== theirs.lat) {
+    S.ptLoc = { lat: theirs.lat, lng: theirs.lng, ts: Date.parse(theirs.updatedAt), moving: theirs.moving };
+    _animateMarker('pt', theirs.lat, theirs.lng);
+  }
+}
       }
       _updateMyStatusUI(); _updatePtStatusUI(); _updateStatsUI();
     } catch (e) {

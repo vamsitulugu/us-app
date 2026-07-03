@@ -22,7 +22,14 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
+
+  // Only handle same-origin requests. Let cross-origin CDN/API calls
+  // (unpkg, github, maplibre tiles, textures, etc.) go straight to the
+  // network exactly as the page requested — don't touch mode/credentials.
+  if (url.origin !== self.location.origin) return;
+
   if (url.pathname.startsWith('/api/')) return; // never intercept API
+
   e.respondWith(
     fetch(e.request)
       .then(res => {
