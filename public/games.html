@@ -547,12 +547,6 @@ const GAMES = [
     tags:['🏗 Builder','⏱ Ongoing','✨ 12 XP/item']},
 ];
 
-
-window.GAMES = GAMES;
-window.GameCore = GameCore;
-window.GameChannel = GameChannel;
-window.Snd = Snd;
-window.ACHIEVEMENTS = ACHIEVEMENTS;
 /* ═══════════════════════════════════════════════════════
    HUB
 ═══════════════════════════════════════════════════════ */
@@ -735,7 +729,7 @@ const Hub = {
   }
 };
 window.addEventListener('message', e=>{ if(e.data?.type==='theme'){ const r=document.documentElement; Object.entries(e.data.vars||{}).forEach(([k,v])=>{ if(v) r.style.setProperty(k,v); }); } });
-window.Hub = Hub;
+
 /* ═══════════════════════════════════════════════════════
    GAME 1 — LOVE ADVENTURE
 ═══════════════════════════════════════════════════════ */
