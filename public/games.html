@@ -711,6 +711,8 @@ const Hub = {
       else if(id==='escape') Escape.open(body);
       else if(id==='tod') TOD.open(body);
       else if(id==='dreamhome') DreamHome.open(body);
+      else if(id==='atw') AroundWorld.open(body);
+      else if(id==='space') SpaceDate.open(body);
     },120);
   },
   updateHeadChips(){
@@ -719,7 +721,7 @@ const Hub = {
   },
   exitGame(){
     Snd.tap();
-    ['LoveAdventure','Island','Draw','Escape','TOD','DreamHome'].forEach(n=>{ try{ window[n].close && window[n].close(); }catch(e){} });
+    ['LoveAdventure','Island','Draw','Escape','TOD','DreamHome','AroundWorld','SpaceDate'].forEach(n=>{ try{ window[n].close && window[n].close(); }catch(e){} });
     document.getElementById('goverlay').classList.remove('open');
     
     setPresenceGame(null); this.activeGameId=null;
@@ -1518,7 +1520,10 @@ const TOD = {
 /* ═══════════════════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════════════════ */
+
 Hub.init();
+
 </script>
+<script src="couple-games-addon.js"></script>
 </body>
 </html>
