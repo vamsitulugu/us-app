@@ -943,7 +943,6 @@ function initGlobe() {
 
   // ── Earth (real NASA-style textures, no procedural canvas) ──
   const loader = new THREE.TextureLoader();
-  loader.crossOrigin = 'anonymous';
 
   const earthGeo = new THREE.SphereGeometry(1, 96, 96);
   const earthMat = new THREE.MeshPhongMaterial({

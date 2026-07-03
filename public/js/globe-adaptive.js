@@ -274,19 +274,27 @@ window.AdaptiveGlobe = (function () {
   }
 
   // ── Lazy state/province borders for a focused country (zoom level 4) ──
-  async function loadStatesForCountry(iso3) {
-    if (!iso3 || statesLoadedFor === iso3) return;
-    statesLoadedFor = iso3;
-    stateBorders.children.forEach(c => stateBorders.remove(c));
-    try {
-      const meta = await fetchGeoJSONViaWorker(GEOBOUNDARIES(iso3));   // ← changed
-      const url = meta.gjDownloadURL || (Array.isArray(meta) ? meta[0]?.gjDownloadURL : null);
-      if (!url) return;
-      const gj = await fetchGeoJSONViaWorker(url);   // ← changed
-      const grp = buildBorderGroup(gj, 1.008, 0.55);
-      grp.children.forEach(c => stateBorders.add(c));
-    } catch (e) { console.warn('AdaptiveGlobe: states load failed for', iso3, e); statesLoadedFor = null; }
+
+let statesFeatureBroken = false; // add near other state vars
+
+async function loadStatesForCountry(iso3) {
+  if (!iso3 || statesLoadedFor === iso3 || statesFeatureBroken) return;
+  statesLoadedFor = iso3;
+  stateBorders.children.forEach(c => stateBorders.remove(c));
+  try {
+    const meta = await fetchGeoJSONViaWorker(GEOBOUNDARIES(iso3));
+    let url = meta.gjDownloadURL || (Array.isArray(meta) ? meta[0]?.gjDownloadURL : null);
+    if (!url) return;
+    url = url.replace('github.com/', 'raw.githubusercontent.com/').replace('/raw/', '/');
+    const gj = await fetchGeoJSONViaWorker(url);
+    const grp = buildBorderGroup(gj, 1.008, 0.55);
+    grp.children.forEach(c => stateBorders.add(c));
+  } catch (e) {
+    console.warn('AdaptiveGlobe: geoBoundaries unavailable, disabling state borders for this session');
+    statesFeatureBroken = true;
+    statesLoadedFor = null;
   }
+}
 
   // ── Label overlap culling (screen-space, cheap, recomputed on bucket change) ──
   function cullOverlaps(group, camera, minPx) {

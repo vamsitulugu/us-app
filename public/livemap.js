@@ -256,6 +256,10 @@ const LiveMap = (() => {
   }
 
   function _ensureMarker(who, lat, lng) {
+  if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) {
+    console.warn('LiveMap: ignoring invalid coords for', who, lat, lng);
+    return;
+  }
     const name = who === 'my' ? (S.myName || 'U') : (S.partnerName || 'P');
     const avatar = who === 'my' ? S.myAvatar : S.partnerAvatar;
     const cls = who === 'my' ? 'av1' : 'av2';
@@ -313,13 +317,13 @@ const LiveMap = (() => {
   }
 
   function _fitBoth() {
-    if (!st.map) return;
-    const pts = [];
-    if (S.myLoc) pts.push([S.myLoc.lat, S.myLoc.lng]);
-    if (S.ptLoc) pts.push([S.ptLoc.lat, S.ptLoc.lng]);
-    if (pts.length === 2) st.map.fitBounds(pts, { padding: [60, 60] });
-    else if (pts.length === 1) st.map.setView(pts[0], 13);
-  }
+  if (!st.map) return;
+  const pts = [];
+  if (S.myLoc && S.myLoc.lat != null && S.myLoc.lng != null) pts.push([S.myLoc.lat, S.myLoc.lng]);
+  if (S.ptLoc && S.ptLoc.lat != null && S.ptLoc.lng != null) pts.push([S.ptLoc.lat, S.ptLoc.lng]);
+  if (pts.length === 2) st.map.fitBounds(pts, { padding: [60, 60] });
+  else if (pts.length === 1) st.map.setView(pts[0], 13);
+}
 
   function _renderPlaceMarkers() {
     if (!st.map) return;
@@ -410,8 +414,8 @@ const LiveMap = (() => {
     document.getElementById('lmAv2').textContent = (S.partnerName || 'P')[0];
     if (S.myAvatar) { const e = document.getElementById('lmAv1'); e.innerHTML = `<img src="${S.myAvatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`; }
     if (S.partnerAvatar) { const e = document.getElementById('lmAv2'); e.innerHTML = `<img src="${S.partnerAvatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`; }
-    if (S.myLoc) _animateMarker('my', S.myLoc.lat, S.myLoc.lng);
-    if (S.ptLoc) _animateMarker('pt', S.ptLoc.lat, S.ptLoc.lng);
+    if (S.myLoc && S.myLoc.lat != null && S.myLoc.lng != null) _animateMarker('my', S.myLoc.lat, S.myLoc.lng);
+    if (S.ptLoc && S.ptLoc.lat != null && S.ptLoc.lng != null) _animateMarker('pt', S.ptLoc.lat, S.ptLoc.lng);
     _renderPlacesLists();
     _fitBoth();
     startTracking();
