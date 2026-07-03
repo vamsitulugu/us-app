@@ -4,997 +4,1521 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
 <title>Couple Games 🎮</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root {
-  --h: 215;
-  --accent: hsl(var(--h), 100%, 62%);
-  --accent-d: hsl(var(--h), 95%, 50%);
-  --accent-l: hsl(var(--h), 100%, 78%);
-  --accent-glow: hsla(var(--h), 100%, 62%, 0.35);
-  --accent2: hsl(300, 85%, 65%);
-  --accent2-d: hsl(300, 80%, 52%);
-  --accent2-glow: hsla(300, 85%, 65%, 0.35);
-  --g1: rgba(255,255,255,0.04);
-  --g2: rgba(255,255,255,0.08);
-  --g3: rgba(255,255,255,0.13);
-  --blur: blur(24px) saturate(180%);
-  --blur-sm: blur(12px) saturate(150%);
-  --ff-serif: 'DM Serif Display', Georgia, serif;
-  --ff-sans: 'Inter', system-ui, sans-serif;
-  --r: 18px; --rs: 12px; --rss: 8px; --space: 20px;
-  --white: #ffffff;
-  --text: rgba(255,255,255,0.92);
-  --text2: rgba(255,255,255,0.62);
-  --text3: rgba(255,255,255,0.38);
-  --border: rgba(255,255,255,0.10);
-  --border2: rgba(255,255,255,0.18);
-  --green: #34d399; --green-bg: rgba(52,211,153,0.15);
-  --red: #f87171; --red-bg: rgba(248,113,113,0.15);
-  --yellow: #fbbf24; --yellow-bg: rgba(251,191,36,0.15);
-  --t: all 0.22s cubic-bezier(0.4,0,0.2,1);
-  --t-spring: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+:root{
+  --h:215; --accent:hsl(var(--h),100%,62%); --accent-d:hsl(var(--h),95%,50%); --accent-l:hsl(var(--h),100%,78%); --accent-glow:hsla(var(--h),100%,62%,.35);
+  --accent2:hsl(300,85%,65%); --accent2-d:hsl(300,80%,52%); --accent2-glow:hsla(300,85%,65%,.35);
+  --gold:#ffc94a; --gold-glow:rgba(255,201,74,.4); --dia:#7ee8ff; --dia-glow:rgba(126,232,255,.4);
+  --g1:rgba(255,255,255,.045); --g2:rgba(255,255,255,.09); --g3:rgba(255,255,255,.15);
+  --blur:blur(26px) saturate(180%); --blur-sm:blur(12px) saturate(150%);
+  --ff-serif:'DM Serif Display',Georgia,serif; --ff-sans:'Inter',system-ui,sans-serif;
+  --white:#fff; --text:rgba(255,255,255,.94); --text2:rgba(255,255,255,.64); --text3:rgba(255,255,255,.38);
+  --border:rgba(255,255,255,.11); --border2:rgba(255,255,255,.20);
+  --green:#34d399; --green-bg:rgba(52,211,153,.15); --red:#f87171; --red-bg:rgba(248,113,113,.15); --yellow:#fbbf24;
+  --t:all .22s cubic-bezier(.4,0,.2,1); --ts:all .35s cubic-bezier(.34,1.56,.64,1);
 }
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none}
+input,textarea{user-select:text}
 body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:transparent;line-height:1.5;overflow-x:hidden}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:99px}
+button{font-family:inherit;cursor:pointer}
+.glass{background:var(--g1);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--border)}
 
-/* ── GAME CARDS GRID ── */
-.games-hero{text-align:center;padding:28px 20px 20px;position:relative}
-.games-hero-title{font-family:var(--ff-serif);font-size:28px;color:var(--white);margin-bottom:6px}
-.games-hero-sub{font-size:13px;color:var(--text2)}
-.games-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;padding:0 0 20px}
-@media(max-width:700px){.games-grid{grid-template-columns:1fr}}
+/* ══ HUB ══ */
+.hub{padding:16px 14px 40px;max-width:960px;margin:0 auto}
+.hub-hero{text-align:center;padding:10px 0 18px}
+.hub-title{font-family:var(--ff-serif);font-size:26px;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px}
+.hub-sub{font-size:12px;color:var(--text2);margin-top:4px}
 
-.game-card{
-  border-radius:20px;overflow:hidden;position:relative;cursor:pointer;
-  border:1px solid var(--border2);
-  background:var(--g1);backdrop-filter:var(--blur);
-  transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.25s;
-}
-.game-card:hover{transform:translateY(-6px) scale(1.01);box-shadow:0 20px 50px rgba(0,0,0,0.4)}
-.game-card:active{transform:scale(0.97)}
-.game-banner{
-  height:140px;display:flex;align-items:center;justify-content:center;
-  position:relative;overflow:hidden;
-}
-.game-banner-emoji{font-size:52px;position:relative;z-index:1;filter:drop-shadow(0 4px 16px rgba(0,0,0,0.4));animation:floatEmoji 3s ease-in-out infinite}
-@keyframes floatEmoji{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-.game-banner::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,0.15)}
-.game-card-body{padding:16px}
-.game-card-title{font-family:var(--ff-serif);font-size:17px;color:var(--white);margin-bottom:5px}
-.game-card-desc{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:13px}
-.game-card-meta{display:flex;align-items:center;gap:8px;margin-bottom:13px;flex-wrap:wrap}
-.game-tag{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.3px}
-.game-play-btn{
-  width:100%;padding:11px;border-radius:12px;border:none;cursor:pointer;
-  font-family:var(--ff-sans);font-size:13px;font-weight:600;
-  background:linear-gradient(135deg,var(--accent),var(--accent-d));
-  color:#fff;box-shadow:0 4px 16px var(--accent-glow);
-  transition:var(--t-spring);display:flex;align-items:center;justify-content:center;gap:7px;
-}
-.game-play-btn:hover{filter:brightness(1.12);transform:translateY(-2px)}
-.game-play-btn:active{transform:scale(0.96)}
+/* rank cards */
+.rank-row{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:stretch;margin-bottom:14px}
+.rank-card{border-radius:20px;padding:14px;position:relative;overflow:hidden;border:1px solid var(--border2);backdrop-filter:var(--blur)}
+.rank-card.me{background:linear-gradient(155deg,hsla(var(--h),100%,55%,.18),rgba(255,255,255,.03))}
+.rank-card.pt{background:linear-gradient(155deg,hsla(300,85%,60%,.18),rgba(255,255,255,.03))}
+.rank-vs{align-self:center;font-family:var(--ff-serif);font-size:20px;color:var(--text3);display:flex;flex-direction:column;align-items:center;gap:2px}
+.rank-top{display:flex;align-items:center;gap:10px}
+.rank-av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;color:#fff;border:2px solid rgba(255,255,255,.3);flex-shrink:0;position:relative;overflow:hidden}
+.rank-av img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.rank-card.me .rank-av{background:linear-gradient(135deg,var(--accent),var(--accent-d))}
+.rank-card.pt .rank-av{background:linear-gradient(135deg,var(--accent2),var(--accent2-d))}
+.rank-online{position:absolute;bottom:-1px;right:-1px;width:11px;height:11px;border-radius:50%;background:var(--text3);border:2px solid rgba(10,10,20,.9)}
+.rank-online.on{background:var(--green);box-shadow:0 0 6px var(--green)}
+.rank-name{font-size:13px;font-weight:700;color:#fff}
+.rank-lvl{font-size:10px;color:var(--text3);margin-top:1px}
+.rank-xpbar{height:6px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:10px}
+.rank-xpfill{height:100%;border-radius:4px;transition:width .8s cubic-bezier(.34,1.56,.64,1)}
+.rank-card.me .rank-xpfill{background:linear-gradient(90deg,var(--accent),var(--accent-l))}
+.rank-card.pt .rank-xpfill{background:linear-gradient(90deg,var(--accent2),#ff9ec7)}
+.rank-stats{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+.rank-stat{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);font-weight:600}
+.rank-playing{margin-top:9px;font-size:10px;padding:4px 9px;border-radius:20px;background:var(--green-bg);color:var(--green);border:1px solid rgba(52,211,153,.3);display:inline-flex;align-items:center;gap:5px;font-weight:700}
+.rank-playing .dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:blk 1.4s infinite}
+@keyframes blk{0%,100%{opacity:1}50%{opacity:.3}}
 
-/* ── GAME MODAL ── */
-.game-modal-bg{
-  position:fixed;inset:0;z-index:2000;
-  background:rgba(0,0,0,0.7);backdrop-filter:blur(12px);
-  display:none;align-items:center;justify-content:center;padding:16px;
-}
-.game-modal-bg.open{display:flex}
-.game-modal{
-  background:rgba(8,8,20,0.92);backdrop-filter:blur(30px) saturate(200%);
-  border:1px solid var(--border2);border-radius:24px;
-  width:100%;max-width:520px;max-height:92dvh;overflow-y:auto;
-  color:var(--white);box-shadow:0 24px 80px rgba(0,0,0,0.5);
-  animation:modalIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
-}
-@keyframes modalIn{from{opacity:0;transform:scale(0.88) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
-.game-modal-header{
-  padding:22px 22px 16px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-}
-.game-modal-title{font-family:var(--ff-serif);font-size:20px;color:var(--white)}
-.game-modal-close{
-  background:var(--g2);border:1px solid var(--border);border-radius:50%;
-  width:36px;height:36px;cursor:pointer;color:var(--text2);font-size:18px;
-  display:flex;align-items:center;justify-content:center;transition:var(--t);
-}
-.game-modal-close:hover{background:var(--g3);color:var(--white)}
-.game-modal-body{padding:20px}
+/* daily / continue */
+.banner-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+@media(max-width:640px){.banner-row{grid-template-columns:1fr}}
+.banner{border-radius:18px;padding:15px;position:relative;overflow:hidden;cursor:pointer;transition:var(--ts);border:1px solid var(--border2)}
+.banner:hover{transform:translateY(-3px)}
+.banner.daily{background:linear-gradient(135deg,rgba(255,201,74,.15),rgba(255,107,157,.08))}
+.banner.cont{background:linear-gradient(135deg,rgba(126,232,255,.12),hsla(var(--h),100%,55%,.10))}
+.banner-tag{font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:5px}
+.banner.cont .banner-tag{color:var(--dia)}
+.banner-title{font-family:var(--ff-serif);font-size:16px;color:#fff}
+.banner-sub{font-size:11px;color:var(--text2);margin-top:3px}
+.banner-prog{height:5px;border-radius:3px;background:rgba(255,255,255,.08);margin-top:9px;overflow:hidden}
+.banner-prog-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--gold),#ff9ec7)}
+.banner.cont .banner-prog-fill{background:linear-gradient(90deg,var(--dia),var(--accent))}
+.banner-ico{position:absolute;right:10px;top:10px;font-size:34px;opacity:.5}
 
-/* ── TRUTH OR DARE ── */
-.tod-tabs{display:flex;gap:8px;margin-bottom:18px}
-.tod-tab{
-  flex:1;padding:10px;border-radius:12px;cursor:pointer;font-size:13px;
-  font-weight:600;text-align:center;border:1px solid var(--border);
-  background:var(--g1);color:var(--text2);transition:var(--t);
-}
-.tod-tab.truth.active{background:linear-gradient(135deg,#5B9BFF,#1453C4);color:#fff;border-color:transparent;box-shadow:0 4px 14px rgba(91,155,255,0.4)}
-.tod-tab.dare.active{background:linear-gradient(135deg,#FF6B9D,#C40060);color:#fff;border-color:transparent;box-shadow:0 4px 14px rgba(255,107,157,0.4)}
-.card-display{
-  min-height:160px;border-radius:18px;padding:24px;
-  display:flex;align-items:center;justify-content:center;text-align:center;
-  font-size:16px;line-height:1.65;color:var(--white);font-weight:500;
-  border:1px solid var(--border2);margin-bottom:16px;
-  background:var(--g2);backdrop-filter:var(--blur);
-  animation:cardAppear 0.3s cubic-bezier(0.34,1.56,0.64,1);
-}
-@keyframes cardAppear{from{opacity:0;transform:scale(0.9) rotateY(10deg)}to{opacity:1;transform:scale(1) rotateY(0)}}
-.spin-btn{
-  width:100%;padding:13px;border-radius:14px;border:none;cursor:pointer;
-  font-family:var(--ff-sans);font-size:14px;font-weight:700;
-  background:linear-gradient(135deg,var(--accent2),var(--accent2-d));
-  color:#fff;box-shadow:0 6px 20px var(--accent2-glow);
-  transition:var(--t-spring);
-}
-.spin-btn:hover{filter:brightness(1.1);transform:translateY(-2px)}
-.spin-btn:active{transform:scale(0.95)}
+/* section labels */
+.hub-sec-title{font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3);margin:18px 4px 10px;display:flex;align-items:center;gap:8px}
+.hub-sec-title .line{flex:1;height:1px;background:var(--border)}
 
-/* ── QUIZ ── */
-.quiz-q{font-size:16px;font-weight:600;color:var(--white);margin-bottom:14px;line-height:1.55}
-.quiz-opt{
-  padding:12px 16px;border-radius:12px;border:1px solid var(--border);
-  background:var(--g1);color:var(--text);font-size:13px;cursor:pointer;
-  margin-bottom:8px;transition:var(--t);text-align:left;width:100%;
-  font-family:var(--ff-sans);
-}
-.quiz-opt:hover{background:var(--g2);border-color:var(--border2)}
-.quiz-opt.correct{background:var(--green-bg);border-color:var(--green);color:var(--green)}
-.quiz-opt.wrong{background:var(--red-bg);border-color:var(--red);color:var(--red)}
-.quiz-progress{height:5px;background:var(--g2);border-radius:3px;margin-bottom:18px;overflow:hidden}
-.quiz-progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width 0.5s ease}
-.score-display{
-  text-align:center;padding:24px;
-  background:linear-gradient(135deg,hsla(var(--h),100%,62%,0.1),hsla(300,85%,65%,0.1));
-  border-radius:18px;border:1px solid var(--border2);margin-bottom:16px;
-}
-.score-num{font-family:var(--ff-serif);font-size:56px;color:var(--white);line-height:1}
-.score-label{font-size:12px;color:var(--text2);margin-top:6px}
+/* game grid */
+.games-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.gcard{border-radius:22px;overflow:hidden;position:relative;cursor:pointer;border:1px solid var(--border2);background:var(--g1);backdrop-filter:var(--blur);transition:var(--ts)}
+.gcard:hover{transform:translateY(-6px) scale(1.008);box-shadow:0 22px 50px rgba(0,0,0,.45)}
+.gcard:active{transform:scale(.97)}
+.gcard-art{height:132px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.gcard-art::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 70% -10%,rgba(255,255,255,.18),transparent 60%)}
+.gcard-emoji{font-size:58px;filter:drop-shadow(0 6px 18px rgba(0,0,0,.45));animation:gfloat 3.2s ease-in-out infinite;z-index:1}
+@keyframes gfloat{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-9px) rotate(2deg)}}
+.gcard-badges{position:absolute;top:9px;left:9px;display:flex;gap:5px;z-index:2}
+.gbadge{font-size:9px;font-weight:800;letter-spacing:.4px;padding:3px 8px;border-radius:20px;text-transform:uppercase}
+.gbadge.new{background:var(--accent2);color:#fff}
+.gbadge.trend{background:var(--gold);color:#3a2600}
+.gfav{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.35);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:14px;z-index:2;transition:var(--t)}
+.gfav.on{background:rgba(255,80,80,.3)}
+.gcard-live{position:absolute;bottom:9px;left:9px;font-size:9px;font-weight:700;background:rgba(52,211,153,.25);color:#7cffcf;border:1px solid rgba(52,211,153,.4);padding:3px 8px;border-radius:20px;display:flex;align-items:center;gap:4px;z-index:2}
+.gcard-body{padding:14px 15px 15px}
+.gcard-title{font-family:var(--ff-serif);font-size:17px;color:#fff;margin-bottom:4px}
+.gcard-desc{font-size:11.5px;color:var(--text2);line-height:1.55;margin-bottom:10px;min-height:34px}
+.gcard-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
+.gtag{font-size:9.5px;padding:3px 8px;border-radius:20px;background:var(--g2);color:var(--text2);border:1px solid var(--border);font-weight:600}
+.gplay-btn{width:100%;padding:11px;border-radius:13px;border:none;font-size:13px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;gap:7px;transition:var(--ts)}
+.gplay-btn:hover{filter:brightness(1.12);transform:translateY(-1px)}
+.gplay-btn:active{transform:scale(.95)}
+.gprog-mini{height:4px;background:rgba(255,255,255,.09);border-radius:3px;margin-bottom:9px;overflow:hidden}
+.gprog-mini-fill{height:100%;border-radius:3px}
 
-/* ── WYR / NHIE ── */
-.vs-row{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-bottom:16px}
-.vs-opt{
-  padding:18px 14px;border-radius:16px;text-align:center;
-  font-size:13px;font-weight:500;color:var(--white);cursor:pointer;
-  border:1px solid var(--border);background:var(--g1);
-  transition:var(--t-spring);line-height:1.5;
-}
-.vs-opt:hover{transform:scale(1.03);border-color:var(--accent);box-shadow:0 0 20px var(--accent-glow)}
-.vs-opt.a{background:linear-gradient(135deg,hsla(var(--h),100%,62%,0.15),hsla(var(--h),100%,62%,0.05))}
-.vs-opt.b{background:linear-gradient(135deg,hsla(300,85%,65%,0.15),hsla(300,85%,65%,0.05))}
-.vs-divider{font-size:18px;font-weight:800;color:var(--text2);text-align:center}
-.nhie-card{padding:20px;border-radius:16px;border:1px solid var(--border);background:var(--g1);margin-bottom:14px;font-size:14px;line-height:1.65;color:var(--text);text-align:center}
-.nhie-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-.nhie-btn{padding:11px;border-radius:12px;border:none;cursor:pointer;font-family:var(--ff-sans);font-size:13px;font-weight:600;transition:var(--t-spring)}
-.nhie-btn.done{background:var(--green-bg);color:var(--green);border:1px solid rgba(52,211,153,0.3)}
-.nhie-btn.nope{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,0.3)}
-.nhie-btn:hover{transform:scale(1.03)}
+/* ══ FULLSCREEN GAME OVERLAY ══ */
+.goverlay{position:fixed;inset:0;z-index:3000;display:none;flex-direction:column;background:rgba(4,4,10,.55);backdrop-filter:blur(2px)}
+.goverlay.open{display:flex}
+.goverlay-inner{flex:1;display:flex;flex-direction:column;background:rgba(9,9,20,.86);backdrop-filter:blur(30px) saturate(190%);margin:0;overflow:hidden;animation:gopop .35s cubic-bezier(.34,1.56,.64,1)}
+@keyframes gopop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+.gohead{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0;background:rgba(255,255,255,.02)}
+.gohead-title{font-family:var(--ff-serif);font-size:16px;color:#fff;flex:1;display:flex;align-items:center;gap:8px}
+.gohead-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--g2);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.gobody{flex:1;overflow-y:auto;padding:14px;position:relative}
+.gobody.nopad{padding:0}
+.gohead-chip{font-size:10px;padding:3px 9px;border-radius:20px;background:var(--g2);border:1px solid var(--border);color:var(--text2);font-weight:700;display:flex;align-items:center;gap:4px}
 
-/* ── SPIN THE BOTTLE ── */
-.spin-container{display:flex;flex-direction:column;align-items:center;gap:16px;padding:10px 0}
-.bottle-wrap{width:220px;height:220px;position:relative;margin:0 auto}
-.bottle-svg{width:100%;height:100%;transition:transform 2s cubic-bezier(0.17,0.89,0.32,1.28)}
-.spin-result{
-  font-size:14px;font-weight:600;text-align:center;padding:14px 20px;
-  background:var(--g2);border-radius:14px;border:1px solid var(--border);
-  color:var(--white);min-height:50px;display:flex;align-items:center;justify-content:center;
-}
-.players-input{display:flex;gap:8px;margin-bottom:12px}
-.players-input input{flex:1;background:var(--g1);border:1px solid var(--border);border-radius:10px;padding:9px 12px;color:var(--white);font-family:var(--ff-sans);font-size:13px;outline:none}
-.players-input input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
-.players-list{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
-.player-chip{
-  padding:5px 12px;border-radius:20px;background:var(--g2);border:1px solid var(--border);
-  font-size:12px;color:var(--text2);display:flex;align-items:center;gap:5px;
-}
-.player-chip button{background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:0 2px}
-.player-chip button:hover{color:var(--red)}
+/* generic ui atoms reused across games */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:13px;font-size:13px;border:none;font-weight:700;color:#fff;transition:var(--ts)}
+.btn:active{transform:scale(.95)}
+.btn-accent{background:linear-gradient(135deg,var(--accent),var(--accent-d));box-shadow:0 4px 16px var(--accent-glow)}
+.btn-pink{background:linear-gradient(135deg,var(--accent2),var(--accent2-d));box-shadow:0 4px 16px var(--accent2-glow)}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#e08a00);box-shadow:0 4px 16px var(--gold-glow);color:#3a2600}
+.btn-glass{background:var(--g2);color:#fff;border:1px solid var(--border2)}
+.btn-sm{padding:7px 12px;font-size:11.5px}
+.btn:disabled{opacity:.4;pointer-events:none}
+.coin-chip,.dia-chip,.xp-chip{font-size:11px;font-weight:800;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px}
+.coin-chip{background:rgba(255,201,74,.15);color:var(--gold);border:1px solid rgba(255,201,74,.3)}
+.dia-chip{background:rgba(126,232,255,.15);color:var(--dia);border:1px solid rgba(126,232,255,.3)}
+.xp-chip{background:hsla(var(--h),100%,62%,.15);color:var(--accent-l);border:1px solid hsla(var(--h),100%,62%,.3)}
 
-/* ── TIC TAC TOE ── */
-.ttt-board{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:260px;margin:0 auto 18px}
-.ttt-cell{
-  aspect-ratio:1;border-radius:14px;background:var(--g2);border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;font-size:36px;
-  cursor:pointer;transition:var(--t-spring);user-select:none;
-}
-.ttt-cell:hover:empty{background:var(--g3);transform:scale(1.05)}
-.ttt-cell.x{color:var(--accent);animation:cellPop 0.25s cubic-bezier(0.34,1.56,0.64,1)}
-.ttt-cell.o{color:var(--accent2);animation:cellPop 0.25s cubic-bezier(0.34,1.56,0.64,1)}
-.ttt-cell.win{background:linear-gradient(135deg,hsla(var(--h),100%,62%,0.2),hsla(300,85%,65%,0.2));border-color:var(--accent2)}
-@keyframes cellPop{from{transform:scale(0.5)}to{transform:scale(1)}}
-.ttt-status{text-align:center;font-size:14px;font-weight:600;padding:12px;background:var(--g1);border-radius:12px;border:1px solid var(--border);margin-bottom:14px;color:var(--white)}
-.ttt-score{display:flex;justify-content:center;gap:20px;margin-bottom:14px}
-.ttt-score-item{text-align:center;padding:10px 18px;background:var(--g1);border-radius:12px;border:1px solid var(--border)}
-.ttt-score-n{font-family:var(--ff-serif);font-size:24px;color:var(--white)}
-.ttt-score-l{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+/* toast/reward */
+.gtoast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(14px);background:rgba(14,14,14,.88);backdrop-filter:blur(16px);color:#fff;padding:11px 20px;border-radius:24px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:.3s cubic-bezier(.4,0,.2,1);pointer-events:none;box-shadow:0 8px 26px rgba(0,0,0,.45);border:1px solid var(--border2)}
+.gtoast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.reward-pop{position:fixed;inset:0;z-index:9998;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(8px)}
+.reward-pop.show{display:flex}
+.reward-card{background:rgba(255,255,255,.07);backdrop-filter:blur(30px);border:1px solid var(--border2);border-radius:28px;padding:36px 30px;text-align:center;max-width:320px;animation:gopop .4s cubic-bezier(.34,1.56,.64,1)}
+.reward-ico{font-size:64px;animation:rewardbeat 1s ease-in-out infinite}
+@keyframes rewardbeat{0%,100%{transform:scale(1)}30%{transform:scale(1.2)}}
+.reward-title{font-family:var(--ff-serif);font-size:22px;color:#fff;margin-top:12px}
+.reward-items{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+.reward-item{background:var(--g2);border:1px solid var(--border);border-radius:14px;padding:10px 16px;font-size:14px;font-weight:800}
+#confettiCanvas{position:fixed;inset:0;z-index:9997;pointer-events:none;display:none}
 
-/* ── LOVE CHALLENGE ── */
-.challenge-card{
-  padding:22px;border-radius:18px;text-align:center;margin-bottom:16px;
-  background:linear-gradient(135deg,hsla(300,85%,65%,0.12),hsla(var(--h),100%,62%,0.08));
-  border:1px solid rgba(255,107,157,0.25);
-}
-.challenge-emoji{font-size:48px;margin-bottom:10px}
-.challenge-title{font-family:var(--ff-serif);font-size:18px;color:var(--white);margin-bottom:6px}
-.challenge-desc{font-size:13px;color:var(--text2);line-height:1.65}
-.challenge-timer{font-family:var(--ff-serif);font-size:36px;color:var(--accent);margin:12px 0}
-.challenge-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.chal-btn{padding:11px;border-radius:12px;border:none;cursor:pointer;font-family:var(--ff-sans);font-size:13px;font-weight:600;transition:var(--t-spring)}
-.chal-btn.done{background:var(--green-bg);color:var(--green);border:1px solid rgba(52,211,153,0.3)}
-.chal-btn.skip{background:var(--g2);color:var(--text2);border:1px solid var(--border)}
-.chal-btn:hover{transform:scale(1.03)}
+/* achievements strip */
+.ach-strip{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px}
+.ach-strip::-webkit-scrollbar{height:0}
+.ach-pill{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;width:64px;text-align:center;opacity:.4}
+.ach-pill.unlocked{opacity:1}
+.ach-ico{width:46px;height:46px;border-radius:14px;background:var(--g2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px}
+.ach-pill.unlocked .ach-ico{background:linear-gradient(135deg,var(--gold),#e08a00);box-shadow:0 3px 12px var(--gold-glow)}
+.ach-lbl{font-size:8.5px;color:var(--text3);font-weight:700;line-height:1.2}
 
-/* ── COMPAT QUIZ ── */
-.compat-q{
-  padding:18px;border-radius:14px;background:var(--g1);border:1px solid var(--border);
-  margin-bottom:12px;
-}
-.compat-q-text{font-size:14px;color:var(--white);margin-bottom:12px;font-weight:500}
-.compat-options{display:flex;flex-wrap:wrap;gap:7px}
-.compat-opt{
-  padding:7px 14px;border-radius:20px;font-size:12px;cursor:pointer;
-  border:1px solid var(--border);background:var(--g1);color:var(--text2);
-  transition:var(--t);font-family:var(--ff-sans);font-weight:500;
-}
-.compat-opt:hover{background:var(--g2);color:var(--white)}
-.compat-opt.sel{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 10px var(--accent-glow)}
-.compat-result{text-align:center;padding:24px;border-radius:18px;background:var(--g2);border:1px solid var(--border2);margin-bottom:16px}
-.compat-pct{font-family:var(--ff-serif);font-size:64px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
-.compat-ring{width:120px;height:120px;position:relative;margin:0 auto 16px}
-.compat-ring svg{transform:rotate(-90deg)}
+/* ═══ LOVE ADVENTURE ═══ */
+.la-scene{border-radius:20px;overflow:hidden;position:relative;min-height:230px;display:flex;flex-direction:column;justify-content:flex-end;margin-bottom:14px;border:1px solid var(--border2)}
+.la-scene-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:90px;opacity:.28;filter:blur(1px)}
+.la-scene-grad{position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(6,6,16,.9))}
+.la-scene-content{position:relative;padding:18px;animation:laFade .5s ease}
+@keyframes laFade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.la-chap-tag{font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--accent-l)}
+.la-title{font-family:var(--ff-serif);font-size:19px;color:#fff;margin:5px 0 8px}
+.la-text{font-size:13px;color:var(--text2);line-height:1.75}
+.la-choices{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.la-choice{padding:12px 15px;border-radius:14px;background:var(--g1);border:1px solid var(--border);color:#fff;font-size:12.5px;text-align:left;transition:var(--t);display:flex;align-items:center;gap:8px}
+.la-choice:hover{background:var(--g2);border-color:var(--accent);transform:translateX(3px)}
+.la-mission-card{background:linear-gradient(135deg,rgba(255,107,157,.12),hsla(var(--h),100%,55%,.08));border:1px solid rgba(255,107,157,.25);border-radius:16px;padding:16px;margin-bottom:14px}
+.la-map{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px;margin-top:6px}
+.la-node{aspect-ratio:1;border-radius:14px;background:var(--g1);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;position:relative;cursor:pointer}
+.la-node.done{background:linear-gradient(135deg,var(--green),#0d8f60)}
+.la-node.locked{opacity:.3;pointer-events:none}
+.la-node.cur{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
 
-/* ── SHARED UTIL ── */
-.g-btn{
-  display:inline-flex;align-items:center;gap:7px;padding:10px 18px;
-  border-radius:12px;font-size:13px;cursor:pointer;border:none;
-  font-weight:600;transition:var(--t-spring);font-family:var(--ff-sans);
-}
-.g-btn:active{transform:scale(0.96)}
-.g-btn-accent{background:linear-gradient(135deg,var(--accent),var(--accent-d));color:#fff;box-shadow:0 4px 14px var(--accent-glow)}
-.g-btn-accent:hover{filter:brightness(1.1);transform:translateY(-1px)}
-.g-btn-glass{background:var(--g2);color:var(--white);border:1px solid var(--border2)}
-.g-btn-glass:hover{background:var(--g3)}
-.g-btn-pink{background:linear-gradient(135deg,var(--accent2),var(--accent2-d));color:#fff;box-shadow:0 4px 14px var(--accent2-glow)}
-.g-btn-pink:hover{filter:brightness(1.1);transform:translateY(-1px)}
-.g-row{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;margin-top:14px}
-.streak{background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(251,191,36,0.3);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px}
-.info-chip{background:var(--g1);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6}
+/* ═══ ISLAND ═══ */
+.isl-wrap{display:flex;flex-direction:column;height:100%}
+.isl-topbar{display:flex;gap:8px;padding:10px 14px;overflow-x:auto;border-bottom:1px solid var(--border);flex-shrink:0}
+.isl-topbar::-webkit-scrollbar{height:0}
+.isl-item{flex-shrink:0;width:64px;text-align:center;padding:7px 5px;border-radius:13px;background:var(--g1);border:1px solid var(--border);cursor:pointer;transition:var(--t)}
+.isl-item.sel{border-color:var(--accent);background:var(--g2);box-shadow:0 0 0 2px var(--accent-glow)}
+.isl-item.locked{opacity:.35}
+.isl-item-emoji{font-size:22px}
+.isl-item-name{font-size:8px;color:var(--text3);font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.isl-item-cost{font-size:8.5px;color:var(--gold);font-weight:800;margin-top:1px}
+.isl-canvas-wrap{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:20px}
+.isl-grid{display:grid;gap:3px;background:linear-gradient(160deg,#0a2a3a,#0e3a2e);border-radius:22px;padding:14px;border:2px solid rgba(255,255,255,.12);box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.isl-tile{width:46px;height:46px;border-radius:9px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;transition:var(--t);position:relative;border:1px solid rgba(255,255,255,.06)}
+.isl-tile:hover{background:rgba(255,255,255,.12);transform:scale(1.08)}
+.isl-tile.filled{animation:islPlace .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes islPlace{from{transform:scale(0)}to{transform:scale(1)}}
+.isl-tile .anim{display:inline-block;animation:islBob 2.4s ease-in-out infinite}
+@keyframes islBob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-4px) rotate(4deg)}}
+
+/* ═══ PASTE THIS INSIDE YOUR EXISTING <style>...</style> BLOCK IN games.html ═══
+   (put it right after the .isl-* Island styles — same pattern, new class prefix "dh-") */
+
+.dh-wrap{display:flex;flex-direction:column;height:100%}
+.dh-roomtabs{display:flex;gap:8px;padding:10px 14px;overflow-x:auto;border-bottom:1px solid var(--border);flex-shrink:0}
+.dh-roomtabs::-webkit-scrollbar{height:0}
+.dh-roomtab{flex-shrink:0;padding:8px 14px;border-radius:14px;background:var(--g1);border:1px solid var(--border);cursor:pointer;font-size:12px;font-weight:700;color:var(--text2);display:flex;align-items:center;gap:6px;transition:var(--t)}
+.dh-roomtab.sel{color:#fff;border-color:var(--accent);background:var(--g2);box-shadow:0 0 0 2px var(--accent-glow)}
+.dh-roomtab.locked{opacity:.4}
+.dh-shoptray{display:flex;gap:8px;padding:10px 14px;overflow-x:auto;border-bottom:1px solid var(--border);flex-shrink:0;background:rgba(255,255,255,.02)}
+.dh-shoptray::-webkit-scrollbar{height:0}
+.dh-item{flex-shrink:0;width:62px;text-align:center;padding:7px 5px;border-radius:13px;background:var(--g1);border:1px solid var(--border);cursor:pointer;transition:var(--t)}
+.dh-item.sel{border-color:var(--accent);background:var(--g2);box-shadow:0 0 0 2px var(--accent-glow)}
+.dh-item.locked{opacity:.35}
+.dh-item-emoji{font-size:21px}
+.dh-item-name{font-size:7.5px;color:var(--text3);font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dh-item-cost{font-size:8px;color:var(--gold);font-weight:800;margin-top:1px}
+.dh-canvas-wrap{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:20px}
+.dh-room{display:grid;gap:3px;border-radius:22px;padding:14px;border:2px solid rgba(255,255,255,.12);box-shadow:0 20px 60px rgba(0,0,0,.4);transition:background 1.2s ease}
+.dh-tile{width:46px;height:46px;border-radius:9px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:23px;cursor:pointer;transition:var(--t);position:relative;border:1px solid rgba(255,255,255,.06)}
+.dh-tile:hover{background:rgba(255,255,255,.14);transform:scale(1.08)}
+.dh-tile.filled{animation:islPlace .4s cubic-bezier(.34,1.56,.64,1)}
+.dh-tile .anim{display:inline-block;animation:islBob 2.4s ease-in-out infinite}
+.dh-home-score{display:flex;gap:10px;padding:8px 14px;flex-wrap:wrap;border-top:1px solid var(--border);flex-shrink:0}
+.dh-score-chip{font-size:10.5px;font-weight:800;padding:5px 11px;border-radius:20px;background:var(--g1);border:1px solid var(--border);color:var(--text2);display:flex;align-items:center;gap:5px}
+/* ═══ DRAW ═══ */
+.dw-wrap{display:flex;flex-direction:column;height:100%}
+.dw-toolbar{display:flex;gap:8px;padding:9px 12px;align-items:center;border-bottom:1px solid var(--border);flex-wrap:wrap;flex-shrink:0}
+.dw-color{width:24px;height:24px;border-radius:50%;border:2px solid rgba(255,255,255,.3);cursor:pointer;flex-shrink:0;transition:var(--t)}
+.dw-color.sel{border-color:#fff;transform:scale(1.2)}
+.dw-canvas-wrap{flex:1;position:relative;overflow:hidden;background:#fff}
+#dwCanvas{width:100%;height:100%;touch-action:none;cursor:crosshair}
+.dw-tool-btn{width:32px;height:32px;border-radius:9px;background:var(--g2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;flex-shrink:0}
+.dw-tool-btn.sel{background:var(--accent);border-color:var(--accent)}
+.dw-guess-banner{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;padding:8px 18px;border-radius:20px;font-size:12px;font-weight:700;backdrop-filter:blur(8px);z-index:5}
+
+/* ═══ ESCAPE ROOM ═══ */
+.er-room-bg{border-radius:20px;min-height:200px;position:relative;overflow:hidden;margin-bottom:14px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border2)}
+.er-room-emoji{font-size:80px;opacity:.8;filter:drop-shadow(0 8px 20px rgba(0,0,0,.4))}
+.er-timer{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.55);color:#fff;padding:6px 13px;border-radius:20px;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;backdrop-filter:blur(6px)}
+.er-timer.low{color:var(--red);animation:blk .6s infinite}
+.er-puzzle-card{background:var(--g1);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px}
+.er-obj-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.er-obj{aspect-ratio:1;border-radius:12px;background:var(--g1);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer}
+.er-obj.found{background:var(--green-bg);border-color:var(--green);opacity:.4}
+.er-code-input{display:flex;gap:8px;justify-content:center;margin:12px 0}
+.er-code-digit{width:44px;height:52px;border-radius:12px;background:var(--g1);border:1px solid var(--border);text-align:center;font-size:22px;font-weight:800;color:#fff;font-family:var(--ff-sans)}
+.er-code-digit:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-glow)}
+
+/* ═══ TRUTH OR DARE DELUXE ═══ */
+.tod-cats{display:flex;gap:7px;overflow-x:auto;padding:2px 0 10px}
+.tod-cats::-webkit-scrollbar{height:0}
+.tod-cat{flex-shrink:0;padding:8px 15px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--g1);color:var(--text2);transition:var(--t)}
+.tod-cat.sel{color:#fff;border-color:transparent}
+.tod-wheel-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;padding:6px 0 16px}
+.tod-wheel{width:210px;height:210px;position:relative}
+.tod-wheel svg{transition:transform 3.2s cubic-bezier(.15,.85,.28,1.02)}
+.tod-wheel-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:34px;pointer-events:none}
+.tod-card{min-height:190px;border-radius:20px;padding:26px 22px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;overflow:hidden;border:1px solid var(--border2);margin-bottom:14px;animation:laFade .35s cubic-bezier(.34,1.56,.64,1)}
+.tod-card.truth{background:linear-gradient(150deg,hsla(var(--h),100%,55%,.22),rgba(255,255,255,.03))}
+.tod-card.dare{background:linear-gradient(150deg,hsla(300,85%,60%,.22),rgba(255,255,255,.03))}
+.tod-card-type{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;opacity:.8;margin-bottom:8px}
+.tod-card-text{font-size:16px;font-weight:600;color:#fff;line-height:1.5}
+.tod-card-diff{position:absolute;top:10px;right:12px;font-size:9px;padding:3px 8px;border-radius:20px;background:rgba(0,0,0,.3);font-weight:700}
+.tod-turn{text-align:center;font-size:12px;color:var(--text2);margin-bottom:10px;font-weight:600}
+.tod-turn strong{color:#fff}
+.tod-timer-ring{width:52px;height:52px;position:relative;margin:0 auto 4px}
+.tod-timer-ring svg{transform:rotate(-90deg)}
+.tod-reactions{display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+.tod-react-btn{width:38px;height:38px;border-radius:50%;background:var(--g1);border:1px solid var(--border);font-size:17px;display:flex;align-items:center;justify-content:center;transition:var(--ts)}
+.tod-react-btn:active{transform:scale(1.3)}
+.tod-float-emoji{position:fixed;font-size:26px;pointer-events:none;z-index:9996;animation:todFloat 2s ease-out forwards}
+@keyframes todFloat{0%{transform:translateY(0) scale(.5);opacity:0}15%{opacity:1;transform:scale(1.1)}100%{transform:translateY(-220px) scale(1);opacity:0}}
+.tod-streak{display:inline-flex;align-items:center;gap:4px;background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(251,191,36,.3);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:800}
+.tod-custom-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.tod-custom-item{display:flex;gap:8px;align-items:center;background:var(--g1);border:1px solid var(--border);border-radius:11px;padding:9px 12px;font-size:12px}
 </style>
 </head>
 <body>
 
-<!-- ══ GAMES GRID ══ -->
-<div class="games-hero">
-  <div class="games-hero-title">🎮 Couple Games</div>
-  <div class="games-hero-sub">Play together, grow closer 💕</div>
-</div>
+<canvas id="confettiCanvas"></canvas>
+<div class="gtoast" id="gToast"></div>
+<div class="reward-pop" id="rewardPop"><div class="reward-card">
+  <div class="reward-ico" id="rewardIco">🏆</div>
+  <div class="reward-title" id="rewardTitle">Nice!</div>
+  <div class="reward-items" id="rewardItems"></div>
+  <button class="btn btn-accent" style="margin-top:18px" onclick="closeReward()">Continue ✨</button>
+</div></div>
 
-<div class="games-grid" id="gamesGrid"></div>
+<!-- HUB -->
+<div class="hub" id="hub"></div>
 
-<!-- ══ GAME MODAL ══ -->
-<div class="game-modal-bg" id="gameModalBg">
-  <div class="game-modal" id="gameModal">
-    <div class="game-modal-header">
-      <div class="game-modal-title" id="gameModalTitle">Game</div>
-      <button class="game-modal-close" onclick="closeGame()">✕</button>
+<!-- GAME OVERLAY -->
+<div class="goverlay" id="goverlay">
+  <div class="goverlay-inner">
+    <div class="gohead">
+      <button class="gohead-btn" onclick="Hub.exitGame()">←</button>
+      <div class="gohead-title" id="goTitle"><span id="goEmoji">🎮</span><span id="goText">Game</span></div>
+      <div class="gohead-chip" id="goXpChip">✨ 0 XP</div>
+      <div class="gohead-chip" id="goCoinChip">🪙 0</div>
     </div>
-    <div class="game-modal-body" id="gameModalBody"></div>
+    <div class="gobody" id="goBody"></div>
   </div>
 </div>
 
 <script>
-// ══ GAME DEFINITIONS ══
-const GAMES = [
-  {
-    id:'tod',
-    title:'Truth or Dare',
-    emoji:'🎯',
-    desc:'Pick Truth for honest confessions or Dare for fun challenges. Take turns and get to know each other deeper!',
-    gradient:'linear-gradient(135deg,#1a1a4e,#3b1d7a)',
-    tags:[{label:'2 Players',color:'rgba(150,100,255,0.3)',text:'#c4a0ff'},{label:'Party',color:'rgba(255,107,157,0.2)',text:'#ff6b9d'}],
-  },
-  {
-    id:'quiz',
-    title:'Couple Quiz',
-    emoji:'❓',
-    desc:'How well do you know each other? Answer questions about your relationship and see your score!',
-    gradient:'linear-gradient(135deg,#0d2035,#1a5276)',
-    tags:[{label:'Knowledge',color:'rgba(91,155,255,0.2)',text:'var(--accent)'},{label:'Fun',color:'rgba(52,211,153,0.2)',text:'var(--green)'}],
-  },
-  {
-    id:'wyr',
-    title:'Would You Rather',
-    emoji:'🤔',
-    desc:'Two tempting choices — which would you pick? Discuss your answers and discover new things about each other.',
-    gradient:'linear-gradient(135deg,#1a0d2e,#4a1060)',
-    tags:[{label:'Decisions',color:'rgba(167,139,250,0.2)',text:'#a78bfa'},{label:'2 Players',color:'rgba(255,107,157,0.2)',text:'#ff6b9d'}],
-  },
-  {
-    id:'nhie',
-    title:'Never Have I Ever',
-    emoji:'🙈',
-    desc:'Find out surprising secrets! Say "Never have I ever…" and see who has done it. Perfect for date nights.',
-    gradient:'linear-gradient(135deg,#1a2a0d,#2d5016)',
-    tags:[{label:'Secrets',color:'rgba(52,211,153,0.2)',text:'var(--green)'},{label:'Adults',color:'rgba(251,191,36,0.2)',text:'var(--yellow)'}],
-  },
-  {
-    id:'stb',
-    title:'Spin The Bottle',
-    emoji:'🍾',
-    desc:'Add your friends or just the two of you — spin the bottle and see who gets a dare or a kiss!',
-    gradient:'linear-gradient(135deg,#2a0d0d,#6b1a1a)',
-    tags:[{label:'Group',color:'rgba(248,113,113,0.2)',text:'var(--red)'},{label:'Fun',color:'rgba(251,191,36,0.2)',text:'var(--yellow)'}],
-  },
-  {
-    id:'challenge',
-    title:'Love Challenge',
-    emoji:'💪',
-    desc:'30 romantic challenges to bring you closer. Complete challenges together and earn couple XP!',
-    gradient:'linear-gradient(135deg,#2a1a0d,#7a3b00)',
-    tags:[{label:'Romantic',color:'rgba(255,107,157,0.2)',text:'#ff6b9d'},{label:'Daily',color:'rgba(251,191,36,0.2)',text:'var(--yellow)'}],
-  },
-  {
-    id:'compat',
-    title:'Compatibility Quiz',
-    emoji:'💑',
-    desc:'Discover your compatibility score through questions about personality, values, and relationship goals.',
-    gradient:'linear-gradient(135deg,#0d1a2a,#1a3a5c)',
-    tags:[{label:'Deep',color:'rgba(91,155,255,0.2)',text:'var(--accent)'},{label:'Insight',color:'rgba(167,139,250,0.2)',text:'#a78bfa'}],
-  },
-  {
-    id:'ttt',
-    title:'Couple Tic Tac Toe',
-    emoji:'❌⭕',
-    desc:'Classic Tic Tac Toe with a romantic twist. Customize your symbols and keep score together!',
-    gradient:'linear-gradient(135deg,#1a0d2e,#2d0d5c)',
-    tags:[{label:'Strategy',color:'rgba(91,155,255,0.2)',text:'var(--accent)'},{label:'2 Players',color:'rgba(52,211,153,0.2)',text:'var(--green)'}],
-  },
-  {
-    id:'ludo',
-    title:'Couple Ludo',
-    emoji:'🎲',
-    desc:'Play the classic board game together! Two-player mode designed for couples. Roll dice, race to win!',
-    gradient:'linear-gradient(135deg,#2a1a0d,#5c3200)',
-    tags:[{label:'Board Game',color:'rgba(251,191,36,0.2)',text:'var(--yellow)'},{label:'2-4 Players',color:'rgba(248,113,113,0.2)',text:'var(--red)'}],
-  },
-];
+/* ═══════════════════════════════════════════════════════
+   IDENTITY + SUPABASE
+═══════════════════════════════════════════════════════ */
+const SUPABASE_URL = 'https://jxqszgehgmkpzhkpfxnc.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cXN6Z2VoZ21rcHpoa3BmeG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMTkxMjEsImV4cCI6MjA5Nzg5NTEyMX0.ESpovcyunUnRVnGdFSGK-a_WI1ZTctuYZxXnYBSIA60';
+const AI_API = 'https://us-app-api.onrender.com';
+let sb = null;
+try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e){ console.warn('Supabase init failed', e); }
 
-// ══ RENDER GAME CARDS ══
-function renderGames() {
-  const grid = document.getElementById('gamesGrid');
-  grid.innerHTML = GAMES.map(g => `
-    <div class="game-card" onclick="openGame('${g.id}')">
-      <div class="game-banner" style="background:${g.gradient}">
-        <div class="game-banner-emoji">${g.emoji}</div>
-      </div>
-      <div class="game-card-body">
-        <div class="game-card-title">${g.title}</div>
-        <div class="game-card-desc">${g.desc}</div>
-        <div class="game-card-meta">
-          ${g.tags.map(t=>`<span class="game-tag" style="background:${t.color};color:${t.text}">${t.label}</span>`).join('')}
-        </div>
-        <button class="game-play-btn">▶ Play Now</button>
-      </div>
-    </div>
-  `).join('');
-}
+function esc(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
 
-function openGame(id) {
-  const g = GAMES.find(x=>x.id===id);
-  if(!g) return;
-  document.getElementById('gameModalTitle').textContent = g.emoji + ' ' + g.title;
-  document.getElementById('gameModalBg').classList.add('open');
-  const body = document.getElementById('gameModalBody');
-  switch(id) {
-    case 'tod': body.innerHTML = renderTOD(); initTOD(); break;
-    case 'quiz': body.innerHTML = renderQuiz(); initQuiz(); break;
-    case 'wyr': body.innerHTML = renderWYR(); initWYR(); break;
-    case 'nhie': body.innerHTML = renderNHIE(); initNHIE(); break;
-    case 'stb': body.innerHTML = renderSTB(); initSTB(); break;
-    case 'challenge': body.innerHTML = renderChallenge(); initChallenge(); break;
-    case 'compat': body.innerHTML = renderCompat(); initCompat(); break;
-    case 'ttt': body.innerHTML = renderTTT(); initTTT(); break;
-    case 'ludo': body.innerHTML = renderLudo(); initLudo(); break;
+const ID = (function(){
+  try {
+    const raw = localStorage.getItem('uwl_v5');
+    if (raw) {
+      const s = JSON.parse(raw);
+      if (s.coupleId) return { coupleId:s.coupleId, role:s.role||'user1', myName:s.myName||'You', partnerName:s.partnerName||'Partner', myAvatar:s.myAvatar||'', partnerAvatar:s.partnerAvatar||'' };
+    }
+  } catch(e){}
+  let sid = localStorage.getItem('us_games_solo_id');
+  if (!sid) { sid = 'solo_'+Math.random().toString(36).slice(2,10); localStorage.setItem('us_games_solo_id', sid); }
+  return { coupleId: sid, role:'user1', myName:'You', partnerName:'Partner', myAvatar:'', partnerAvatar:'' };
+})();
+const myKey = ID.role === 'user1' ? 'u1' : 'u2';
+const ptKey = ID.role === 'user1' ? 'u2' : 'u1';
+
+/* ═══════════════════════════════════════════════════════
+   SOUND ENGINE — pure WebAudio, no files needed
+═══════════════════════════════════════════════════════ */
+const Snd = (function(){
+  let ctx = null;
+  function ac(){ if(!ctx){ try{ ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return ctx; }
+  function beep(freq, start, dur, type, vol){
+    const c = ac(); if(!c) return;
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = type||'sine'; o.frequency.value = freq;
+    o.connect(g); g.connect(c.destination);
+    g.gain.setValueAtTime(0.0001, c.currentTime+start);
+    g.gain.exponentialRampToValueAtTime(vol||0.28, c.currentTime+start+0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime+start+dur);
+    o.start(c.currentTime+start); o.stop(c.currentTime+start+dur+0.02);
   }
-}
-function closeGame() {
-  document.getElementById('gameModalBg').classList.remove('open');
-  clearInterval(window._gameTimer);
-}
-document.getElementById('gameModalBg').addEventListener('click', e => { if(e.target===e.currentTarget) closeGame(); });
+  return {
+    click(){ beep(720,0,.06,'sine',.18); },
+    tap(){ beep(500,0,.05,'triangle',.15); },
+    success(){ beep(523,0,.1,'sine',.22); beep(659,.09,.12,'sine',.22); beep(784,.18,.18,'sine',.24); },
+    fail(){ beep(220,0,.14,'sawtooth',.18); beep(160,.1,.18,'sawtooth',.16); },
+    coin(){ beep(988,0,.08,'square',.14); beep(1318,.06,.1,'square',.14); },
+    levelup(){ [523,659,784,1046,1318].forEach((f,i)=>beep(f,i*.08,.16,'sine',.2)); },
+    whoosh(){ beep(200,0,.2,'sine',.1); },
+    place(){ beep(400,0,.08,'triangle',.2); beep(600,.05,.08,'triangle',.16); },
+    spin(){ beep(300,0,.4,'sawtooth',.06); },
+    unlock(){ beep(660,0,.1,'sine',.2); beep(880,.1,.14,'sine',.22); }
+  };
+})();
 
-// ══ 1. TRUTH OR DARE ══
-const TOD = {
-  truth:[
-    "What's the most embarrassing thing you've ever done in public?",
-    "What is something you've never told me before?",
-    "What was your first impression of me?",
-    "What's your biggest fear in this relationship?",
-    "What's a dream you've never shared with anyone?",
-    "What's the most romantic thing you've ever thought of doing for me?",
-    "What's one thing you wish I would do more often?",
-    "Describe your perfect day with me.",
-    "What's the cheesiest thing you secretly love?",
-    "What song makes you think of me?",
-    "What's the most childish thing you still do?",
-    "What's something you're grateful for about me today?",
-    "If you could change one thing about our relationship, what would it be?",
-    "What's your favorite memory of us so far?",
-    "What's something you've always wanted to tell me but haven't?",
-  ],
-  dare:[
-    "Serenade me with a song of your choice for 30 seconds.",
-    "Write me a poem right now, on the spot.",
-    "Do your best impression of me for 1 minute.",
-    "Say 5 things you love about me without hesitating.",
-    "Give me the longest hug you've ever given anyone.",
-    "Do a silly dance and I'll rate it out of 10.",
-    "Text someone in your contacts 'I think you're wonderful' right now.",
-    "Make up a short story about how we met — in an alternate universe.",
-    "Do 10 push-ups while I count in a funny voice.",
-    "Draw a portrait of me in 60 seconds.",
-    "Speak only in rhymes for the next 2 minutes.",
-    "Act out our first date using only gestures.",
-    "Let me choose your profile picture for 1 hour.",
-    "Compliment a stranger online right now.",
-    "Do the most ridiculous laugh you can for 20 seconds.",
-  ]
-};
-let todMode = 'truth';
-function renderTOD() {
-  return `
-    <div class="info-chip">Take turns picking Truth or Dare. Be honest, be brave, have fun! 💕</div>
-    <div class="tod-tabs">
-      <div class="tod-tab truth active" onclick="setTOD('truth',this)">💙 Truth</div>
-      <div class="tod-tab dare" onclick="setTOD('dare',this)">🔥 Dare</div>
-    </div>
-    <div class="card-display" id="todCard">Tap the button to get your first card!</div>
-    <button class="spin-btn" onclick="spinTOD()">🎲 Spin ${todMode==='truth'?'Truth':'Dare'}</button>
-  `;
-}
-function initTOD() { todMode = 'truth'; }
-function setTOD(mode, el) {
-  todMode = mode;
-  document.querySelectorAll('.tod-tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  const btn = document.querySelector('.spin-btn');
-  if(btn) btn.textContent = '🎲 Spin ' + (mode==='truth'?'Truth':'Dare');
-}
-function spinTOD() {
-  const pool = TOD[todMode];
-  const card = pool[Math.floor(Math.random()*pool.length)];
-  const el = document.getElementById('todCard');
-  el.style.animation = 'none';
-  el.offsetHeight;
-  el.style.animation = 'cardAppear 0.3s cubic-bezier(0.34,1.56,0.64,1)';
-  el.textContent = (todMode==='truth'?'💙 ':'🔥 ') + card;
-}
-window.spinTOD = spinTOD;
-window.setTOD = setTOD;
-
-// ══ 2. COUPLE QUIZ ══
-const QUIZ_Q = [
-  {q:"Where did we first meet?",opts:["Online","Through friends","By chance","At school/work"],a:0},
-  {q:"What is my favorite food?",opts:["Pizza","Biryani","Pasta","Sushi"],a:1},
-  {q:"What is my love language?",opts:["Words of Affirmation","Physical Touch","Acts of Service","Quality Time"],a:3},
-  {q:"If I could travel anywhere right now, I'd go to:",opts:["Paris","Bali","New York","Maldives"],a:1},
-  {q:"What do I do to relax after a stressful day?",opts:["Watch Netflix","Listen to music","Sleep","Talk to someone"],a:0},
-  {q:"What is my biggest goal in life?",opts:["Career success","Travel the world","Build a family","Inner peace"],a:2},
-  {q:"What was I doing when we first met?",opts:["Laughing","On my phone","Talking to someone","Standing alone"],a:0},
-  {q:"My favorite time of day is:",opts:["Morning","Afternoon","Evening","Late night"],a:3},
-  {q:"If I won the lottery, the first thing I'd do is:",opts:["Travel","Save it","Buy a house","Give to charity"],a:1},
-  {q:"My biggest pet peeve is:",opts:["Lateness","Loud chewing","Interrupting","Being ignored"],a:3},
-];
-let quizIdx=0, quizScore=0, quizAnswered=false;
-function renderQuiz() {
-  return `
-    <div class="quiz-progress"><div class="quiz-progress-fill" id="qProg" style="width:0%"></div></div>
-    <div id="quizContent"></div>
-  `;
-}
-function initQuiz() { quizIdx=0; quizScore=0; showQuizQ(); }
-function showQuizQ() {
-  const el = document.getElementById('quizContent');
-  if(quizIdx>=QUIZ_Q.length) { showQuizResult(); return; }
-  const q = QUIZ_Q[quizIdx];
-  document.getElementById('qProg').style.width = (quizIdx/QUIZ_Q.length*100)+'%';
-  el.innerHTML = `
-    <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Question ${quizIdx+1} of ${QUIZ_Q.length}</div>
-    <div class="quiz-q">${q.q}</div>
-    ${q.opts.map((o,i)=>`<button class="quiz-opt" onclick="answerQuiz(${i},${q.a})">${o}</button>`).join('')}
-  `;
-  quizAnswered = false;
-}
-function answerQuiz(chosen, correct) {
-  if(quizAnswered) return;
-  quizAnswered = true;
-  const btns = document.querySelectorAll('.quiz-opt');
-  btns[correct].classList.add('correct');
-  if(chosen!==correct) btns[chosen].classList.add('wrong');
-  else quizScore++;
-  btns.forEach(b=>b.disabled=true);
-  setTimeout(()=>{ quizIdx++; showQuizQ(); },1200);
-}
-function showQuizResult() {
-  const el = document.getElementById('quizContent');
-  const pct = Math.round(quizScore/QUIZ_Q.length*100);
-  const msg = pct>=80?'You know each other so well! 💕':pct>=60?'Pretty good! Keep learning 😊':pct>=40?'Room to grow together! 💪':'Time for more dates! 🌹';
-  el.innerHTML = `
-    <div class="score-display">
-      <div class="score-num">${quizScore}<span style="font-size:28px">/${QUIZ_Q.length}</span></div>
-      <div class="score-label">${pct}% · ${msg}</div>
-    </div>
-    <div class="g-row">
-      <button class="g-btn g-btn-accent" onclick="initQuiz()">🔄 Play Again</button>
-    </div>
-  `;
-  document.getElementById('qProg').style.width='100%';
-}
-window.answerQuiz=answerQuiz;
-
-// ══ 3. WOULD YOU RATHER ══
-const WYR_Q = [
-  {a:"Always have amazing hair",b:"Always have amazing skin"},
-  {a:"Be able to fly",b:"Be able to become invisible"},
-  {a:"Live in the mountains",b:"Live on the beach"},
-  {a:"Cook every meal together",b:"Order food and eat in bed"},
-  {a:"Go on a road trip",b:"Go on a luxury cruise"},
-  {a:"Know every language",b:"Know how to play every instrument"},
-  {a:"Have a photographic memory",b:"Be able to sleep only 2 hours a day"},
-  {a:"Always be too hot",b:"Always be too cold"},
-  {a:"Have breakfast dates forever",b:"Have midnight drives forever"},
-  {a:"Be famous but broke",b:"Be rich but unknown"},
-  {a:"Never argue again",b:"Always make up perfectly after arguments"},
-  {a:"Speak every language",b:"Talk to animals"},
-  {a:"Travel to the past",b:"Travel to the future"},
-  {a:"Live in a tiny cozy house",b:"Live in a huge mansion"},
-  {a:"Have a perfect memory",b:"Be able to forget bad memories instantly"},
-];
-let wyrIdx=0;
-function renderWYR() {
-  return `
-    <div class="info-chip">Discuss your answer and see if you agree! 🤔 There's no wrong answer.</div>
-    <div id="wyrContent"></div>
-    <div class="g-row">
-      <button class="g-btn g-btn-glass" onclick="nextWYR()">⏭ Next Question</button>
-    </div>
-  `;
-}
-function initWYR() { wyrIdx=0; showWYR(); }
-function showWYR() {
-  const q = WYR_Q[wyrIdx%WYR_Q.length];
-  document.getElementById('wyrContent').innerHTML = `
-    <div style="font-size:22px;font-weight:700;color:var(--text2);text-align:center;margin-bottom:14px">Would You Rather…</div>
-    <div class="vs-row">
-      <div class="vs-opt a" onclick="wyrPick(this,'A')">${q.a}</div>
-      <div class="vs-divider">OR</div>
-      <div class="vs-opt b" onclick="wyrPick(this,'B')">${q.b}</div>
-    </div>
-    <div id="wyrResult" style="text-align:center;font-size:13px;color:var(--text3);padding:8px 0">Pick your answer!</div>
-  `;
-}
-function wyrPick(el, choice) {
-  document.querySelectorAll('.vs-opt').forEach(o=>o.style.opacity='0.5');
-  el.style.opacity='1';el.style.borderColor='var(--accent)';el.style.boxShadow='0 0 20px var(--accent-glow)';
-  document.getElementById('wyrResult').innerHTML = `<span style="color:var(--accent);font-weight:600">You chose ${choice}!</span> What about your partner? 💭`;
-}
-function nextWYR() { wyrIdx++; showWYR(); }
-window.wyrPick=wyrPick; window.nextWYR=nextWYR;
-
-// ══ 4. NEVER HAVE I EVER ══
-const NHIE_Q = [
-  "Never have I ever lied about my age",
-  "Never have I ever stayed up all night talking to someone",
-  "Never have I ever sent a message to the wrong person",
-  "Never have I ever cried during a movie",
-  "Never have I ever had a secret crush for more than a year",
-  "Never have I ever pretended to be sick to skip something",
-  "Never have I ever danced in the rain",
-  "Never have I ever fallen asleep during a date",
-  "Never have I ever said 'I love you' first",
-  "Never have I ever kept a diary",
-  "Never have I ever eaten a whole pizza alone",
-  "Never have I ever ghosted someone",
-  "Never have I ever had a dream about my partner",
-  "Never have I ever given a surprise gift",
-  "Never have I ever been in love more than once",
-  "Never have I ever sung to someone special",
-];
-let nhieIdx=0, nhieMyScore=0, nhiePtScore=0;
-function renderNHIE() {
-  return `
-    <div class="info-chip">If you HAVE done it, tap "I Have!" 🙋 Keep count of who's done more!</div>
-    <div style="display:flex;justify-content:space-between;margin-bottom:14px">
-      <div style="text-align:center;flex:1"><div style="font-size:20px;font-weight:700;color:var(--accent)">${nhieMyScore}</div><div style="font-size:10px;color:var(--text3);text-transform:uppercase">You</div></div>
-      <div style="text-align:center;flex:1"><div style="font-size:20px;font-weight:700;color:var(--accent2)">${nhiePtScore}</div><div style="font-size:10px;color:var(--text3);text-transform:uppercase">Partner</div></div>
-    </div>
-    <div class="nhie-card" id="nhieCard">${NHIE_Q[nhieIdx]}</div>
-    <div class="nhie-btns">
-      <button class="nhie-btn done" onclick="nhiePick('me')">🙋 I Have!</button>
-      <button class="nhie-btn nope" onclick="nhiePick('pt')">😇 Never!</button>
-    </div>
-    <div class="g-row"><button class="g-btn g-btn-glass" onclick="nhieNext()">⏭ Next</button></div>
-  `;
-}
-function initNHIE() { nhieIdx=0; nhieMyScore=0; nhiePtScore=0; }
-function nhiePick(who) {
-  if(who==='me') nhieMyScore++; else nhiePtScore++;
-  document.querySelector('[onclick="nhiePick(\'me\')"]').closest('.nhie-btns').previousElementSibling.nextElementSibling;
-  nhieNext();
-}
-function nhieNext() {
-  nhieIdx=(nhieIdx+1)%NHIE_Q.length;
-  const card=document.getElementById('nhieCard');
-  if(card){ card.style.animation='none';card.offsetHeight;card.style.animation='cardAppear 0.3s cubic-bezier(0.34,1.56,0.64,1)';card.textContent=NHIE_Q[nhieIdx]; }
-  // update scores
-  const divs=document.querySelectorAll('.game-modal-body [style*="accent"]');
-}
-window.nhiePick=nhiePick; window.nhieNext=nhieNext;
-
-// ══ 5. SPIN THE BOTTLE ══
-let stbPlayers=[], stbAngle=0;
-function renderSTB() {
-  return `
-    <div class="info-chip">Add at least 2 players, then spin! The bottle points to who gets a dare 💋</div>
-    <div class="players-input">
-      <input type="text" id="stbInput" placeholder="Add player name..." onkeydown="if(event.key==='Enter')addSTBPlayer()">
-      <button class="g-btn g-btn-accent" onclick="addSTBPlayer()">+ Add</button>
-    </div>
-    <div class="players-list" id="playersList"></div>
-    <div class="spin-container">
-      <div class="bottle-wrap">
-        <svg id="bottleSVG" class="bottle-svg" viewBox="0 0 100 100">
-          <defs>
-            <radialGradient id="bg" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stop-color="rgba(255,255,255,0.08)"/>
-              <stop offset="100%" stop-color="rgba(255,255,255,0.02)"/>
-            </radialGradient>
-          </defs>
-          <circle cx="50" cy="50" r="48" fill="url(#bg)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-          ${Array.from({length:12},(_,i)=>{const a=i*30*Math.PI/180;const x1=50+42*Math.cos(a);const y1=50+42*Math.sin(a);const x2=50+46*Math.cos(a);const y2=50+46*Math.sin(a);return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>`;}).join('')}
-          <!-- Bottle shape pointing right -->
-          <g transform="translate(50,50)">
-            <ellipse rx="6" ry="4" fill="#4ade80" opacity="0.9"/>
-            <path d="M -22,0 L 22,0" stroke="none"/>
-            <!-- Bottle body -->
-            <path d="M 0,-3 L 20,-3 Q 24,-3 24,0 Q 24,3 20,3 L 0,3 Q -6,3 -10,6 L -22,6 L -22,-6 L -10,-6 Q -6,-3 0,-3 Z" fill="linear-gradient(#4ade80,#22c55e)" stroke="none" opacity="0"/>
-            <!-- Arrow (pointer) -->
-            <polygon points="0,-5 32,0 0,5" fill="url(#bottleGrad)" opacity="0.95"/>
-            <polygon points="-2,-4 -28,-7 -28,7 -2,4" fill="url(#bottleGrad2)" opacity="0.85"/>
-            <circle r="6" fill="#1a1a3e" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-            <defs>
-              <linearGradient id="bottleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#34d399"/>
-                <stop offset="100%" stop-color="#059669"/>
-              </linearGradient>
-              <linearGradient id="bottleGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#f87171"/>
-                <stop offset="100%" stop-color="#dc2626"/>
-              </linearGradient>
-            </defs>
-          </g>
-          <!-- Player labels will be added dynamically -->
-          <g id="playerLabels"></g>
-        </svg>
-      </div>
-      <div class="spin-result" id="spinResult">Add players and spin!</div>
-      <button class="g-btn g-btn-pink" onclick="spinBottle()" style="width:100%;padding:14px;font-size:15px">🍾 Spin!</button>
-    </div>
-  `;
-}
-function initSTB() { stbPlayers=['You','Partner']; renderSTBPlayers(); }
-function addSTBPlayer() {
-  const inp=document.getElementById('stbInput');
-  const name=inp.value.trim();
-  if(!name||stbPlayers.includes(name)) return;
-  stbPlayers.push(name); inp.value='';
-  renderSTBPlayers();
-}
-function removeSTBPlayer(i) { stbPlayers.splice(i,1); renderSTBPlayers(); }
-function renderSTBPlayers() {
-  document.getElementById('playersList').innerHTML = stbPlayers.map((p,i)=>`<div class="player-chip"><span>${p}</span><button onclick="removeSTBPlayer(${i})">✕</button></div>`).join('');
-  // Draw player labels on circle
-  const labelsEl = document.getElementById('playerLabels');
-  if(!labelsEl) return;
-  labelsEl.innerHTML = stbPlayers.map((p,i)=>{
-    const angle = (i/stbPlayers.length)*2*Math.PI - Math.PI/2;
-    const x = 50+36*Math.cos(angle);
-    const y = 50+36*Math.sin(angle);
-    return `<text x="${x.toFixed(1)}" y="${(y+1).toFixed(1)}" text-anchor="middle" font-size="6" fill="rgba(255,255,255,0.7)" font-family="Inter,sans-serif">${p.slice(0,5)}</text>`;
-  }).join('');
-}
-let stbSpinning=false;
-function spinBottle() {
-  if(stbSpinning||stbPlayers.length<2){if(stbPlayers.length<2) alert('Add at least 2 players!');return;}
-  stbSpinning=true;
-  const svg=document.getElementById('bottleSVG');
-  const spins = 4+Math.random()*6;
-  const chosen = Math.floor(Math.random()*stbPlayers.length);
-  const targetAngle = chosen*(360/stbPlayers.length) + spins*360;
-  stbAngle+=targetAngle;
-  svg.style.transition='transform 3s cubic-bezier(0.17,0.89,0.32,1.28)';
-  svg.style.transform=`rotate(${stbAngle}deg)`;
-  setTimeout(()=>{ 
-    document.getElementById('spinResult').innerHTML = `<span style="font-size:18px">💋</span> <strong style="color:var(--accent2)">${stbPlayers[chosen]}</strong> gets a dare!`;
-    stbSpinning=false; 
-  },3100);
-}
-window.addSTBPlayer=addSTBPlayer; window.removeSTBPlayer=removeSTBPlayer; window.spinBottle=spinBottle;
-
-// ══ 6. LOVE CHALLENGE ══
-const CHALLENGES = [
-  {e:'💌',t:'Write a Love Note',d:'Write your partner a heartfelt note with 5 specific things you love about them.',timer:120},
-  {e:'📸',t:'Take a Couple Selfie',d:'Strike a fun pose together and save it as your wallpaper for a week.',timer:60},
-  {e:'🎵',t:'Serenade Them',d:'Sing any song to your partner for at least 30 seconds — no backing out!',timer:90},
-  {e:'💆',t:'Give a Massage',d:'Give your partner a 5-minute shoulder or head massage with full focus.',timer:300},
-  {e:'🍳',t:'Cook Together',d:'Make a simple dish together where each of you handles different parts.',timer:1800},
-  {e:'🌟',t:'Share 3 Compliments',d:'Look into your partner\'s eyes and say 3 genuine compliments without laughing.',timer:60},
-  {e:'🕯️',t:'Candle Dinner',d:'Eat one meal this week by candlelight, phones away, just conversation.',timer:0},
-  {e:'💃',t:'Dance Together',d:'Play your favorite song and slow dance together for the full duration.',timer:180},
-  {e:'📖',t:'Read Together',d:'Read aloud a chapter of a book to each other — take turns by paragraph.',timer:600},
-  {e:'🌅',t:'Watch the Sunrise',d:'Wake up early together and watch the sunrise, even from your window.',timer:0},
-  {e:'🎭',t:'Roleplay Night',d:'Each of you takes on a character and have a dinner "date" in character.',timer:1800},
-  {e:'🗺️',t:'Explore Together',d:'Go to a place in your city neither of you has been to before.',timer:0},
-];
-let chalIdx=0, chalTimer=null, chalTime=0;
-function renderChallenge() {
-  return `
-    <div class="info-chip">Complete romantic challenges together to deepen your bond! 💕</div>
-    <div id="chalContent"></div>
-  `;
-}
-function initChallenge() { chalIdx=Math.floor(Math.random()*CHALLENGES.length); showChallenge(); }
-function showChallenge() {
-  clearInterval(window._gameTimer);
-  const c=CHALLENGES[chalIdx%CHALLENGES.length];
-  chalTime=c.timer;
-  document.getElementById('chalContent').innerHTML = `
-    <div class="challenge-card">
-      <div class="challenge-emoji">${c.e}</div>
-      <div class="challenge-title">${c.t}</div>
-      <div class="challenge-desc">${c.d}</div>
-      ${c.timer>0?`<div class="challenge-timer" id="chalTimer">${fmtTime(c.timer)}</div>`:'<div style="height:12px"></div>'}
-    </div>
-    <div class="challenge-btns">
-      <button class="chal-btn done" onclick="chalDone()">✅ Done!</button>
-      <button class="chal-btn skip" onclick="chalSkip()">⏭ Skip</button>
-    </div>
-    ${c.timer>0?`<div class="g-row"><button class="g-btn g-btn-glass" onclick="startChalTimer()">⏱ Start Timer</button></div>`:''}
-  `;
-}
-function fmtTime(s){return Math.floor(s/60)+':'+(s%60).toString().padStart(2,'0')}
-function startChalTimer() {
-  clearInterval(window._gameTimer);
-  window._gameTimer=setInterval(()=>{
-    chalTime--;
-    const el=document.getElementById('chalTimer');
-    if(el) el.textContent=fmtTime(chalTime);
-    if(chalTime<=0){ clearInterval(window._gameTimer); if(el) el.textContent='⏰ Time\'s Up!'; }
-  },1000);
-}
-function chalDone() { chalIdx++; showChallenge(); }
-function chalSkip() { chalIdx++; showChallenge(); }
-window.startChalTimer=startChalTimer; window.chalDone=chalDone; window.chalSkip=chalSkip;
-
-// ══ 7. COMPATIBILITY QUIZ ══
-const COMPAT_Q = [
-  {q:"Your ideal weekend?",opts:["Stay home & relax","Go out & explore","Mix of both","Adventure outdoors"]},
-  {q:"How do you show love?",opts:["Words","Touch","Gifts","Acts of service"]},
-  {q:"Your communication style?",opts:["Talk it out immediately","Need time to process","Prefer texting","Direct & brief"]},
-  {q:"Money approach?",opts:["Save everything","Spend & enjoy","Balance both","Invest wisely"]},
-  {q:"Life goals priority?",opts:["Family & love","Career & success","Travel & experiences","Personal growth"]},
-  {q:"Conflict resolution?",opts:["Discuss calmly","Need a break first","Write it down","Compromise fast"]},
-  {q:"Social life preference?",opts:["Small close group","Large friend circle","Just us two","Flexible"]},
-  {q:"Dream home?",opts:["Cozy apartment","Suburban house","Country home","Travel constantly"]},
-];
-let compatAnswers=[], compatPhase='me', compatMyAnswers=[], compatPtAnswers=[];
-function renderCompat() {
-  return `<div id="compatContent"></div>`;
-}
-function initCompat() { compatAnswers=[]; compatPhase='me'; compatMyAnswers=[]; compatPtAnswers=[]; showCompatQ(0); }
-function showCompatQ(idx) {
-  const el=document.getElementById('compatContent');
-  if(idx>=COMPAT_Q.length) { if(compatPhase==='me'){compatMyAnswers=[...compatAnswers];compatAnswers=[];compatPhase='pt';el.innerHTML=`<div style="text-align:center;padding:24px"><div style="font-size:48px;margin-bottom:12px">💑</div><div style="font-family:var(--ff-serif);font-size:20px;color:var(--white);margin-bottom:8px">Now, Partner's Turn!</div><div style="font-size:13px;color:var(--text2);margin-bottom:20px">Pass the phone to your partner</div><button class="g-btn g-btn-accent" onclick="showCompatQ(0)" style="width:100%;padding:13px;justify-content:center">Start ➤</button></div>`;return;}else{compatPtAnswers=[...compatAnswers];showCompatResult();return;}}
-  const q=COMPAT_Q[idx];
-  el.innerHTML=`
-    <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">${compatPhase==='me'?'Your answers':'Partner\'s answers'} · ${idx+1}/${COMPAT_Q.length}</div>
-    <div class="quiz-progress" style="margin-bottom:14px"><div class="quiz-progress-fill" style="width:${idx/COMPAT_Q.length*100}%"></div></div>
-    <div class="compat-q">
-      <div class="compat-q-text">${q.q}</div>
-      <div class="compat-options">
-        ${q.opts.map((o,i)=>`<button class="compat-opt" onclick="compatPick(${i},${idx})">${o}</button>`).join('')}
-      </div>
-    </div>
-  `;
-}
-function compatPick(i,idx) {
-  compatAnswers.push(i);
-  showCompatQ(idx+1);
-}
-function showCompatResult() {
-  let matches=0;
-  for(let i=0;i<Math.min(compatMyAnswers.length,compatPtAnswers.length);i++) if(compatMyAnswers[i]===compatPtAnswers[i]) matches++;
-  const pct=Math.round(matches/COMPAT_Q.length*100);
-  const msg=pct>=80?'Soul Mates! 💍':pct>=60?'Great Match! 💕':pct>=40?'Opposites Attract! 💞':'Beautifully Different! 🌹';
-  const c=2*Math.PI*50;
-  const dash=c-(pct/100)*c;
-  document.getElementById('compatContent').innerHTML=`
-    <div class="compat-result">
-      <div class="compat-ring">
-        <svg viewBox="0 0 120 120" width="120" height="120" style="transform:rotate(-90deg)">
-          <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
-          <circle cx="60" cy="60" r="50" fill="none" stroke="url(#compatGrad)" stroke-width="10"
-            stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${dash.toFixed(1)}"
-            stroke-linecap="round" style="transition:stroke-dashoffset 1s ease"/>
-          <defs><linearGradient id="compatGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="var(--accent2)"/>
-          </linearGradient></defs>
-        </svg>
-      </div>
-      <div class="compat-pct">${pct}%</div>
-      <div style="font-size:18px;font-family:var(--ff-serif);color:var(--white);margin-top:6px">${msg}</div>
-      <div style="font-size:12px;color:var(--text2);margin-top:8px;line-height:1.65">You matched on ${matches} out of ${COMPAT_Q.length} questions. ${pct>=60?'Your relationship has a strong foundation!':'Every difference is a chance to learn and grow together.'}</div>
-    </div>
-    <div class="g-row"><button class="g-btn g-btn-accent" onclick="initCompat()">🔄 Retake</button></div>
-  `;
-}
-window.compatPick=compatPick; window.showCompatQ=showCompatQ;
-
-// ══ 8. TIC TAC TOE ══
-let tttBoard=Array(9).fill(null), tttTurn='X', tttScores={X:0,O:0,D:0}, tttOver=false;
-const TTT_WINS=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-function renderTTT() {
-  return `
-    <div class="ttt-score">
-      <div class="ttt-score-item"><div class="ttt-score-n" id="tttScoreX" style="color:var(--accent)">0</div><div class="ttt-score-l">You (X)</div></div>
-      <div class="ttt-score-item"><div class="ttt-score-n" id="tttScoreD">0</div><div class="ttt-score-l">Draws</div></div>
-      <div class="ttt-score-item"><div class="ttt-score-n" id="tttScoreO" style="color:var(--accent2)">0</div><div class="ttt-score-l">Partner (O)</div></div>
-    </div>
-    <div class="ttt-status" id="tttStatus">X's turn 🎮</div>
-    <div class="ttt-board" id="tttBoard">
-      ${Array(9).fill(0).map((_,i)=>`<div class="ttt-cell" id="tc${i}" onclick="tttMove(${i})"></div>`).join('')}
-    </div>
-    <div class="g-row"><button class="g-btn g-btn-glass" onclick="tttReset()">🔄 New Game</button></div>
-  `;
-}
-function initTTT() { tttBoard=Array(9).fill(null);tttTurn='X';tttOver=false; }
-function tttMove(i) {
-  if(tttBoard[i]||tttOver) return;
-  tttBoard[i]=tttTurn;
-  const cell=document.getElementById('tc'+i);
-  cell.textContent=tttTurn==='X'?'❌':'⭕';
-  cell.classList.add(tttTurn.toLowerCase());
-  const win=tttCheckWin();
-  if(win){
-    win.forEach(i=>document.getElementById('tc'+i).classList.add('win'));
-    tttScores[tttTurn]++;
-    document.getElementById('tttStatus').textContent=`${tttTurn==='X'?'❌ You win':'⭕ Partner wins'}! 🎉`;
-    document.getElementById(`tttScore${tttTurn}`).textContent=tttScores[tttTurn];
-    tttOver=true;
-    setTimeout(tttReset,2000);
-  } else if(tttBoard.every(Boolean)){
-    tttScores.D++;document.getElementById('tttStatus').textContent='Draw! 🤝';
-    document.getElementById('tttScoreD').textContent=tttScores.D;
-    tttOver=true;setTimeout(tttReset,2000);
-  } else {
-    tttTurn=tttTurn==='X'?'O':'X';
-    document.getElementById('tttStatus').textContent=`${tttTurn==='X'?'❌ Your':'⭕ Partner\'s'} turn`;
-  }
-}
-function tttCheckWin() {
-  for(const [a,b,c] of TTT_WINS) if(tttBoard[a]&&tttBoard[a]===tttBoard[b]&&tttBoard[a]===tttBoard[c]) return [a,b,c];
-  return null;
-}
-function tttReset() {
-  tttBoard=Array(9).fill(null);tttTurn='X';tttOver=false;
-  for(let i=0;i<9;i++){const c=document.getElementById('tc'+i);if(c){c.textContent='';c.className='ttt-cell';c.onclick=()=>tttMove(i);}}
-  const st=document.getElementById('tttStatus');if(st) st.textContent="X's turn 🎮";
-}
-window.tttMove=tttMove; window.tttReset=tttReset;
-
-// ══ 9. COUPLE LUDO ══
-const LUDO_COLORS=['#5B9BFF','#FF6B9D'];
-const LUDO_NAMES=['You','Partner'];
-let ludoState={pieces:[[0,0],[0,0]],turn:0,dice:0,home:[0,0],rolled:false};
-function renderLudo() {
-  return `
-    <div class="info-chip">Simple 2-player Ludo. Roll dice, move your piece around the board, reach HOME to win! 🎲</div>
-    <div id="ludoBoard" style="position:relative;width:280px;height:280px;margin:0 auto 16px;border-radius:16px;overflow:hidden;border:1px solid var(--border2);background:rgba(8,8,20,0.9)"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <div style="text-align:center;flex:1"><div style="font-size:13px;font-weight:700;color:${LUDO_COLORS[0]}">${LUDO_NAMES[0]}</div><div style="font-size:10px;color:var(--text3)">Home: <span id="ludo-home-0">0</span>/2</div></div>
-      <div id="ludoDiceDisplay" style="font-size:48px;text-align:center;flex:1">🎲</div>
-      <div style="text-align:center;flex:1"><div style="font-size:13px;font-weight:700;color:${LUDO_COLORS[1]}">${LUDO_NAMES[1]}</div><div style="font-size:10px;color:var(--text3)">Home: <span id="ludo-home-1">0</span>/2</div></div>
-    </div>
-    <div id="ludoStatus" style="text-align:center;font-size:13px;color:var(--text2);margin-bottom:14px;padding:10px;background:var(--g1);border-radius:10px;border:1px solid var(--border)">Your turn! Roll the dice.</div>
-    <div class="g-row">
-      <button class="g-btn g-btn-accent" id="ludoRollBtn" onclick="ludoRoll()" style="width:100%;padding:14px;justify-content:center;font-size:15px">🎲 Roll Dice</button>
-    </div>
-  `;
-}
-// Simple linear track: 0=start, steps 1-20, 21=home zone
-const TOTAL_STEPS=20;
-function initLudo() { ludoState={pieces:[[1,1],[1,1]],turn:0,dice:0,home:[0,0],rolled:false}; drawLudo(); }
-function drawLudo() {
-  const board=document.getElementById('ludoBoard'); if(!board) return;
-  const W=280;
-  let svg=`<svg width="${W}" height="${W}" viewBox="0 0 ${W} ${W}" xmlns="http://www.w3.org/2000/svg">`;
-  // Draw track cells
-  const cells=[];
-  const cx=W/2,cy=W/2,r=100,nr=20;
-  for(let i=0;i<nr;i++){const a=(i/nr)*2*Math.PI-Math.PI/2;cells.push({x:cx+r*Math.cos(a),y:cy+r*Math.sin(a)});}
-  // Draw lines
-  svg+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="20" stroke-dasharray="5 ${(2*Math.PI*r/nr-5).toFixed(1)}" stroke-dashoffset="0"/>`;
-  // Step cells
-  cells.forEach((c,i)=>{
-    const isHome=i===0||i===10;
-    svg+=`<circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="9" fill="${isHome?'rgba(255,215,0,0.3)':'rgba(255,255,255,0.05)'}" stroke="${isHome?'rgba(255,215,0,0.5)':'rgba(255,255,255,0.1)'}" stroke-width="1"/>`;
-    svg+=`<text x="${c.x.toFixed(1)}" y="${(c.y+3).toFixed(1)}" text-anchor="middle" font-size="6" fill="rgba(255,255,255,0.3)" font-family="Inter">${i+1}</text>`;
-  });
-  // HOME in center
-  svg+=`<circle cx="${cx}" cy="${cy}" r="30" fill="rgba(255,215,0,0.1)" stroke="rgba(255,215,0,0.3)" stroke-width="1.5"/>
-    <text x="${cx}" y="${cy-5}" text-anchor="middle" font-size="14" fill="rgba(255,215,0,0.8)">🏆</text>
-    <text x="${cx}" y="${cy+12}" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.5)" font-family="Inter">HOME</text>`;
-  // Pieces
-  [0,1].forEach(p=>{
-    ludoState.pieces[p].forEach((step,pieceIdx)=>{
-      if(step>TOTAL_STEPS){const o=p===0?-12:12;svg+=`<circle cx="${(cx+o).toFixed(1)}" cy="${cy}" r="8" fill="${LUDO_COLORS[p]}" stroke="#fff" stroke-width="2" opacity="0.8"/>`;return;}
-      const cellIdx=(step-1+p*10)%nr;
-      const c2=cells[cellIdx];
-      const ox=pieceIdx===0?-5:5;
-      svg+=`<circle cx="${(c2.x+ox).toFixed(1)}" cy="${c2.y.toFixed(1)}" r="8" fill="${LUDO_COLORS[p]}" stroke="#fff" stroke-width="2"/>
-        <text x="${(c2.x+ox).toFixed(1)}" y="${(c2.y+4).toFixed(1)}" text-anchor="middle" font-size="8" fill="#fff" font-family="Inter">${pieceIdx+1}</text>`;
+/* confetti */
+function confetti(n){
+  n = n||70;
+  const cvs = document.getElementById('confettiCanvas');
+  cvs.style.display='block'; cvs.width=innerWidth; cvs.height=innerHeight;
+  const ctx = cvs.getContext('2d');
+  const colors=['#ff6b9d','#5B9BFF','#ffc94a','#7ee8ff','#34d399','#a78bfa'];
+  const parts = Array.from({length:n},()=>({x:Math.random()*cvs.width,y:-20-Math.random()*200,r:4+Math.random()*5,c:rand(colors),vy:2+Math.random()*3,vx:(Math.random()-.5)*3,rot:Math.random()*360,vr:(Math.random()-.5)*10}));
+  let t=0;
+  function frame(){
+    t++; ctx.clearRect(0,0,cvs.width,cvs.height);
+    let alive=false;
+    parts.forEach(p=>{
+      p.y+=p.vy; p.x+=p.vx; p.rot+=p.vr;
+      if(p.y<cvs.height+20) alive=true;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle=p.c; ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.6); ctx.restore();
     });
+    if(alive && t<260) requestAnimationFrame(frame); else cvs.style.display='none';
+  }
+  frame();
+}
+function toast(msg,dur){ const t=document.getElementById('gToast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),dur||2600); }
+function showReward(ico,title,items){
+  document.getElementById('rewardIco').textContent=ico;
+  document.getElementById('rewardTitle').textContent=title;
+  document.getElementById('rewardItems').innerHTML=(items||[]).map(i=>`<div class="reward-item">${i}</div>`).join('');
+  document.getElementById('rewardPop').classList.add('show');
+  confetti(90); Snd.levelup();
+}
+function closeReward(){ document.getElementById('rewardPop').classList.remove('show'); }
+
+/* ═══════════════════════════════════════════════════════
+   GAME CORE — XP / Coins / Diamonds / Achievements / Level
+═══════════════════════════════════════════════════════ */
+const LOCAL_KEY = 'us_games_profiles_v1';
+const ACHIEVEMENTS = [
+  {id:'first_play',ico:'🎮',name:'First Play',desc:'Play any game once'},
+  {id:'love_ch3',ico:'📖',name:'Story Lover',desc:'Reach chapter 3 in Love Adventure'},
+  {id:'island_5',ico:'🏝️',name:'Island Builder',desc:'Place 5 buildings'},
+  {id:'island_all',ico:'👑',name:'Island Master',desc:'Unlock every building'},
+  {id:'draw_10',ico:'🎨',name:'Artist',desc:'Save 10 drawings'},
+  {id:'escape_1',ico:'🔓',name:'Escape Artist',desc:'Clear an escape room'},
+  {id:'escape_all',ico:'🗝️',name:'Master Escapist',desc:'Clear all rooms'},
+  {id:'tod_25',ico:'🔥',name:'Bold & Brave',desc:'Complete 25 truths/dares'},
+  {id:'tod_streak10',ico:'⚡',name:'On Fire',desc:'Hit a 10 streak in Truth or Dare'},
+  {id:'level5',ico:'⭐',name:'Rising Star',desc:'Reach couple level 5'},
+  {id:'level10',ico:'💫',name:'Power Couple',desc:'Reach couple level 10'},
+  {id:'daily_7',ico:'📅',name:'Weekly Devotion',desc:'7-day play streak'},
+];
+function defaultProfile(){ return { xp:0, coins:120, diamonds:5, achievements:[], favorites:[], history:{}, lastPlayDate:'', streakDays:0, todCount:0, todStreak:0, todBestStreak:0, islandBuildings:0, drawSaves:0, escapesCleared:0, laChapter:0 }; }
+const GameCore = {
+  profiles:{u1:defaultProfile(),u2:defaultProfile()}, loaded:false,
+  loadLocal(){ try{ const raw=localStorage.getItem(LOCAL_KEY+'_'+ID.coupleId); if(raw) Object.assign(this.profiles, JSON.parse(raw)); }catch(e){} },
+  saveLocal(){ try{ localStorage.setItem(LOCAL_KEY+'_'+ID.coupleId, JSON.stringify(this.profiles)); }catch(e){} },
+  async loadCloud(){
+    if(!sb) return;
+    try{
+      const {data,error} = await sb.from('games_profiles').select('*').eq('couple_id',ID.coupleId).maybeSingle();
+      if(!error && data){ if(data.u1) this.profiles.u1={...defaultProfile(),...data.u1}; if(data.u2) this.profiles.u2={...defaultProfile(),...data.u2}; }
+    }catch(e){ console.warn('games_profiles load failed (table may not exist yet):', e.message); }
+  },
+  saveTimer:null,
+  saveCloud(){
+    clearTimeout(this.saveTimer);
+    this.saveTimer = setTimeout(async ()=>{
+      this.saveLocal();
+      if(!sb) return;
+      try{ await sb.from('games_profiles').upsert({couple_id:ID.coupleId,u1:this.profiles.u1,u2:this.profiles.u2,updated_at:new Date().toISOString()},{onConflict:'couple_id'}); }
+      catch(e){ console.warn('games_profiles save failed:', e.message); }
+    },500);
+  },
+  me(){ return this.profiles[myKey]; },
+  pt(){ return this.profiles[ptKey]; },
+  level(xp){ return Math.floor(Math.sqrt(Math.max(0,xp)/28))+1; },
+  xpForLevel(lv){ return Math.pow(lv-1,2)*28; },
+  addXP(n){
+    const p=this.me(); const before=this.level(p.xp); p.xp+=n; const after=this.level(p.xp);
+    this.touchStreak(); this.saveCloud(); Hub.refreshRankCards();
+    if(after>before){ setTimeout(()=>showReward('🏆','Level Up!',['Level '+after]),400); if(after>=5) this.unlock('level5'); if(after>=10) this.unlock('level10'); }
+    return after>before;
+  },
+  addCoins(n){ this.me().coins=Math.max(0,this.me().coins+n); this.saveCloud(); Hub.refreshRankCards(); Snd.coin(); },
+  addDiamonds(n){ this.me().diamonds=Math.max(0,this.me().diamonds+n); this.saveCloud(); Hub.refreshRankCards(); },
+  touchStreak(){
+    const p=this.me(); const t=todayStr();
+    if(p.lastPlayDate===t) return;
+    const y=new Date(Date.now()-86400000).toISOString().slice(0,10);
+    p.streakDays = (p.lastPlayDate===y) ? (p.streakDays||0)+1 : 1;
+    p.lastPlayDate=t;
+    if(p.streakDays>=7) this.unlock('daily_7');
+  },
+  unlock(id){
+    const p=this.me(); if(p.achievements.includes(id)) return;
+    p.achievements.push(id); this.saveCloud();
+    const a=ACHIEVEMENTS.find(x=>x.id===id);
+    if(a){ setTimeout(()=>{ toast('🏅 Achievement unlocked: '+a.name,3200); Snd.unlock(); },300); }
+  },
+  toggleFav(gid){
+    const p=this.me(); const i=p.favorites.indexOf(gid);
+    if(i>-1) p.favorites.splice(i,1); else p.favorites.push(gid);
+    this.saveCloud();
+  },
+  setLastGame(gid,progress){ this.me().history[gid]={ts:Date.now(),progress:progress||0}; this.saveCloud(); }
+};
+
+/* ═══════════════════════════════════════════════════════
+   REALTIME SYNC LAYER — Supabase channel (broadcast) + table persistence
+   Falls back gracefully to localStorage cross-tab if table/RLS unavailable.
+   Requires table `games_shared` (couple_id text, game text, data jsonb, updated_at timestamptz,
+   primary key (couple_id, game)) — see closing notes.
+═══════════════════════════════════════════════════════ */
+class GameChannel {
+  constructor(gameKey){
+    this.gameKey=gameKey; this.chanName='gm_'+ID.coupleId+'_'+gameKey;
+    this.channel=null; this._onMsg=null; this._lsHandler=null;
+  }
+  async load(){
+    if(sb){
+      try{
+        const {data,error} = await sb.from('games_shared').select('data').eq('couple_id',ID.coupleId).eq('game',this.gameKey).maybeSingle();
+        if(!error && data) return data.data;
+      }catch(e){ console.warn('games_shared load failed:', e.message); }
+    }
+    try{ const raw=localStorage.getItem('gm_local_'+this.chanName); if(raw) return JSON.parse(raw); }catch(e){}
+    return null;
+  }
+  async persist(state){
+    try{ localStorage.setItem('gm_local_'+this.chanName, JSON.stringify(state)); }catch(e){}
+    if(sb){
+      try{ await sb.from('games_shared').upsert({couple_id:ID.coupleId,game:this.gameKey,data:state,updated_at:new Date().toISOString()},{onConflict:'couple_id,game'}); }
+      catch(e){ /* table may not exist — silently keep local-only */ }
+    }
+  }
+  listen(onMsg){
+    this._onMsg=onMsg;
+    if(sb){
+      this.channel = sb.channel(this.chanName, {config:{broadcast:{self:false}}});
+      this.channel.on('broadcast',{event:'ev'},(p)=>onMsg(p.payload));
+      this.channel.subscribe();
+    }
+    this._lsHandler = (e)=>{ if(e.key==='gm_bc_'+this.chanName && e.newValue){ try{ onMsg(JSON.parse(e.newValue).payload); }catch(er){} } };
+    window.addEventListener('storage', this._lsHandler);
+  }
+  send(payload){
+    if(this.channel){ try{ this.channel.send({type:'broadcast',event:'ev',payload}); }catch(e){} }
+    try{ localStorage.setItem('gm_bc_'+this.chanName, JSON.stringify({t:Date.now(),payload})); }catch(e){}
+  }
+  close(){ if(this.channel && sb) sb.removeChannel(this.channel); if(this._lsHandler) window.removeEventListener('storage',this._lsHandler); }
+}
+
+/* presence — who's playing what right now */
+let presenceChan=null, partnerPresence={game:null,online:false};
+function initPresence(){
+  if(!sb) return;
+  presenceChan = sb.channel('presence_'+ID.coupleId, {config:{presence:{key:ID.role}}});
+  presenceChan.on('presence',{event:'sync'},()=>{
+    const st = presenceChan.presenceState();
+    const other = st[ptKey==='u1'?'user1':'user2'] || st[ptKey];
+    let found=null;
+    Object.keys(st).forEach(k=>{ if(k!==ID.role && st[k] && st[k][0]) found=st[k][0]; });
+    partnerPresence = found ? {game:found.game||null,online:true} : {game:null,online:false};
+    Hub.refreshRankCards();
   });
-  svg+=`</svg>`;
-  board.innerHTML=svg;
+  presenceChan.subscribe(async (status)=>{ if(status==='SUBSCRIBED'){ await presenceChan.track({game:null,ts:Date.now()}); } });
 }
-function ludoRoll() {
-  if(ludoState.rolled) return;
-  const dice=1+Math.floor(Math.random()*6);
-  ludoState.dice=dice;ludoState.rolled=true;
-  const faces=['⚀','⚁','⚂','⚃','⚄','⚅'];
-  document.getElementById('ludoDiceDisplay').textContent=faces[dice-1];
-  document.getElementById('ludoStatus').textContent=`${LUDO_NAMES[ludoState.turn]} rolled ${dice}! Click a piece to move.`;
-  // Auto move if only 1 valid piece
-  const validPieces=ludoState.pieces[ludoState.turn].map((s,i)=>i).filter(i=>ludoState.pieces[ludoState.turn][i]<=TOTAL_STEPS);
-  if(validPieces.length===1) setTimeout(()=>ludoMove(validPieces[0]),500);
-  else if(validPieces.length===0) { ludoNextTurn(); }
-}
-function ludoMove(pieceIdx) {
-  if(!ludoState.rolled) return;
-  const p=ludoState.turn;
-  const newStep=ludoState.pieces[p][pieceIdx]+ludoState.dice;
-  if(newStep>TOTAL_STEPS+2) return; // can't overshoot
-  ludoState.pieces[p][pieceIdx]=newStep;
-  ludoState.rolled=false;
-  // Check home
-  if(ludoState.pieces[p].filter(s=>s>TOTAL_STEPS).length){
-    const homeCount=ludoState.pieces[p].filter(s=>s>TOTAL_STEPS).length;
-    ludoState.home[p]=homeCount;
-    document.getElementById(`ludo-home-${p}`).textContent=homeCount;
-    if(homeCount>=2){document.getElementById('ludoStatus').innerHTML=`🏆 <strong style="color:${LUDO_COLORS[p]}">${LUDO_NAMES[p]} WINS!</strong> 🎉`;drawLudo();return;}
-  }
-  drawLudo();
-  ludoNextTurn();
-}
-function ludoNextTurn() {
-  ludoState.turn=ludoState.turn===0?1:0;
-  document.getElementById('ludoStatus').textContent=`${LUDO_NAMES[ludoState.turn]}'s turn. Roll the dice!`;
-  document.getElementById('ludoDiceDisplay').textContent='🎲';
-}
-window.ludoRoll=ludoRoll; window.ludoMove=ludoMove;
+function setPresenceGame(gid){ if(presenceChan) presenceChan.track({game:gid,ts:Date.now()}).catch(()=>{}); }
 
-// ══ INIT ══
-renderGames();
+/* ═══════════════════════════════════════════════════════
+   GAME DEFINITIONS (for hub cards)
+═══════════════════════════════════════════════════════ */
+const GAMES = [
+  {id:'love', title:'Love Adventure', emoji:'❤️', badge:'trend', grad:'linear-gradient(135deg,#3a0d24,#7a0d3d)',
+    desc:'A branching romantic story — your choices shape every chapter. Daily missions included.',
+    tags:['📖 Story','⏱ 10-15m','✨ 40 XP']},
+  {id:'island', title:'Build Our Dream Island', emoji:'🏝️', badge:'new', grad:'linear-gradient(135deg,#0d2a2e,#0d5c4a)',
+    desc:'Grow one shared island together — houses, pools, pets, a villa & more, synced live.',
+    tags:['🏗 Builder','⏱ Ongoing','✨ 15 XP/build']},
+  {id:'draw', title:'Draw Together', emoji:'🎨', badge:'', grad:'linear-gradient(135deg,#1a0d2e,#4a0d5c)',
+    desc:'One shared canvas, real-time strokes. Guess mode, stickers, save to memories.',
+    tags:['🖌 Creative','⏱ 5-20m','✨ 20 XP']},
+  {id:'escape', title:'Couple Escape Room', emoji:'🧩', badge:'', grad:'linear-gradient(135deg,#1a1a0d,#5c4a0d)',
+    desc:'Crack codes, find hidden objects and solve riddles together against the clock.',
+    tags:['🔐 Puzzle','⏱ 15-25m','✨ 60 XP']},
+  {id:'tod', title:'Truth or Dare Deluxe', emoji:'🔥', badge:'trend', grad:'linear-gradient(135deg,#2a0d0d,#6b0d1a)',
+    desc:'350+ prompts across 6 moods, a spin wheel, streaks, voice reading & live reactions.',
+    tags:['🎡 Party','⏱ 10m+','✨ 10 XP/round']},
+  {id:'dreamhome', title:'Dream Home Builder', emoji:'🏠', badge:'new', grad:'linear-gradient(135deg,#2a1a3a,#0d2a2e)',
+    desc:'Decorate one shared dream home together — 9 rooms, luxury furniture, synced live.',
+    tags:['🏗 Builder','⏱ Ongoing','✨ 12 XP/item']},
+];
 
-// Accept theme variables from parent
-window.addEventListener('message',e=>{
-  if(e.data?.type==='theme'){
-    const r=document.documentElement;
-    Object.entries(e.data.vars||{}).forEach(([k,v])=>r.style.setProperty(k,v));
+/* ═══════════════════════════════════════════════════════
+   HUB
+═══════════════════════════════════════════════════════ */
+const DAILY_CHALLENGES = [
+  {ico:'❤️',title:'Play 1 Love Adventure chapter',reward:30,game:'love'},
+  {ico:'🏝️',title:'Place a building on your island',reward:25,game:'island'},
+  {ico:'🎨',title:'Draw something together',reward:20,game:'draw'},
+  {ico:'🧩',title:'Solve 2 escape puzzles',reward:35,game:'escape'},
+  {ico:'🔥',title:'Complete 5 truths or dares',reward:25,game:'tod'},
+];
+function todayChallenge(){ const d=new Date(); const idx=(d.getFullYear()*400+d.getMonth()*31+d.getDate())%DAILY_CHALLENGES.length; return DAILY_CHALLENGES[idx]; }
+function dailyDoneKey(){ return 'us_daily_'+ID.coupleId+'_'+todayStr(); }
+function isDailyDone(){ return localStorage.getItem(dailyDoneKey())==='1'; }
+function markDailyDone(){ localStorage.setItem(dailyDoneKey(),'1'); }
+
+const Hub = {
+  activeGameId:null,
+  async init(){
+    GameCore.loadLocal();
+    await GameCore.loadCloud();
+    initPresence();
+    this.render();
+    this.refreshRankCards();
+  },
+  render(){
+    const el=document.getElementById('hub');
+    const dc = todayChallenge(); const done = isDailyDone();
+    const cont = Object.entries(GameCore.me().history).sort((a,b)=>b[1].ts-a[1].ts)[0];
+    const contGame = cont ? GAMES.find(g=>g.id===cont[0]) : null;
+
+    el.innerHTML = `
+      <div class="hub-hero">
+        <div class="hub-title">🎮 Couple Games</div>
+        <div class="hub-sub">Play together, grow closer, level up as one 💕</div>
+      </div>
+
+      <div class="rank-row" id="rankRow"></div>
+
+      <div class="banner-row">
+        <div class="banner daily" onclick="${done?'':`Hub.playDaily()`}">
+          <div class="banner-ico">${dc.ico}</div>
+          <div class="banner-tag">${done?'✅ Completed':'Daily Challenge'}</div>
+          <div class="banner-title">${esc(dc.title)}</div>
+          <div class="banner-sub">Reward: 🪙 ${dc.reward} coins ${done?'· come back tomorrow':''}</div>
+          <div class="banner-prog"><div class="banner-prog-fill" style="width:${done?100:0}%"></div></div>
+        </div>
+        <div class="banner cont" style="${contGame?'':'opacity:.5;pointer-events:none'}" onclick="${contGame?`Hub.openGame('${contGame.id}')`:''}">
+          <div class="banner-ico">${contGame?contGame.emoji:'🎮'}</div>
+          <div class="banner-tag">Continue Playing</div>
+          <div class="banner-title">${contGame?esc(contGame.title):'No games played yet'}</div>
+          <div class="banner-sub">${contGame?'Pick up right where you left off':'Start any game below to begin'}</div>
+        </div>
+      </div>
+
+      <div class="hub-sec-title"><span>🏅 Achievements</span><div class="line"></div><span style="color:var(--text2)">${GameCore.me().achievements.length}/${ACHIEVEMENTS.length}</span></div>
+      <div class="ach-strip">${ACHIEVEMENTS.map(a=>`<div class="ach-pill ${GameCore.me().achievements.includes(a.id)?'unlocked':''}" title="${esc(a.desc)}"><div class="ach-ico">${a.ico}</div><div class="ach-lbl">${esc(a.name)}</div></div>`).join('')}</div>
+
+      <div class="hub-sec-title"><span>🎮 Games</span><div class="line"></div></div>
+      <div class="games-grid" id="gamesGrid"></div>
+
+      <div class="hub-sec-title"><span>📆 Weekly Event</span><div class="line"></div></div>
+      <div class="banner daily" style="cursor:default">
+        <div class="banner-ico">🎉</div>
+        <div class="banner-tag">This Week</div>
+        <div class="banner-title">Double XP Weekend</div>
+        <div class="banner-sub">Play any game Sat–Sun for bonus rewards on level-ups 💫</div>
+      </div>
+    `;
+    this.renderGameCards();
+  },
+  renderGameCards(){
+    const grid=document.getElementById('gamesGrid'); if(!grid) return;
+    const favs=GameCore.me().favorites;
+    grid.innerHTML = GAMES.map(g=>{
+      const hist=GameCore.me().history[g.id];
+      const prog = g.id==='love' ? Math.min(100,(GameCore.me().laChapter/8)*100) :
+                   g.id==='island' ? Math.min(100,(GameCore.me().islandBuildings/9)*100) :
+                   g.id==='escape' ? Math.min(100,(GameCore.me().escapesCleared/3)*100) : 0;
+      const isFav = favs.includes(g.id);
+      const live = partnerPresence.online && partnerPresence.game===g.id;
+      return `<div class="gcard" onclick="Hub.openGame('${g.id}')">
+        <div class="gcard-art" style="background:${g.grad}">
+          <div class="gcard-emoji">${g.emoji}</div>
+          <div class="gcard-badges">${g.badge==='new'?'<span class="gbadge new">New</span>':''}${g.badge==='trend'?'<span class="gbadge trend">🔥 Trending</span>':''}</div>
+          <div class="gfav ${isFav?'on':''}" onclick="event.stopPropagation();Hub.toggleFav('${g.id}',this)">${isFav?'❤️':'🤍'}</div>
+          ${live?`<div class="gcard-live"><span class="dot" style="width:5px;height:5px;border-radius:50%;background:#7cffcf;animation:blk 1.2s infinite"></span>${esc(ID.partnerName)} is playing</div>`:''}
+        </div>
+        <div class="gcard-body">
+          <div class="gcard-title">${g.title}</div>
+          <div class="gcard-desc">${g.desc}</div>
+          ${prog>0?`<div class="gprog-mini"><div class="gprog-mini-fill" style="width:${prog}%;background:linear-gradient(90deg,var(--accent),var(--accent2))"></div></div>`:''}
+          <div class="gcard-meta">${g.tags.map(t=>`<span class="gtag">${t}</span>`).join('')}</div>
+          <button class="gplay-btn" style="background:${g.grad}">${hist?'▶ Continue':'▶ Play Now'}</button>
+        </div>
+      </div>`;
+    }).join('');
+  },
+  toggleFav(gid,el){ GameCore.toggleFav(gid); el.classList.toggle('on'); el.textContent=el.classList.contains('on')?'❤️':'🤍'; Snd.tap(); },
+  refreshRankCards(){
+    const row=document.getElementById('rankRow'); if(!row) return;
+    const me=GameCore.me(), pt=GameCore.pt();
+    const meLv=GameCore.level(me.xp), ptLv=GameCore.level(pt.xp);
+    const meBase=GameCore.xpForLevel(meLv), meNext=GameCore.xpForLevel(meLv+1);
+    const ptBase=GameCore.xpForLevel(ptLv), ptNext=GameCore.xpForLevel(ptLv+1);
+    const mePct=Math.min(100,Math.round((me.xp-meBase)/(meNext-meBase)*100));
+    const ptPct=Math.min(100,Math.round((pt.xp-ptBase)/(ptNext-ptBase)*100));
+    const avHtml=(av,name,role)=> av?`<img src="${av}" alt="${esc(name)}">`:esc((name||'?')[0]||'?');
+    row.innerHTML = `
+      <div class="rank-card me">
+        <div class="rank-top">
+          <div class="rank-av">${avHtml(ID.myAvatar,ID.myName)}<span class="rank-online on"></span></div>
+          <div><div class="rank-name">${esc(ID.myName)} (You)</div><div class="rank-lvl">Level ${meLv} · ${me.xp} XP</div></div>
+        </div>
+        <div class="rank-xpbar"><div class="rank-xpfill" style="width:${mePct}%"></div></div>
+        <div class="rank-stats">
+          <div class="rank-stat">🪙 ${me.coins}</div>
+          <div class="rank-stat">💎 ${me.diamonds}</div>
+          <div class="rank-stat">🔥 ${me.streakDays||0}d streak</div>
+        </div>
+      </div>
+      <div class="rank-vs">VS<span style="font-size:11px;color:var(--text3);font-family:var(--ff-sans)">💕</span></div>
+      <div class="rank-card pt">
+        <div class="rank-top">
+          <div class="rank-av">${avHtml(ID.partnerAvatar,ID.partnerName)}<span class="rank-online ${partnerPresence.online?'on':''}"></span></div>
+          <div><div class="rank-name">${esc(ID.partnerName)}</div><div class="rank-lvl">Level ${ptLv} · ${pt.xp} XP</div></div>
+        </div>
+        <div class="rank-xpbar"><div class="rank-xpfill" style="width:${ptPct}%"></div></div>
+        <div class="rank-stats">
+          <div class="rank-stat">🪙 ${pt.coins}</div>
+          <div class="rank-stat">💎 ${pt.diamonds}</div>
+          <div class="rank-stat">🔥 ${pt.streakDays||0}d streak</div>
+        </div>
+        ${partnerPresence.online && partnerPresence.game ? `<div class="rank-playing"><span class="dot"></span>Playing ${(GAMES.find(g=>g.id===partnerPresence.game)||{}).title||'a game'}</div>` : ''}
+      </div>`;
+  },
+  playDaily(){
+    const dc=todayChallenge();
+    this.openGame(dc.game);
+    this._dailyPending = dc;
+  },
+  completeDailyIfPending(gid){
+    if(this._dailyPending && this._dailyPending.game===gid && !isDailyDone()){
+      markDailyDone(); GameCore.addCoins(this._dailyPending.reward); Snd.success();
+      toast('🎉 Daily challenge complete! +'+this._dailyPending.reward+' coins',3000);
+      this._dailyPending=null; this.render();
+    }
+  },
+  openGame(id){
+    Snd.click(); GameCore.unlock('first_play'); GameCore.touchStreak();
+    this.activeGameId=id; setPresenceGame(id);
+    const g=GAMES.find(x=>x.id===id);
+    document.getElementById('goEmoji').textContent=g.emoji;
+    document.getElementById('goText').textContent=g.title;
+    document.getElementById('goverlay').classList.add('open');
+    this.updateHeadChips();
+    const body=document.getElementById('goBody');
+    body.className='gobody'; body.innerHTML='<div style="text-align:center;padding:60px 0;color:var(--text3)">Loading…</div>';
+    setTimeout(()=>{
+      if(id==='love') LoveAdventure.open(body);
+      else if(id==='island') Island.open(body);
+      else if(id==='draw') Draw.open(body);
+      else if(id==='escape') Escape.open(body);
+      else if(id==='tod') TOD.open(body);
+      else if(id==='dreamhome') DreamHome.open(body);
+    },120);
+  },
+  updateHeadChips(){
+    document.getElementById('goXpChip').textContent='✨ '+GameCore.me().xp+' XP';
+    document.getElementById('goCoinChip').textContent='🪙 '+GameCore.me().coins;
+  },
+  exitGame(){
+    Snd.tap();
+    ['LoveAdventure','Island','Draw','Escape','TOD','DreamHome'].forEach(n=>{ try{ window[n].close && window[n].close(); }catch(e){} });
+    document.getElementById('goverlay').classList.remove('open');
+    
+    setPresenceGame(null); this.activeGameId=null;
+    this.render(); this.refreshRankCards();
   }
-});
+};
+window.addEventListener('message', e=>{ if(e.data?.type==='theme'){ const r=document.documentElement; Object.entries(e.data.vars||{}).forEach(([k,v])=>{ if(v) r.style.setProperty(k,v); }); } });
+
+/* ═══════════════════════════════════════════════════════
+   GAME 1 — LOVE ADVENTURE
+═══════════════════════════════════════════════════════ */
+const LA_CHAPTERS = [
+  {id:0,tag:'Prologue',emoji:'🌅',title:'Where It Began',
+    text:'Every love story starts somewhere. Think back to the moment you two first connected — that spark is the beginning of this adventure.',
+    choices:[{t:'Begin our story 💕',next:1,xp:10}]},
+  {id:1,tag:'Chapter 1',emoji:'☕',title:'The First Spark',
+    text:'You\'re sitting across from each other, and there\'s a comfortable silence. What do you do?',
+    choices:[
+      {t:'Reach for their hand',next:2,xp:15,flag:'gentle'},
+      {t:'Make them laugh with a joke',next:2,xp:15,flag:'playful'},
+      {t:'Tell them something true',next:2,xp:15,flag:'honest'}]},
+  {id:2,tag:'Chapter 2',emoji:'🌃',title:'A Night to Remember',
+    text:'The city lights are glowing. This feels like a memory you\'ll both keep forever.',
+    mission:{type:'photo',title:'Capture This Moment',desc:'Take a photo together (or of something that reminds you of tonight) to unlock the next chapter.'},
+    choices:[{t:'Continue the story',next:3,xp:20}]},
+  {id:3,tag:'Chapter 3',emoji:'💌',title:'Words Unspoken',
+    text:'Some feelings are easier to write than say out loud.',
+    mission:{type:'voice',title:'Record a Voice Note',desc:'Record a short voice message telling your partner something you love about them.'},
+    choices:[{t:'Send it with love',next:4,xp:25}]},
+  {id:4,tag:'Chapter 4',emoji:'🌧️',title:'Weathering It Together',
+    text:'Not every day is sunshine. A small disagreement tests you both. How do you handle it?',
+    choices:[
+      {t:'Talk it through calmly',next:5,xp:20,flag:'communicator'},
+      {t:'Give each other space, then reconnect',next:5,xp:20,flag:'patient'},
+      {t:'Write down how you feel first',next:5,xp:20,flag:'thoughtful'}]},
+  {id:5,tag:'Chapter 5',emoji:'🎊',title:'Celebrating Us',
+    text:'You made it through. Time to celebrate what you\'ve built together.',
+    mission:{type:'text',title:'Write a Toast',desc:'Write a short toast to your relationship — what are you most proud of?'},
+    choices:[{t:'Raise a glass 🥂',next:6,xp:25}]},
+  {id:6,tag:'Chapter 6',emoji:'🔮',title:'Looking Forward',
+    text:'What does your future together look like? Picture it clearly.',
+    choices:[
+      {t:'A cozy home full of laughter',next:7,xp:20,flag:'home'},
+      {t:'Traveling the world side by side',next:7,xp:20,flag:'travel'},
+      {t:'Building something meaningful together',next:7,xp:20,flag:'ambition'}]},
+  {id:7,tag:'Finale',emoji:'💍',title:'Everything Together',
+    text:'This chapter of your story is complete — but your real story keeps going, every single day.',
+    secret:true,
+    choices:[{t:'Complete the story ✨',next:8,xp:50}]},
+  {id:8,tag:'The End',emoji:'♾️',title:'To Be Continued…',
+    text:'You\'ve completed Love Adventure Season 1! New chapters unlock as you keep playing together. Replay anytime to explore different choices.',
+    choices:[{t:'Replay from the start',next:0,xp:0,restart:true}]},
+];
+const LoveAdventure = {
+  chan:null, state:null,
+  async open(body){
+    this.chan = new GameChannel('love');
+    let st = await this.chan.load();
+    if(!st) st = { current:0, flags:{}, missionsDone:{}, unlockedMax:0 };
+    this.state = st;
+    this.chan.listen(payload=>{ if(payload.type==='sync'){ this.state=payload.state; this.render(); } });
+    this.render();
+  },
+  close(){ if(this.chan) this.chan.close(); },
+  sync(){ this.chan.send({type:'sync',state:this.state}); this.chan.persist(this.state); },
+  goTo(idx,xp,restart){
+    if(restart) this.state={current:0,flags:{},missionsDone:{},unlockedMax:0};
+    else {
+      this.state.current=idx;
+      this.state.unlockedMax=Math.max(this.state.unlockedMax,idx);
+      GameCore.me().laChapter=Math.max(GameCore.me().laChapter,idx);
+      if(idx>=3) GameCore.unlock('love_ch3');
+      if(xp) GameCore.addXP(xp);
+    }
+    Hub.completeDailyIfPending('love');
+    this.sync(); this.render(); Snd.success();
+  },
+  completeMission(){
+    const ch=LA_CHAPTERS[this.state.current];
+    this.state.missionsDone[ch.id]=true;
+    GameCore.addCoins(10); Snd.coin(); toast('Mission complete! +10 coins 🪙');
+    this.sync(); this.render();
+  },
+  render(){
+    const body=document.getElementById('goBody'); if(!body) return;
+    const ch = LA_CHAPTERS[this.state.current];
+    const missionPending = ch.mission && !this.state.missionsDone[ch.id];
+    body.innerHTML = `
+      <div class="la-scene">
+        <div class="la-scene-bg">${ch.emoji}</div><div class="la-scene-grad"></div>
+        <div class="la-scene-content">
+          <div class="la-chap-tag">${esc(ch.tag)}</div>
+          <div class="la-title">${ch.emoji} ${esc(ch.title)}</div>
+          <div class="la-text">${esc(ch.text)}</div>
+        </div>
+      </div>
+      ${ch.mission ? `<div class="la-mission-card">
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#ff9ec7;margin-bottom:6px">💫 Daily Mission ${this.state.missionsDone[ch.id]?'· ✅ Done':''}</div>
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px">${esc(ch.mission.title)}</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:10px">${esc(ch.mission.desc)}</div>
+        ${this.state.missionsDone[ch.id] ? '' : `<button class="btn btn-pink btn-sm" onclick="LoveAdventure.doMission('${ch.mission.type}')">${ch.mission.type==='photo'?'📷 Capture':ch.mission.type==='voice'?'🎙️ Record':'✍️ Write'}</button>`}
+      </div>` : ''}
+      <div class="la-choices">
+        ${ch.choices.map(c=>`<button class="la-choice" ${missionPending?'disabled style="opacity:.4;pointer-events:none"':''} onclick="LoveAdventure.goTo(${c.next},${c.xp||0},${!!c.restart})">${esc(c.t)} ${c.xp?`<span style="margin-left:auto;color:var(--accent-l);font-size:11px;font-weight:800">+${c.xp} XP</span>`:''}</button>`).join('')}
+      </div>
+      <div class="hub-sec-title" style="margin-top:18px"><span>🗺️ Story Map</span><div class="line"></div></div>
+      <div class="la-map">
+        ${LA_CHAPTERS.map((c,i)=>`<div class="la-node ${i<=this.state.unlockedMax?'done':(i===this.state.unlockedMax+1?'cur':'locked')}" onclick="${i<=this.state.unlockedMax?`LoveAdventure.goTo(${i},0,false)`:''}" title="${esc(c.title)}">${c.emoji}</div>`).join('')}
+      </div>
+    `;
+  },
+  doMission(type){
+    if(type==='photo'){
+      const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.capture='environment';
+      inp.onchange=()=>{ if(inp.files[0]) this.completeMission(); };
+      inp.click();
+    } else if(type==='voice'){
+      if(!navigator.mediaDevices){ toast('Mic not supported on this device — marking complete anyway 💕'); this.completeMission(); return; }
+      navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
+        toast('🎙️ Recording… speak now (3s)');
+        const rec=new MediaRecorder(stream);
+        rec.start();
+        setTimeout(()=>{ rec.stop(); stream.getTracks().forEach(t=>t.stop()); this.completeMission(); },3000);
+      }).catch(()=>{ toast('Mic permission denied — try the write option next time'); this.completeMission(); });
+    } else {
+      const msg=prompt('Write your toast / message:');
+      if(msg!==null) this.completeMission();
+    }
+  }
+};
+
+/* ═══════════════════════════════════════════════════════
+   GAME 2 — BUILD OUR DREAM ISLAND
+═══════════════════════════════════════════════════════ */
+const ISL_BUILDINGS = [
+  {id:'house',emoji:'🏠',name:'House',cost:0,lvl:1},
+  {id:'garden',emoji:'🌷',name:'Garden',cost:20,lvl:1},
+  {id:'beach',emoji:'🏖️',name:'Beach',cost:35,lvl:1},
+  {id:'pool',emoji:'🏊',name:'Pool',cost:60,lvl:2},
+  {id:'restaurant',emoji:'🍽️',name:'Restaurant',cost:90,lvl:2},
+  {id:'pets',emoji:'🐶',name:'Pets',cost:50,lvl:2,anim:true},
+  {id:'boat',emoji:'⛵',name:'Boat',cost:110,lvl:3,anim:true},
+  {id:'villa',emoji:'🏰',name:'Luxury Villa',cost:200,lvl:4},
+  {id:'cinema',emoji:'🎬',name:'Cinema',cost:150,lvl:3},
+];
+const ISL_SIZE = 6;
+const Island = {
+  chan:null, state:null, selected:'house',
+  async open(body){
+    this.chan = new GameChannel('island');
+    let st = await this.chan.load();
+    if(!st) st = { grid:{} };
+    this.state = st;
+    this.chan.listen(payload=>{ if(payload.type==='place'){ this.state.grid[payload.key]=payload.b; this.renderGrid(); } });
+    this.render(body);
+  },
+  close(){ if(this.chan) this.chan.close(); },
+  render(body){
+    const coupleLevel = GameCore.level(GameCore.me().xp+GameCore.pt().xp);
+    body.className='gobody nopad';
+    body.innerHTML = `<div class="isl-wrap">
+      <div class="isl-topbar" id="islTopbar"></div>
+      <div class="isl-canvas-wrap"><div class="isl-grid" id="islGrid" style="grid-template-columns:repeat(${ISL_SIZE},46px)"></div></div>
+    </div>`;
+    const tb=document.getElementById('islTopbar');
+    tb.innerHTML = ISL_BUILDINGS.map(b=>{
+      const locked = coupleLevel<b.lvl;
+      return `<div class="isl-item ${this.selected===b.id?'sel':''} ${locked?'locked':''}" onclick="${locked?'':`Island.select('${b.id}')`}" title="${locked?'Unlocks at couple level '+b.lvl:b.name}">
+        <div class="isl-item-emoji">${locked?'🔒':b.emoji}</div>
+        <div class="isl-item-name">${b.name}</div>
+        <div class="isl-item-cost">${locked?'Lv.'+b.lvl:(b.cost?'🪙'+b.cost:'Free')}</div>
+      </div>`;
+    }).join('');
+    this.renderGrid();
+  },
+  select(id){ this.selected=id; Snd.tap(); this.render(document.getElementById('goBody')); },
+  renderGrid(){
+    const grid=document.getElementById('islGrid'); if(!grid) return;
+    let html='';
+    for(let y=0;y<ISL_SIZE;y++) for(let x=0;x<ISL_SIZE;x++){
+      const key=x+'_'+y; const bid=this.state.grid[key];
+      const b = bid ? ISL_BUILDINGS.find(x2=>x2.id===bid) : null;
+      html += `<div class="isl-tile ${b?'filled':''}" onclick="Island.place('${key}')">${b?`<span class="${b.anim?'anim':''}">${b.emoji}</span>`:''}</div>`;
+    }
+    grid.innerHTML=html;
+  },
+  place(key){
+    const b = ISL_BUILDINGS.find(x=>x.id===this.selected);
+    if(!b) return;
+    const coupleLevel = GameCore.level(GameCore.me().xp+GameCore.pt().xp);
+    if(coupleLevel<b.lvl){ toast('🔒 Unlocks at couple level '+b.lvl); return; }
+    if(GameCore.me().coins<b.cost){ toast('Not enough coins 🪙 — earn more by playing!'); return; }
+    if(b.cost>0) GameCore.addCoins(-b.cost);
+    this.state.grid[key]=b.id;
+    GameCore.me().islandBuildings=Object.keys(this.state.grid).length;
+    if(GameCore.me().islandBuildings>=5) GameCore.unlock('island_5');
+    const placedTypes = new Set(Object.values(this.state.grid));
+    if(ISL_BUILDINGS.every(bd=>placedTypes.has(bd.id))) GameCore.unlock('island_all');
+    GameCore.addXP(15);
+    Hub.completeDailyIfPending('island');
+    Snd.place();
+    this.chan.send({type:'place',key,b:b.id}); this.chan.persist(this.state);
+    this.renderGrid();
+  }
+};
+const DH_ROOMS = [
+  {id:'bedroom',  name:'Bedroom',       emoji:'🛏️', lvl:1, size:5},
+  {id:'kitchen',  name:'Kitchen',       emoji:'🍳', lvl:1, size:5},
+  {id:'living',   name:'Living Room',   emoji:'🛋️', lvl:1, size:6},
+  {id:'garden',   name:'Garden',        emoji:'🌷', lvl:2, size:6},
+  {id:'balcony',  name:'Balcony',       emoji:'🌇', lvl:2, size:4},
+  {id:'gaming',   name:'Gaming Room',   emoji:'🎮', lvl:3, size:5},
+  {id:'theater',  name:'Home Theater',  emoji:'🎬', lvl:3, size:5},
+  {id:'pool',     name:'Swimming Pool', emoji:'🏊', lvl:4, size:6},
+  {id:'garage',   name:'Garage',        emoji:'🚗', lvl:4, size:5},
+];
+ 
+// Items available per room. cost in coins, lvl = couple-level gate, anim = gentle bob animation.
+const DH_ITEMS = {
+  bedroom:  [{id:'bed',emoji:'🛏️',name:'Bed',cost:0,lvl:1},{id:'wardrobe',emoji:'🚪',name:'Wardrobe',cost:25,lvl:1},
+             {id:'lamp',emoji:'🪔',name:'Lamp',cost:15,lvl:1,anim:true},{id:'rug',emoji:'🟫',name:'Rug',cost:10,lvl:1},
+             {id:'mirror',emoji:'🪞',name:'Mirror',cost:20,lvl:2},{id:'plant',emoji:'🪴',name:'Plant',cost:15,lvl:1,anim:true}],
+  kitchen:  [{id:'stove',emoji:'🍳',name:'Stove',cost:0,lvl:1},{id:'fridge',emoji:'🧊',name:'Fridge',cost:30,lvl:1},
+             {id:'table',emoji:'🪑',name:'Dining Set',cost:35,lvl:1},{id:'cupboard',emoji:'🗄️',name:'Cupboard',cost:20,lvl:1},
+             {id:'coffee',emoji:'☕',name:'Coffee Bar',cost:25,lvl:2},{id:'fruit',emoji:'🍎',name:'Fruit Bowl',cost:8,lvl:1}],
+  living:   [{id:'sofa',emoji:'🛋️',name:'Sofa',cost:0,lvl:1},{id:'tv',emoji:'📺',name:'TV',cost:45,lvl:1},
+             {id:'bookshelf',emoji:'📚',name:'Bookshelf',cost:25,lvl:1},{id:'fireplace',emoji:'🔥',name:'Fireplace',cost:60,lvl:2,anim:true},
+             {id:'art',emoji:'🖼️',name:'Wall Art',cost:20,lvl:1},{id:'clock',emoji:'🕰️',name:'Clock',cost:12,lvl:1}],
+  garden:   [{id:'flowers',emoji:'🌷',name:'Flowerbed',cost:0,lvl:2},{id:'tree',emoji:'🌳',name:'Tree',cost:30,lvl:2},
+             {id:'bench',emoji:'🪑',name:'Garden Bench',cost:20,lvl:2},{id:'fountain',emoji:'⛲',name:'Fountain',cost:70,lvl:3,anim:true},
+             {id:'swing',emoji:'🎠',name:'Swing',cost:40,lvl:2,anim:true},{id:'butterfly',emoji:'🦋',name:'Butterflies',cost:15,lvl:2,anim:true}],
+  balcony:  [{id:'chair',emoji:'🪑',name:'Lounge Chair',cost:0,lvl:2},{id:'string',emoji:'✨',name:'Fairy Lights',cost:20,lvl:2,anim:true},
+             {id:'plantb',emoji:'🪴',name:'Potted Plant',cost:12,lvl:2},{id:'telescope',emoji:'🔭',name:'Telescope',cost:35,lvl:3},
+             {id:'hammock',emoji:'🛌',name:'Hammock',cost:30,lvl:3}],
+  gaming:   [{id:'console',emoji:'🎮',name:'Console',cost:0,lvl:3},{id:'chairg',emoji:'💺',name:'Gaming Chair',cost:40,lvl:3},
+             {id:'arcade',emoji:'🕹️',name:'Arcade Machine',cost:80,lvl:4},{id:'neon',emoji:'💡',name:'Neon Sign',cost:25,lvl:3,anim:true},
+             {id:'shelf2',emoji:'🎯',name:'Trophy Shelf',cost:30,lvl:3}],
+  theater:  [{id:'screen',emoji:'🎬',name:'Big Screen',cost:0,lvl:3},{id:'recliner',emoji:'💺',name:'Recliners',cost:50,lvl:3},
+             {id:'popcorn',emoji:'🍿',name:'Popcorn Bar',cost:20,lvl:3},{id:'speaker',emoji:'🔊',name:'Sound System',cost:45,lvl:4}],
+  pool:     [{id:'water',emoji:'🏊',name:'Pool',cost:0,lvl:4},{id:'lounger',emoji:'🏖️',name:'Loungers',cost:30,lvl:4},
+             {id:'umbrella',emoji:'⛱️',name:'Umbrella',cost:20,lvl:4},{id:'diving',emoji:'🤿',name:'Diving Board',cost:40,lvl:4,anim:true},
+             {id:'flamingo',emoji:'🦩',name:'Pool Float',cost:15,lvl:4,anim:true}],
+  garage:   [{id:'car',emoji:'🚗',name:'Car',cost:0,lvl:4},{id:'bike',emoji:'🏍️',name:'Motorbike',cost:60,lvl:4},
+             {id:'tools',emoji:'🧰',name:'Tool Rack',cost:20,lvl:4},{id:'bike2',emoji:'🚲',name:'Bicycles',cost:25,lvl:4}],
+};
+// Ultra-premium "Luxury Furniture" pool — unlockable in ANY room once couple level 6+
+const DH_LUXURY = [
+  {id:'chandelier',emoji:'💎',name:'Chandelier',cost:150,lvl:6,anim:true},
+  {id:'goldstatue',emoji:'🏆',name:'Gold Statue',cost:120,lvl:6},
+  {id:'jacuzzi',emoji:'🛁',name:'Jacuzzi',cost:180,lvl:7,anim:true},
+  {id:'grandpiano',emoji:'🎹',name:'Grand Piano',cost:160,lvl:7},
+];
+ 
+const DH_ACHIEVEMENTS_EXTRA = [
+  {id:'dh_first',ico:'🏠',name:'Homeowner',desc:'Place your first item'},
+  {id:'dh_room_done',ico:'🎉',name:'Room Complete',desc:'Fill every tile in one room'},
+  {id:'dh_allrooms',ico:'👑',name:'Dream House',desc:'Unlock all 9 rooms'},
+  {id:'dh_luxury',ico:'💎',name:'Luxury Life',desc:'Place a luxury furniture item'},
+];
+// Merge into main ACHIEVEMENTS array if not already present (safe no-op if run twice)
+DH_ACHIEVEMENTS_EXTRA.forEach(a=>{ if(!ACHIEVEMENTS.find(x=>x.id===a.id)) ACHIEVEMENTS.push(a); });
+ 
+const DreamHome = {
+  chan:null, state:null, curRoom:'bedroom', selected:null,
+  async open(body){
+    this.chan = new GameChannel('dreamhome');
+    let st = await this.chan.load();
+    if(!st) st = { rooms:{} }; // rooms[roomId] = { "x_y": itemId }
+    DH_ROOMS.forEach(r=>{ if(!st.rooms[r.id]) st.rooms[r.id]={}; });
+    this.state = st;
+    this.chan.listen(payload=>{ if(payload.type==='place'){ this.state.rooms[payload.room][payload.key]=payload.item; if(this.curRoom===payload.room) this.renderGrid(); this.renderScore(); } });
+    this.render(body);
+  },
+  close(){ if(this.chan) this.chan.close(); },
+  coupleLevel(){ return GameCore.level(GameCore.me().xp + GameCore.pt().xp); },
+  render(body){
+    body.className='gobody nopad';
+    body.innerHTML = `<div class="dh-wrap">
+      <div class="dh-roomtabs" id="dhRoomTabs"></div>
+      <div class="dh-shoptray" id="dhShopTray"></div>
+      <div class="dh-canvas-wrap"><div class="dh-room" id="dhRoomGrid"></div></div>
+      <div class="dh-home-score" id="dhScoreRow"></div>
+    </div>`;
+    this.renderTabs(); this.renderShop(); this.renderGrid(); this.renderScore();
+  },
+  renderTabs(){
+    const el=document.getElementById('dhRoomTabs'); if(!el) return;
+    const cl=this.coupleLevel();
+    el.innerHTML = DH_ROOMS.map(r=>{
+      const locked = cl<r.lvl;
+      return `<div class="dh-roomtab ${this.curRoom===r.id?'sel':''} ${locked?'locked':''}" onclick="${locked?'':`DreamHome.switchRoom('${r.id}')`}" title="${locked?'Unlocks at couple level '+r.lvl:r.name}">
+        ${locked?'🔒':r.emoji} ${r.name}
+      </div>`;
+    }).join('');
+  },
+  switchRoom(id){ this.curRoom=id; this.selected=null; Snd.tap(); this.renderTabs(); this.renderShop(); this.renderGrid(); },
+  renderShop(){
+    const el=document.getElementById('dhShopTray'); if(!el) return;
+    const cl=this.coupleLevel();
+    const pool = (DH_ITEMS[this.curRoom]||[]).concat(cl>=6?DH_LUXURY:[]);
+    el.innerHTML = pool.map(it=>{
+      const locked = cl<it.lvl;
+      return `<div class="dh-item ${this.selected===it.id?'sel':''} ${locked?'locked':''}" onclick="${locked?'':`DreamHome.select('${it.id}')`}" title="${locked?'Unlocks at couple level '+it.lvl:it.name}">
+        <div class="dh-item-emoji">${locked?'🔒':it.emoji}</div>
+        <div class="dh-item-name">${it.name}</div>
+        <div class="dh-item-cost">${locked?'Lv.'+it.lvl:(it.cost?'🪙'+it.cost:'Free')}</div>
+      </div>`;
+    }).join('');
+  },
+  select(id){ this.selected=id; Snd.tap(); this.renderShop(); },
+  findItem(id){
+    return (DH_ITEMS[this.curRoom]||[]).find(x=>x.id===id) || DH_LUXURY.find(x=>x.id===id);
+  },
+  renderGrid(){
+    const grid=document.getElementById('dhRoomGrid'); if(!grid) return;
+    const room = DH_ROOMS.find(r=>r.id===this.curRoom);
+    const size = room.size;
+    grid.style.gridTemplateColumns = `repeat(${size},46px)`;
+    grid.style.background = this.roomGradient(room.id);
+    const placed = this.state.rooms[room.id] || {};
+    let html='';
+    for(let y=0;y<size;y++) for(let x=0;x<size;x++){
+      const key=x+'_'+y; const itemId=placed[key];
+      const it = itemId ? this.findItem(itemId) : null;
+      html += `<div class="dh-tile ${it?'filled':''}" onclick="DreamHome.place('${key}')">${it?`<span class="${it.anim?'anim':''}">${it.emoji}</span>`:''}</div>`;
+    }
+    grid.innerHTML = html;
+  },
+  roomGradient(id){
+    const g = {
+      bedroom:'linear-gradient(160deg,#2a1a3a,#1a0e2e)', kitchen:'linear-gradient(160deg,#3a2a1a,#2e1e0e)',
+      living:'linear-gradient(160deg,#1a2a3a,#0e1e2e)', garden:'linear-gradient(160deg,#0a2a3a,#0e3a2e)',
+      balcony:'linear-gradient(160deg,#3a1a2a,#2e0e1e)', gaming:'linear-gradient(160deg,#1a0a3a,#2e0e4a)',
+      theater:'linear-gradient(160deg,#0a0a1a,#1a0a2a)', pool:'linear-gradient(160deg,#0a2a3a,#0e4a5c)',
+      garage:'linear-gradient(160deg,#2a2a2a,#1a1a1a)'
+    };
+    return g[id] || 'linear-gradient(160deg,#0a2a3a,#0e3a2e)';
+  },
+  place(key){
+    if(!this.selected){ toast('Pick an item from the tray first 🛋️'); return; }
+    const it = this.findItem(this.selected);
+    if(!it) return;
+    const cl = this.coupleLevel();
+    if(cl<it.lvl){ toast('🔒 Unlocks at couple level '+it.lvl); return; }
+    if(GameCore.me().coins<it.cost){ toast('Not enough coins 🪙'); return; }
+    if(it.cost>0) GameCore.addCoins(-it.cost);
+    this.state.rooms[this.curRoom][key]=it.id;
+    GameCore.addXP(12);
+    Hub.completeDailyIfPending && Hub.completeDailyIfPending('dreamhome');
+    Snd.place();
+    GameCore.unlock('dh_first');
+    if(DH_LUXURY.find(l=>l.id===it.id)) GameCore.unlock('dh_luxury');
+    // room complete?
+    const room = DH_ROOMS.find(r=>r.id===this.curRoom);
+    const filled = Object.keys(this.state.rooms[this.curRoom]).length;
+    if(filled>=room.size*room.size) GameCore.unlock('dh_room_done');
+    // all rooms unlocked?
+    if(DH_ROOMS.every(r=>this.coupleLevel()>=r.lvl)) GameCore.unlock('dh_allrooms');
+    this.chan.send({type:'place',room:this.curRoom,key,item:it.id}); this.chan.persist(this.state);
+    this.renderGrid(); this.renderScore();
+  },
+  renderScore(){
+    const el=document.getElementById('dhScoreRow'); if(!el) return;
+    let total=0, done=0;
+    DH_ROOMS.forEach(r=>{ const f=Object.keys(this.state.rooms[r.id]||{}).length; total+=f; if(f>=r.size*r.size) done++; });
+    el.innerHTML = `
+      <div class="dh-score-chip">🛋️ ${total} items placed</div>
+      <div class="dh-score-chip">🏠 ${done}/${DH_ROOMS.length} rooms complete</div>
+      <div class="dh-score-chip">⭐ Couple Lv.${this.coupleLevel()}</div>
+    `;
+  }
+};
+/* ═══════════════════════════════════════════════════════
+   GAME 3 — DRAW TOGETHER
+═══════════════════════════════════════════════════════ */
+const DRAW_COLORS = ['#111111','#f87171','#fb923c','#fbbf24','#34d399','#38bdf8','#818cf8','#e879f9','#ffffff'];
+const GUESS_WORDS = ['Heart','Sunset','Beach','Coffee','Rainbow','Cake','Star','Flower','Guitar','Mountain','Cat','Dog','Rocket','Rainbow','Moon','Pizza','Umbrella','Fireworks'];
+const Draw = {
+  chan:null, canvas:null, ctx:null, drawing:false, color:'#111111', size:5, tool:'pen',
+  strokes:[], myStrokeStack:[], guessMode:false, guessWord:'', guessTimer:null, guessSecs:0,
+  async open(body){
+    this.chan = new GameChannel('draw');
+    body.className='gobody nopad';
+    body.innerHTML = `<div class="dw-wrap">
+      <div class="dw-toolbar" id="dwToolbar"></div>
+      <div class="dw-canvas-wrap"><canvas id="dwCanvas"></canvas><div class="dw-guess-banner" id="dwGuessBanner" style="display:none"></div></div>
+    </div>`;
+    this.buildToolbar();
+    this.canvas = document.getElementById('dwCanvas'); this.ctx = this.canvas.getContext('2d');
+    const wrap = this.canvas.parentElement;
+    this.canvas.width = wrap.clientWidth; this.canvas.height = wrap.clientHeight;
+    this.ctx.fillStyle='#fff'; this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height);
+    this.attachEvents();
+    const saved = await this.chan.load();
+    if(saved && saved.img){ const img=new Image(); img.onload=()=>this.ctx.drawImage(img,0,0,this.canvas.width,this.canvas.height); img.src=saved.img; }
+    this.chan.listen(payload=>{
+      if(payload.type==='stroke') this.drawRemoteStroke(payload);
+      if(payload.type==='clear'){ this.ctx.fillStyle='#fff'; this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height); }
+      if(payload.type==='guessStart'){ this.guessWord=payload.word; this.startGuessUI(payload.by); }
+    });
+  },
+  close(){ if(this.chan) this.chan.close(); clearInterval(this.guessTimer); },
+  buildToolbar(){
+    const tb=document.getElementById('dwToolbar');
+    tb.innerHTML = `
+      ${DRAW_COLORS.map(c=>`<div class="dw-color ${this.color===c?'sel':''}" style="background:${c}" onclick="Draw.setColor('${c}')"></div>`).join('')}
+      <input type="range" min="2" max="24" value="${this.size}" oninput="Draw.setSize(this.value)" style="width:60px">
+      <button class="dw-tool-btn ${this.tool==='pen'?'sel':''}" onclick="Draw.setTool('pen')">✏️</button>
+      <button class="dw-tool-btn ${this.tool==='eraser'?'sel':''}" onclick="Draw.setTool('eraser')">🧽</button>
+      <button class="dw-tool-btn ${this.tool==='rect'?'sel':''}" onclick="Draw.setTool('rect')">▭</button>
+      <button class="dw-tool-btn ${this.tool==='circle'?'sel':''}" onclick="Draw.setTool('circle')">◯</button>
+      <button class="dw-tool-btn" onclick="Draw.stamp()">✨</button>
+      <button class="dw-tool-btn" onclick="Draw.undo()">↩️</button>
+      <button class="dw-tool-btn" onclick="Draw.clearAll()">🗑️</button>
+      <button class="btn btn-glass btn-sm" onclick="Draw.toggleGuess()">🎯 Guess</button>
+      <button class="btn btn-accent btn-sm" onclick="Draw.save()">💾 Save</button>
+    `;
+  },
+  setColor(c){ this.color=c; this.buildToolbar(); },
+  setSize(v){ this.size=+v; },
+  setTool(t){ this.tool=t; this.buildToolbar(); },
+  pos(e){ const r=this.canvas.getBoundingClientRect(); const p=e.touches?e.touches[0]:e; return {x:(p.clientX-r.left)*(this.canvas.width/r.width), y:(p.clientY-r.top)*(this.canvas.height/r.height)}; },
+  attachEvents(){
+    let last=null, shapeStart=null, snapshot=null, buffer=[];
+    const start=(e)=>{
+      e.preventDefault(); this.drawing=true; const p=this.pos(e); last=p; shapeStart=p; buffer=[p];
+      if(this.tool==='rect'||this.tool==='circle') snapshot=this.ctx.getImageData(0,0,this.canvas.width,this.canvas.height);
+      this.myStrokeStack.push(this.ctx.getImageData(0,0,this.canvas.width,this.canvas.height));
+      if(this.myStrokeStack.length>25) this.myStrokeStack.shift();
+    };
+    const move=(e)=>{
+      if(!this.drawing) return; e.preventDefault(); const p=this.pos(e);
+      if(this.tool==='pen'||this.tool==='eraser'){
+        this.line(last,p,this.tool==='eraser'?'#ffffff':this.color,this.tool==='eraser'?this.size*2.4:this.size);
+        this.chan.send({type:'stroke',x1:last.x,y1:last.y,x2:p.x,y2:p.y,color:this.tool==='eraser'?'#ffffff':this.color,size:this.tool==='eraser'?this.size*2.4:this.size});
+        last=p; buffer.push(p);
+      } else if(shapeStart){ this.ctx.putImageData(snapshot,0,0); this.drawShape(shapeStart,p); }
+    };
+    const end=()=>{
+      if(!this.drawing) return; this.drawing=false;
+      if((this.tool==='rect'||this.tool==='circle') && shapeStart){ this.chan.send({type:'stroke',shape:this.tool,x1:shapeStart.x,y1:shapeStart.y,x2:last===shapeStart?shapeStart.x+40:last.x,y2:last===shapeStart?shapeStart.y+40:last.y,color:this.color,size:this.size}); }
+      this.debouncedPersist();
+    };
+    this.canvas.addEventListener('mousedown',start); this.canvas.addEventListener('mousemove',move); window.addEventListener('mouseup',end);
+    this.canvas.addEventListener('touchstart',start,{passive:false}); this.canvas.addEventListener('touchmove',move,{passive:false}); window.addEventListener('touchend',end);
+  },
+  line(a,b,color,size){ const c=this.ctx; c.strokeStyle=color; c.lineWidth=size; c.lineCap='round'; c.lineJoin='round'; c.beginPath(); c.moveTo(a.x,a.y); c.lineTo(b.x,b.y); c.stroke(); },
+  drawShape(a,b,color,size){ const c=this.ctx; c.strokeStyle=color||this.color; c.lineWidth=size||this.size; if(this.tool==='rect'||arguments[4]==='rect'){ c.strokeRect(Math.min(a.x,b.x),Math.min(a.y,b.y),Math.abs(b.x-a.x),Math.abs(b.y-a.y)); } else { c.beginPath(); const rx=Math.abs(b.x-a.x)/2, ry=Math.abs(b.y-a.y)/2; c.ellipse((a.x+b.x)/2,(a.y+b.y)/2,rx,ry,0,0,7); c.stroke(); } },
+  drawRemoteStroke(p){
+    if(p.shape){ this.ctx.strokeStyle=p.color; this.ctx.lineWidth=p.size; if(p.shape==='rect') this.ctx.strokeRect(Math.min(p.x1,p.x2),Math.min(p.y1,p.y2),Math.abs(p.x2-p.x1),Math.abs(p.y2-p.y1)); else { this.ctx.beginPath(); this.ctx.ellipse((p.x1+p.x2)/2,(p.y1+p.y2)/2,Math.abs(p.x2-p.x1)/2,Math.abs(p.y2-p.y1)/2,0,0,7); this.ctx.stroke(); } }
+    else this.line({x:p.x1,y:p.y1},{x:p.x2,y:p.y2},p.color,p.size);
+  },
+  stamp(){
+    const em=rand(['✨','💕','⭐','🌸','🎈','🦋','🌈']);
+    this.ctx.font='42px sans-serif'; this.ctx.fillText(em, this.canvas.width/2-20, this.canvas.height/2);
+    this.debouncedPersist(); Snd.tap();
+  },
+  undo(){ if(!this.myStrokeStack.length){ toast('Nothing to undo'); return; } const d=this.myStrokeStack.pop(); this.ctx.putImageData(d,0,0); this.debouncedPersist(); },
+  clearAll(){ this.ctx.fillStyle='#fff'; this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height); this.chan.send({type:'clear'}); this.debouncedPersist(); Snd.whoosh(); },
+  _pt:null,
+  debouncedPersist(){ clearTimeout(this._pt); this._pt=setTimeout(()=>{ this.chan.persist({img:this.canvas.toDataURL('image/jpeg',0.6)}); },700); },
+  save(){
+    const a=document.createElement('a'); a.href=this.canvas.toDataURL('image/png'); a.download='us-drawing-'+Date.now()+'.png'; a.click();
+    GameCore.me().drawSaves=(GameCore.me().drawSaves||0)+1; if(GameCore.me().drawSaves>=10) GameCore.unlock('draw_10');
+    GameCore.addXP(20); Hub.completeDailyIfPending('draw'); Snd.success(); toast('Saved to your downloads 💾');
+  },
+  toggleGuess(){
+    if(this.guessMode){ this.guessMode=false; document.getElementById('dwGuessBanner').style.display='none'; clearInterval(this.guessTimer); return; }
+    const word=rand(GUESS_WORDS);
+    this.chan.send({type:'guessStart',word,by:ID.role});
+    this.startGuessUI(ID.role, word);
+  },
+  startGuessUI(by, wordIfMine){
+    this.guessMode=true; this.guessSecs=60;
+    const banner=document.getElementById('dwGuessBanner'); banner.style.display='block';
+    const iAmDrawer = by===ID.role;
+    if(iAmDrawer) this.guessWord = wordIfMine;
+    clearInterval(this.guessTimer);
+    this.guessTimer=setInterval(()=>{
+      this.guessSecs--;
+      banner.textContent = iAmDrawer ? `🎯 Draw: ${this.guessWord} — ${this.guessSecs}s` : `🤔 Guess what's being drawn! — ${this.guessSecs}s`;
+      if(this.guessSecs<=0){ clearInterval(this.guessTimer); banner.textContent = iAmDrawer ? `Time's up! It was: ${this.guessWord}` : `Time's up!`; if(iAmDrawer) GameCore.addXP(10); setTimeout(()=>{ this.guessMode=false; banner.style.display='none'; },2500); }
+    },1000);
+  }
+};
+
+/* ═══════════════════════════════════════════════════════
+   GAME 4 — COUPLE ESCAPE ROOM
+═══════════════════════════════════════════════════════ */
+const ER_ROOMS = [
+  {id:'attic',name:'The Cozy Attic',emoji:'🏚️',diff:'Easy',time:300,
+    puzzles:[
+      {type:'objects',prompt:'Find 4 hidden love letters in the attic:',objs:['📜','📜','📜','📜','📦','🕸️','🪑','🧸'],need:4},
+      {type:'code',prompt:'An old chest is locked. Riddle: "I show up once in a minute, twice in a moment, but never in a thousand years." What has 5 letters?',answer:'12321',hint:'Not a word — try the digits that read the same forwards & backwards, 5 of them.'},
+      {type:'riddle',prompt:'What can you keep after giving it to someone?',answer:'your word',hint:'Think about promises...'}
+    ]},
+  {id:'library',name:'Midnight Library',emoji:'📚',diff:'Medium',time:360,
+    puzzles:[
+      {type:'objects',prompt:'Find 5 glowing books hidden on the shelves:',objs:['📗','📕','📘','📙','📓','🕯️','🖋️','☕'],need:5},
+      {type:'code',prompt:'The librarian left a note: "The year our story truly began, minus 1900." Enter the last 2 digits + your anniversary month + day digits... just enter: 2024',answer:'2024',hint:'Any 4 digits work here — it\'s about the memory, not the exact number!'},
+      {type:'riddle',prompt:'The more you take, the more you leave behind. What am I?',answer:'footsteps',hint:'Think about walking...'}
+    ]},
+  {id:'beach',name:'Beach Bungalow',emoji:'🏖️',diff:'Hard',time:420,
+    puzzles:[
+      {type:'objects',prompt:'Find 6 seashells hidden around the bungalow:',objs:['🐚','🐚','🐚','🐚','🐚','🐚','🦀','🌴','🍹','⛱️'],need:6},
+      {type:'code',prompt:'The safe needs a 4-digit code. Clue: "Sunrise hour + Sunset hour" (use 06 and 18 combined)',answer:'0618',hint:'Combine the two numbers mentioned in the clue directly.'},
+      {type:'riddle',prompt:'What has a bed but never sleeps, a mouth but never eats?',answer:'a river',hint:'Think of nature, something that flows...'}
+    ]}
+];
+const Escape = {
+  chan:null, state:null, timerInt:null,
+  async open(body){
+    this.chan = new GameChannel('escape');
+    let st = await this.chan.load();
+    if(!st) st = { roomIdx:0, puzzleIdx:0, foundObjs:{}, timeLeft:ER_ROOMS[0].time, cleared:[] };
+    this.state = st;
+    this.chan.listen(payload=>{ if(payload.type==='sync'){ this.state=payload.state; this.render(); } });
+    this.render();
+    this.startTimer();
+  },
+  close(){ clearInterval(this.timerInt); if(this.chan) this.chan.close(); },
+  sync(){ this.chan.send({type:'sync',state:this.state}); this.chan.persist(this.state); },
+  startTimer(){
+    clearInterval(this.timerInt);
+    this.timerInt=setInterval(()=>{
+      if(this.state.timeLeft>0){ this.state.timeLeft--; const t=document.getElementById('erTimer'); if(t){ t.textContent=this.fmt(this.state.timeLeft); t.classList.toggle('low',this.state.timeLeft<30); } }
+    },1000);
+  },
+  fmt(s){ return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); },
+  pickRoom(i){
+    this.state = { roomIdx:i, puzzleIdx:0, foundObjs:{}, timeLeft:ER_ROOMS[i].time, cleared:this.state.cleared };
+    this.sync(); this.render(); Snd.whoosh();
+  },
+  render(){
+    const body=document.getElementById('goBody'); if(!body) return;
+    const room = ER_ROOMS[this.state.roomIdx];
+    if(!room){
+      body.innerHTML = `<div class="hub-sec-title"><span>🧩 Choose a Room</span><div class="line"></div></div>` +
+        ER_ROOMS.map((r,i)=>`<div class="er-puzzle-card" style="cursor:pointer" onclick="Escape.pickRoom(${i})">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="font-size:40px">${r.emoji}</div>
+            <div style="flex:1"><div style="font-weight:700;color:#fff">${r.name} ${this.state.cleared.includes(r.id)?'✅':''}</div><div style="font-size:11px;color:var(--text3)">${r.diff} · ${this.fmt(r.time)}</div></div>
+            <div style="font-size:18px">→</div>
+          </div></div>`).join('');
+      return;
+    }
+    const puz = room.puzzles[this.state.puzzleIdx];
+    if(!puz){
+      body.innerHTML = `<div style="text-align:center;padding:40px 10px">
+        <div style="font-size:70px">🎉</div>
+        <div style="font-family:var(--ff-serif);font-size:22px;color:#fff;margin-top:10px">Room Cleared!</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:6px">You solved every puzzle in ${room.name} together.</div>
+        <button class="btn btn-accent" style="margin-top:18px" onclick="Escape.backToRooms()">Choose Another Room</button>
+      </div>`;
+      if(!this.state.cleared.includes(room.id)){
+        this.state.cleared.push(room.id);
+        GameCore.addXP(60); GameCore.addCoins(30); GameCore.unlock('escape_1');
+        GameCore.me().escapesCleared=this.state.cleared.length;
+        if(this.state.cleared.length>=ER_ROOMS.length) GameCore.unlock('escape_all');
+        Hub.completeDailyIfPending('escape'); this.sync();
+        setTimeout(()=>showReward('🔓','Room Cleared!',['✨ 60 XP','🪙 30 Coins']),300);
+      }
+      return;
+    }
+    body.innerHTML = `
+      <div class="er-room-bg" style="background:linear-gradient(150deg,rgba(255,255,255,.05),rgba(0,0,0,.2))">
+        <div class="er-timer" id="erTimer">${this.fmt(this.state.timeLeft)}</div>
+        <div class="er-room-emoji">${room.emoji}</div>
+      </div>
+      <div style="text-align:center;font-size:11px;color:var(--text3);margin-bottom:10px">Puzzle ${this.state.puzzleIdx+1} of ${room.puzzles.length} · ${room.name}</div>
+      <div class="er-puzzle-card">${this.renderPuzzle(puz)}</div>
+    `;
+  },
+  renderPuzzle(puz){
+    if(puz.type==='objects'){
+      const found = this.state.foundObjs[this.state.puzzleIdx]||[];
+      return `<div style="font-size:13px;color:#fff;margin-bottom:6px">${esc(puz.prompt)} (${found.length}/${puz.need})</div>
+        <div class="er-obj-grid">${puz.objs.map((o,i)=>`<div class="er-obj ${found.includes(i)?'found':''}" onclick="Escape.findObj(${i},${puz.need})">${found.includes(i)?'✅':o}</div>`).join('')}</div>`;
+    }
+    if(puz.type==='code'){
+      return `<div style="font-size:13px;color:#fff;margin-bottom:10px">${esc(puz.prompt)}</div>
+        <div class="er-code-input">${Array.from({length:4}).map((_,i)=>`<input class="er-code-digit" maxlength="1" inputmode="numeric" id="erDigit${i}" oninput="Escape.codeInput(${i},this)">`).join('')}</div>
+        <div style="text-align:center"><button class="btn-ghost" style="background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer" onclick="toast('${esc(puz.hint)}',4000)">💡 Need a hint?</button></div>`;
+    }
+    return `<div style="font-size:13px;color:#fff;margin-bottom:10px">🧠 ${esc(puz.prompt)}</div>
+      <input type="text" id="erRiddleIn" placeholder="Type your answer..." style="width:100%;padding:11px 14px;border-radius:12px;background:var(--g1);border:1px solid var(--border);color:#fff;font-size:13px;margin-bottom:10px">
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-accent btn-sm" onclick="Escape.checkRiddle('${esc(puz.answer)}')">Submit</button>
+        <button class="btn btn-glass btn-sm" onclick="toast('${esc(puz.hint)}',4000)">💡 Hint</button>
+      </div>`;
+  },
+  findObj(i,need){
+    const idx=this.state.puzzleIdx;
+    if(!this.state.foundObjs[idx]) this.state.foundObjs[idx]=[];
+    if(this.state.foundObjs[idx].includes(i)) return;
+    this.state.foundObjs[idx].push(i); Snd.tap();
+    if(this.state.foundObjs[idx].length>=need){ this.state.puzzleIdx++; GameCore.addXP(15); Snd.success(); }
+    this.sync(); this.render();
+  },
+  codeInput(i,el){
+    if(el.value && i<3) document.getElementById('erDigit'+(i+1)).focus();
+    const vals=[0,1,2,3].map(k=>document.getElementById('erDigit'+k).value).join('');
+    if(vals.length===4){
+      const room=ER_ROOMS[this.state.roomIdx]; const puz=room.puzzles[this.state.puzzleIdx];
+      if(vals===puz.answer){ this.state.puzzleIdx++; GameCore.addXP(15); Snd.success(); this.sync(); this.render(); }
+      else if(!/^\d{4}$/.test(vals)===false){ /* wrong but keep trying */ }
+    }
+  },
+  checkRiddle(answer){
+    const val=(document.getElementById('erRiddleIn').value||'').trim().toLowerCase();
+    if(val && (val===answer.toLowerCase() || answer.toLowerCase().includes(val))){
+      this.state.puzzleIdx++; GameCore.addXP(15); Snd.success(); this.sync(); this.render();
+    } else { Snd.fail(); toast('Not quite — try the hint 💡'); }
+  },
+  backToRooms(){ this.state.roomIdx=-1; this.state.roomIdx=undefined; this.state.roomIdx=null; this.state={roomIdx:-1,puzzleIdx:0,foundObjs:{},timeLeft:0,cleared:this.state.cleared}; this.state.roomIdx=-1; this.render(); }
+};
+/* fix: renderer checks ER_ROOMS[this.state.roomIdx] — make -1 fall through to picker cleanly */
+Object.defineProperty(Escape,'_noop',{value:0});
+
+/* ═══════════════════════════════════════════════════════
+   GAME 5 — TRUTH OR DARE DELUXE
+═══════════════════════════════════════════════════════ */
+const TOD_CATS = [
+  {id:'romantic',name:'Romantic',emoji:'💕',color:'linear-gradient(135deg,#ff6b9d,#c2185b)'},
+  {id:'cute',name:'Cute',emoji:'🥰',color:'linear-gradient(135deg,#ffb3d9,#ff6ea8)'},
+  {id:'funny',name:'Funny',emoji:'😂',color:'linear-gradient(135deg,#ffd166,#f77f00)'},
+  {id:'deep',name:'Deep',emoji:'💭',color:'linear-gradient(135deg,#7c83fd,#5b21b6)'},
+  {id:'hot',name:'Hot',emoji:'🔥',color:'linear-gradient(135deg,#ff416c,#a8071a)'},
+  {id:'adventure',name:'Adventure',emoji:'🏔️',color:'linear-gradient(135deg,#38ef7d,#11998e)'},
+];
+const TOD_BANK = {
+  romantic:{ truth:["What made you realize you were falling for me?","What's your favorite memory of us so far?","What small thing do I do that makes you feel loved?","When did you know I was 'the one'?","What's a moment with me you replay in your head?","What's your favorite physical feature of mine?","What song reminds you of us?","What's one thing you want us to do before we're old?","What do you love most about how we communicate?","What's the most romantic thing I've ever done for you?","How do you picture our 10-year anniversary?","What made our first date special for you?","What's your favorite nickname for me and why?","What do you think our love story would be called?","What's something you never get tired of about me?"],
+    dare:["Write a 3-line poem about me right now.","Give me a 20-second hug without letting go.","Whisper the sweetest thing you can think of in my ear.","Slow dance with me for one full song.","Recreate our first kiss.","Text me something romantic right now, even though I'm right here.","Stare into my eyes for 30 seconds without laughing.","Plan our next date night out loud, in detail.","Give me 3 compliments I've never heard before.","Draw a heart on my hand and sign it.","Serenade me with 15 seconds of any love song.","Tell me your favorite thing about our relationship, on one knee."]},
+  cute:{ truth:["What's your favorite thing we do together on lazy days?","What's a silly habit of mine you secretly love?","What nickname would you give me if we started over?","What's the cutest thing I've ever done without realizing it?","What childhood cartoon reminds you of us?","What's your favorite way to cuddle?","What's a tiny thing that makes your whole day better?","If we were animals, what would we be and why?","What's your favorite 'us' inside joke?","What's the softest, sweetest memory you have of me?"],
+    dare:["Do your best impression of me for 30 seconds.","Give me a piggyback ride around the room.","Make up a silly nickname for me and use it for the rest of the game.","Boop my nose and say something sweet.","Do a tiny happy dance because you're with me.","Draw my face with your eyes closed.","Send my mom (or a friend) a cute message about me right now.","Make the cutest face you can for 10 seconds.","Give me a forehead kiss and say why you love me.","Try to make me laugh without touching me."]},
+  funny:{ truth:["What's the most embarrassing thing you've done in front of me?","What's a weird food combo you secretly enjoy?","What's the silliest fight we've ever had?","What's your most irrational fear?","What's a lie you told as a kid that you still remember?","What's the worst joke you know?","What's a habit of mine that secretly annoys you (lovingly)?","What's the most ridiculous thing you've Googled?","If you were a meme, which one would you be?","What's your most embarrassing childhood nickname?"],
+    dare:["Talk in an accent for the next 3 rounds.","Do your best chicken impression.","Let me draw a mustache on you (washable marker or finger only).","Text a random emoji combo to a friend and don't explain it.","Do 10 jumping jacks while singing the alphabet.","Try to lick your elbow.","Speak only in rhymes for 2 minutes.","Do your worst dance move on purpose.","Let me pick your profile picture for the next hour.","Make up a rap about your partner."]},
+  deep:{ truth:["What's something you're proud of that you rarely talk about?","What does 'home' mean to you?","What's a fear you've never told me?","What's something you wish you understood better about yourself?","What's the hardest thing you've overcome?","What do you need most from me when you're struggling?","What's a belief you held as a kid that you no longer believe?","What does true happiness look like to you?","What's something you want to change about yourself?","What's a moment that shaped who you are today?","What does trust mean to you in our relationship?","What's something you've never told anyone?"],
+    dare:["Share one insecurity you rarely talk about.","Tell me about a time you felt truly proud of yourself.","Describe your ideal future in detail, out loud.","Share a memory that still affects you today.","Tell me the kindest thing anyone has ever done for you.","Describe what unconditional love means to you.","Talk about a moment you felt truly understood.","Share a goal you've been afraid to say out loud."]},
+  hot:{ truth:["What first attracted you to me physically?","What's something you find irresistible about me?","What's a compliment about your body you rarely get but wish you did?","What's your idea of the perfect romantic evening?","What's something you find confident and attractive in a partner?","What's a small gesture that makes you feel desired?"],
+    dare:["Give me a slow, lingering hug.","Whisper something flirty in my ear.","Give me your best 'come here' look.","Slow dance close together for 1 minute, no talking.","Give me a compliment while looking me dead in the eyes.","Trace a heart on my arm slowly."]},
+  adventure:{ truth:["What's a bucket list adventure you want us to do together?","What's the most adventurous thing you've ever done?","What's a place you'd move to with me in a heartbeat?","What's a spontaneous thing you wish we did more?","What's a fear you'd love to conquer together?","What's your dream trip with me?"],
+    dare:["Plan a surprise mini-adventure for this weekend, out loud, right now.","Do 15 seconds of a workout move of my choice.","Try to guess 3 things on my travel bucket list.","Describe a spontaneous trip you'd take with just an hour's notice.","Pick a random place on a map — describe what we'd do there for a full day."]}
+};
+const TOD_PENALTIES = ['Give your partner a 20-second massage','Do 10 push-ups','Sing the chorus of any song out loud','Compliment your partner 3 times in a row','Let your partner pick your next outfit choice for tomorrow','Do your best dance for 15 seconds'];
+const TOD = {
+  chan:null, state:null, category:'romantic', timerInt:null,
+  async open(body){
+    this.chan = new GameChannel('tod');
+    let st = await this.chan.load();
+    if(!st) st = { turn:'user1', current:null, streak:0, history:[], custom:[] };
+    this.state = st;
+    this.chan.listen(payload=>{
+      if(payload.type==='card') this.applyCard(payload,false);
+      if(payload.type==='react') this.floatEmoji(payload.emoji);
+      if(payload.type==='resolve') this.applyResolve(payload,false);
+    });
+    this.render();
+  },
+  close(){ clearInterval(this.timerInt); if(this.chan) this.chan.close(); },
+  sync(){ this.chan.persist(this.state); },
+  render(){
+    const body=document.getElementById('goBody'); if(!body) return;
+    const myTurn = this.state.turn===ID.role;
+    body.innerHTML = `
+      <div class="tod-cats">${TOD_CATS.map(c=>`<div class="tod-cat ${this.category===c.id?'sel':''}" style="${this.category===c.id?'background:'+c.color:''}" onclick="TOD.setCat('${c.id}')">${c.emoji} ${c.name}</div>`).join('')}</div>
+      <div class="tod-turn">Turn: <strong>${myTurn?'You 🎯':esc(ID.partnerName)}</strong> ${this.state.streak>1?`<span class="tod-streak">🔥 ${this.state.streak} streak</span>`:''}</div>
+      <div id="todCardArea">${this.state.current?this.renderCard():this.renderWheel()}</div>
+      ${this.state.custom.length?`<div class="hub-sec-title"><span>✍️ Custom Questions</span><div class="line"></div></div>
+      <div class="tod-custom-list">${this.state.custom.map((c,i)=>`<div class="tod-custom-item"><span>${c.type==='truth'?'💬':'🎯'}</span><span style="flex:1">${esc(c.text)}</span><button class="del-btn" style="background:none;border:none;color:var(--text3);cursor:pointer" onclick="TOD.delCustom(${i})">✕</button></div>`).join('')}</div>`:''}
+      <div class="hub-sec-title"><span>➕ Add Your Own</span><div class="line"></div></div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input type="text" id="todCustomIn" placeholder="Type a truth or dare..." style="flex:1;padding:10px 13px;border-radius:12px;background:var(--g1);border:1px solid var(--border);color:#fff;font-size:12px">
+        <select id="todCustomType" style="padding:0 10px;border-radius:12px;background:var(--g1);border:1px solid var(--border);color:#fff;font-size:12px"><option value="truth">Truth</option><option value="dare">Dare</option></select>
+        <button class="btn btn-glass btn-sm" onclick="TOD.addCustom()">Add</button>
+      </div>
+      <button class="btn btn-glass btn-sm" style="width:100%;justify-content:center" onclick="TOD.aiGenerate()">✨ AI Generate a Question</button>
+    `;
+  },
+  setCat(id){ this.category=id; Snd.tap(); this.render(); },
+  renderWheel(){
+    const cat = TOD_CATS.find(c=>c.id===this.category);
+    return `<div class="tod-wheel-wrap">
+      <div class="tod-wheel"><svg viewBox="0 0 100 100" id="todWheelSvg">
+        ${['💬 Truth','🎯 Dare'].map((l,i)=>`<path d="M50,50 L50,4 A46,46 0 0,1 ${50+46*Math.sin(Math.PI*(i+1))},${50-46*Math.cos(Math.PI*(i+1))} Z" fill="${i===0?'hsl(215,90%,55%)':'hsl(330,85%,55%)'}" stroke="#0a0a15" stroke-width="1"/>`).join('')}
+        <circle cx="50" cy="50" r="10" fill="#0a0a15" stroke="#fff" stroke-width="1.5"/>
+      </svg><div class="tod-wheel-center">${cat.emoji}</div></div>
+      <button class="btn btn-pink" style="padding:13px 30px;font-size:14px" onclick="TOD.spin()">🎡 Spin the Wheel</button>
+    </div>`;
+  },
+  spin(){
+    Snd.spin();
+    const svg=document.getElementById('todWheelSvg');
+    const isTruth = Math.random()<0.5;
+    const spins = 4+Math.random()*3;
+    const target = (isTruth?0:180) + spins*360;
+    svg.style.transform='rotate('+target+'deg)';
+    setTimeout(()=>{ this.drawCard(isTruth?'truth':'dare'); },3200);
+  },
+  drawCard(type){
+    const bank = TOD_BANK[this.category];
+    const pool = type==='truth'?bank.truth:bank.dare;
+    const custom = this.state.custom.filter(c=>c.type===type).map(c=>c.text);
+    const text = rand(pool.concat(custom.length?custom:[]));
+    const diff = rand(['Easy','Medium','Bold']);
+    const card = { type, text, cat:this.category, diff };
+    this.applyCard(card,true);
+  },
+  applyCard(card,broadcast){
+    this.state.current = card;
+    if(broadcast) this.chan.send({type:'card',...card});
+    this.render(); this.startCardTimer();
+    if(broadcast) this.sync();
+  },
+  renderCard(){
+    const c=this.state.current;
+    return `<div class="tod-card ${c.type}">
+      <div class="tod-card-diff">${c.diff}</div>
+      <div class="tod-card-type">${c.type==='truth'?'💬 Truth':'🎯 Dare'} · ${TOD_CATS.find(x=>x.id===c.cat).name}</div>
+      <div class="tod-card-text" id="todCardText">${esc(c.text)}</div>
+      <div class="tod-timer-ring" id="todTimerRing"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="4"/><circle id="todTimerCircle" cx="20" cy="20" r="17" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="106.8" stroke-dashoffset="0" stroke-linecap="round"/></svg></div>
+      <div class="tod-reactions">
+        ${['😂','😍','😳','🔥','👏'].map(e=>`<button class="tod-react-btn" onclick="TOD.react('${e}')">${e}</button>`).join('')}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn btn-glass btn-sm" onclick="TOD.speakCard()">🔊 Read</button>
+        <button class="btn btn-glass btn-sm" onclick="TOD.penalty()">😅 Skip (penalty)</button>
+        <button class="btn btn-accent btn-sm" onclick="TOD.completeCard()">✅ Done!</button>
+      </div>
+    </div>`;
+  },
+  startCardTimer(){
+    clearInterval(this.timerInt); let secs=45;
+    this.timerInt=setInterval(()=>{
+      secs--; const el=document.getElementById('todTimerCircle');
+      if(el){ const off=106.8*(1-secs/45); el.setAttribute('stroke-dashoffset',off); }
+      if(secs<=0){ clearInterval(this.timerInt); this.penalty(); }
+    },1000);
+  },
+  speakCard(){
+    if(!('speechSynthesis' in window)){ toast('Voice not supported on this browser'); return; }
+    const u=new SpeechSynthesisUtterance(this.state.current.text); u.rate=0.95; u.pitch=1.05;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  },
+  react(emoji){ this.chan.send({type:'react',emoji}); this.floatEmoji(emoji); },
+  floatEmoji(emoji){
+    const el=document.createElement('div'); el.className='tod-float-emoji'; el.textContent=emoji;
+    el.style.left=(40+Math.random()*20)+'vw'; el.style.bottom='120px';
+    document.body.appendChild(el); setTimeout(()=>el.remove(),2000);
+  },
+  completeCard(){
+    clearInterval(this.timerInt);
+    this.state.streak++; this.state.history.push(this.state.current);
+    GameCore.me().todCount=(GameCore.me().todCount||0)+1;
+    GameCore.me().todStreak=this.state.streak;
+    GameCore.me().todBestStreak=Math.max(GameCore.me().todBestStreak||0,this.state.streak);
+    if(GameCore.me().todCount>=25) GameCore.unlock('tod_25');
+    if(this.state.streak>=10) GameCore.unlock('tod_streak10');
+    GameCore.addXP(10); GameCore.addCoins(this.state.streak>=5?8:4);
+    Hub.completeDailyIfPending('tod'); Snd.success();
+    this.chan.send({type:'resolve',streak:this.state.streak,turn:this.nextTurn()});
+    this.applyResolve({streak:this.state.streak,turn:this.state.turn===('user1')?'user2':'user1'},true);
+  },
+  penalty(){
+    clearInterval(this.timerInt);
+    const pen = rand(TOD_PENALTIES);
+    Snd.fail(); this.state.streak=0;
+    showReward('😅','Penalty Time!',[pen]);
+    this.chan.send({type:'resolve',streak:0,turn:this.nextTurn()});
+    this.applyResolve({streak:0,turn:this.state.turn==='user1'?'user2':'user1'},true);
+  },
+  nextTurn(){ return this.state.turn==='user1'?'user2':'user1'; },
+  applyResolve(payload,isLocal){
+    this.state.streak=payload.streak; this.state.turn=payload.turn; this.state.current=null;
+    this.render(); if(isLocal) this.sync();
+  },
+  addCustom(){
+    const inp=document.getElementById('todCustomIn'); const type=document.getElementById('todCustomType').value;
+    const text=inp.value.trim(); if(!text) return;
+    this.state.custom.push({type,text}); inp.value=''; this.sync(); this.render(); Snd.tap(); toast('Added to your question pool ✨');
+  },
+  delCustom(i){ this.state.custom.splice(i,1); this.sync(); this.render(); },
+  async aiGenerate(){
+    toast('✨ Generating with AI…');
+    try{
+      const prompt = `Generate one fun, tasteful ${rand(['truth question','dare challenge'])} for a couple's Truth or Dare game in the "${this.category}" mood (romantic/cute/funny/deep/hot/adventure — keep it appropriate for a general audience, no explicit content). Reply with ONLY the question/dare text, one sentence, no preamble.`;
+      const res = await fetch(AI_API+'/api/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:prompt,myName:ID.myName,partnerName:ID.partnerName})});
+      const data = await res.json();
+      const text = (data.reply||'').split('\\n')[0].replace(/^["']|["']$/g,'').trim();
+      if(text){ this.state.custom.push({type:Math.random()<0.5?'truth':'dare',text}); this.sync(); this.render(); toast('AI question added! ✨'); }
+      else toast('AI is unavailable right now — try again later');
+    }catch(e){ toast('AI generation failed — check your connection'); }
+  }
+};
+
+/* ═══════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════ */
+Hub.init();
 </script>
 </body>
 </html>
