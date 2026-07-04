@@ -508,7 +508,11 @@
     document.body.appendChild(bg);
     bg.addEventListener('click', e => { if (e.target === bg) window.closeFullPlayer(); });
   }
-  window.openFullPlayer = function () { document.getElementById('fullPlayerBg').classList.add('open'); syncFpUI(); };
+  window.openFullPlayer = function () {
+  if (typeof closeKaraokeMode === 'function' && karaokeState && karaokeState.open) closeKaraokeMode();
+  document.getElementById('fullPlayerBg').classList.add('open');
+  syncFpUI();
+};
   window.closeFullPlayer = function () { document.getElementById('fullPlayerBg').classList.remove('open'); };
   window.toggleFpQueue = function () {
     const p = document.getElementById('fpQueuePanel'); const showing = p.style.display !== 'none';

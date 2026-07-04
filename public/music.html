@@ -1605,15 +1605,29 @@ function ensureMicAnalyser(stream) {
 }
 
 function parseLyrics(raw) {
-  if (!raw) return [];
-  return raw.split('\n').map(l=>l.trim()).filter(l=>l.length);
+  // now returns {timed, lines:[{time,text}]} using the same LRC format as the full player
+  const LRC_RE = /^\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?\]\s*(.*)$/;
+  if (!raw || !raw.trim()) return { timed: false, lines: [] };
+  const rawLines = raw.split('\n').map(l => l.trim()).filter(l => l.length);
+  const lines = []; let anyTimed = false;
+  rawLines.forEach(l => {
+    const m = l.match(LRC_RE);
+    if (m) {
+      anyTimed = true;
+      const frac = m[3] ? (m[3].length === 2 ? parseInt(m[3]) / 100 : parseInt(m[3]) / 1000) : 0;
+      lines.push({ time: parseInt(m[1]) * 60 + parseInt(m[2]) + frac, text: m[4] });
+    } else lines.push({ time: null, text: l });
+  });
+  if (anyTimed) lines.sort((a, b) => (a.time ?? 0) - (b.time ?? 0));
+  return { timed: anyTimed, lines };
 }
 
 function openKaraokeMode(pl, idx) {
   const t = musicState[pl][idx]; if (!t) return;
   karaokeState.pl = pl; karaokeState.idx = idx;
   karaokeState.open = true;
-  flagAch('karaokeOpened'); // achievement flag
+  if (typeof closeFullPlayer === 'function') closeFullPlayer();
+  flagAch('karaokeOpened');
   karaokeState.recState = 'idle';
   karaokeState.lyricsLines = parseLyrics(t.lyrics);
   document.getElementById('karaokeSongTitle').textContent = t.title;
@@ -1621,10 +1635,20 @@ function openKaraokeMode(pl, idx) {
   document.getElementById('karaokeArt').innerHTML = t.artData ? `<img src="${t.artData}" alt="">` : `<span>${t.emoji||'🎵'}</span>`;
   renderKaraokeLyrics();
   document.getElementById('karaokeBg').classList.add('open');
+
   ensureKaraokeAudioGraph();
-  if (karaokeAudioCtx && karaokeAudioCtx.state === 'suspended') karaokeAudioCtx.resume().catch(()=>{});
-  if (!(musicState.currentPlaylist===pl && musicState.currentIdx===idx)) playTrack(pl, idx);
-  else if (!musicState.playing) audio.play().catch(()=>{});
+
+  const startPlayback = () => {
+    if (!(musicState.currentPlaylist===pl && musicState.currentIdx===idx)) playTrack(pl, idx);
+    else if (!musicState.playing) audio.play().catch(()=>{});
+  };
+
+  if (karaokeAudioCtx && karaokeAudioCtx.state === 'suspended') {
+    karaokeAudioCtx.resume().then(startPlayback).catch(startPlayback);
+  } else {
+    startPlayback();
+  }
+
   updateKaraokeRecUI();
   if (!karaokeState.rafId) karaokeDrawFrame();
 }
@@ -1641,24 +1665,34 @@ function closeKaraokeMode() {
 
 function renderKaraokeLyrics() {
   const el = document.getElementById('karaokeLyrics');
-  if (!karaokeState.lyricsLines.length) {
+  const parsed = karaokeState.lyricsLines; // now {timed, lines}
+  if (!parsed || !parsed.lines.length) {
     el.innerHTML = `<div class="karaoke-no-lyrics">📜 No lyrics added yet.<br>Close Karaoke and use ⋯ → Lyrics to add some.</div>`;
     return;
   }
-  el.innerHTML = karaokeState.lyricsLines.map((line,i)=>`<div class="karaoke-line" data-i="${i}" onclick="karaokeJumpToLine(${i})">${escH(line)}</div>`).join('');
+  el.innerHTML = parsed.lines.map((line,i)=>`<div class="karaoke-line" data-i="${i}" onclick="karaokeJumpToLine(${i})">${escH(line.text || '♪')}</div>`).join('');
 }
 function karaokeJumpToLine(i) {
-  if (!audio.duration || !karaokeState.lyricsLines.length) return;
-  audio.currentTime = (i / karaokeState.lyricsLines.length) * audio.duration;
+  const parsed = karaokeState.lyricsLines;
+  const line = parsed.lines[i]; if (!line) return;
+  if (parsed.timed && line.time !== null) audio.currentTime = line.time;
+  else if (audio.duration) audio.currentTime = (i / parsed.lines.length) * audio.duration;
 }
+
 function updateKaraokeUI() {
   if (!karaokeState.open || !audio.duration) return;
   const pct = audio.currentTime / audio.duration;
   document.getElementById('karaokeProgressFill').style.width = (pct*100)+'%';
   document.getElementById('karaokeCurTime').textContent = fmtTime(audio.currentTime);
   document.getElementById('karaokeDurTime').textContent = fmtTime(audio.duration);
-  if (karaokeState.lyricsLines.length) {
-    const idx = Math.min(karaokeState.lyricsLines.length-1, Math.floor(pct*karaokeState.lyricsLines.length));
+  const parsed = karaokeState.lyricsLines;
+  if (parsed && parsed.lines.length) {
+    let idx = -1;
+    if (parsed.timed) {
+      for (let i = 0; i < parsed.lines.length; i++) if (parsed.lines[i].time !== null && parsed.lines[i].time <= audio.currentTime) idx = i;
+    } else {
+      idx = Math.min(parsed.lines.length-1, Math.floor(pct*parsed.lines.length));
+    }
     document.querySelectorAll('.karaoke-line').forEach(l=>l.classList.remove('current','next'));
     const cur = document.querySelector(`.karaoke-line[data-i="${idx}"]`);
     const next = document.querySelector(`.karaoke-line[data-i="${idx+1}"]`);
