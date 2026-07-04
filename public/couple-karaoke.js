@@ -97,6 +97,9 @@
     }
     function on(fn) { handlers.push(fn); }
     function off(fn) { const i = handlers.indexOf(fn); if (i > -1) handlers.splice(i, 1); }
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') pollOnce();
+    });
     return { init, send, startPolling, stopPolling, on, off, get ctx() { return ctx; } };
   })();
 
@@ -186,7 +189,7 @@
   border:2px solid rgba(255,255,255,.25); box-shadow:0 8px 24px rgba(0,0,0,.5);
 }
 
-    .ck-lyrics-stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:3;padding:0 26px}
+    .ck-lyrics-stage{position:absolute;left:0;right:0;bottom:130px;display:flex;align-items:flex-end;justify-content:center;pointer-events:none;z-index:3;padding:0 26px}
     .ck-lyrics-stage::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(0,0,0,.35),transparent 65%)}
     .ck-lyric-cur{position:relative;text-align:center;font-size:24px;font-weight:800;line-height:1.4;text-shadow:0 2px 18px rgba(0,0,0,.8);transition:all .3s cubic-bezier(.4,0,.2,1)}
     .ck-lyric-next{position:relative;text-align:center;font-size:15px;font-weight:600;color:rgba(255,255,255,.55);margin-top:10px;text-shadow:0 2px 12px rgba(0,0,0,.7)}
@@ -276,7 +279,11 @@
         <div class="ck-invite-actions"><button class="ck-invite-btn decline" id="ckCancelInviteBtn" style="flex:1">Cancel</button></div>
       </div>`;
     document.body.appendChild(waiting);
-    document.getElementById('ckCancelInviteBtn').onclick = () => { Channel.send({ type: 'invite_cancel' }); closeWaitingOverlay(); };
+    document.getElementById('ckCancelInviteBtn').onclick = () => {
+      Channel.send({ type: 'invite_cancel' });
+      closeWaitingOverlay();
+      if (inviteHandler) { Channel.off(inviteHandler); inviteHandler = null; }
+    };
   }
   function openInviteOverlay(msg) {
     window._ckPendingInvite = msg;
@@ -290,12 +297,20 @@
 
   function sendInvite(song) {
     if (!Channel.init()) { window.MusicPlayer.toast('Not connected yet'); return; }
+    if (inviteHandler) { Channel.off(inviteHandler); inviteHandler = null; }
     Channel.startPolling(true);
     Channel.send({ type: 'invite', songId: song.id, songTitle: song.title });
     openWaitingOverlay();
     inviteHandler = (msg) => {
-      if (msg.type === 'invite_accepted') { closeWaitingOverlay(); joinRoom(song.id, true); }
-      else if (msg.type === 'invite_declined') { closeWaitingOverlay(); window.MusicPlayer.toast('Invite declined 💔'); Channel.off(inviteHandler); }
+      if (msg.type === 'invite_accepted') {
+        closeWaitingOverlay();
+        Channel.off(inviteHandler); inviteHandler = null;
+        joinRoom(song.id, true);
+      } else if (msg.type === 'invite_declined') {
+        closeWaitingOverlay();
+        window.MusicPlayer.toast('Invite declined 💔');
+        Channel.off(inviteHandler); inviteHandler = null;
+      }
     };
     Channel.on(inviteHandler);
   }
