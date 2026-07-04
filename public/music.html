@@ -1568,13 +1568,7 @@ window.addEventListener('message', e => {
   }
 });
 
-// ── KEYBOARD SHORTCUTS ──
-document.addEventListener('keydown', e => {
-  if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
-  if (e.code==='Space'){e.preventDefault();togglePlay();}
-  if (e.code==='ArrowRight' && currentMusicSection==='music') nextSong();
-  if (e.code==='ArrowLeft' && currentMusicSection==='music') prevSong();
-});
+// keyboard shortcuts now handled by music-player.js (AudioService)
 
 // ══════════════════════════════════════
 // KARAOKE MODE
@@ -1929,7 +1923,7 @@ loadMovieLocal();
 renderMusicTracks();
 renderMovieStats();
 checkAchievements(); // Phase 4: run on load to restore any unlocked state
-setTimeout(startMusicSync, 1200); // Phase 3 // slight delay so parent frame S is ready
+
 
 // Expose globals
 window.switchMainTab = switchMainTab;
@@ -1937,9 +1931,6 @@ window.switchPlTab = switchPlTab;
 window.switchMovieTab = switchMovieTab;
 window.openMovieModal = openMovieModal;
 window.closeMovieModal = closeMovieModal;
-window.closeSongModal = closeSongModal;
-window.confirmSongSave = confirmSongSave;
-window.loadSongArt = loadSongArt;
 window.loadMoviePoster = loadMoviePoster;
 window.setMovieRating = setMovieRating;
 window.saveMovie = saveMovie;
@@ -1950,29 +1941,6 @@ window.deleteCurrentMovie = deleteCurrentMovie;
 window.toggleMovieFav = toggleMovieFav;
 window.setMovieFilter = setMovieFilter;
 window.renderMovies = renderMovies;
-window.handleFileUpload = handleFileUpload;
-window.togglePlay = togglePlay;
-window.prevSong = prevSong;
-window.nextSong = nextSong;
-window.playAll = playAll;
-window.toggleShuffle = toggleShuffle;
-window.toggleRepeat = toggleRepeat;
-window.seekSong = seekSong;
-window.deleteTrack = deleteTrack;
-window.openActionSheet = openActionSheet;
-window.closeActionSheet = closeActionSheet;
-window.playFromSheet = playFromSheet;
-window.singWithLyrics = singWithLyrics;
-window.recordSolo = recordSolo;
-window.invitePartnerKaraoke = invitePartnerKaraoke;
-window.instrumentalMode = instrumentalMode;
-window.toggleFavoriteFromSheet = toggleFavoriteFromSheet;
-window.moveTrackFromSheet = moveTrackFromSheet;
-window.shareTrackFromSheet = shareTrackFromSheet;
-window.deleteFromSheet = deleteFromSheet;
-window.openLyricsModal = openLyricsModal;
-window.closeLyricsModal = closeLyricsModal;
-window.saveLyrics = saveLyrics;
 window.openKaraokeMode = openKaraokeMode;
 window.closeKaraokeMode = closeKaraokeMode;
 window.karaokeJumpToLine = karaokeJumpToLine;
@@ -1990,9 +1958,6 @@ window.toggleKaraokeHistory = toggleKaraokeHistory;
 window.playRecording = playRecording;
 window.exportRecording = exportRecording;
 window.deleteRecording = deleteRecording;
-window.syncMusicToCloud = syncMusicToCloud;
-window.loadPartnerMusicFromCloud = loadPartnerMusicFromCloud;
-window.startMusicSync = startMusicSync;
 window.openFxRack = openFxRack;
 window.closeFxRack = closeFxRack;
 window.applyFxPreset = applyFxPreset;
