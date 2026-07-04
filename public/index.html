@@ -4761,22 +4761,24 @@ vercel-live-feedback {
         <!-- NOTIFICATIONS -->
         <div class="settings-group">
           <div class="settings-group-header">🔔 Notifications & Alarms</div>
-          <div class="settings-row" onclick="requestNotifPerm()">
-            <div class="settings-row-ico">🔔</div>
-            <div class="settings-row-content">
-              <div class="settings-row-title">Push Notifications</div>
-              <div class="settings-row-sub" id="notifStatus">Tap to enable browser notifications</div>
-            </div>
+          <div class="settings-row" style="cursor:default">
+  <div class="settings-row-ico">🔔</div>
+  <div class="settings-row-content">
+    <div class="settings-row-title">Push Notifications</div>
+    <div class="settings-row-sub" id="notifStatus">Tap to enable</div>
+  </div>
+  <div class="toggle" id="notifToggle" onclick="toggleNotifications()"></div>
+</div>
             <div class="settings-row-action">›</div>
           </div>
-          <div class="settings-row">
-            <div class="settings-row-ico">🔕</div>
-            <div class="settings-row-content">
-              <div class="settings-row-title">Do Not Disturb</div>
-              <div class="settings-row-sub">Silence all alarms at night</div>
-            </div>
-            <div class="toggle" id="dndToggle" onclick="toggleDND()"></div>
-          </div>
+          <div class="settings-row" style="cursor:default">
+  <div class="settings-row-ico">🔔</div>
+  <div class="settings-row-content">
+    <div class="settings-row-title">Push Notifications</div>
+    <div class="settings-row-sub" id="notifStatus">Tap to enable</div>
+  </div>
+  <div class="toggle" id="notifToggle" onclick="toggleNotifications()"></div>
+</div>
           <div class="settings-row" style="cursor:default">
             <div class="settings-row-ico">⏰</div>
             <div class="settings-row-content">
@@ -5514,23 +5516,36 @@ async function removePartner() {
 }
         let _isSaving = false, _saveQueued = false;
 async function saveToCloud() {
-          if (!S.coupleId) { saveLocal(); return; }
-          if (_isSaving) { _saveQueued = true; return; } // avoid overlapping writes
-          _isSaving = true;
-          try {
-            const st = { ...S }; delete st.coupleId; delete st.connectCode;
-            await api('POST', '/api/data/state', { coupleId: S.coupleId, state: st });
-            saveLocal(); updateSyncStatus(true);
-            const el = document.getElementById('lastSaved');
-            if (el) el.textContent = 'Saved ✓ ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          } catch (e) { saveLocal(); console.warn('Cloud save:', e.message); }
-          finally {
-            _isSaving = false;
-            if (_saveQueued) { _saveQueued = false; scheduleSave(); }
-          }
-        }
+  if (!S.coupleId) { saveLocal(); return; }
+  if (_isSaving) { _saveQueued = true; return; }
+  _isSaving = true;
+  try {
+    const st = { ...S }; delete st.coupleId; delete st.connectCode;
+    await api('POST', '/api/data/state', {
+      coupleId: S.coupleId,
+      state: st,
+      senderRole: S.role,      // ADD THIS
+      myName: S.myName         // ADD THIS
+    });
+    saveLocal(); updateSyncStatus(true);
+  } catch (e) { saveLocal(); console.warn('Cloud save:', e.message); }
+  finally {
+    _isSaving = false;
+    if (_saveQueued) { _saveQueued = false; scheduleSave(); }
+  }
+}
         let _loadInFlight = false;
         function scheduleSave() { clearTimeout(autoSaveTimer); autoSaveTimer = setTimeout(saveToCloud, 600); }
+        window.addEventListener('beforeunload', () => {
+  clearTimeout(autoSaveTimer);
+  saveLocal();
+  if (S.coupleId) {
+    navigator.sendBeacon(
+      API + '/api/data/state',
+      new Blob([JSON.stringify({ coupleId: S.coupleId, state: { ...S, coupleId: undefined, connectCode: undefined } })], { type: 'application/json' })
+    );
+  }
+});
         async function syncNow() {
           document.getElementById('syncBtn').textContent = '⏳...';
           await loadFromCloud(); await checkPairStatus(); checkIncomingTouch(); checkIncomingMissYou(); checkIncomingHug(); renderAll();
@@ -5677,7 +5692,7 @@ function setJustPairedAt(ts) {
           level: 'Couple Level 🏆',globe: 'Memory Globe 🌍', dreamhome: 'Dream Home 🏡',games: 'Couple Games 🎮',
           dreamgoals: 'Dream Goals 💫', places: 'Places Memory 🗺️', meetplanner: 'Meet Planner 💕'
         };
-        function goto(page) {
+        function goto(page, pushHistory = true) {
           document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
           document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
           const pg = document.getElementById('page-' + page); if (!pg) return;
@@ -5685,7 +5700,9 @@ function setJustPairedAt(ts) {
           const ni = document.querySelector('.ni[data-page="' + page + '"]'); if (ni) ni.classList.add('active');
           document.getElementById('topTitle').textContent = pageTitles[page] || page;
           if (page !== 'camera' && camStream) stopCamera();
-          
+          if (pushHistory) {
+    history.pushState({ page }, '', '#' + page);
+  }
           if (page === 'calendar') renderCalendar();
           if (page === 'dashboard') renderDashboard();
           if (page === 'money') renderMoney();
@@ -5709,6 +5726,13 @@ function setJustPairedAt(ts) {
           if (page === 'meetplanner') { syncThemeToFrame('meetplannerFrame'); syncMeetPlannerToFrame(); }
           closeMobSidebar();
         }
+        window.addEventListener('popstate', (e) => {
+  if (e.state && e.state.page) {
+    goto(e.state.page, false); // false = don't push a new history entry
+  } else {
+    goto('dashboard', false);
+  }
+});
         document.querySelectorAll('.ni[data-page]').forEach(el => el.addEventListener('click', () => goto(el.dataset.page)));
 
         // ─── UI HELPERS ──────────────────────────────────────────
@@ -5834,15 +5858,18 @@ function setJustPairedAt(ts) {
           // Couple photos hero
           renderSettingsPhotoHero();
           updatePairStatus();
+          syncNotifToggleUI();
         }
 
         function toggleSetting(key, toggleId) {
-          if (!S.settings) S.settings = {};
-          S.settings[key] = !S.settings[key];
-          const el = document.getElementById(toggleId);
-          if (el) el.classList.toggle('on', S.settings[key]);
-          scheduleSave(); toast(S.settings[key] ? 'Enabled ✓' : 'Disabled');
-        }
+  if (!S.settings) S.settings = {};
+  S.settings[key] = !S.settings[key];
+  const el = document.getElementById(toggleId);
+  if (el) el.classList.toggle('on', S.settings[key]);
+  saveLocal();      // add this — instant local persistence
+  scheduleSave();   // cloud sync can stay debounced
+  toast(S.settings[key] ? 'Enabled ✓' : 'Disabled');
+}
         function toggleDND() { toggleSetting('dnd', 'dndToggle'); }
         function toggleAutoLock() { toggleSetting('autoLock', 'autoLockToggle'); }
         function saveDND() {
@@ -5851,13 +5878,42 @@ function setJustPairedAt(ts) {
           S.settings.dndEnd = document.getElementById('dndEnd').value;
           scheduleSave();
         }
-        async function requestNotifPerm() {
-          if (!('Notification' in window)) { toast('Notifications not supported on this browser'); return; }
-          const p = await Notification.requestPermission();
-          const el = document.getElementById('notifStatus');
-          if (p === 'granted') { if (el) el.textContent = '✅ Enabled'; toast('Notifications enabled! 🔔'); }
-          else { if (el) el.textContent = '❌ Blocked in browser settings'; toast('Please allow notifications in browser settings'); }
-        }
+        function syncNotifToggleUI() {
+  const el = document.getElementById('notifToggle');
+  const status = document.getElementById('notifStatus');
+  if (!el) return;
+  const granted = ('Notification' in window) && Notification.permission === 'granted';
+  el.classList.toggle('on', granted);
+  if (status) {
+    status.textContent = !('Notification' in window) ? 'Not supported on this browser'
+      : Notification.permission === 'granted' ? '✅ Enabled'
+      : Notification.permission === 'denied' ? '❌ Blocked — enable in browser settings'
+      : 'Tap to enable';
+  }
+}
+
+async function toggleNotifications() {
+  if (!('Notification' in window)) { toast('Not supported on this browser'); return; }
+
+  if (Notification.permission === 'granted') {
+    // Browsers don't let JS revoke permission — explain instead of faking an "off" state
+    toast('To turn off, disable notifications for this site in your browser settings');
+    syncNotifToggleUI();
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    toast('Blocked — enable notifications for this site in your browser settings');
+    return;
+  }
+  const p = await Notification.requestPermission();
+  syncNotifToggleUI();
+  if (p === 'granted') {
+    toast('Notifications enabled! 🔔');
+    await registerPushSubscription(); // uses the corrected /api/auth/push/... paths
+  } else {
+    toast('Notifications not enabled');
+  }
+}
         function shareCode() {
           const code = S.connectCode || '—';
           if (navigator.share) { navigator.share({ title: 'Us With Love', text: 'Join me on Us With Love! Use code: ' + code, url: window.location.href }).catch(() => { }); }
@@ -6620,6 +6676,9 @@ syncAuthOverlay();
             if (Notification.permission === 'granted') setTimeout(registerPushSubscription, 2000);
             startSyncLoop();
           }
+          if (!history.state) {
+  history.replaceState({ page: 'dashboard' }, '', '#dashboard');
+}
         }
 
         let _syncLoopStarted = false;
@@ -7398,48 +7457,37 @@ function openJoinPartnerModal() {
         window.setTheme = function(n, s) { _origST && _origST(n, s); setTimeout(() => ['gamesFrame','musicFrame','dreamgoalsFrame','placesFrame','lovecounterFrame','collectionFrame','meetplannerFrame'].forEach(syncThemeToFrame), 150); };
 // ── PUSH NOTIFICATION SUBSCRIPTION ─────────────────────
 async function registerPushSubscription() {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-  if (Notification.permission === 'denied') return;
-  if (!S.coupleId) return;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    toast('⚠️ Push not supported on this browser'); return;
+  }
+  if (Notification.permission === 'denied') { toast('⚠️ Notifications blocked in browser settings'); return; }
+  if (!S.coupleId) { toast('⚠️ No coupleId yet'); return; }
   try {
-    // Get VAPID public key from server
-    const keyRes = await fetch(API + '/api/push/vapidkey');
+    const keyRes = await fetch(API + '/api/auth/push/vapidkey');
     const { publicKey } = await keyRes.json();
-    if (!publicKey) return; // VAPID not configured
+    if (!publicKey) { toast('⚠️ No VAPID key from server'); return; }
 
     const reg = await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
     if (!sub) {
-      // Convert base64url VAPID key to Uint8Array
       const raw = atob(publicKey.replace(/-/g,'+').replace(/_/g,'/'));
       const key = new Uint8Array(raw.length);
       for (let i = 0; i < raw.length; i++) key[i] = raw.charCodeAt(i);
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: key
-      });
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
     }
-    // Send subscription to server
-    await fetch(API + '/api/push/subscribe', {
+    const r = await fetch(API + '/api/auth/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        coupleId: S.coupleId,
-        role: S.role,
-        subscription: sub.toJSON()
-      })
+      body: JSON.stringify({ coupleId: S.coupleId, role: S.role, subscription: sub.toJSON() })
     });
+    const result = await r.json();
+    if (r.ok) toast('✅ Push subscribed! ' + JSON.stringify(result).slice(0,60));
+    else toast('❌ Subscribe failed: ' + (result.error || r.status));
   } catch(e) {
-    console.warn('Push subscription:', e.message);
+    toast('❌ Push error: ' + e.message);
+    console.error('Push subscription error:', e);
   }
 }
-
-// Hook into existing notification permission request
-const _origReqNotif = window.requestNotifPerm;
-window.requestNotifPerm = async function() {
-  if (_origReqNotif) await _origReqNotif();
-  if (Notification.permission === 'granted') await registerPushSubscription();
-};
 
 // Auto-register if permission already granted
 if (Notification.permission === 'granted' && S.coupleId) {
@@ -7546,6 +7594,20 @@ init();
               .catch(err => console.log('SW failed:', err));
           });
         }
+        // Add this near your existing SW registration in index.html
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then(reg => {
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          // New SW available — force reload once so it takes control
+          window.location.reload();
+        }
+      });
+    });
+  });
+}
       </script>
 <script>
 // ══════════════════════════════════════════
