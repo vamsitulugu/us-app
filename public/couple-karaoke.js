@@ -53,7 +53,8 @@
      SIGNALING CHANNEL (shared key/value store)
   ═══════════════════════════════════════ */
   const Channel = (function () {
-    let ctx = null, myKey = null, peerKey = null, lastPeerTs = 0, pollTimer = null, fastTimer = null;
+    let ctx = null, myKey = null, peerKey = null, lastPeerSeq = 0, pollTimer = null, fastTimer = null;
+    let outbox = [], _seq = 0;
     const handlers = [];
 
     function init() {
@@ -63,24 +64,25 @@
       peerKey = 'ck_' + (ctx.role === 'user1' ? 'user2' : 'user1');
       return true;
     }
-    let outbox = [];
-async function send(msg) {
-  if (!ctx && !init()) return;
-  const payload = { ...msg, from: ctx.role, ts: Date.now(), seq: ++_seq };
-  outbox.push(payload);
-  try {
-    await window.MusicPlayer.api('POST', '/api/data/state', { coupleId: ctx.coupleId, state: { [myKey]: outbox.slice(-20) } });
-  } catch (e) {}
-}
+    async function send(msg) {
+      if (!ctx && !init()) return;
+      const payload = { ...msg, from: ctx.role, ts: Date.now(), seq: ++_seq };
+      outbox.push(payload);
+      if (outbox.length > 20) outbox = outbox.slice(-20);
+      try {
+        await window.MusicPlayer.api('POST', '/api/data/state', { coupleId: ctx.coupleId, state: { [myKey]: outbox } });
+      } catch (e) {}
+    }
     async function pollOnce() {
       if (!ctx && !init()) return;
       try {
         const state = await window.MusicPlayer.api('GET', '/api/data/state/' + ctx.coupleId);
-        const msg = state && state[peerKey];
-        if (msg && msg.ts && msg.ts !== lastPeerTs) {
-          lastPeerTs = msg.ts;
-          handlers.forEach(h => { try { h(msg); } catch (e) {} });
-        }
+        const msgs = state && state[peerKey];
+        if (!Array.isArray(msgs)) return;
+        const fresh = msgs.filter(m => m.seq > lastPeerSeq).sort((a, b) => a.seq - b.seq);
+        if (!fresh.length) return;
+        lastPeerSeq = fresh[fresh.length - 1].seq;
+        fresh.forEach(msg => handlers.forEach(h => { try { h(msg); } catch (e) {} }));
       } catch (e) {}
     }
     function startPolling(fast) {
