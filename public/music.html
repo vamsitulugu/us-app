@@ -170,7 +170,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 .track-fav-badge{font-size:11px}
 
 /* ── KARAOKE MODE ── */
-.karaoke-bg{position:fixed;inset:0;z-index:950;background:radial-gradient(ellipse at 50% 0%,rgba(91,0,160,0.35),rgba(2,2,10,0.97) 70%);display:none;flex-direction:column;overflow:hidden}
+.karaoke-bg{position:fixed;inset:0;z-index:950;background-color:#04040c;background-image:radial-gradient(ellipse at 50% 0%,rgba(91,0,160,0.35),rgba(2,2,10,0.97) 70%);display:none;flex-direction:column;overflow:hidden}
 .karaoke-bg.open{display:flex}
 .karaoke-wrap{flex:1;display:flex;flex-direction:column;height:100%;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);position:relative;overflow:hidden}
 .karaoke-topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;position:relative;z-index:2}
@@ -1163,6 +1163,7 @@ function resetFxRack() {
 }
 
 function openFxRack() {
+  ensureKaraokeAudioGraph();
   ensureFxGraph();
   rebuildFxChain();
   document.getElementById('fxRackOverlay').classList.add('open');
@@ -1636,18 +1637,8 @@ function openKaraokeMode(pl, idx) {
   renderKaraokeLyrics();
   document.getElementById('karaokeBg').classList.add('open');
 
-  ensureKaraokeAudioGraph();
-
-  const startPlayback = () => {
-    if (!(musicState.currentPlaylist===pl && musicState.currentIdx===idx)) playTrack(pl, idx);
-    else if (!musicState.playing) audio.play().catch(()=>{});
-  };
-
-  if (karaokeAudioCtx && karaokeAudioCtx.state === 'suspended') {
-    karaokeAudioCtx.resume().then(startPlayback).catch(startPlayback);
-  } else {
-    startPlayback();
-  }
+if (!(musicState.currentPlaylist===pl && musicState.currentIdx===idx)) playTrack(pl, idx);
+else if (!musicState.playing) audio.play().catch(()=>{});
 
   updateKaraokeRecUI();
   if (!karaokeState.rafId) karaokeDrawFrame();
