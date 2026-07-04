@@ -7,6 +7,9 @@ const express  = require('express');
 const supabase = require('../middleware/supabase');
 const router   = express.Router();
 
+let _sendPushToPartner;
+try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch (_) {}
+
 // GET all songs for a couple
 router.get('/:coupleId', async (req, res) => {
   const { data, error } = await supabase
@@ -36,6 +39,18 @@ router.post('/', async (req, res) => {
     uploaded_by:  uploadedBy,
   }).select().single();
   if (error) return res.status(500).json({ error: error.message });
+
+  // Notify partner about the new shared song (skip if kept private to sender)
+  if (_sendPushToPartner && visibility !== 'self') {
+    _sendPushToPartner(coupleId, uploadedBy, {
+      title: '🎵 New Song Shared',
+      body: title + (artist ? ' — ' + artist : ''),
+      icon: '/icons/icon-192.png',
+      tag: 'music-song',
+      url: '/?page=music'
+    }).catch(() => {});
+  }
+
   return res.json(data);
 });
 

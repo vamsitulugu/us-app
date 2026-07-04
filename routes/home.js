@@ -6,6 +6,9 @@ const express  = require('express');
 const supabase = require('../middleware/supabase');
 const router   = express.Router();
 
+let _sendPushToPartner;
+try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch (_) {}
+
 // ─── FURNITURE ──────────────────────────────────
 
 // GET all furniture for a couple
@@ -24,7 +27,7 @@ router.get('/furniture/:coupleId', async (req, res) => {
 // POST add furniture
 router.post('/furniture', async (req, res) => {
   try {
-    const { coupleId, room, obj_type, obj_key, label, pos_x, pos_y, pos_z, rot_y, scale, color, meta } = req.body;
+    const { coupleId, room, obj_type, obj_key, label, pos_x, pos_y, pos_z, rot_y, scale, color, meta, senderRole, myName } = req.body;
     if (!coupleId || !room || !obj_type) return res.status(400).json({ error: 'Missing required fields' });
     const { data, error } = await supabase
       .from('home_furniture')
@@ -37,6 +40,17 @@ router.post('/furniture', async (req, res) => {
       }])
       .select().single();
     if (error) throw error;
+
+    if (_sendPushToPartner && senderRole) {
+      _sendPushToPartner(coupleId, senderRole, {
+        title: '🏠 New Furniture Added',
+        body: (myName || 'Your partner') + ' added ' + (label || obj_type) + ' to the ' + room,
+        icon: '/icons/icon-192.png',
+        tag: 'home-furniture',
+        url: '/?page=virtualhome'
+      }).catch(() => {});
+    }
+
     res.json(data);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -86,7 +100,7 @@ router.get('/pets/:coupleId', async (req, res) => {
 // POST create pet
 router.post('/pets', async (req, res) => {
   try {
-    const { coupleId, name, species, color } = req.body;
+    const { coupleId, name, species, color, senderRole, myName } = req.body;
     if (!coupleId) return res.status(400).json({ error: 'Missing coupleId' });
     const { data, error } = await supabase
       .from('home_pets')
@@ -101,6 +115,17 @@ router.post('/pets', async (req, res) => {
       }])
       .select().single();
     if (error) throw error;
+
+    if (_sendPushToPartner && senderRole) {
+      _sendPushToPartner(coupleId, senderRole, {
+        title: '🐾 New Pet Adopted!',
+        body: (myName || 'Your partner') + ' brought home ' + (name || 'a new pet') + ' the ' + (species || 'cat'),
+        icon: '/icons/icon-192.png',
+        tag: 'home-pet',
+        url: '/?page=virtualhome'
+      }).catch(() => {});
+    }
+
     res.json(data);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -143,7 +168,7 @@ router.get('/memories/:coupleId', async (req, res) => {
 
 router.post('/memories', async (req, res) => {
   try {
-    const { coupleId, room, memory_type, ref_id, label, thumbnail, pos_x, pos_y, pos_z, meta } = req.body;
+    const { coupleId, room, memory_type, ref_id, label, thumbnail, pos_x, pos_y, pos_z, meta, senderRole, myName } = req.body;
     if (!coupleId || !room) return res.status(400).json({ error: 'Missing required fields' });
     const { data, error } = await supabase
       .from('home_memory_objects')
@@ -157,6 +182,17 @@ router.post('/memories', async (req, res) => {
       }])
       .select().single();
     if (error) throw error;
+
+    if (_sendPushToPartner && senderRole) {
+      _sendPushToPartner(coupleId, senderRole, {
+        title: '🖼️ New Memory Object Placed',
+        body: (myName || 'Your partner') + ' placed ' + (label || 'a memory') + ' in the ' + room,
+        icon: '/icons/icon-192.png',
+        tag: 'home-memory',
+        url: '/?page=virtualhome'
+      }).catch(() => {});
+    }
+
     res.json(data);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

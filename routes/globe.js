@@ -8,6 +8,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
+let _sendPushToPartner;
+try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch (_) {}
+
 // GET all memories for a couple
 router.get('/:coupleId', async (req, res) => {
   try {
@@ -31,7 +34,7 @@ router.get('/:coupleId', async (req, res) => {
 // POST create memory
 router.post('/', async (req, res) => {
   try {
-    const { coupleId, memory } = req.body;
+    const { coupleId, memory, senderRole, myName } = req.body;
     if (!coupleId || !memory) return res.status(400).json({ error: 'Missing data' });
 
     const { data, error } = await supabase
@@ -41,6 +44,19 @@ router.post('/', async (req, res) => {
       .single();
 
     if (error) throw error;
+
+    // Notify partner about the new memory pin
+    if (_sendPushToPartner && senderRole) {
+      const place = [memory.city, memory.country].filter(Boolean).join(', ') || 'a new place';
+      _sendPushToPartner(coupleId, senderRole, {
+        title: '🌍 New Memory on the Globe',
+        body: (myName || 'Your partner') + ' added ' + place,
+        icon: '/icons/icon-192.png',
+        tag: 'globe-memory',
+        url: '/?page=globe'
+      }).catch(() => {});
+    }
+
     res.json(data);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -86,7 +102,7 @@ router.delete('/:id', async (req, res) => {
 router.post('/:memoryId/media', async (req, res) => {
   try {
     const { memoryId } = req.params;
-    const { coupleId, media } = req.body;
+    const { coupleId, media, senderRole, myName } = req.body;
 
     const { data, error } = await supabase
       .from('globe_memory_media')
@@ -95,6 +111,17 @@ router.post('/:memoryId/media', async (req, res) => {
       .single();
 
     if (error) throw error;
+
+    if (_sendPushToPartner && senderRole) {
+      _sendPushToPartner(coupleId, senderRole, {
+        title: '🌍 New Photo Added to Globe',
+        body: (myName || 'Your partner') + ' added a photo to a memory',
+        icon: '/icons/icon-192.png',
+        tag: 'globe-media',
+        url: '/?page=globe'
+      }).catch(() => {});
+    }
+
     res.json(data);
   } catch (e) {
     res.status(500).json({ error: e.message });

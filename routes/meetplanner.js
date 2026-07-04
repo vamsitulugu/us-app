@@ -13,6 +13,9 @@ const express  = require('express');
 const supabase = require('../middleware/supabase');
 const router   = express.Router();
 
+let _sendPushToPartner;
+try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch (_) {}
+
 // ─── LIST plans for a couple ───────────────────────────
 router.get('/:coupleId', async (req, res) => {
   const { data, error } = await supabase
@@ -41,7 +44,7 @@ router.get('/plan/:id', async (req, res) => {
 
 // ─── CREATE plan (v2: city + stops) ────────────────────
 router.post('/', async (req, res) => {
-  const { coupleId, plan } = req.body;
+  const { coupleId, plan, senderRole, myName } = req.body;
   if (!coupleId || !plan) return res.status(400).json({ error: 'Missing data' });
 
   const { data, error } = await supabase
@@ -87,6 +90,19 @@ router.post('/', async (req, res) => {
     .single();
 
   if (error) return res.status(500).json({ error: error.message });
+
+  // Notify partner about the new meetup plan
+  if (_sendPushToPartner && senderRole) {
+    const place = plan.cityName || plan.midCity || 'a new spot';
+    _sendPushToPartner(coupleId, senderRole, {
+      title: '💕 New Meetup Planned',
+      body: (myName || 'Your partner') + ' planned a meetup in ' + place,
+      icon: '/icons/icon-192.png',
+      tag: 'meetplan',
+      url: '/?page=meetplanner'
+    }).catch(() => {});
+  }
+
   return res.json(data);
 });
 
@@ -136,7 +152,7 @@ router.delete('/:id', async (req, res) => {
 // Idempotent: if globe_synced is already true, returns the
 // existing globe_memory_id instead of creating a duplicate.
 router.post('/:id/complete', async (req, res) => {
-  const { coupleId, mood, photos, extraNotes } = req.body;
+  const { coupleId, mood, photos, extraNotes, senderRole, myName } = req.body;
   if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
 
   const { data: plan, error: planErr } = await supabase
@@ -225,6 +241,17 @@ router.post('/:id/complete', async (req, res) => {
     .single();
 
   if (updateErr) return res.status(500).json({ error: updateErr.message });
+
+  // Notify partner that the meetup was marked complete and saved to the globe
+  if (_sendPushToPartner && senderRole) {
+    _sendPushToPartner(coupleId, senderRole, {
+      title: '🌍 Meetup Saved to Memory Globe',
+      body: (myName || 'Your partner') + ' marked "' + (plan.title || 'your meetup') + '" complete',
+      icon: '/icons/icon-192.png',
+      tag: 'meetup-complete',
+      url: '/?page=globe'
+    }).catch(() => {});
+  }
 
   return res.json({ ok: true, alreadySynced: false, globeMemoryId: globeMemory.id, plan: updatedPlan });
 });
