@@ -1,5 +1,7 @@
 // ═══════════════════════════════════════════════════════
 //  Media Routes — Photos & Videos via Supabase Storage
+//  REPLACES: routes/media.js
+//  Adds: /api/media/upload-audio, /api/media/upload-cover
 // ═══════════════════════════════════════════════════════
 const express  = require('express');
 const multer   = require('multer');
@@ -9,6 +11,10 @@ const router   = express.Router();
 const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 20 * 1024 * 1024 } // 20MB max
+});
+const uploadAudio = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 60 * 1024 * 1024 } // 60MB max for songs
 });
 
 // ── POST /api/media/upload ─────────────────────────────
@@ -30,28 +36,60 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
     if (error) return res.status(500).json({ error: error.message });
 
-    // Vault: private signed URL (expires in 7 days)
     if (bucket === 'vault-media') {
         const { data: signed, error: signError } =
-await supabase.storage
-.from(bucket)
-.createSignedUrl(name, 60 * 60 * 24 * 7);
-
-if(signError)
-    return res.status(500).json({
-        error: signError.message
-    });
-
-return res.json({
-    url: signed.signedUrl,
-    path:name
-});
+            await supabase.storage.from(bucket).createSignedUrl(name, 60 * 60 * 24 * 7);
+        if (signError) return res.status(500).json({ error: signError.message });
+        return res.json({ url: signed.signedUrl, path: name });
     }
 
-    // ✅ FIX: Regular photos — return public URL
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(name);
+    return res.json({ url: urlData.publicUrl, path: name });
+});
+
+// ── POST /api/media/upload-audio ───────────────────────
+// Uploads a song file to the public 'couple-music' bucket.
+router.post('/upload-audio', uploadAudio.single('file'), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No file provided' });
+    const { coupleId } = req.body;
+    if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
+
+    const ext    = (req.file.originalname.split('.').pop() || 'mp3').toLowerCase();
+    const name   = `${coupleId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const bucket = 'couple-music';
+
+    const { error } = await supabase.storage
         .from(bucket)
-        .getPublicUrl(name);
+        .upload(name, req.file.buffer, {
+            contentType: req.file.mimetype || 'audio/mpeg',
+            upsert: false
+        });
+    if (error) return res.status(500).json({ error: error.message });
+
+    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(name);
+    return res.json({ url: urlData.publicUrl, path: name });
+});
+
+// ── POST /api/media/upload-cover ───────────────────────
+// Uploads album art to the public 'couple-music-covers' bucket.
+router.post('/upload-cover', upload.single('file'), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No file provided' });
+    const { coupleId } = req.body;
+    if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
+
+    const ext    = (req.file.originalname.split('.').pop() || 'jpg').toLowerCase();
+    const name   = `${coupleId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const bucket = 'couple-music-covers';
+
+    const { error } = await supabase.storage
+        .from(bucket)
+        .upload(name, req.file.buffer, {
+            contentType: req.file.mimetype || 'image/jpeg',
+            upsert: false
+        });
+    if (error) return res.status(500).json({ error: error.message });
+
+    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(name);
     return res.json({ url: urlData.publicUrl, path: name });
 });
 
@@ -62,10 +100,9 @@ router.delete('/delete', async (req, res) => {
     await supabase.storage.from(bucket || 'couple-photos').remove([path]);
     return res.json({ ok: true });
 });
+
 // ── POST /api/media/upload-recording ──────────────────
-// Stores karaoke recordings in 'couple-recordings' bucket.
-// Returns a signed URL (7-day expiry) — recordings are private.
-router.post('/upload-recording', upload.single('file'), async (req, res) => {
+router.post('/upload-recording', uploadAudio.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file provided' });
     const { coupleId, trackTitle } = req.body;
     if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
@@ -80,13 +117,11 @@ router.post('/upload-recording', upload.single('file'), async (req, res) => {
             contentType: req.file.mimetype || 'audio/webm',
             upsert: false
         });
-
     if (error) return res.status(500).json({ error: error.message });
 
     const { data: signed } = await supabase.storage
         .from(bucket)
-        .createSignedUrl(name, 60 * 60 * 24 * 7); // 7-day signed URL
-
+        .createSignedUrl(name, 60 * 60 * 24 * 7);
     return res.json({ url: signed.signedUrl, path: name });
 });
 

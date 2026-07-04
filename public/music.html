@@ -477,7 +477,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
       <div class="mode-pill" id="myRepeatPill" onclick="toggleRepeat()">↩ Repeat</div>
     </div>
     <label class="upload-zone" id="myUploadZone">
-      <input type="file" multiple accept="audio/*" onchange="handleFileUpload(event,'my')">
+      <input type="file" multiple accept="audio/*">
       <div class="upload-icon">🎵</div>
       <div class="upload-text">Tap to upload songs from your phone</div>
       <div class="upload-sub">MP3, M4A, WAV, OGG, FLAC supported</div>
@@ -501,7 +501,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
       <div class="mode-pill play-all-pt" onclick="playAll('partner')">▶ Play All</div>
     </div>
     <label class="upload-zone" style="border-color:hsla(300,85%,65%,0.3)">
-      <input type="file" multiple accept="audio/*" onchange="handleFileUpload(event,'partner')">
+      <input type="file" multiple accept="audio/*">
       <div class="upload-icon">💜</div>
       <div class="upload-text">Upload partner's songs</div>
       <div class="upload-sub">Both of you can listen together</div>
@@ -893,17 +893,12 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 </div>
 
 <div id="mmToast"></div>
-
+<script src="/music-player.js"></script>
 <script>
 // ══════════════════════════════════════
 // STATE
 // ══════════════════════════════════════
-let musicState = {
-  my: [], partner: [],
-  currentPlaylist: 'my', currentIdx: -1,
-  playing: false, shuffle: false, repeat: false,
-  recordings: [],
-};
+
 let movieState = {
   movies: [],
   filter: 'all',
@@ -919,36 +914,6 @@ let currentMusicSection = 'music', currentPlTab = 'my';
 const audio = document.getElementById('audioPlayer');
 const EMOJIS_M = ['🎵','🎶','🎸','🎹','🎺','🎻','🥁','🎼','🎤','🎧','🎷','🪗'];
 
-// ══════════════════════════════════════
-// PERSIST
-// ══════════════════════════════════════
-function saveMusicLocal() {
-  try {
-    const meta = {
-      my: musicState.my.map(t=>({...t, audioData: null})),
-      partner: musicState.partner.map(t=>({...t, audioData: null})),
-      _syncTs: Date.now(),
-      _role: musicState._role || 'unknown'
-    };
-    localStorage.setItem('us_music_meta_v2', JSON.stringify(meta));
-    musicState.my.forEach(t => { if(t.audioData) { try { localStorage.setItem('us_aud_'+t.id, t.audioData); } catch(e){} } });
-    musicState.partner.forEach(t => { if(t.audioData) { try { localStorage.setItem('us_aud_'+t.id, t.audioData); } catch(e){} } });
-  } catch(e) { showMMToast('Storage full — some songs may not save'); }
-}
-function loadMusicLocal() {
-  try {
-    const meta = localStorage.getItem('us_music_meta_v2');
-    if (!meta) return;
-    const d = JSON.parse(meta);
-    ['my','partner'].forEach(pl => {
-      musicState[pl] = (d[pl]||[]).map(t => {
-        let aud = null;
-        try { aud = localStorage.getItem('us_aud_'+t.id); } catch(e){}
-        return { favorite:false, playCount:0, lastPlayed:null, lyrics:'', ...t, audioData: aud };
-      });
-    });
-  } catch(e){}
-}
 function saveMovieLocal() {
   try { localStorage.setItem('us_movies_v2', JSON.stringify(movieState.movies)); } catch(e){}
 }
@@ -978,102 +943,18 @@ function switchPlTab(tab, el) {
     const sec = document.getElementById('pl-'+id);
     if (sec) sec.style.display = (tab===id) ? 'block' : 'none';
   });
-  if (tab==='favorites') renderFavorites();
-  if (tab==='recent') renderRecent();
-  if (tab==='karaoke') renderKaraokeList();
+  if (tab==='favorites' || tab==='recent' || tab==='karaoke') renderMusicTracks();
 }
 
 // ══════════════════════════════════════
 // FILE UPLOAD
 // ══════════════════════════════════════
 let uploadQueue = [];
-function handleFileUpload(e, playlist) {
-  const files = Array.from(e.target.files).filter(f => f.type.startsWith('audio/') || f.name.match(/\.(mp3|m4a|wav|ogg|flac|aac|opus)$/i));
-  if (!files.length) { showMMToast('No valid audio files selected'); return; }
-  pendingPlaylist = playlist;
-  uploadQueue = [...files];
-  processNextUpload();
-}
-function processNextUpload() {
-  if (!uploadQueue.length) return;
-  const file = uploadQueue.shift();
-  const reader = new FileReader();
-  reader.onload = e => {
-    const audioData = e.target.result;
-    const tmpAudio = new Audio(audioData);
-    tmpAudio.onloadedmetadata = () => {
-      const dur = Math.floor(tmpAudio.duration || 0);
-      let name = file.name.replace(/\.[^/.]+$/,'');
-      let title = name, artist = 'Unknown Artist';
-      const di = name.indexOf(' - ');
-      if (di > -1) { artist = name.slice(0,di).trim(); title = name.slice(di+3).trim(); }
-      pendingSongData = { audioData, durationSec: dur, durationFmt: fmtTime(dur) };
-      document.getElementById('smTitle').value = title;
-      document.getElementById('smArtist').value = artist;
-      pendingSongArt = '';
-      document.getElementById('smArtPreview').style.display = 'none';
-      document.getElementById('smVis').value = 'both';
-      document.getElementById('songModal').classList.add('open');
-    };
-    tmpAudio.onerror = () => {
-      pendingSongData = { audioData, durationSec: 0, durationFmt: '' };
-      document.getElementById('smTitle').value = file.name.replace(/\.[^/.]+$/,'');
-      document.getElementById('smArtist').value = '';
-      document.getElementById('songModal').classList.add('open');
-    };
-  };
-  reader.readAsDataURL(file);
-}
-function loadSongArt(input) {
-  if (!input.files[0]) return;
-  const r = new FileReader();
-  r.onload = e => {
-    pendingSongArt = e.target.result;
-    const img = document.getElementById('smArtPreview');
-    img.src = pendingSongArt; img.style.display = 'block';
-  };
-  r.readAsDataURL(input.files[0]);
-}
-function closeSongModal() {
-  document.getElementById('songModal').classList.remove('open');
-  pendingSongData = null;
-  if (uploadQueue.length) setTimeout(processNextUpload, 300);
-}
-function confirmSongSave() {
-  if (!pendingSongData) { closeSongModal(); return; }
-  setTimeout(checkAchievements, 500); // check after track is pushed
-  const track = {
-    id: Date.now() + Math.random(),
-    title: document.getElementById('smTitle').value.trim() || 'Untitled',
-    artist: document.getElementById('smArtist').value.trim() || 'Unknown Artist',
-    artData: pendingSongArt,
-    audioData: pendingSongData.audioData,
-    durationSec: pendingSongData.durationSec,
-    durationFmt: pendingSongData.durationFmt,
-    visibility: document.getElementById('smVis').value,
-    emoji: EMOJIS_M[Math.floor(Math.random()*EMOJIS_M.length)],
-    date: new Date().toISOString().slice(0,10),
-    favorite: false, playCount: 0, lastPlayed: null, lyrics: '',
-  };
-  musicState[pendingPlaylist].push(track);
-  saveMusicLocal();
-  renderMusicTracks();
-  closeSongModal();
-  showMMToast('Song added! 🎵');
-  if (pendingPlaylist === 'my') onMySongAdded();
-  if (!musicState.playing) playTrack(pendingPlaylist, musicState[pendingPlaylist].length-1);
-}
 
 // ══════════════════════════════════════
 // RENDER MUSIC
 // ══════════════════════════════════════
-function renderMusicTracks() {
-  renderPlaylist('my');
-  renderPlaylist('partner');
-  renderFavorites();
-  renderRecent();
-  renderKaraokeList();
-}
+
 function renderTrackRow(t, pl, i, isActive) {
   return `<div class="track-item${isActive?' active':''}" onclick="playTrack('${pl}',${i})">
     <div class="track-num">${i+1}</div>
@@ -1088,147 +969,6 @@ function renderTrackRow(t, pl, i, isActive) {
     <button class="track-del" onclick="event.stopPropagation();deleteTrack('${pl}',${i})" title="Delete">🗑️</button>
   </div>`;
 }
-function renderPlaylist(pl) {
-  const tracks = musicState[pl];
-  const el = document.getElementById(pl+'TrackList');
-  const statsEl = document.getElementById(pl==='my'?'myMusicStats':'ptMusicStats');
-  const totalDur = tracks.reduce((s,t)=>s+(t.durationSec||0),0);
-  if (statsEl) statsEl.textContent = `${tracks.length} song${tracks.length!==1?'s':''} · ${fmtDurLong(totalDur)}`;
-  if (!tracks.length) {
-    el.innerHTML = `<div class="empty-pl"><div class="empty-pl-ico">${pl==='my'?'🎵':'💜'}</div><div class="empty-pl-text">${pl==='my'?'Your playlist is empty<br>Upload songs from your phone!':'No songs added yet for partner'}</div></div>`;
-    return;
-  }
-  el.innerHTML = tracks.map((t, i) => renderTrackRow(t, pl, i, musicState.currentPlaylist===pl && musicState.currentIdx===i)).join('');
-}
-function getAllTracks() {
-  return [...musicState.my.map((t,i)=>({t,pl:'my',i})), ...musicState.partner.map((t,i)=>({t,pl:'partner',i}))];
-}
-function renderFavorites() {
-  const el = document.getElementById('favTrackList'); if (!el) return;
-  const favs = getAllTracks().filter(x=>x.t.favorite);
-  const statsEl = document.getElementById('favMusicStats');
-  if (statsEl) statsEl.textContent = `${favs.length} song${favs.length!==1?'s':''}`;
-  el.innerHTML = favs.length
-    ? favs.map(x => renderTrackRow(x.t, x.pl, x.i, musicState.currentPlaylist===x.pl && musicState.currentIdx===x.i)).join('')
-    : `<div class="empty-pl"><div class="empty-pl-ico">❤️</div><div class="empty-pl-text">No favorites yet — tap ⋯ on any song to add one</div></div>`;
-}
-function renderRecent() {
-  const el = document.getElementById('recentTrackList'); if (!el) return;
-  const recents = getAllTracks().filter(x=>x.t.lastPlayed).sort((a,b)=>(b.t.lastPlayed||0)-(a.t.lastPlayed||0)).slice(0,30);
-  const statsEl = document.getElementById('recentMusicStats');
-  if (statsEl) statsEl.textContent = `${recents.length} song${recents.length!==1?'s':''}`;
-  el.innerHTML = recents.length
-    ? recents.map(x => renderTrackRow(x.t, x.pl, x.i, musicState.currentPlaylist===x.pl && musicState.currentIdx===x.i)).join('')
-    : `<div class="empty-pl"><div class="empty-pl-ico">🕒</div><div class="empty-pl-text">Nothing played yet</div></div>`;
-}
-function renderKaraokeList() {
-  const el = document.getElementById('karaokeTrackList'); if (!el) return;
-  const all = getAllTracks();
-  el.innerHTML = all.map(x => renderTrackRow(x.t, x.pl, x.i, musicState.currentPlaylist===x.pl && musicState.currentIdx===x.i)).join('');
-}
-
-// ══════════════════════════════════════
-// PLAYBACK
-// ══════════════════════════════════════
-function playTrack(pl, idx) {
-  const t = musicState[pl][idx]; if (!t) return;
-  if (!t.audioData) { showMMToast('Audio not available — re-upload song'); return; }
-  musicState.currentPlaylist = pl;
-  musicState.currentIdx = idx;
-  audio.src = t.audioData;
-  audio.play().then(() => {
-    musicState.playing = true;
-    t.playCount = (t.playCount||0) + 1;
-    t.lastPlayed = Date.now();
-    saveMusicLocal();
-    updateNowPlaying(t);
-    updatePlayBtn();
-    renderMusicTracks();
-    document.getElementById('nowPlayingBar').classList.remove('hidden');
-  }).catch(e => showMMToast('Cannot play: ' + e.message));
-}
-function togglePlay() {
-  if (!audio.src || audio.src === window.location.href) { showMMToast('Select a song first'); return; }
-  if (musicState.playing) { audio.pause(); musicState.playing = false; }
-  else { audio.play(); musicState.playing = true; }
-  updatePlayBtn();
-  updateNPArt();
-}
-function prevSong() {
-  const tracks = musicState[musicState.currentPlaylist];
-  if (!tracks.length) return;
-  let idx = musicState.currentIdx - 1;
-  if (idx < 0) idx = tracks.length - 1;
-  playTrack(musicState.currentPlaylist, idx);
-}
-function nextSong() {
-  const tracks = musicState[musicState.currentPlaylist];
-  if (!tracks.length) return;
-  let idx = musicState.shuffle ? Math.floor(Math.random()*tracks.length) : musicState.currentIdx + 1;
-  if (idx >= tracks.length) idx = 0;
-  playTrack(musicState.currentPlaylist, idx);
-}
-function playAll(pl) {
-  const tracks = musicState[pl]; if (!tracks.length) { showMMToast('No songs to play'); return; }
-  playTrack(pl, musicState.shuffle ? Math.floor(Math.random()*tracks.length) : 0);
-}
-function toggleShuffle() {
-  musicState.shuffle = !musicState.shuffle;
-  document.getElementById('shuffleBtn').classList.toggle('active', musicState.shuffle);
-  document.getElementById('myShufflePill').classList.toggle('active', musicState.shuffle);
-  showMMToast(musicState.shuffle ? 'Shuffle on 🔀' : 'Shuffle off');
-}
-function toggleRepeat() {
-  musicState.repeat = !musicState.repeat;
-  audio.loop = musicState.repeat;
-  document.getElementById('repeatBtn').classList.toggle('active', musicState.repeat);
-  document.getElementById('myRepeatPill').classList.toggle('active', musicState.repeat);
-  showMMToast(musicState.repeat ? 'Repeat on 🔁' : 'Repeat off');
-}
-function seekSong(e) {
-  if (!audio.duration) return;
-  const bar = document.getElementById('npProgressArea');
-  const rect = bar.getBoundingClientRect();
-  audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
-}
-function deleteTrack(pl, i) {
-  if (!confirm('Delete this song?')) return;
-  const t = musicState[pl][i];
-  try { localStorage.removeItem('us_aud_'+t.id); } catch(e){}
-  if (musicState.currentPlaylist===pl && musicState.currentIdx===i) {
-    audio.pause(); musicState.playing=false; musicState.currentIdx=-1;
-    document.getElementById('nowPlayingBar').classList.add('hidden');
-    updatePlayBtn();
-  }
-  musicState[pl].splice(i,1);
-  saveMusicLocal(); renderMusicTracks();
-  showMMToast('Song deleted');
-  if (pl === 'my') onMySongAdded(); // push deletion to cloud
-}
-function updateNowPlaying(t) {
-  document.getElementById('npTitle').textContent = t.title;
-  document.getElementById('npArtist').textContent = t.artist || 'Unknown Artist';
-  const art = document.getElementById('npArt');
-  if (t.artData) { art.innerHTML = `<img src="${t.artData}" alt="">`; }
-  else { art.innerHTML = `<span id="npEmoji">${t.emoji||'🎵'}</span>`; }
-  updateNPArt();
-}
-function updateNPArt() {
-  document.getElementById('npArt').classList.toggle('spinning', musicState.playing);
-}
-function updatePlayBtn() {
-  document.getElementById('playBtn').textContent = musicState.playing ? '⏸' : '▶';
-}
-
-audio.addEventListener('timeupdate', () => {
-  if (!audio.duration) return;
-  document.getElementById('npBarFill').style.width = (audio.currentTime/audio.duration*100)+'%';
-  document.getElementById('npCurrent').textContent = fmtTime(audio.currentTime);
-  document.getElementById('npDuration').textContent = fmtTime(audio.duration);
-});
-audio.addEventListener('ended', () => { if (!musicState.repeat) nextSong(); });
-audio.addEventListener('pause', () => { musicState.playing=false; updatePlayBtn(); updateNPArt(); });
-audio.addEventListener('play', () => { musicState.playing=true; updatePlayBtn(); updateNPArt(); });
 
 // ══════════════════════════════════════
 // AUDIO FX RACK (Phase 4)
@@ -1835,112 +1575,6 @@ document.addEventListener('keydown', e => {
   if (e.code==='ArrowRight' && currentMusicSection==='music') nextSong();
   if (e.code==='ArrowLeft' && currentMusicSection==='music') prevSong();
 });
-
-// ══════════════════════════════════════
-// SONG ACTION SHEET
-// ══════════════════════════════════════
-let sheetCtx = null;
-function openActionSheet(pl, idx) {
-  const t = musicState[pl][idx]; if (!t) return;
-  sheetCtx = { pl, idx };
-  const sheet = document.getElementById('actionSheet');
-  sheet.innerHTML = `
-    <div class="sheet-handle"></div>
-    <div class="sheet-track-head">
-      <div class="sheet-track-art">${t.artData?`<img src="${t.artData}" alt="">`:`<span>${t.emoji||'🎵'}</span>`}</div>
-      <div style="min-width:0">
-        <div class="sheet-title">${escH(t.title)}</div>
-        <div class="sheet-artist">${escH(t.artist||'Unknown Artist')}</div>
-      </div>
-    </div>
-    <div class="sheet-actions">
-      ${sheetAction('▶','Play','playFromSheet()')}
-      ${sheetAction('🎤','Sing With Lyrics','singWithLyrics()')}
-      ${sheetAction('🎙','Record Solo','recordSolo()')}
-      ${sheetAction('❤️','Invite Partner','invitePartnerKaraoke()')}
-      ${sheetAction('🎧','Instrumental','instrumentalMode()')}
-      ${sheetAction('📜','Lyrics','openLyricsModal()')}
-      ${sheetAction(t.favorite?'💔':'❤️', t.favorite?'Unfavorite':'Favorite','toggleFavoriteFromSheet()')}
-      ${sheetAction('➕','Move to '+(pl==='my'?'Partner':'My')+' List','moveTrackFromSheet()')}
-      ${sheetAction('📤','Share','shareTrackFromSheet()')}
-      ${sheetAction('🗑','Delete','deleteFromSheet()', true)}
-    </div>`;
-  document.getElementById('actionSheetOverlay').classList.add('open');
-}
-function sheetAction(ico, label, fn, danger) {
-  return `<button class="sheet-action${danger?' danger':''}" onclick="${fn}">
-    <span class="sa-ico">${ico}</span><span class="sa-label">${label}</span>
-  </button>`;
-}
-function closeActionSheet() {
-  document.getElementById('actionSheetOverlay').classList.remove('open');
-  sheetCtx = null;
-}
-function playFromSheet() { if (!sheetCtx) return; playTrack(sheetCtx.pl, sheetCtx.idx); closeActionSheet(); }
-function singWithLyrics() {
-  if (!sheetCtx) return;
-  const { pl, idx } = sheetCtx;
-  closeActionSheet();
-  openKaraokeMode(pl, idx);
-}
-function recordSolo() {
-  if (!sheetCtx) return;
-  const { pl, idx } = sheetCtx;
-  closeActionSheet();
-  openKaraokeMode(pl, idx);
-  setTimeout(karaokeStartCountdown, 350);
-}
-function invitePartnerKaraoke() { closeActionSheet(); showMMToast('❤️ Duet invites ship in Phase 3!'); }
-function instrumentalMode() { closeActionSheet(); showMMToast('🎧 Instrumental Mode ships in Phase 2!'); }
-function toggleFavoriteFromSheet() {
-  if (!sheetCtx) return;
-  const t = musicState[sheetCtx.pl][sheetCtx.idx];
-  t.favorite = !t.favorite;
-  saveMusicLocal(); renderMusicTracks(); closeActionSheet();
-  showMMToast(t.favorite ? 'Added to favorites ❤️' : 'Removed from favorites');
-  if (sheetCtx.pl === 'my') onMySongAdded();
-}
-function moveTrackFromSheet() {
-  if (!sheetCtx) return;
-  const { pl, idx } = sheetCtx;
-  const [t] = musicState[pl].splice(idx, 1);
-  const target = pl === 'my' ? 'partner' : 'my';
-  musicState[target].push(t);
-  saveMusicLocal(); renderMusicTracks(); closeActionSheet();
-  showMMToast(`Moved to ${target === 'my' ? 'My' : "Partner's"} Playlist`);
-}
-function shareTrackFromSheet() {
-  if (!sheetCtx) return;
-  const t = musicState[sheetCtx.pl][sheetCtx.idx];
-  if (navigator.share) navigator.share({ title: t.title, text: `🎵 ${t.title} — ${t.artist||''}` }).catch(()=>{});
-  else showMMToast("Sharing isn't supported on this browser");
-  closeActionSheet();
-}
-function deleteFromSheet() {
-  if (!sheetCtx) return;
-  const { pl, idx } = sheetCtx;
-  closeActionSheet();
-  deleteTrack(pl, idx);
-}
-
-// ══════════════════════════════════════
-// LYRICS
-// ══════════════════════════════════════
-function openLyricsModal() {
-  if (!sheetCtx) return;
-  const t = musicState[sheetCtx.pl][sheetCtx.idx];
-  document.getElementById('lyricsText').value = t.lyrics || '';
-  document.getElementById('lyricsModal').classList.add('open');
-}
-function closeLyricsModal() { document.getElementById('lyricsModal').classList.remove('open'); }
-function saveLyrics() {
-  if (!sheetCtx) { closeLyricsModal(); return; }
-  const t = musicState[sheetCtx.pl][sheetCtx.idx];
-  t.lyrics = document.getElementById('lyricsText').value;
-  saveMusicLocal();
-  closeLyricsModal(); closeActionSheet();
-  showMMToast('Lyrics saved 📜');
-}
 
 // ══════════════════════════════════════
 // KARAOKE MODE

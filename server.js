@@ -70,6 +70,7 @@ app.use('/api/globe', require('./routes/globe'));
 app.use('/api/home', require('./routes/home'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/call', require('./routes/call'));
+app.use('/api/music', require('./routes/music'));
 // ── Health check ───────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
