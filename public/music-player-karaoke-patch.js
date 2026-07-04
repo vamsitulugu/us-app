@@ -1,702 +1,241 @@
 /* ═══════════════════════════════════════════════════════════════
-   COUPLE KARAOKE — synchronized dual-camera singing room
-   Load AFTER music-player.js and music-player-karaoke-patch.js:
+   KARAOKE FIX + LYRICS WORKFLOW PATCH
+   Load AFTER music-player.js:
      <script src="/music-player.js"></script>
      <script src="/music-player-karaoke-patch.js"></script>
-     <script src="/couple-karaoke.js"></script>
 
-   Does NOT touch the existing music player / solo Karaoke feature.
-   Adds one new "💞 Sing Together" entry point.
-
-   ARCHITECTURE NOTES (read before wiring a backend):
-   - Video/audio between partners is peer-to-peer via WebRTC.
-   - Signaling (SDP offers/answers/ICE candidates) and the sync/
-     control/reaction messages all ride over the SAME generic
-     key-value channel the app already uses for partner-music sync:
-        POST /api/data/state   { coupleId, state: { key: value } }
-        GET  /api/data/state/:coupleId
-     This avoids requiring a new WebSocket server. It's polled every
-     ~0.7-1.2s, which is fine for invites/controls but is a latency
-     ceiling for perfectly frame-accurate sync — hence the client-side
-     drift-correction loop described below. If a WebSocket/Firebase
-     channel becomes available later, swap `Channel.send`/`pollOnce`
-     for a push-based transport and everything else keeps working.
-   - Playback sync model: the inviter is the HOST. The host's
-     AudioService is the source of truth. Every 2.5s (and on every
-     play/pause/seek/track-change) the host broadcasts
-     { type:'sync', songId, currentTime, playing, ts }.
-     The guest keeps its own local audio element in lockstep: hard
-     play()/pause() on state-change, and re-seeks whenever local
-     drift exceeds 400ms (accounting for message travel time via ts).
-   - Both partners hear the SAME song because the guest loads the
-     exact same track (by songId) from the shared music library that
-     already exists in Store — no separate audio pipe needed.
+   Fixes:
+   - Play/Pause/Resume/Seek in Karaoke (old code called togglePlay(),
+     prevSong(), nextSong(), playAll(), toggleShuffle(), toggleRepeat(),
+     seekSong() — none of which exist after the AudioService rewrite,
+     so every click silently threw and did nothing).
+   - Implements the "Lyrics not found" popup workflow: check for saved
+     lyrics -> open Karaoke immediately if found, otherwise show
+     Open Lyrics Website / Paste Lyrics / Upload LRC File / Cancel.
+   - Validates LRC format before saving; saved lyrics persist to the
+     song permanently (via the existing PATCH /api/music/:id route)
+     and Karaoke auto-opens right after a successful save.
 ═══════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
 
-  const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }];
-  const DRIFT_THRESHOLD = 0.4; // seconds
-  const SYNC_BROADCAST_MS = 2500;
-  const SIGNAL_POLL_MS = 1200;
-  const FAST_POLL_MS = 700;
-
   function whenReady(fn) {
-    if (window.AudioService && window.Store && window.MusicPlayer) fn();
+    if (window.AudioService && window.Store && window.MusicPlayer && typeof karaokeState !== 'undefined') fn();
     else setTimeout(() => whenReady(fn), 150);
   }
 
-  function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-  function fmtTime(s) { if (!s || isNaN(s)) return '0:00'; const m = Math.floor(s / 60), sec = Math.floor(s % 60); return m + ':' + (sec + '').padStart(2, '0'); }
+  function escH(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
-  /* ═══════════════════════════════════════
-     SIGNALING CHANNEL (shared key/value store)
-  ═══════════════════════════════════════ */
-  const Channel = (function () {
-    let ctx = null, myKey = null, peerKey = null, lastPeerTs = 0, pollTimer = null, fastTimer = null;
-    const handlers = [];
-
-    function init() {
-      ctx = window.MusicPlayer.getCoupleCtx();
-      if (!ctx) return false;
-      myKey = 'ck_' + ctx.role;
-      peerKey = 'ck_' + (ctx.role === 'user1' ? 'user2' : 'user1');
-      return true;
+  /* ── LRC validation (mirrors the parser already used for playback) ── */
+  const LRC_LINE_RE = /^\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?\]/m;
+  function validateLRC(text) {
+    if (!text || !text.trim()) return { ok: false, reason: 'Please paste or upload some lyrics first.' };
+    if (!LRC_LINE_RE.test(text)) {
+      return { ok: false, reason: 'This doesn\'t look like synced LRC lyrics. Each line should look like: [00:12.34] Some lyric text' };
     }
-    async function send(msg) {
-      if (!ctx && !init()) return;
-      const payload = { ...msg, from: ctx.role, ts: Date.now() };
-      try {
-        await window.MusicPlayer.api('POST', '/api/data/state', { coupleId: ctx.coupleId, state: { [myKey]: payload } });
-      } catch (e) { /* best-effort; next poll cycle will still see prior state */ }
-    }
-    async function pollOnce() {
-      if (!ctx && !init()) return;
-      try {
-        const state = await window.MusicPlayer.api('GET', '/api/data/state/' + ctx.coupleId);
-        const msg = state && state[peerKey];
-        if (msg && msg.ts && msg.ts !== lastPeerTs) {
-          lastPeerTs = msg.ts;
-          handlers.forEach(h => { try { h(msg); } catch (e) {} });
-        }
-      } catch (e) {}
-    }
-    function startPolling(fast) {
-      stopPolling();
-      pollTimer = setInterval(pollOnce, SIGNAL_POLL_MS);
-      if (fast) fastTimer = setInterval(pollOnce, FAST_POLL_MS);
-      pollOnce();
-    }
-    function stopPolling() {
-      if (pollTimer) clearInterval(pollTimer); pollTimer = null;
-      if (fastTimer) clearInterval(fastTimer); fastTimer = null;
-    }
-    function on(fn) { handlers.push(fn); }
-    function off(fn) { const i = handlers.indexOf(fn); if (i > -1) handlers.splice(i, 1); }
-    return { init, send, startPolling, stopPolling, on, off, get ctx() { return ctx; } };
-  })();
-
-  /* ═══════════════════════════════════════
-     DUET LYRICS PARSER
-     Supports lines like:
-       [00:12.34][Vamsi] I'll always love you
-       [00:15.10][Likitha] I'll always miss you
-       [00:18.00][Both] Forever together
-     Falls back to plain LRC (no speaker tag) rendered as "Both".
-  ═══════════════════════════════════════ */
-  const TIME_TAG = /^\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?\]/;
-  const SPEAKER_TAG = /^\[(vamsi|partner ?a|host|likitha|partner ?b|guest|both)\]/i;
-  function parseDuetLRC(raw) {
-    if (!raw || !raw.trim()) return [];
-    const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
-    const out = [];
-    lines.forEach(l => {
-      const tm = l.match(TIME_TAG);
-      if (!tm) return;
-      let rest = l.slice(tm[0].length).trim();
-      let speaker = 'both';
-      const sm = rest.match(SPEAKER_TAG);
-      if (sm) {
-        const s = sm[1].toLowerCase();
-        speaker = /vamsi|partner ?a|host/.test(s) ? 'a' : /likitha|partner ?b|guest/.test(s) ? 'b' : 'both';
-        rest = rest.slice(sm[0].length).trim();
-      }
-      const frac = tm[3] ? (tm[3].length === 2 ? parseInt(tm[3]) / 100 : parseInt(tm[3]) / 1000) : 0;
-      out.push({ time: parseInt(tm[1]) * 60 + parseInt(tm[2]) + frac, text: rest, speaker });
-    });
-    out.sort((a, b) => a.time - b.time);
-    return out;
+    return { ok: true };
   }
 
-  /* ═══════════════════════════════════════
-     ROOM STATE
-  ═══════════════════════════════════════ */
-  const Room = {
-    open: false, isHost: false, songId: null, songList: [],
-    pc: null, localStream: null, remoteStream: null,
-    cameraFacing: 'user', muted: false, cameraOff: false, speakerMuted: false,
-    lastHostSync: null, syncBroadcastTimer: null,
-    recording: false, recorder: null, recChunks: [], recCanvasStream: null, recRafId: null,
+  /* ── inject styles ── */
+  function injectStyles() {
+    const css = `
+    .lyr-nf-overlay,.lyr-paste-overlay{position:fixed;inset:0;z-index:1100;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px}
+    .lyr-nf-overlay.open,.lyr-paste-overlay.open{display:flex}
+    .lyr-nf-card{width:100%;max-width:380px;background:rgba(10,10,24,.97);backdrop-filter:blur(30px) saturate(200%);border:1px solid rgba(255,255,255,.15);border-radius:22px;padding:26px 22px;text-align:center;animation:lyrNfIn .3s cubic-bezier(.34,1.56,.64,1);box-shadow:0 24px 70px rgba(0,0,0,.5)}
+    @keyframes lyrNfIn{from{opacity:0;transform:scale(.9) translateY(14px)}to{opacity:1;transform:scale(1) translateY(0)}}
+    .lyr-nf-ico{font-size:38px;margin-bottom:8px}
+    .lyr-nf-title{font-family:var(--ff-serif,serif);font-size:19px;color:#fff;margin-bottom:16px}
+    .lyr-nf-label{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-top:8px}
+    .lyr-nf-song{font-size:15px;font-weight:700;color:#fff}
+    .lyr-nf-artist{font-size:12px;color:rgba(255,255,255,.55);margin-bottom:18px}
+    .lyr-nf-btn{width:100%;padding:12px;margin-bottom:9px;border-radius:14px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px}
+    .lyr-nf-btn:hover{background:rgba(255,255,255,.13);transform:translateY(-1px)}
+    .lyr-nf-btn.primary{background:linear-gradient(135deg,var(--accent,#5b9bff),var(--accent-d,#2f6feb));border:none;box-shadow:0 6px 20px rgba(91,155,255,.4)}
+    .lyr-nf-btn.cancel{background:transparent;border:none;color:rgba(255,255,255,.45);margin-top:4px;box-shadow:none}
+    .lyr-paste-card{width:100%;max-width:460px;background:rgba(10,10,24,.97);backdrop-filter:blur(30px) saturate(200%);border:1px solid rgba(255,255,255,.15);border-radius:22px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.5)}
+    .lyr-paste-title{font-family:var(--ff-serif,serif);font-size:17px;color:#fff;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+    .lyr-paste-title button{background:none;border:none;color:rgba(255,255,255,.5);font-size:18px;cursor:pointer}
+    .lyr-paste-ta{width:100%;min-height:180px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:12px;color:#fff;font-family:'SFMono-Regular',Consolas,monospace;font-size:12px;line-height:1.6;resize:vertical;outline:none}
+    .lyr-paste-ta:focus{border-color:var(--accent,#5b9bff)}
+    .lyr-paste-hint{font-size:11px;color:rgba(255,255,255,.4);margin:8px 0 4px;line-height:1.5}
+    .lyr-paste-err{font-size:12px;color:#f87171;margin:6px 0 4px;display:none}
+    .lyr-paste-actions{display:flex;gap:8px;margin-top:14px}
+    .lyr-paste-actions button{flex:1;padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff;font-weight:600;font-size:13px;cursor:pointer;transition:.2s}
+    .lyr-paste-actions button:hover{background:rgba(255,255,255,.12)}
+    .lyr-paste-actions button.primary{background:linear-gradient(135deg,var(--accent,#5b9bff),var(--accent-d,#2f6feb));border:none}
+    .lyr-file-label{display:inline-flex;gap:6px;align-items:center;padding:9px 14px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:12px;cursor:pointer;margin-bottom:12px;position:relative}
+    .lyr-file-label input{position:absolute;inset:0;opacity:0;cursor:pointer}
+    `;
+    const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+  }
+
+  /* ── DOM: lyrics-not-found popup ── */
+  function injectNotFoundPopup() {
+    if (document.getElementById('lyrNfOverlay')) return;
+    const el = document.createElement('div');
+    el.id = 'lyrNfOverlay'; el.className = 'lyr-nf-overlay';
+    el.innerHTML = `
+      <div class="lyr-nf-card">
+        <div class="lyr-nf-ico">🎤</div>
+        <div class="lyr-nf-title">Lyrics not found</div>
+        <div class="lyr-nf-label">Song</div>
+        <div class="lyr-nf-song" id="lyrNfSong">—</div>
+        <div class="lyr-nf-label">Artist</div>
+        <div class="lyr-nf-artist" id="lyrNfArtist">—</div>
+        <button class="lyr-nf-btn primary" id="lyrNfOpenSite">🌐 Open Lyrics Website</button>
+        <button class="lyr-nf-btn" id="lyrNfPaste">📋 Paste Lyrics</button>
+        <button class="lyr-nf-btn" id="lyrNfUploadTrigger">📂 Upload LRC File
+          <input type="file" id="lyrNfUploadInput" accept=".lrc,text/plain" style="display:none">
+        </button>
+        <button class="lyr-nf-btn cancel" id="lyrNfCancel">❌ Cancel</button>
+      </div>`;
+    document.body.appendChild(el);
+    el.addEventListener('click', e => { if (e.target === el) closeNotFoundPopup(); });
+    document.getElementById('lyrNfCancel').onclick = closeNotFoundPopup;
+    document.getElementById('lyrNfOpenSite').onclick = () => {
+      const s = window._lyrNfSong;
+      if (!s) return;
+      const q = encodeURIComponent(`${s.title} ${s.artist || ''}`.trim());
+      window.open(`https://www.lyricsify.com/search?q=${q}`, '_blank', 'noopener');
+    };
+    document.getElementById('lyrNfPaste').onclick = () => { closeNotFoundPopup(); openPasteModal('paste'); };
+    document.getElementById('lyrNfUploadTrigger').onclick = (e) => {
+      if (e.target.id === 'lyrNfUploadInput') return;
+      document.getElementById('lyrNfUploadInput').click();
+    };
+    document.getElementById('lyrNfUploadInput').addEventListener('change', (e) => {
+      const file = e.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => { closeNotFoundPopup(); openPasteModal('upload', reader.result); };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+  }
+  function openNotFoundPopup(song) {
+    window._lyrNfSong = song;
+    document.getElementById('lyrNfSong').textContent = song.title || 'Untitled';
+    document.getElementById('lyrNfArtist').textContent = song.artist || 'Unknown Artist';
+    document.getElementById('lyrNfOverlay').classList.add('open');
+  }
+  function closeNotFoundPopup() { document.getElementById('lyrNfOverlay').classList.remove('open'); }
+
+  /* ── DOM: paste / upload-review modal ── */
+  function injectPasteModal() {
+    if (document.getElementById('lyrPasteOverlay')) return;
+    const el = document.createElement('div');
+    el.id = 'lyrPasteOverlay'; el.className = 'lyr-paste-overlay';
+    el.innerHTML = `
+      <div class="lyr-paste-card">
+        <div class="lyr-paste-title"><span>📋 Paste Synced Lyrics</span><button id="lyrPasteClose">✕</button></div>
+        <div class="lyr-paste-hint">Paste LRC-format lyrics copied from Lyricsify, e.g.<br><code>[00:12.34] First line of the song</code></div>
+        <textarea class="lyr-paste-ta" id="lyrPasteTa" placeholder="[00:12.34] First line...
+[00:16.02] Second line..."></textarea>
+        <div class="lyr-paste-err" id="lyrPasteErr"></div>
+        <div class="lyr-paste-actions">
+          <button id="lyrPasteCancel">Cancel</button>
+          <button class="primary" id="lyrPasteSave">✅ Save & Open Karaoke</button>
+        </div>
+      </div>`;
+    document.body.appendChild(el);
+    el.addEventListener('click', e => { if (e.target === el) closePasteModal(); });
+    document.getElementById('lyrPasteClose').onclick = closePasteModal;
+    document.getElementById('lyrPasteCancel').onclick = closePasteModal;
+    document.getElementById('lyrPasteSave').onclick = confirmPasteSave;
+  }
+  function openPasteModal(mode, prefill) {
+    document.getElementById('lyrPasteErr').style.display = 'none';
+    document.getElementById('lyrPasteTa').value = prefill || '';
+    document.getElementById('lyrPasteOverlay').classList.add('open');
+    document.getElementById('lyrPasteTa').focus();
+  }
+  function closePasteModal() { document.getElementById('lyrPasteOverlay').classList.remove('open'); }
+
+  async function confirmPasteSave() {
+    const song = window._lyrNfSong; if (!song) { closePasteModal(); return; }
+    const text = document.getElementById('lyrPasteTa').value;
+    const check = validateLRC(text);
+    const errEl = document.getElementById('lyrPasteErr');
+    if (!check.ok) { errEl.textContent = check.reason; errEl.style.display = 'block'; return; }
+    const btn = document.getElementById('lyrPasteSave');
+    const orig = btn.textContent; btn.textContent = 'Saving…'; btn.disabled = true;
+    try {
+      const ctx = window.MusicPlayer.getCoupleCtx();
+      if (!ctx) throw new Error('Not connected');
+      await window.MusicPlayer.api('PATCH', '/api/music/' + song.id, { coupleId: ctx.coupleId, lyrics: text });
+      song.lyrics = text; // permanently linked to this song in Store
+      window.MusicPlayer.toast('Lyrics saved 📜 — never asked again for this song');
+      closePasteModal();
+      openKaraokeForSong(song.id);
+    } catch (e) {
+      errEl.textContent = 'Could not save lyrics: ' + e.message; errEl.style.display = 'block';
+    } finally {
+      btn.textContent = orig; btn.disabled = false;
+    }
+  }
+
+  /* ── entry point used by the ⋯ action sheet "Sing With Lyrics" ── */
+  function openKaraokeForSong(songId) {
+    const s = window.Store.songs.find(x => x.id === songId);
+    if (!s || typeof openKaraokeMode !== 'function') return;
+    const mine = (function () {
+      try { const ctx = window.MusicPlayer.getCoupleCtx(); return s.uploaded_by === (ctx ? ctx.role : 'user1'); } catch (e) { return true; }
+    })();
+    const list = mine ? window.Store.songs.filter(x => x.uploaded_by === s.uploaded_by) : window.Store.songs.filter(x => x.uploaded_by !== (window.MusicPlayer.getCoupleCtx() || {}).role);
+    const pl = mine ? 'my' : 'partner';
+    const idx = list.findIndex(x => x.id === s.id);
+    openKaraokeMode(pl, Math.max(0, idx));
+  }
+
+  window.karaokeOpenById = function (songId) {
+    const s = window.Store.songs.find(x => x.id === songId); if (!s) return;
+    if (s.lyrics && s.lyrics.trim()) {
+      // Lyrics already exist -> open Karaoke immediately, never ask again
+      openKaraokeForSong(songId);
+    } else {
+      openNotFoundPopup(s);
+    }
   };
 
-  /* ═══════════════════════════════════════
-     UI: injected styles
-  ═══════════════════════════════════════ */
-  function injectStyles() {
-    if (document.getElementById('ckStyles')) return;
-    const css = `
-    .ck-fab{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:490;padding:12px 18px;border-radius:30px;border:none;cursor:pointer;font-family:var(--ff-sans,sans-serif);font-size:13px;font-weight:700;color:#fff;background:linear-gradient(135deg,#ff6fb5,#7c5cff);box-shadow:0 10px 28px rgba(124,92,255,.45);display:flex;align-items:center;gap:7px;transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
-    .ck-fab:hover{transform:translateY(-2px) scale(1.03)}
-    .ck-fab .ck-fab-ico{font-size:16px}
-    @media(min-width:700px){.ck-fab{right:24px;bottom:24px}}
-
-    .ck-invite-overlay{position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:20px}
-    .ck-invite-overlay.open{display:flex}
-    .ck-invite-card{width:100%;max-width:360px;background:linear-gradient(160deg,rgba(30,10,40,.97),rgba(10,10,24,.97));border:1px solid rgba(255,255,255,.15);border-radius:26px;padding:30px 24px;text-align:center;animation:ckPop .35s cubic-bezier(.34,1.56,.64,1);box-shadow:0 30px 80px rgba(0,0,0,.6)}
-    @keyframes ckPop{from{opacity:0;transform:scale(.85) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
-    .ck-invite-heart{font-size:44px;animation:ckHeartBeat 1.1s ease-in-out infinite}
-    @keyframes ckHeartBeat{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
-    .ck-invite-text{font-family:var(--ff-serif,serif);font-size:18px;color:#fff;margin:14px 0 22px;line-height:1.5}
-    .ck-invite-actions{display:flex;gap:10px}
-    .ck-invite-btn{flex:1;padding:13px;border-radius:16px;border:none;cursor:pointer;font-weight:700;font-size:14px;font-family:var(--ff-sans,sans-serif);transition:.2s}
-    .ck-invite-btn.accept{background:linear-gradient(135deg,#34d399,#10b981);color:#04160f;box-shadow:0 8px 22px rgba(52,211,153,.4)}
-    .ck-invite-btn.decline{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.15)}
-    .ck-invite-btn:hover{transform:translateY(-1px)}
-    .ck-waiting-note{font-size:11px;color:rgba(255,255,255,.4);margin-top:14px}
-
-    .ck-room{position:fixed;inset:0;z-index:1300;background:#03030a;display:none;flex-direction:column;overflow:hidden}
-    .ck-room.open{display:flex}
-    .ck-room-bgfx{position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(124,92,255,.28),transparent 55%),radial-gradient(circle at 50% 100%,rgba(255,111,181,.2),transparent 55%);pointer-events:none;z-index:0}
-
-    .ck-video-stage{position:relative;flex:1;display:flex;flex-direction:column;overflow:hidden;z-index:1}
-    .ck-video-tile{position:relative;flex:1;min-height:0;background:linear-gradient(135deg,#141428,#0a0a18);overflow:hidden}
-    .ck-video-tile video{width:100%;height:100%;object-fit:cover;display:block}
-    .ck-video-label{position:absolute;top:10px;left:12px;padding:4px 11px;border-radius:20px;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px;z-index:2}
-    .ck-video-label .dot{width:7px;height:7px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399}
-    .ck-video-tile.partner .ck-video-label .dot{background:#5b9bff;box-shadow:0 0 8px #5b9bff}
-    .ck-video-tile.self{max-height:34%;border-top:2px solid rgba(255,255,255,.08)}
-    .ck-video-tile.partner{max-height:34%}
-
-    .ck-lyrics-stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:3;padding:0 26px}
-    .ck-lyrics-stage::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(0,0,0,.35),transparent 65%)}
-    .ck-lyric-cur{position:relative;text-align:center;font-size:24px;font-weight:800;line-height:1.4;text-shadow:0 2px 18px rgba(0,0,0,.8);transition:all .3s cubic-bezier(.4,0,.2,1)}
-    .ck-lyric-next{position:relative;text-align:center;font-size:15px;font-weight:600;color:rgba(255,255,255,.55);margin-top:10px;text-shadow:0 2px 12px rgba(0,0,0,.7)}
-    .ck-lyric-cur.speaker-a{color:#7db8ff;text-shadow:0 0 22px rgba(91,155,255,.7),0 2px 14px rgba(0,0,0,.8)}
-    .ck-lyric-cur.speaker-b{color:#ff8fce;text-shadow:0 0 22px rgba(255,111,181,.7),0 2px 14px rgba(0,0,0,.8)}
-    .ck-lyric-cur.speaker-both{color:#d4b8ff;text-shadow:0 0 22px rgba(168,111,255,.7),0 2px 14px rgba(0,0,0,.8)}
-
-    .ck-topbar{position:absolute;top:0;left:0;right:0;padding:14px 14px 0;display:flex;justify-content:space-between;align-items:center;z-index:5}
-    .ck-topbar-chip{padding:6px 12px;border-radius:16px;background:rgba(0,0,0,.4);backdrop-filter:blur(10px);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px}
-    .ck-icon-btn{width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer}
-
-    .ck-progress-wrap{position:relative;z-index:5;padding:6px 18px 2px}
-    .ck-progress-bar{height:4px;border-radius:3px;background:rgba(255,255,255,.15);cursor:pointer;position:relative}
-    .ck-progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#7c5cff,#ff6fb5);width:0%}
-    .ck-times{display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.5);margin-top:4px}
-
-    .ck-controls{position:relative;z-index:5;display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 12px calc(14px + env(safe-area-inset-bottom));flex-wrap:wrap}
-    .ck-ctrl-btn{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s}
-    .ck-ctrl-btn:hover{background:rgba(255,255,255,.16)}
-    .ck-ctrl-btn.active{background:linear-gradient(135deg,#7c5cff,#ff6fb5);border-color:transparent}
-    .ck-ctrl-btn.rec{background:linear-gradient(135deg,#ff5b7f,#c0264e)}
-    .ck-ctrl-btn.rec.live{animation:ckRecPulse 1s ease-in-out infinite}
-    @keyframes ckRecPulse{0%{box-shadow:0 0 0 0 rgba(255,91,127,.5)}70%{box-shadow:0 0 0 14px rgba(255,91,127,0)}100%{box-shadow:0 0 0 0 rgba(255,91,127,0)}}
-    .ck-ctrl-btn.play{width:54px;height:54px;font-size:20px;background:linear-gradient(135deg,#7c5cff,#5b9bff)}
-
-    .ck-reactions-bar{position:relative;z-index:5;display:flex;justify-content:center;gap:14px;padding:0 12px 8px}
-    .ck-reaction-pick{font-size:22px;cursor:pointer;transition:transform .15s}
-    .ck-reaction-pick:hover{transform:scale(1.25)}
-    .ck-floating-reaction{position:absolute;bottom:120px;font-size:30px;z-index:6;pointer-events:none;animation:ckFloatUp 3s ease-out forwards}
-    @keyframes ckFloatUp{0%{opacity:0;transform:translateY(0) scale(.5)}15%{opacity:1;transform:translateY(-40px) scale(1.1)}100%{opacity:0;transform:translateY(-420px) scale(1)}}
-
-    .ck-connecting{position:absolute;inset:0;z-index:10;background:rgba(3,3,10,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#fff}
-    .ck-connecting-spin{width:44px;height:44px;border-radius:50%;border:3px solid rgba(255,255,255,.15);border-top-color:#ff6fb5;animation:ckSpin 1s linear infinite}
-    @keyframes ckSpin{to{transform:rotate(360deg)}}
-    `;
-    const s = document.createElement('style'); s.id = 'ckStyles'; s.textContent = css; document.head.appendChild(s);
-  }
-
-  /* ═══════════════════════════════════════
-     FAB + entry point
-  ═══════════════════════════════════════ */
-  function injectFab() {
-    if (document.getElementById('ckFab')) return;
-    const btn = document.createElement('button');
-    btn.id = 'ckFab'; btn.className = 'ck-fab';
-    btn.innerHTML = `<span class="ck-fab-ico">💞</span> Sing Together`;
-    btn.onclick = openSongPickerForInvite;
-    document.body.appendChild(btn);
-  }
-
-  function openSongPickerForInvite() {
-    const songs = window.Store.songs;
-    if (!songs.length) { window.MusicPlayer.toast('Upload a song first 🎵'); return; }
-    const cur = window.AudioService.currentSong();
-    const song = cur || songs.find(s => s.visibility !== 'partner') || songs[0];
-    sendInvite(song);
-  }
-
-  /* ═══════════════════════════════════════
-     INVITE FLOW
-  ═══════════════════════════════════════ */
-  let inviteHandler = null;
-  function injectInviteOverlays() {
-    if (document.getElementById('ckInviteOverlay')) return;
-    const el = document.createElement('div');
-    el.id = 'ckInviteOverlay'; el.className = 'ck-invite-overlay';
-    el.innerHTML = `
-      <div class="ck-invite-card">
-        <div class="ck-invite-heart">❤️</div>
-        <div class="ck-invite-text" id="ckInviteText">invited you to sing.</div>
-        <div class="ck-invite-actions">
-          <button class="ck-invite-btn decline" id="ckDeclineBtn">Decline</button>
-          <button class="ck-invite-btn accept" id="ckAcceptBtn">Accept</button>
-        </div>
-      </div>`;
-    document.body.appendChild(el);
-    document.getElementById('ckDeclineBtn').onclick = () => { Channel.send({ type: 'invite_declined' }); closeInviteOverlay(); };
-    document.getElementById('ckAcceptBtn').onclick = () => { Channel.send({ type: 'invite_accepted' }); closeInviteOverlay(); joinRoom(window._ckPendingInvite.songId, false); };
-
-    const waiting = document.createElement('div');
-    waiting.id = 'ckWaitingOverlay'; waiting.className = 'ck-invite-overlay';
-    waiting.innerHTML = `
-      <div class="ck-invite-card">
-        <div class="ck-invite-heart">💞</div>
-        <div class="ck-invite-text">Waiting for your partner to accept…</div>
-        <div class="ck-waiting-note">This will open automatically if they say yes.</div>
-        <div class="ck-invite-actions"><button class="ck-invite-btn decline" id="ckCancelInviteBtn" style="flex:1">Cancel</button></div>
-      </div>`;
-    document.body.appendChild(waiting);
-    document.getElementById('ckCancelInviteBtn').onclick = () => { Channel.send({ type: 'invite_cancel' }); closeWaitingOverlay(); };
-  }
-  function openInviteOverlay(msg) {
-    window._ckPendingInvite = msg;
-    const name = (Channel.ctx && Channel.ctx.myName) || 'Your partner';
-    document.getElementById('ckInviteText').innerHTML = `❤️ <strong>${esc(name)}</strong> invited you to sing.`;
-    document.getElementById('ckInviteOverlay').classList.add('open');
-  }
-  function closeInviteOverlay() { document.getElementById('ckInviteOverlay').classList.remove('open'); }
-  function openWaitingOverlay() { document.getElementById('ckWaitingOverlay').classList.add('open'); }
-  function closeWaitingOverlay() { document.getElementById('ckWaitingOverlay').classList.remove('open'); }
-
-  function sendInvite(song) {
-    if (!Channel.init()) { window.MusicPlayer.toast('Not connected yet'); return; }
-    Channel.startPolling(true);
-    Channel.send({ type: 'invite', songId: song.id, songTitle: song.title });
-    openWaitingOverlay();
-    inviteHandler = (msg) => {
-      if (msg.type === 'invite_accepted') { closeWaitingOverlay(); joinRoom(song.id, true); }
-      else if (msg.type === 'invite_declined') { closeWaitingOverlay(); window.MusicPlayer.toast('Invite declined 💔'); Channel.off(inviteHandler); }
+  /* ── FIX: playback control shims that the old code still calls ── */
+  function installControlShims() {
+    window.togglePlay = function () { window.AudioService.togglePlay(); };
+    window.prevSong = function () { window.AudioService.prev(); };
+    window.nextSong = function () { window.AudioService.next(true); };
+    window.playAll = function (pl) { window.playAllList(pl === 'partner' ? 'partner' : 'my'); };
+    window.toggleShuffle = function () {
+      window.AudioService.setShuffle(!window.AudioService.shuffle);
+      document.querySelectorAll('#shuffleBtn,#myShufflePill').forEach(b => b.classList.toggle('active', window.AudioService.shuffle));
     };
-    Channel.on(inviteHandler);
-  }
-
-  function listenForInvites() {
-    if (!Channel.init()) { setTimeout(listenForInvites, 1500); return; }
-    Channel.startPolling(false);
-    Channel.on((msg) => {
-      if (msg.type === 'invite' && !Room.open) openInviteOverlay(msg);
-      if (msg.type === 'invite_cancel') closeInviteOverlay();
-    });
-  }
-
-  /* ═══════════════════════════════════════
-     WEBRTC
-  ═══════════════════════════════════════ */
-  async function setupPeerConnection(isHost) {
-    Room.pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-    Room.remoteStream = new MediaStream();
-    document.getElementById('ckPartnerVideo').srcObject = Room.remoteStream;
-
-    Room.pc.ontrack = (e) => { e.streams[0].getTracks().forEach(t => Room.remoteStream.addTrack(t)); };
-    Room.pc.onicecandidate = (e) => { if (e.candidate) Channel.send({ type: 'ice', candidate: e.candidate.toJSON() }); };
-    Room.pc.onconnectionstatechange = () => {
-      if (Room.pc.connectionState === 'connected') hideConnecting();
+    window.toggleRepeat = function () {
+      window.AudioService.cycleRepeat();
+      document.querySelectorAll('#repeatBtn,#myRepeatPill').forEach(b => b.classList.toggle('active', window.AudioService.repeatMode !== 'off'));
+    };
+    window.seekSong = function (e) {
+      const bar = document.getElementById('npProgressArea'); if (!bar) return;
+      const r = bar.getBoundingClientRect();
+      window.AudioService.seekPct((e.clientX - r.left) / r.width);
     };
 
-    try {
-      Room.localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: Room.cameraFacing }, audio: true });
-    } catch (e) {
-      window.MusicPlayer.toast('Camera/mic access denied — joining audio-lyrics only');
-      Room.localStream = new MediaStream();
-    }
-    document.getElementById('ckSelfVideo').srcObject = Room.localStream;
-    Room.localStream.getTracks().forEach(t => Room.pc.addTrack(t, Room.localStream));
-
-    if (isHost) {
-      const offer = await Room.pc.createOffer();
-      await Room.pc.setLocalDescription(offer);
-      Channel.send({ type: 'offer', sdp: offer });
-    }
-  }
-
-  function wireSignalHandling() {
-    Channel.on(async (msg) => {
-      if (!Room.open) return;
-      try {
-        if (msg.type === 'offer' && Room.pc) {
-          await Room.pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
-          const answer = await Room.pc.createAnswer();
-          await Room.pc.setLocalDescription(answer);
-          Channel.send({ type: 'answer', sdp: answer });
-        } else if (msg.type === 'answer' && Room.pc) {
-          await Room.pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
-        } else if (msg.type === 'ice' && Room.pc) {
-          await Room.pc.addIceCandidate(new RTCIceCandidate(msg.candidate)).catch(() => {});
-        } else if (msg.type === 'sync' && !Room.isHost) {
-          handleHostSync(msg);
-        } else if (msg.type === 'control' && !Room.isHost) {
-          handleHostControl(msg);
-        } else if (msg.type === 'reaction') {
-          spawnFloatingReaction(msg.emoji);
-        } else if (msg.type === 'leave') {
-          onPartnerLeft();
-        }
-      } catch (e) { console.warn('Couple Karaoke signal error', e); }
-    });
-  }
-
-  /* ═══════════════════════════════════════
-     PLAYBACK SYNC
-  ═══════════════════════════════════════ */
-  function broadcastSyncTick() {
-    if (!Room.isHost || !Room.open) return;
-    const s = window.AudioService.currentSong();
-    if (!s) return;
-    Channel.send({ type: 'sync', songId: s.id, currentTime: window.AudioService.audio.currentTime, playing: !window.AudioService.audio.paused });
-  }
-  function broadcastControl(action, extra) {
-    if (!Room.isHost) return;
-    Channel.send({ type: 'control', action, ...extra });
-  }
-  function handleHostSync(msg) {
-    Room.lastHostSync = msg;
-    if (Room.songId !== msg.songId) { loadGuestSong(msg.songId, msg.currentTime, msg.playing); return; }
-    const travel = (Date.now() - msg.ts) / 1000;
-    const expected = msg.currentTime + (msg.playing ? Math.max(0, travel) : 0);
-    const audio = window.AudioService.audio;
-    if (Math.abs(audio.currentTime - expected) > DRIFT_THRESHOLD) audio.currentTime = expected;
-    if (msg.playing && audio.paused) audio.play().catch(() => {});
-    if (!msg.playing && !audio.paused) audio.pause();
-  }
-  function handleHostControl(msg) {
-    const audio = window.AudioService.audio;
-    if (msg.action === 'play') audio.play().catch(() => {});
-    if (msg.action === 'pause') audio.pause();
-    if (msg.action === 'seek') audio.currentTime = msg.time;
-    if (msg.action === 'track') loadGuestSong(msg.songId, 0, true);
-  }
-  function loadGuestSong(songId, startAt, autoplay) {
-    const s = window.Store.songs.find(x => x.id === songId);
-    if (!s) return;
-    Room.songId = songId;
-    window.AudioService.play(Room.songList.length ? Room.songList : window.Store.songs, songId);
-    setTimeout(() => {
-      window.AudioService.audio.currentTime = startAt || 0;
-      if (!autoplay) window.AudioService.audio.pause();
-    }, 200);
-    loadDuetLyricsFor(s);
-    updateRoomSongInfo(s);
-  }
-
-  /* ═══════════════════════════════════════
-     ROOM UI
-  ═══════════════════════════════════════ */
-  function injectRoom() {
-    if (document.getElementById('ckRoom')) return;
-    const el = document.createElement('div');
-    el.id = 'ckRoom'; el.className = 'ck-room';
-    el.innerHTML = `
-      <div class="ck-room-bgfx"></div>
-      <div class="ck-connecting" id="ckConnecting"><div class="ck-connecting-spin"></div><div>Connecting to your partner…</div></div>
-
-      <div class="ck-topbar">
-        <div class="ck-topbar-chip" id="ckSongChip">🎵 —</div>
-        <div style="display:flex;gap:8px">
-          <button class="ck-icon-btn" id="ckLeaveBtn" title="Leave">✕</button>
-        </div>
-      </div>
-
-      <div class="ck-video-stage">
-        <div class="ck-video-tile partner">
-          <div class="ck-video-label"><span class="dot"></span><span id="ckPartnerName">Partner</span></div>
-          <video id="ckPartnerVideo" autoplay playsinline></video>
-        </div>
-        <div class="ck-lyrics-stage">
-          <div>
-            <div class="ck-lyric-cur speaker-both" id="ckLyricCur">🎤 Waiting for lyrics…</div>
-            <div class="ck-lyric-next" id="ckLyricNext"></div>
-          </div>
-        </div>
-        <div class="ck-video-tile self">
-          <div class="ck-video-label"><span class="dot"></span>You</div>
-          <video id="ckSelfVideo" autoplay playsinline muted></video>
-        </div>
-        <div id="ckReactionsLayer" style="position:absolute;inset:0;pointer-events:none;z-index:6"></div>
-      </div>
-
-      <div class="ck-progress-wrap">
-        <div class="ck-progress-bar" id="ckProgressBar"><div class="ck-progress-fill" id="ckProgressFill"></div></div>
-        <div class="ck-times"><span id="ckCurTime">0:00</span><span id="ckDurTime">0:00</span></div>
-      </div>
-
-      <div class="ck-reactions-bar">
-        ${['❤️','😂','👏','🔥','🥹'].map(e => `<span class="ck-reaction-pick" data-e="${e}">${e}</span>`).join('')}
-      </div>
-
-      <div class="ck-controls">
-        <button class="ck-ctrl-btn" id="ckPrevBtn" title="Previous">⏮</button>
-        <button class="ck-ctrl-btn play" id="ckPlayBtn" title="Play/Pause">▶</button>
-        <button class="ck-ctrl-btn" id="ckNextBtn" title="Next">⏭</button>
-        <button class="ck-ctrl-btn" id="ckMuteBtn" title="Mute mic">🎙</button>
-        <button class="ck-ctrl-btn" id="ckCamBtn" title="Camera on/off">📷</button>
-        <button class="ck-ctrl-btn" id="ckSwitchCamBtn" title="Switch camera">🔄</button>
-        <button class="ck-ctrl-btn" id="ckSpeakerBtn" title="Speaker">🔊</button>
-        <button class="ck-ctrl-btn rec" id="ckRecBtn" title="Record Our Duet">⏺</button>
-      </div>
-    `;
-    document.body.appendChild(el);
-
-    document.getElementById('ckLeaveBtn').onclick = () => leaveRoom(false);
-    document.getElementById('ckPlayBtn').onclick = () => {
-      const audio = window.AudioService.audio;
-      if (Room.isHost) {
-        if (audio.paused) { audio.play().catch(() => {}); broadcastControl('play'); }
-        else { audio.pause(); broadcastControl('pause'); }
-      } else {
-        window.MusicPlayer.toast('Only the host controls playback 🎤');
+    // Karaoke transport: single audio instance, driven by AudioService,
+    // lyrics already resync off native `timeupdate` in the existing code.
+    window.karaokeTogglePlay = function () {
+      if (typeof karaokeAudioCtx !== 'undefined' && karaokeAudioCtx && karaokeAudioCtx.state === 'suspended') {
+        karaokeAudioCtx.resume().catch(() => {});
       }
+      window.AudioService.togglePlay();
     };
-    document.getElementById('ckPrevBtn').onclick = () => { if (Room.isHost) { window.AudioService.prev(); broadcastControl('track', { songId: window.AudioService.currentSong()?.id }); } };
-    document.getElementById('ckNextBtn').onclick = () => { if (Room.isHost) { window.AudioService.next(true); broadcastControl('track', { songId: window.AudioService.currentSong()?.id }); } };
-    document.getElementById('ckProgressBar').onclick = (e) => {
-      if (!Room.isHost) return;
-      const r = e.currentTarget.getBoundingClientRect();
-      const pct = (e.clientX - r.left) / r.width;
-      const t = pct * (window.AudioService.audio.duration || 0);
-      window.AudioService.audio.currentTime = t;
-      broadcastControl('seek', { time: t });
+    window.karaokeRestart = function () { window.AudioService.seek(0); window.AudioService.audio.play().catch(() => {}); };
+    window.karaokeSeek = function (e) {
+      const bar = document.getElementById('karaokeProgressArea'); if (!bar) return;
+      const r = bar.getBoundingClientRect();
+      window.AudioService.seekPct((e.clientX - r.left) / r.width);
     };
-    document.getElementById('ckMuteBtn').onclick = toggleMic;
-    document.getElementById('ckCamBtn').onclick = toggleCamera;
-    document.getElementById('ckSwitchCamBtn').onclick = switchCamera;
-    document.getElementById('ckSpeakerBtn').onclick = toggleSpeaker;
-    document.getElementById('ckRecBtn').onclick = toggleRecording;
-    el.querySelectorAll('.ck-reaction-pick').forEach(pick => {
-      pick.onclick = () => { const e = pick.dataset.e; spawnFloatingReaction(e); Channel.send({ type: 'reaction', emoji: e }); };
-    });
-
-    window.AudioService.on('time', ({ cur, dur }) => {
-      if (!Room.open || !dur) return;
-      document.getElementById('ckProgressFill').style.width = (cur / dur * 100) + '%';
-      document.getElementById('ckCurTime').textContent = fmtTime(cur);
-      document.getElementById('ckDurTime').textContent = fmtTime(dur);
-      updateDuetLyricHighlight(cur);
-    });
-    window.AudioService.on('state', (playing) => {
-      const btn = document.getElementById('ckPlayBtn'); if (btn && Room.open) btn.textContent = playing ? '⏸' : '▶';
-    });
   }
 
-  function showConnecting() { const el = document.getElementById('ckConnecting'); if (el) el.style.display = 'flex'; }
-  function hideConnecting() { const el = document.getElementById('ckConnecting'); if (el) el.style.display = 'none'; }
-
-  function updateRoomSongInfo(s) {
-    const chip = document.getElementById('ckSongChip');
-    if (chip) chip.textContent = `🎵 ${s.title}${s.artist ? ' — ' + s.artist : ''}`;
-  }
-
-  /* ═══════════════════════════════════════
-     DUET LYRICS RENDER
-  ═══════════════════════════════════════ */
-  let duetLines = [];
-  function loadDuetLyricsFor(song) {
-    duetLines = parseDuetLRC(song.lyrics);
-    if (!duetLines.length) {
-      document.getElementById('ckLyricCur').textContent = '🎤 No synced lyrics for this song yet';
-      document.getElementById('ckLyricNext').textContent = '';
-    }
-  }
-  function speakerClass(sp) { return sp === 'a' ? 'speaker-a' : sp === 'b' ? 'speaker-b' : 'speaker-both'; }
-  function updateDuetLyricHighlight(t) {
-    if (!duetLines.length) return;
-    let idx = -1;
-    for (let i = 0; i < duetLines.length; i++) if (duetLines[i].time <= t) idx = i;
-    const cur = duetLines[idx], next = duetLines[idx + 1];
-    const curEl = document.getElementById('ckLyricCur'), nextEl = document.getElementById('ckLyricNext');
-    if (cur && curEl) {
-      curEl.textContent = cur.text;
-      curEl.className = 'ck-lyric-cur ' + speakerClass(cur.speaker);
-    }
-    if (nextEl) nextEl.textContent = next ? next.text : '';
-  }
-
-  /* ═══════════════════════════════════════
-     REACTIONS
-  ═══════════════════════════════════════ */
-  function spawnFloatingReaction(emoji) {
-    const layer = document.getElementById('ckReactionsLayer'); if (!layer) return;
-    const el = document.createElement('div');
-    el.className = 'ck-floating-reaction';
-    el.textContent = emoji;
-    el.style.left = (10 + Math.random() * 75) + '%';
-    layer.appendChild(el);
-    setTimeout(() => el.remove(), 3200);
-  }
-
-  /* ═══════════════════════════════════════
-     DEVICE CONTROLS
-  ═══════════════════════════════════════ */
-  function toggleMic() {
-    Room.muted = !Room.muted;
-    Room.localStream?.getAudioTracks().forEach(t => t.enabled = !Room.muted);
-    document.getElementById('ckMuteBtn').classList.toggle('active', Room.muted);
-    document.getElementById('ckMuteBtn').textContent = Room.muted ? '🔇' : '🎙';
-  }
-  function toggleCamera() {
-    Room.cameraOff = !Room.cameraOff;
-    Room.localStream?.getVideoTracks().forEach(t => t.enabled = !Room.cameraOff);
-    document.getElementById('ckCamBtn').classList.toggle('active', Room.cameraOff);
-  }
-  async function switchCamera() {
-    Room.cameraFacing = Room.cameraFacing === 'user' ? 'environment' : 'user';
-    try {
-      const newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: Room.cameraFacing }, audio: false });
-      const newTrack = newStream.getVideoTracks()[0];
-      const sender = Room.pc?.getSenders().find(s => s.track && s.track.kind === 'video');
-      if (sender) await sender.replaceTrack(newTrack);
-      const oldTrack = Room.localStream.getVideoTracks()[0];
-      if (oldTrack) { Room.localStream.removeTrack(oldTrack); oldTrack.stop(); }
-      Room.localStream.addTrack(newTrack);
-      document.getElementById('ckSelfVideo').srcObject = Room.localStream;
-    } catch (e) { window.MusicPlayer.toast('Could not switch camera'); }
-  }
-  function toggleSpeaker() {
-    Room.speakerMuted = !Room.speakerMuted;
-    const v = document.getElementById('ckPartnerVideo');
-    v.muted = Room.speakerMuted;
-    document.getElementById('ckSpeakerBtn').classList.toggle('active', Room.speakerMuted);
-    document.getElementById('ckSpeakerBtn').textContent = Room.speakerMuted ? '🔈' : '🔊';
-  }
-
-  /* ═══════════════════════════════════════
-     RECORDING → "Our Duet" in Memories
-  ═══════════════════════════════════════ */
-  function toggleRecording() { Room.recording ? stopRecording() : startRecording(); }
-  function startRecording() {
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = 720; canvas.height = 1280;
-      const ctx2d = canvas.getContext('2d');
-      const partnerVid = document.getElementById('ckPartnerVideo');
-      const selfVid = document.getElementById('ckSelfVideo');
-
-      function drawFrame() {
-        if (!Room.recording) return;
-        ctx2d.fillStyle = '#03030a'; ctx2d.fillRect(0, 0, canvas.width, canvas.height);
-        try { ctx2d.drawImage(partnerVid, 0, 0, canvas.width, canvas.height * 0.5); } catch (e) {}
-        try { ctx2d.drawImage(selfVid, 0, canvas.height * 0.5, canvas.width, canvas.height * 0.5); } catch (e) {}
-        const curLyric = document.getElementById('ckLyricCur')?.textContent || '';
-        ctx2d.fillStyle = 'rgba(0,0,0,.35)'; ctx2d.fillRect(0, canvas.height * 0.44, canvas.width, 70);
-        ctx2d.font = 'bold 26px sans-serif'; ctx2d.fillStyle = '#fff'; ctx2d.textAlign = 'center';
-        ctx2d.fillText(curLyric.slice(0, 46), canvas.width / 2, canvas.height * 0.44 + 44);
-        Room.recRafId = requestAnimationFrame(drawFrame);
-      }
-      Room.recCanvasStream = canvas.captureStream(30);
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const dest = audioCtx.createMediaStreamDestination();
-      [Room.localStream, Room.remoteStream].forEach(stream => {
-        if (!stream) return;
-        try { audioCtx.createMediaStreamSource(stream).connect(dest); } catch (e) {}
-      });
-      dest.stream.getAudioTracks().forEach(t => Room.recCanvasStream.addTrack(t));
-
-      Room.recChunks = [];
-      Room.recorder = new MediaRecorder(Room.recCanvasStream, { mimeType: 'video/webm;codecs=vp8,opus' });
-      Room.recorder.ondataavailable = e => { if (e.data.size) Room.recChunks.push(e.data); };
-      Room.recorder.onstop = saveDuetRecording;
-      Room.recording = true;
-      Room.recorder.start();
-      drawFrame();
-      document.getElementById('ckRecBtn').classList.add('live');
-      window.MusicPlayer.toast('Recording Our Duet 🎥');
-    } catch (e) { window.MusicPlayer.toast('Recording not supported on this device'); }
-  }
-  function stopRecording() {
-    Room.recording = false;
-    if (Room.recRafId) cancelAnimationFrame(Room.recRafId);
-    if (Room.recorder && Room.recorder.state !== 'inactive') Room.recorder.stop();
-    document.getElementById('ckRecBtn').classList.remove('live');
-  }
-  function saveDuetRecording() {
-    const blob = new Blob(Room.recChunks, { type: 'video/webm' });
-    const url = URL.createObjectURL(blob);
-    try {
-      const ctx = Channel.ctx || window.MusicPlayer.getCoupleCtx();
-      const key = 'ck_memories_' + (ctx ? ctx.coupleId : 'local');
-      const existing = JSON.parse(localStorage.getItem(key) || '[]');
-      existing.unshift({ id: Date.now(), title: 'Our Duet', date: new Date().toISOString().slice(0, 10), url, blobSize: blob.size });
-      localStorage.setItem(key, JSON.stringify(existing));
-    } catch (e) {}
-    window.MusicPlayer.toast('Saved as "Our Duet" in Memories 💕');
-    const a = document.createElement('a'); a.href = url; a.download = 'our-duet.webm'; a.click();
-  }
-
-  /* ═══════════════════════════════════════
-     ROOM LIFECYCLE
-  ═══════════════════════════════════════ */
-  async function joinRoom(songId, isHost) {
-    Room.open = true; Room.isHost = isHost; Room.songId = songId;
-    Room.songList = window.Store.songs;
-    injectRoom();
-    document.getElementById('ckRoom').classList.add('open');
-    showConnecting();
-
-    const song = window.Store.songs.find(x => x.id === songId);
-    if (song) { updateRoomSongInfo(song); loadDuetLyricsFor(song); }
-
-    if (isHost) {
-      window.AudioService.play(Room.songList, songId);
-      Room.syncBroadcastTimer = setInterval(broadcastSyncTick, SYNC_BROADCAST_MS);
-    } else {
-      window.AudioService.audio.pause();
-    }
-
-    Channel.startPolling(true);
-    await setupPeerConnection(isHost);
-
-    setTimeout(hideConnecting, 6000);
-  }
-
-  function onPartnerLeft() {
-    window.MusicPlayer.toast('Your partner left the room 💔');
-    leaveRoom(true);
-  }
-
-  function leaveRoom(silent) {
-    if (!silent) Channel.send({ type: 'leave' });
-    Room.open = false;
-    if (Room.syncBroadcastTimer) clearInterval(Room.syncBroadcastTimer);
-    if (Room.recording) stopRecording();
-    if (Room.pc) { Room.pc.close(); Room.pc = null; }
-    if (Room.localStream) { Room.localStream.getTracks().forEach(t => t.stop()); Room.localStream = null; }
-    window.AudioService.audio.pause();
-    const el = document.getElementById('ckRoom'); if (el) el.classList.remove('open');
-    Channel.stopPolling();
-    listenForInvites();
-  }
-
-  /* ═══════════════════════════════════════
-     INIT
-  ═══════════════════════════════════════ */
   whenReady(function () {
     injectStyles();
-    injectFab();
-    injectInviteOverlays();
-    injectRoom();
-    wireSignalHandling();
-    listenForInvites();
+    injectNotFoundPopup();
+    injectPasteModal();
+    installControlShims();
   });
-
-  window.CoupleKaraoke = { sendInvite, joinRoom, leaveRoom };
 })();
