@@ -7465,7 +7465,78 @@ window.addEventListener('pageshow', (e) => {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') syncAuthOverlay();
 });
-        applyRebranding();
+// ═══════ GLOBAL COUPLE-KARAOKE INVITE LISTENER (works on any page) ═══════
+(function() {
+  let lastSeenSeq = 0;
+  function myKey() { return 'ck_' + S.role; }
+  function peerKey() { return 'ck_' + (S.role === 'user1' ? 'user2' : 'user1'); }
+
+  async function pollForInvite() {
+    if (!S.coupleId) return;
+    // If the Music page is already open, its own iframe script shows the card — skip here to avoid duplicates.
+    const musicPageActive = document.getElementById('page-music')?.classList.contains('active');
+    if (musicPageActive) return;
+    try {
+      const state = await api('GET', '/api/data/state/' + S.coupleId);
+      const msgs = state && state[peerKey()];
+      if (!Array.isArray(msgs)) return;
+      const fresh = msgs.filter(m => m.seq > lastSeenSeq).sort((a,b) => a.seq - b.seq);
+      if (!fresh.length) return;
+      lastSeenSeq = fresh[fresh.length - 1].seq;
+      fresh.forEach(msg => {
+        if (msg.type === 'invite') showGlobalInviteCard(msg);
+        if (msg.type === 'invite_cancel') closeGlobalInviteCard();
+      });
+    } catch (e) {}
+  }
+
+  async function sendCkMessage(msg) {
+    const key = myKey();
+    const payload = { ...msg, from: S.role, ts: Date.now(), seq: Date.now() };
+    try {
+      const state = await api('GET', '/api/data/state/' + S.coupleId);
+      const existing = Array.isArray((state||{})[key]) ? state[key] : [];
+      const updated = [...existing, payload].slice(-20);
+      await api('POST', '/api/data/state', { coupleId: S.coupleId, state: { [key]: updated } });
+    } catch (e) {}
+  }
+
+  function showGlobalInviteCard(msg) {
+    if (document.getElementById('globalCkInviteOverlay')) return;
+    const el = document.createElement('div');
+    el.id = 'globalCkInviteOverlay';
+    el.style.cssText = 'position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px';
+    el.innerHTML = `
+      <div style="width:100%;max-width:340px;background:linear-gradient(160deg,rgba(30,10,40,.97),rgba(10,10,24,.97));border:1px solid rgba(255,255,255,.15);border-radius:24px;padding:28px 22px;text-align:center">
+        <div style="font-size:40px">❤️</div>
+        <div style="font-family:var(--ff-serif);font-size:17px;color:#fff;margin:12px 0 20px">
+          <strong>${esc(S.partnerName || 'Your partner')}</strong> invited you to sing together 🎤
+        </div>
+        <div style="display:flex;gap:10px">
+          <button id="globalCkDecline" style="flex:1;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:#fff;font-weight:700;cursor:pointer">Decline</button>
+          <button id="globalCkAccept" style="flex:1;padding:12px;border-radius:14px;border:none;background:linear-gradient(135deg,#34d399,#10b981);color:#04160f;font-weight:700;cursor:pointer">Accept 🎤</button>
+        </div>
+      </div>`;
+    document.body.appendChild(el);
+    document.getElementById('globalCkDecline').onclick = () => { sendCkMessage({ type: 'invite_declined' }); closeGlobalInviteCard(); };
+    document.getElementById('globalCkAccept').onclick = () => {
+      sendCkMessage({ type: 'invite_accepted' });
+      closeGlobalInviteCard();
+      goto('music');
+      const frame = document.getElementById('musicFrame');
+      const join = () => { try { frame.contentWindow.postMessage({ type: 'ckJoinAsGuest', songId: msg.songId }, '*'); } catch(e){} };
+      if (frame.contentDocument && frame.contentDocument.readyState === 'complete') setTimeout(join, 800);
+      else frame.addEventListener('load', () => setTimeout(join, 800), { once: true });
+    };
+    if (navigator.vibrate) navigator.vibrate([120,60,120,60,250]);
+    fireBackgroundNotification('🎤 ' + (S.partnerName || 'Your partner') + ' invited you to sing', 'Tap to open and accept');
+  }
+  function closeGlobalInviteCard() { const el = document.getElementById('globalCkInviteOverlay'); if (el) el.remove(); }
+
+  setInterval(pollForInvite, 1500);
+})();
+
+applyRebranding();
 init();
         // Register PWA service worker
         if ('serviceWorker' in navigator) {

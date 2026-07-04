@@ -58,6 +58,20 @@ if (_sendPushToPartner && coupleId && state) {
       tag: 'hug'
     }).catch(() => {});
   }
+  ['ck_user1', 'ck_user2'].forEach(key => {
+    const arr = state[key];
+    if (!Array.isArray(arr) || !arr.length) return;
+    const last = arr[arr.length - 1];
+    if (last.type === 'invite' && last.from === role) {
+      _sendPushToPartner(coupleId, role, {
+        title: '🎤 Sing Together',
+        body: (state.myName || 'Your partner') + ' invited you to sing "' + (last.songTitle || 'a song') + '"',
+        icon: '/icons/icon-192.png',
+        tag: 'ck-invite',
+        url: '/#music'
+      }).catch(() => {});
+    }
+  });
 }
   if (error) return res.status(500).json({ error: error.message });
   return res.json({ ok: true, savedAt: new Date().toISOString() });

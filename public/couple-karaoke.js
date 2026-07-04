@@ -35,6 +35,12 @@
 (function () {
   'use strict';
 
+  window.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'ckJoinAsGuest' && e.data.songId) {
+      whenReady(() => joinRoom(e.data.songId, false));
+    }
+  });
+  
   const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }];
   const DRIFT_THRESHOLD = 0.4; // seconds
   const SYNC_BROADCAST_MS = 2500;
