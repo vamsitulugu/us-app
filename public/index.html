@@ -4761,7 +4761,7 @@ vercel-live-feedback {
         <!-- NOTIFICATIONS -->
         <div class="settings-group">
           <div class="settings-group-header">🔔 Notifications & Alarms</div>
-          <div class="settings-row" style="cursor:default">
+<div class="settings-row" style="cursor:default">
   <div class="settings-row-ico">🔔</div>
   <div class="settings-row-content">
     <div class="settings-row-title">Push Notifications</div>
@@ -4769,27 +4769,17 @@ vercel-live-feedback {
   </div>
   <div class="toggle" id="notifToggle" onclick="toggleNotifications()"></div>
 </div>
-            <div class="settings-row-action">›</div>
-          </div>
-          <div class="settings-row" style="cursor:default">
-  <div class="settings-row-ico">🔔</div>
+         <div class="settings-row" style="cursor:default">
+  <div class="settings-row-ico">⏰</div>
   <div class="settings-row-content">
-    <div class="settings-row-title">Push Notifications</div>
-    <div class="settings-row-sub" id="notifStatus">Tap to enable</div>
+    <div class="settings-row-title">DND Hours</div>
+    <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+      <input type="time" id="dndStart" value="22:00" style="width:110px;font-size:12px" oninput="saveDND()">
+      <span style="color:var(--text3);line-height:2.2">to</span>
+      <input type="time" id="dndEnd" value="08:00" style="width:110px;font-size:12px" oninput="saveDND()">
+    </div>
   </div>
-  <div class="toggle" id="notifToggle" onclick="toggleNotifications()"></div>
 </div>
-          <div class="settings-row" style="cursor:default">
-            <div class="settings-row-ico">⏰</div>
-            <div class="settings-row-content">
-              <div class="settings-row-title">DND Hours</div>
-              <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
-                <input type="time" id="dndStart" value="22:00" style="width:110px;font-size:12px" oninput="saveDND()">
-                <span style="color:var(--text3);line-height:2.2">to</span>
-                <input type="time" id="dndEnd" value="08:00" style="width:110px;font-size:12px" oninput="saveDND()">
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- PRIVACY & SECURITY -->
@@ -5896,8 +5886,8 @@ async function toggleNotifications() {
   if (!('Notification' in window)) { toast('Not supported on this browser'); return; }
 
   if (Notification.permission === 'granted') {
-    // Browsers don't let JS revoke permission — explain instead of faking an "off" state
-    toast('To turn off, disable notifications for this site in your browser settings');
+    await registerPushSubscription();
+    toast('🔔 Notifications are on');
     syncNotifToggleUI();
     return;
   }
@@ -5909,7 +5899,7 @@ async function toggleNotifications() {
   syncNotifToggleUI();
   if (p === 'granted') {
     toast('Notifications enabled! 🔔');
-    await registerPushSubscription(); // uses the corrected /api/auth/push/... paths
+    await registerPushSubscription();
   } else {
     toast('Notifications not enabled');
   }
