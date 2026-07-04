@@ -640,6 +640,7 @@
       <div class="sheet-actions">
         ${saAction('▶', 'Play', `playFromList('${listKey}','${s.id}');closeActionSheet()`)}
         ${saAction('🎤', 'Sing With Lyrics', `closeActionSheet();window.karaokeOpenById && karaokeOpenById('${s.id}')`)}
+        ${saAction('💞', 'Sing Together', `closeActionSheet();CoupleKaraoke.sendInviteById('${s.id}')`)}
         ${saAction(s.favorite ? '💔' : '❤️', s.favorite ? 'Unfavorite' : 'Favorite', `toggleFavoriteSong('${s.id}');closeActionSheet()`)}
         ${saAction('📜', 'Lyrics', `closeActionSheet();openLyricsModal('${s.id}')`)}
         ${saAction('📤', 'Share', `shareTrack('${s.id}');closeActionSheet()`)}

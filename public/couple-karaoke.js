@@ -63,13 +63,15 @@
       peerKey = 'ck_' + (ctx.role === 'user1' ? 'user2' : 'user1');
       return true;
     }
-    async function send(msg) {
-      if (!ctx && !init()) return;
-      const payload = { ...msg, from: ctx.role, ts: Date.now() };
-      try {
-        await window.MusicPlayer.api('POST', '/api/data/state', { coupleId: ctx.coupleId, state: { [myKey]: payload } });
-      } catch (e) { /* best-effort; next poll cycle will still see prior state */ }
-    }
+    let outbox = [];
+async function send(msg) {
+  if (!ctx && !init()) return;
+  const payload = { ...msg, from: ctx.role, ts: Date.now(), seq: ++_seq };
+  outbox.push(payload);
+  try {
+    await window.MusicPlayer.api('POST', '/api/data/state', { coupleId: ctx.coupleId, state: { [myKey]: outbox.slice(-20) } });
+  } catch (e) {}
+}
     async function pollOnce() {
       if (!ctx && !init()) return;
       try {
@@ -174,8 +176,13 @@
     .ck-video-label{position:absolute;top:10px;left:12px;padding:4px 11px;border-radius:20px;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px;z-index:2}
     .ck-video-label .dot{width:7px;height:7px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399}
     .ck-video-tile.partner .ck-video-label .dot{background:#5b9bff;box-shadow:0 0 8px #5b9bff}
-    .ck-video-tile.self{max-height:34%;border-top:2px solid rgba(255,255,255,.08)}
-    .ck-video-tile.partner{max-height:34%}
+    .ck-video-tile.partner{ position:absolute; inset:0; max-height:none; z-index:0; }
+.ck-video-tile.self{
+  position:absolute; top:14px; right:14px;
+  width:110px; height:160px; max-height:none;
+  border-radius:16px; overflow:hidden; z-index:4;
+  border:2px solid rgba(255,255,255,.25); box-shadow:0 8px 24px rgba(0,0,0,.5);
+}
 
     .ck-lyrics-stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:3;padding:0 26px}
     .ck-lyrics-stage::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(0,0,0,.35),transparent 65%)}
@@ -386,7 +393,16 @@
     if (msg.action === 'seek') audio.currentTime = msg.time;
     if (msg.action === 'track') loadGuestSong(msg.songId, 0, true);
   }
-  function loadGuestSong(songId, startAt, autoplay) {
+  async function loadGuestSong(songId, startAt, autoplay) {
+    const ctx = window.MusicPlayer.getCoupleCtx();
+    if (ctx) {
+      try {
+        const fresh = await window.MusicPlayer.api('GET', '/api/music/' + ctx.coupleId);
+        const idx = window.Store.songs.findIndex(x => x.id === songId);
+        const freshSong = fresh.find(x => x.id === songId);
+        if (freshSong && idx > -1) window.Store.songs[idx] = freshSong;
+      } catch (e) {}
+    }
     const s = window.Store.songs.find(x => x.id === songId);
     if (!s) return;
     Room.songId = songId;
@@ -652,6 +668,15 @@
     document.getElementById('ckRoom').classList.add('open');
     showConnecting();
 
+    const ctx = window.MusicPlayer.getCoupleCtx();
+    if (ctx) {
+      try {
+        const fresh = await window.MusicPlayer.api('GET', '/api/music/' + ctx.coupleId);
+        const idx = window.Store.songs.findIndex(x => x.id === songId);
+        const freshSong = fresh.find(x => x.id === songId);
+        if (freshSong && idx > -1) window.Store.songs[idx] = freshSong;
+      } catch (e) {}
+    }
     const song = window.Store.songs.find(x => x.id === songId);
     if (song) { updateRoomSongInfo(song); loadDuetLyricsFor(song); }
 
@@ -698,5 +723,14 @@
     listenForInvites();
   });
 
-  window.CoupleKaraoke = { sendInvite, joinRoom, leaveRoom };
+  window.CoupleKaraoke = {
+  sendInvite,
+  sendInviteById: function(songId) {
+    const s = window.Store.songs.find(x => x.id === songId);
+    if (s) sendInvite(s);
+    else window.MusicPlayer.toast('Song not found');
+  },
+  joinRoom,
+  leaveRoom
+};
 })();
