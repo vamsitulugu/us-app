@@ -75,5 +75,21 @@ router.post('/log', async (req, res) => {
   }
   return res.json(data);
 });
+router.post('/signal', async (req, res) => {
+  const { coupleId, role, payload } = req.body;
+  if (!coupleId || !role || !payload) return res.status(400).json({ error: 'Missing data' });
+  const { error } = await supabase.from('call_signals').insert({ couple_id: coupleId, role, payload });
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ ok: true });
+});
 
+router.get('/signal/:coupleId', async (req, res) => {
+  const { role, after } = req.query;
+  let q = supabase.from('call_signals').select('*')
+    .eq('couple_id', req.params.coupleId).eq('role', role);
+  if (after) q = q.gt('id', parseInt(after));
+  const { data, error } = await q.order('id', { ascending: true }).limit(50);
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json(data || []);
+});
 module.exports = router;

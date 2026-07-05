@@ -3603,7 +3603,23 @@ async function toggleNotifications() {
         }
         function uploadPhotos(input) { Array.from(input.files).forEach(file => { const r = new FileReader(); r.onload = e => savePhoto(e.target.result, file.name, file.type.startsWith('video') ? 'video' : 'image'); r.readAsDataURL(file); }); }
         function uploadVideo(input) { if (!input.files[0]) return; const r = new FileReader(); r.onload = e => savePhoto(e.target.result, input.files[0].name, 'video'); r.readAsDataURL(input.files[0]); }
-        function savePhoto(url, name, type) { S.photos.push({ id: Date.now(), url, name, type: type || 'image', date: todayStr() }); renderPhotos(); scheduleSave(); }
+        async function savePhoto(url, name, type) {
+  // url here is a dataURL from FileReader — convert to blob and upload
+  const blob = await (await fetch(url)).blob();
+  const fd = new FormData();
+  fd.append('file', blob, name || 'photo.jpg');
+  fd.append('coupleId', S.coupleId);
+  fd.append('type', 'photo');
+  try {
+    const r = await fetch(API + '/api/media/upload', { method: 'POST', body: fd });
+    const data = await r.json();
+    S.photos.push({ id: Date.now(), url: data.url, name, type: type || 'image', date: todayStr() });
+  } catch (e) {
+    toast('Upload failed: ' + e.message);
+    return;
+  }
+  renderPhotos(); scheduleSave();
+}
         function renderPhotos() {
           const grid = document.getElementById('photoGrid');
           document.getElementById('photoCountTag').textContent = S.photos.length;
@@ -3872,7 +3888,21 @@ async function toggleNotifications() {
         function showPinError() { document.getElementById('pinErr').style.display = 'block'; document.querySelectorAll('.pd').forEach(d => { d.style.background = 'var(--red)'; d.style.borderColor = 'var(--red)'; }); setTimeout(() => { document.getElementById('pinErr').style.display = 'none'; pinEntry = []; updatePinDots(); }, 1500); }
         function unlockVault() { pinEntry = []; updatePinDots(); document.getElementById('vaultLocked').style.display = 'none'; document.getElementById('vaultOpen').style.display = 'block'; renderVault(); toast('Vault unlocked! 🔓'); spawnPetals(4); }
         function lockVault() { document.getElementById('vaultLocked').style.display = 'block'; document.getElementById('vaultOpen').style.display = 'none'; }
-        function addVaultMedia(input, type) { Array.from(input.files).forEach(file => { const r = new FileReader(); r.onload = e => { S.vault.push({ id: Date.now(), url: e.target.result, type, date: todayStr() }); renderVault(); scheduleSave(); }; r.readAsDataURL(file); }); toast(type === 'video' ? 'Video added 🎬' : 'Photo added 📷'); }
+        function addVaultMedia(input, type) {
+  Array.from(input.files).forEach(async file => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('coupleId', S.coupleId);
+    fd.append('type', 'vault');
+    try {
+      const r = await fetch(API + '/api/media/upload', { method: 'POST', body: fd });
+      const data = await r.json();
+      S.vault.push({ id: Date.now(), url: data.url, type, date: todayStr() });
+      renderVault(); scheduleSave();
+    } catch (e) { toast('Vault upload failed: ' + e.message); }
+  });
+  toast(type === 'video' ? 'Video added 🎬' : 'Photo added 📷');
+}
         function renderVault() { const g = document.getElementById('vaultGrid'), empty = document.getElementById('vaultEmpty'); if (!S.vault.length) { g.innerHTML = ''; empty.style.display = 'block'; return; } empty.style.display = 'none'; g.innerHTML = S.vault.map((v, i) => `<div class="vt">${v.type === 'video' ? `<video src="${v.url}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>` : `<img src="${v.url}" alt="vault" loading="lazy" onclick="openImgViewer('${v.url}')">`}<button class="vt-del" onclick="delVault(${i})">🗑️</button></div>`).join(''); }
         function delVault(i) { S.vault.splice(i, 1); renderVault(); scheduleSave(); }
         async function changePin() {

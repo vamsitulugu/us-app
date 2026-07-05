@@ -1,9 +1,10 @@
 /*public/chat/call.js*/
 
 const Call = (function () {
-  let pc, localStream, remoteStream, callType, role, callId, isCaller = false;
+  let pc, localStream, remoteStream, callType, isCaller = false;
   let timerInt, seconds = 0;
   let pollInterval;
+  let isMuted = false, isCamOff = false, isSpeakerOn = true;
 
   function coupleId() { return window.S && window.S.coupleId; }
   function myRole() { return window.S && window.S.role; }
@@ -17,29 +18,26 @@ const Call = (function () {
     } catch (e) { return [{ urls: 'stun:stun.l.google.com:19302' }]; }
   }
 
-  function sigKeyMine() { return 'callsig_' + myRole(); }
-  function sigKeyTheirs() { return 'callsig_' + otherRole(); }
-
   async function pushSignal(msg) {
     if (!coupleId()) return;
     try {
-      const state = await api('GET', '/api/data/state/' + coupleId());
-      const existing = Array.isArray((state || {})[sigKeyMine()]) ? state[sigKeyMine()] : [];
-      const updated = [...existing, { ...msg, ts: Date.now(), seq: Date.now() }].slice(-30);
-      await api('POST', '/api/data/state', { coupleId: coupleId(), state: { [sigKeyMine()]: updated } });
+      await fetch(API + '/api/call/signal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coupleId: coupleId(), role: myRole(), payload: msg })
+      });
     } catch (e) {}
   }
 
-  let lastSeenSeq = 0;
+  let lastSignalId = 0;
   async function pollSignal() {
     if (!coupleId()) return;
     try {
-      const state = await api('GET', '/api/data/state/' + coupleId());
-      const msgs = Array.isArray((state || {})[sigKeyTheirs()]) ? state[sigKeyTheirs()] : [];
-      const fresh = msgs.filter(m => m.seq > lastSeenSeq).sort((a, b) => a.seq - b.seq);
-      if (!fresh.length) return;
-      lastSeenSeq = fresh[fresh.length - 1].seq;
-      for (const m of fresh) await handleSignal(m);
+      const r = await fetch(API + '/api/call/signal/' + coupleId() + '?role=' + otherRole() + '&after=' + lastSignalId);
+      const rows = await r.json();
+      if (!rows.length) return;
+      lastSignalId = Math.max(...rows.map(x => x.id));
+      for (const row of rows) await handleSignal(row.payload);
     } catch (e) {}
   }
 
@@ -51,7 +49,7 @@ const Call = (function () {
     else if (m.type === 'decline') { toast('Call declined'); cleanup(); logCall('declined'); }
   }
 
-  function startPolling() { if (pollInterval) clearInterval(pollInterval); pollInterval = setInterval(pollSignal, 1200); }
+  function startPolling() { if (pollInterval) clearInterval(pollInterval); pollInterval = setInterval(pollSignal, 500); }
 
   // ─── UI overlay ──────────────────────────────────────
   function ensureOverlay() {
@@ -66,8 +64,6 @@ const Call = (function () {
   function closeOverlay() {
     const el = document.getElementById('callOverlay');
     if (el) { el.classList.remove('open'); el.remove(); }
-    document.body.style.removeProperty('overflow');
-    document.body.style.removeProperty('pointer-events');
   }
 
   function avatarHtml(name, av) {
@@ -139,13 +135,77 @@ const Call = (function () {
 
   function controlsHtml(video) {
     return `<div class="call-controls call-controls-active">
-      <button class="call-btn call-btn-sm" id="muteBtn" onclick="Call.toggleMute()" title="Mute">🎙️</button>
+      <button class="call-btn call-btn-sm" id="muteBtn" onclick="Call.toggleMute()" title="Mute">
+        <span id="muteIcon">🎙️</span>
+      </button>
       ${video
-        ? `<button class="call-btn call-btn-sm" id="camBtn" onclick="Call.toggleCam()" title="Camera">📹</button>
-           <button class="call-btn call-btn-sm" onclick="Call.flipCamera()" title="Flip camera">🔄</button>`
-        : `<button class="call-btn call-btn-sm" id="speakerBtn" onclick="Call.toggleSpeaker()" title="Speaker">🔊</button>`}
+        ? `<button class="call-btn call-btn-sm" id="camBtn" onclick="Call.toggleCam()" title="Camera">
+             <span id="camIcon">📹</span>
+           </button>
+           <button class="call-btn call-btn-sm" id="flipBtn" onclick="Call.flipCamera()" title="Flip camera">🔄</button>`
+        : `<button class="call-btn call-btn-sm" id="speakerBtn" onclick="Call.toggleSpeaker()" title="Speaker">
+             <span id="speakerIcon">🔊</span>
+           </button>`}
       <button class="call-btn call-btn-end" onclick="Call.endCall()">📞</button>
     </div>`;
+  }
+
+  function toggleMute() {
+    if (!localStream) return;
+    const track = localStream.getAudioTracks()[0];
+    if (!track) return;
+    isMuted = !isMuted;
+    track.enabled = !isMuted;
+    document.getElementById('muteBtn')?.classList.toggle('call-btn-active', isMuted);
+    const icon = document.getElementById('muteIcon');
+    if (icon) icon.textContent = isMuted ? '🔇' : '🎙️';
+  }
+
+  function toggleCam() {
+    if (!localStream) return;
+    const track = localStream.getVideoTracks()[0];
+    if (!track) return;
+    isCamOff = !isCamOff;
+    track.enabled = !isCamOff;
+    document.getElementById('camBtn')?.classList.toggle('call-btn-active', isCamOff);
+    const icon = document.getElementById('camIcon');
+    if (icon) icon.textContent = isCamOff ? '📵' : '📹';
+    const localVid = document.getElementById('callLocalVideo');
+    if (localVid) localVid.style.opacity = isCamOff ? '0.25' : '1';
+  }
+
+  function toggleSpeaker() {
+    isSpeakerOn = !isSpeakerOn;
+    document.getElementById('speakerBtn')?.classList.toggle('call-btn-active', !isSpeakerOn);
+    const icon = document.getElementById('speakerIcon');
+    if (icon) icon.textContent = isSpeakerOn ? '🔊' : '🔈';
+    const audioEl = document.getElementById('callRemoteAudio');
+    if (audioEl && audioEl.setSinkId) {
+      audioEl.setSinkId(isSpeakerOn ? 'default' : 'communications').catch(() => {});
+    }
+  }
+
+  async function flipCamera() {
+    if (!localStream) return;
+    const track = localStream.getVideoTracks()[0];
+    if (!track) return;
+    const btn = document.getElementById('flipBtn');
+    if (btn) btn.disabled = true;
+    const cur = track.getSettings().facingMode;
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: cur === 'user' ? 'environment' : 'user' }, audio: false
+      });
+      const newTrack = newStream.getVideoTracks()[0];
+      const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+      if (sender) await sender.replaceTrack(newTrack);
+      track.stop();
+      localStream.removeTrack(track);
+      localStream.addTrack(newTrack);
+      const localVid = document.getElementById('callLocalVideo');
+      if (localVid) localVid.srcObject = localStream;
+    } catch (e) { toast('Could not flip camera'); }
+    if (btn) btn.disabled = false;
   }
 
   function startTimer() {
@@ -162,6 +222,7 @@ const Call = (function () {
   async function startCall(type) {
     if (!coupleId()) { toast('Not connected'); return; }
     callType = type; isCaller = true;
+    isMuted = false; isCamOff = false; isSpeakerOn = true;
     renderRinging(type, false);
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
@@ -187,6 +248,7 @@ const Call = (function () {
 
   async function acceptCall() {
     if (!pendingOffer) return;
+    isMuted = false; isCamOff = false; isSpeakerOn = true;
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: callType === 'video' });
     } catch (e) { toast('Permission denied'); declineCall(); return; }
@@ -216,41 +278,11 @@ const Call = (function () {
     pc.onicecandidate = e => { if (e.candidate) pushSignal({ type: 'ice', candidate: e.candidate }); };
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === 'connected') renderActive();
-      if (pc.connectionState === 'failed') {
-        toast('Call disconnected');
-        endCall(true);
-      } else if (pc.connectionState === 'disconnected') {
-        toast('Connection lost — reconnecting...');
-      }
+      if (pc.connectionState === 'failed') { toast('Call disconnected'); endCall(true); }
+      else if (pc.connectionState === 'disconnected') { toast('Connection lost — reconnecting...'); }
     };
   }
   function onConnecting() { const lbl = document.querySelector('.call-status-label'); if (lbl) lbl.textContent = 'Connecting...'; }
-
-  function toggleMute() {
-    if (!localStream) return;
-    const track = localStream.getAudioTracks()[0];
-    track.enabled = !track.enabled;
-    document.getElementById('muteBtn')?.classList.toggle('call-btn-active', !track.enabled);
-  }
-  function toggleCam() {
-    if (!localStream) return;
-    const track = localStream.getVideoTracks()[0]; if (!track) return;
-    track.enabled = !track.enabled;
-    document.getElementById('camBtn')?.classList.toggle('call-btn-active', !track.enabled);
-  }
-  function toggleSpeaker() { document.getElementById('speakerBtn')?.classList.toggle('call-btn-active'); }
-  async function flipCamera() {
-    if (!localStream) return;
-    const track = localStream.getVideoTracks()[0]; if (!track) return;
-    const cur = track.getSettings().facingMode;
-    track.stop();
-    const newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: cur === 'user' ? 'environment' : 'user' }, audio: false });
-    const newTrack = newStream.getVideoTracks()[0];
-    const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-    if (sender) sender.replaceTrack(newTrack);
-    localStream.removeTrack(track); localStream.addTrack(newTrack);
-    document.getElementById('callLocalVideo').srcObject = localStream;
-  }
 
   function endCall(notify = true) {
     if (notify) pushSignal({ type: 'end' });
@@ -271,9 +303,7 @@ const Call = (function () {
     try { await api('POST', '/api/call/log', { coupleId: coupleId(), callerRole: isCaller ? myRole() : otherRole(), type: callType, status, duration: duration || 0 }); } catch (e) {}
   }
 
-  // background listener for incoming calls even outside chat page
-  function initGlobalListener() { startPolling(); }
-  document.addEventListener('DOMContentLoaded', () => setTimeout(initGlobalListener, 1500));
+  document.addEventListener('DOMContentLoaded', () => setTimeout(startPolling, 1500));
 
   return { startCall, acceptCall, declineCall, endCall, toggleMute, toggleCam, toggleSpeaker, flipCamera };
 })();

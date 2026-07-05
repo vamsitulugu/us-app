@@ -157,22 +157,21 @@ router.post('/state', async (req, res) => {
   const { coupleId, state } = req.body;
   if (!coupleId || !state) return res.status(400).json({ error: 'Missing data' });
 
-  // Fetch previous state first so we can diff against it
-  let prevState = null;
-  try {
-    const { data: prevRow } = await supabase
-      .from('app_state').select('state').eq('couple_id', coupleId).maybeSingle();
-    prevState = prevRow?.state || null;
-  } catch (_) {}
+  const { data: prevRow } = await supabase
+    .from('app_state').select('state').eq('couple_id', coupleId).maybeSingle();
+  const prevState = prevRow?.state || null;
+
+  // MERGE instead of REPLACE — this was wiping your whole DB on every call signal
+  const merged = { ...(prevState || {}), ...state };
 
   const { error } = await supabase.from('app_state').upsert({
     couple_id:  coupleId,
-    state:      state,
+    state:      merged,
     updated_at: new Date().toISOString()
   }, { onConflict: 'couple_id' });
 
   if (!error) {
-    try { diffAndNotify(coupleId, state.role, prevState, state, state.myName); }
+    try { diffAndNotify(coupleId, state.role || merged.role, prevState, merged, state.myName || merged.myName); }
     catch (e) { console.warn('Notify diff error:', e.message); }
   }
 
