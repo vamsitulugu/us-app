@@ -1388,7 +1388,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
         oninput="Chat.onTypingInput(); this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,120)+'px'"
         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();Chat.sendText();}"></textarea>
       <span class="chat-rec-timer" id="chatRecTimer" style="display:none">00:00</span>
-      <button class="chat-composer-btn" id="chatRecBtn" onclick="Chat.toggleRecord()" title="Voice message">🎙️</button>
+      <button class="chat-composer-btn" onclick="Chat.openSheet()" title="More options">⋮</button>
       <button class="chat-composer-btn send" onclick="Chat.sendText()">➤</button>
     </div>
   </div>

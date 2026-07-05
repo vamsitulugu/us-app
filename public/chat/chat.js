@@ -297,7 +297,7 @@ const Chat = (function () {
       };
       mediaRecorder.start();
       recording = true; recStart = Date.now();
-      document.getElementById('chatRecBtn').textContent = '⏹';
+      const recBtn = document.getElementById('chatRecBtn'); if (recBtn) recBtn.textContent = '⏹';
       document.getElementById('chatRecTimer').style.display = 'inline';
       recTimerInt = setInterval(() => {
         const s = Math.floor((Date.now() - recStart) / 1000);
@@ -308,7 +308,7 @@ const Chat = (function () {
   function stopRecording() {
     recording = false;
     clearInterval(recTimerInt);
-    document.getElementById('chatRecBtn').textContent = '🎙️';
+    const recBtn = document.getElementById('chatRecBtn'); if (recBtn) recBtn.textContent = '🎙️';
     document.getElementById('chatRecTimer').style.display = 'none';
     if (mediaRecorder) mediaRecorder.stop();
   }
