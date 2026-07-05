@@ -30,23 +30,21 @@
     }
 
     :root {
-  --h: 258;
-  --accent: #7C4DFF;
-  --accent-d: #6A3DE8;
-  --accent-l: #A480FF;
-  --accent-glow: rgba(124, 77, 255, 0.35);
+  --h: 280;
+  --accent: #A855F7;
+  --accent-d: #9333EA;
+  --accent-l: #D8B4FE;
+  --accent-glow: rgba(168, 85, 247, 0.40);
 
-  --accent2: #FF5FA2;
-  --accent2-d: #E8447F;
-  --accent2-glow: rgba(255, 95, 162, 0.35);
+  --accent2: #EC4899;
+  --accent2-d: #DB2777;
+  --accent2-glow: rgba(236, 72, 153, 0.40);
 
-      --g1: rgba(255, 255, 255, 0.045);
-      --g2: rgba(255, 255, 255, 0.09);
-      --g3: rgba(255, 255, 255, 0.14);
-      --gb: rgba(255, 255, 255, 0.06);
-      --gd: rgba(255, 255, 255, 0.025);
-      --bg-base: #0F1022;
-      --bg-surface: #1B1736;
+      --g1: rgba(255, 255, 255, 0.14);
+      --g2: rgba(255, 255, 255, 0.20);
+      --g3: rgba(255, 255, 255, 0.28);
+      --gb: rgba(255, 255, 255, 0.16);
+      --gd: rgba(255, 255, 255, 0.10);
       --blur: blur(24px) saturate(180%);
       --blur-sm: blur(12px) saturate(150%);
 
@@ -116,19 +114,19 @@
     }
 
     .card {
-      background: var(--g1);
-      backdrop-filter: var(--blur);
-      -webkit-backdrop-filter: var(--blur);
-      border: 1px solid var(--border);
-      border-radius: var(--r);
+      background: rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 24px;
       padding: 18px;
       margin-bottom: 14px;
-      box-shadow: 0 2px 16px rgba(20, 20, 30, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      box-shadow: 0 8px 32px rgba(76, 29, 149, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.35);
       transition: box-shadow 0.2s, transform 0.2s;
     }
 
     .card:hover {
-      box-shadow: 0 8px 28px rgba(20, 20, 30, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+      box-shadow: 0 12px 40px rgba(76, 29, 149, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.45);
       transform: translateY(-2px);
     }
 
@@ -2955,7 +2953,7 @@
       position: fixed;
       inset: 0;
       z-index: -2;
-      background: radial-gradient(ellipse at 20% 20%, #14132b 0%, #0F1022 100%);
+      background: linear-gradient(160deg, #7B2FF7 0%, #A855F7 35%, #C026D3 70%, #4C1D95 100%);
     }
 
     #bg::before {
@@ -2963,19 +2961,19 @@
       position: absolute;
       inset: 0;
       background:
-        radial-gradient(circle at 15% 10%, rgba(124, 77, 255, 0.20), transparent 50%),
-        radial-gradient(circle at 88% 8%, rgba(255, 95, 162, 0.16), transparent 50%),
-        radial-gradient(circle at 50% 95%, rgba(124, 77, 255, 0.10), transparent 55%);
+        radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.20), transparent 45%),
+        radial-gradient(circle at 90% 15%, rgba(236, 72, 153, 0.35), transparent 50%),
+        radial-gradient(circle at 50% 100%, rgba(76, 29, 149, 0.45), transparent 60%);
       pointer-events: none;
     }
 
-    /* Fix card glass — was showing solid bg */
+    /* Fix card glass — light frosted purple theme */
     .card {
-      background: rgba(255, 255, 255, 0.04) !important;
-      backdrop-filter: blur(24px) saturate(180%) !important;
-      -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-      border: 1px solid rgba(255, 255, 255, 0.10) !important;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+      background: rgba(255, 255, 255, 0.14) !important;
+      backdrop-filter: blur(20px) saturate(160%) !important;
+      -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.25) !important;
+      box-shadow: 0 8px 32px rgba(76, 29, 149, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
     }
 
     .sidebar {
