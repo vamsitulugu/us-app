@@ -14,19 +14,24 @@ const Call = (function () {
     try {
       const r = await fetch(API + '/api/call/turn-creds');
       const d = await r.json();
-      return d.iceServers || [{ urls: 'stun:stun.l.google.com:19302' }];
+      return d.iceServers && d.iceServers.length ? d.iceServers : [{ urls: 'stun:stun.l.google.com:19302' }];
     } catch (e) { return [{ urls: 'stun:stun.l.google.com:19302' }]; }
   }
 
   async function pushSignal(msg) {
-    if (!coupleId()) return;
+    if (!coupleId()) { toast('⚠️ Not connected to partner'); return; }
     try {
-      await fetch(API + '/api/call/signal', {
+      const r = await fetch(API + '/api/call/signal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ coupleId: coupleId(), role: myRole(), payload: msg })
       });
-    } catch (e) {}
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        console.error('Signal push failed:', err);
+        toast('⚠️ Call signal failed: ' + (err.error || r.status));
+      }
+    } catch (e) { console.error('Signal push error:', e); toast('⚠️ Network error during call setup'); }
   }
 
   let lastSignalId = 0;
@@ -34,6 +39,7 @@ const Call = (function () {
     if (!coupleId()) return;
     try {
       const r = await fetch(API + '/api/call/signal/' + coupleId() + '?role=' + otherRole() + '&after=' + lastSignalId);
+      if (!r.ok) return;
       const rows = await r.json();
       if (!rows.length) return;
       lastSignalId = Math.max(...rows.map(x => x.id));
@@ -51,19 +57,17 @@ const Call = (function () {
 
   function startPolling() { if (pollInterval) clearInterval(pollInterval); pollInterval = setInterval(pollSignal, 500); }
 
-  // ─── UI overlay ──────────────────────────────────────
+  // ─── UI overlay — always fully removed before creating new one ──────
   function ensureOverlay() {
-    let el = document.getElementById('callOverlay');
-    if (el) return el;
-    el = document.createElement('div');
+    document.querySelectorAll('#callOverlay').forEach(el => el.remove()); // kill any stale duplicates
+    const el = document.createElement('div');
     el.id = 'callOverlay';
     el.className = 'call-overlay';
     document.body.appendChild(el);
     return el;
   }
   function closeOverlay() {
-    const el = document.getElementById('callOverlay');
-    if (el) { el.classList.remove('open'); el.remove(); }
+    document.querySelectorAll('#callOverlay').forEach(el => { el.classList.remove('open'); el.remove(); });
   }
 
   function avatarHtml(name, av) {
@@ -73,7 +77,6 @@ const Call = (function () {
   function renderRinging(type, incoming) {
     const el = ensureOverlay();
     el.classList.remove('call-active-video');
-    el.classList.add('open');
     const name = window.S.partnerName || 'Partner';
     const av = window.S.partnerAvatar;
 
@@ -92,18 +95,21 @@ const Call = (function () {
           <span>Decline</span><span>Accept</span>
         </div>
         <div class="call-controls call-controls-incoming" style="margin-bottom:max(40px, env(safe-area-inset-bottom))">
-          <button class="call-btn call-btn-decline" onclick="Call.declineCall()">📞</button>
-          <button class="call-btn call-btn-accept" onclick="Call.acceptCall()">${type === 'video' ? '📹' : '📞'}</button>
+          <button type="button" class="call-btn call-btn-decline" onclick="Call.declineCall()">📞</button>
+          <button type="button" class="call-btn call-btn-accept" onclick="Call.acceptCall()">${type === 'video' ? '📹' : '📞'}</button>
         </div>
       ` : `
         <div class="call-controls" style="margin-bottom:max(40px, env(safe-area-inset-bottom))">
-          <button class="call-btn call-btn-end" onclick="Call.endCall()">📞</button>
+          <button type="button" class="call-btn call-btn-end" onclick="Call.endCall()">📞</button>
         </div>
       `}`;
+    // force layout + open on next frame so opacity transition + pointer-events actually apply
+    requestAnimationFrame(() => el.classList.add('open'));
   }
 
   function renderActive() {
     const el = ensureOverlay();
+    el.classList.add('open');
     const name = window.S.partnerName || 'Partner';
     if (callType === 'video') {
       el.classList.add('call-active-video');
@@ -135,18 +141,18 @@ const Call = (function () {
 
   function controlsHtml(video) {
     return `<div class="call-controls call-controls-active">
-      <button class="call-btn call-btn-sm" id="muteBtn" onclick="Call.toggleMute()" title="Mute">
+      <button type="button" class="call-btn call-btn-sm" id="muteBtn" onclick="Call.toggleMute()" title="Mute">
         <span id="muteIcon">🎙️</span>
       </button>
       ${video
-        ? `<button class="call-btn call-btn-sm" id="camBtn" onclick="Call.toggleCam()" title="Camera">
+        ? `<button type="button" class="call-btn call-btn-sm" id="camBtn" onclick="Call.toggleCam()" title="Camera">
              <span id="camIcon">📹</span>
            </button>
-           <button class="call-btn call-btn-sm" id="flipBtn" onclick="Call.flipCamera()" title="Flip camera">🔄</button>`
-        : `<button class="call-btn call-btn-sm" id="speakerBtn" onclick="Call.toggleSpeaker()" title="Speaker">
+           <button type="button" class="call-btn call-btn-sm" id="flipBtn" onclick="Call.flipCamera()" title="Flip camera">🔄</button>`
+        : `<button type="button" class="call-btn call-btn-sm" id="speakerBtn" onclick="Call.toggleSpeaker()" title="Speaker">
              <span id="speakerIcon">🔊</span>
            </button>`}
-      <button class="call-btn call-btn-end" onclick="Call.endCall()">📞</button>
+      <button type="button" class="call-btn call-btn-end" onclick="Call.endCall()">📞</button>
     </div>`;
   }
 
@@ -220,7 +226,8 @@ const Call = (function () {
 
   // ─── CALL FLOW ───────────────────────────────────────
   async function startCall(type) {
-    if (!coupleId()) { toast('Not connected'); return; }
+    if (!coupleId()) { toast('Not connected to a partner yet'); return; }
+    if (!S.paired) { toast('⚠️ Your partner hasn\'t joined yet — pair first'); return; }
     callType = type; isCaller = true;
     isMuted = false; isCamOff = false; isSpeakerOn = true;
     renderRinging(type, false);
