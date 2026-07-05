@@ -1,7 +1,10 @@
 /* ══════════════════════════════════════════════════════════════
    public/chat/chat.css — Save as: public/chat/chat.css
    ══════════════════════════════════════════════════════════════ */
-
+.content:has(#page-chat.active) {
+  overflow: hidden;
+  padding: 0;
+}
 .chat-page-wrap {
   display: flex;
   flex-direction: column;

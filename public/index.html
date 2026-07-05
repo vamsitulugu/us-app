@@ -1381,15 +1381,17 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
     <div class="chat-composer-banner" id="chatComposerBanner"></div>
 
     <div class="chat-composer">
-      <label class="chat-composer-btn" style="cursor:pointer">📷
+      <label class="chat-composer-btn" id="chatCameraLabel" style="cursor:pointer">📷
         <input type="file" accept="image/*" style="display:none" onchange="Chat.onImagePick(this)">
       </label>
       <textarea id="chatIn" rows="1" placeholder="Type a message..."
         oninput="Chat.onTypingInput(); this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,120)+'px'"
         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();Chat.sendText();}"></textarea>
       <span class="chat-rec-timer" id="chatRecTimer" style="display:none">00:00</span>
-      <button class="chat-composer-btn" onclick="Chat.openSheet()" title="More options">⋮</button>
-      <button class="chat-composer-btn send" onclick="Chat.sendText()">➤</button>
+      <button class="chat-composer-btn" id="chatCancelRecBtn" style="display:none" onclick="Chat.cancelRecording()" title="Cancel">🗑️</button>
+      <button class="chat-composer-btn" id="chatStopRecBtn" style="display:none;background:var(--red)" onclick="Chat.toggleRecord()" title="Stop and send">⏹</button>
+      <button class="chat-composer-btn" id="chatMoreBtn" onclick="Chat.openSheet()" title="More options">⋮</button>
+      <button class="chat-composer-btn send" id="chatSendBtn" onclick="Chat.sendText()">➤</button>
     </div>
   </div>
 </div>

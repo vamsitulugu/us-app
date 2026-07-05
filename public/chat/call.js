@@ -154,6 +154,7 @@ const Call = (function () {
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     await pushSignal({ type: 'offer', sdp: offer, callType: type });
+    try { await api('POST', '/api/call/notify', { coupleId: coupleId(), callerRole: myRole(), type }); } catch (e) {}
     startPolling();
   }
 

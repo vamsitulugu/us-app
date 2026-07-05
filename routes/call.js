@@ -26,6 +26,23 @@ router.get('/turn-creds', async (req, res) => {
   }
 });
 
+// POST /api/call/notify — push an incoming-call alert to the partner
+router.post('/notify', async (req, res) => {
+  const { coupleId, callerRole, type } = req.body;
+  if (!coupleId || !callerRole) return res.status(400).json({ error: 'Missing data' });
+  if (_sendPushToPartner) {
+    _sendPushToPartner(coupleId, callerRole, {
+      title: type === 'video' ? '📹 Incoming video call' : '🎙️ Incoming voice call',
+      body: 'Tap to answer',
+      icon: '/icons/icon-192.png',
+      tag: 'incoming-call',
+      renotify: true,
+      url: '/?page=chat'
+    }).catch(() => {});
+  }
+  return res.json({ ok: true });
+});
+
 // POST /api/call/log — log a call to chat history (missed / ended / duration)
 router.post('/log', async (req, res) => {
   const { coupleId, callerRole, type, status, duration } = req.body;
