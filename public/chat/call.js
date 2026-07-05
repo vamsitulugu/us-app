@@ -47,15 +47,33 @@ const Call = (function () {
     } catch (e) {}
   }
 
+let iceQueue = [];
+
   async function handleSignal(m) {
     if (m.type === 'offer' && !pc) { showIncoming(m); }
-    else if (m.type === 'answer' && pc) { await pc.setRemoteDescription(new RTCSessionDescription(m.sdp)); onConnecting(); }
-    else if (m.type === 'ice' && pc) { try { await pc.addIceCandidate(m.candidate); } catch (e) {} }
+    else if (m.type === 'answer' && pc) {
+      await pc.setRemoteDescription(new RTCSessionDescription(m.sdp));
+      onConnecting();
+      // flush any ICE candidates that arrived before the remote description was set
+      for (const cand of iceQueue) { try { await pc.addIceCandidate(cand); } catch (e) {} }
+      iceQueue = [];
+    }
+    else if (m.type === 'ice') {
+      if (pc && pc.remoteDescription) {
+        try { await pc.addIceCandidate(m.candidate); } catch (e) {}
+      } else {
+        iceQueue.push(m.candidate); // queue until remote description exists
+      }
+    }
     else if (m.type === 'end') { endCall(false); }
     else if (m.type === 'decline') { toast('Call declined'); cleanup(); logCall('declined'); }
   }
 
-  function startPolling() { if (pollInterval) clearInterval(pollInterval); pollInterval = setInterval(pollSignal, 500); }
+  function startPolling() {
+    if (pollInterval) clearInterval(pollInterval);
+    pollInterval = setInterval(pollSignal, 500);
+    pollSignal(); // fire immediately, don't wait for first tick
+  }
 
   // ─── UI overlay — always fully removed before creating new one ──────
   function ensureOverlay() {
@@ -262,6 +280,8 @@ const Call = (function () {
     await setupPeer();
     localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
     await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer.sdp));
+    for (const cand of iceQueue) { try { await pc.addIceCandidate(cand); } catch (e) {} }
+    iceQueue = [];
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     await pushSignal({ type: 'answer', sdp: answer });
@@ -300,6 +320,7 @@ const Call = (function () {
     if (pc) { pc.close(); pc = null; }
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
     remoteStream = null;
+    iceQueue = [];
     if (timerInt) clearInterval(timerInt);
     if (pollInterval) clearInterval(pollInterval);
     closeOverlay();
@@ -311,7 +332,11 @@ const Call = (function () {
   }
 
   document.addEventListener('DOMContentLoaded', () => setTimeout(startPolling, 1500));
-
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') pollSignal();
+  });
+  window.addEventListener('focus', () => pollSignal());
+  window.addEventListener('pageshow', () => pollSignal());
   return { startCall, acceptCall, declineCall, endCall, toggleMute, toggleCam, toggleSpeaker, flipCamera };
 })();
 window.Call = Call;

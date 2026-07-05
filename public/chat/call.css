@@ -178,3 +178,32 @@
 .call-controls, .call-controls-active, .call-controls-incoming {
   pointer-events: auto !important;
 }
+
+.call-overlay {
+  backdrop-filter: blur(2px);
+}
+.call-status-label {
+  animation: statusFade 1.6s ease-in-out infinite;
+}
+@keyframes statusFade { 0%,100%{opacity:0.55} 50%{opacity:1} }
+
+.call-avatar-ring {
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+}
+.call-avatar {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+}
+
+/* Incoming call labels sit centered under each button, not floating oddly */
+.call-incoming-labels {
+  text-align: center;
+}
+.call-incoming-labels span {
+  display: inline-block;
+  width: 68px;
+}
+
+/* Smoother open/close transition instead of an instant snap */
+.call-overlay {
+  transition: opacity 0.3s ease, backdrop-filter 0.3s ease;
+}
