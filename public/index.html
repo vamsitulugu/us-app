@@ -30,21 +30,23 @@
     }
 
     :root {
-      --h: 215;
-      --accent: hsl(var(--h), 100%, 62%);
-      --accent-d: hsl(var(--h), 95%, 50%);
-      --accent-l: hsl(var(--h), 100%, 78%);
-      --accent-glow: hsla(var(--h), 100%, 62%, 0.35);
+  --h: 258;
+  --accent: #7C4DFF;
+  --accent-d: #6A3DE8;
+  --accent-l: #A480FF;
+  --accent-glow: rgba(124, 77, 255, 0.35);
 
-      --accent2: hsl(300, 85%, 65%);
-      --accent2-d: hsl(300, 80%, 52%);
-      --accent2-glow: hsla(300, 85%, 65%, 0.35);
+  --accent2: #FF5FA2;
+  --accent2-d: #E8447F;
+  --accent2-glow: rgba(255, 95, 162, 0.35);
 
-      --g1: rgba(255, 255, 255, 0.04);
-      --g2: rgba(255, 255, 255, 0.08);
-      --g3: rgba(255, 255, 255, 0.13);
+      --g1: rgba(255, 255, 255, 0.045);
+      --g2: rgba(255, 255, 255, 0.09);
+      --g3: rgba(255, 255, 255, 0.14);
       --gb: rgba(255, 255, 255, 0.06);
-      --gd: rgba(255, 255, 255, 0.03);
+      --gd: rgba(255, 255, 255, 0.025);
+      --bg-base: #0F1022;
+      --bg-surface: #1B1736;
       --blur: blur(24px) saturate(180%);
       --blur-sm: blur(12px) saturate(150%);
 
@@ -2953,7 +2955,7 @@
       position: fixed;
       inset: 0;
       z-index: -2;
-      background: radial-gradient(ellipse at 20% 20%, #0a0a1a 0%, #050508 100%);
+      background: radial-gradient(ellipse at 20% 20%, #14132b 0%, #0F1022 100%);
     }
 
     #bg::before {
@@ -2961,9 +2963,9 @@
       position: absolute;
       inset: 0;
       background:
-        radial-gradient(circle at 15% 15%, hsla(var(--h), 100%, 55%, 0.18), transparent 50%),
-        radial-gradient(circle at 85% 10%, hsla(300, 85%, 60%, 0.18), transparent 50%),
-        radial-gradient(circle at 50% 90%, hsla(260, 80%, 50%, 0.12), transparent 55%);
+        radial-gradient(circle at 15% 10%, rgba(124, 77, 255, 0.20), transparent 50%),
+        radial-gradient(circle at 88% 8%, rgba(255, 95, 162, 0.16), transparent 50%),
+        radial-gradient(circle at 50% 95%, rgba(124, 77, 255, 0.10), transparent 55%);
       pointer-events: none;
     }
 
