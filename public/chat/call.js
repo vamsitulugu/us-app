@@ -1,6 +1,5 @@
 /*public/chat/call.js*/
 
-
 const Call = (function () {
   let pc, localStream, remoteStream, callType, role, callId, isCaller = false;
   let timerInt, seconds = 0;
@@ -37,9 +36,9 @@ const Call = (function () {
     try {
       const state = await api('GET', '/api/data/state/' + coupleId());
       const msgs = Array.isArray((state || {})[sigKeyTheirs()]) ? state[sigKeyTheirs()] : [];
-      const fresh = msgs.filter(m => m.seq > lastSeenSeq).sort((a,b)=>a.seq-b.seq);
+      const fresh = msgs.filter(m => m.seq > lastSeenSeq).sort((a, b) => a.seq - b.seq);
       if (!fresh.length) return;
-      lastSeenSeq = fresh[fresh.length-1].seq;
+      lastSeenSeq = fresh[fresh.length - 1].seq;
       for (const m of fresh) await handleSignal(m);
     } catch (e) {}
   }
@@ -71,26 +70,40 @@ const Call = (function () {
     document.body.style.removeProperty('pointer-events');
   }
 
+  function avatarHtml(name, av) {
+    return av ? `<img src="${av}" style="width:100%;height:100%;object-fit:cover">` : (name[0] || 'P');
+  }
+
   function renderRinging(type, incoming) {
     const el = ensureOverlay();
+    el.classList.remove('call-active-video');
     el.classList.add('open');
     const name = window.S.partnerName || 'Partner';
     const av = window.S.partnerAvatar;
-    el.innerHTML = `<div class="call-bg-blur"></div>
+
+    el.innerHTML = `
+      <div class="call-bg-blur"></div>
       <div class="call-content">
-        <div class="call-status-label">${incoming ? (type==='video'?'Incoming video call':'Incoming voice call') : (type==='video'?'Calling...':'Calling...')}</div>
+        <div class="call-status-label">${incoming ? (type === 'video' ? 'Incoming video call' : 'Incoming voice call') : 'Calling...'}</div>
         <div class="call-avatar-ring pulse">
-          <div class="call-avatar">${av ? `<img src="${av}" style="width:100%;height:100%;object-fit:cover">` : name[0]}</div>
+          <div class="call-avatar">${avatarHtml(name, av)}</div>
         </div>
         <div class="call-partner-name">${esc(name)}</div>
-        <div class="call-sub">${type==='video'?'📹 Video call':'🎙️ Voice call'}</div>
-        <div class="call-controls ${incoming?'call-controls-incoming':''}">
-          ${incoming ? `
-            <button class="call-btn call-btn-decline" onclick="Call.declineCall()">📵</button>
-            <button class="call-btn call-btn-accept" onclick="Call.acceptCall()">${type==='video'?'📹':'📞'}</button>
-          ` : `<button class="call-btn call-btn-end" onclick="Call.endCall()">📵</button>`}
+        <div class="call-sub">${type === 'video' ? '📹 Video call' : '🎙️ Voice call'}</div>
+      </div>
+      ${incoming ? `
+        <div class="call-incoming-labels">
+          <span>Decline</span><span>Accept</span>
         </div>
-      </div>`;
+        <div class="call-controls call-controls-incoming" style="margin-bottom:max(40px, env(safe-area-inset-bottom))">
+          <button class="call-btn call-btn-decline" onclick="Call.declineCall()">📞</button>
+          <button class="call-btn call-btn-accept" onclick="Call.acceptCall()">${type === 'video' ? '📹' : '📞'}</button>
+        </div>
+      ` : `
+        <div class="call-controls" style="margin-bottom:max(40px, env(safe-area-inset-bottom))">
+          <button class="call-btn call-btn-end" onclick="Call.endCall()">📞</button>
+        </div>
+      `}`;
   }
 
   function renderActive() {
@@ -98,7 +111,8 @@ const Call = (function () {
     const name = window.S.partnerName || 'Partner';
     if (callType === 'video') {
       el.classList.add('call-active-video');
-      el.innerHTML = `<div class="call-topbar"><span class="call-name-pill">${esc(name)} · <span id="callTimer">00:00</span></span></div>
+      el.innerHTML = `
+        <div class="call-topbar"><span class="call-name-pill">${esc(name)} · <span id="callTimer">00:00</span></span></div>
         <video id="callRemoteVideo" class="call-remote-video" autoplay playsinline></video>
         <video id="callLocalVideo" class="call-local-video" autoplay playsinline muted></video>
         ${controlsHtml(true)}`;
@@ -107,14 +121,15 @@ const Call = (function () {
     } else {
       el.classList.remove('call-active-video');
       const av = window.S.partnerAvatar;
-      el.innerHTML = `<div class="call-bg-blur"></div>
+      el.innerHTML = `
+        <div class="call-bg-blur"></div>
         <div class="call-content">
           <div class="call-status-label">Connected</div>
-          <div class="call-avatar-ring connected"><div class="call-avatar">${av?`<img src="${av}" style="width:100%;height:100%;object-fit:cover">`:name[0]}</div></div>
+          <div class="call-avatar-ring connected"><div class="call-avatar">${avatarHtml(name, av)}</div></div>
           <div class="call-partner-name">${esc(name)}</div>
           <div class="call-sub" id="callTimer">00:00</div>
-          ${controlsHtml(false)}
-        </div>`;
+        </div>
+        ${controlsHtml(false)}`;
       const remoteAudio = document.createElement('audio');
       remoteAudio.id = 'callRemoteAudio'; remoteAudio.autoplay = true; remoteAudio.srcObject = remoteStream;
       el.appendChild(remoteAudio);
@@ -124,10 +139,12 @@ const Call = (function () {
 
   function controlsHtml(video) {
     return `<div class="call-controls call-controls-active">
-      <button class="call-btn call-btn-sm" id="muteBtn" onclick="Call.toggleMute()">🎙️</button>
-      ${video ? `<button class="call-btn call-btn-sm" id="camBtn" onclick="Call.toggleCam()">📹</button>
-      <button class="call-btn call-btn-sm" onclick="Call.flipCamera()">🔄</button>` : `<button class="call-btn call-btn-sm" id="speakerBtn" onclick="Call.toggleSpeaker()">🔊</button>`}
-      <button class="call-btn call-btn-end" onclick="Call.endCall()">📵</button>
+      <button class="call-btn call-btn-sm" id="muteBtn" onclick="Call.toggleMute()" title="Mute">🎙️</button>
+      ${video
+        ? `<button class="call-btn call-btn-sm" id="camBtn" onclick="Call.toggleCam()" title="Camera">📹</button>
+           <button class="call-btn call-btn-sm" onclick="Call.flipCamera()" title="Flip camera">🔄</button>`
+        : `<button class="call-btn call-btn-sm" id="speakerBtn" onclick="Call.toggleSpeaker()" title="Speaker">🔊</button>`}
+      <button class="call-btn call-btn-end" onclick="Call.endCall()">📞</button>
     </div>`;
   }
 
@@ -137,7 +154,7 @@ const Call = (function () {
     timerInt = setInterval(() => {
       seconds++;
       const t = document.getElementById('callTimer');
-      if (t) t.textContent = String(Math.floor(seconds/60)).padStart(2,'0') + ':' + String(seconds%60).padStart(2,'0');
+      if (t) t.textContent = String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
     }, 1000);
   }
 
@@ -165,7 +182,7 @@ const Call = (function () {
     isCaller = false;
     renderRinging(callType, true);
     startPolling();
-    if (navigator.vibrate) navigator.vibrate([200,100,200,100,400]);
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
   }
 
   async function acceptCall() {
@@ -191,7 +208,11 @@ const Call = (function () {
     const iceServers = await getIceServers();
     pc = new RTCPeerConnection({ iceServers });
     remoteStream = new MediaStream();
-    pc.ontrack = e => { e.streams[0].getTracks().forEach(t => remoteStream.addTrack(t)); if (document.getElementById('callRemoteVideo')) document.getElementById('callRemoteVideo').srcObject = remoteStream; if (document.getElementById('callRemoteAudio')) document.getElementById('callRemoteAudio').srcObject = remoteStream; };
+    pc.ontrack = e => {
+      e.streams[0].getTracks().forEach(t => remoteStream.addTrack(t));
+      if (document.getElementById('callRemoteVideo')) document.getElementById('callRemoteVideo').srcObject = remoteStream;
+      if (document.getElementById('callRemoteAudio')) document.getElementById('callRemoteAudio').srcObject = remoteStream;
+    };
     pc.onicecandidate = e => { if (e.candidate) pushSignal({ type: 'ice', candidate: e.candidate }); };
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === 'connected') renderActive();

@@ -18,7 +18,7 @@ router.get('/turn-creds', async (req, res) => {
         turnConfigured: false
       });
     }
-    const r = await fetch(`https://us-app.metered.live/api/v1/turn/credentials?apiKey=${key}`);
+    const r = await fetch(`https://twinhearts.metered.live/api/v1/turn/credentials?apiKey=${key}`);
     const iceServers = await r.json();
     return res.json({ iceServers, turnConfigured: true });
   } catch (e) {

@@ -144,22 +144,28 @@ const Chat = (function () {
 
   // ─── RENDER ──────────────────────────────────────────
   function render() {
-    const box = document.getElementById('chatMsgs');
-    if (!box) return;
-    const visible = msgs.filter(m => !(m.deleted_for || '').split(',').includes(myRole()));
-    let html = '', lastDate = null;
-    visible.forEach(m => {
-      const d = new Date(m.created_at);
-      const ds = d.toDateString();
-      if (ds !== lastDate) {
-        lastDate = ds;
-        html += `<div class="chat-date-sep"><span>${fmtDaySep(d)}</span></div>`;
-      }
-      html += renderBubble(m);
-    });
-    box.innerHTML = html || `<div class="empty" style="padding:60px 20px"><div class="empty-ico">💬</div>Say hello 👋</div>`;
-    renderPinned();
+  const box = document.getElementById('chatMsgs');
+  if (!box) return;
+  const prevBottomOffset = box.scrollHeight - box.scrollTop; // distance from bottom
+  const wasNearBottom = prevBottomOffset - box.clientHeight < 150;
+
+  const visible = msgs.filter(m => !(m.deleted_for || '').split(',').includes(myRole()));
+  let html = '', lastDate = null;
+  visible.forEach(m => {
+    const d = new Date(m.created_at);
+    const ds = d.toDateString();
+    if (ds !== lastDate) { lastDate = ds; html += `<div class="chat-date-sep"><span>${fmtDaySep(d)}</span></div>`; }
+    html += renderBubble(m);
+  });
+  box.innerHTML = html || `<div class="empty" style="padding:60px 20px"><div class="empty-ico">💬</div>Say hello 👋</div>`;
+  renderPinned();
+
+  if (wasNearBottom) {
+    box.scrollTop = box.scrollHeight;
+  } else {
+    box.scrollTop = box.scrollHeight - prevBottomOffset; // keep same visual position
   }
+}
 
   function fmtDaySep(d) {
     const today = new Date(); const yest = new Date(); yest.setDate(yest.getDate() - 1);
@@ -193,7 +199,7 @@ const Chat = (function () {
     const status = mine ? (m.read ? '✓✓' : m.delivered ? '✓✓' : '✓') : '';
     const statusClass = mine && m.read ? 'read' : '';
 
-    return `<div class="chat-row ${mine ? 'me' : 'them'}" data-id="${m.id}" onclick="Chat.onBubbleClick(${m.id}, event)" oncontextmenu="Chat.openMenu(${m.id}, event); return false;" ontouchstart="Chat.startLongPress(${m.id})" ontouchend="Chat.endLongPress()" ontouchmove="Chat.endLongPress()">
+    return `<div class="chat-row ${mine ? 'me' : 'them'}" data-id="${m.id}" onclick="Chat.onBubbleClick('${m.id}', event)" oncontextmenu="Chat.openMenu('${m.id}', event); return false;" ontouchstart="Chat.startLongPress('${m.id}')" ontouchend="Chat.endLongPress()" ontouchmove="Chat.endLongPress()">
       <div class="chat-bubble ${mine ? 'mine' : 'theirs'}">
         ${body}
         ${reactions}
@@ -394,30 +400,37 @@ const Chat = (function () {
   }
   function endLongPress() { clearTimeout(lpTimer); }
   function openMenu(id, ev) {
-    const m = msgs.find(x => x.id === id); if (!m) return;
-    const mine = isMine(m);
-    let sheet = document.getElementById('chatMsgMenu');
-    if (sheet) sheet.remove();
-    sheet = document.createElement('div');
-    sheet.id = 'chatMsgMenu';
-    sheet.className = 'chat-sheet-overlay';
-    sheet.innerHTML = `<div class="chat-sheet">
-      <div class="chat-sheet-item" onclick="Chat.reactTo(${id},'❤️')">❤️ React</div>
-      <div class="chat-sheet-item" onclick="Chat.replyTo(${id})">↩️ Reply</div>
-      <div class="chat-sheet-item" onclick="Chat.forwardMsg(${id})">↪️ Forward</div>
-      <div class="chat-sheet-item" onclick="Chat.copyMsg(${id})">📋 Copy</div>
-      <div class="chat-sheet-item" onclick="Chat.togglePin(${id})">📌 Pin</div>
-      <div class="chat-sheet-item" onclick="Chat.toggleStar(${id})">⭐ Star</div>
-      ${mine && m.type === 'text' ? `<div class="chat-sheet-item" onclick="Chat.editMsg(${id})">✏️ Edit</div>` : ''}
-      <div class="chat-sheet-item" onclick="Chat.infoMsg(${id})">ℹ️ Info</div>
-      <div class="chat-sheet-item" onclick="Chat.enterSelectMode(${id})">☑️ Select</div>
-      ${mine ? `<div class="chat-sheet-item danger" onclick="Chat.deleteMsg(${id},'everyone')">🗑️ Delete for everyone</div>` : ''}
-      <div class="chat-sheet-item danger" onclick="Chat.deleteMsg(${id},'me')">🗑️ Delete for me</div>
-      <div class="chat-sheet-item" onclick="this.closest('.chat-sheet-overlay').remove()">Cancel</div>
+  const m = msgs.find(x => x.id === id); if (!m) return;
+  document.getElementById('chatMsgMenu')?.remove();
+  const isDesktop = window.innerWidth > 700 && ev && ev.clientX;
+  const sheet = document.createElement('div');
+  sheet.id = 'chatMsgMenu';
+  if (isDesktop) {
+    sheet.className = 'msg-ctx-bg';
+    sheet.innerHTML = `<div class="msg-ctx-menu open" style="left:${ev.clientX}px;top:${ev.clientY}px">
+      ${menuItemsHtml(m, id)}
     </div>`;
-    sheet.onclick = e => { if (e.target === sheet) sheet.remove(); };
-    document.body.appendChild(sheet);
+  } else {
+    sheet.className = 'chat-sheet-overlay';
+    sheet.innerHTML = `<div class="chat-sheet">${menuItemsHtml(m, id)}</div>`;
   }
+  sheet.onclick = e => { if (e.target === sheet) sheet.remove(); };
+  document.body.appendChild(sheet);
+}
+function menuItemsHtml(m, id) {
+  const mine = isMine(m);
+  return `
+    <div class="ctx-item" onclick="Chat.reactTo('${id}','❤️')">❤️ React</div>
+    <div class="ctx-item" onclick="Chat.replyTo('${id}')">↩️ Reply</div>
+    <div class="ctx-item" onclick="Chat.forwardMsg('${id}')">↪️ Forward</div>
+    <div class="ctx-item" onclick="Chat.copyMsg('${id}')">📋 Copy</div>
+    <div class="ctx-item" onclick="Chat.togglePin('${id}')">📌 Pin</div>
+    <div class="ctx-item" onclick="Chat.toggleStar('${id}')">⭐ Star</div>
+    ${mine && m.type === 'text' ? `<div class="ctx-item" onclick="Chat.editMsg('${id}')">✏️ Edit</div>` : ''}
+    <div class="ctx-item" onclick="Chat.infoMsg('${id}')">ℹ️ Info</div>
+    ${mine ? `<div class="ctx-item danger" onclick="Chat.deleteMsg('${id}','everyone')">🗑️ Delete for everyone</div>` : ''}
+    <div class="ctx-item danger" onclick="Chat.deleteMsg('${id}','me')">🗑️ Delete for me</div>`;
+}
   async function reactTo(id, emoji) {
     document.getElementById('chatMsgMenu')?.remove();
     try {
@@ -505,8 +518,8 @@ const Chat = (function () {
     document.getElementById('chatMsgMenu')?.remove();
     try {
       await api('DELETE', '/api/chat/' + id, { coupleId: coupleId(), senderRole: myRole(), mode });
-      if (mode === 'everyone') { const idx = msgs.findIndex(x => x.id === id); if (idx > -1) { msgs[idx].deleted = true; } }
-      else { const idx = msgs.findIndex(x => x.id === id); if (idx > -1) { msgs[idx].deleted_for = (msgs[idx].deleted_for || '') + ',' + myRole(); } }
+      if (mode === 'everyone') { const idx = msgs.findIndex(x => x.id == id); if (idx > -1) { msgs[idx].deleted = true; } }
+      else { const idx = msgs.findIndex(x => x.id == id); if (idx > -1) { msgs[idx].deleted_for = (msgs[idx].deleted_for || '') + ',' + myRole(); } }
       render();
     } catch (e) { toast('Delete failed'); }
   }
@@ -653,7 +666,7 @@ el.innerHTML = results
     openSearch, closeSearch, runSearch, scrollToMsg, sendGif, sendEmoji, sendEmojiTap,
     openEmojiPanel, openGifPanel, searchGifs, markRead, init, openSheet, closeSheet,
     forwardMsg, copyMsg, editMsg, cancelEdit, infoMsg, cancelRecording, startLongPress, endLongPress,
-    onAudioPick, sendLocation, openGiftPanel, sendGift
+    onAudioPick, sendLocation, openGiftPanel, sendGift,toggleVoicePlay
   };
 })();
 window.Chat = Chat;
