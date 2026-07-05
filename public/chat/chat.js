@@ -1,3 +1,5 @@
+/*public/chat/chat.js*/
+
 // ═══ CHAT MODULE — presence, fixed layout, emoji/gif, redesigned composer ═══
 const Chat = (function () {
   let msgs = [];
@@ -254,6 +256,7 @@ const Chat = (function () {
     const inp = document.getElementById('chatIn');
     const text = inp.value.trim();
     if (!text) return;
+    if (editingId) { inp.value = ''; inp.style.height = 'auto'; saveEdit(text); return; }
     inp.value = ''; inp.style.height = 'auto';
     sendMessage({ type: 'text', text, replyTo: replyingTo });
     replyingTo = null; closeBanner();
@@ -325,8 +328,12 @@ const Chat = (function () {
     sheet.innerHTML = `<div class="chat-sheet">
       <div class="chat-sheet-item" onclick="Chat.reactTo(${id},'❤️')">❤️ React</div>
       <div class="chat-sheet-item" onclick="Chat.replyTo(${id})">↩️ Reply</div>
+      <div class="chat-sheet-item" onclick="Chat.forwardMsg(${id})">↪️ Forward</div>
+      <div class="chat-sheet-item" onclick="Chat.copyMsg(${id})">📋 Copy</div>
       <div class="chat-sheet-item" onclick="Chat.togglePin(${id})">📌 Pin</div>
       <div class="chat-sheet-item" onclick="Chat.toggleStar(${id})">⭐ Star</div>
+      ${mine && m.type === 'text' ? `<div class="chat-sheet-item" onclick="Chat.editMsg(${id})">✏️ Edit</div>` : ''}
+      <div class="chat-sheet-item" onclick="Chat.infoMsg(${id})">ℹ️ Info</div>
       <div class="chat-sheet-item" onclick="Chat.enterSelectMode(${id})">☑️ Select</div>
       ${mine ? `<div class="chat-sheet-item danger" onclick="Chat.deleteMsg(${id},'everyone')">🗑️ Delete for everyone</div>` : ''}
       <div class="chat-sheet-item danger" onclick="Chat.deleteMsg(${id},'me')">🗑️ Delete for me</div>
@@ -346,13 +353,14 @@ const Chat = (function () {
   function replyTo(id) {
     document.getElementById('chatMsgMenu')?.remove();
     const m = msgs.find(x => x.id === id); if (!m) return;
+    editingId = null;
     replyingTo = id;
     const banner = document.getElementById('chatComposerBanner');
     banner.style.display = 'flex';
     banner.innerHTML = `<div class="chat-banner-text">↩️ Replying to: ${esc((m.text||'Media').slice(0,60))}</div><button onclick="Chat.closeBanner()">✕</button>`;
     document.getElementById('chatIn').focus();
   }
-  function closeBanner() { const b = document.getElementById('chatComposerBanner'); if (b) { b.style.display = 'none'; b.innerHTML = ''; } replyingTo = null; }
+  function closeBanner() { const b = document.getElementById('chatComposerBanner'); if (b) { b.style.display = 'none'; b.innerHTML = ''; } replyingTo = null; editingId = null; }
   async function togglePin(id) {
     document.getElementById('chatMsgMenu')?.remove();
     const m = msgs.find(x => x.id === id); if (!m) return;
@@ -369,6 +377,48 @@ const Chat = (function () {
       const idx = msgs.findIndex(x => x.id === id); if (idx > -1) msgs[idx] = data;
       render(); toast('Updated ⭐');
     } catch (e) {}
+  }
+  function forwardMsg(id) {
+    document.getElementById('chatMsgMenu')?.remove();
+    const m = msgs.find(x => x.id === id); if (!m) return;
+    sendMessage({ type: m.type, text: m.text, mediaUrl: m.media_url, mediaMeta: m.media_meta, forwarded: true });
+    toast('Forwarded');
+  }
+  function copyMsg(id) {
+    document.getElementById('chatMsgMenu')?.remove();
+    const m = msgs.find(x => x.id === id); if (!m) return;
+    if (!m.text) { toast('Nothing to copy'); return; }
+    navigator.clipboard?.writeText(m.text).then(() => toast('Copied')).catch(() => toast('Copy failed'));
+  }
+  let editingId = null;
+  function editMsg(id) {
+    document.getElementById('chatMsgMenu')?.remove();
+    const m = msgs.find(x => x.id === id); if (!m || m.type !== 'text') return;
+    replyingTo = null;
+    editingId = id;
+    const inp = document.getElementById('chatIn');
+    inp.value = m.text || '';
+    inp.focus();
+    const banner = document.getElementById('chatComposerBanner');
+    banner.style.display = 'flex';
+    banner.innerHTML = `<div class="chat-banner-text">✏️ Editing message</div><button onclick="Chat.cancelEdit()">✕</button>`;
+  }
+  function cancelEdit() { editingId = null; closeBanner(); document.getElementById('chatIn').value = ''; }
+  async function saveEdit(text) {
+    try {
+      const data = await api('PATCH', '/api/chat/' + editingId, { coupleId: coupleId(), senderRole: myRole(), text });
+      const idx = msgs.findIndex(m => m.id === editingId);
+      if (idx > -1) msgs[idx] = data;
+      render();
+    } catch (e) { toast('Edit failed'); }
+    editingId = null; closeBanner();
+  }
+  function infoMsg(id) {
+    document.getElementById('chatMsgMenu')?.remove();
+    const m = msgs.find(x => x.id === id); if (!m) return;
+    const sent = new Date(m.created_at).toLocaleString();
+    const status = m.read ? 'Read' : m.delivered ? 'Delivered' : 'Sent';
+    toast(`${status} · ${sent}`);
   }
   function openStarred() {
     const starred = msgs.filter(m => (m.starred_by || []).includes(myRole()));
@@ -523,7 +573,8 @@ el.innerHTML = results.map(g => {
     onBubbleClick, openMenu, reactTo, replyTo, closeBanner, togglePin, toggleStar,
     openStarred, deleteMsg, enterSelectMode, deleteSelected, exitSelectMode,
     openSearch, closeSearch, runSearch, scrollToMsg, sendGif, sendEmoji, sendEmojiTap,
-    openEmojiPanel, openGifPanel, searchGifs, markRead, init, openSheet, closeSheet
+    openEmojiPanel, openGifPanel, searchGifs, markRead, init, openSheet, closeSheet,
+    forwardMsg, copyMsg, editMsg, cancelEdit, infoMsg
   };
 })();
 window.Chat = Chat;

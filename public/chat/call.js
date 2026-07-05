@@ -1,3 +1,6 @@
+/*public/chat/call.js*/
+
+
 const Call = (function () {
   let pc, localStream, remoteStream, callType, role, callId, isCaller = false;
   let timerInt, seconds = 0;
@@ -61,7 +64,12 @@ const Call = (function () {
     document.body.appendChild(el);
     return el;
   }
-  function closeOverlay() { document.getElementById('callOverlay')?.classList.remove('open'); }
+  function closeOverlay() {
+    const el = document.getElementById('callOverlay');
+    if (el) { el.classList.remove('open'); el.remove(); }
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('pointer-events');
+  }
 
   function renderRinging(type, incoming) {
     const el = ensureOverlay();
@@ -186,7 +194,10 @@ const Call = (function () {
     pc.onicecandidate = e => { if (e.candidate) pushSignal({ type: 'ice', candidate: e.candidate }); };
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === 'connected') renderActive();
-      if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+      if (pc.connectionState === 'failed') {
+        toast('Call disconnected');
+        endCall(true);
+      } else if (pc.connectionState === 'disconnected') {
         toast('Connection lost — reconnecting...');
       }
     };
