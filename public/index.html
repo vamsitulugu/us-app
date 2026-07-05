@@ -3286,7 +3286,205 @@ vercel-live-feedback {
   pointer-events: none;
   overflow: visible;
 }
+/* ══════════════════════════════════════════════════════
+   STRUCTURAL REDESIGN v2 — bento hierarchy, real spacing
+   Append this AFTER your existing stylesheet (it overrides
+   the flat recolor from v1 with real layout rules).
+   Selectors are unchanged from your app — only values,
+   new modifier classes, and new wrapper classes are added.
+══════════════════════════════════════════════════════ */
 
+:root {
+  --accent: #FF5A6E;
+  --accent-d: #FF4760;
+  --accent2: #FFD8DD;
+  --accent2-d: #FF8FA3;
+  --accent-glow: rgba(255, 90, 110, 0.22);
+  --page: #F7F7F5;
+  --surface: #FFFFFF;
+  --ink: #14141A;
+  --ink-2: #6B6B72;
+  --ink-3: #A3A3AA;
+  --line: #EEEEEC;
+  --r-xl: 28px;
+  --r-lg: 20px;
+  --r-md: 14px;
+  --r-sm: 10px;
+}
+
+body { background: var(--page) !important; }
+#bg { background: var(--page); }
+
+/* ══ SIDEBAR — quiet, iconography-led, floating rail ══ */
+.sidebar {
+  width: 232px !important;
+  min-width: 232px !important;
+  max-width: 232px !important;
+  background: var(--surface) !important;
+  border-right: none !important;
+  padding: 20px 14px !important;
+  gap: 2px;
+}
+
+.sb-logo {
+  background: transparent !important;
+  border-bottom: none !important;
+  padding: 4px 8px 22px !important;
+  position: static !important;
+}
+
+.logo-mark span { font-size: 19px !important; letter-spacing: -0.5px; }
+
+.couple-widget {
+  background: var(--page) !important;
+  border: none !important;
+  border-radius: 999px !important;
+  padding: 8px 14px !important;
+  margin-top: 16px;
+}
+
+.sync-status { display: none !important; }
+#partnerLastSeen, #hbSidebarPresence { display: none !important; }
+
+.nav-group { padding: 10px 4px !important; }
+.nav-label {
+  padding: 0 8px 8px !important;
+  font-size: 10px !important;
+  letter-spacing: 1.6px !important;
+  color: var(--ink-3) !important;
+}
+
+.ni {
+  border-radius: 999px !important;
+  padding: 10px 14px !important;
+  font-size: 13.5px !important;
+  color: var(--ink-2) !important;
+  gap: 11px !important;
+}
+.ni:hover { background: var(--page) !important; }
+.ni.active {
+  background: var(--ink) !important;
+  color: #fff !important;
+  border: none !important;
+  font-weight: 500 !important;
+}
+.ni.active::before { display: none !important; }
+.ni .ico { font-size: 15px !important; opacity: 0.9; }
+
+/* Kill the mood-checkin card wedged in the nav — move visually out of the way */
+.nav-group .card { display: none !important; }
+
+.sb-foot { border-top: 1px solid var(--line) !important; }
+
+/* ══ TOPBAR — minimal, no boxed pill row ══ */
+.topbar {
+  background: var(--page) !important;
+  border-bottom: none !important;
+  height: 76px !important;
+  padding: 0 32px !important;
+}
+.tb-title {
+  font-size: 26px !important;
+  font-weight: 400;
+  letter-spacing: -0.5px;
+  color: var(--ink) !important;
+}
+#lastSaved { display: none !important; }
+.topbar .btn-glass {
+  background: var(--surface) !important;
+  border: none !important;
+  border-radius: 999px !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.ic-btn {
+  background: var(--surface) !important;
+  border: none !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.hamburger { background: var(--surface) !important; border: none !important; }
+
+.content { background: var(--page) !important; padding: 24px 32px 100px !important; }
+
+/* ══ BENTO DASHBOARD GRID ══
+   Wrap metrics+cards in .bento-grid / .bento-* modifiers (see HTML patch).
+   Falls back gracefully if wrapper not added — metrics/cards below just
+   look better on their own too. */
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.bento-hero    { grid-column: span 8; }
+.bento-side    { grid-column: span 4; }
+.bento-third   { grid-column: span 4; }
+.bento-half    { grid-column: span 6; }
+.bento-full    { grid-column: span 12; }
+@media (max-width: 900px) {
+  .bento-hero, .bento-side, .bento-third, .bento-half { grid-column: span 12; }
+}
+
+/* Metrics: uneven weight, one hero number */
+.metrics {
+  display: grid !important;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr !important;
+  gap: 14px !important;
+  margin-bottom: 16px !important;
+}
+.metric {
+  background: var(--surface) !important;
+  border: none !important;
+  border-radius: var(--r-lg) !important;
+  padding: 22px 20px !important;
+  text-align: left !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
+}
+.metric:nth-child(1) {
+  background: var(--ink) !important;
+  color: #fff;
+}
+.metric:nth-child(1) .metric-n { color: #fff !important; font-size: 40px !important; }
+.metric:nth-child(1) .metric-l { color: rgba(255,255,255,0.55) !important; }
+.metric:nth-child(1) #daysHours { color: rgba(255,255,255,0.55) !important; }
+.metric-n { font-size: 26px !important; text-align: left; }
+.metric-l { text-align: left; margin-top: 8px !important; }
+
+.card {
+  background: var(--surface) !important;
+  border: none !important;
+  border-radius: var(--r-lg) !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
+  padding: 22px !important;
+}
+.card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.07) !important; transform: none !important; }
+.card-title { font-size: 15px !important; font-weight: 500; }
+
+/* Stay Connected card → hero treatment */
+#connectionCard {
+  background: linear-gradient(155deg, var(--ink) 0%, #2A2A33 100%) !important;
+  color: #fff;
+}
+#connectionCard .card-title { color: #fff !important; }
+.cc-stat-l, .cc-stat-v { color: rgba(255,255,255,0.7) !important; }
+.cc-stat-v { color: #fff !important; }
+
+/* Two-col sections read as one visual rhythm, not boxed twins */
+.two-col { gap: 16px !important; }
+
+.btn-accent {
+  background: var(--ink) !important;
+  box-shadow: none !important;
+  border-radius: 999px !important;
+}
+.btn-accent:hover { background: #000 !important; }
+.btn-glass { border-radius: 999px !important; border: none !important; background: var(--page) !important; }
+
+.bot-nav {
+  background: rgba(255,255,255,0.98) !important;
+  border-top: none !important;
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.05);
+}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -3546,7 +3744,7 @@ vercel-live-feedback {
 
       <!-- ════ DASHBOARD ════ -->
       <div class="page active" id="page-dashboard">
-        <div class="metrics">
+        <div class="metrics bento-full">
           <div class="metric">
             <div class="metric-n" id="daysTog" style="font-size:22px">0</div>
             <div style="font-size:9px;color:var(--text3);margin-top:2px" id="daysHours"></div>
