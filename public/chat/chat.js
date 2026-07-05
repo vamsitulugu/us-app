@@ -1,1057 +1,529 @@
-/* ══════════════════════════════════════════════════════════════
-   public/chat/chat.js — Full couple chat frontend
-   Save as: public/chat/chat.js
-   Load in index.html (once, near bottom, after main app script):
-     <link rel="stylesheet" href="/chat/chat.css">
-     <script src="/chat/chat.js"></script>
-   Depends on globals from main app: S, api (base fetch helper isn't
-   reused directly — Chat has its own fetch calls), toast, esc,
-   scheduleSave, spawnPetals, goto(), S.coupleId, S.role, S.myName,
-   S.partnerName, S.myAvatar, S.partnerAvatar
-   ══════════════════════════════════════════════════════════════ */
-'use strict';
-
-const Chat = (() => {
-  const API = (typeof window !== 'undefined' && window.API) ? window.API : 'https://us-app-api.onrender.com';
-
-  /* ── STATE ── */
-  let messages = [];              // full message list, ascending by id
-  let lastId = 0;                 // highest message id seen (for polling `after`)
-  let replyingTo = null;          // message object being replied to
-  let editingId = null;           // message id being edited
+// ═══ CHAT MODULE — presence, fixed layout, emoji/gif, redesigned composer ═══
+const Chat = (function () {
+  let msgs = [];
+  let presence = { user1: null, user2: null };
+  let presenceInterval = null;
+  let pollInterval = null;
+  let lastMsgId = 0;
   let selectMode = false;
   let selectedIds = new Set();
-  let searchOpen = false;
-  let searchQuery = '';
-  let pollTimer = null;
-  let typingTimeout = null;
-  let iAmTyping = false;
-  let partnerPresence = { status: 'offline', last_seen: null };
-  let offlineQueue = [];          // messages typed while offline
-  let mediaRecorder = null, audioChunks = [], isRecording = false, recordStart = 0, recordTimerInt = null;
-  let atBottom = true;
-  let realtimeChannel = null;
+  let recording = false, mediaRecorder = null, recChunks = [], recStart = 0, recTimerInt = null;
+  let replyingTo = null;
 
-  function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-  function toast(msg, dur) { if (typeof window.toast === 'function') window.toast(msg, dur); }
-  function myRole() { return window.S?.role || 'user1'; }
+  function coupleId() { return window.S && window.S.coupleId; }
+  function myRole() { return window.S && window.S.role; }
   function otherRole() { return myRole() === 'user1' ? 'user2' : 'user1'; }
-  function coupleId() { return window.S?.coupleId; }
   function isMine(m) { return m.sender_role === myRole(); }
-  function uuid() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8); return v.toString(16); }); }
 
-/* ══════════════════════════════════════════════════════════════
-     EMOJI / GIF / STICKER / GIFT PICKER
-  ══════════════════════════════════════════════════════════════ */
-  const GIPHY_KEY = 'dc6zaTOxFJmzC'; // Giphy's public demo key — swap for your own free key from developers.giphy.com before real launch (rate-limited)
+  // ─── PRESENCE ───────────────────────────────────────
+  function startPresence() {
+    sendPresence('online');
+    if (presenceInterval) clearInterval(presenceInterval);
+    presenceInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') sendPresence('online');
+    }, 20000);
 
-  const EMOJI_SET = ['😀','😂','🥰','😍','😘','😊','😉','😎','🤩','😇','🙂','😌','🥺','😢','😭','😤','😡','😱','🥳','😴',
-    '❤️','🧡','💛','💚','💙','💜','🖤','🤍','💕','💞','💓','💗','💖','💘','💝','💔','❣️','💟','💌','💋',
-    '👍','👎','👏','🙌','🤝','🙏','💪','✌️','🤞','👋','🤗','🫂','😽','😻','🥹','🤤','😏','🙃','🫶','✨'];
-
-  const STICKER_SET = [
-    { emoji:'😘', name:'Kiss' }, { emoji:'🥰', name:'In Love' }, { emoji:'🤗', name:'Hug' },
-    { emoji:'💑', name:'Us' }, { emoji:'💍', name:'Forever' }, { emoji:'🌹', name:'Rose' },
-    { emoji:'🍫', name:'Sweet' }, { emoji:'🎀', name:'Cute' }, { emoji:'🫶', name:'My Heart' },
-    { emoji:'😻', name:'Adore' }, { emoji:'🥹', name:'Emotional' }, { emoji:'💃', name:'Dance' },
-  ];
-
-  const GIFT_ITEMS = [
-    { emoji:'🌹', name:'Rose' }, { emoji:'🍫', name:'Chocolate Box' }, { emoji:'💐', name:'Bouquet' },
-    { emoji:'🧸', name:'Teddy Bear' }, { emoji:'💎', name:'Diamond' }, { emoji:'🎂', name:'Cake' },
-    { emoji:'🍾', name:'Celebration' }, { emoji:'👑', name:'Crown' }, { emoji:'💍', name:'Ring' },
-    { emoji:'🎁', name:'Surprise Gift' }, { emoji:'🦋', name:'Butterfly' }, { emoji:'🌠', name:'Shooting Star' },
-  ];
-
-  let pickerOpen = false, pickerTab = 'emoji';
-
-  function ensurePickerEl() {
-    let el = document.getElementById('chatPickerPanel');
-    if (el) return el;
-    el = document.createElement('div');
-    el.id = 'chatPickerPanel';
-    el.className = 'chat-picker-panel';
-    el.innerHTML = `
-      <div class="picker-tabs">
-        <div class="picker-tab active" data-tab="emoji" onclick="Chat.switchPickerTab('emoji')">😀 Emoji</div>
-        <div class="picker-tab" data-tab="gif" onclick="Chat.switchPickerTab('gif')">🎬 GIF</div>
-        <div class="picker-tab" data-tab="sticker" onclick="Chat.switchPickerTab('sticker')">🩷 Stickers</div>
-        <div class="picker-tab" data-tab="gift" onclick="Chat.switchPickerTab('gift')">🎁 Gifts</div>
-        <button class="picker-close" onclick="Chat.closePicker()">✕</button>
-      </div>
-      <div class="picker-body" id="pickerBody"></div>`;
-    const wrap = document.querySelector('.chat-page-wrap');
-    if (wrap) wrap.insertBefore(el, wrap.querySelector('.chat-composer-banner') || wrap.querySelector('.chat-composer'));
-    return el;
-  }
-
-  function togglePicker(tab) {
-    const panel = ensurePickerEl();
-    if (pickerOpen && pickerTab === tab) { closePicker(); return; }
-    pickerOpen = true;
-    panel.classList.add('open');
-    switchPickerTab(tab || 'emoji');
-  }
-  function closePicker() {
-    pickerOpen = false;
-    document.getElementById('chatPickerPanel')?.classList.remove('open');
-  }
-  function switchPickerTab(tab) {
-    pickerTab = tab;
-    document.querySelectorAll('.picker-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-    const body = document.getElementById('pickerBody');
-    if (!body) return;
-    if (tab === 'emoji') {
-      body.innerHTML = `<div class="picker-emoji-grid">${EMOJI_SET.map(e => `<span class="picker-emoji" onclick="Chat.insertEmoji('${e}')">${e}</span>`).join('')}</div>`;
-    } else if (tab === 'sticker') {
-      body.innerHTML = `<div class="picker-sticker-grid">${STICKER_SET.map(s => `<div class="picker-sticker" onclick="Chat.sendSticker('${s.emoji}')"><div class="picker-sticker-emoji">${s.emoji}</div><div class="picker-sticker-name">${s.name}</div></div>`).join('')}</div>`;
-    } else if (tab === 'gift') {
-      body.innerHTML = `<div class="picker-sticker-grid">${GIFT_ITEMS.map(g => `<div class="picker-sticker picker-gift" onclick='Chat.sendGift(${JSON.stringify(g)})'><div class="picker-sticker-emoji">${g.emoji}</div><div class="picker-sticker-name">${g.name}</div></div>`).join('')}</div>`;
-    } else if (tab === 'gif') {
-      body.innerHTML = `
-        <div class="picker-gif-search"><input type="text" id="gifSearchInput" placeholder="Search GIFs..." oninput="Chat.searchGifs(this.value)"></div>
-        <div class="picker-gif-grid" id="gifGrid"><div class="picker-loading">Loading trending GIFs...</div></div>`;
-      searchGifs('');
-    }
-  }
-function injectPickerButtons() {
-    const bar = document.querySelector('.chat-composer');
-    if (!bar || document.getElementById('chatEmojiBtn')) return;
-    const sendBtn = bar.querySelector('.chat-composer-btn.send');
-    const emojiBtn = document.createElement('button');
-    emojiBtn.id = 'chatEmojiBtn';
-    emojiBtn.className = 'chat-composer-btn';
-    emojiBtn.innerHTML = '😀';
-    emojiBtn.onclick = () => togglePicker('emoji');
-    const gifBtn = document.createElement('button');
-    gifBtn.id = 'chatGifBtn';
-    gifBtn.className = 'chat-composer-btn';
-    gifBtn.innerHTML = '🎬';
-    gifBtn.onclick = () => togglePicker('gif');
-    const giftBtn = document.createElement('button');
-    giftBtn.id = 'chatGiftBtn';
-    giftBtn.className = 'chat-composer-btn';
-    giftBtn.innerHTML = '🎁';
-    giftBtn.onclick = () => togglePicker('gift');
-    bar.insertBefore(emojiBtn, sendBtn);
-    bar.insertBefore(gifBtn, sendBtn);
-    bar.insertBefore(giftBtn, sendBtn);
-  }
-  function insertEmoji(e) {
-    const input = document.getElementById('chatIn');
-    if (!input) return;
-    input.value += e;
-    autoGrow(input);
-    input.focus();
-    onTypingInput();
-  }
-
-  let gifDebounce = null;
-  async function searchGifs(query) {
-    clearTimeout(gifDebounce);
-    gifDebounce = setTimeout(async () => {
-      const grid = document.getElementById('gifGrid');
-      if (!grid) return;
-      grid.innerHTML = '<div class="picker-loading">Searching...</div>';
-      try {
-        const url = query.trim()
-          ? `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_KEY}&q=${encodeURIComponent(query)}&limit=24&rating=pg-13`
-          : `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_KEY}&limit=24&rating=pg-13`;
-        const r = await fetch(url);
-        const data = await r.json();
-        const gifs = data.data || [];
-        if (!gifs.length) { grid.innerHTML = '<div class="picker-loading">No GIFs found</div>'; return; }
-        grid.innerHTML = gifs.map(g => {
-          const thumb = g.images.fixed_width_small?.url || g.images.fixed_width?.url;
-          const full  = g.images.fixed_width?.url || g.images.original?.url;
-          return `<img class="picker-gif-item" src="${thumb}" loading="lazy" onclick="Chat.sendGif('${full}')">`;
-        }).join('');
-      } catch (e) {
-        grid.innerHTML = '<div class="picker-loading">GIF search unavailable — check connection</div>';
-      }
-    }, 350);
-  }
-
-  async function sendGif(url) {
-    closePicker();
-    const clientId = uuid();
-    const optimistic = {
-      id: 'tmp_' + clientId, client_id: clientId, _pending: true,
-      couple_id: coupleId(), sender_role: myRole(), type: 'gif',
-      text: null, media_url: url, reply_to: replyingTo ? replyingTo.id : null,
-      reactions: {}, starred_by: [], pinned: false, delivered: false, read: false,
-      created_at: new Date().toISOString()
-    };
-    messages.push(optimistic); saveCache(); render(); scrollToBottom(true);
-    const replySnapshot = replyingTo; clearReply();
-    try {
-      const saved = await sendToServer({ clientId, type: 'gif', mediaUrl: url, replyTo: replySnapshot?.id });
-      const idx = messages.findIndex(m => m.client_id === clientId);
-      if (idx >= 0) messages[idx] = saved;
-      lastId = Math.max(lastId, saved.id);
-      saveCache(); render();
-    } catch (e) {
-      const idx = messages.findIndex(m => m.client_id === clientId);
-      if (idx >= 0) messages[idx]._failed = true;
-      render(); toast('GIF failed to send');
-    }
-  }
-
-  async function sendSticker(emoji) {
-    closePicker();
-    const clientId = uuid();
-    const optimistic = {
-      id: 'tmp_' + clientId, client_id: clientId, _pending: true,
-      couple_id: coupleId(), sender_role: myRole(), type: 'sticker',
-      text: emoji, media_url: null, reply_to: null,
-      reactions: {}, starred_by: [], pinned: false, delivered: false, read: false,
-      created_at: new Date().toISOString()
-    };
-    messages.push(optimistic); saveCache(); render(); scrollToBottom(true);
-    try {
-      const saved = await sendToServer({ clientId, type: 'sticker', text: emoji });
-      const idx = messages.findIndex(m => m.client_id === clientId);
-      if (idx >= 0) messages[idx] = saved;
-      lastId = Math.max(lastId, saved.id);
-      saveCache(); render();
-      if (typeof window.spawnPetals === 'function') window.spawnPetals(4);
-    } catch (e) {
-      const idx = messages.findIndex(m => m.client_id === clientId);
-      if (idx >= 0) messages[idx]._failed = true;
-      render();
-    }
-  }
-
-  async function sendGift(gift) {
-    closePicker();
-    const clientId = uuid();
-    const optimistic = {
-      id: 'tmp_' + clientId, client_id: clientId, _pending: true,
-      couple_id: coupleId(), sender_role: myRole(), type: 'gift',
-      text: null, media_url: null, media_meta: gift, reply_to: null,
-      reactions: {}, starred_by: [], pinned: false, delivered: false, read: false,
-      created_at: new Date().toISOString()
-    };
-    messages.push(optimistic); saveCache(); render(); scrollToBottom(true);
-    try {
-      const saved = await sendToServer({ clientId, type: 'gift', mediaMeta: gift, text: null });
-      const idx = messages.findIndex(m => m.client_id === clientId);
-      if (idx >= 0) messages[idx] = saved;
-      lastId = Math.max(lastId, saved.id);
-      saveCache(); render();
-      if (typeof window.spawnPetals === 'function') window.spawnPetals(12);
-      if (typeof window.addXP === 'function') window.addXP(4);
-      toast('🎁 Sent ' + gift.name + '!');
-    } catch (e) {
-      const idx = messages.findIndex(m => m.client_id === clientId);
-      if (idx >= 0) messages[idx]._failed = true;
-      render();
-    }
-  }
-  
-  /* ══════════════════════════════════════════════════════════════
-     API CALLS
-  ══════════════════════════════════════════════════════════════ */
- async function apiCall(method, path, body) {
-  const opts = { method, headers: { 'Content-Type': 'application/json' } };
-  if (body) opts.body = JSON.stringify(body);
-  let r;
-  try {
-    r = await fetch(API + path, opts);
-  } catch (netErr) {
-    console.error('[Chat] Network/CORS failure calling', API + path, netErr);
-    throw new Error('Cannot reach chat server (network/CORS): ' + netErr.message);
-  }
-  let data;
-  try { data = await r.json(); }
-  catch (e) { data = { error: 'Non-JSON response (status ' + r.status + ')' }; }
-  if (!r.ok) {
-    console.error('[Chat] API error', r.status, path, data);
-    throw new Error(data.error || ('Chat API error ' + r.status));
-  }
-  return data;
-}
-  async function fetchMessages(after) {
-  const cid = coupleId(); if (!cid) return [];
-  return apiCall('GET', `/api/chat/${cid}?after=${after || 0}&limit=250`);
-}
-
-async function sendToServer(row) {
-  const cid = coupleId();
-  if (!cid) throw new Error('No coupleId set — cannot send message yet');
-  return apiCall('POST', '/api/chat', { coupleId: cid, senderRole: myRole(), ...row });
-}
-
-  async function sendToServer(row) {
-    return apiCall('POST', '/api/chat', { coupleId: coupleId(), senderRole: myRole(), ...row });
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     LOCAL CACHE (instant load, offline resilience)
-  ══════════════════════════════════════════════════════════════ */
-  function cacheKey() { return 'us_chat_cache_' + (coupleId() || 'anon'); }
-  function loadCache() {
-    try { const raw = localStorage.getItem(cacheKey()); if (raw) { messages = JSON.parse(raw); lastId = messages.reduce((m, x) => Math.max(m, x.id || 0), 0); } } catch (e) {}
-  }
-  function saveCache() {
-    try { localStorage.setItem(cacheKey(), JSON.stringify(messages.slice(-500))); } catch (e) {}
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     INIT / POLLING / REALTIME
-  ══════════════════════════════════════════════════════════════ */
-  let _chatBooted = false;
-async function init() {
-    if (!coupleId()) { setTimeout(init, 500); return; }
-    loadCache();
-    render();
-    injectPickerButtons();
-    try { await refresh(); }
-    catch (e) { console.error('[Chat] initial refresh failed:', e); toast('Chat couldn\'t load: ' + e.message, 5000); }
-    startPolling();
-    markRead();
-    pushPresence('online');
-
-    if (_chatBooted) return; // everything below runs exactly once
-    _chatBooted = true;
-
-    trySupabaseRealtime();
-    window.addEventListener('online', flushOfflineQueue);
-    window.addEventListener('beforeunload', () => pushPresence('offline'));
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') { markRead(); refresh(); }
+      sendPresence(document.visibilityState === 'visible' ? 'online' : 'away');
     });
+    window.addEventListener('pagehide', () => sendPresence('offline'));
+    window.addEventListener('beforeunload', () => {
+      if (coupleId()) navigator.sendBeacon(API + '/api/chat/' + coupleId() + '/presence',
+        new Blob([JSON.stringify({ role: myRole(), status: 'offline' })], { type: 'application/json' }));
+    });
+  }
+
+  async function sendPresence(status) {
+    if (!coupleId() || !myRole()) return;
+    try { await api('POST', '/api/chat/' + coupleId() + '/presence', { role: myRole(), status }); } catch (e) {}
+  }
+
+  async function fetchPresence() {
+    if (!coupleId()) return;
+    try {
+      const rows = await api('GET', '/api/chat/' + coupleId() + '/presence');
+      presence = { user1: null, user2: null };
+      (rows || []).forEach(r => { presence[r.role] = r; });
+      renderPresenceUI();
+    } catch (e) {}
+  }
+
+  function presenceStatusFor(role) {
+    const p = presence[role];
+    if (!p) return { label: 'Offline', dot: '⚫', online: false };
+    const last = new Date(p.last_seen).getTime();
+    const ageMs = Date.now() - last;
+    if (p.status === 'online' && ageMs < 35000) return { label: 'Online', dot: '🟢', online: true };
+    if (ageMs < 120000) return { label: 'Away', dot: '🟡', online: false, away: true };
+    return { label: 'Last seen ' + fmtAgo(last), dot: '⚫', online: false };
+  }
+
+  function fmtAgo(ts) {
+    const mins = Math.floor((Date.now() - ts) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + 'm ago';
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    return Math.floor(hrs / 24) + 'd ago';
+  }
+
+  function renderPresenceUI() {
+    const st = presenceStatusFor(otherRole());
+    const hs = document.getElementById('chatHeaderStatus');
+    if (hs) hs.innerHTML = st.dot + ' ' + st.label;
+    document.querySelectorAll('[data-presence-dot]').forEach(el => el.textContent = st.dot);
+    const psb = document.getElementById('hbSidebarPresence');
+    if (psb) psb.innerHTML = `<span style="font-size:11px;color:var(--text3)">${st.dot} ${esc(st.label)}</span>`;
+  }
+
+  // ─── LOAD / POLL MESSAGES ───────────────────────────
+  async function loadMessages() {
+    if (!coupleId()) return;
+    try {
+      const rows = await api('GET', '/api/chat/' + coupleId() + '?limit=200');
+      msgs = rows || [];
+      lastMsgId = msgs.length ? Math.max(...msgs.map(m => m.id)) : 0;
+      render();
+      scrollToBottom(false);
+    } catch (e) {}
+  }
+
+  async function pollNew() {
+    if (!coupleId()) return;
+    try {
+      const rows = await api('GET', '/api/chat/' + coupleId() + '?after=' + lastMsgId);
+      if (rows && rows.length) {
+        rows.forEach(r => { if (!msgs.find(m => m.id === r.id)) msgs.push(r); });
+        lastMsgId = Math.max(lastMsgId, ...rows.map(m => m.id));
+        render();
+        const box = document.getElementById('chatMsgs');
+        const nearBottom = box && (box.scrollHeight - box.scrollTop - box.clientHeight < 150);
+        if (nearBottom || rows.some(isMine)) scrollToBottom(true);
+        else updateJumpBadge(rows.filter(r => !isMine(r)).length);
+        if (rows.some(r => !isMine(r)) && document.getElementById('page-chat')?.classList.contains('active') && document.hasFocus()) {
+          markRead();
+        }
+      }
+      fetchPresence();
+    } catch (e) {}
   }
 
   function startPolling() {
-    clearInterval(pollTimer);
-    pollTimer = setInterval(() => { refresh(); pollPresence(); }, 3500);
+    if (pollInterval) clearInterval(pollInterval);
+    pollInterval = setInterval(pollNew, 2500);
   }
 
-  async function refresh() {
+  async function markRead() {
     if (!coupleId()) return;
-    try {
-      const fresh = await fetchMessages(lastId);
-      if (fresh && fresh.length) {
-        fresh.forEach(m => {
-          const idx = messages.findIndex(x => x.id === m.id || (x._pending && x.client_id === m.client_id));
-          if (idx >= 0) messages[idx] = m; else messages.push(m);
-          lastId = Math.max(lastId, m.id);
-        });
-        messages.sort((a, b) => a.id - b.id);
-        saveCache();
-        render();
-        if (document.getElementById('page-chat')?.classList.contains('active')) markRead();
-      }
-    } catch (e) { /* offline or server down — silent */ }
+    try { await api('POST', '/api/chat/' + coupleId() + '/read', { role: myRole() }); } catch (e) {}
   }
 
-  function trySupabaseRealtime() {
-    try {
-      if (!window.supabase || !window.__SUPABASE_URL__ || !window.__SUPABASE_ANON_KEY__) return;
-      const sb = window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__);
-      realtimeChannel = sb.channel('chat-' + coupleId())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages', filter: `couple_id=eq.${coupleId()}` }, () => refresh())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_presence', filter: `couple_id=eq.${coupleId()}` }, () => pollPresence())
-        .subscribe();
-    } catch (e) { /* realtime optional */ }
+  // ─── SCROLL (fixed input, no jumping) ───────────────
+  function scrollToBottom(smooth) {
+    const box = document.getElementById('chatMsgs');
+    if (!box) return;
+    box.scrollTo({ top: box.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+    document.getElementById('chatJumpBtn')?.classList.remove('show');
+    updateJumpBadge(0);
   }
-
-  /* ══════════════════════════════════════════════════════════════
-     PRESENCE / TYPING
-  ══════════════════════════════════════════════════════════════ */
-  async function pushPresence(status) {
-    if (!coupleId()) return;
-    try { await apiCall('POST', `/api/chat/${coupleId()}/presence`, { role: myRole(), status }); } catch (e) {}
+  function onChatScroll() {
+    const box = document.getElementById('chatMsgs');
+    if (!box) return;
+    const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 150;
+    document.getElementById('chatJumpBtn')?.classList.toggle('show', !nearBottom);
   }
-  async function pollPresence() {
-    if (!coupleId()) return;
-    try {
-      const rows = await apiCall('GET', `/api/chat/${coupleId()}/presence`);
-      const p = (rows || []).find(r => r.role === otherRole());
-      if (p) {
-        const age = Date.now() - new Date(p.last_seen).getTime();
-        partnerPresence = { status: age > 25000 ? 'offline' : p.status, last_seen: p.last_seen };
-      } else partnerPresence = { status: 'offline', last_seen: null };
-      renderHeader();
-    } catch (e) {}
-  }
-  function onTypingInput() {
-    if (!iAmTyping) { iAmTyping = true; pushPresence('typing'); }
-    clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => { iAmTyping = false; pushPresence('online'); }, 1800);
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     SEND — text / image / voice
-  ══════════════════════════════════════════════════════════════ */
-  async function sendText() {
-    const input = document.getElementById('chatIn');
-    if (!input) return;
-    const text = input.value.trim();
-    if (!text && !editingId) return;
-
-    if (editingId) { await commitEdit(editingId, text); return; }
-
-    input.value = ''; autoGrow(input);
-    const clientId = uuid();
-    const optimistic = {
-      id: 'tmp_' + clientId, client_id: clientId, _pending: true,
-      couple_id: coupleId(), sender_role: myRole(), type: 'text',
-      text, media_url: null, reply_to: replyingTo ? replyingTo.id : null,
-      reactions: {}, starred_by: [], pinned: false, delivered: false, read: false,
-      created_at: new Date().toISOString()
-    };
-    messages.push(optimistic); saveCache(); render(); scrollToBottom(true);
-    const replySnapshot = replyingTo; clearReply();
-
-    if (!navigator.onLine) { offlineQueue.push({ clientId, type: 'text', text, replyTo: replySnapshot?.id }); toast('📡 Offline — will send when back online'); return; }
-
-    try {
-      const saved = await sendToServer({ clientId, type: 'text', text, replyTo: replySnapshot?.id });
-      const idx = messages.findIndex(m => m.client_id === clientId);
-      if (idx >= 0) messages[idx] = saved;
-      lastId = Math.max(lastId, saved.id);
-      saveCache(); render();
-      if (window.HeartbeatManager?.onMessageSent) window.HeartbeatManager.onMessageSent();
-      if (typeof window.spawnPetals === 'function' && Math.random() < 0.15) window.spawnPetals(3);
-    } catch (e) {
-      const idx = messages.findIndex(m => m.client_id === clientId);
-      if (idx >= 0) messages[idx]._failed = true;
-      render(); toast('Failed to send — tap to retry');
-    }
-  }
-
-  async function retryMessage(clientId) {
-    const m = messages.find(x => x.client_id === clientId); if (!m) return;
-    m._failed = false; render();
-    try {
-      const saved = await sendToServer({ clientId: m.client_id, type: m.type, text: m.text, mediaUrl: m.media_url, mediaMeta: m.media_meta, replyTo: m.reply_to });
-      const idx = messages.findIndex(x => x.client_id === clientId);
-      if (idx >= 0) messages[idx] = saved;
-      saveCache(); render();
-    } catch (e) { m._failed = true; render(); toast('Still failing — check connection'); }
-  }
-
- async function flushOfflineQueue() {
-  if (!offlineQueue.length) return;
-  toast('📡 Back online — sending queued messages...');
-  const q = [...offlineQueue]; offlineQueue = [];
-  for (const item of q) {
-    if (!item.text && !item.mediaUrl) continue; // skip empty/corrupt queued items
-    try {
-      const saved = await sendToServer({ clientId: item.clientId, type: item.type, text: item.text, mediaUrl: item.mediaUrl, mediaMeta: item.mediaMeta, replyTo: item.replyTo });
-      const idx = messages.findIndex(m => m.client_id === item.clientId);
-      if (idx >= 0) messages[idx] = saved; else messages.push(saved);
-    } catch (e) { /* drop failed retries instead of re-queuing forever */ }
-  }
-  messages.sort((a, b) => (a.id || 0) - (b.id || 0));
-  saveCache(); render();
-}
-
-  async function sendImage(file) {
-    if (!file) return;
-    const clientId = uuid();
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const dataUrl = e.target.result;
-      const optimistic = {
-        id: 'tmp_' + clientId, client_id: clientId, _pending: true,
-        couple_id: coupleId(), sender_role: myRole(), type: 'image',
-        text: null, media_url: dataUrl, reply_to: replyingTo ? replyingTo.id : null,
-        reactions: {}, starred_by: [], pinned: false, delivered: false, read: false,
-        created_at: new Date().toISOString()
-      };
-      messages.push(optimistic); saveCache(); render(); scrollToBottom(true);
-      const replySnapshot = replyingTo; clearReply();
-      try {
-        let mediaUrl = dataUrl;
-        // Try uploading via existing media endpoint if present; fall back to inline base64
-        try {
-          const up = await apiCall('POST', '/api/media/upload', { coupleId: coupleId(), dataUrl, filename: file.name });
-          if (up && up.url) mediaUrl = up.url;
-        } catch (_) { /* endpoint absent — keep base64 inline, still works */ }
-        const saved = await sendToServer({ clientId, type: 'image', mediaUrl, replyTo: replySnapshot?.id });
-        const idx = messages.findIndex(m => m.client_id === clientId);
-        if (idx >= 0) messages[idx] = saved;
-        lastId = Math.max(lastId, saved.id);
-        saveCache(); render();
-      } catch (err) {
-        const idx = messages.findIndex(m => m.client_id === clientId);
-        if (idx >= 0) messages[idx]._failed = true;
-        render(); toast('Photo failed to send');
-      }
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function onImagePick(input) {
-    const file = input.files[0]; if (!file) return;
-    sendImage(file); input.value = '';
-  }
-
-  /* ── voice notes ── */
-  async function toggleRecord() {
-    if (isRecording) { stopRecording(); return; }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioChunks = [];
-      mediaRecorder = new MediaRecorder(stream);
-      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-      mediaRecorder.onstop = onRecordingStop;
-      mediaRecorder.start();
-      isRecording = true; recordStart = Date.now();
-      pushPresence('recording');
-      const btn = document.getElementById('chatRecBtn'); if (btn) btn.classList.add('rec-active');
-      const timerEl = document.getElementById('chatRecTimer'); if (timerEl) timerEl.style.display = 'inline';
-      recordTimerInt = setInterval(() => {
-        const sec = Math.floor((Date.now() - recordStart) / 1000);
-        if (timerEl) timerEl.textContent = String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0');
-      }, 500);
-    } catch (e) { toast('Microphone permission denied'); }
-  }
-  function stopRecording() {
-    if (mediaRecorder && isRecording) mediaRecorder.stop();
-    isRecording = false; clearInterval(recordTimerInt);
-    const btn = document.getElementById('chatRecBtn'); if (btn) btn.classList.remove('rec-active');
-    const timerEl = document.getElementById('chatRecTimer'); if (timerEl) timerEl.style.display = 'none';
-    pushPresence('online');
-  }
-  async function onRecordingStop() {
-    const durationSec = Math.round((Date.now() - recordStart) / 1000);
-    if (durationSec < 1) { toast('Recording too short'); return; }
-    const blob = new Blob(audioChunks, { type: 'audio/webm' });
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const dataUrl = e.target.result;
-      const clientId = uuid();
-      const optimistic = {
-        id: 'tmp_' + clientId, client_id: clientId, _pending: true,
-        couple_id: coupleId(), sender_role: myRole(), type: 'voice',
-        text: null, media_url: dataUrl, media_meta: { duration: durationSec },
-        reply_to: replyingTo ? replyingTo.id : null,
-        reactions: {}, starred_by: [], pinned: false, delivered: false, read: false,
-        created_at: new Date().toISOString()
-      };
-      messages.push(optimistic); saveCache(); render(); scrollToBottom(true);
-      const replySnapshot = replyingTo; clearReply();
-      try {
-        const saved = await sendToServer({ clientId, type: 'voice', mediaUrl: dataUrl, mediaMeta: { duration: durationSec }, replyTo: replySnapshot?.id });
-        const idx = messages.findIndex(m => m.client_id === clientId);
-        if (idx >= 0) messages[idx] = saved;
-        lastId = Math.max(lastId, saved.id);
-        saveCache(); render();
-      } catch (err) {
-        const idx = messages.findIndex(m => m.client_id === clientId);
-        if (idx >= 0) messages[idx]._failed = true;
-        render();
-      }
-    };
-    reader.readAsDataURL(blob);
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     EDIT / DELETE
-  ══════════════════════════════════════════════════════════════ */
-  function startEdit(id) {
-    const m = messages.find(x => String(x.id) === String(id)); if (!m || !isMine(m) || m.type !== 'text') return;
-    editingId = id;
-    const input = document.getElementById('chatIn');
-    if (input) { input.value = m.text || ''; input.focus(); autoGrow(input); }
-    renderComposerBanner();
-    closeCtxMenu();
-  }
-  function cancelEdit() { editingId = null; const input = document.getElementById('chatIn'); if (input) input.value = ''; renderComposerBanner(); }
-  async function commitEdit(id, text) {
-    editingId = null;
-    const input = document.getElementById('chatIn'); if (input) input.value = '';
-    renderComposerBanner();
-    if (!text) return;
-    const m = messages.find(x => String(x.id) === String(id)); if (m) { m.text = text; m.edited = true; render(); }
-    try { await apiCall('PATCH', `/api/chat/${id}`, { coupleId: coupleId(), senderRole: myRole(), text }); refresh(); }
-    catch (e) { toast('Edit failed'); }
-  }
-
-  async function deleteMessage(id, mode) {
-    const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
-    if (mode === 'everyone') { m.deleted = true; m.text = null; m.media_url = null; }
-    else { messages = messages.filter(x => x.id !== id); }
-    saveCache(); render(); closeCtxMenu();
-    try { await apiCall('DELETE', `/api/chat/${id}`, { coupleId: coupleId(), senderRole: myRole(), mode }); }
-    catch (e) { toast('Delete failed to sync'); }
-  }
-  function confirmDelete(id) {
-    const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
-    const mine = isMine(m);
-    showActionSheet([
-      mine ? { label: '🗑️ Delete for everyone', danger: true, action: () => deleteMessage(id, 'everyone') } : null,
-      { label: '🙈 Delete for me', danger: true, action: () => deleteMessage(id, 'me') },
-      { label: 'Cancel', action: () => {} }
-    ].filter(Boolean));
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     REACTIONS / PIN / STAR / REPLY / FORWARD
-  ══════════════════════════════════════════════════════════════ */
-  const QUICK_REACTIONS = ['❤️', '😂', '😮', '😢', '🙏', '🔥'];
-
-  async function react(id, emoji) {
-  const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
-  if (m._pending) { toast('Still sending — try again in a moment'); return; }
-  if (!m.reactions) m.reactions = {};
-  Object.keys(m.reactions).forEach(e => { m.reactions[e] = (m.reactions[e] || []).filter(r => r !== myRole()); if (!m.reactions[e].length) delete m.reactions[e]; });
-  m.reactions[emoji] = [...(m.reactions[emoji] || []), myRole()];
-  render();
-  try { const saved = await apiCall('POST', `/api/chat/${id}/react`, { coupleId: coupleId(), role: myRole(), emoji }); const idx = messages.findIndex(x => x.id === id); if (idx >= 0) messages[idx] = saved; render(); }
-  catch (e) {}
-  closeReactionPicker();
-}
-
-async function togglePin(id) {
-  const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
-  if (m._pending) { toast('Still sending — try again in a moment'); closeCtxMenu(); return; }
-  m.pinned = !m.pinned; render(); closeCtxMenu();
-  try { await apiCall('POST', `/api/chat/${id}/pin`, { coupleId: coupleId(), pinned: m.pinned }); } catch (e) {}
-}
-
-async function toggleStar(id) {
-  const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
-  if (m._pending) { toast('Still sending — try again in a moment'); closeCtxMenu(); return; }
-  const has = (m.starred_by || []).includes(myRole());
-  m.starred_by = has ? m.starred_by.filter(r => r !== myRole()) : [...(m.starred_by || []), myRole()];
-  render(); closeCtxMenu();
-  try { await apiCall('POST', `/api/chat/${id}/star`, { coupleId: coupleId(), role: myRole() }); } catch (e) {}
-}
-
-  function setReply(id) {
-    const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
-    replyingTo = m; renderComposerBanner(); closeCtxMenu();
-    document.getElementById('chatIn')?.focus();
-  }
-  function clearReply() { replyingTo = null; renderComposerBanner(); }
-
-  function forwardMessage(id) {
-    const m = messages.find(x => String(x.id) === String(id)); if (!m) return;
-    toast('Forward: paste into a new message manually for now 💌');
-    const input = document.getElementById('chatIn');
-    if (input && m.type === 'text') { input.value = m.text || ''; autoGrow(input); input.focus(); }
-    closeCtxMenu();
-  }
-
-  function copyText(id) {
-    const m = messages.find(x => String(x.id) === String(id)); if (!m || !m.text) return;
-    navigator.clipboard?.writeText(m.text).then(() => toast('Copied 📋'));
-    closeCtxMenu();
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     MULTI-SELECT MODE
-  ══════════════════════════════════════════════════════════════ */
-  function enterSelectMode(id) {
-    selectMode = true; selectedIds = new Set([id]); render(); closeCtxMenu();
-  }
-  function toggleSelect(id) {
-    if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
-    if (!selectedIds.size) selectMode = false;
-    render();
-  }
-  function exitSelectMode() { selectMode = false; selectedIds.clear(); render(); }
-  function deleteSelected() {
-    const ids = [...selectedIds];
-    showActionSheet([
-      { label: `🗑️ Delete ${ids.length} message(s) for me`, danger: true, action: () => { ids.forEach(id => deleteMessage(id, 'me')); exitSelectMode(); } },
-      { label: 'Cancel', action: () => {} }
-    ]);
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     READ / DELIVERED
-  ══════════════════════════════════════════════════════════════ */
-  let markReadDebounce = null;
-  function markRead() {
-    if (!coupleId()) return;
-    clearTimeout(markReadDebounce);
-    markReadDebounce = setTimeout(async () => {
-      try { await apiCall('POST', `/api/chat/${coupleId()}/read`, { role: myRole() }); refresh(); } catch (e) {}
-    }, 400);
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     RENDER
-  ══════════════════════════════════════════════════════════════ */
-  function visibleMessages() {
-    return messages.filter(m => {
-      const df = m.deleted_for || 'none';
-      if (df === 'everyone') return false;
-      if (df !== 'none' && df.split(',').includes(myRole())) return false;
-      return true;
+  function updateJumpBadge(n) {
+    document.querySelectorAll('[data-chat-badge]').forEach(el => {
+      el.textContent = n > 0 ? n : '';
+      el.style.display = n > 0 ? 'inline-flex' : 'none';
     });
   }
 
-  function fmtDaySeparator(dateStr) {
-    const d = new Date(dateStr); const today = new Date(); const yest = new Date(today); yest.setDate(yest.getDate() - 1);
-    const sameDay = (a, b) => a.toDateString() === b.toDateString();
-    if (sameDay(d, today)) return 'Today';
-    if (sameDay(d, yest)) return 'Yesterday';
-    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: d.getFullYear() !== today.getFullYear() ? 'numeric' : undefined });
-  }
-  function fmtTime(dateStr) { return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
-
-  function bubbleTicks(m) {
-    if (!isMine(m)) return '';
-    if (m._pending) return '<span class="tick tick-pending">🕓</span>';
-    if (m._failed) return '<span class="tick tick-failed" title="Tap to retry">⚠️</span>';
-    if (m.read) return '<span class="tick tick-read">✓✓</span>';
-    if (m.delivered) return '<span class="tick tick-delivered">✓✓</span>';
-    return '<span class="tick tick-sent">✓</span>';
-  }
-
-  function reactionsHtml(m) {
-    const r = m.reactions || {};
-    const keys = Object.keys(r).filter(k => r[k] && r[k].length);
-    if (!keys.length) return '';
-    return `<div class="msg-reactions">${keys.map(e => `<span class="reaction-pill ${r[e].includes(myRole()) ? 'mine' : ''}" onclick="Chat.react('${m.id}','${e}')">${e} ${r[e].length > 1 ? r[e].length : ''}</span>`).join('')}</div>`;
+  // ─── RENDER ──────────────────────────────────────────
+  function render() {
+    const box = document.getElementById('chatMsgs');
+    if (!box) return;
+    const visible = msgs.filter(m => !(m.deleted_for || '').split(',').includes(myRole()));
+    let html = '', lastDate = null;
+    visible.forEach(m => {
+      const d = new Date(m.created_at);
+      const ds = d.toDateString();
+      if (ds !== lastDate) {
+        lastDate = ds;
+        html += `<div class="chat-date-sep"><span>${fmtDaySep(d)}</span></div>`;
+      }
+      html += renderBubble(m);
+    });
+    box.innerHTML = html || `<div class="empty" style="padding:60px 20px"><div class="empty-ico">💬</div>Say hello 👋</div>`;
+    renderPinned();
   }
 
-  function replyPreviewHtml(m) {
-    if (!m.reply_to) return '';
-    const orig = messages.find(x => x.id === m.reply_to);
-    if (!orig) return '<div class="msg-reply-ref msg-reply-missing">Original message unavailable</div>';
-    const who = isMine(orig) ? (window.S?.myName || 'You') : (window.S?.partnerName || 'Partner');
-    const preview = orig.type === 'text' ? (orig.text || '').slice(0, 60) : (orig.type === 'image' ? '📷 Photo' : orig.type === 'voice' ? '🎙️ Voice message' : '🎬 Video');
-    return `<div class="msg-reply-ref" onclick="Chat.scrollToMsg('${orig.id}')"><div class="reply-ref-name">${esc(who)}</div><div class="reply-ref-text">${esc(preview)}</div></div>`;
-  }
-
-  function bubbleContent(m) {
-    if (m.deleted) return `<div class="msg-deleted">🚫 This message was deleted</div>`;
-    if (m.type === 'image') {
-      return `<img src="${m.media_url}" class="msg-img" loading="lazy" onclick="Chat.viewImage('${m.media_url}')">`;
-    }
-    if (m.type === 'gif') {
-      return `<img src="${m.media_url}" class="msg-img msg-gif" loading="lazy" onclick="Chat.viewImage('${m.media_url}')">`;
-    }
-    if (m.type === 'sticker') {
-      return `<div class="msg-sticker">${m.text}</div>`;
-    }
-    if (m.type === 'gift') {
-      const meta = m.media_meta || {};
-      return `<div class="msg-gift" onclick="Chat.playGiftAnim(this)">
-        <div class="msg-gift-emoji">${esc(meta.emoji || '🎁')}</div>
-        <div class="msg-gift-name">${esc(meta.name || 'A gift')}</div>
-      </div>`;
-    }
-    if (m.type === 'call_log') {
-      const meta = m.media_meta || {};
-      return `<div class="msg-call-log">${esc(m.text)}</div>`;
-    }
-    if (m.type === 'voice') {
-      const dur = (m.media_meta && m.media_meta.duration) || 0;
-      const durLabel = String(Math.floor(dur / 60)).padStart(2, '0') + ':' + String(dur % 60).padStart(2, '0');
-      return `<div class="voice-msg-chat" onclick="Chat.playVoice(this,'${m.media_url}')">
-        <button class="voice-play-chat">▶</button>
-        <div class="voice-wave-chat">${Array.from({length: 22}).map(() => `<span style="height:${6 + Math.random()*16}px"></span>`).join('')}</div>
-        <span class="voice-dur-chat">${durLabel}</span>
-      </div>`;
-    }
-    const editedTag = m.edited ? '<span class="edited-tag">edited</span>' : '';
-    return `<div class="msg-text">${esc(m.text || '').replace(/\n/g, '<br>')}${editedTag}</div>`;
-  }
-
-  function playGiftAnim(el) {
-    el.classList.add('gift-pop');
-    if (typeof window.spawnPetals === 'function') window.spawnPetals(10);
-    setTimeout(() => el.classList.remove('gift-pop'), 900);
+  function fmtDaySep(d) {
+    const today = new Date(); const yest = new Date(); yest.setDate(yest.getDate() - 1);
+    if (d.toDateString() === today.toDateString()) return 'Today';
+    if (d.toDateString() === yest.toDateString()) return 'Yesterday';
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
   function renderBubble(m) {
+    if (m.deleted) {
+      return `<div class="chat-row ${isMine(m) ? 'me' : 'them'}"><div class="chat-bubble deleted-bubble">🚫 Message deleted</div></div>`;
+    }
     const mine = isMine(m);
-    const starred = (m.starred_by || []).includes(myRole());
-    const selecting = selectMode;
-    const isSelected = selectedIds.has(m.id);
-    return `
-    <div class="msg-row ${mine ? 'me' : 'them'} ${isSelected ? 'selected' : ''}" data-id="${m.id}"
-      onclick="${selecting ? `Chat.toggleSelect('${m.id}')` : (m._failed ? `Chat.retryMessage('${m.client_id}')` : '')}"
-oncontextmenu="Chat.openCtxMenu(event,'${m.id}');return false;"
-ontouchstart="Chat._touchStart(event,'${m.id}')" ontouchend="Chat._touchEnd(event)">
-      ${selecting ? `<div class="msg-select-check ${isSelected ? 'checked' : ''}">${isSelected ? '✓' : ''}</div>` : ''}
-      <div class="msg-bubble-wrap">
-        ${m.pinned ? '<div class="pin-flag">📌 Pinned</div>' : ''}
-        <div class="bubble">
-          ${replyPreviewHtml(m)}
-          ${m.forwarded ? '<div class="forwarded-tag">↪ Forwarded</div>' : ''}
-          ${bubbleContent(m)}
-          <div class="bubble-meta">
-            ${starred ? '<span class="star-flag">⭐</span>' : ''}
-            <span class="msg-time">${fmtTime(m.created_at)}</span>
-            ${bubbleTicks(m)}
-          </div>
-        </div>
-        ${reactionsHtml(m)}
+    const time = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    let body = '';
+    if (m.type === 'image') body = `<img src="${esc(m.media_url)}" class="chat-img" onclick="openImgViewer('${esc(m.media_url)}')" loading="lazy">`;
+    else if (m.type === 'gif') body = `<img src="${esc(m.media_url)}" class="chat-img chat-gif" onclick="openImgViewer('${esc(m.media_url)}')" loading="lazy">`;
+    else if (m.type === 'voice') body = renderVoice(m);
+    else if (m.type === 'call_log') return `<div class="chat-call-log"><span>${esc(m.text)}</span><span class="chat-call-time">${time}</span></div>`;
+    else body = `<div class="chat-text">${linkify(esc(m.text || ''))}</div>`;
+
+    const reactions = m.reactions && Object.keys(m.reactions).length
+      ? `<div class="chat-reactions">${Object.entries(m.reactions).map(([e, roles]) => `<span class="chat-reaction-pill">${e} ${roles.length}</span>`).join('')}</div>` : '';
+
+    const status = mine ? (m.read ? '✓✓' : m.delivered ? '✓✓' : '✓') : '';
+    const statusClass = mine && m.read ? 'read' : '';
+
+    return `<div class="chat-row ${mine ? 'me' : 'them'}" data-id="${m.id}" onclick="Chat.onBubbleClick(${m.id}, event)" oncontextmenu="Chat.openMenu(${m.id}, event); return false;">
+      <div class="chat-bubble ${mine ? 'mine' : 'theirs'}">
+        ${body}
+        ${reactions}
+        <div class="chat-meta"><span>${time}${m.edited ? ' · edited' : ''}</span>${mine ? `<span class="chat-status ${statusClass}">${status}</span>` : ''}</div>
       </div>
     </div>`;
   }
 
-  function render() {
-    const wrap = document.getElementById('chatMsgs');
-    if (!wrap) return;
-    const vis = visibleMessages();
-    let html = '';
-    let lastDay = null;
-    vis.forEach(m => {
-      const day = new Date(m.created_at).toDateString();
-      if (day !== lastDay) { html += `<div class="date-sep"><span>${fmtDaySeparator(m.created_at)}</span></div>`; lastDay = day; }
-      html += renderBubble(m);
-    });
-    if (!vis.length) html = `<div class="chat-empty"><div style="font-size:44px;margin-bottom:10px">💬</div>Say hi to start your conversation 💕</div>`;
-    const wasAtBottom = atBottom;
-    wrap.innerHTML = html;
-    renderPinnedBar();
-    renderHeader();
-    if (wasAtBottom) scrollToBottom();
-    else updateJumpBtn();
-    updateUnreadBadge();
-
-    const stb = document.getElementById('chatSelectToolbar');
-    if (stb) {
-      stb.classList.toggle('active', selectMode);
-      const cnt = document.getElementById('chatSelectCount');
-      if (cnt) cnt.textContent = selectedIds.size + ' selected';
-    }
+  function linkify(text) {
+    return text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
   }
 
-  function renderHeader() {
-    const nameEl = document.getElementById('chatHeaderName');
-    const statusEl = document.getElementById('chatHeaderStatus');
-    if (nameEl) nameEl.textContent = window.S?.partnerName || 'Partner';
-    if (statusEl) {
-      const st = partnerPresence.status;
-      if (st === 'typing') statusEl.innerHTML = '<span class="typing-dots"><span></span><span></span><span></span></span> typing';
-      else if (st === 'recording') statusEl.textContent = '🎙️ recording voice message...';
-      else if (st === 'online') statusEl.textContent = '🟢 online';
-      else if (partnerPresence.last_seen) statusEl.textContent = 'last seen ' + fmtLastSeen(partnerPresence.last_seen);
-      else statusEl.textContent = 'offline';
-    }
-    const av = document.getElementById('chatHeaderAv');
-    if (av) { av.textContent = (window.S?.partnerName || 'P')[0]; if (window.S?.partnerAvatar) av.innerHTML = `<img src="${window.S.partnerAvatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`; }
+  function renderVoice(m) {
+    const dur = (m.media_meta && m.media_meta.duration) || 0;
+    return `<div class="voice-msg" onclick="event.stopPropagation();Chat.toggleVoicePlay(this,'${esc(m.media_url)}')">
+      <button class="voice-play">▶</button>
+      <div class="voice-waveform">${Array.from({length:18}).map((_,i)=>`<span style="height:${8+Math.random()*16}px"></span>`).join('')}</div>
+      <div class="voice-dur">${Math.floor(dur/60)}:${String(dur%60).padStart(2,'0')}</div>
+    </div>`;
   }
-  function fmtLastSeen(ts) {
-    const mins = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
-    if (mins < 1) return 'just now'; if (mins < 60) return mins + 'm ago';
-    const h = Math.floor(mins / 60); if (h < 24) return h + 'h ago';
-    return Math.floor(h / 24) + 'd ago';
+  function toggleVoicePlay(el, url) {
+    let audio = el._audio;
+    if (!audio) { audio = new Audio(url); el._audio = audio; audio.onended = () => { el.querySelector('.voice-waveform').classList.remove('playing'); el.querySelector('.voice-play').textContent = '▶'; }; }
+    if (audio.paused) { audio.play(); el.querySelector('.voice-waveform').classList.add('playing'); el.querySelector('.voice-play').textContent = '⏸'; }
+    else { audio.pause(); el.querySelector('.voice-waveform').classList.remove('playing'); el.querySelector('.voice-play').textContent = '▶'; }
   }
 
-  function renderPinnedBar() {
+  function renderPinned() {
     const bar = document.getElementById('chatPinnedBar');
     if (!bar) return;
-    const pinned = visibleMessages().filter(m => m.pinned);
-    if (!pinned.length) { bar.style.display = 'none'; return; }
-    const latest = pinned[pinned.length - 1];
+    const pinned = msgs.filter(m => m.pinned && !m.deleted);
+    if (!pinned.length) { bar.innerHTML = ''; bar.style.display = 'none'; return; }
     bar.style.display = 'flex';
-    bar.innerHTML = `<span class="pin-ico">📌</span><span class="pin-text" onclick="Chat.scrollToMsg('${latest.id}')">${esc((latest.text || (latest.type === 'image' ? 'Photo' : 'Voice message')).slice(0, 50))}</span><span class="pin-count">${pinned.length > 1 ? pinned.length : ''}</span>`;
+    bar.innerHTML = pinned.map(p => `<div class="chat-pinned-item" onclick="Chat.scrollToMsg(${p.id})">📌 ${esc((p.text||'Media').slice(0,50))}</div>`).join('');
+  }
+  function scrollToMsg(id) {
+    const el = document.querySelector(`.chat-row[data-id="${id}"]`);
+    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1200); }
   }
 
-  function renderComposerBanner() {
-    const banner = document.getElementById('chatComposerBanner');
-    if (!banner) return;
-    if (editingId) {
-      const m = messages.find(x => x.id === editingId);
-      banner.style.display = 'flex';
-      banner.innerHTML = `<div class="banner-ico">✏️</div><div class="banner-body"><div class="banner-title">Editing message</div><div class="banner-sub">${esc((m?.text || '').slice(0, 60))}</div></div><button class="banner-close" onclick="Chat.cancelEdit()">✕</button>`;
-    } else if (replyingTo) {
-      const who = isMine(replyingTo) ? (window.S?.myName || 'You') : (window.S?.partnerName || 'Partner');
-      const preview = replyingTo.type === 'text' ? replyingTo.text : (replyingTo.type === 'image' ? '📷 Photo' : '🎙️ Voice message');
-      banner.style.display = 'flex';
-      banner.innerHTML = `<div class="banner-ico">↩️</div><div class="banner-body"><div class="banner-title">Replying to ${esc(who)}</div><div class="banner-sub">${esc((preview || '').slice(0, 60))}</div></div><button class="banner-close" onclick="Chat.clearReply()">✕</button>`;
-    } else {
-      banner.style.display = 'none'; banner.innerHTML = '';
+  // ─── SEND ────────────────────────────────────────────
+  function genClientId() { return 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8); }
+
+  async function sendMessage(payload) {
+    if (!coupleId()) { toast('Not connected'); return; }
+    const clientId = genClientId();
+    const optimistic = {
+      id: 'temp_' + clientId, client_id: clientId, couple_id: coupleId(), sender_role: myRole(),
+      created_at: new Date().toISOString(), delivered: false, read: false, ...payload
+    };
+    msgs.push(optimistic); render(); scrollToBottom(true);
+    try {
+      const saved = await api('POST', '/api/chat', { coupleId: coupleId(), clientId, senderRole: myRole(), ...payload });
+      const idx = msgs.findIndex(m => m.client_id === clientId);
+      if (idx > -1) msgs[idx] = saved;
+      lastMsgId = Math.max(lastMsgId, saved.id);
+      render();
+    } catch (e) {
+      const idx = msgs.findIndex(m => m.client_id === clientId);
+      if (idx > -1) msgs[idx]._failed = true;
+      render();
+      toast('Send failed — tap to retry');
     }
   }
 
-  function updateUnreadBadge() {
-    const unread = visibleMessages().filter(m => !isMine(m) && !m.read).length;
-    const badges = document.querySelectorAll('[data-chat-badge]');
-    badges.forEach(b => { if (unread > 0) { b.style.display = 'inline-flex'; b.textContent = unread > 9 ? '9+' : unread; } else b.style.display = 'none'; });
+  function sendText() {
+    const inp = document.getElementById('chatIn');
+    const text = inp.value.trim();
+    if (!text) return;
+    inp.value = ''; inp.style.height = 'auto';
+    sendMessage({ type: 'text', text, replyTo: replyingTo });
+    replyingTo = null; closeBanner();
   }
 
-  /* ── scroll management ── */
-  function scrollToBottom(force) {
-    const wrap = document.getElementById('chatMsgs'); if (!wrap) return;
-    if (force || atBottom) { wrap.scrollTop = wrap.scrollHeight; atBottom = true; updateJumpBtn(); }
-  }
-  function onChatScroll() {
-    const wrap = document.getElementById('chatMsgs'); if (!wrap) return;
-    atBottom = (wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight) < 60;
-    updateJumpBtn();
-    if (atBottom) markRead();
-  }
-  function updateJumpBtn() {
-    const btn = document.getElementById('chatJumpBtn'); if (!btn) return;
-    btn.style.display = atBottom ? 'none' : 'flex';
-  }
-  function scrollToMsg(id) {
-    const el = document.querySelector(`.msg-row[data-id="${id}"]`);
-    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('msg-flash'); setTimeout(() => el.classList.remove('msg-flash'), 1200); }
+  function onTypingInput() {}
+
+  function onImagePick(input) {
+    if (!input.files[0]) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = e => { sendMessage({ type: 'image', mediaUrl: e.target.result }); input.value = ''; };
+    reader.readAsDataURL(file);
   }
 
-  function autoGrow(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; }
+  function sendGif(url) { sendMessage({ type: 'gif', mediaUrl: url }); closeSheet(); }
+  function sendEmoji(emoji) {
+    const inp = document.getElementById('chatIn');
+    inp.value += emoji;
+    inp.focus();
+  }
 
-  /* ══════════════════════════════════════════════════════════════
-     CONTEXT MENU (long-press / right-click)
-  ══════════════════════════════════════════════════════════════ */
-  let touchTimer = null;
-  function _touchStart(e, id) { touchTimer = setTimeout(() => openCtxMenu(e, id), 480); }
-  function _touchEnd() { clearTimeout(touchTimer); }
+  // ─── VOICE RECORD ────────────────────────────────────
+  async function toggleRecord() {
+    if (recording) { stopRecording(); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      recChunks = [];
+      mediaRecorder.ondataavailable = e => recChunks.push(e.data);
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(recChunks, { type: 'audio/webm' });
+        const dur = Math.round((Date.now() - recStart) / 1000);
+        const reader = new FileReader();
+        reader.onload = e => sendMessage({ type: 'voice', mediaUrl: e.target.result, mediaMeta: { duration: dur } });
+        reader.readAsDataURL(blob);
+      };
+      mediaRecorder.start();
+      recording = true; recStart = Date.now();
+      document.getElementById('chatRecBtn').textContent = '⏹';
+      document.getElementById('chatRecTimer').style.display = 'inline';
+      recTimerInt = setInterval(() => {
+        const s = Math.floor((Date.now() - recStart) / 1000);
+        document.getElementById('chatRecTimer').textContent = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+      }, 500);
+    } catch (e) { toast('Mic permission denied'); }
+  }
+  function stopRecording() {
+    recording = false;
+    clearInterval(recTimerInt);
+    document.getElementById('chatRecBtn').textContent = '🎙️';
+    document.getElementById('chatRecTimer').style.display = 'none';
+    if (mediaRecorder) mediaRecorder.stop();
+  }
 
-  function openCtxMenu(e, id) {
-    if (e.preventDefault) e.preventDefault();
-    if (navigator.vibrate) navigator.vibrate(30);
-    const m = messages.find(x => String(x.id) === String(id)); if (!m || m.deleted) return;
+  // ─── BUBBLE ACTIONS / LONG-PRESS MENU ───────────────
+  function onBubbleClick(id, ev) {
+    if (selectMode) { toggleSelect(id); return; }
+  }
+  function openMenu(id, ev) {
+    const m = msgs.find(x => x.id === id); if (!m) return;
     const mine = isMine(m);
-    closeCtxMenu();
-    const menu = document.createElement('div');
-    menu.className = 'msg-ctx-menu';
-    menu.id = 'msgCtxMenu';
-    const items = [
-      { label: '↩️ Reply', action: () => setReply(id) },
-      m.type === 'text' ? { label: '📋 Copy', action: () => copyText(id) } : null,
-      mine && m.type === 'text' ? { label: '✏️ Edit', action: () => startEdit(id) } : null,
-      { label: (m.starred_by || []).includes(myRole()) ? '⭐ Unstar' : '☆ Star', action: () => toggleStar(id) },
-      { label: m.pinned ? '📌 Unpin' : '📌 Pin', action: () => togglePin(id) },
-      { label: '↪️ Forward', action: () => forwardMessage(id) },
-      { label: '☑️ Select', action: () => enterSelectMode(id) },
-      { label: '🗑️ Delete', danger: true, action: () => confirmDelete(id) },
-    ].filter(Boolean);
-    menu.innerHTML = `
-      <div class="ctx-reactions">${QUICK_REACTIONS.map(em => `<span class="ctx-emoji" onclick="Chat.react('${id}','${em}')">${em}</span>`).join('')}</div>
-      ${items.map((it, i) => `<div class="ctx-item ${it.danger ? 'danger' : ''}" data-i="${i}">${it.label}</div>`).join('')}
-    `;
-    document.body.appendChild(menu);
-    items.forEach((it, i) => menu.querySelector(`.ctx-item[data-i="${i}"]`).addEventListener('click', () => { it.action(); closeCtxMenu(); }));
-
-    const bg = document.createElement('div');
-    bg.className = 'msg-ctx-bg'; bg.id = 'msgCtxBg';
-    bg.addEventListener('click', closeCtxMenu);
-    document.body.appendChild(bg);
-
-    // position near touch/click point, clamp to viewport
-    const x = (e.touches && e.touches[0]) ? e.touches[0].clientX : (e.clientX || window.innerWidth / 2);
-    const y = (e.touches && e.touches[0]) ? e.touches[0].clientY : (e.clientY || window.innerHeight / 2);
-    requestAnimationFrame(() => {
-      const rect = menu.getBoundingClientRect();
-      let left = Math.min(x, window.innerWidth - rect.width - 12);
-      let top = Math.min(y, window.innerHeight - rect.height - 12);
-      menu.style.left = Math.max(12, left) + 'px';
-      menu.style.top = Math.max(12, top) + 'px';
-      menu.classList.add('open');
-    });
+    let sheet = document.getElementById('chatMsgMenu');
+    if (sheet) sheet.remove();
+    sheet = document.createElement('div');
+    sheet.id = 'chatMsgMenu';
+    sheet.className = 'chat-sheet-overlay';
+    sheet.innerHTML = `<div class="chat-sheet">
+      <div class="chat-sheet-item" onclick="Chat.reactTo(${id},'❤️')">❤️ React</div>
+      <div class="chat-sheet-item" onclick="Chat.replyTo(${id})">↩️ Reply</div>
+      <div class="chat-sheet-item" onclick="Chat.togglePin(${id})">📌 Pin</div>
+      <div class="chat-sheet-item" onclick="Chat.toggleStar(${id})">⭐ Star</div>
+      <div class="chat-sheet-item" onclick="Chat.enterSelectMode(${id})">☑️ Select</div>
+      ${mine ? `<div class="chat-sheet-item danger" onclick="Chat.deleteMsg(${id},'everyone')">🗑️ Delete for everyone</div>` : ''}
+      <div class="chat-sheet-item danger" onclick="Chat.deleteMsg(${id},'me')">🗑️ Delete for me</div>
+      <div class="chat-sheet-item" onclick="this.closest('.chat-sheet-overlay').remove()">Cancel</div>
+    </div>`;
+    sheet.onclick = e => { if (e.target === sheet) sheet.remove(); };
+    document.body.appendChild(sheet);
   }
-  function closeCtxMenu() {
-    document.getElementById('msgCtxMenu')?.remove();
-    document.getElementById('msgCtxBg')?.remove();
+  async function reactTo(id, emoji) {
+    document.getElementById('chatMsgMenu')?.remove();
+    try {
+      const data = await api('POST', '/api/chat/' + id + '/react', { coupleId: coupleId(), role: myRole(), emoji });
+      const idx = msgs.findIndex(m => m.id === id); if (idx > -1) msgs[idx] = data;
+      render();
+    } catch (e) {}
   }
-  function closeReactionPicker() { /* reactions live inside ctx menu, nothing extra to close */ }
-
-  /* ══════════════════════════════════════════════════════════════
-     ACTION SHEET (delete confirm etc.)
-  ══════════════════════════════════════════════════════════════ */
-  function showActionSheet(items) {
-    const bg = document.createElement('div');
-    bg.className = 'msg-ctx-bg';
-    bg.style.zIndex = 9500;
-    const sheet = document.createElement('div');
-    sheet.className = 'chat-action-sheet';
-    sheet.innerHTML = items.map((it, i) => `<div class="sheet-item ${it.danger ? 'danger' : ''}" data-i="${i}">${it.label}</div>`).join('');
-    bg.appendChild(sheet);
-    document.body.appendChild(bg);
-    requestAnimationFrame(() => sheet.classList.add('open'));
-    items.forEach((it, i) => sheet.querySelector(`.sheet-item[data-i="${i}"]`).addEventListener('click', () => { it.action(); bg.remove(); }));
-    bg.addEventListener('click', (e) => { if (e.target === bg) bg.remove(); });
+  function replyTo(id) {
+    document.getElementById('chatMsgMenu')?.remove();
+    const m = msgs.find(x => x.id === id); if (!m) return;
+    replyingTo = id;
+    const banner = document.getElementById('chatComposerBanner');
+    banner.style.display = 'flex';
+    banner.innerHTML = `<div class="chat-banner-text">↩️ Replying to: ${esc((m.text||'Media').slice(0,60))}</div><button onclick="Chat.closeBanner()">✕</button>`;
+    document.getElementById('chatIn').focus();
   }
-
-  /* ══════════════════════════════════════════════════════════════
-     IMAGE VIEWER / VOICE PLAYBACK
-  ══════════════════════════════════════════════════════════════ */
-  function viewImage(url) {
-    if (typeof window.openImgViewer === 'function') window.openImgViewer(url);
-    else window.open(url, '_blank');
+  function closeBanner() { const b = document.getElementById('chatComposerBanner'); if (b) { b.style.display = 'none'; b.innerHTML = ''; } replyingTo = null; }
+  async function togglePin(id) {
+    document.getElementById('chatMsgMenu')?.remove();
+    const m = msgs.find(x => x.id === id); if (!m) return;
+    try {
+      const data = await api('POST', '/api/chat/' + id + '/pin', { coupleId: coupleId(), pinned: !m.pinned });
+      const idx = msgs.findIndex(x => x.id === id); if (idx > -1) msgs[idx] = data;
+      render();
+    } catch (e) {}
   }
-  let _activeAudio = null, _activeAudioBtn = null;
-  function playVoice(el, url) {
-    const btn = el.querySelector('.voice-play-chat');
-    const wave = el.querySelector('.voice-wave-chat');
-    if (_activeAudio && _activeAudioBtn === btn && !_activeAudio.paused) { _activeAudio.pause(); btn.textContent = '▶'; wave.classList.remove('playing'); return; }
-    if (_activeAudio) { _activeAudio.pause(); if (_activeAudioBtn) { _activeAudioBtn.textContent = '▶'; } }
-    _activeAudio = new Audio(url); _activeAudioBtn = btn;
-    _activeAudio.play(); btn.textContent = '⏸'; wave.classList.add('playing');
-    _activeAudio.onended = () => { btn.textContent = '▶'; wave.classList.remove('playing'); };
+  async function toggleStar(id) {
+    document.getElementById('chatMsgMenu')?.remove();
+    try {
+      const data = await api('POST', '/api/chat/' + id + '/star', { coupleId: coupleId(), role: myRole() });
+      const idx = msgs.findIndex(x => x.id === id); if (idx > -1) msgs[idx] = data;
+      render(); toast('Updated ⭐');
+    } catch (e) {}
   }
-
-  /* ══════════════════════════════════════════════════════════════
-     SEARCH
-  ══════════════════════════════════════════════════════════════ */
-  function openSearch() {
-    searchOpen = true;
-    const el = document.getElementById('chatSearchBar'); if (el) el.style.display = 'flex';
-    document.getElementById('chatSearchInput')?.focus();
-  }
-  function closeSearch() {
-    searchOpen = false; searchQuery = '';
-    const el = document.getElementById('chatSearchBar'); if (el) el.style.display = 'none';
-    const input = document.getElementById('chatSearchInput'); if (input) input.value = '';
-    document.getElementById('chatSearchResults').innerHTML = '';
-    document.getElementById('chatSearchResults').style.display = 'none';
-  }
-  function runSearch(q) {
-    searchQuery = q;
-    const box = document.getElementById('chatSearchResults');
-    if (!q.trim()) { box.style.display = 'none'; return; }
-    const hits = visibleMessages().filter(m => m.type === 'text' && m.text && m.text.toLowerCase().includes(q.toLowerCase()));
-    box.style.display = 'block';
-    if (!hits.length) { box.innerHTML = '<div class="search-none">No messages found</div>'; return; }
-    box.innerHTML = hits.slice(-30).reverse().map(m => `
-      <div class="search-hit" onclick="Chat.scrollToMsg('${m.id}');Chat.closeSearch()">
-        <div class="search-hit-who">${isMine(m) ? (window.S?.myName || 'You') : (window.S?.partnerName || 'Partner')} · ${fmtTime(m.created_at)}</div>
-        <div class="search-hit-text">${esc(m.text)}</div>
-      </div>`).join('');
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     STARRED MESSAGES VIEW
-  ══════════════════════════════════════════════════════════════ */
   function openStarred() {
-    const starred = visibleMessages().filter(m => (m.starred_by || []).includes(myRole()));
-    showActionSheet(starred.length
-      ? starred.map(m => ({ label: `⭐ ${(m.text || (m.type === 'image' ? '📷 Photo' : '🎙️ Voice')).slice(0, 40)}`, action: () => scrollToMsg(m.id) }))
-      : [{ label: 'No starred messages yet', action: () => {} }]
-    );
+    const starred = msgs.filter(m => (m.starred_by || []).includes(myRole()));
+    if (!starred.length) { toast('No starred messages'); return; }
+    toast(starred.length + ' starred message(s)');
+  }
+  async function deleteMsg(id, mode) {
+    document.getElementById('chatMsgMenu')?.remove();
+    try {
+      await api('DELETE', '/api/chat/' + id, { coupleId: coupleId(), senderRole: myRole(), mode });
+      if (mode === 'everyone') { const idx = msgs.findIndex(x => x.id === id); if (idx > -1) { msgs[idx].deleted = true; } }
+      else { const idx = msgs.findIndex(x => x.id === id); if (idx > -1) { msgs[idx].deleted_for = (msgs[idx].deleted_for || '') + ',' + myRole(); } }
+      render();
+    } catch (e) { toast('Delete failed'); }
   }
 
-  /* ══════════════════════════════════════════════════════════════
-     PUBLIC API
-  ══════════════════════════════════════════════════════════════ */
+  // ─── SELECT MODE ─────────────────────────────────────
+  function enterSelectMode(id) {
+    document.getElementById('chatMsgMenu')?.remove();
+    selectMode = true; selectedIds = new Set([id]);
+    document.getElementById('chatSelectToolbar').classList.add('show');
+    updateSelectCount();
+  }
+  function toggleSelect(id) {
+    if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
+    if (!selectedIds.size) exitSelectMode(); else updateSelectCount();
+  }
+  function updateSelectCount() { document.getElementById('chatSelectCount').textContent = selectedIds.size + ' selected'; }
+  function exitSelectMode() { selectMode = false; selectedIds.clear(); document.getElementById('chatSelectToolbar').classList.remove('show'); }
+  async function deleteSelected() {
+    for (const id of selectedIds) await deleteMsg(id, 'me');
+    exitSelectMode();
+  }
+
+  // ─── SEARCH ──────────────────────────────────────────
+  function openSearch() { document.getElementById('chatSearchBar').classList.add('show'); document.getElementById('chatSearchInput').focus(); }
+  function closeSearch() { document.getElementById('chatSearchBar').classList.remove('show'); document.getElementById('chatSearchInput').value=''; document.getElementById('chatSearchResults').innerHTML=''; }
+  async function runSearch(q) {
+    if (!q.trim()) { document.getElementById('chatSearchResults').innerHTML = ''; return; }
+    try {
+      const rows = await api('GET', '/api/chat/' + coupleId() + '/search?q=' + encodeURIComponent(q));
+      const el = document.getElementById('chatSearchResults');
+      el.innerHTML = (rows||[]).map(r => `<div class="chat-search-result" onclick="Chat.closeSearch();Chat.scrollToMsg(${r.id})">${esc((r.text||'Media').slice(0,80))}</div>`).join('') || '<div class="empty">No results</div>';
+    } catch (e) {}
+  }
+
+  // ─── BOTTOM SHEET (⋮ menu) ───────────────────────────
+  function openSheet() {
+    let sheet = document.getElementById('chatBottomSheet');
+    if (sheet) { sheet.classList.add('open'); return; }
+    sheet = document.createElement('div');
+    sheet.id = 'chatBottomSheet';
+    sheet.className = 'chat-bottom-sheet-overlay open';
+    sheet.innerHTML = `<div class="chat-bottom-sheet">
+      <div class="chat-sheet-handle"></div>
+      <div class="chat-sheet-grid">
+        <div class="chat-sheet-opt" onclick="Chat.openEmojiPanel()"><span>😊</span>Emoji</div>
+        <div class="chat-sheet-opt" onclick="Chat.openGifPanel()"><span>🎬</span>GIF</div>
+        <div class="chat-sheet-opt" onclick="toast('Gifts coming soon')"><span>🎁</span>Gifts</div>
+        <div class="chat-sheet-opt" onclick="Chat.closeSheet();Chat.toggleRecord()"><span>🎤</span>Voice</div>
+        <div class="chat-sheet-opt" onclick="document.getElementById('chatCameraInput').click()"><span>📷</span>Camera</div>
+        <div class="chat-sheet-opt" onclick="document.getElementById('chatGalleryInput').click()"><span>🖼</span>Gallery</div>
+        <div class="chat-sheet-opt" onclick="document.getElementById('chatFileInput').click()"><span>📁</span>Files</div>
+        <div class="chat-sheet-opt" onclick="toast('Location coming soon')"><span>📍</span>Location</div>
+        <div class="chat-sheet-opt" onclick="toast('Coming soon')"><span>🎵</span>Audio</div>
+        <div class="chat-sheet-opt" onclick="toast('Coming soon')"><span>📞</span>Contact</div>
+      </div>
+      <input type="file" id="chatCameraInput" accept="image/*" capture="environment" style="display:none" onchange="Chat.onImagePick(this)">
+      <input type="file" id="chatGalleryInput" accept="image/*,video/*" style="display:none" onchange="Chat.onImagePick(this)">
+      <input type="file" id="chatFileInput" style="display:none" onchange="Chat.onImagePick(this)">
+    </div>`;
+    sheet.onclick = e => { if (e.target === sheet) closeSheet(); };
+    document.body.appendChild(sheet);
+  }
+  function closeSheet() { document.getElementById('chatBottomSheet')?.classList.remove('open'); }
+
+  const EMOJIS = ['😀','😂','🥰','😍','😘','😊','😉','😢','😭','😡','🥺','😴','🤗','👍','👎','👏','🙏','💪','❤️','🧡','💛','💚','💙','💜','🖤','🤍','💕','💖','💗','💓','💯','🔥','✨','🎉','😎','🤔','😅','😜','🤩','😇'];
+  function openEmojiPanel() {
+    closeSheet();
+    let panel = document.getElementById('chatEmojiPanel');
+    if (panel) { panel.classList.toggle('open'); return; }
+    panel = document.createElement('div');
+    panel.id = 'chatEmojiPanel';
+    panel.className = 'chat-bottom-sheet-overlay open';
+    panel.innerHTML = `<div class="chat-bottom-sheet chat-emoji-sheet">
+      <div class="chat-sheet-handle"></div>
+      <div class="chat-emoji-grid">${EMOJIS.map(e => `<span onclick="Chat.sendEmojiTap('${e}')">${e}</span>`).join('')}</div>
+    </div>`;
+    panel.onclick = e => { if (e.target === panel) panel.classList.remove('open'); };
+    document.body.appendChild(panel);
+  }
+  function sendEmojiTap(e) { sendEmoji(e); }
+
+  async function openGifPanel() {
+    closeSheet();
+    let panel = document.getElementById('chatGifPanel');
+    if (panel) { panel.classList.add('open'); return; }
+    panel = document.createElement('div');
+    panel.id = 'chatGifPanel';
+    panel.className = 'chat-bottom-sheet-overlay open';
+    panel.innerHTML = `<div class="chat-bottom-sheet chat-gif-sheet">
+      <div class="chat-sheet-handle"></div>
+      <input type="text" id="gifSearchInput" placeholder="Search GIFs..." oninput="Chat.searchGifs(this.value)">
+      <div id="gifResults" class="chat-gif-grid"><div class="empty">Type to search</div></div>
+    </div>`;
+    panel.onclick = e => { if (e.target === panel) panel.classList.remove('open'); };
+    document.body.appendChild(panel);
+    searchGifs('love');
+  }
+  let gifDebounce;
+  function searchGifs(q) {
+    clearTimeout(gifDebounce);
+    gifDebounce = setTimeout(async () => {
+      const el = document.getElementById('gifResults');
+      el.innerHTML = '<div class="empty">Loading...</div>';
+      try {
+        // Public Tenor demo key — replace GIF_API_KEY with your own Tenor key for production
+        const key = 'ptJ3RSKMUd0ovjoM12Ra11JvlsssLRK4';
+const r = await fetch(`https://api.giphy.com/v1/gifs/search?q=${encodeURIComponent(q||'love')}&api_key=${key}&limit=24`);
+const data = await r.json();
+const results = data.data || [];
+if (!results.length) { el.innerHTML = '<div class="empty">No GIFs found</div>'; return; }
+el.innerHTML = results.map(g => {
+  const url = g.images?.fixed_height_small?.url || g.images?.original?.url;
+  return `<img src="${url}" loading="lazy" onclick="Chat.sendGif('${url}')">`;
+}).join('');
+      } catch (e) { el.innerHTML = '<div class="empty">GIF search failed — check connection</div>'; }
+    }, 400);
+  }
+  function closePanels() {
+    document.getElementById('chatEmojiPanel')?.classList.remove('open');
+    document.getElementById('chatGifPanel')?.classList.remove('open');
+  }
+
+  // ─── INIT ────────────────────────────────────────────
+  function init() {
+    if (!coupleId()) { setTimeout(init, 1000); return; }
+    loadMessages();
+    startPresence();
+    startPolling();
+    fetchPresence();
+    const nameEl = document.getElementById('chatHeaderName');
+    if (nameEl) nameEl.textContent = window.S.partnerName || 'Partner';
+    const avEl = document.getElementById('chatHeaderAv');
+    if (avEl) avEl.textContent = (window.S.partnerName || 'P')[0];
+    setInterval(fetchPresence, 15000);
+  }
+  document.addEventListener('DOMContentLoaded', () => setTimeout(init, 500));
+
   return {
-    init, refresh, sendText, onImagePick, toggleRecord, onTypingInput,
-    react, togglePin, toggleStar, setReply, clearReply, forwardMessage, copyText,
-    startEdit, cancelEdit, confirmDelete, deleteMessage, retryMessage,
-    enterSelectMode, toggleSelect, exitSelectMode, deleteSelected,
-    openCtxMenu, closeCtxMenu, _touchStart, _touchEnd,
-    viewImage, playVoice, scrollToMsg, scrollToBottom, onChatScroll,
-    openSearch, closeSearch, runSearch, openStarred, markRead,
-    togglePicker, closePicker, switchPickerTab, searchGifs, sendGif,
-    sendSticker, sendGift, playGiftAnim,
+    onChatScroll, scrollToBottom, sendText, onTypingInput, onImagePick, toggleRecord,
+    onBubbleClick, openMenu, reactTo, replyTo, closeBanner, togglePin, toggleStar,
+    openStarred, deleteMsg, enterSelectMode, deleteSelected, exitSelectMode,
+    openSearch, closeSearch, runSearch, scrollToMsg, sendGif, sendEmoji, sendEmojiTap,
+    openEmojiPanel, openGifPanel, searchGifs, markRead, init, openSheet, closeSheet
   };
 })();
-
-document.addEventListener('DOMContentLoaded', () => {
-  // Hook into goto() so opening the chat page initializes/refreshes chat
-  const tryHook = () => {
-    if (typeof window.goto !== 'function') { setTimeout(tryHook, 300); return; }
-    const orig = window.goto;
-    window.goto = function (page) {
-      orig(page);
-      if (page === 'chat') { Chat.init(); }
-    };
-  };
-  tryHook();
-});
+window.Chat = Chat;
