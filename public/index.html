@@ -3294,16 +3294,25 @@ function setJustPairedAt(ts) {
           if (who !== 'my') { toast("That's " + (S.partnerName || 'your partner') + "'s photo — they can change it on their device 💕"); return; }
           document.getElementById('myAvatarInput').click();
         }
-        function setAvatar(who, input) {
+        async function setAvatar(who, input) {
           if (!input.files[0]) return;
           if (who !== 'my') return; // safety: only your own avatar can ever be set from your device
-          const reader = new FileReader();
-          reader.onload = e => {
-            S.myAvatar = e.target.result;
+          const file = input.files[0];
+          const fd = new FormData();
+          fd.append('file', file);
+          fd.append('coupleId', S.coupleId);
+          fd.append('type', 'avatar');
+          try {
+            const r = await fetch(API + '/api/media/upload', { method: 'POST', body: fd });
+            const data = await r.json();
+            S.myAvatar = data.url; // store the short URL, not raw image data
             ['sbAv1', 'profAv1', 'settingsAv1'].forEach(id => setAvImg(id, S.myAvatar));
-            pushMyProfile(); // pushes it into the shared profile object so partner receives it
-            scheduleSave(); toast('Photo updated! 📸');
-          }; reader.readAsDataURL(input.files[0]);
+            pushMyProfile();
+            scheduleSave();
+            toast('Photo updated! 📸');
+          } catch (e) {
+            toast('Avatar upload failed: ' + e.message);
+          }
         }
         function updateNamesLive() { S.myName = document.getElementById('setMyName').value || 'You'; S.partnerName = document.getElementById('setPtName').value || 'Partner'; applyNames(); }
         function loadSettings() {
