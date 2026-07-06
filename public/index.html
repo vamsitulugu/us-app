@@ -3308,7 +3308,7 @@ function setJustPairedAt(ts) {
             S.myAvatar = data.url; // store the short URL, not raw image data
             ['sbAv1', 'profAv1', 'settingsAv1'].forEach(id => setAvImg(id, S.myAvatar));
             pushMyProfile();
-            scheduleSave();
+            await saveToCloud(); // save immediately instead of the 600ms debounce, shrinks the race window with partner's device
             toast('Photo updated! 📸');
           } catch (e) {
             toast('Avatar upload failed: ' + e.message);

@@ -406,8 +406,12 @@ const Chat = (function () {
   const sheet = document.createElement('div');
   sheet.id = 'chatMsgMenu';
   if (isDesktop) {
+    const menuW = 210, menuH = 320; // approx menu size
+    let left = ev.clientX, top = ev.clientY;
+    if (left + menuW > window.innerWidth) left = window.innerWidth - menuW - 10;
+    if (top + menuH > window.innerHeight) top = window.innerHeight - menuH - 10;
     sheet.className = 'msg-ctx-bg';
-    sheet.innerHTML = `<div class="msg-ctx-menu open" style="left:${ev.clientX}px;top:${ev.clientY}px">
+    sheet.innerHTML = `<div class="msg-ctx-menu open" style="left:${left}px;top:${top}px">
       ${menuItemsHtml(m, id)}
     </div>`;
   } else {
