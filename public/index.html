@@ -66,7 +66,7 @@
   --h: 6; /* red hue */
   --accent: var(--red);
   --accent-d: var(--red-dark);
-  --accent-l: #FF4D4D;
+  --accent-l: #80030371;
   --accent-glow: rgba(229,9,20,.28);
 
   --accent2: var(--orange);
@@ -764,11 +764,12 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.6 }
 }
 
 .bot-nav {
+  display: none;
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
   background: rgba(5,5,5,.94); backdrop-filter: blur(20px);
   border-top: 1px solid var(--border); padding: 1px 0;
   padding-bottom: max(6px, env(safe-area-inset-bottom));
-  display: flex; justify-content: space-around;
+  justify-content: space-around;
 }
 .bot-ni { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 12px; cursor: pointer; border-radius: 10px; color: var(--text3); transition: var(--t); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px }
 .bot-ni:hover, .bot-ni.active { color: var(--red) }
@@ -2896,7 +2897,7 @@ async function removePartner() {
             't-cherry': '#c40060', 't-teal': '#0094a8', 't-amber': '#c97a00', 't-deep': '#0f3460'
           };
           const meta = document.getElementById('themeColorMeta');
-          if (meta) meta.content = colorMap[name] || '#c43f6a';
+          if (meta) meta.content = '#0d0000';
           // Update accent CSS variable based on theme
           const hMap = { 't-blue': 215, 't-rose': 340, 't-ocean': 210, 't-lavender': 270, 't-sunset': 18, 't-mint': 162, 't-galaxy': 260, 't-cherry': 330, 't-teal': 190, 't-amber': 38, 't-deep': 220 };
           const h = hMap[name] || 340;
@@ -2975,9 +2976,9 @@ async function removePartner() {
   try {
     const state = await api('GET', '/api/data/state/' + S.coupleId);
     if (state) {
-      const protect = ['coupleId', 'connectCode', 'myName', 'partnerName',
+      const protect = ['coupleId', 'connectCode', 'myName',
   'role', 'setupDone', 'theme', 'vaultPin',
-  'myAvatar', 'partnerAvatar', 'paired', '_pairToastShown'];
+  'myAvatar', 'paired', '_pairToastShown'];
       const saved = {};
       protect.forEach(k => { if (S[k] !== undefined) saved[k] = S[k]; });
       Object.assign(S, state);
@@ -3177,6 +3178,7 @@ function setJustPairedAt(ts) {
           const ni = document.querySelector('.ni[data-page="' + page + '"]'); if (ni) ni.classList.add('active');
           document.getElementById('topTitle').textContent = pageTitles[page] || page;
           if (page !== 'camera' && camStream) stopCamera();
+          if (page === 'chat') { if (window.Chat && Chat.scrollToBottom) setTimeout(() => Chat.scrollToBottom(false), 0); }
           if (pushHistory) {
     history.pushState({ page }, '', '#' + page);
   }
@@ -3308,7 +3310,7 @@ function setJustPairedAt(ts) {
             S.myAvatar = data.url; // store the short URL, not raw image data
             ['sbAv1', 'profAv1', 'settingsAv1'].forEach(id => setAvImg(id, S.myAvatar));
             pushMyProfile();
-            scheduleSave();
+            await saveToCloud(); // save immediately instead of the 600ms debounce, shrinks the race window with partner's device
             toast('Photo updated! 📸');
           } catch (e) {
             toast('Avatar upload failed: ' + e.message);

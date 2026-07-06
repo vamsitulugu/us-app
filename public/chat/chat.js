@@ -406,18 +406,25 @@ const Chat = (function () {
   const sheet = document.createElement('div');
   sheet.id = 'chatMsgMenu';
   if (isDesktop) {
-    const menuW = 210, menuH = 320; // approx menu size
-    let left = ev.clientX, top = ev.clientY;
-    if (left + menuW > window.innerWidth) left = window.innerWidth - menuW - 10;
-    if (top + menuH > window.innerHeight) top = window.innerHeight - menuH - 10;
     sheet.className = 'msg-ctx-bg';
-    sheet.innerHTML = `<div class="msg-ctx-menu open" style="left:${left}px;top:${top}px">
-      ${menuItemsHtml(m, id)}
-    </div>`;
-  } else {
-    sheet.className = 'chat-sheet-overlay';
-    sheet.innerHTML = `<div class="chat-sheet">${menuItemsHtml(m, id)}</div>`;
+    sheet.innerHTML = `<div class="msg-ctx-menu" style="left:${ev.clientX}px;top:${ev.clientY}px">${menuItemsHtml(m, id)}</div>`;
+    sheet.onclick = e => { if (e.target === sheet) sheet.remove(); };
+    document.body.appendChild(sheet);
+    // reposition using REAL measured size
+    requestAnimationFrame(() => {
+      const box = sheet.querySelector('.msg-ctx-menu');
+      const rect = box.getBoundingClientRect();
+      let left = ev.clientX, top = ev.clientY;
+      if (left + rect.width > window.innerWidth) left = window.innerWidth - rect.width - 10;
+      if (top + rect.height > window.innerHeight) top = window.innerHeight - rect.height - 10;
+      box.style.left = left + 'px';
+      box.style.top = top + 'px';
+      box.classList.add('open');
+    });
+    return;
   }
+  sheet.className = 'chat-sheet-overlay';
+  sheet.innerHTML = `<div class="chat-sheet">${menuItemsHtml(m, id)}</div>`;
   sheet.onclick = e => { if (e.target === sheet) sheet.remove(); };
   document.body.appendChild(sheet);
 }

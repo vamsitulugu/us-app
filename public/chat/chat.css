@@ -411,5 +411,6 @@
 .chat-call-log{text-align:center;font-size:11px;color:var(--text3);padding:6px 0;display:flex;justify-content:center;gap:6px}
 .deleted-bubble{opacity:.5;font-style:italic}
 .flash{animation:flashHighlight 1.2s ease}
+.msg-ctx-menu { max-height: calc(100vh - 20px); overflow-y: auto; }
 @keyframes flashHighlight{0%,100%{background:transparent}30%{background:rgba(229,9,20,.2)}}
 @keyframes sheetUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
