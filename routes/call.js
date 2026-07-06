@@ -83,6 +83,8 @@ router.post('/signal', async (req, res) => {
   return res.json({ ok: true });
 });
 
+// POST /api/call/signal — unchanged, just make sure the table has created_at default now()
+
 router.get('/signal/:coupleId', async (req, res) => {
   const { role, after } = req.query;
   let q = supabase.from('call_signals').select('*')
@@ -90,6 +92,21 @@ router.get('/signal/:coupleId', async (req, res) => {
   if (after) q = q.gt('id', parseInt(after));
   const { data, error } = await q.order('id', { ascending: true }).limit(50);
   if (error) return res.status(500).json({ error: error.message });
-  return res.json(data || []);
+
+  // Discard anything older than 30s — an offer/answer/ice signal has no business
+  // being acted on if it's been sitting in the table that long.
+  const fresh = (data || []).filter(row => {
+    const age = Date.now() - new Date(row.created_at).getTime();
+    return age < 30000;
+  });
+
+  return res.json(fresh);
+});
+
+// Add a cleanup endpoint (or a cron/trigger) to delete old rows so the table doesn't grow forever
+router.post('/signal/cleanup', async (req, res) => {
+  const cutoff = new Date(Date.now() - 5 * 60000).toISOString();
+  await supabase.from('call_signals').delete().lt('created_at', cutoff);
+  res.json({ ok: true });
 });
 module.exports = router;

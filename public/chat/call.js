@@ -33,7 +33,14 @@ const Call = (function () {
       }
     } catch (e) { console.error('Signal push error:', e); toast('⚠️ Network error during call setup'); }
   }
-
+async function initSignalCursor() {
+    try {
+      const r = await fetch(API + '/api/call/signal/' + coupleId() + '?role=' + otherRole());
+      if (!r.ok) return;
+      const rows = await r.json();
+      if (rows.length) lastSignalId = Math.max(...rows.map(x => x.id));
+    } catch (e) {}
+  }
   let lastSignalId = 0;
   async function pollSignal() {
     if (!coupleId()) return;
@@ -50,11 +57,13 @@ const Call = (function () {
 let iceQueue = [];
 
   async function handleSignal(m) {
-    if (m.type === 'offer' && !pc) { showIncoming(m); }
+    if (m.type === 'offer' && !pc) {
+      if (m.ts && Date.now() - m.ts > 20000) return; // ignore stale offers
+      showIncoming(m);
+    }
     else if (m.type === 'answer' && pc) {
       await pc.setRemoteDescription(new RTCSessionDescription(m.sdp));
       onConnecting();
-      // flush any ICE candidates that arrived before the remote description was set
       for (const cand of iceQueue) { try { await pc.addIceCandidate(cand); } catch (e) {} }
       iceQueue = [];
     }
@@ -62,7 +71,7 @@ let iceQueue = [];
       if (pc && pc.remoteDescription) {
         try { await pc.addIceCandidate(m.candidate); } catch (e) {}
       } else {
-        iceQueue.push(m.candidate); // queue until remote description exists
+        iceQueue.push(m.candidate);
       }
     }
     else if (m.type === 'end') { endCall(false); }
@@ -256,7 +265,7 @@ let iceQueue = [];
     localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    await pushSignal({ type: 'offer', sdp: offer, callType: type });
+    await pushSignal({ type: 'offer', sdp: offer, callType: type, ts: Date.now() });
     try { await api('POST', '/api/call/notify', { coupleId: coupleId(), callerRole: myRole(), type }); } catch (e) {}
     startPolling();
   }
@@ -331,8 +340,11 @@ let iceQueue = [];
     try { await api('POST', '/api/call/log', { coupleId: coupleId(), callerRole: isCaller ? myRole() : otherRole(), type: callType, status, duration: duration || 0 }); } catch (e) {}
   }
 
-  document.addEventListener('DOMContentLoaded', () => setTimeout(startPolling, 1500));
-document.addEventListener('visibilitychange', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
+    await initSignalCursor();
+    setTimeout(startPolling, 1500);
+  });
+  document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') pollSignal();
   });
   window.addEventListener('focus', () => pollSignal());
