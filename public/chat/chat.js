@@ -6,7 +6,7 @@ const Chat = (function () {
   let presence = { user1: null, user2: null };
   let presenceInterval = null;
   let pollInterval = null;
-  let lastMsgId = 0;
+  let lastMsgTs = null;
   let selectMode = false;
   let selectedIds = new Set();
   let recording = false, mediaRecorder = null, recChunks = [], recStart = 0, recTimerInt = null, recCancelled = false;
@@ -80,36 +80,40 @@ const Chat = (function () {
   }
 
   // ─── LOAD / POLL MESSAGES ───────────────────────────
-  async function loadMessages() {
-    if (!coupleId()) return;
-    try {
-      const rows = await api('GET', '/api/chat/' + coupleId() + '?limit=200');
-      msgs = rows || [];
-      lastMsgId = msgs.length ? Math.max(...msgs.map(m => m.id)) : 0;
-      render();
-      scrollToBottom(false);
-    } catch (e) {}
-  }
+ async function loadMessages() {
+  if (!coupleId()) return;
+  try {
+    const rows = await api('GET', '/api/chat/' + coupleId() + '?limit=200');
+    msgs = rows || [];
+    lastMsgTs = msgs.length ? msgs[msgs.length - 1].created_at : null;
+    render();
+    scrollToBottom(false);
+  } catch (e) {}
+}
 
   async function pollNew() {
-    if (!coupleId()) return;
-    try {
-      const rows = await api('GET', '/api/chat/' + coupleId() + '?after=' + lastMsgId);
-      if (rows && rows.length) {
-        rows.forEach(r => { if (!msgs.find(m => m.id === r.id)) msgs.push(r); });
-        lastMsgId = Math.max(lastMsgId, ...rows.map(m => m.id));
-        render();
-        const box = document.getElementById('chatMsgs');
-        const nearBottom = box && (box.scrollHeight - box.scrollTop - box.clientHeight < 150);
-        if (nearBottom || rows.some(isMine)) scrollToBottom(true);
-        else updateJumpBadge(rows.filter(r => !isMine(r)).length);
-        if (rows.some(r => !isMine(r)) && document.getElementById('page-chat')?.classList.contains('active') && document.hasFocus()) {
-          markRead();
-        }
+  if (!coupleId()) return;
+  try {
+    const q = lastMsgTs ? '?after=' + encodeURIComponent(lastMsgTs) : '';
+    const rows = await api('GET', '/api/chat/' + coupleId() + q);
+    if (rows && rows.length) {
+      rows.forEach(r => {
+        const idx = msgs.findIndex(m => m.id === r.id || (r.client_id && m.client_id === r.client_id));
+        if (idx > -1) msgs[idx] = r; else msgs.push(r);
+      });
+      lastMsgTs = rows[rows.length - 1].created_at;
+      render();
+      const box = document.getElementById('chatMsgs');
+      const nearBottom = box && (box.scrollHeight - box.scrollTop - box.clientHeight < 150);
+      if (nearBottom || rows.some(isMine)) scrollToBottom(true);
+      else updateJumpBadge(rows.filter(r => !isMine(r)).length);
+      if (rows.some(r => !isMine(r)) && document.getElementById('page-chat')?.classList.contains('active') && document.hasFocus()) {
+        markRead();
       }
-      fetchPresence();
-    } catch (e) {}
-  }
+    }
+    fetchPresence();
+  } catch (e) {}
+}
 
   function startPolling() {
     if (pollInterval) clearInterval(pollInterval);
