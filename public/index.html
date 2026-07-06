@@ -1209,9 +1209,10 @@ button:disabled [data-lucide] { opacity: .35; }
       <div style="display:flex;align-items:center;gap:10px">
         <div class="hamburger" id="hamburger" onclick="toggleMobSidebar()"><i data-lucide="menu"></i></div>
         <div class="tb-title" id="topTitle">Dashboard</div>
-
-       <span style="font-size:10px;color:var(--text3)" id="lastSaved"></span>
-<div id="hbTopbarPill" class="hb-topbar-pill" onclick="HeartbeatManager.openStats()" title="Heartbeat Stats"></div>
+        <span style="font-size:10px;color:var(--text3)" id="lastSaved"></span>
+        <div id="hbTopbarPill" class="hb-topbar-pill" onclick="HeartbeatManager.openStats()" title="Heartbeat Stats"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
         <button class="ic-btn" onclick="openSearch()" title="Search"><i data-lucide="search"></i></button>
         <button class="btn btn-glass btn-sm" onclick="syncNow()" id="syncBtn"><i data-lucide="cloud"></i> Sync</button>
       </div>
@@ -3289,13 +3290,18 @@ function setJustPairedAt(ts) {
           if (!img) { img = document.createElement('img'); el.appendChild(img); }
           img.src = src; img.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:50%';
         }
-        function pickAvatar(who) { document.getElementById(who === 'my' ? 'myAvatarInput' : 'ptAvatarInput').click(); }
+        function pickAvatar(who) {
+          if (who !== 'my') { toast("That's " + (S.partnerName || 'your partner') + "'s photo — they can change it on their device 💕"); return; }
+          document.getElementById('myAvatarInput').click();
+        }
         function setAvatar(who, input) {
           if (!input.files[0]) return;
+          if (who !== 'my') return; // safety: only your own avatar can ever be set from your device
           const reader = new FileReader();
           reader.onload = e => {
-            if (who === 'my') { S.myAvatar = e.target.result;['sbAv1', 'profAv1', 'settingsAv1'].forEach(id => setAvImg(id, S.myAvatar)); }
-            else { S.partnerAvatar = e.target.result;['sbAv2', 'profAv2'].forEach(id => setAvImg(id, S.partnerAvatar)); }
+            S.myAvatar = e.target.result;
+            ['sbAv1', 'profAv1', 'settingsAv1'].forEach(id => setAvImg(id, S.myAvatar));
+            pushMyProfile(); // pushes it into the shared profile object so partner receives it
             scheduleSave(); toast('Photo updated! 📸');
           }; reader.readAsDataURL(input.files[0]);
         }
