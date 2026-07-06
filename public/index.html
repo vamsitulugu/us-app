@@ -764,12 +764,11 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.6 }
 }
 
 .bot-nav {
-  display: none;
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
   background: rgba(5,5,5,.94); backdrop-filter: blur(20px);
   border-top: 1px solid var(--border); padding: 1px 0;
   padding-bottom: max(6px, env(safe-area-inset-bottom));
-  justify-content: space-around;
+  display: flex; justify-content: space-around;
 }
 .bot-ni { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 12px; cursor: pointer; border-radius: 10px; color: var(--text3); transition: var(--t); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px }
 .bot-ni:hover, .bot-ni.active { color: var(--red) }
@@ -3309,7 +3308,7 @@ function setJustPairedAt(ts) {
             S.myAvatar = data.url; // store the short URL, not raw image data
             ['sbAv1', 'profAv1', 'settingsAv1'].forEach(id => setAvImg(id, S.myAvatar));
             pushMyProfile();
-            await saveToCloud(); // save immediately instead of the 600ms debounce, shrinks the race window with partner's device
+            scheduleSave();
             toast('Photo updated! 📸');
           } catch (e) {
             toast('Avatar upload failed: ' + e.message);
