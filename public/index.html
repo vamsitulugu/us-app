@@ -1597,11 +1597,11 @@ button:disabled [data-lucide] { opacity: .35; }
         <div class="period-hero">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
             <div>
-              <div style="font-size:17px;font-weight:600;color:var(--white);font-family:var(--ff-serif)">🩷 Period
+              <div style="font-size:17px;font-weight:600;color:var(--white);font-family:var(--ff-serif)"><i data-lucide="heart-pulse"></i> Period
                 Tracker</div>
               <div id="periodPhaseLabel" class="phase-badge phase-follicular" style="margin-top:8px">Tracking...</div>
             </div>
-            <button class="btn btn-accent btn-sm" onclick="openM('periodModal')">📝 Log Period</button>
+            <button class="btn btn-accent btn-sm" onclick="openM('periodModal')"><i data-lucide="pencil"></i> Log Period</button>
           </div>
           <div class="period-stats">
             <div class="pstat">
@@ -1665,8 +1665,8 @@ button:disabled [data-lucide] { opacity: .35; }
           <div class="card-title"><i data-lucide="zap"></i> Fight Log<button class="btn btn-accent btn-sm" onclick="openM('fightModal')">+ Log
               Fight</button></div>
           <div id="fightList">
-            <div class="empty">
-              <div class="empty-ico"><i data-lucide="hand-heart" style="width:42px;height:42px"></i></div>No fights logged — that's amazing! 💕<div class="empty-ico">✌️</div>No fights logged — that's amazing! 💕
+           <div class="empty">
+              <div class="empty-ico"><i data-lucide="hand-heart" style="width:42px;height:42px"></i></div>No fights logged — that's amazing! 💕
             </div>
           </div>
         </div>
@@ -1679,7 +1679,7 @@ button:disabled [data-lucide] { opacity: .35; }
 
       <!-- ════ MY SPACE ════ -->
       <div class="page" id="page-myspace">
-        <div class="info-banner">💕 Both of you share this space. Your personal entries stay with your role.</div>
+        <div class="info-banner"><i data-lucide="heart"></i> Both of you share this space. Your personal entries stay with your role.</div>
         <div class="stabs">
           <div class="stab active" onclick="spTab('journal',this)"><i data-lucide="book-open"></i> Journal</div>
           <div class="stab" onclick="spTab('habits',this)"><i data-lucide="check-circle"></i> Habits</div>
@@ -1836,8 +1836,7 @@ button:disabled [data-lucide] { opacity: .35; }
 
       <!-- ════ STUDY ════ -->
       <div class="page" id="page-study">
-        <div class="info-banner">📚 Track your studies together — see each other's progress side by side!</div>
-        <div class="study-grid">
+        <div class="info-banner"><i data-lucide="book-open"></i> Track your studies together — see each other's progress side by side!</div>
           <div>
             <div class="card" style="margin-bottom:14px">
               <div class="card-title">
@@ -3688,9 +3687,9 @@ async function toggleNotifications() {
           renderTimelineStories();
           const el = document.getElementById('milestonesEl');
           const all = [...(S.milestones || []), ...(S.events || []).filter(e => ['Anniversary', 'Date'].includes(e.cat))].sort((a, b) => a.date.localeCompare(b.date));
-          if (!all.length) { el.innerHTML = '<div class="empty" style="padding:12px 0"><div class="empty-ico">💫</div>No milestones yet</div>'; return; }
+          
           el.innerHTML = all.map(m => `
-    <div style="display:flex;gap:11px;padding:11px 0;border-bottom:1px solid var(--border)">
+    <div style="display:flex;gapif (!all.length) { el.innerHTML = '<div class="empty" style="padding:12px 0"><div class="empty-ico"><i data-lucide="sparkles" style="width:42px;height:42px"></i></div>No milestones yet</div>'; lucide.createIcons(); return; }:11px;padding:11px 0;border-bottom:1px solid var(--border)">
       <div class="timeline-dot"></div>
       <div>
         <div style="font-size:13px;font-weight:600;color:var(--white)">${m.type ? esc(m.type) + ' ' : ''}${esc(m.title)}</div>
@@ -3827,7 +3826,7 @@ async function toggleNotifications() {
           const resolved = S.fights.filter(f => f.status === 'resolved').length;
           const avg = S.fights.length ? Math.round(S.fights.reduce((s, f) => s + f.intensity, 0) / S.fights.length) : 0;
           const el = document.getElementById('fightList');
-          if (!S.fights.length) { el.innerHTML = '<div class="fight-stats-bar"><div class="fstat-box"><div class="fstat-n">0</div><div class="fstat-l">Total</div></div></div><div class="empty"><div class="empty-ico">✌️</div>No fights logged — that\'s amazing! 💕</div>'; return; }
+          if (!S.fights.length) { el.innerHTML = '<div class="fight-stats-bar"><div class="fstat-box"><div class="fstat-n">0</div><div class="fstat-l">Total</div></div></div><div class="empty"><div class="empty-ico"><i data-lucide="hand-heart" style="width:42px;height:42px"></i></div>No fights logged — that\'s amazing! 💕</div>'; lucide.createIcons(); return; }
           let html = `<div class="fight-stats-bar">
     <div class="fstat-box"><div class="fstat-n">${S.fights.length}</div><div class="fstat-l">Total</div></div>
     <div class="fstat-box"><div class="fstat-n" style="color:var(--red)">${open}</div><div class="fstat-l">Open</div></div>
@@ -3951,7 +3950,7 @@ async function toggleNotifications() {
           const vis = document.getElementById('journalVisibility')?.value || 'self';
           S.journal.unshift({ id: Date.now(), date: todayStr(), mood: S.selectedMood, body, visibility: vis, by: S.role }); document.getElementById('journalBody').value = ''; renderJournal(); scheduleSave(); toast('Journal saved! 📖'); spawnPetals(4);
         }
-        function renderJournal() { const el = document.getElementById('myJournalEntries'); if (!S.journal.length) { el.innerHTML = '<div class="empty"><div class="empty-ico">📖</div>No entries yet. Write your first!</div>'; return; } el.innerHTML = S.journal.map((e, i) => `<div style="background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;position:relative;transition:var(--t)"><div style="font-size:10px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">${fmtDate(e.date)}</div>${e.mood ? `<div style="display:inline-block;font-size:11px;background:var(--g2);color:var(--text);border-radius:10px;padding:2px 8px;margin-bottom:7px;border:1px solid var(--border)">${esc(e.mood)}</div>` : ''}<div style="font-size:13px;color:var(--text2);line-height:1.65">${esc(e.body)}</div><button class="del-btn" onclick="delJournal(${i})" style="position:absolute;top:12px;right:12px">✕</button></div>`).join(''); }
+        function renderJournal() { const el = document.getElementById('myJournalEntries'); if (!S.journal.length) { el.innerHTML = '<div class="empty"><div class="empty-ico"><i data-lucide="book-open" style="width:42px;height:42px"></i></div>No entries yet. Write your first!</div>'; lucide.createIcons(); return; } el.innerHTML = S.journal.map((e, i) => `<div style="background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;position:relative;transition:var(--t)"><div style="font-size:10px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">${fmtDate(e.date)}</div>${e.mood ? `<div style="display:inline-block;font-size:11px;background:var(--g2);color:var(--text);border-radius:10px;padding:2px 8px;margin-bottom:7px;border:1px solid var(--border)">${esc(e.mood)}</div>` : ''}<div style="font-size:13px;color:var(--text2);line-height:1.65">${esc(e.body)}</div><button class="del-btn" onclick="delJournal(${i})" style="position:absolute;top:12px;right:12px"><i data-lucide="x"></i></button></div>`).join(''); lucide.createIcons(); }
         function delJournal(i) { S.journal.splice(i, 1); renderJournal(); scheduleSave(); }
         document.getElementById('moodRow').addEventListener('click', e => { const m = e.target.closest('.mood'); if (!m) return; document.querySelectorAll('.mood').forEach(x => x.classList.remove('sel')); m.classList.add('sel'); S.selectedMood = m.dataset.mood; });
 
@@ -4003,7 +4002,7 @@ async function toggleNotifications() {
         }
         function toggleBucket(id) { const b = S.bucket.find(x => x.id === id); if (b) { b.done = !b.done; renderBucket(); scheduleSave(); if (b.done) { spawnPetals(12); addXP(8); } } }
         function delBucket(id) { S.bucket = S.bucket.filter(b => b.id !== id); renderBucket(); scheduleSave(); }
-        function renderBucket() { const el = document.getElementById('bucketList'); const done = S.bucket.filter(b => b.done).length; document.getElementById('bucketTag').textContent = done + '/' + S.bucket.length; document.getElementById('bucketCount').textContent = S.bucket.length; if (!S.bucket.length) { el.innerHTML = '<div class="empty"><div class="empty-ico">🌟</div>Add your first dream together!</div>'; return; } const ce = { Travel: '✈️', Experience: '🎭', Achievement: '🏆', Home: '🏠', Romance: '💕', Adventure: '🏔️', Other: '💫' }; el.innerHTML = S.bucket.filter(b => canSeeItem(b)).map(b => `<div class="bucket-row"><div class="bc${b.done ? ' done' : ''}" onclick="toggleBucket(${b.id})">${b.done ? '✓' : ''}</div><div class="bt${b.done ? ' done' : ''}"><span style="margin-right:6px">${ce[b.cat] || '💫'}</span>${esc(b.title)}${privBadgeHtml(b.visibility)}</div>${b.date ? `<span style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDateShort(b.date)}</span>` : ''}<button class="del-btn" onclick="delBucket(${b.id})">✕</button></div>`).join('');lucide.createIcons(); }
+        function renderBucket() { const el = document.getElementById('bucketList'); const done = S.bucket.filter(b => b.done).length; document.getElementById('bucketTag').textContent = done + '/' + S.bucket.length; document.getElementById('bucketCount').textContent = S.bucket.length; if (!S.bucket.length) { el.innerHTML = '<div class="empty"><div class="empty-ico"><i data-lucide="star" style="width:42px;height:42px"></i></div>Add your first dream together!</div>'; lucide.createIcons(); return; } const ce = { Travel: '✈️', Experience: '🎭', Achievement: '🏆', Home: '🏠', Romance: '💕', Adventure: '🏔️', Other: '💫' }; el.innerHTML = S.bucket.filter(b => canSeeItem(b)).map(b => `<div class="bucket-row"><div class="bc${b.done ? ' done' : ''}" onclick="toggleBucket(${b.id})">${b.done ? '✓' : ''}</div><div class="bt${b.done ? ' done' : ''}"><span style="margin-right:6px">${ce[b.cat] || '💫'}</span>${esc(b.title)}${privBadgeHtml(b.visibility)}</div>${b.date ? `<span style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDateShort(b.date)}</span>` : ''}<button class="del-btn" onclick="delBucket(${b.id})">✕</button></div>`).join('');lucide.createIcons(); }
 
         // ─── CALENDAR ────────────────────────────────────────────
         function calNav(d) { S.calMonth += d; if (S.calMonth > 11) { S.calMonth = 0; S.calYear++; } if (S.calMonth < 0) { S.calMonth = 11; S.calYear--; } renderCalendar(); }
