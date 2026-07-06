@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
   <title>Us With Love 💕</title>
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#2f6feb" id="themeColorMeta">
+  <meta name="theme-color" content="#0d0000" id="themeColorMeta">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Us With Love">
@@ -3702,9 +3702,15 @@ async function toggleNotifications() {
           renderTimelineStories();
           const el = document.getElementById('milestonesEl');
           const all = [...(S.milestones || []), ...(S.events || []).filter(e => ['Anniversary', 'Date'].includes(e.cat))].sort((a, b) => a.date.localeCompare(b.date));
-          
+
+          if (!all.length) {
+            el.innerHTML = '<div class="empty" style="padding:12px 0"><div class="empty-ico"><i data-lucide="sparkles" style="width:42px;height:42px"></i></div>No milestones yet</div>';
+            lucide.createIcons();
+            return;
+          }
+
           el.innerHTML = all.map(m => `
-    <div style="display:flex;gapif (!all.length) { el.innerHTML = '<div class="empty" style="padding:12px 0"><div class="empty-ico"><i data-lucide="sparkles" style="width:42px;height:42px"></i></div>No milestones yet</div>'; lucide.createIcons(); return; }:11px;padding:11px 0;border-bottom:1px solid var(--border)">
+    <div style="display:flex;gap:11px;padding:11px 0;border-bottom:1px solid var(--border)">
       <div class="timeline-dot"></div>
       <div>
         <div style="font-size:13px;font-weight:600;color:var(--white)">${m.type ? esc(m.type) + ' ' : ''}${esc(m.title)}</div>

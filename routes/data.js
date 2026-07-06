@@ -164,6 +164,13 @@ router.post('/state', async (req, res) => {
   // MERGE instead of REPLACE — this was wiping your whole DB on every call signal
   const merged = { ...(prevState || {}), ...state };
 
+  // Deep-merge the nested `profile` object specifically, so one device's
+  // save can never wipe out the other person's avatar/name/bday that
+  // was written moments earlier by their device.
+  if (state.profile) {
+    merged.profile = { ...((prevState || {}).profile || {}), ...state.profile };
+  }
+
   const { error } = await supabase.from('app_state').upsert({
     couple_id:  coupleId,
     state:      merged,

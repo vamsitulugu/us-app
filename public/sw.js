@@ -49,13 +49,20 @@ self.addEventListener('push', e => {
   try { if (e.data) Object.assign(data, e.data.json()); } catch (_) {}
   e.waitUntil(
     self.registration.showNotification(data.title, {
-      body:    data.body,
-      icon:    data.icon    || '/icons/icon-192.png',
-      badge:   '/icons/icon-192.png',
-      vibrate: [200, 100, 200, 100, 400],
-      tag:     data.tag     || 'us-app',
+      body:     data.body,
+      icon:     data.icon  || '/icons/icon-192.png',   // large icon (right side, OS-controlled)
+      badge:    '/icons/badge-96.png',                  // small monochrome status-bar icon
+      image:    data.image || undefined,                // optional big banner like WhatsApp media previews
+      vibrate:  [200, 100, 200, 100, 400],
+      tag:      data.tag   || 'us-app',
       renotify: true,
-      data:    { url: data.url || '/' }
+      requireInteraction: false,
+      silent:   false,
+      data:     { url: data.url || '/' },
+      actions:  [
+        { action: 'open', title: '💕 Open' },
+        { action: 'dismiss', title: 'Dismiss' }
+      ]
     })
   );
 });
