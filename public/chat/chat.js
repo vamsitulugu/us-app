@@ -1,8 +1,6 @@
 /*public/chat/chat.js*/
+
 // ═══ CHAT MODULE — presence, fixed layout, emoji/gif, redesigned composer ═══
-// v2: Realtime-first (Supabase websockets) with polling fallback for instant,
-// low-egress delivery. Falls back to the old 2.5s polling automatically if
-// Realtime can't connect (e.g. project misconfigured), so nothing breaks.
 const Chat = (function () {
   let msgs = [];
   let presence = { user1: null, user2: null };
@@ -15,31 +13,10 @@ const Chat = (function () {
   let replyingTo = null;
   let lpTimer = null, lpFired = false;
 
-  // ─── REALTIME STATE ──────────────────────────────────
-  let sbClient = null;
-  let rtChannel = null;
-  let rtConnected = false;
-  let rtRetryDelay = 2000; // backoff on reconnect attempts
-
   function coupleId() { return window.S && window.S.coupleId; }
   function myRole() { return window.S && window.S.role; }
   function otherRole() { return myRole() === 'user1' ? 'user2' : 'user1'; }
   function isMine(m) { return m.sender_role === myRole(); }
-
-  // ─── SUPABASE CLIENT (read-only, for Realtime only) ──
-  // All writes still go through the existing Express API — this client is
-  // only used to subscribe to postgres_changes so new rows/updates arrive
-  // instantly instead of via polling.
-  function getSbClient() {
-    if (sbClient) return sbClient;
-    if (!window.supabase || !window.__SUPABASE_URL__ || !window.__SUPABASE_ANON_KEY__) return null;
-    try {
-      sbClient = window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__, {
-        realtime: { params: { eventsPerSecond: 10 } }
-      });
-    } catch (e) { sbClient = null; }
-    return sbClient;
-  }
 
   // ─── PRESENCE ───────────────────────────────────────
   function startPresence() {
@@ -102,93 +79,45 @@ const Chat = (function () {
     if (psb) psb.innerHTML = `<span style="font-size:11px;color:var(--text3)">${st.dot} ${esc(st.label)}</span>`;
   }
 
-  // ─── LOAD MESSAGES (initial, always via REST) ───────
-  async function loadMessages() {
-    if (!coupleId()) return;
-    try {
-      const rows = await api('GET', '/api/chat/' + coupleId() + '?limit=200');
-      msgs = rows || [];
-      lastMsgTs = msgs.length ? msgs[msgs.length - 1].created_at : null;
-      render();
-      scrollToBottom(false);
-    } catch (e) {}
-  }
-
-  // ─── Merge one incoming row (from realtime OR poll) ─
-  function mergeIncoming(rows) {
-    if (!rows || !rows.length) return;
-    let changed = false;
-    rows.forEach(r => {
-      const idx = msgs.findIndex(m => m.id === r.id || (r.client_id && m.client_id === r.client_id));
-      if (idx > -1) msgs[idx] = r; else msgs.push(r);
-      changed = true;
-    });
-    if (!changed) return;
-    msgs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    lastMsgTs = msgs.length ? msgs[msgs.length - 1].created_at : lastMsgTs;
+  // ─── LOAD / POLL MESSAGES ───────────────────────────
+ async function loadMessages() {
+  if (!coupleId()) return;
+  try {
+    const rows = await api('GET', '/api/chat/' + coupleId() + '?limit=200');
+    msgs = rows || [];
+    lastMsgTs = msgs.length ? msgs[msgs.length - 1].created_at : null;
     render();
-    const box = document.getElementById('chatMsgs');
-    const nearBottom = box && (box.scrollHeight - box.scrollTop - box.clientHeight < 150);
-    if (nearBottom || rows.some(isMine)) scrollToBottom(true);
-    else updateJumpBadge(rows.filter(r => !isMine(r)).length);
-    if (rows.some(r => !isMine(r)) && document.getElementById('page-chat')?.classList.contains('active') && document.hasFocus()) {
-      markRead();
-    }
-  }
+    scrollToBottom(false);
+  } catch (e) {}
+}
 
-  // ─── REALTIME SUBSCRIPTION (instant delivery) ───────
-  function startRealtime() {
-    const client = getSbClient();
-    if (!client || !coupleId()) { startPolling(); return; }
-
-    if (rtChannel) { try { client.removeChannel(rtChannel); } catch (e) {} rtChannel = null; }
-
-    rtChannel = client.channel('chat-' + coupleId())
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'chat_messages',
-        filter: 'couple_id=eq.' + coupleId()
-      }, payload => {
-        const row = payload.new || payload.old;
-        if (!row) return;
-        mergeIncoming([row]);
-      })
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'chat_presence',
-        filter: 'couple_id=eq.' + coupleId()
-      }, () => { fetchPresence(); })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          rtConnected = true;
-          rtRetryDelay = 2000;
-          // Realtime is live — stop the polling fallback to save egress.
-          if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          rtConnected = false;
-          // Fall back to polling immediately so messages keep flowing,
-          // then keep trying to re-establish Realtime in the background.
-          startPolling();
-          setTimeout(() => { if (!rtConnected) startRealtime(); }, rtRetryDelay);
-          rtRetryDelay = Math.min(rtRetryDelay * 1.6, 30000);
-        }
-      });
-  }
-
-  // ─── POLLING FALLBACK (only runs if Realtime is down) ─
   async function pollNew() {
-    if (!coupleId()) return;
-    try {
-      const q = lastMsgTs ? '?after=' + encodeURIComponent(lastMsgTs) : '';
-      const rows = await api('GET', '/api/chat/' + coupleId() + q);
-      if (rows && rows.length) mergeIncoming(rows);
-      fetchPresence();
-    } catch (e) {}
-  }
+  if (!coupleId()) return;
+  try {
+    const q = lastMsgTs ? '?after=' + encodeURIComponent(lastMsgTs) : '';
+    const rows = await api('GET', '/api/chat/' + coupleId() + q);
+    if (rows && rows.length) {
+      rows.forEach(r => {
+        const idx = msgs.findIndex(m => m.id === r.id || (r.client_id && m.client_id === r.client_id));
+        if (idx > -1) msgs[idx] = r; else msgs.push(r);
+      });
+      lastMsgTs = rows[rows.length - 1].created_at;
+      render();
+      const box = document.getElementById('chatMsgs');
+      const nearBottom = box && (box.scrollHeight - box.scrollTop - box.clientHeight < 150);
+      if (nearBottom || rows.some(isMine)) scrollToBottom(true);
+      else updateJumpBadge(rows.filter(r => !isMine(r)).length);
+      if (rows.some(r => !isMine(r)) && document.getElementById('page-chat')?.classList.contains('active') && document.hasFocus()) {
+        markRead();
+      }
+    }
+    fetchPresence();
+  } catch (e) {}
+}
 
   function startPolling() {
-    if (rtConnected) return; // Realtime already handling delivery
-    if (pollInterval) return; // already polling
-    pollInterval = setInterval(pollNew, 4000);
-    pollNew();
+    if (pollInterval) clearInterval(pollInterval);
+    pollInterval = setInterval(pollNew, 2500);
   }
 
   async function markRead() {
@@ -219,28 +148,28 @@ const Chat = (function () {
 
   // ─── RENDER ──────────────────────────────────────────
   function render() {
-    const box = document.getElementById('chatMsgs');
-    if (!box) return;
-    const prevBottomOffset = box.scrollHeight - box.scrollTop; // distance from bottom
-    const wasNearBottom = prevBottomOffset - box.clientHeight < 150;
+  const box = document.getElementById('chatMsgs');
+  if (!box) return;
+  const prevBottomOffset = box.scrollHeight - box.scrollTop; // distance from bottom
+  const wasNearBottom = prevBottomOffset - box.clientHeight < 150;
 
-    const visible = msgs.filter(m => !(m.deleted_for || '').split(',').includes(myRole()));
-    let html = '', lastDate = null;
-    visible.forEach(m => {
-      const d = new Date(m.created_at);
-      const ds = d.toDateString();
-      if (ds !== lastDate) { lastDate = ds; html += `<div class="chat-date-sep"><span>${fmtDaySep(d)}</span></div>`; }
-      html += renderBubble(m);
-    });
-    box.innerHTML = html || `<div class="empty" style="padding:60px 20px"><div class="empty-ico">💬</div>Say hello 👋</div>`;
-    renderPinned();
+  const visible = msgs.filter(m => !(m.deleted_for || '').split(',').includes(myRole()));
+  let html = '', lastDate = null;
+  visible.forEach(m => {
+    const d = new Date(m.created_at);
+    const ds = d.toDateString();
+    if (ds !== lastDate) { lastDate = ds; html += `<div class="chat-date-sep"><span>${fmtDaySep(d)}</span></div>`; }
+    html += renderBubble(m);
+  });
+  box.innerHTML = html || `<div class="empty" style="padding:60px 20px"><div class="empty-ico">💬</div>Say hello 👋</div>`;
+  renderPinned();
 
-    if (wasNearBottom) {
-      box.scrollTop = box.scrollHeight;
-    } else {
-      box.scrollTop = box.scrollHeight - prevBottomOffset; // keep same visual position
-    }
+  if (wasNearBottom) {
+    box.scrollTop = box.scrollHeight;
+  } else {
+    box.scrollTop = box.scrollHeight - prevBottomOffset; // keep same visual position
   }
+}
 
   function fmtDaySep(d) {
     const today = new Date(); const yest = new Date(); yest.setDate(yest.getDate() - 1);
@@ -273,13 +202,12 @@ const Chat = (function () {
 
     const status = mine ? (m.read ? '✓✓' : m.delivered ? '✓✓' : '✓') : '';
     const statusClass = mine && m.read ? 'read' : '';
-    const failedTag = m._failed ? `<span class="chat-retry" onclick="event.stopPropagation();Chat.retrySend('${m.client_id}')" style="color:#ff6b6b;font-size:10px;cursor:pointer;margin-left:6px">⚠️ tap to retry</span>` : '';
 
-    return `<div class="chat-row ${mine ? 'me' : 'them'}" data-id="${m.id}" data-client-id="${m.client_id || ''}" onclick="Chat.onBubbleClick('${m.id}', event)" oncontextmenu="Chat.openMenu('${m.id}', event); return false;" ontouchstart="Chat.startLongPress('${m.id}')" ontouchend="Chat.endLongPress()" ontouchmove="Chat.endLongPress()">
+    return `<div class="chat-row ${mine ? 'me' : 'them'}" data-id="${m.id}" onclick="Chat.onBubbleClick('${m.id}', event)" oncontextmenu="Chat.openMenu('${m.id}', event); return false;" ontouchstart="Chat.startLongPress('${m.id}')" ontouchend="Chat.endLongPress()" ontouchmove="Chat.endLongPress()">
       <div class="chat-bubble ${mine ? 'mine' : 'theirs'}">
         ${body}
         ${reactions}
-        <div class="chat-meta"><span>${time}${m.edited ? ' · edited' : ''}</span>${mine ? `<span class="chat-status ${statusClass}">${status}</span>` : ''}${failedTag}</div>
+        <div class="chat-meta"><span>${time}${m.edited ? ' · edited' : ''}</span>${mine ? `<span class="chat-status ${statusClass}">${status}</span>` : ''}</div>
       </div>
     </div>`;
   }
@@ -319,24 +247,19 @@ const Chat = (function () {
   // ─── SEND ────────────────────────────────────────────
   function genClientId() { return 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8); }
 
-  async function sendMessage(payload, retryClientId) {
+  async function sendMessage(payload) {
     if (!coupleId()) { toast('Not connected'); return; }
-    const clientId = retryClientId || genClientId();
-    let optimistic = msgs.find(m => m.client_id === clientId);
-    if (!optimistic) {
-      optimistic = {
-        id: 'temp_' + clientId, client_id: clientId, couple_id: coupleId(), sender_role: myRole(),
-        created_at: new Date().toISOString(), delivered: false, read: false, ...payload
-      };
-      msgs.push(optimistic);
-    } else {
-      optimistic._failed = false;
-    }
-    render(); scrollToBottom(true);
+    const clientId = genClientId();
+    const optimistic = {
+      id: 'temp_' + clientId, client_id: clientId, couple_id: coupleId(), sender_role: myRole(),
+      created_at: new Date().toISOString(), delivered: false, read: false, ...payload
+    };
+    msgs.push(optimistic); render(); scrollToBottom(true);
     try {
       const saved = await api('POST', '/api/chat', { coupleId: coupleId(), clientId, senderRole: myRole(), ...payload });
       const idx = msgs.findIndex(m => m.client_id === clientId);
       if (idx > -1) msgs[idx] = saved;
+      lastMsgId = Math.max(lastMsgId, saved.id);
       render();
     } catch (e) {
       const idx = msgs.findIndex(m => m.client_id === clientId);
@@ -344,13 +267,6 @@ const Chat = (function () {
       render();
       toast('Send failed — tap to retry');
     }
-  }
-
-  function retrySend(clientId) {
-    const m = msgs.find(x => x.client_id === clientId);
-    if (!m) return;
-    const payload = { type: m.type, text: m.text, mediaUrl: m.media_url, mediaMeta: m.media_meta, replyTo: m.reply_to };
-    sendMessage(payload, clientId);
   }
 
   function sendText() {
@@ -373,7 +289,7 @@ const Chat = (function () {
     reader.readAsDataURL(file);
   }
 
-  function sendGif(url) { sendMessage({ type: 'gif', mediaUrl: url }); closeSheet(); }
+ function sendGif(url) { sendMessage({ type: 'gif', mediaUrl: url }); closeSheet(); }
 
   function onAudioPick(input) {
     if (!input.files[0]) return;
@@ -476,12 +392,6 @@ const Chat = (function () {
   function onBubbleClick(id, ev) {
     if (lpFired) { lpFired = false; return; }
     if (selectMode) { toggleSelect(id); return; }
-    const row = ev && ev.currentTarget;
-    const clientId = row && row.dataset && row.dataset.clientId;
-    if (clientId) {
-      const m = msgs.find(x => x.client_id === clientId);
-      if (m && m._failed) { retrySend(clientId); return; }
-    }
   }
   function startLongPress(id) {
     lpFired = false;
@@ -494,37 +404,37 @@ const Chat = (function () {
   }
   function endLongPress() { clearTimeout(lpTimer); }
   function openMenu(id, ev) {
-    const m = msgs.find(x => x.id === id); if (!m) return;
-    document.getElementById('chatMsgMenu')?.remove();
-    const isDesktop = window.innerWidth > 700 && ev && ev.clientX;
-    const sheet = document.createElement('div');
-    sheet.id = 'chatMsgMenu';
-    if (isDesktop) {
-      sheet.className = 'msg-ctx-bg';
-      sheet.innerHTML = `<div class="msg-ctx-menu open" style="left:${ev.clientX}px;top:${ev.clientY}px">
-        ${menuItemsHtml(m, id)}
-      </div>`;
-    } else {
-      sheet.className = 'chat-sheet-overlay';
-      sheet.innerHTML = `<div class="chat-sheet">${menuItemsHtml(m, id)}</div>`;
-    }
-    sheet.onclick = e => { if (e.target === sheet) sheet.remove(); };
-    document.body.appendChild(sheet);
+  const m = msgs.find(x => x.id === id); if (!m) return;
+  document.getElementById('chatMsgMenu')?.remove();
+  const isDesktop = window.innerWidth > 700 && ev && ev.clientX;
+  const sheet = document.createElement('div');
+  sheet.id = 'chatMsgMenu';
+  if (isDesktop) {
+    sheet.className = 'msg-ctx-bg';
+    sheet.innerHTML = `<div class="msg-ctx-menu open" style="left:${ev.clientX}px;top:${ev.clientY}px">
+      ${menuItemsHtml(m, id)}
+    </div>`;
+  } else {
+    sheet.className = 'chat-sheet-overlay';
+    sheet.innerHTML = `<div class="chat-sheet">${menuItemsHtml(m, id)}</div>`;
   }
-  function menuItemsHtml(m, id) {
-    const mine = isMine(m);
-    return `
-      <div class="ctx-item" onclick="Chat.reactTo('${id}','❤️')">❤️ React</div>
-      <div class="ctx-item" onclick="Chat.replyTo('${id}')">↩️ Reply</div>
-      <div class="ctx-item" onclick="Chat.forwardMsg('${id}')">↪️ Forward</div>
-      <div class="ctx-item" onclick="Chat.copyMsg('${id}')">📋 Copy</div>
-      <div class="ctx-item" onclick="Chat.togglePin('${id}')">📌 Pin</div>
-      <div class="ctx-item" onclick="Chat.toggleStar('${id}')">⭐ Star</div>
-      ${mine && m.type === 'text' ? `<div class="ctx-item" onclick="Chat.editMsg('${id}')">✏️ Edit</div>` : ''}
-      <div class="ctx-item" onclick="Chat.infoMsg('${id}')">ℹ️ Info</div>
-      ${mine ? `<div class="ctx-item danger" onclick="Chat.deleteMsg('${id}','everyone')">🗑️ Delete for everyone</div>` : ''}
-      <div class="ctx-item danger" onclick="Chat.deleteMsg('${id}','me')">🗑️ Delete for me</div>`;
-  }
+  sheet.onclick = e => { if (e.target === sheet) sheet.remove(); };
+  document.body.appendChild(sheet);
+}
+function menuItemsHtml(m, id) {
+  const mine = isMine(m);
+  return `
+    <div class="ctx-item" onclick="Chat.reactTo('${id}','❤️')">❤️ React</div>
+    <div class="ctx-item" onclick="Chat.replyTo('${id}')">↩️ Reply</div>
+    <div class="ctx-item" onclick="Chat.forwardMsg('${id}')">↪️ Forward</div>
+    <div class="ctx-item" onclick="Chat.copyMsg('${id}')">📋 Copy</div>
+    <div class="ctx-item" onclick="Chat.togglePin('${id}')">📌 Pin</div>
+    <div class="ctx-item" onclick="Chat.toggleStar('${id}')">⭐ Star</div>
+    ${mine && m.type === 'text' ? `<div class="ctx-item" onclick="Chat.editMsg('${id}')">✏️ Edit</div>` : ''}
+    <div class="ctx-item" onclick="Chat.infoMsg('${id}')">ℹ️ Info</div>
+    ${mine ? `<div class="ctx-item danger" onclick="Chat.deleteMsg('${id}','everyone')">🗑️ Delete for everyone</div>` : ''}
+    <div class="ctx-item danger" onclick="Chat.deleteMsg('${id}','me')">🗑️ Delete for me</div>`;
+}
   async function reactTo(id, emoji) {
     document.getElementById('chatMsgMenu')?.remove();
     try {
@@ -719,16 +629,17 @@ const Chat = (function () {
       const el = document.getElementById('gifResults');
       el.innerHTML = '<div class="empty">Loading...</div>';
       try {
+        // Public Tenor demo key — replace GIF_API_KEY with your own Tenor key for production
         const key = 'ptJ3RSKMUd0ovjoM12Ra11JvlsssLRK4';
-        const r = await fetch(`https://api.giphy.com/v1/gifs/search?q=${encodeURIComponent(q||'love')}&api_key=${key}&limit=24`);
-        const data = await r.json();
-        const results = data.data || [];
-        if (!results.length) { el.innerHTML = '<div class="empty">No GIFs found</div>'; return; }
-        el.innerHTML = results
-          .map(g => g.images?.fixed_height_small?.url || g.images?.original?.url)
-          .filter(url => !!url)
-          .map(url => `<img src="${esc(url)}" loading="lazy" onclick="Chat.sendGif('${esc(url)}')">`)
-          .join('') || '<div class="empty">No GIFs found</div>';
+const r = await fetch(`https://api.giphy.com/v1/gifs/search?q=${encodeURIComponent(q||'love')}&api_key=${key}&limit=24`);
+const data = await r.json();
+const results = data.data || [];
+if (!results.length) { el.innerHTML = '<div class="empty">No GIFs found</div>'; return; }
+el.innerHTML = results
+  .map(g => g.images?.fixed_height_small?.url || g.images?.original?.url)
+  .filter(url => !!url)
+  .map(url => `<img src="${esc(url)}" loading="lazy" onclick="Chat.sendGif('${esc(url)}')">`)
+  .join('') || '<div class="empty">No GIFs found</div>';
       } catch (e) { el.innerHTML = '<div class="empty">GIF search failed — check connection</div>'; }
     }, 400);
   }
@@ -742,21 +653,15 @@ const Chat = (function () {
     if (!coupleId()) { setTimeout(init, 1000); return; }
     loadMessages();
     startPresence();
-    startRealtime();     // instant delivery via websockets
-    startPolling();      // safety net until Realtime confirms SUBSCRIBED
+    startPolling();
     fetchPresence();
     const nameEl = document.getElementById('chatHeaderName');
     if (nameEl) nameEl.textContent = window.S.partnerName || 'Partner';
     const avEl = document.getElementById('chatHeaderAv');
     if (avEl) avEl.textContent = (window.S.partnerName || 'P')[0];
     setInterval(fetchPresence, 15000);
-
-    // Reconnect Realtime after coming back online / tab refocus
-    window.addEventListener('online', () => { if (!rtConnected) startRealtime(); });
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && !rtConnected) startRealtime();
-    });
   }
+  document.addEventListener('DOMContentLoaded', () => setTimeout(init, 500));
 
   return {
     onChatScroll, scrollToBottom, sendText, onTypingInput, onImagePick, toggleRecord,
@@ -765,7 +670,7 @@ const Chat = (function () {
     openSearch, closeSearch, runSearch, scrollToMsg, sendGif, sendEmoji, sendEmojiTap,
     openEmojiPanel, openGifPanel, searchGifs, markRead, init, openSheet, closeSheet,
     forwardMsg, copyMsg, editMsg, cancelEdit, infoMsg, cancelRecording, startLongPress, endLongPress,
-    onAudioPick, sendLocation, openGiftPanel, sendGift, toggleVoicePlay, retrySend
+    onAudioPick, sendLocation, openGiftPanel, sendGift,toggleVoicePlay
   };
 })();
 window.Chat = Chat;
