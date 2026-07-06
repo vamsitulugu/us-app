@@ -942,8 +942,28 @@ body { display: flex !important; overflow: hidden !important }
 /* ════ VERCEL WIDGET PROTECTION ════ */
 vercel-live-feedback { position: fixed !important; width: 0 !important; height: 0 !important; pointer-events: none; overflow: visible }
 
+
+[data-lucide], .icon-svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.8;
+  vertical-align: middle;
+  color: currentColor;
+  transition: transform .15s ease, color .2s ease, opacity .2s ease;
+}
+.ni .ico [data-lucide], .bot-ni .ico [data-lucide] { width: 19px; height: 19px; }
+.card-title [data-lucide] { width: 17px; height: 17px; }
+.btn [data-lucide], .ic-btn [data-lucide] { width: 17px; height: 17px; }
+
+/* interaction states */
+.ic-btn:hover [data-lucide], .btn:hover [data-lucide] { transform: scale(1.08); }
+.ic-btn:active [data-lucide], .btn:active [data-lucide] { transform: scale(.92); }
+.ni:hover [data-lucide], .bot-ni:hover [data-lucide] { color: var(--white); }
+.ni.active [data-lucide], .bot-ni.active [data-lucide] { color: var(--red); }
+button:disabled [data-lucide] { opacity: .35; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
 
 <body class="t-blue">
@@ -954,11 +974,11 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
   <!-- IMAGE VIEWER -->
   <div class="img-viewer" id="imgViewer">
-    <button class="img-viewer-close" onclick="closeImgViewer()">✕</button>
+    <button class="img-viewer-close" onclick="closeImgViewer()"><i data-lucide="x"></i></button>
     <img id="imgViewerImg" src="" alt="">
   </div>
   <!-- TOUCH RIPPLE -->
-  <div id="touchRipple"><span>💓</span></div>
+  <div id="touchRipple"><span><i data-lucide="heart"></i></span></div>
 
   <!-- MISS YOU OVERLAY -->
   <div class="love-overlay" id="missYouOverlay" onclick="if(event.target===this)closeMissYouPopup()">
@@ -1007,19 +1027,19 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
   <!-- ALARM RING -->
   <div class="alarm-ring" id="alarmRing">
     <div class="alarm-box">
-      <div class="alarm-ico">🔔</div>
+      <div class="alarm-ico"><i data-lucide="bell-ring" style="width:56px;height:56px"></i></div>
       <div style="font-size:22px;font-weight:700;color:var(--yellow);font-family:var(--ff-serif);margin-bottom:7px"
         id="alarmTitle">Alarm!</div>
       <div style="font-size:13px;color:var(--text2);margin-bottom:5px" id="alarmDesc"></div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:20px" id="alarmFor"></div>
-      <button class="btn btn-accent" onclick="dismissAlarm()">🔕 Dismiss</button>
+      <button class="btn btn-accent" onclick="dismissAlarm()"><i data-lucide="bell-off"></i> Dismiss</button>
     </div>
   </div>
 <!-- UNIVERSAL SEARCH OVERLAY -->
 <div class="search-overlay" id="searchOverlay">
   <div class="search-header">
     <div class="search-input-wrap">
-      <span class="search-ico">🔍</span>
+      <span class="search-ico"><i data-lucide="search"></i></span>
       <input type="text" id="searchInput" placeholder="Search everything..." 
         oninput="doSearch(this.value)" autocomplete="off">
     </div>
@@ -1027,13 +1047,13 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
   </div>
   <div class="search-filters" id="searchFilters">
     <div class="sf active" data-filter="all" onclick="setSearchFilter('all',this)">All</div>
-    <div class="sf" data-filter="chat" onclick="setSearchFilter('chat',this)">💬 Chat</div>
-    <div class="sf" data-filter="notes" onclick="setSearchFilter('notes',this)">📝 Notes</div>
-    <div class="sf" data-filter="photos" onclick="setSearchFilter('photos',this)">📸 Photos</div>
-    <div class="sf" data-filter="habits" onclick="setSearchFilter('habits',this)">✅ Habits</div>
-    <div class="sf" data-filter="bucket" onclick="setSearchFilter('bucket',this)">🌟 Dreams</div>
-    <div class="sf" data-filter="events" onclick="setSearchFilter('events',this)">📅 Events</div>
-    <div class="sf" data-filter="journal" onclick="setSearchFilter('journal',this)">📖 Journal</div>
+    <div class="sf" data-filter="chat" onclick="setSearchFilter('chat',this)"><i data-lucide="message-circle"></i> Chat</div>
+    <div class="sf" data-filter="notes" onclick="setSearchFilter('notes',this)"><i data-lucide="file-text"></i> Notes</div>
+    <div class="sf" data-filter="photos" onclick="setSearchFilter('photos',this)"><i data-lucide="camera"></i> Photos</div>
+    <div class="sf" data-filter="habits" onclick="setSearchFilter('habits',this)"><i data-lucide="check-circle"></i> Habits</div>
+    <div class="sf" data-filter="bucket" onclick="setSearchFilter('bucket',this)"><i data-lucide="star"></i> Dreams</div>
+    <div class="sf" data-filter="events" onclick="setSearchFilter('events',this)"><i data-lucide="calendar"></i> Events</div>
+    <div class="sf" data-filter="journal" onclick="setSearchFilter('journal',this)"><i data-lucide="book-open"></i> Journal</div>
   </div>
   <div class="search-results" id="searchResults">
     <div class="search-empty">
@@ -1126,9 +1146,9 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
     <div class="nav-group">
       <div class="nav-label">Home</div>
-      <div class="ni active" data-page="dashboard"><span class="ico">🏠</span>Dashboard</div>
+      <div class="ni active" data-page="dashboard"><span class="ico"><i data-lucide="home"></i></span>Dashboard</div>
       <div class="card" style="margin-bottom:16px;pointer-events:auto;cursor:default">
-        <div class="card-title">💭 Quick Mood Check-in</div>
+        <div class="card-title"><i data-lucide="smile"></i> Quick Mood Check-in</div>
         <div class="mood-row" id="dashMoodRow" style="margin-bottom:0">
           <div class="mood" onclick="quickMood(this,'😊 Happy')">😊</div>
           <div class="mood" onclick="quickMood(this,'🥰 Loved')">🥰</div>
@@ -1138,48 +1158,48 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
           <div class="mood" onclick="quickMood(this,'🤩 Excited')">🤩</div>
         </div>
       </div>
-      <div class="ni" data-page="chat"><span class="ico">💬</span>Chat<span data-chat-badge></span></div>
-      <div class="ni" data-page="camera"><span class="ico">📷</span>Memories</div>
-      <div class="ni" data-page="profile"><span class="ico">💑</span>Our Profile</div>
+      <div class="ni" data-page="chat"><span class="ico"><i data-lucide="message-circle"></i></span>Chat<span data-chat-badge></span></div>
+      <div class="ni" data-page="camera"><span class="ico"><i data-lucide="camera"></i></span>Memories</div>
+      <div class="ni" data-page="profile"><span class="ico"><i data-lucide="users"></i></span>Our Profile</div>
     </div>
     <div class="nav-group">
       <div class="nav-label">Together</div>
-      <div class="ni" data-page="bucket"><span class="ico">🌟</span>Bucket List</div>
-      <div class="ni" data-page="calendar"><span class="ico">📅</span>Calendar</div>
-      <div class="ni" data-page="map"><span class="ico">📍</span>Live Map</div>
-      <div class="ni" data-page="globe"><span class="ico">🌍</span>Memory Globe</div>
-      <div class="ni" data-page="places"><span class="ico">🗺️</span>Places Memory</div>
-      <div class="ni" data-page="meetplanner"><span class="ico">💕</span>Meet Planner</div>
-      <div class="ni" data-page="lovecounter"><span class="ico">⏱️</span>Love Counter</div>
-      <div class="ni" data-page="collection"><span class="ico">🎙️</span>Collection</div>
-      <div class="ni" data-page="music"><span class="ico">🎵</span>Music</div>
-      <div class="ni" data-page="games"><span class="ico">🎮</span>Games <span class="games-badge">NEW</span></div>
-      <div class="ni" data-page="dreamgoals"><span class="ico">💫</span>Dream Goals <div class="dreams-new-badge"></div></div>
-      <div class="ni" data-page="money"><span class="ico">💰</span>Money</div>
-      <div class="ni" data-page="fights"><span class="ico">⚡</span>Fight Log</div>
-      <div class="ni" data-page="capsule"><span class="ico">💌</span>Love Capsule</div>
-      <div class="ni" data-page="surprise"><span class="ico">🎁</span>Surprises</div>
+      <div class="ni" data-page="bucket"><span class="ico"><i data-lucide="star"></i></span>Bucket List</div>
+      <div class="ni" data-page="calendar"><span class="ico"><i data-lucide="calendar"></i></span>Calendar</div>
+      <div class="ni" data-page="map"><span class="ico"><i data-lucide="map-pin"></i></span>Live Map</div>
+      <div class="ni" data-page="globe"><span class="ico"><i data-lucide="globe"></i></span>Memory Globe</div>
+      <div class="ni" data-page="places"><span class="ico"><i data-lucide="map"></i></span>Places Memory</div>
+      <div class="ni" data-page="meetplanner"><span class="ico"><i data-lucide="heart"></i></span>Meet Planner</div>
+      <div class="ni" data-page="lovecounter"><span class="ico"><i data-lucide="timer"></i></span>Love Counter</div>
+      <div class="ni" data-page="collection"><span class="ico"><i data-lucide="mic"></i></span>Collection</div>
+      <div class="ni" data-page="music"><span class="ico"><i data-lucide="music"></i></span>Music</div>
+      <div class="ni" data-page="games"><span class="ico"><i data-lucide="gamepad-2"></i></span>Games <span class="games-badge">NEW</span></div>
+      <div class="ni" data-page="dreamgoals"><span class="ico"><i data-lucide="sparkles"></i></span>Dream Goals <div class="dreams-new-badge"></div></div>
+      <div class="ni" data-page="money"><span class="ico"><i data-lucide="wallet"></i></span>Money</div>
+      <div class="ni" data-page="fights"><span class="ico"><i data-lucide="zap"></i></span>Fight Log</div>
+      <div class="ni" data-page="capsule"><span class="ico"><i data-lucide="mail"></i></span>Love Capsule</div>
+      <div class="ni" data-page="surprise"><span class="ico"><i data-lucide="gift"></i></span>Surprises</div>
     </div>
     <div class="nav-group">
       <div class="nav-label">Growth</div>
-      <div class="ni" data-page="level"><span class="ico">🏆</span>Couple Level</div>
-      <div class="ni" data-page="dreamhome"><span class="ico">🏡</span>Dream Home</div>
-      <div class="ni" data-page="virtualhome"><span class="ico">🏠</span>Virtual Home <span class="games-badge">3D</span></div>
+      <div class="ni" data-page="level"><span class="ico"><i data-lucide="trophy"></i></span>Couple Level</div>
+      <div class="ni" data-page="dreamhome"><span class="ico"><i data-lucide="home"></i></span>Dream Home</div>
+      <div class="ni" data-page="virtualhome"><span class="ico"><i data-lucide="box"></i></span>Virtual Home <span class="games-badge">3D</span></div>
     </div>
     <div class="nav-group">
       <div class="nav-label">Personal</div>
-      <div class="ni" data-page="myspace"><span class="ico">🌸</span>My Space</div>
-      <div class="ni" data-page="period"><span class="ico">🩷</span>Period Tracker</div>
-      <div class="ni" data-page="study"><span class="ico">📚</span>Study Together</div>
-      <div class="ni" data-page="vault"><span class="ico">🔐</span>Secret Vault</div>
+      <div class="ni" data-page="myspace"><span class="ico"><i data-lucide="flower-2"></i></span>My Space</div>
+      <div class="ni" data-page="period"><span class="ico"><i data-lucide="heart-pulse"></i></span>Period Tracker</div>
+      <div class="ni" data-page="study"><span class="ico"><i data-lucide="book-open"></i></span>Study Together</div>
+      <div class="ni" data-page="vault"><span class="ico"><i data-lucide="lock"></i></span>Secret Vault</div>
     </div>
 
     <div class="nav-group">
       <div class="nav-label">AI & Tools</div>
-      <div class="ni" data-page="ai"><span class="ico">🤖</span>AI Love Guide</div>
+      <div class="ni" data-page="ai"><span class="ico"><i data-lucide="bot"></i></span>AI Love Guide</div>
     </div>
     <div class="sb-foot">
-      <div class="ni" data-page="settings" style="margin:0"><span class="ico">⚙️</span>Settings</div>
+      <div class="ni" data-page="settings" style="margin:0"><span class="ico"><i data-lucide="settings"></i></span>Settings</div>
     </div>
   </aside>
 
@@ -1187,13 +1207,13 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
   <div class="main">
     <div class="topbar">
       <div style="display:flex;align-items:center;gap:10px">
-        <div class="hamburger" id="hamburger" onclick="toggleMobSidebar()">☰</div>
+        <div class="hamburger" id="hamburger" onclick="toggleMobSidebar()"><i data-lucide="menu"></i></div>
         <div class="tb-title" id="topTitle">Dashboard</div>
 
        <span style="font-size:10px;color:var(--text3)" id="lastSaved"></span>
 <div id="hbTopbarPill" class="hb-topbar-pill" onclick="HeartbeatManager.openStats()" title="Heartbeat Stats"></div>
-        <button class="ic-btn" onclick="openSearch()" title="Search" style="font-size:16px">🔍</button>
-        <button class="btn btn-glass btn-sm" onclick="syncNow()" id="syncBtn">☁️ Sync</button>
+        <button class="ic-btn" onclick="openSearch()" title="Search"><i data-lucide="search"></i></button>
+        <button class="btn btn-glass btn-sm" onclick="syncNow()" id="syncBtn"><i data-lucide="cloud"></i> Sync</button>
       </div>
     </div>
 
@@ -1225,17 +1245,17 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
           <!-- Pulse ring (global, positioned absolute by HB manager) -->
         <div id="hbPulseRing"></div>
         <div class="card cc-card" id="connectionCard">
-  <div class="card-title" style="justify-content:center">💕 Stay Connected</div>
+  <div class="card-title" style="justify-content:center"><i data-lucide="heart"></i> Stay Connected</div>
  
   <div class="cc-actions">
     <button class="cc-btn cc-touch" id="ccTouchBtn" onclick="ConnCard.sendTouch()">
-      <span class="cc-ico">❤️</span><span class="cc-lbl">Touch</span>
+      <span class="cc-ico"><i data-lucide="heart"></i></span><span class="cc-lbl">Touch</span>
     </button>
     <button class="cc-btn cc-hug" id="ccHugBtn" onclick="ConnCard.sendHug()">
-      <span class="cc-ico">🤗</span><span class="cc-lbl">Hug</span>
+      <span class="cc-ico"><i data-lucide="heart-handshake"></i></span><span class="cc-lbl">Hug</span>
     </button>
     <button class="cc-btn cc-miss" id="ccMissBtn" onclick="ConnCard.sendMissYou()">
-      <span class="cc-ico">🥺</span><span class="cc-lbl">Miss You</span>
+      <span class="cc-ico"><i data-lucide="heart-crack"></i></span><span class="cc-lbl">Miss You</span>
     </button>
   </div>
  
@@ -1265,19 +1285,19 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
   </div>
 </div>
         <div class="card" id="countdownCard" style="display:none">
-          <div class="card-title">🎉 Upcoming Celebrations</div>
+          <div class="card-title"><i data-lucide="party-popper"></i> Upcoming Celebrations</div>
           <div id="countdownList"></div>
         </div>
         <div class="two-col" style="margin-bottom:16px">
           <div class="card" style="margin-bottom:0">
-            <div class="card-title">💌 Recent Messages<button class="btn-ghost btn-sm" onclick="goto('chat')">Open
+            <div class="card-title"><i data-lucide="mail"></i> Recent Messages<button class="btn-ghost btn-sm" onclick="goto('chat')">Open
                 →</button></div>
             <div id="dashRecentMsgs">
               <div class="empty" style="padding:10px 0;font-size:12px">No messages yet</div>
             </div>
           </div>
           <div class="card" style="margin-bottom:0">
-            <div class="card-title">📅 Upcoming Events<button class="btn-ghost btn-sm" onclick="goto('calendar')">View
+            <div class="card-title"><i data-lucide="calendar"></i> Upcoming Events<button class="btn-ghost btn-sm" onclick="goto('calendar')">View
                 →</button></div>
             <div id="dashEvents">
               <div class="empty" style="padding:10px 0;font-size:12px"><a href="#"
@@ -1286,7 +1306,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
           </div>
         </div>
         <div class="card" style="margin-bottom:18px" id="moodGraphCard">
-  <div class="card-title">💭 Mood This Week
+  <div class="card-title"><i data-lucide="smile"></i> Mood This Week
     <span style="font-size:10px;color:var(--text3);font-weight:400">Last 7 days</span>
   </div>
   <div id="moodGraph" style="display:flex;align-items:flex-end;gap:6px;height:80px;padding:4px 0 0"></div>
@@ -1294,11 +1314,11 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 </div>
         <div class="two-col">
           <div class="card" style="margin-bottom:0">
-            <div class="card-title">🩷 Period Status</div>
+            <div class="card-title"><i data-lucide="heart-pulse"></i> Period Status</div>
             <div id="dashPeriod" style="font-size:13px;color:var(--text2)">Open Period Tracker</div>
           </div>
           <div class="card" style="margin-bottom:0">
-            <div class="card-title">⚡ Fight Log</div>
+            <div class="card-title"><i data-lucide="zap"></i> Fight Log</div>
             <div id="dashFights" style="font-size:13px;color:var(--text2)">No recent fights 💕</div>
           </div>
         </div>
@@ -1326,7 +1346,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 </div>
       <div class="page" id="page-dreamhome">
         <div class="card">
-          <div class="card-title">🏡 Dream Home Planner<button class="btn btn-accent btn-sm"
+          <div class="card-title"><i data-lucide="home"></i> Dream Home Planner<button class="btn btn-accent btn-sm"
               onclick="openM('dreamModal')">+ Add Idea</button></div>
         </div>
         <div class="stabs" id="dreamTabs">
@@ -1344,9 +1364,9 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 <div class="page" id="page-chat">
   <div class="chat-page-wrap">
     <div class="chat-select-toolbar" id="chatSelectToolbar">
-      <button onclick="Chat.exitSelectMode()">✕</button>
+      <button onclick="Chat.exitSelectMode()"><i data-lucide="x"></i></button>
       <div class="cnt" id="chatSelectCount">1 selected</div>
-      <button onclick="Chat.deleteSelected()">🗑️ Delete</button>
+      <button onclick="Chat.deleteSelected()"><i data-lucide="trash-2"></i> Delete</button>
     </div>
 
     <div class="chat-header">
@@ -1356,10 +1376,10 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
         <div class="chat-header-status" id="chatHeaderStatus">offline</div>
       </div>
       <div class="chat-header-actions">
-  <button class="ic-btn" style="width:34px;height:34px;font-size:14px" onclick="Call.startCall('voice')" title="Voice Call">🎙️</button>
-  <button class="ic-btn" style="width:34px;height:34px;font-size:14px" onclick="Call.startCall('video')" title="Video Call">📹</button>
-  <button class="ic-btn" style="width:34px;height:34px;font-size:14px" onclick="Chat.openStarred()" title="Starred">⭐</button>
-  <button class="ic-btn" style="width:34px;height:34px;font-size:14px" onclick="Chat.openSearch()" title="Search">🔍</button>
+  <button class="ic-btn" style="width:34px;height:34px" onclick="Call.startCall('voice')" title="Voice Call"><i data-lucide="phone"></i></button>
+  <button class="ic-btn" style="width:34px;height:34px" onclick="Call.startCall('video')" title="Video Call"><i data-lucide="video"></i></button>
+  <button class="ic-btn" style="width:34px;height:34px" onclick="Chat.openStarred()" title="Starred"><i data-lucide="star"></i></button>
+  <button class="ic-btn" style="width:34px;height:34px" onclick="Chat.openSearch()" title="Search"><i data-lucide="search"></i></button>
 </div>
     </div>
 
@@ -1375,24 +1395,24 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
     <div class="chat-msgs" id="chatMsgs" onscroll="Chat.onChatScroll()"></div>
     <button class="chat-jump-btn" id="chatJumpBtn" onclick="Chat.scrollToBottom(true)">
-      ⬇<span class="chat-jump-badge" data-chat-badge></span>
+      <i data-lucide="chevron-down"></i><span class="chat-jump-badge" data-chat-badge></span>
     </button>
 
     <div class="chat-composer-banner" id="chatComposerBanner"></div>
 
     <div class="chat-composer">
-  <label class="chat-composer-btn" id="chatCameraLabel" style="cursor:pointer">📷
+  <label class="chat-composer-btn" id="chatCameraLabel" style="cursor:pointer"><i data-lucide="camera"></i>
     <input type="file" accept="image/*" style="display:none" onchange="Chat.onImagePick(this)">
   </label>
   <textarea id="chatIn" rows="1" placeholder="Type a message..."
     oninput="Chat.onTypingInput(); this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,120)+'px'"
     onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();Chat.sendText();}"></textarea>
   <span class="chat-rec-timer" id="chatRecTimer" style="display:none">00:00</span>
-  <button class="chat-composer-btn" id="chatCancelRecBtn" style="display:none" onclick="Chat.cancelRecording()" title="Cancel">🗑️</button>
-  <button class="chat-composer-btn" id="chatStopRecBtn" style="display:none;background:var(--red)" onclick="Chat.toggleRecord()" title="Stop and send">⏹</button>
-  <button class="chat-composer-btn" id="chatMicBtn" onclick="Chat.toggleRecord()" title="Record voice message">🎙️</button>
-  <button class="chat-composer-btn" id="chatMoreBtn" onclick="Chat.openSheet()" title="More options">⋮</button>
-  <button class="chat-composer-btn send" id="chatSendBtn" onclick="Chat.sendText()">➤</button>
+  <button class="chat-composer-btn" id="chatCancelRecBtn" style="display:none" onclick="Chat.cancelRecording()" title="Cancel"><i data-lucide="trash-2"></i></button>
+  <button class="chat-composer-btn" id="chatStopRecBtn" style="display:none;background:var(--red)" onclick="Chat.toggleRecord()" title="Stop and send"><i data-lucide="square"></i></button>
+  <button class="chat-composer-btn" id="chatMicBtn" onclick="Chat.toggleRecord()" title="Record voice message"><i data-lucide="mic"></i></button>
+  <button class="chat-composer-btn" id="chatMoreBtn" onclick="Chat.openSheet()" title="More options"><i data-lucide="more-vertical"></i></button>
+  <button class="chat-composer-btn send" id="chatSendBtn" onclick="Chat.sendText()"><i data-lucide="send"></i></button>
 </div>
   </div>
 </div>
@@ -1402,10 +1422,10 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
       <!-- ════ CAMERA & MEMORIES ════ -->
       <div class="page" id="page-camera">
         <div class="card">
-          <div class="card-title">📷 Capture a Moment
+          <div class="card-title"><i data-lucide="camera"></i> Capture a Moment
             <div style="display:flex;gap:6px">
-              <button class="btn btn-accent btn-sm" onclick="startCamera()">🎥 Camera</button>
-              <button class="btn btn-glass btn-sm" onclick="stopCamera()">⏹ Stop</button>
+              <button class="btn btn-accent btn-sm" onclick="startCamera()"><i data-lucide="video"></i> Camera</button>
+              <button class="btn btn-glass btn-sm" onclick="stopCamera()"><i data-lucide="square"></i> Stop</button>
             </div>
           </div>
           <div class="vid-wrap" id="vidWrap">
@@ -1417,8 +1437,8 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
               <div style="font-size:12px">Press Camera to start</div>
             </div>
             <div class="vid-overlay" id="camOverlay" style="display:none">
-              <button class="cam-btn cb-snap" onclick="snapPhoto()">📸 Snap</button>
-              <button class="cam-btn cb-flip" onclick="switchCamera()">🔄 Flip</button>
+              <button class="cam-btn cb-snap" onclick="snapPhoto()"><i data-lucide="camera"></i> Snap</button>
+              <button class="cam-btn cb-flip" onclick="switchCamera()"><i data-lucide="rotate-cw"></i> Flip</button>
             </div>
           </div>
           <div style="margin-top:11px;display:flex;gap:8px;flex-wrap:wrap">
@@ -1429,7 +1449,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
           </div>
         </div>
         <div class="card">
-          <div class="card-title">💝 Our Memories <span class="tag" id="photoCountTag">0</span></div>
+          <div class="card-title"><i data-lucide="heart"></i> Our Memories <span class="tag" id="photoCountTag">0</span></div>
           <div class="photo-grid" id="photoGrid">
             <label class="pt pt-add"><span>+</span><span style="font-size:10px">Add</span><input type="file"
                 accept="image/*,video/*" multiple style="display:none" onchange="uploadPhotos(this)"></label>
@@ -1459,9 +1479,9 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
             </div>
           </div>
          <div style="font-size:13px;color:var(--text2);margin-bottom:4px" id="profAnnivText">Together since —</div>
-<button class="btn btn-glass btn-sm" style="margin-top:8px" onclick="openM('milestoneModal')">💫 Add Milestone</button>
-<button class="btn btn-accent btn-sm" style="margin-top:8px;margin-left:8px" onclick="openM('eventModal')">📅 Add Date</button>
-<button class="btn btn-glass btn-sm" style="margin-top:8px;margin-left:8px" onclick="goto('bucket')">🌟 Add Dream</button>
+<button class="btn btn-glass btn-sm" style="margin-top:8px" onclick="openM('milestoneModal')"><i data-lucide="sparkles"></i> Add Milestone</button>
+<button class="btn btn-accent btn-sm" style="margin-top:8px;margin-left:8px" onclick="openM('eventModal')"><i data-lucide="calendar"></i> Add Date</button>
+<button class="btn btn-glass btn-sm" style="margin-top:8px;margin-left:8px" onclick="goto('bucket')"><i data-lucide="star"></i> Add Dream</button>
           <div class="stat-grid">
             <div class="stat-item">
               <div class="stat-n" id="profDays">0</div>
@@ -1493,27 +1513,27 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
         </div>
         <div class="two-col">
           <div class="card" style="margin-bottom:0">
-            <div class="card-title">💌 Connect Code</div>
+            <div class="card-title"><i data-lucide="mail"></i> Connect Code</div>
             <div class="code-box" id="myConnectCode">——</div>
             <div style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.65">Share this 6-digit code with
               your partner to link both devices.</div>
-            <button class="btn btn-accent btn-sm" style="margin-top:10px" onclick="copyCode()">📋 Copy Code</button>
+            <button class="btn btn-accent btn-sm" style="margin-top:10px" onclick="copyCode()"><i data-lucide="copy"></i> Copy Code</button>
             <div id="profPairStatus" style="font-size:11px;color:var(--text3);margin-top:10px">💌 Waiting for partner</div>
 <div id="profJoinBtn" style="margin-top:10px">
-  <button class="btn btn-accent btn-sm" onclick="openJoinPartnerModal()">🔗 Join Partner</button>
+  <button class="btn btn-accent btn-sm" onclick="openJoinPartnerModal()"><i data-lucide="link"></i> Join Partner</button>
 </div>
           </div>
           <div class="card" style="margin-bottom:0">
-            <div class="card-title">🌹 Our Story</div>
+            <div class="card-title"><i data-lucide="book-heart"></i> Our Story</div>
             <div class="field"><label>Your Bio</label><textarea id="myBio" placeholder="Write something sweet..."
                 style="min-height:60px" oninput="scheduleSave()"></textarea></div>
             <div class="field"><label>Partner's Bio</label><textarea id="ptBio" placeholder="About your partner..."
                 style="min-height:60px" oninput="scheduleSave()"></textarea></div>
-            <button class="btn btn-accent btn-sm" onclick="saveBios()">Save 💕</button>
+            <button class="btn btn-accent btn-sm" onclick="saveBios()">Save <i data-lucide="heart"></i></button>
           </div>
         </div>
         <div class="card" style="margin-top:16px">
-          <div class="card-title">💞 Love Languages</div>
+          <div class="card-title"><i data-lucide="heart"></i> Love Languages</div>
           <div class="row2">
             <div class="field"><label>Your Love Language</label>
               <select id="myLoveLang" onchange="saveLoveLang()">
@@ -1541,15 +1561,15 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
           </div>
         </div>
         <div class="card" style="margin-top:16px">
-          <div class="card-title">📖 Our Timeline</div>
+          <div class="card-title"><i data-lucide="book-open"></i> Our Timeline</div>
           <div class="timeline-stories" id="timelineStories"></div>
         </div>
         <div class="card" style="margin-top:16px">
-          <div class="card-title">💫 Love Milestones<button class="btn-ghost btn-sm" onclick="openM('milestoneModal')">+
+         <div class="card-title"><i data-lucide="sparkles"></i> Love Milestones<button class="btn-ghost btn-sm" onclick="openM('milestoneModal')">+
               Add</button></div>
           <div id="milestonesEl">
             <div class="empty" style="padding:14px 0">
-              <div class="empty-ico">💫</div>Add special moments!
+              <div class="empty-ico"><i data-lucide="sparkles" style="width:42px;height:42px"></i></div>Add special moments!
             </div>
           </div>
         </div>
@@ -1559,14 +1579,14 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
       </div>
       <div class="page" id="page-capsule">
         <div class="card">
-          <div class="card-title">💌 Create a Love Capsule</div>
+          <div class="card-title"><i data-lucide="mail"></i> Create a Love Capsule</div>
           <div class="field"><label>Your Message</label><textarea id="capsuleMsg"
               placeholder="Write something for the future..."></textarea></div>
           <div class="field"><label>Unlock Date</label><input type="date" id="capsuleDate"></div>
           <button class="btn btn-accent" onclick="addCapsule()">Seal Capsule 🔒</button>
         </div>
         <div class="card">
-          <div class="card-title">💕 Our Capsules</div>
+          <div class="card-title"><i data-lucide="heart"></i> Our Capsules</div>
           <div id="capsuleList">
             <div class="empty">No capsules yet</div>
           </div>
@@ -1602,7 +1622,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
             💡 Track your cycle to get mood & energy insights</div>
         </div>
         <div class="card">
-          <div class="card-title">📆 Cycle Calendar</div>
+          <div class="card-title"><i data-lucide="calendar"></i> Cycle Calendar</div>
           <div class="cal-head">
             <div>Sun</div>
             <div>Mon</div>
@@ -1615,7 +1635,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
           <div class="cal-days" id="periodCalDays"></div>
         </div>
         <div class="card">
-          <div class="card-title">📋 Today's Symptoms</div>
+          <div class="card-title"><i data-lucide="clipboard-list"></i> Today's Symptoms</div>
           <div class="symptom-grid" id="symptomGrid">
             <div class="symptom-tag" data-s="Cramps">🌀 Cramps</div>
             <div class="symptom-tag" data-s="Mood Swings">😤 Mood Swings</div>
@@ -1632,7 +1652,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
             Symptoms</button>
         </div>
         <div class="card">
-          <div class="card-title">📊 Period History</div>
+          <div class="card-title"><i data-lucide="bar-chart-3"></i> Period History</div>
           <div id="periodHistory">
             <div class="empty">No periods logged yet</div>
           </div>
@@ -1642,16 +1662,16 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
       <!-- ════ FIGHT LOG ════ -->
       <div class="page" id="page-fights">
         <div class="card">
-          <div class="card-title">⚡ Fight Log<button class="btn btn-accent btn-sm" onclick="openM('fightModal')">+ Log
+          <div class="card-title"><i data-lucide="zap"></i> Fight Log<button class="btn btn-accent btn-sm" onclick="openM('fightModal')">+ Log
               Fight</button></div>
           <div id="fightList">
             <div class="empty">
-              <div class="empty-ico">✌️</div>No fights logged — that's amazing! 💕
+              <div class="empty-ico"><i data-lucide="hand-heart" style="width:42px;height:42px"></i></div>No fights logged — that's amazing! 💕<div class="empty-ico">✌️</div>No fights logged — that's amazing! 💕
             </div>
           </div>
         </div>
         <div class="card">
-          <div class="card-title">💚 Reconnect Activities</div>
+          <div class="card-title"><i data-lucide="heart-handshake"></i> Reconnect Activities</div>
           <div style="font-size:12px;color:var(--text2);margin-bottom:14px">After a fight, try these activities:</div>
           <div id="reconnectActivities"></div>
         </div>
@@ -1661,11 +1681,11 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
       <div class="page" id="page-myspace">
         <div class="info-banner">💕 Both of you share this space. Your personal entries stay with your role.</div>
         <div class="stabs">
-          <div class="stab active" onclick="spTab('journal',this)">📖 Journal</div>
-          <div class="stab" onclick="spTab('habits',this)">✅ Habits</div>
-          <div class="stab" onclick="spTab('notes',this)">📝 Notes</div>
-          <div class="stab" onclick="spTab('wellness',this)">💆 Wellness</div>
-          <div class="stab" onclick="spTab('reminders',this)">🔔 Reminders</div>
+          <div class="stab active" onclick="spTab('journal',this)"><i data-lucide="book-open"></i> Journal</div>
+          <div class="stab" onclick="spTab('habits',this)"><i data-lucide="check-circle"></i> Habits</div>
+          <div class="stab" onclick="spTab('notes',this)"><i data-lucide="file-text"></i> Notes</div>
+          <div class="stab" onclick="spTab('wellness',this)"><i data-lucide="heart-pulse"></i> Wellness</div>
+          <div class="stab" onclick="spTab('reminders',this)"><i data-lucide="bell"></i> Reminders</div>
         </div>
 
         <div class="sc active" id="sc-journal">
@@ -1710,7 +1730,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
             Your Entries</div>
           <div id="myJournalEntries">
             <div class="empty">
-              <div class="empty-ico">📖</div>No entries yet. Write your first!
+              <div class="empty-ico"><i data-lucide="book-open" style="width:42px;height:42px"></i></div>No entries yet. Write your first!
             </div>
           </div>
         </div>
@@ -1767,11 +1787,11 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
         <div class="sc" id="sc-wellness">
           <div class="two-col">
             <div class="card" style="margin-bottom:0">
-              <div class="card-title">😊 Mood History</div>
+              <div class="card-title"><i data-lucide="smile"></i> Mood History</div>
               <div class="mood-hist-row" id="myMoodWeek"></div>
             </div>
             <div class="card" style="margin-bottom:0">
-              <div class="card-title">💧 Today's Wellness</div>
+              <div class="card-title"><i data-lucide="droplet"></i> Today's Wellness</div>
               <div class="field"><label>Water (glasses 💧)</label><input type="number" id="waterIn" min="0" max="20"
                   placeholder="0" oninput="saveWellness()"></div>
               <div class="field"><label>Sleep (hours 😴)</label><input type="number" id="sleepIn" min="0" max="24"
@@ -1781,14 +1801,14 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
             </div>
           </div>
           <div class="card" style="margin-top:16px">
-            <div class="card-title">📊 Wellness Summary</div>
+            <div class="card-title"><i data-lucide="bar-chart-3"></i> Wellness Summary</div>
             <div id="wellnessSummary" style="font-size:13px;color:var(--text2);line-height:1.9">Loading...</div>
           </div>
         </div>
 
         <div class="sc" id="sc-reminders">
           <div class="card">
-            <div class="card-title">🔔 Add Reminder</div>
+            <div class="card-title"><i data-lucide="bell"></i> Add Reminder</div>
             <div class="field"><label>Title</label><input type="text" id="remTitle"
                 placeholder="e.g. Study Time, Doctor Appointment"></div>
             <div class="row2">
@@ -1832,7 +1852,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
             </div>
             <div class="card">
               <div class="card-title">
-                <div style="display:flex;align-items:center;gap:6px">🗓️ <span id="studyMyNameTT">My</span> Timetable
+                <div style="display:flex;align-items:center;gap:6px"><i data-lucide="calendar-clock"></i> <span id="studyMyNameTT">My</span> Timetable
                 </div><button class="btn btn-glass btn-sm" onclick="openM('studySlotModal')">+ Slot</button>
               </div>
               <div id="myTimetable">
@@ -1853,7 +1873,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
               </div>
             </div>
             <div class="card">
-              <div class="card-title">🗓️ <span id="studyPtNameTT">Partner's</span> Timetable</div>
+              <div class="card-title"><i data-lucide="calendar-clock"></i> <span id="studyPtNameTT">Partner's</span> Timetable</div>
               <div id="ptTimetable">
                 <div class="empty" style="padding:10px 0">Synced when paired</div>
               </div>
@@ -1865,11 +1885,11 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
       <!-- ════ BUCKET LIST ════ -->
       <div class="page" id="page-bucket">
         <div class="card">
-          <div class="card-title">🌟 Our Bucket List <span class="tag" id="bucketTag">0/0</span><button
+          <div class="card-title"><i data-lucide="star"></i> Our Bucket List <span class="tag" id="bucketTag">0/0</span><button
               class="btn btn-accent btn-sm" onclick="openM('bucketModal')">+ Add Dream</button></div>
           <div id="bucketList">
             <div class="empty">
-              <div class="empty-ico">🌟</div>Add your first dream together!
+              <div class="empty-ico"><i data-lucide="star" style="width:42px;height:42px"></i></div>Add your first dream together!
             </div>
           </div>
         </div>
@@ -1880,10 +1900,10 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
             <div style="display:flex;align-items:center;gap:12px">
-              <button class="btn btn-glass btn-sm" onclick="calNav(-1)">‹</button>
+              <button class="btn btn-glass btn-sm" onclick="calNav(-1)"><i data-lucide="chevron-left"></i></button>
               <div style="font-size:17px;font-weight:400;font-family:var(--ff-serif);color:var(--white)" id="calTitle">
               </div>
-              <button class="btn btn-glass btn-sm" onclick="calNav(1)">›</button>
+              <button class="btn btn-glass btn-sm" onclick="calNav(1)"><i data-lucide="chevron-right"></i></button>
             </div>
             <button class="btn btn-accent btn-sm" onclick="openM('eventModal')">+ Add Event</button>
           </div>
@@ -1899,7 +1919,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
           <div class="cal-days" id="calDays"></div>
         </div>
         <div class="card">
-          <div class="card-title">Upcoming Events</div>
+          <div class="card-title"><i data-lucide="calendar-days"></i> Upcoming Events</div>
           <div id="eventList">
             <div class="empty">No upcoming events</div>
           </div>
@@ -1923,7 +1943,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
           </div>
         </div>
         <div class="card">
-          <div class="card-title">💳 Transactions<button class="btn btn-accent btn-sm" onclick="openM('moneyModal')">+
+          <div class="card-title"><i data-lucide="credit-card"></i> Transactions<button class="btn btn-accent btn-sm" onclick="openM('moneyModal')">+
               Add</button></div>
           <div id="transList">
             <div class="empty">No transactions yet</div>
@@ -1969,7 +1989,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
   <div class="card">
     <div class="card-title">
-      📍 Live Together Map
+      <i data-lucide="map-pin"></i> Live Together Map
       <div style="display:flex;gap:6px;align-items:center">
         <div class="toggle" id="lmTrackToggle" onclick="LiveMap.toggleTracking()" title="Live tracking on/off"></div>
       </div>
@@ -2008,7 +2028,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
   <!-- MY IMPORTANT PLACES -->
   <div class="card">
     <div class="card-title">
-      🏠 My Important Places
+      <i data-lucide="home"></i> My Important Places
       <button class="btn btn-accent btn-sm" onclick="LiveMap.openPlaceModal('self')">+ Add Place</button>
     </div>
     <div id="myPlacesList"><div class="empty">No places saved yet — add Home, College, Office…</div></div>
@@ -2016,7 +2036,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
   <!-- PARTNER IMPORTANT PLACES -->
   <div class="card">
-    <div class="card-title">💜 Partner Important Places</div>
+    <div class="card-title"><i data-lucide="heart"></i> Partner Important Places</div>
     <div id="ptPlacesList"><div class="empty">Synced once your partner adds places</div></div>
   </div>
 
@@ -2025,7 +2045,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 <!-- ADD PLACE MODAL -->
 <div class="modal-bg" id="lmPlaceModal">
   <div class="modal">
-    <div class="modal-title">📌 Add Important Place<button class="modal-close" onclick="closeM('lmPlaceModal')">✕</button></div>
+    <div class="modal-title"><i data-lucide="map-pin"></i> Add Important Place<button class="modal-close" onclick="closeM('lmPlaceModal')"><i data-lucide="x"></i></button></div>
     <div class="field"><label>Category</label>
       <select id="lmPlaceCat" onchange="LiveMap.onCatChange()">
         <option value="Home">🏠 Home</option>
@@ -2053,13 +2073,13 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
       <div class="page" id="page-surprise">
         <div class="card">
-          <div class="card-title">🎁 Create a Surprise<button class="btn btn-accent btn-sm"
+          <div class="card-title"><i data-lucide="gift"></i> Create a Surprise<button class="btn btn-accent btn-sm"
               onclick="openM('surpriseModal')">+ New</button></div>
           <div style="font-size:11px;color:var(--text3)">Hidden until the unlock date — your partner won't see it until
             then 💕</div>
         </div>
         <div class="card">
-          <div class="card-title">🎉 Surprises</div>
+          <div class="card-title"><i data-lucide="party-popper"></i> Surprises</div>
           <div id="surpriseList">
             <div class="empty">No surprises yet</div>
           </div>
@@ -2071,7 +2091,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
         <div class="ai-wrap">
           <div class="ai-msgs" id="aiMsgs">
             <div class="ai-msg bot">
-              <div class="ai-av">🤖</div>
+              <div class="ai-av"><i data-lucide="bot"></i></div>
               <div>
                 <div class="ai-bubble">Hi! I'm your AI Love Guide 💕 I'm here to help with relationship advice, date
                   ideas, love letters, communication tips, and anything you need as a couple. What can I help with
@@ -2080,27 +2100,27 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
             </div>
           </div>
           <div class="pills">
-            <div class="pill" onclick="askAI('Give us 5 creative and romantic date night ideas for tonight')">💑 Date
+            <div class="pill" onclick="askAI('Give us 5 creative and romantic date night ideas for tonight')"><i data-lucide="heart"></i> Date
               ideas</div>
             <div class="pill"
-              onclick="askAI('We had a fight. Give us a step-by-step guide to talk it through with love')">💬 We argued
+              onclick="askAI('We had a fight. Give us a step-by-step guide to talk it through with love')"><i data-lucide="message-circle"></i> We argued
             </div>
             <div class="pill"
-              onclick="askAI('How can we improve communication as a couple? Be specific and practical')">🗣️
+              onclick="askAI('How can we improve communication as a couple? Be specific and practical')"><i data-lucide="mic"></i>
               Communication</div>
-            <div class="pill" onclick="askAI('Plan a romantic surprise — give me 3 detailed and thoughtful options')">🎁
+            <div class="pill" onclick="askAI('Plan a romantic surprise — give me 3 detailed and thoughtful options')"><i data-lucide="gift"></i>
               Surprise</div>
-            <div class="pill" onclick="askAI('Write a heartfelt, poetic love letter from me to my partner')">💌 Love
+            <div class="pill" onclick="askAI('Write a heartfelt, poetic love letter from me to my partner')"><i data-lucide="mail"></i> Love
               letter</div>
-            <div class="pill" onclick="askAI('What are 10 fun things couples can do at home to reconnect?')">🏠 Home fun
+            <div class="pill" onclick="askAI('What are 10 fun things couples can do at home to reconnect?')"><i data-lucide="home"></i> Home fun
             </div>
-            <div class="pill" onclick="askAI('Give us 5 deep conversation questions to learn more about each other')">💭
+            <div class="pill" onclick="askAI('Give us 5 deep conversation questions to learn more about each other')"><i data-lucide="brain"></i>
               Deep talk</div>
           </div>
           <div class="chat-bar">
             <textarea class="chat-in" id="aiIn" rows="1" placeholder="Ask anything about your relationship..."
               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"></textarea>
-            <button class="ic-btn accent" onclick="sendAI()">➤</button>
+            <button class="ic-btn accent" onclick="sendAI()"><i data-lucide="send"></i></button>
           </div>
         </div>
       </div>
@@ -2108,7 +2128,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
       <!-- ════ VAULT ════ -->
       <div class="page" id="page-vault">
         <div id="vaultLocked" style="text-align:center;padding:50px 16px">
-          <div style="font-size:64px;margin-bottom:14px">🔐</div>
+          <div style="font-size:64px;margin-bottom:14px"><i data-lucide="lock" style="width:56px;height:56px"></i></div>
           <div style="font-size:20px;font-weight:400;font-family:var(--ff-serif);margin-bottom:6px;color:var(--white)">
             Secret Vault</div>
           <div style="font-size:12px;color:var(--text3);margin-bottom:4px">Private memories — unlocked with your PIN
@@ -2129,9 +2149,9 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
             <div class="pk" onclick="pinKey(7)">7</div>
             <div class="pk" onclick="pinKey(8)">8</div>
             <div class="pk" onclick="pinKey(9)">9</div>
-            <div class="pk" onclick="pinKey('del')" style="font-size:18px">⌫</div>
+            <div class="pk" onclick="pinKey('del')"><i data-lucide="delete"></i></div>
             <div class="pk" onclick="pinKey(0)">0</div>
-            <div class="pk" onclick="pinKey('ok')" style="color:var(--yellow)">✓</div>
+            <div class="pk" onclick="pinKey('ok')" style="color:var(--yellow)"><i data-lucide="check"></i></div>
           </div>
           <div id="pinErr" style="font-size:12px;color:var(--red);margin-top:10px;display:none">Wrong PIN ❌ Try again
           </div>
@@ -2139,19 +2159,19 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
         </div>
         <div id="vaultOpen" style="display:none">
           <div class="card">
-            <div class="card-title">🔐 Vault <span style="font-size:10px;color:var(--text3);font-weight:400">Private &
+            <div class="card-title"><i data-lucide="lock"></i> Vault <span style="font-size:10px;color:var(--text3);font-weight:400">Private &
                 secure</span>
               <div style="display:flex;gap:6px">
                 <label class="btn btn-accent btn-sm" style="cursor:pointer">+ Photo<input type="file" accept="image/*"
                     multiple style="display:none" onchange="addVaultMedia(this,'photo')"></label>
                 <label class="btn btn-glass btn-sm" style="cursor:pointer">+ Video<input type="file" accept="video/*"
                     style="display:none" onchange="addVaultMedia(this,'video')"></label>
-                <button class="btn btn-glass btn-sm" onclick="lockVault()">🔒 Lock</button>
+                <button class="btn btn-glass btn-sm" onclick="lockVault()"><i data-lucide="lock"></i> Lock</button>
               </div>
             </div>
             <div class="vault-grid" id="vaultGrid"></div>
             <div id="vaultEmpty" class="empty" style="padding:22px">
-              <div class="empty-ico">🔐</div>Your secret photos & videos appear here
+              <div class="empty-ico"><i data-lucide="lock" style="width:42px;height:42px"></i></div>Your secret photos & videos appear here
             </div>
           </div>
         </div>
@@ -2165,7 +2185,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
         <!-- PROFILE -->
         <div class="settings-group">
-          <div class="settings-group-header">👤 Your Profiles</div>
+          <div class="settings-group-header"><i data-lucide="user"></i> Your Profiles</div>
           <div class="settings-row" style="cursor:default;flex-direction:column;align-items:flex-start;gap:14px">
             <div style="display:flex;gap:16px;align-items:center;width:100%;flex-wrap:wrap">
               <div style="text-align:center;cursor:pointer" onclick="pickAvatar('my')">
@@ -2194,7 +2214,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
         <!-- APP THEME -->
         <div class="settings-group">
-          <div class="settings-group-header">🎨 App Theme</div>
+          <div class="settings-group-header"><i data-lucide="palette"></i> App Theme</div>
           <div style="padding:6px 18px 4px;font-size:11px;color:var(--text3)">Choose your couple colour theme</div>
           <div class="theme-grid">
             <div class="theme-swatch active" data-theme="t-blue"
@@ -2227,9 +2247,9 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
         <!-- NOTIFICATIONS -->
         <div class="settings-group">
-          <div class="settings-group-header">🔔 Notifications & Alarms</div>
+          <div class="settings-group-header"><i data-lucide="bell"></i> Notifications & Alarms</div>
 <div class="settings-row" style="cursor:default">
-  <div class="settings-row-ico">🔔</div>
+  <div class="settings-row-ico"><i data-lucide="bell"></i></div>
   <div class="settings-row-content">
     <div class="settings-row-title">Push Notifications</div>
     <div class="settings-row-sub" id="notifStatus">Tap to enable</div>
@@ -2237,7 +2257,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
   <div class="toggle" id="notifToggle" onclick="toggleNotifications()"></div>
 </div>
          <div class="settings-row" style="cursor:default">
-  <div class="settings-row-ico">⏰</div>
+  <div class="settings-row-ico"><i data-lucide="clock"></i></div>
   <div class="settings-row-content">
     <div class="settings-row-title">DND Hours</div>
     <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
@@ -2251,9 +2271,9 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
         <!-- PRIVACY & SECURITY -->
         <div class="settings-group">
-          <div class="settings-group-header">🔐 Privacy & Security</div>
+          <div class="settings-group-header"><i data-lucide="shield"></i> Privacy & Security</div>
           <div class="settings-row">
-            <div class="settings-row-ico">🔒</div>
+            <div class="settings-row-ico"><i data-lucide="lock"></i></div>
             <div class="settings-row-content">
               <div class="settings-row-title">Lock App on Background</div>
               <div class="settings-row-sub">Ask for PIN when you return to the app</div>
@@ -2275,7 +2295,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
         <!-- PARTNER CONNECT -->
         <div class="settings-group">
-          <div class="settings-group-header">🔗 Partner Connection</div>
+          <div class="settings-group-header"><i data-lucide="link"></i> Partner Connection</div>
           <div class="settings-row" style="cursor:default;flex-direction:column;align-items:flex-start">
             <div style="font-size:11px;color:var(--text2);margin-bottom:12px;line-height:1.65">Share this 6-digit code
               with your partner to link both devices.</div>
@@ -2292,9 +2312,9 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
         <!-- MEDIA -->
         <div class="settings-group">
-          <div class="settings-group-header">📸 Media</div>
+          <div class="settings-group-header"><i data-lucide="image"></i> Media</div>
           <div class="settings-row">
-            <div class="settings-row-ico">📸</div>
+            <div class="settings-row-ico"><i data-lucide="image"></i></div>
             <div class="settings-row-content">
               <div class="settings-row-title">Auto-Save Photos to Device</div>
               <div class="settings-row-sub">Save snapped photos to phone gallery</div>
@@ -2302,7 +2322,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
             <div class="toggle" id="autoSaveToggle" onclick="toggleSetting('autoSavePhotos','autoSaveToggle')"></div>
           </div>
           <div class="settings-row">
-            <div class="settings-row-ico">🔊</div>
+            <div class="settings-row-ico"><i data-lucide="volume-2"></i></div>
             <div class="settings-row-content">
               <div class="settings-row-title">Voice Message Playback</div>
               <div class="settings-row-sub">Auto-play voice messages on open</div>
@@ -2313,9 +2333,9 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
         <!-- AI SETTINGS -->
         <div class="settings-group">
-          <div class="settings-group-header">🤖 AI Love Guide</div>
+          <div class="settings-group-header"><i data-lucide="bot"></i> AI Love Guide</div>
           <div class="settings-row" style="cursor:default">
-            <div class="settings-row-ico">✨</div>
+            <div class="settings-row-ico"><i data-lucide="sparkles"></i></div>
             <div class="settings-row-content">
               <div class="settings-row-title">AI Status</div>
               <div class="settings-row-sub">Powered by Anthropic Claude</div>
@@ -2323,7 +2343,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
             <div id="aiStatusText" style="font-size:11px;color:var(--green);font-weight:600">Checking...</div>
           </div>
           <div class="settings-row">
-            <div class="settings-row-ico">🗃️</div>
+            <div class="settings-row-ico"><i data-lucide="database"></i></div>
             <div class="settings-row-content">
               <div class="settings-row-title">Use Relationship Context</div>
               <div class="settings-row-sub">Share your mood & data with AI for better advice</div>
@@ -2334,9 +2354,9 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
         <!-- APPEARANCE -->
         <div class="settings-group">
-          <div class="settings-group-header">✨ Appearance</div>
+          <div class="settings-group-header"><i data-lucide="sparkles"></i> Appearance</div>
           <div class="settings-row">
-            <div class="settings-row-ico">💫</div>
+            <div class="settings-row-ico"><i data-lucide="sparkle"></i></div>
             <div class="settings-row-content">
               <div class="settings-row-title">Celebration Animations</div>
               <div class="settings-row-sub">Floating hearts when you complete goals</div>
@@ -2344,7 +2364,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
             <div class="toggle on" id="celebToggle" onclick="toggleSetting('celebAnimations','celebToggle')"></div>
           </div>
           <div class="settings-row">
-            <div class="settings-row-ico">🎭</div>
+            <div class="settings-row-ico"><i data-lucide="drama"></i></div>
             <div class="settings-row-content">
               <div class="settings-row-title">Reduced Motion</div>
               <div class="settings-row-sub">Minimize animations for battery saving</div>
@@ -2355,7 +2375,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
         </div>
          <!-- STORAGE MANAGEMENT -->
         <div class="settings-group">
-          <div class="settings-group-header">📦 Storage & Data</div>
+          <div class="settings-group-header"><i data-lucide="package"></i> Storage & Data</div>
           <div id="storagePageContent" style="padding:14px 18px">
             <div style="text-align:center;color:var(--text3);font-size:12px;padding:10px 0">
               <span style="font-size:20px">📦</span><br>
@@ -2365,9 +2385,9 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
         </div>
         <!-- DATA & BACKUP -->
         <div class="settings-group">
-          <div class="settings-group-header">💾 Data & Backup</div>
+          <div class="settings-group-header"><i data-lucide="save"></i> Data & Backup</div>
           <div class="settings-row" onclick="exportData()">
-            <div class="settings-row-ico">📤</div>
+            <div class="settings-row-ico"><i data-lucide="upload"></i></div>
             <div class="settings-row-content">
               <div class="settings-row-title">Export Backup</div>
               <div class="settings-row-sub">Download all your data as JSON</div>
@@ -2375,7 +2395,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
             <div class="settings-row-action">›</div>
           </div>
           <div class="settings-row" onclick="importData()">
-            <div class="settings-row-ico">📥</div>
+            <div class="settings-row-ico"><i data-lucide="download"></i></div>
             <div class="settings-row-content">
               <div class="settings-row-title">Import Backup</div>
               <div class="settings-row-sub">Restore from a previous backup file</div>
@@ -2383,7 +2403,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
             <div class="settings-row-action">›</div>
           </div>
           <div class="settings-row">
-            <div class="settings-row-ico">☁️</div>
+            <div class="settings-row-ico"><i data-lucide="cloud"></i></div>
             <div class="settings-row-content">
               <div class="settings-row-title">Cloud Storage</div>
               <div class="settings-row-sub" id="cloudStorageInfo">Synced to Supabase</div>
@@ -2391,7 +2411,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
             <button class="btn btn-glass btn-xs" onclick="syncNow()">Sync Now</button>
           </div>
           <div class="settings-row" onclick="logOut()">
-            <div class="settings-row-ico" style="background:var(--red-bg)">🚪</div>
+            <div class="settings-row-ico" style="background:var(--red-bg)"><i data-lucide="log-out"></i></div>
             <div class="settings-row-content">
               <div class="settings-row-title" style="color:var(--red)">Log Out</div>
               <div class="settings-row-sub">Returns to sign in screen. Cloud data stays safe.</div>
@@ -2402,16 +2422,16 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
         <!-- APP INFO -->
         <div class="settings-group">
-          <div class="settings-group-header">ℹ️ App Info</div>
+          <div class="settings-group-header"><i data-lucide="info"></i> App Info</div>
           <div class="settings-row" style="cursor:default">
-            <div class="settings-row-ico">💕</div>
+            <div class="settings-row-ico"><i data-lucide="heart"></i></div>
             <div class="settings-row-content">
               <div class="settings-row-title">Us<span style="color:var(--accent2)">.</span> With Love</div>
               <div class="settings-row-sub">Together. Always. · Version 2.1 💕</div>
             </div>
           </div>
           <div class="settings-row" style="cursor:default">
-            <div class="settings-row-ico">🔒</div>
+            <div class="settings-row-ico"><i data-lucide="lock"></i></div>
             <div class="settings-row-content">
               <div class="settings-row-title">Privacy</div>
               <div class="settings-row-sub">All data is private to your couple only</div>
@@ -2457,20 +2477,20 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
       <!-- Mobile Bottom Nav -->
       <nav class="bot-nav" id="botNav">
         <div class="bot-ni active" data-page="dashboard" onclick="gotoMob('dashboard',this)"><span
-            class="ico">🏠</span>Home</div>
-        <div class="bot-ni" data-page="chat" onclick="gotoMob('chat',this)"><span class="ico">💬</span>Chat<span data-chat-badge></span></div>
-        <div class="bot-ni" data-page="myspace" onclick="gotoMob('myspace',this)"><span class="ico">🌸</span>Space</div>
-        <div class="bot-ni" data-page="ai" onclick="gotoMob('ai',this)"><span class="ico">🤖</span>AI</div>
-        <div class="bot-ni" data-page="globe" onclick="gotoMob('globe',this)"><span class="ico">🌍</span>Globe</div>
-        <div class="bot-ni" data-page="games" onclick="gotoMob('games',this)"><span class="ico">🎮</span>Games</div>
-        <div class="bot-ni" data-page="settings" onclick="gotoMob('settings',this)"><span class="ico">⚙️</span>More
+            class="ico"><i data-lucide="home"></i></span>Home</div>
+        <div class="bot-ni" data-page="chat" onclick="gotoMob('chat',this)"><span class="ico"><i data-lucide="message-circle"></i></span>Chat<span data-chat-badge></span></div>
+        <div class="bot-ni" data-page="myspace" onclick="gotoMob('myspace',this)"><span class="ico"><i data-lucide="flower-2"></i></span>Space</div>
+        <div class="bot-ni" data-page="ai" onclick="gotoMob('ai',this)"><span class="ico"><i data-lucide="bot"></i></span>AI</div>
+        <div class="bot-ni" data-page="globe" onclick="gotoMob('globe',this)"><span class="ico"><i data-lucide="globe"></i></span>Globe</div>
+        <div class="bot-ni" data-page="games" onclick="gotoMob('games',this)"><span class="ico"><i data-lucide="gamepad-2"></i></span>Games</div>
+        <div class="bot-ni" data-page="settings" onclick="gotoMob('settings',this)"><span class="ico"><i data-lucide="settings"></i></span>More
         </div>
       </nav>
 
       <!-- ════════ MODALS ════════ -->
       <div class="modal-bg" id="bucketModal">
         <div class="modal">
-          <div class="modal-title">🌟 Add a Dream<button class="modal-close" onclick="closeM('bucketModal')">✕</button>
+          <div class="modal-title"><i data-lucide="star"></i> Add a Dream<button class="modal-close" onclick="closeM('bucketModal')"><i data-lucide="x"></i></button>
           </div>
           <div class="field"><label>Dream / Goal</label><input type="text" id="bucketTitle"
               placeholder="e.g. Travel to Paris together"></div>
@@ -2495,8 +2515,8 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
       </div>
       <div class="modal-bg" id="dreamModal">
         <div class="modal">
-          <div class="modal-title">🏡 Add Dream Idea<button class="modal-close"
-              onclick="closeM('dreamModal')">✕</button></div>
+          <div class="modal-title"><i data-lucide="home"></i> Add Dream Idea<button class="modal-close"
+              onclick="closeM('dreamModal')"><i data-lucide="x"></i></button></div>
           <div class="field"><label>Category</label><select id="dreamCat">
               <option value="House">🏠 House</option>
               <option value="Furniture">🛋️ Furniture</option>
@@ -2515,8 +2535,8 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
       </div>
       <div class="modal-bg" id="surpriseModal">
         <div class="modal">
-          <div class="modal-title">🎁 New Surprise<button class="modal-close"
-              onclick="closeM('surpriseModal')">✕</button></div>
+          <div class="modal-title"><i data-lucide="gift"></i> New Surprise<button class="modal-close" onclick="closeM('surpriseModal')"><i data-lucide="x"></i></button>
+          </div>
           <div class="field"><label>Type</label><select id="surType">
               <option value="🎁">🎁 Gift idea</option>
               <option value="💌">💌 Letter</option>
@@ -2536,7 +2556,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
       </div>
       <div class="modal-bg" id="placeModal">
         <div class="modal">
-          <div class="modal-title">📌 Add Place<button class="modal-close" onclick="closeM('placeModal')">✕</button>
+          <div class="modal-title"><i data-lucide="map-pin"></i> Add Place<button class="modal-close" onclick="closeM('placeModal')"><i data-lucide="x"></i></button>
           </div>
           <div class="field"><label>Label</label><select id="placeLabel">
               <option value="Home">🏠 Home</option>
@@ -2556,7 +2576,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
       </div>
       <div class="modal-bg" id="eventModal">
         <div class="modal">
-          <div class="modal-title">📅 Add Event<button class="modal-close" onclick="closeM('eventModal')">✕</button>
+          <div class="modal-title"><i data-lucide="calendar"></i> Add Event<button class="modal-close" onclick="closeM('eventModal')"><i data-lucide="x"></i></button>
           </div>
           <div class="field"><label>Event Name</label><input type="text" id="evTitle"
               placeholder="e.g. Anniversary Dinner"></div>
@@ -2586,8 +2606,8 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
       <div class="modal-bg" id="moneyModal">
         <div class="modal">
-          <div class="modal-title">💰 Add Transaction<button class="modal-close"
-              onclick="closeM('moneyModal')">✕</button></div>
+          <div class="modal-title"><i data-lucide="wallet"></i> Add Transaction<button class="modal-close"
+              onclick="closeM('moneyModal')"><i data-lucide="x"></i></button></div>
           <div class="field"><label>Type</label><select id="moneyType">
               <option value="expense">💸 Expense</option>
               <option value="income">💰 Income</option>
@@ -2607,7 +2627,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
       <div class="modal-bg" id="habitModal">
         <div class="modal">
-          <div class="modal-title">✅ Add Habit<button class="modal-close" onclick="closeM('habitModal')">✕</button>
+          <div class="modal-title"><i data-lucide="check-circle"></i> Add Habit<button class="modal-close" onclick="closeM('habitModal')"><i data-lucide="x"></i></button>
           </div>
           <div class="field"><label>Habit Name</label><input type="text" id="habitName" placeholder="e.g. Morning walk">
           </div>
@@ -2623,8 +2643,8 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
       <div class="modal-bg" id="milestoneModal">
         <div class="modal">
-          <div class="modal-title">💫 Add Milestone<button class="modal-close"
-              onclick="closeM('milestoneModal')">✕</button></div>
+          <div class="modal-title"><i data-lucide="sparkles"></i> Add Milestone<button class="modal-close"
+              onclick="closeM('milestoneModal')"><i data-lucide="x"></i></button></div>
           <div class="field"><label>Milestone</label><input type="text" id="msTitle"
               placeholder="e.g. First trip together"></div>
           <div class="field"><label>Type</label><select id="msType">
@@ -2645,7 +2665,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
       <div class="modal-bg" id="periodModal">
         <div class="modal">
-          <div class="modal-title">🩷 Log Period<button class="modal-close" onclick="closeM('periodModal')">✕</button>
+          <div class="modal-title"><i data-lucide="heart-pulse"></i> Log Period<button class="modal-close" onclick="closeM('periodModal')"><i data-lucide="x"></i></button>
           </div>
           <div class="field"><label>Period Start Date</label><input type="date" id="periodStart"></div>
           <div class="row2">
@@ -2662,7 +2682,7 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
       <div class="modal-bg" id="fightModal">
         <div class="modal">
-          <div class="modal-title">⚡ Log a Fight<button class="modal-close" onclick="closeM('fightModal')">✕</button>
+          <div class="modal-title"><i data-lucide="zap"></i> Log a Fight<button class="modal-close" onclick="closeM('fightModal')"><i data-lucide="x"></i></button>
           </div>
           <div class="field"><label>What was the fight about?</label><input type="text" id="fightTitle"
               placeholder="e.g. Communication, plans, jealousy..."></div>
@@ -2686,8 +2706,8 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
       <div class="modal-bg" id="studySubjectModal">
         <div class="modal">
-          <div class="modal-title">📚 Add Subject<button class="modal-close"
-              onclick="closeM('studySubjectModal')">✕</button></div>
+          <div class="modal-title"><i data-lucide="book-open"></i> Add Subject<button class="modal-close"
+              onclick="closeM('studySubjectModal')"><i data-lucide="x"></i></button></div>
           <div class="field"><label>Subject Name</label><input type="text" id="subjName" placeholder="e.g. Mathematics">
           </div>
           <div class="row2">
@@ -2703,8 +2723,8 @@ vercel-live-feedback { position: fixed !important; width: 0 !important; height: 
 
       <div class="modal-bg" id="studySlotModal">
         <div class="modal">
-          <div class="modal-title">🗓️ Add Timetable Slot<button class="modal-close"
-              onclick="closeM('studySlotModal')">✕</button></div>
+          <div class="modal-title"><i data-lucide="calendar-clock"></i> Add Timetable Slot<button class="modal-close"
+              onclick="closeM('studySlotModal')"><i data-lucide="x"></i></button></div>
           <div class="field"><label>Day</label><select id="slotDay">
               <option>Monday</option>
               <option>Tuesday</option>
@@ -3421,6 +3441,7 @@ async function toggleNotifications() {
       </div>
     </div>
   </div>`;
+  lucide.createIcons();
         }
         // ─── MISS YOU FEATURE ──────────────────────────────────────
         let lastMissSeen = parseInt(localStorage.getItem('uwl_lastMissSeen') || '0');
@@ -3634,6 +3655,7 @@ async function toggleNotifications() {
         <button class="pt-btn" style="color:#A32D2D" onclick="delPhoto(${i})">Delete</button>
       </div>
     </div>`).join('');
+    lucide.createIcons();
         }
         
         function delPhoto(i) { S.photos.splice(i, 1); renderPhotos(); scheduleSave(); }
@@ -3677,6 +3699,7 @@ async function toggleNotifications() {
         <button class="del-btn" style="margin-left:auto" onclick="delMilestone(${m.id})">✕</button>
       </div>
     </div>`).join('');
+    lucide.createIcons();
         }
         function delMilestone(id) { S.milestones = (S.milestones||[]).filter(m=>m.id!==id); renderMilestones(); scheduleSave(); toast('Removed'); }
         function renderTimelineStories() {
@@ -3839,6 +3862,7 @@ async function toggleNotifications() {
       <div style="font-size:24px">${a.e}</div>
       <div><div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:3px">${a.t}</div><div style="font-size:12px;color:var(--text2);line-height:1.55">${a.d}</div></div>
     </div>`).join('');
+    lucide.createIcons();
         }
         function askAIaboutFight(topic) { S._pendingAI = 'We had a fight about: ' + topic + '. Give us specific, empathetic advice to understand each other and resolve this quickly.'; goto('ai'); setTimeout(() => askAI(S._pendingAI), 300); }
 
@@ -3876,6 +3900,7 @@ async function toggleNotifications() {
           const ptSubjEl = document.getElementById('ptStudySubjects'), ptTTEl = document.getElementById('ptTimetable');
           if (!S.paired) { if (ptSubjEl) ptSubjEl.innerHTML = '<div class="empty" style="padding:10px 0;font-size:12px">Partner joins to see their study</div>'; if (ptTTEl) ptTTEl.innerHTML = '<div class="empty" style="padding:8px 0;font-size:12px">Partner joins to see timetable</div>'; }
           else { if (!S.ptSubjects || !S.ptSubjects.length) { if (ptSubjEl) ptSubjEl.innerHTML = '<div class="empty" style="padding:10px 0;font-size:12px">Partner hasn\'t added subjects yet</div>'; } else { ptSubjEl.innerHTML = S.ptSubjects.map(s => { const p = s.total > 0 ? Math.round(s.done / s.total * 100) : 0; return `<div style="margin-bottom:11px;padding:12px;background:var(--g1);border-radius:var(--rs);border:1px solid var(--border)"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><div style="font-size:13px;color:var(--white);font-weight:500">${esc(s.emoji)} ${esc(s.name)}</div><div style="font-size:10px;color:var(--text3)">${s.done}/${s.total}</div></div><div class="study-progress"><div class="study-fill" style="width:${p}%"></div></div><div style="font-size:10px;color:var(--text3);margin-top:4px">${p}% complete</div></div>`; }).join(''); } if (!S.ptTimetable || !S.ptTimetable.length) { if (ptTTEl) ptTTEl.innerHTML = '<div class="empty" style="padding:8px 0;font-size:12px">Partner hasn\'t added slots yet</div>'; } else { const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']; let html = ''; days.forEach(day => { const slots = (S.ptTimetable || []).filter(sl => sl.day === day).sort((a, b) => a.start.localeCompare(b.start)); if (slots.length) { html += `<div style="font-size:10px;color:var(--text3);font-weight:700;margin:9px 0 4px;text-transform:uppercase">${day}</div>`; slots.forEach(sl => { html += `<div class="slot${sl.done ? ' done-slot' : ''}"><div class="slot-time">${sl.start || '—'} – ${sl.end || '—'}</div><div style="font-size:12px;flex:1;color:var(--text)">${esc(sl.subject)}</div></div>`; }); } }); if (ptTTEl) ptTTEl.innerHTML = html || '<div class="empty" style="padding:8px 0;font-size:12px">No slots</div>'; } }
+          lucide.createIcons();
         }
 
         // ─── VAULT ───────────────────────────────────────────────
@@ -3917,6 +3942,7 @@ async function toggleNotifications() {
             document.getElementById('curPin').value = ''; document.getElementById('newPin').value = '';
             re.className = 'conn-test conn-ok'; re.textContent = '✅ PIN updated!'; toast('Vault PIN updated! 🔐');
           } catch (e) { re.className = 'conn-test conn-fail'; re.textContent = '❌ ' + e.message; }
+          lucide.createIcons();
         }
 
         // ─── JOURNAL ─────────────────────────────────────────────
@@ -3950,8 +3976,9 @@ async function toggleNotifications() {
           el.innerHTML = visibleNotes.map((n, i) => {
            const realIdx = S.notes.indexOf(n);
             return `<div class="note-card" style="background:${n.color}"><div style="font-size:10px;color:var(--text3);margin-bottom:5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap">${privBadgeHtml(n.visibility)}<span>${n.me ? esc(S.myName) : esc(S.partnerName)} · ${fmtDateShort(n.date)}</span></div><div style="font-size:13px;color:var(--text)">${esc(n.text)}</div>${n.reminderDate ? `<div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--yellow-bg);color:var(--yellow);border-radius:8px;padding:3px 7px;margin-top:6px;border:1px solid rgba(251,191,36,0.3)">🔔 ${fmtDateShort(n.reminderDate)} ${n.reminderTime || ''}</div>` : ''}<button class="del-btn" onclick="delNote(${realIdx})" style="position:absolute;top:9px;right:9px">✕</button></div>`;}).join('');
+            lucide.createIcons();
         }
-        function renderReminders() { const el = document.getElementById('remindersList'); if (!el) return; if (!S.reminders || !S.reminders.length) { el.innerHTML = '<div class="empty"><div class="empty-ico">🔔</div>No reminders yet</div>'; return; } const sorted = [...S.reminders].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)); el.innerHTML = sorted.map(r => `<div class="card" style="margin-bottom:9px;padding:13px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:4px">🔔 ${esc(r.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(r.date)} at ${r.time || '—'}</div><div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--blue-bg);color:var(--blue);border-radius:7px;padding:2px 7px;margin-top:5px;border:1px solid rgba(96,165,250,0.3)">📣 ${r.forWhom === 'both' ? 'Both of us' : r.forWhom === 'self' ? 'Just me' : 'Partner only'}</div>${r.note ? `<div style="font-size:11px;color:var(--text3);margin-top:5px">${esc(r.note)}</div>` : ''}</div><button class="del-btn" onclick="delReminder(${r.id})">✕</button></div></div>`).join('');}
+        function renderReminders() { const el = document.getElementById('remindersList'); if (!el) return; if (!S.reminders || !S.reminders.length) { el.innerHTML = '<div class="empty"><div class="empty-ico"><i data-lucide="bell" style="width:42px;height:42px"></i></div>No reminders yet</div>'; return; } const sorted = [...S.reminders].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)); el.innerHTML = sorted.map(r => `<div class="card" style="margin-bottom:9px;padding:13px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:4px">🔔 ${esc(r.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(r.date)} at ${r.time || '—'}</div><div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--blue-bg);color:var(--blue);border-radius:7px;padding:2px 7px;margin-top:5px;border:1px solid rgba(96,165,250,0.3)">📣 ${r.forWhom === 'both' ? 'Both of us' : r.forWhom === 'self' ? 'Just me' : 'Partner only'}</div>${r.note ? `<div style="font-size:11px;color:var(--text3);margin-top:5px">${esc(r.note)}</div>` : ''}</div><button class="del-btn" onclick="delReminder(${r.id})">✕</button></div></div>`).join('');lucide.createIcons();}
 
       
         // ─── REMINDERS & ALARMS ──────────────────────────────────
@@ -3976,7 +4003,7 @@ async function toggleNotifications() {
         }
         function toggleBucket(id) { const b = S.bucket.find(x => x.id === id); if (b) { b.done = !b.done; renderBucket(); scheduleSave(); if (b.done) { spawnPetals(12); addXP(8); } } }
         function delBucket(id) { S.bucket = S.bucket.filter(b => b.id !== id); renderBucket(); scheduleSave(); }
-        function renderBucket() { const el = document.getElementById('bucketList'); const done = S.bucket.filter(b => b.done).length; document.getElementById('bucketTag').textContent = done + '/' + S.bucket.length; document.getElementById('bucketCount').textContent = S.bucket.length; if (!S.bucket.length) { el.innerHTML = '<div class="empty"><div class="empty-ico">🌟</div>Add your first dream together!</div>'; return; } const ce = { Travel: '✈️', Experience: '🎭', Achievement: '🏆', Home: '🏠', Romance: '💕', Adventure: '🏔️', Other: '💫' }; el.innerHTML = S.bucket.filter(b => canSeeItem(b)).map(b => `<div class="bucket-row"><div class="bc${b.done ? ' done' : ''}" onclick="toggleBucket(${b.id})">${b.done ? '✓' : ''}</div><div class="bt${b.done ? ' done' : ''}"><span style="margin-right:6px">${ce[b.cat] || '💫'}</span>${esc(b.title)}${privBadgeHtml(b.visibility)}</div>${b.date ? `<span style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDateShort(b.date)}</span>` : ''}<button class="del-btn" onclick="delBucket(${b.id})">✕</button></div>`).join(''); }
+        function renderBucket() { const el = document.getElementById('bucketList'); const done = S.bucket.filter(b => b.done).length; document.getElementById('bucketTag').textContent = done + '/' + S.bucket.length; document.getElementById('bucketCount').textContent = S.bucket.length; if (!S.bucket.length) { el.innerHTML = '<div class="empty"><div class="empty-ico">🌟</div>Add your first dream together!</div>'; return; } const ce = { Travel: '✈️', Experience: '🎭', Achievement: '🏆', Home: '🏠', Romance: '💕', Adventure: '🏔️', Other: '💫' }; el.innerHTML = S.bucket.filter(b => canSeeItem(b)).map(b => `<div class="bucket-row"><div class="bc${b.done ? ' done' : ''}" onclick="toggleBucket(${b.id})">${b.done ? '✓' : ''}</div><div class="bt${b.done ? ' done' : ''}"><span style="margin-right:6px">${ce[b.cat] || '💫'}</span>${esc(b.title)}${privBadgeHtml(b.visibility)}</div>${b.date ? `<span style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDateShort(b.date)}</span>` : ''}<button class="del-btn" onclick="delBucket(${b.id})">✕</button></div>`).join('');lucide.createIcons(); }
 
         // ─── CALENDAR ────────────────────────────────────────────
         function calNav(d) { S.calMonth += d; if (S.calMonth > 11) { S.calMonth = 0; S.calYear++; } if (S.calMonth < 0) { S.calMonth = 11; S.calYear--; } renderCalendar(); }
@@ -4012,7 +4039,7 @@ async function toggleNotifications() {
         // ─── MONEY ───────────────────────────────────────────────
         function addTransaction() { const desc = document.getElementById('moneyDesc').value.trim(); const amt = parseFloat(document.getElementById('moneyAmt').value); if (!desc || isNaN(amt)) { toast('Fill in description and amount'); return; } S.transactions.unshift({ id: Date.now(), type: document.getElementById('moneyType').value, desc, amt, by: S.role, category: document.getElementById('moneyCategory').value || 'Other', date: document.getElementById('moneyDate').value || todayStr() });['moneyDesc', 'moneyAmt', 'moneyCategory', 'moneyDate'].forEach(id => document.getElementById(id).value = ''); closeM('moneyModal'); renderMoney(); scheduleSave(); toast('Transaction added! 💰'); }
         function delTransaction(id) { S.transactions = S.transactions.filter(t => t.id !== id); renderMoney(); scheduleSave(); }
-        function renderMoney() { const ms = new Date(); ms.setDate(1); const mss = ms.toISOString().slice(0, 10); const tm = S.transactions.filter(t => t.date >= mss); const inc = tm.filter(t => t.type === 'income').reduce((s, t) => s + t.amt, 0); const exp = tm.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0); const net = inc - exp; document.getElementById('mInc').textContent = '₹' + inc.toLocaleString('en-IN'); document.getElementById('mExp').textContent = '₹' + exp.toLocaleString('en-IN'); const ne = document.getElementById('mNet'); ne.textContent = '₹' + Math.abs(net).toLocaleString('en-IN'); ne.style.color = net >= 0 ? 'var(--green)' : 'var(--red)'; const el = document.getElementById('transList'); if (!S.transactions.length) { el.innerHTML = '<div class="empty">No transactions yet</div>'; return; } const ce = { 'Food': '🍽️', 'Transport': '🚗', 'Entertainment': '🎬', 'Shopping': '🛒', 'Travel': '✈️', 'Health': '💊', 'Date': '🌹', 'Other': '💳' }; el.innerHTML = S.transactions.slice(0, 60).map(t => `<div class="money-row"><div class="money-ic ${t.type === 'income' ? 'inc' : 'exp'}">${ce[t.category] || (t.type === 'income' ? '💰' : '💳')}</div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--white)">${esc(t.desc)}</div><div style="font-size:10px;color:var(--text3)">${esc(t.category)} · ${fmtDateShort(t.date)}</div></div><span class="${t.type === 'income' ? 'inc-amt' : 'exp-amt'}">${t.type === 'income' ? '+' : '-'}₹${t.amt.toLocaleString('en-IN')}</span><button class="del-btn" style="margin-left:5px" onclick="delTransaction(${t.id})">✕</button></div>`).join(''); renderFinanceSplit(); }
+        function renderMoney() { const ms = new Date(); ms.setDate(1); const mss = ms.toISOString().slice(0, 10); const tm = S.transactions.filter(t => t.date >= mss); const inc = tm.filter(t => t.type === 'income').reduce((s, t) => s + t.amt, 0); const exp = tm.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0); const net = inc - exp; document.getElementById('mInc').textContent = '₹' + inc.toLocaleString('en-IN'); document.getElementById('mExp').textContent = '₹' + exp.toLocaleString('en-IN'); const ne = document.getElementById('mNet'); ne.textContent = '₹' + Math.abs(net).toLocaleString('en-IN'); ne.style.color = net >= 0 ? 'var(--green)' : 'var(--red)'; const el = document.getElementById('transList'); if (!S.transactions.length) { el.innerHTML = '<div class="empty">No transactions yet</div>'; return; } const ce = { 'Food': '🍽️', 'Transport': '🚗', 'Entertainment': '🎬', 'Shopping': '🛒', 'Travel': '✈️', 'Health': '💊', 'Date': '🌹', 'Other': '💳' }; el.innerHTML = S.transactions.slice(0, 60).map(t => `<div class="money-row"><div class="money-ic ${t.type === 'income' ? 'inc' : 'exp'}">${ce[t.category] || (t.type === 'income' ? '💰' : '💳')}</div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--white)">${esc(t.desc)}</div><div style="font-size:10px;color:var(--text3)">${esc(t.category)} · ${fmtDateShort(t.date)}</div></div><span class="${t.type === 'income' ? 'inc-amt' : 'exp-amt'}">${t.type === 'income' ? '+' : '-'}₹${t.amt.toLocaleString('en-IN')}</span><button class="del-btn" style="margin-left:5px" onclick="delTransaction(${t.id})">✕</button></div>`).join(''); renderFinanceSplit(); lucide.createIcons();}
 
         // ─── AI LOVE GUIDE ───────────────────────────────────────
         async function sendAI() { const inp = document.getElementById('aiIn'); const txt = inp.value.trim(); if (!txt) return; inp.value = ''; inp.style.height = 'auto'; askAI(txt); }
@@ -4394,6 +4421,7 @@ function startSyncLoop() {
       </div>
     </div>`;
           }).join('');
+          lucide.createIcons();
         }
         function addSurprise() {
           const title = document.getElementById('surTitle').value.trim(), date = document.getElementById('surDate').value;
@@ -4429,6 +4457,7 @@ function startSyncLoop() {
       ${!locked ? `${s.msg ? `<div style="font-size:12px;color:var(--text2);margin-bottom:6px">${esc(s.msg)}</div>` : ''}${s.mediaUrl ? (s.mediaUrl.startsWith('data:video') ? `<video src="${s.mediaUrl}" controls style="width:100%;border-radius:10px"></video>` : s.mediaUrl.startsWith('data:audio') ? `<audio src="${s.mediaUrl}" controls style="width:100%"></audio>` : `<img src="${s.mediaUrl}" style="width:100%;border-radius:10px" onclick="openImgViewer('${s.mediaUrl}')">`) : ''}` : `<div style="font-size:11px;color:var(--text3)">Opens ${fmtDate(s.unlock)}</div>`}
     </div>`;
           }).join('');
+          lucide.createIcons();
         }
         function saveFinGoal() {
           if (!S.finGoals) S.finGoals = {};
@@ -5073,6 +5102,7 @@ document.addEventListener('visibilitychange', () => {
 
 applyRebranding();
 init();
+lucide.createIcons();
         // Register PWA service worker
         if ('serviceWorker' in navigator) {
           window.addEventListener('load', () => {
