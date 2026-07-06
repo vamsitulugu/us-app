@@ -3185,6 +3185,7 @@ function setJustPairedAt(ts) {
           if (page === 'money') renderMoney();
           if (page === 'settings') { loadSettings(); updateThemeSwatches(); }
           if (page === 'profile') renderProfile();
+          if (page === 'chat') { Chat.scrollToBottom(false); Chat.markRead(); }
           if (page === 'period') renderPeriodPage();
           if (page === 'fights') renderFights();
           if (page === 'study') renderStudyPage();
