@@ -4,128 +4,148 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>US 💕 — Everything Together.</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --accent:#7B6CF6;--accent2:#FF6BAF;--accent-glow:rgba(123,108,246,0.35);
-  --accent2-glow:rgba(255,107,175,0.35);
+  --accent:#E8384F;--accent2:#B91C2E;--accent-glow:rgba(232,56,79,0.35);
+  --accent2-glow:rgba(185,28,46,0.30);
   --ff-serif:'DM Serif Display',Georgia,serif;--ff-sans:'Inter',system-ui,sans-serif;
-  --white:#fff;--text:rgba(255,255,255,0.92);--text2:rgba(255,255,255,0.62);
-  --text3:rgba(255,255,255,0.38);--border:rgba(255,255,255,0.10);
-  --border2:rgba(255,255,255,0.18);--g1:rgba(255,255,255,0.04);
-  --g2:rgba(255,255,255,0.08);--g3:rgba(255,255,255,0.13);
+  --white:#fff;--text:rgba(255,255,255,0.92);--text2:rgba(255,255,255,0.60);
+  --text3:rgba(255,255,255,0.36);--border:rgba(255,255,255,0.09);
+  --border2:rgba(255,255,255,0.16);--g1:rgba(255,255,255,0.035);
+  --g2:rgba(255,255,255,0.07);--g3:rgba(255,255,255,0.12);
   --blur:blur(24px) saturate(180%);--r:18px;--rs:12px;
   --red:#f87171;--red-bg:rgba(248,113,113,0.15);
   --green:#34d399;--green-bg:rgba(52,211,153,0.15);
   font-size:15px;
 }
-body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;overflow-x:hidden;background:#050510;line-height:1.5}
-#bg{position:fixed;inset:0;z-index:-2;background:radial-gradient(ellipse at 20% 20%,#0a0a1a 0%,#050508 100%)}
-#bg::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 15% 15%,hsla(260,100%,55%,0.18),transparent 50%),radial-gradient(circle at 85% 10%,hsla(330,85%,60%,0.18),transparent 50%),radial-gradient(circle at 50% 90%,hsla(260,80%,50%,0.12),transparent 55%);pointer-events:none}
+body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;overflow-x:hidden;background:#0a0a0a;line-height:1.5}
+#bg{position:fixed;inset:0;z-index:-2;background:radial-gradient(ellipse at 20% 20%,#111 0%,#050505 100%)}
+#bg::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 15% 15%,hsla(350,70%,45%,0.16),transparent 50%),radial-gradient(circle at 85% 10%,hsla(355,60%,35%,0.14),transparent 50%),radial-gradient(circle at 50% 90%,hsla(0,0%,20%,0.25),transparent 55%);pointer-events:none}
+#bg-grain{position:fixed;inset:0;z-index:-1;opacity:0.03;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* reveal-on-scroll */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity 0.7s cubic-bezier(.2,.7,.3,1),transform 0.7s cubic-bezier(.2,.7,.3,1)}
+.reveal.in{opacity:1;transform:translateY(0)}
+
 /* NAV */
-nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 5%;display:flex;align-items:center;justify-content:space-between;height:66px;background:rgba(5,5,16,0.65);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 5%;display:flex;align-items:center;justify-content:space-between;height:66px;background:rgba(10,10,10,0.65);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
 .nav-logo{display:flex;align-items:center;gap:10px;font-family:var(--ff-serif);font-size:20px;color:var(--white);text-decoration:none}
-.nav-logo img{height:38px;width:auto;filter:drop-shadow(0 0 8px rgba(123,108,246,0.5))}
-.nav-logo-text{display:flex;flex-direction:column;line-height:1.1}
-.nav-logo-sub{font-family:var(--ff-sans);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent2)}
+.nav-logo img{height:38px;width:auto;filter:drop-shadow(0 0 8px rgba(232,56,79,0.5))}
+.nav-logo-sub{font-family:var(--ff-sans);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent)}
 .nav-links{display:flex;align-items:center;gap:8px}
 .nav-btn{padding:8px 20px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:var(--ff-sans);transition:all 0.2s;text-decoration:none;display:inline-flex;align-items:center}
 .nav-btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2)}
 .nav-btn-ghost:hover{background:var(--g2);color:var(--white)}
-.nav-btn-accent{background:linear-gradient(135deg,var(--accent),#5B4CF5);color:#fff;box-shadow:0 4px 16px var(--accent-glow)}
+.nav-btn-accent{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 4px 16px var(--accent-glow);position:relative;overflow:hidden}
+.nav-btn-accent::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,0.35),transparent);transform:skewX(-20deg);transition:left 0.6s}
+.nav-btn-accent:hover::after{left:130%}
 .nav-btn-accent:hover{filter:brightness(1.1);transform:translateY(-1px)}
+
 /* HERO */
 .hero{min-height:100vh;display:flex;align-items:center;padding:80px 5% 60px;position:relative;overflow:hidden}
 .hero-content{max-width:560px;z-index:2;position:relative}
-.hero-badge{display:inline-flex;align-items:center;gap:7px;background:var(--g2);border:1px solid var(--border2);border-radius:20px;padding:5px 14px;font-size:11px;font-weight:600;color:var(--accent2);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:28px}
-.hero-badge span{width:6px;height:6px;border-radius:50%;background:var(--accent2);animation:blink 2s ease-in-out infinite}
+.hero-badge{display:inline-flex;align-items:center;gap:7px;background:var(--g2);border:1px solid var(--border2);border-radius:20px;padding:5px 14px;font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:28px}
+.hero-badge span{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:blink 2s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 .hero-title{font-family:var(--ff-serif);font-size:clamp(40px,6vw,68px);line-height:1.05;color:var(--white);margin-bottom:20px}
-.hero-title .grad{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-title .grad{background:linear-gradient(135deg,var(--accent),#ff8a9a,var(--accent));background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 4s linear infinite}
+@keyframes shimmer{to{background-position:200% center}}
 .hero-sub{font-size:16px;color:var(--text2);line-height:1.75;margin-bottom:36px;max-width:440px}
 .hero-btns{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:48px}
-.btn-hero-primary{padding:14px 28px;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--ff-sans);background:linear-gradient(135deg,var(--accent),#5B4CF5);color:#fff;box-shadow:0 6px 24px var(--accent-glow);transition:all 0.2s;display:inline-flex;align-items:center;gap:8px}
+.btn-hero-primary{padding:14px 28px;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--ff-sans);background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 6px 24px var(--accent-glow);transition:all 0.2s;display:inline-flex;align-items:center;gap:8px;position:relative;overflow:hidden}
+.btn-hero-primary::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,0.35),transparent);transform:skewX(-20deg);transition:left 0.6s}
+.btn-hero-primary:hover::after{left:130%}
 .btn-hero-primary:hover{transform:translateY(-2px);box-shadow:0 10px 32px var(--accent-glow)}
 .btn-hero-secondary{padding:14px 28px;border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer;background:var(--g2);color:var(--white);border:1px solid var(--border2);font-family:var(--ff-sans);transition:all 0.2s;display:inline-flex;align-items:center;gap:8px;text-decoration:none}
-.btn-hero-secondary:hover{background:var(--g3)}
+.btn-hero-secondary:hover{background:var(--g3);transform:translateY(-2px)}
 .hero-stats{display:flex;gap:28px;flex-wrap:wrap}
 .hstat{text-align:center}
 .hstat-n{font-family:var(--ff-serif);font-size:26px;color:var(--white)}
 .hstat-l{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+
 /* HERO VISUAL */
 .hero-visual{position:absolute;right:-2%;top:50%;transform:translateY(-50%);width:min(600px,52vw);z-index:1}
-.app-preview{background:rgba(12,12,28,0.7);backdrop-filter:blur(30px);border:1px solid var(--border2);border-radius:22px;padding:16px;box-shadow:0 24px 80px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.05),inset 0 1px 0 rgba(255,255,255,0.08);animation:float 5s ease-in-out infinite}
+.app-preview{background:rgba(14,14,14,0.75);backdrop-filter:blur(30px);border:1px solid var(--border2);border-radius:22px;padding:16px;box-shadow:0 24px 80px rgba(0,0,0,0.6),0 0 0 1px rgba(255,255,255,0.05),inset 0 1px 0 rgba(255,255,255,0.08);animation:float 5s ease-in-out infinite}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
-.app-topbar{display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,0.04);border-radius:12px;margin-bottom:12px;border:1px solid var(--border)}
+.app-topbar{display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:12px;margin-bottom:12px;border:1px solid var(--border)}
 .app-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .app-title{font-size:12px;font-weight:600;color:var(--white);margin-left:4px}
 .app-preview-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
-.app-card{background:var(--g2);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center}
+.app-card{background:var(--g2);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;transition:transform 0.3s,border-color 0.3s}
+.app-card:hover{transform:translateY(-3px);border-color:var(--accent2-glow)}
 .app-card-n{font-family:var(--ff-serif);font-size:22px;color:var(--white)}
 .app-card-l{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:3px}
-.app-chat-bubble{background:linear-gradient(135deg,var(--accent),#5B4CF5);border-radius:16px 4px 16px 16px;padding:9px 13px;font-size:11px;color:#fff;margin-bottom:6px;display:inline-block;float:right;clear:both;box-shadow:0 4px 12px var(--accent-glow)}
+.app-chat-bubble{background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:16px 4px 16px 16px;padding:9px 13px;font-size:11px;color:#fff;margin-bottom:6px;display:inline-block;float:right;clear:both;box-shadow:0 4px 12px var(--accent-glow)}
 .app-chat-bubble2{background:var(--g2);border:1px solid var(--border);border-radius:4px 16px 16px 16px;padding:9px 13px;font-size:11px;color:var(--text);margin-bottom:6px;display:inline-block;clear:both}
 .chat-area{background:var(--g1);border:1px solid var(--border);border-radius:12px;padding:12px;overflow:hidden;max-height:130px}
+
 /* FEATURES */
 .features{padding:80px 5%;position:relative}
-.section-tag{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent2);margin-bottom:12px}
-.section-title{font-family:var(--ff-serif);font-size:clamp(28px,4vw,42px);color:var(--white);margin-bottom:48px;max-width:520px;line-height:1.15}
+.section-tag{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+.section-title{font-family:var(--ff-serif);font-size:clamp(28px,4vw,42px);color:var(--white);margin-bottom:48px;max-width:560px;line-height:1.15}
 .feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
 .feat-card{background:var(--g1);backdrop-filter:var(--blur);border:1px solid var(--border);border-radius:var(--r);padding:24px;transition:all 0.25s;position:relative;overflow:hidden}
 .feat-card::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 80% 20%,var(--glow-c,transparent) 0%,transparent 65%);opacity:0;transition:opacity 0.3s}
-.feat-card:hover{transform:translateY(-4px);box-shadow:0 12px 36px rgba(0,0,0,0.3);border-color:var(--border2)}
+.feat-card:hover{transform:translateY(-4px);box-shadow:0 12px 36px rgba(0,0,0,0.4);border-color:var(--border2)}
 .feat-card:hover::before{opacity:1}
-.feat-ico{font-size:28px;margin-bottom:14px}
+.feat-ico{font-size:28px;margin-bottom:14px;display:inline-block;transition:transform 0.3s}
+.feat-card:hover .feat-ico{transform:scale(1.15) rotate(-4deg)}
 .feat-title{font-size:15px;font-weight:600;color:var(--white);margin-bottom:6px}
 .feat-desc{font-size:12px;color:var(--text2);line-height:1.7}
+.feat-badge{position:absolute;top:16px;right:16px;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:var(--accent2);color:#fff;padding:3px 8px;border-radius:20px}
+
 /* TESTIMONIALS */
 .testimonials{padding:60px 5%}
 .testi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
-.testi-card{background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:22px}
+.testi-card{background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:22px;transition:transform 0.3s,border-color 0.3s}
+.testi-card:hover{transform:translateY(-4px);border-color:var(--border2)}
 .testi-stars{color:#fbbf24;font-size:14px;margin-bottom:10px}
 .testi-text{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:14px}
 .testi-author{display:flex;align-items:center;gap:10px}
 .testi-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
 .testi-name{font-size:12px;font-weight:600;color:var(--white)}
 .testi-sub{font-size:10px;color:var(--text3)}
+
 /* CTA SECTION */
 .cta-section{padding:80px 5%;text-align:center}
-.cta-box{background:linear-gradient(135deg,rgba(123,108,246,0.15),rgba(255,107,175,0.10));border:1px solid rgba(123,108,246,0.3);border-radius:24px;padding:56px 32px;max-width:680px;margin:0 auto;position:relative;overflow:hidden}
+.cta-box{background:linear-gradient(135deg,rgba(232,56,79,0.14),rgba(185,28,46,0.10));border:1px solid rgba(232,56,79,0.28);border-radius:24px;padding:56px 32px;max-width:680px;margin:0 auto;position:relative;overflow:hidden}
 .cta-box::before{content:'💕';font-size:160px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);opacity:0.04;pointer-events:none}
 .cta-title{font-family:var(--ff-serif);font-size:clamp(28px,4vw,42px);color:var(--white);margin-bottom:14px}
 .cta-sub{font-size:14px;color:var(--text2);margin-bottom:32px;line-height:1.7}
+
 /* FOOTER */
 footer{padding:30px 5%;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
 footer p{font-size:11px;color:var(--text3)}
+
 /* AUTH MODAL */
-.modal-bg{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(8px);background:rgba(0,0,0,0.7)}
+.modal-bg{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(8px);background:rgba(0,0,0,0.75)}
 .modal-bg.open{display:flex}
-.auth-card{background:rgba(10,10,22,0.92);backdrop-filter:blur(30px);border:1px solid var(--border2);border-radius:24px;padding:36px 32px;width:100%;max-width:460px;color:var(--white);box-shadow:0 24px 80px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.07);animation:popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);position:relative}
+.auth-card{background:rgba(12,12,12,0.94);backdrop-filter:blur(30px);border:1px solid var(--border2);border-radius:24px;padding:36px 32px;width:100%;max-width:460px;color:var(--white);box-shadow:0 24px 80px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.07);animation:popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);position:relative}
 @keyframes popIn{from{opacity:0;transform:scale(0.88) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
 .modal-close{position:absolute;top:16px;right:18px;background:var(--g1);border:1px solid var(--border);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:16px;transition:all 0.2s}
 .modal-close:hover{background:var(--g2);color:var(--white)}
 .auth-logo-row{display:flex;flex-direction:column;align-items:center;margin-bottom:22px}
-.auth-logo-row img{height:60px;filter:drop-shadow(0 0 12px rgba(123,108,246,0.6));margin-bottom:8px}
+.auth-logo-row img{height:60px;filter:drop-shadow(0 0 12px rgba(232,56,79,0.6));margin-bottom:8px}
 .auth-logo-row .brand-name{font-family:var(--ff-serif);font-size:24px;color:var(--white)}
-.auth-logo-row .brand-tag{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent2);margin-top:2px}
+.auth-logo-row .brand-tag{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-top:2px}
 .auth-headline{font-size:14px;color:var(--text2);text-align:center;margin-bottom:22px;line-height:1.6}
-.auth-tabs{display:flex;background:rgba(0,0,0,0.3);border-radius:var(--r);padding:5px;gap:4px;margin-bottom:20px}
+.auth-tabs{display:flex;background:rgba(0,0,0,0.35);border-radius:var(--r);padding:5px;gap:4px;margin-bottom:20px}
 .auth-tab{flex:1;padding:9px;border-radius:var(--rs);cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);transition:all 0.2s;border:none;background:none;font-family:var(--ff-sans)}
-.auth-tab.active{background:var(--g2);color:var(--white);box-shadow:0 2px 10px rgba(0,0,0,0.25)}
+.auth-tab.active{background:var(--g2);color:var(--white);box-shadow:0 2px 10px rgba(0,0,0,0.3)}
 .auth-err{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,0.3);border-radius:var(--rs);padding:10px 14px;font-size:12px;margin-bottom:12px;display:none;line-height:1.6}
 .field{margin-bottom:13px}
 .field label{display:block;font-size:11px;color:var(--text2);margin-bottom:5px;font-weight:600;letter-spacing:0.3px;text-transform:uppercase}
 .field input,.field select{width:100%;border:1px solid var(--border);border-radius:var(--rs);padding:10px 13px;font-size:13px;font-family:var(--ff-sans);outline:none;background:var(--g1);color:var(--white);transition:all 0.2s}
 .field input::placeholder{color:var(--text3)}
-.field input:focus{border-color:var(--accent);background:var(--g2);box-shadow:0 0 0 3px rgba(123,108,246,0.25)}
-.auth-btn{width:100%;padding:13px;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--ff-sans);background:linear-gradient(135deg,var(--accent),#5B4CF5);color:#fff;box-shadow:0 4px 20px var(--accent-glow);transition:all 0.2s;margin-top:4px}
+.field input:focus{border-color:var(--accent);background:var(--g2);box-shadow:0 0 0 3px rgba(232,56,79,0.25)}
+.auth-btn{width:100%;padding:13px;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--ff-sans);background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 4px 20px var(--accent-glow);transition:all 0.2s;margin-top:4px}
 .auth-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
 .auth-btn:disabled{opacity:0.6;cursor:not-allowed}
 .auth-divider{text-align:center;font-size:11px;color:var(--text3);margin:14px 0}
 .auth-btn-alt{width:100%;padding:11px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;background:var(--g2);color:var(--white);border:1px solid var(--border2);font-family:var(--ff-sans);transition:all 0.2s}
 .auth-btn-alt:hover{background:var(--g3)}
-/* LOGIN CARD (shown first before get-started/join-partner) */
 #loginView,#setupView,#pairView{display:none}
 #loginView.active,#setupView.active,#pairView.active{display:block;animation:fadeSlide 0.25s ease}
 @keyframes fadeSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -135,6 +155,7 @@ footer p{font-size:11px;color:var(--text3)}
 </head>
 <body>
 <div id="bg"></div>
+<div id="bg-grain"></div>
 
 <!-- NAV -->
 <nav>
@@ -158,21 +179,21 @@ footer p{font-size:11px;color:var(--text3)}
     <h1 class="hero-title">
       Your love, <span class="grad">Everything</span><br>Together.
     </h1>
-    <p class="hero-sub">Chat, journal, share memories, track habits, plan dates — everything your relationship deserves, in one beautiful private space.</p>
+    <p class="hero-sub">Chat, journal, share memories, plan meetups, track habits, play games together — everything your relationship deserves, in one private space built just for two.</p>
     <div class="hero-btns">
       <button class="btn-hero-primary" onclick="openAuth('signup')">💕 Start Your Space</button>
       <button class="btn-hero-secondary" onclick="openAuth('login')">Sign In →</button>
     </div>
     <div class="hero-stats">
       <div class="hstat"><div class="hstat-n">100%</div><div class="hstat-l">Private</div></div>
-      <div class="hstat"><div class="hstat-n">20+</div><div class="hstat-l">Features</div></div>
+      <div class="hstat"><div class="hstat-n">25+</div><div class="hstat-l">Features</div></div>
       <div class="hstat"><div class="hstat-n">∞</div><div class="hstat-l">Memories</div></div>
     </div>
   </div>
   <div class="hero-visual">
     <div class="app-preview">
       <div class="app-topbar">
-        <div class="app-dot" style="background:#ff6b9d"></div>
+        <div class="app-dot" style="background:var(--accent)"></div>
         <div class="app-dot" style="background:#fbbf24"></div>
         <div class="app-dot" style="background:#34d399"></div>
         <span class="app-title">US 💕</span>
@@ -195,33 +216,40 @@ footer p{font-size:11px;color:var(--text3)}
 
 <!-- FEATURES -->
 <section class="features">
-  <div class="section-tag">Everything you need</div>
-  <h2 class="section-title">Built for couples who want to grow together</h2>
+  <div class="section-tag reveal">Everything you need</div>
+  <h2 class="section-title reveal">Built for couples who want to grow together</h2>
   <div class="feat-grid">
-    <div class="feat-card" style="--glow-c:rgba(123,108,246,0.2)"><div class="feat-ico">💬</div><div class="feat-title">Private Chat</div><div class="feat-desc">End-to-end private messaging with voice notes, photo sharing, reactions and reply threads — just for two.</div></div>
-    <div class="feat-card" style="--glow-c:rgba(255,107,175,0.2)"><div class="feat-ico">📖</div><div class="feat-title">Shared Journal</div><div class="feat-desc">Write daily entries, log moods, and optionally share moments with your partner. Your story, always safe.</div></div>
-    <div class="feat-card" style="--glow-c:rgba(52,211,153,0.15)"><div class="feat-ico">🌟</div><div class="feat-title">Bucket List & Dreams</div><div class="feat-desc">Plan adventures, track shared goals, and celebrate every dream you tick off together.</div></div>
-    <div class="feat-card" style="--glow-c:rgba(251,191,36,0.15)"><div class="feat-ico">📅</div><div class="feat-title">Calendar & Reminders</div><div class="feat-desc">Sync your important dates, set alarms for anniversaries, dates and study schedules.</div></div>
-    <div class="feat-card" style="--glow-c:rgba(255,107,175,0.2)"><div class="feat-ico">🩷</div><div class="feat-title">Period Tracker</div><div class="feat-desc">Track cycles with phase insights, symptom logging and partner mood tips — built with care.</div></div>
-    <div class="feat-card" style="--glow-c:rgba(123,108,246,0.2)"><div class="feat-ico">🤖</div><div class="feat-title">AI Love Guide</div><div class="feat-desc">Get personalised relationship advice, date ideas, love letters and communication tips — powered by Claude AI.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(232,56,79,0.2)"><div class="feat-ico">💬</div><div class="feat-title">Private Chat</div><div class="feat-desc">Real-time private messaging with voice notes, photo sharing, reactions and reply threads — just for two.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(232,56,79,0.2)"><div class="feat-ico">📞</div><div class="feat-title">Video &amp; Voice Calls</div><div class="feat-desc">Connect face to face anytime with built-in calling, no matter the distance between you.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(185,28,46,0.18)"><div class="feat-ico">📖</div><div class="feat-title">Shared Journal</div><div class="feat-desc">Write daily entries, log moods, and optionally share moments with your partner. Your story, always safe.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(52,211,153,0.15)"><div class="feat-ico">🌟</div><div class="feat-title">Bucket List &amp; Dreams</div><div class="feat-desc">Plan adventures, track shared goals, and celebrate every dream you tick off together.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(251,191,36,0.15)"><div class="feat-ico">📅</div><div class="feat-title">Calendar &amp; Reminders</div><div class="feat-desc">Sync your important dates, set alarms for anniversaries, dates and study schedules.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(232,56,79,0.2)"><div class="feat-ico">🩷</div><div class="feat-title">Period Tracker</div><div class="feat-desc">Track cycles with phase insights, symptom logging and partner mood tips — built with care.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(232,56,79,0.2)"><div class="feat-ico">🗺️</div><div class="feat-title">Meet Planner</div><div class="feat-desc">Plan meetups down to the city, stops, budget and itinerary — perfect for long-distance couples.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(185,28,46,0.18)"><div class="feat-ico">🌍</div><div class="feat-title">Memory Globe</div><div class="feat-desc">Pin every place you've been together on a living 3D globe of your shared journey.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(52,211,153,0.15)"><div class="feat-ico">📚</div><div class="feat-title">Study Together</div><div class="feat-desc">Track subjects and timetables side by side, and stay motivated as a team.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(232,56,79,0.2)"><div class="feat-ico">🏠</div><div class="feat-title">Virtual Home <span class="feat-badge">3D</span></div><div class="feat-desc">Decorate a fully interactive 3D home you both share, complete with ambience and lighting.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(251,191,36,0.15)"><div class="feat-ico">🎮</div><div class="feat-title">Couple Games <span class="feat-badge">New</span></div><div class="feat-desc">Play multiplayer mini-games together in real time, right inside the app.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(185,28,46,0.18)"><div class="feat-ico">🔒</div><div class="feat-title">Secret Vault</div><div class="feat-desc">A password-protected space for your most private notes, photos and memories.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(232,56,79,0.2)"><div class="feat-ico">🤖</div><div class="feat-title">AI Love Guide</div><div class="feat-desc">Get personalised relationship advice, date ideas, love letters and communication tips — powered by AI.</div></div>
   </div>
 </section>
 
 <!-- TESTIMONIALS -->
 <section class="testimonials">
-  <div class="section-tag" style="text-align:center">Loved by couples</div>
+  <div class="section-tag reveal" style="text-align:center">Loved by couples</div>
   <div class="testi-grid" style="margin-top:32px">
-    <div class="testi-card">
+    <div class="testi-card reveal">
       <div class="testi-stars">★★★★★</div>
       <p class="testi-text">"The period tracker with partner mood tips is everything. He actually knows when to bring chocolate now 😂 This app is a must."</p>
-      <div class="testi-author"><div class="testi-av" style="background:linear-gradient(135deg,#ff6b9d,#c44b78)">P</div><div><div class="testi-name">Priya &amp; Rahul</div><div class="testi-sub">Together 2 years</div></div></div>
+      <div class="testi-author"><div class="testi-av" style="background:linear-gradient(135deg,var(--accent),var(--accent2))">P</div><div><div class="testi-name">Priya &amp; Rahul</div><div class="testi-sub">Together 2 years</div></div></div>
     </div>
-    <div class="testi-card">
+    <div class="testi-card reveal">
       <div class="testi-stars">★★★★★</div>
-      <p class="testi-text">"We're long distance and this is literally saving our relationship. The touch feature, shared journal — it keeps us so connected."</p>
-      <div class="testi-author"><div class="testi-av" style="background:linear-gradient(135deg,#7B6CF6,#5B4CF5)">A</div><div><div class="testi-name">Aditya &amp; Sara</div><div class="testi-sub">Long distance, 8 months</div></div></div>
+      <p class="testi-text">"We're long distance and this is literally saving our relationship. The Meet Planner and shared journal keep us so connected."</p>
+      <div class="testi-author"><div class="testi-av" style="background:linear-gradient(135deg,#555,#222)">A</div><div><div class="testi-name">Aditya &amp; Sara</div><div class="testi-sub">Long distance, 8 months</div></div></div>
     </div>
-    <div class="testi-card">
+    <div class="testi-card reveal">
       <div class="testi-stars">★★★★★</div>
       <p class="testi-text">"The AI Love Guide helped us have a conversation we'd been avoiding for months. The advice is so thoughtful and non-judgmental."</p>
       <div class="testi-author"><div class="testi-av" style="background:linear-gradient(135deg,#34d399,#0a7a45)">K</div><div><div class="testi-name">Kiran &amp; Meera</div><div class="testi-sub">Married 1 year</div></div></div>
@@ -231,7 +259,7 @@ footer p{font-size:11px;color:var(--text3)}
 
 <!-- CTA -->
 <section class="cta-section">
-  <div class="cta-box">
+  <div class="cta-box reveal">
     <h2 class="cta-title">Your love story deserves<br>a beautiful space.</h2>
     <p class="cta-sub">Free to start. Private by design. Built for two — always.</p>
     <button class="btn-hero-primary" onclick="openAuth('signup')" style="font-size:15px;padding:15px 36px">💕 Create Your Space — Free</button>
@@ -314,9 +342,6 @@ footer p{font-size:11px;color:var(--text3)}
   </div>
 </div>
 
-   </div>
-</div>
-
 <script>
 const API = 'https://us-app-api.onrender.com';
 // Track authenticated user across steps
@@ -360,7 +385,6 @@ async function doEmailLogin() {
     const r = await fetch(API+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Login failed');
-    // Save to localStorage and go to app
     saveAndGo(data, 'user1');
   } catch(e) { err.textContent = e.message; err.style.display='block'; }
   finally { btn.textContent='Sign In 💕'; btn.disabled=false; }
@@ -379,7 +403,6 @@ async function doEmailRegister() {
     const r = await fetch(API+'/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass,myName:name,partnerName:'Partner'})});
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Registration failed');
-    // Store partial auth, show setup step
     _authUser = { ...data, email, role: 'user1' };
     authTab('setup');
   } catch(e) { err.textContent=e.message; err.style.display='block'; }
@@ -393,7 +416,6 @@ async function doSetupFromLanding() {
   const err = document.getElementById('setupErr'); err.style.display='none';
   const btn = document.getElementById('setupBtn'); btn.textContent='Saving...'; btn.disabled=true;
   try {
-    // Update partner name & anniversary via profile patch
     await fetch(API+'/api/data/profile/'+_authUser.coupleId,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({partnerName:ptName,anniversary:anniv})});
     saveAndGo({ ..._authUser, partnerName: ptName, anniversary: anniv }, 'user1');
   } catch(e) { err.textContent=e.message||'Error'; err.style.display='block'; }
@@ -436,7 +458,6 @@ function saveAndGo(data, role) {
 // If already logged in, redirect to app
 const existing = JSON.parse(localStorage.getItem('uwl_v5') || '{}');
 if (existing.setupDone && existing.coupleId) {
-  // Already logged in — show a "Continue" button instead
   document.querySelectorAll('.nav-btn-accent').forEach(btn => {
     btn.textContent = 'Open App →';
     btn.onclick = () => window.location.href = '/';
@@ -446,6 +467,12 @@ if (existing.setupDone && existing.coupleId) {
     btn.onclick = () => window.location.href = '/';
   });
 }
+
+// Scroll-reveal animation
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+},{threshold:0.15});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 </script>
 </body>
 </html>
