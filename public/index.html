@@ -2914,10 +2914,12 @@ async function removePartner() {
         function toggleMobSidebar() {
           document.getElementById('sidebar').classList.toggle('mob-open');
           document.getElementById('sbOverlay').classList.toggle('active');
+          document.querySelector('.content').scrollTop = 0;
         }
         function closeMobSidebar() {
           document.getElementById('sidebar').classList.remove('mob-open');
           document.getElementById('sbOverlay').classList.remove('active');
+          document.querySelector('.content').scrollTop = 0;
         }
         function gotoMob(page, el) {
           document.querySelectorAll('.bot-ni').forEach(n => n.classList.remove('active'));
@@ -3181,6 +3183,7 @@ function setJustPairedAt(ts) {
           pg.classList.add('active');
           const ni = document.querySelector('.ni[data-page="' + page + '"]'); if (ni) ni.classList.add('active');
           document.getElementById('topTitle').textContent = pageTitles[page] || page;
+          document.querySelector('.content').scrollTop = 0;
           if (page !== 'camera' && camStream) stopCamera();
           if (pushHistory) {
     history.pushState({ page }, '', '#' + page);
