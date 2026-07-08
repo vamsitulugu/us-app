@@ -1,22 +1,25 @@
 /* ═══════════════════════════════════════════════════════════
-   LUCIDE ICON SYSTEM v2 — APPLICATION-WIDE, LIVE CONVERTER
+   LUCIDE ICON SYSTEM v3 — APPLICATION-WIDE, LIVE CONVERTER
    ───────────────────────────────────────────────────────────
-   What this does:
-   - Scans the ENTIRE document (not just the sidebar) for interface
-     emoji and swaps them for Lucide icons: titles, buttons, badges,
-     status pills, empty states, settings rows, modals, toasts,
-     tabs, search, calendar, money, fights, study, everything.
-   - Runs once on load, then keeps running via MutationObserver so
-     anything your app re-renders later (fights list, money list,
-     settings, modals, dynamically built cards) gets converted too
-     — automatically, with no per-function edits needed.
-   - Does NOT touch: chat message bubbles, mood picker options,
-     journal entries, note text, AI chat replies, reactions —
-     i.e. anything that is user-authored or user-facing personal
-     content rather than interface chrome.
-   - Zero changes to colors, layout, spacing, animations, or class
-     names. Only emoji glyphs inside safe elements are swapped for
-     inline <i data-lucide> icons sized to match the original text.
+   What changed from v2 → v3:
+   - Added missing emoji to MAP: 💚 ✌️ 👐 🤗 🥺 🏙️ ▶️ ⇄ ↺ 🐾 ☀️
+     and the connection-card / stat-icon selectors that weren't
+     being scanned before (.cc-ico, .cc-stat-ico, .cc-lbl,
+     .metric-n, .connect-btn-ico, .connect-btn-label).
+   - Everything else is identical to v2: same MutationObserver
+     live-scan behavior, same EXCLUDE list (chat, mood, journal,
+     notes, reactions, milestone/miss-you/hug popup copy all
+     stay untouched).
+
+   REMINDER — iframe pages need this file too:
+   index.html cannot reach inside <iframe src="/music.html"> etc.
+   (browser sandboxing). Add these two lines near the end of
+   <body> in EACH of: music.html, games.html, globe.html,
+   collection.html, lovecounter.html, meetplanner.html,
+   places.html, dreamgoals.html:
+
+     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+     <script src="/ui-icons.js"></script>
    ═══════════════════════════════════════════════════════════ */
 
 (function () {
@@ -73,7 +76,22 @@
     '🛒': 'shopping-cart', '✈️': 'plane', '💊': 'pill', '👶': 'baby',
     '🎓': 'graduation-cap', '🏢': 'building-2', '🏨': 'hotel', '☕': 'coffee',
     '💪': 'dumbbell', '🐶': 'dog', '🚶': 'footprints', '🙏': 'hand-heart',
-    '🎲': 'dices', '🍳': 'cooking-pot', '💭': 'message-square', '🔙': 'corner-up-left'
+    '🎲': 'dices', '🍳': 'cooking-pot', '💭': 'message-square', '🔙': 'corner-up-left',
+
+    // ── NEW in v3 — previously missing from the map ──
+    '💚': 'heart-handshake',      // Reconnect Activities
+    '✌️': 'peace',                // Fight Log empty state (fallback below if unsupported)
+    '👐': 'hand-heart',           // Touch button
+    '🤗': 'heart-handshake',      // Hug button / hug stat
+    '🥺': 'heart-crack',          // Miss You button / stat
+    '🏙️': 'building-2',           // Globe/skyline references
+    '▶️': 'play',                 // media play controls (karaoke/music)
+    '⏸️': 'pause',
+    '⇄': 'repeat',                // loop / cycle controls
+    '↺': 'rotate-ccw',
+    '🐾': 'paw-print',            // pets category
+    '☀️': 'sun',                  // weather / day markers
+    '🥇': 'medal',
   };
 
   function iconHTML(name) {
@@ -103,7 +121,14 @@
     'select#evAlarm option', 'select#remFor option', 'select#slotAlarm option',
     'select#moneyType option', 'select#msType option', 'select#journalVisibility option',
     'select#noteVisibility option', 'select#bucketVisibility option',
-    '.pill', '.sh-days', '.vid-overlay', '#camPh'
+    '.pill', '.sh-days', '.vid-overlay', '#camPh',
+
+    // ── NEW in v3 — connection card + stat icons that weren't scanned before ──
+    '.cc-ico', '.cc-lbl', '.cc-stat-ico', '.cc-stat-l',
+    '.connect-btn-ico', '.connect-btn-label', '.connect-stat',
+    '.metric-n', '.fstat-n', '.pstat-n', '.stat-n',
+    '.reconnect-ico', '#reconnectActivities .card-title',
+    '.love-card-ico', '.love-card-meta'
   ];
 
   // Explicit EXCLUDE list — never process these even if nested inside a safe zone
