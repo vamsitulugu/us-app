@@ -40,7 +40,7 @@ const Call = (function () {
   }
 async function initSignalCursor() {
     try {
-      const r = await fetch(API + '/api/call/signal/' + coupleId() + '?role=' + otherRole());
+      const r = await fetch(API + '/api/call/signal/' + coupleId() + '?role=' + otherRole(), { cache: 'no-store' });
       if (!r.ok) return;
       const rows = await r.json();
       if (rows.length) lastSignalId = Math.max(...rows.map(x => x.id));
@@ -50,7 +50,7 @@ async function initSignalCursor() {
   async function pollSignal() {
     if (!coupleId()) return;
     try {
-      const r = await fetch(API + '/api/call/signal/' + coupleId() + '?role=' + otherRole() + '&after=' + lastSignalId);
+      const r = await fetch(API + '/api/call/signal/' + coupleId() + '?role=' + otherRole() + '&after=' + lastSignalId, { cache: 'no-store' });
       if (!r.ok) return;
       const rows = await r.json();
       if (!rows.length) return;

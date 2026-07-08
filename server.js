@@ -16,6 +16,11 @@ const compression = require('compression');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// Express auto-generates ETags on JSON responses, which makes browsers
+// 304-cache polling endpoints (like /api/call/signal) and reuse the FIRST
+// response forever, even after the underlying data changes. Disable it.
+app.disable('etag');
+
 // ── Security headers ───────────────────────────────────
 app.use(helmet({
   contentSecurityPolicy: false, // disabled because inline scripts in index.html

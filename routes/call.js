@@ -86,6 +86,7 @@ router.post('/signal', async (req, res) => {
 // POST /api/call/signal — unchanged, just make sure the table has created_at default now()
 
 router.get('/signal/:coupleId', async (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   const { role, after } = req.query;
   let q = supabase.from('call_signals').select('*')
     .eq('couple_id', req.params.coupleId).eq('role', role);
