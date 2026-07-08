@@ -308,7 +308,7 @@ body {
 .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0 }
 .content {
   flex: 1; overflow-y: auto; padding: var(--space);
-  padding-bottom: calc(var(--space) + 70px); scroll-behavior: smooth ;min-height: 0;
+  padding-bottom: calc(var(--space) + 70px); scroll-behavior: smooth
 }
 .content::-webkit-scrollbar { width: 3px }
 .content::-webkit-scrollbar-thumb { background: rgba(229,9,20,.25); border-radius: 99px }
@@ -672,12 +672,7 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.6 }
 .voice-dur { font-size: 10px; color: rgba(255,255,255,.65); flex-shrink: 0 }
 
 /* ════ AI ════ */
-.ai-wrap {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-}
+.ai-wrap { display: flex; flex-direction: column; height: calc(100dvh - 118px) }
 .ai-msgs { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px }
 .ai-msg { display: flex; gap: 10px; max-width: 92% }
 .ai-msg.me { align-self: flex-end; flex-direction: row-reverse }
@@ -937,8 +932,8 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.6 }
 @keyframes hugLeanR { 0%,100%{transform:rotate(0deg) translateX(0)} 50%{transform:rotate(5deg) translateX(-3px)} }
 
 /* ════ HEARTBEAT LAYOUT PROTECTION ════ */
-body { display: flex !important; overflow: hidden !important; min-height: 0; }
-.main { flex: 1 !important; min-width: 0 !important; max-width: calc(100vw - 210px) !important; overflow: hidden !important; min-height: 0;}
+body { display: flex !important; overflow: hidden !important }
+.main { flex: 1 !important; min-width: 0 !important; max-width: calc(100vw - 210px) !important; overflow: hidden !important }
 @media(max-width:700px) { .main { max-width: 100vw !important } }
 #hbPulseRing { position: fixed !important; width: 0 !important; height: 0 !important; pointer-events: none; overflow: visible; z-index: 9990 }
 #hbWidgetContainer { width: 100% !important; max-width: 100% !important; min-width: 0 !important }
@@ -2914,12 +2909,10 @@ async function removePartner() {
         function toggleMobSidebar() {
           document.getElementById('sidebar').classList.toggle('mob-open');
           document.getElementById('sbOverlay').classList.toggle('active');
-          document.querySelector('.content').scrollTop = 0;
         }
         function closeMobSidebar() {
           document.getElementById('sidebar').classList.remove('mob-open');
           document.getElementById('sbOverlay').classList.remove('active');
-          document.querySelector('.content').scrollTop = 0;
         }
         function gotoMob(page, el) {
           document.querySelectorAll('.bot-ni').forEach(n => n.classList.remove('active'));
@@ -3183,7 +3176,6 @@ function setJustPairedAt(ts) {
           pg.classList.add('active');
           const ni = document.querySelector('.ni[data-page="' + page + '"]'); if (ni) ni.classList.add('active');
           document.getElementById('topTitle').textContent = pageTitles[page] || page;
-          document.querySelector('.content').scrollTop = 0;
           if (page !== 'camera' && camStream) stopCamera();
           if (pushHistory) {
     history.pushState({ page }, '', '#' + page);
