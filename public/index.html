@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
   <title>Us With Love 💕</title>
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#2f6feb" id="themeColorMeta">
+  <meta name="theme-color" content="#8f0000" id="themeColorMeta">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Us With Love">
@@ -30,15 +30,15 @@
     }
 
     :root {
-      --h: 215;
+      --h: 357;
       --accent: hsl(var(--h), 100%, 62%);
       --accent-d: hsl(var(--h), 95%, 50%);
       --accent-l: hsl(var(--h), 100%, 78%);
       --accent-glow: hsla(var(--h), 100%, 62%, 0.35);
 
-      --accent2: hsl(300, 85%, 65%);
-      --accent2-d: hsl(300, 80%, 52%);
-      --accent2-glow: hsla(300, 85%, 65%, 0.35);
+      --accent2: hsl(0, 100%, 35%);
+  --accent2-d: hsl(0, 100%, 28%);
+  --accent2-glow: hsla(0, 100%, 35%, 0.35);
 
       --g1: rgba(255, 255, 255, 0.04);
       --g2: rgba(255, 255, 255, 0.08);
@@ -2953,7 +2953,7 @@
       position: fixed;
       inset: 0;
       z-index: -2;
-      background: radial-gradient(ellipse at 20% 20%, #0a0a1a 0%, #050508 100%);
+      background: radial-gradient(ellipse at 20% 20%, #120404 0%, #050505 100%);
     }
 
     #bg::before {
@@ -2961,37 +2961,37 @@
       position: absolute;
       inset: 0;
       background:
-        radial-gradient(circle at 15% 15%, hsla(var(--h), 100%, 55%, 0.18), transparent 50%),
-        radial-gradient(circle at 85% 10%, hsla(300, 85%, 60%, 0.18), transparent 50%),
-        radial-gradient(circle at 50% 90%, hsla(260, 80%, 50%, 0.12), transparent 55%);
+        radial-gradient(circle at 15% 15%, hsla(357, 100%, 55%, 0.18), transparent 50%),
+        radial-gradient(circle at 85% 10%, hsla(15, 100%, 50%, 0.14), transparent 50%),
+        radial-gradient(circle at 50% 90%, hsla(0, 100%, 30%, 0.18), transparent 55%);
       pointer-events: none;
     }
 
     /* Fix card glass — was showing solid bg */
     .card {
-      background: rgba(255, 255, 255, 0.04) !important;
-      backdrop-filter: blur(24px) saturate(180%) !important;
-      -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-      border: 1px solid rgba(255, 255, 255, 0.10) !important;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+      background: rgba(10, 6, 6, 0.55) !important;
+      backdrop-filter: blur(24px) saturate(160%) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+      border: 1px solid rgba(229, 9, 20, 0.14) !important;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
     }
 
     .sidebar {
-      background: rgba(5, 5, 15, 0.70) !important;
-      backdrop-filter: blur(24px) saturate(180%) !important;
-      -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+      background: rgba(5, 2, 2, 0.78) !important;
+      backdrop-filter: blur(24px) saturate(160%) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
     }
 
     .topbar {
-      background: rgba(5, 5, 15, 0.60) !important;
-      backdrop-filter: blur(20px) saturate(160%) !important;
-      -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+      background: rgba(5, 2, 2, 0.68) !important;
+      backdrop-filter: blur(20px) saturate(150%) !important;
+      -webkit-backdrop-filter: blur(20px) saturate(150%) !important;
     }
 
     .modal {
-      background: rgba(8, 8, 20, 0.80) !important;
-      backdrop-filter: blur(30px) saturate(200%) !important;
-      -webkit-backdrop-filter: blur(30px) saturate(200%) !important;
+      background: rgba(8, 3, 3, 0.88) !important;
+      backdrop-filter: blur(30px) saturate(180%) !important;
+      -webkit-backdrop-filter: blur(30px) saturate(180%) !important;
     }
 
     /* ════ PRIVACY BANNER ════ */
@@ -3469,136 +3469,6 @@ body {
   overflow: hidden !important;
   position: static !important;
 }
-
-:root{
-  --accent: #b3182b !important;
-  --accent-d: #7a0f1d !important;
-  --accent-l: #e2495a !important;
-  --accent-glow: rgba(179,24,43,0.38) !important;
-  --accent2: #8a2432 !important;
-  --accent2-d: #5c1420 !important;
-  --accent2-glow: rgba(138,36,50,0.32) !important;
-  --border2: rgba(255,255,255,0.12);
-}
-
-/* Background — deep black/graphite with wine-red glow (matches screenshots) */
-#bg{
-  background: radial-gradient(ellipse at 20% 10%, #140505 0%, #050505 60%, #020202 100%) !important;
-}
-#bg::before{
-  background:
-    radial-gradient(circle at 15% 10%, rgba(179,24,43,0.22), transparent 55%),
-    radial-gradient(circle at 90% 0%, rgba(122,15,29,0.14), transparent 50%),
-    radial-gradient(circle at 50% 100%, rgba(40,0,4,0.35), transparent 60%) !important;
-}
-
-/* Cards — luxury glass, thinner border, deeper shadow */
-.card, .m-card, .metric, .fstat-box, .pstat, .stat-item, .settings-group,
-.storage-hero, .fight-card, .period-hero, .profile-hero, .settings-hero{
-  border-radius: 20px !important;
-  border-color: rgba(255,255,255,0.08) !important;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05) !important;
-  transition: box-shadow .25s ease, transform .25s ease, border-color .25s ease;
-}
-.card:hover{
-  border-color: rgba(179,24,43,0.35) !important;
-  box-shadow: 0 14px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(179,24,43,0.12), inset 0 1px 0 rgba(255,255,255,0.06) !important;
-}
-
-/* Buttons — crimson gradient, glow, lift, press */
-.btn-accent{
-  background: linear-gradient(135deg, #c22436, #7a0f1d) !important;
-  box-shadow: 0 6px 20px rgba(179,24,43,0.4), inset 0 1px 0 rgba(255,255,255,0.15) !important;
-  border-radius: 12px !important;
-}
-.btn-accent:hover{
-  filter: brightness(1.12);
-  box-shadow: 0 8px 26px rgba(179,24,43,0.55), inset 0 1px 0 rgba(255,255,255,0.2) !important;
-  transform: translateY(-2px);
-}
-.btn-accent:active, .btn:active{ transform: scale(0.95); }
-
-.btn-glass{
-  background: rgba(255,255,255,0.05) !important;
-  border-color: rgba(255,255,255,0.12) !important;
-  border-radius: 12px !important;
-}
-.btn-glass:hover{ background: rgba(255,255,255,0.09) !important; }
-
-.ic-btn{ border-radius: 14px !important; }
-.ic-btn.accent{
-  background: linear-gradient(135deg, #c22436, #7a0f1d) !important;
-  box-shadow: 0 4px 16px rgba(179,24,43,0.45) !important;
-}
-
-/* Inputs — premium radius + crimson focus glow */
-input[type=text], input[type=password], input[type=email], input[type=number],
-input[type=date], input[type=time], textarea, select{
-  border-radius: 14px !important;
-  background: rgba(255,255,255,0.035) !important;
-  border-color: rgba(255,255,255,0.09) !important;
-}
-input:focus, textarea:focus, select:focus{
-  border-color: #b3182b !important;
-  box-shadow: 0 0 0 3px rgba(179,24,43,0.25) !important;
-  background: rgba(255,255,255,0.06) !important;
-}
-
-/* Modals — deeper glass, crimson-tinted border */
-.modal{
-  border-radius: 26px !important;
-  border-color: rgba(255,255,255,0.1) !important;
-  box-shadow: 0 24px 70px rgba(0,0,0,0.6), 0 0 0 1px rgba(179,24,43,0.1), inset 0 1px 0 rgba(255,255,255,0.06) !important;
-}
-.modal-bg{ backdrop-filter: blur(8px) !important; }
-
-/* Toggles / switches */
-.toggle.on{
-  background: linear-gradient(135deg, #c22436, #7a0f1d) !important;
-  border-color: #b3182b !important;
-}
-
-/* Badges, tags, pills — luxury minimal */
-.tag, .streak-badge, .games-badge, .badge, .conn-ok, .conn-fail, .conn-wait,
-.priv-badge, .phase-badge{
-  border-radius: 8px !important;
-  font-weight: 700 !important;
-  letter-spacing: .4px !important;
-}
-.badge, .games-badge{
-  background: linear-gradient(135deg, #c22436, #7a0f1d) !important;
-}
-
-/* Progress bars — crimson gradient fill */
-.study-fill, .storage-bar-fill, .intensity-fill, .cc-burst-layer{
-  background: linear-gradient(90deg, #7a0f1d, #c22436) !important;
-}
-.intensity-fill{ background: linear-gradient(90deg, #c9942f, #b3182b) !important; }
-
-/* Avatars — crimson ring glow */
-.av1, .av-large.av1, .sh-avatar-inner.av1{ background: linear-gradient(135deg, #c22436, #7a0f1d) !important; }
-.av2, .av-large.av2, .sh-avatar-inner.av2{ background: linear-gradient(135deg, #8a2432, #5c1420) !important; }
-.av-large:hover{ box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 4px rgba(179,24,43,0.3) !important; }
-
-/* Calendar selected day — solid crimson block, matches screenshot */
-.cd.today{
-  background: linear-gradient(135deg, #c22436, #7a0f1d) !important;
-  box-shadow: 0 4px 16px rgba(179,24,43,0.5) !important;
-  border-radius: 12px !important;
-}
-
-/* Scrollbar — crimson thumb */
-::-webkit-scrollbar-thumb{ background: rgba(179,24,43,0.35) !important; }
-::-webkit-scrollbar-thumb:hover{ background: rgba(179,24,43,0.55) !important; }
-
-/* Bottom nav + sidebar active state — crimson accent */
-.ni.active::before{ background: #b3182b !important; box-shadow: 0 0 8px rgba(179,24,43,0.5) !important; }
-.ni.active, .bot-ni.active, .bot-ni:hover{ color: #e2495a !important; }
-.sync-on{ background: rgba(179,24,43,0.15) !important; color: #e2495a !important; border-color: rgba(179,24,43,0.35) !important; }
-.pulse-on{ background: #c22436 !important; }
-
-/* Empty states + logo heart — crimson */
-.logo-heart{ background: linear-gradient(135deg, #c22436, #7a0f1d) !important; box-shadow: 0 4px 14px rgba(179,24,43,0.4) !important; }
 /* ════ VERCEL WIDGET + BODY FLEX CHILD PROTECTION ════ */
 vercel-live-feedback {
   position: fixed !important;
@@ -3607,7 +3477,6 @@ vercel-live-feedback {
   pointer-events: none;
   overflow: visible;
 }
-
 
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -3717,7 +3586,7 @@ vercel-live-feedback {
       </div>
       
 <img src="/icons/icon-512.png" alt="US"
-  style="height:72px;width:auto;margin:0 auto 8px;display:block;filter:drop-shadow(0 0 12px rgba(150,100,220,0.6))">
+  style="height:72px;width:auto;margin:0 auto 8px;display:block;filter:drop-shadow(0 0 12px rgba(229,9,20,0.6))">
 <div style="font-family:var(--ff-serif);font-size:28px;color:var(--white);text-align:center;margin-bottom:4px;letter-spacing:-1px">US</div>
 <div class="brand-tagline"
   style="margin:0 0 14px;font-size:10px;text-align:center;letter-spacing:2px;color:var(--accent2)">EVERYTHING TOGETHER.</div>
@@ -3770,7 +3639,7 @@ vercel-live-feedback {
 <div class="logo-mark" style="flex-direction:column;align-items:flex-start;gap:2px">
   <div style="display:flex;align-items:center;gap:9px">
     <img src="/icons/icon-512.png" alt="US"
-      style="height:38px;width:auto;display:block;filter:drop-shadow(0 0 8px rgba(150,100,220,0.5));flex-shrink:0">
+      style="height:38px;width:auto;display:block;filter:drop-shadow(0 0 8px rgba(229,9,20,0.5));flex-shrink:0">
     <span style="font-family:var(--ff-serif);font-size:22px;color:var(--white);letter-spacing:-0.5px">US</span>
   </div>
   <span style="font-family:var(--ff-sans);font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent2);margin-top:2px;padding-left:2px">Everything Together.</span>
@@ -5535,14 +5404,14 @@ async function removePartner() {
           S.theme = name;
           // Update PWA theme color
           const colorMap = {
-            't-blue': '#2f6feb', 't-rose': '#c43f6a', 't-ocean': '#1a6fb5', 't-lavender': '#7c3aed',
+            't-blue': '#8f0000', 't-rose': '#c43f6a', 't-ocean': '#1a6fb5', 't-lavender': '#7c3aed',
             't-sunset': '#c2541a', 't-mint': '#16a36a', 't-galaxy': '#2d00a0',
             't-cherry': '#c40060', 't-teal': '#0094a8', 't-amber': '#c97a00', 't-deep': '#0f3460'
           };
           const meta = document.getElementById('themeColorMeta');
           if (meta) meta.content = colorMap[name] || '#c43f6a';
           // Update accent CSS variable based on theme
-          const hMap = { 't-blue': 215, 't-rose': 340, 't-ocean': 210, 't-lavender': 270, 't-sunset': 18, 't-mint': 162, 't-galaxy': 260, 't-cherry': 330, 't-teal': 190, 't-amber': 38, 't-deep': 220 };
+          const hMap = { 't-blue': 357, 't-rose': 340, 't-ocean': 210, 't-lavender': 270, 't-sunset': 18, 't-mint': 162, 't-galaxy': 260, 't-cherry': 330, 't-teal': 190, 't-amber': 38, 't-deep': 220 };
           const h = hMap[name] || 340;
           document.documentElement.style.setProperty('--h', h);
           document.querySelectorAll('.theme-swatch').forEach(b => b.classList.toggle('active', b.dataset.theme === name));
