@@ -8,6 +8,8 @@ const Call = (function () {
   let isMinimized = false, pipEl = null, pipDrag = null;
   let signalInterval = null;
   let videoUpgradePending = false;
+  let ringTimeout = null;
+  function clearRingTimeout() { if (ringTimeout) clearTimeout(ringTimeout); ringTimeout = null; }
 
   function coupleId() { return window.S && window.S.coupleId; }
   function myRole() { return window.S && window.S.role; }
@@ -494,19 +496,33 @@ let iceQueue = [];
   async function startCall(type) {
     if (!coupleId()) { toast('Not connected to a partner yet'); return; }
     if (!S.paired) { toast('⚠️ Your partner hasn\'t joined yet — pair first'); return; }
+    if (pc) { toast('A call is already in progress'); return; }
     callType = type; isCaller = true;
     isMuted = false; isCamOff = false; isSpeakerOn = true;
     renderRinging(type, false);
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
-    } catch (e) { toast('Camera/mic permission denied'); cleanup(); return; }
-    await setupPeer();
-    localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    await pushSignal({ type: 'offer', sdp: offer, callType: type, ts: Date.now() });
-    try { await api('POST', '/api/call/notify', { coupleId: coupleId(), callerRole: myRole(), type }); } catch (e) {}
-    startPolling();
+      await setupPeer();
+      localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await pushSignal({ type: 'offer', sdp: offer, callType: type, ts: Date.now() });
+      try { await api('POST', '/api/call/notify', { coupleId: coupleId(), callerRole: myRole(), type }); } catch (e) {}
+      startPolling();
+      clearRingTimeout();
+      ringTimeout = setTimeout(() => {
+        if (pc && pc.connectionState !== 'connected') {
+          toast('No answer');
+          pushSignal({ type: 'end' });
+          logCall('missed', 0);
+          cleanup();
+        }
+      }, 30000);
+    } catch (e) {
+      console.error('startCall failed:', e);
+      toast(e && e.name === 'NotAllowedError' ? 'Camera/mic permission denied' : 'Could not start call');
+      cleanup();
+    }
   }
 
   let pendingOffer = null;
@@ -517,25 +533,41 @@ let iceQueue = [];
     renderRinging(callType, true);
     startPolling();
     if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
+    clearRingTimeout();
+    ringTimeout = setTimeout(() => {
+      if (pendingOffer) {
+        toast('Missed call');
+        logCall('missed', 0);
+        cleanup();
+      }
+    }, 30000);
   }
 
   async function acceptCall() {
     if (!pendingOffer) return;
+    clearRingTimeout();
     isMuted = false; isCamOff = false; isSpeakerOn = true;
+    const offer = pendingOffer;
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: callType === 'video' });
-    } catch (e) { toast('Permission denied'); declineCall(); return; }
-    await setupPeer();
-    localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-    await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer.sdp));
-    for (const cand of iceQueue) { try { await pc.addIceCandidate(cand); } catch (e) {} }
-    iceQueue = [];
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-    await pushSignal({ type: 'answer', sdp: answer });
-    onConnecting();
+      await setupPeer();
+      localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+      await pc.setRemoteDescription(new RTCSessionDescription(offer.sdp));
+      for (const cand of iceQueue) { try { await pc.addIceCandidate(cand); } catch (e) {} }
+      iceQueue = [];
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      await pushSignal({ type: 'answer', sdp: answer });
+      onConnecting();
+    } catch (e) {
+      console.error('acceptCall failed:', e);
+      toast(e && e.name === 'NotAllowedError' ? 'Permission denied' : 'Could not answer call');
+      pushSignal({ type: 'decline' });
+      cleanup();
+    }
   }
   function declineCall() {
+    clearRingTimeout();
     pushSignal({ type: 'decline' });
     logCall('declined');
     cleanup();
@@ -552,7 +584,7 @@ let iceQueue = [];
     };
     pc.onicecandidate = e => { if (e.candidate) pushSignal({ type: 'ice', candidate: e.candidate }); };
     pc.onconnectionstatechange = () => {
-      if (pc.connectionState === 'connected') renderActive();
+      if (pc.connectionState === 'connected') { clearRingTimeout(); renderActive(); }
       if (pc.connectionState === 'failed') { toast('Call disconnected'); endCall(true); }
       else if (pc.connectionState === 'disconnected') { toast('Connection lost — reconnecting...'); }
     };
@@ -565,6 +597,7 @@ let iceQueue = [];
     cleanup();
   }
   function cleanup() {
+    clearRingTimeout();
     if (pc) { pc.close(); pc = null; }
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
     remoteStream = null;
