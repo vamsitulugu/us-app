@@ -95,8 +95,12 @@ router.get('/signal/:coupleId', async (req, res) => {
 
   // Discard anything older than 30s — an offer/answer/ice signal has no business
   // being acted on if it's been sitting in the table that long.
+  // If created_at is missing/invalid, treat the row as fresh rather than dropping it —
+  // a bad timestamp should never silently swallow every signal.
   const fresh = (data || []).filter(row => {
-    const age = Date.now() - new Date(row.created_at).getTime();
+    const ts = row.created_at ? new Date(row.created_at).getTime() : NaN;
+    if (Number.isNaN(ts)) return true;
+    const age = Date.now() - ts;
     return age < 30000;
   });
 
