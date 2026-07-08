@@ -15,7 +15,7 @@
     href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-  
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <link rel="stylesheet" href="/chat/chat.css">
   <link rel="stylesheet" href="/chat/call.css">
   <style>
@@ -3715,6 +3715,7 @@ select option { background: #0D0D0D; color: #fff; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(229, 9, 20, 0.32) !important; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
 </head>
 
 <body class="t-blue">
@@ -6084,6 +6085,7 @@ function setJustPairedAt(ts) {
           renderSettingsPhotoHero();
           updatePairStatus();
           syncNotifToggleUI();
+          window.refreshUIIcons && window.refreshUIIcons();
         }
 
         function toggleSetting(key, toggleId) {
@@ -6574,7 +6576,7 @@ async function toggleNotifications() {
       <div class="intensity-bar"><div class="intensity-fill" style="width:${f.intensity * 10}%"></div></div>
       <div style="font-size:10px;color:var(--text3);margin-bottom:8px">Intensity: ${f.intensity}/10</div>
       <div style="display:flex;gap:7px;flex-wrap:wrap">
-        ${f.status === 'open' ? `<button class="btn btn-success btn-xs" onclick="resolveFight(${f.id})">✅ Resolve</button><button class="btn btn-glass btn-xs" onclick="askAIaboutFight('${esc(f.title)}')">🤖 AI Help</button>` : ''}
+        ${f.status === 'open' ? `<button class="btn btn-success btn-xs" onclick="resolveFight(${f.id})">${uiIcon('check')} Resolve</button><button class="btn btn-glass btn-xs" onclick="askAIaboutFight('${esc(f.title)}')">🤖 AI Help</button>` : ''}
         <button class="del-btn" onclick="delFight(${f.id})">Delete</button>
       </div>
     </div>`).join('');
@@ -7874,5 +7876,6 @@ if ('serviceWorker' in navigator) {
 <script src="/chat/chat.js"></script>
 <script src="/chat/call.js"></script>
 <script src="/dashboard_chat_patch.js"></script>
+<script src="/ui-icons.js"></script>
 </body>
 </html>
