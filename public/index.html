@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
   <title>Us With Love 💕</title>
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#8f0000" id="themeColorMeta">
+  <meta name="theme-color" content="#2f6feb" id="themeColorMeta">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Us With Love">
@@ -30,21 +30,21 @@
     }
 
     :root {
-      --h: 357;
+      --h: 215;
       --accent: hsl(var(--h), 100%, 62%);
       --accent-d: hsl(var(--h), 95%, 50%);
       --accent-l: hsl(var(--h), 100%, 78%);
       --accent-glow: hsla(var(--h), 100%, 62%, 0.35);
 
-      --accent2: hsl(0, 100%, 35%);
-  --accent2-d: hsl(0, 100%, 28%);
-  --accent2-glow: hsla(0, 100%, 35%, 0.35);
+      --accent2: hsl(300, 85%, 65%);
+      --accent2-d: hsl(300, 80%, 52%);
+      --accent2-glow: hsla(300, 85%, 65%, 0.35);
 
-      --g1: rgba(255, 255, 255, 0.04);
-      --g2: rgba(255, 255, 255, 0.08);
-      --g3: rgba(255, 255, 255, 0.13);
-      --gb: rgba(255, 255, 255, 0.06);
-      --gd: rgba(255, 255, 255, 0.03);
+      --g1: rgba(183, 28, 28, 0.06);
+--g2: rgba(183, 28, 28, 0.12);
+--g3: rgba(183, 28, 28, 0.18);
+--gb: rgba(183, 28, 28, 0.10);
+--gd: rgba(183, 28, 28, 0.05);
       --blur: blur(24px) saturate(180%);
       --blur-sm: blur(12px) saturate(150%);
 
@@ -57,18 +57,18 @@
       --space: 20px;
 
       --white: #ffffff;
-      --text: rgba(255, 255, 255, 0.92);
-      --text2: rgba(255, 255, 255, 0.62);
-      --text3: rgba(255, 255, 255, 0.38);
-      --border: rgba(255, 255, 255, 0.10);
-      --border2: rgba(255, 255, 255, 0.18);
+--text: rgba(255, 255, 255, 0.92);
+--text2: #DCCCCC;
+--text3: #A88F8F;
+--border: rgba(150, 60, 60, 0.22);
+--border2: #5A2020;
 
       --green: #34d399;
-      --green-bg: rgba(52, 211, 153, 0.15);
-      --red: #f87171;
-      --red-bg: rgba(248, 113, 113, 0.15);
-      --yellow: #fbbf24;
-      --yellow-bg: rgba(251, 191, 36, 0.15);
+--green-bg: rgba(52, 211, 153, 0.15);
+--red: #B71C1C;
+--red-bg: rgba(183, 28, 28, 0.18);
+--yellow: #fbbf24;
+--yellow-bg: rgba(251, 191, 36, 0.15);
       --blue: var(--accent);
       --blue-bg: var(--accent-glow);
 
@@ -114,21 +114,21 @@
     }
 
     .card {
-      background: var(--g1);
-      backdrop-filter: var(--blur);
-      -webkit-backdrop-filter: var(--blur);
-      border: 1px solid var(--border);
-      border-radius: var(--r);
-      padding: 18px;
-      margin-bottom: 14px;
-      box-shadow: 0 2px 16px rgba(20, 20, 30, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-      transition: box-shadow 0.2s, transform 0.2s;
-    }
+  background: var(--g1);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(200, 80, 80, 0.08);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
 
-    .card:hover {
-      box-shadow: 0 8px 28px rgba(20, 20, 30, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.7);
-      transform: translateY(-2px);
-    }
+.card:hover {
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(200, 80, 80, 0.1);
+  transform: translateY(-2px);
+}
 
     .card-title {
       font-family: var(--ff-serif);
@@ -144,33 +144,33 @@
 
     /* ════ SIDEBAR ════ */
     .sidebar {
-      width: 200px;
-      min-width: 200px;
-      max-width: 200px;
-      background: rgba(8, 8, 20, 0.75);
-      backdrop-filter: var(--blur);
-      -webkit-backdrop-filter: var(--blur);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
-      overflow-x: hidden;
-      z-index: 20;
-      flex-shrink: 0;
-    }
+  width: 200px;
+  min-width: 200px;
+  max-width: 200px;
+  background: linear-gradient(180deg, #160606, #0F0404);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 20;
+  flex-shrink: 0;
+}
     .sidebar::-webkit-scrollbar {
       width: 0
     }
 
     .sb-logo {
-      position: sticky;
-      padding: 20px 18px 16px;
-      border-bottom: 1px solid var(--border);
-      top: 0;
-      z-index: 5;
-      background: rgb(17, 17, 39);
-      backdrop-filter: blur(24px);
-    }
+  position: sticky;
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--border);
+  top: 0;
+  z-index: 5;
+  background: #160606;
+  backdrop-filter: blur(24px);
+}
 
     .logo-mark {
       display: flex;
@@ -415,20 +415,20 @@
 
     /* ════ TOPBAR ════ */
     .topbar {
-      background: rgba(8, 8, 20, 0.65);
-      backdrop-filter: var(--blur-sm);
-      -webkit-backdrop-filter: var(--blur-sm);
-      border-bottom: 1px solid var(--border);
-      height: 58px;
-      padding: 0 22px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-shrink: 0;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
+  background: rgba(26, 7, 7, 0.92);
+  backdrop-filter: var(--blur-sm);
+  -webkit-backdrop-filter: var(--blur-sm);
+  border-bottom: 1px solid var(--border);
+  height: 58px;
+  padding: 0 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
 
     .tb-title {
       font-family: var(--ff-serif);
@@ -624,42 +624,41 @@
     }
 
     input[type=text],
-    input[type=password],
-    input[type=email],
-    input[type=number],
-    input[type=date],
-    input[type=time],
-    textarea,
-    select {
-      width: 100%;
-      border: 1px solid var(--border);
-      border-radius: var(--rs);
-      padding: 10px 13px;
-      font-size: 13px;
-      font-family: var(--ff-sans);
-      outline: none;
-      background: var(--g1);
-      color: var(--white);
-      transition: var(--t);
-    }
-
+input[type=password],
+input[type=email],
+input[type=number],
+input[type=date],
+input[type=time],
+textarea,
+select {
+  width: 100%;
+  border: 1px solid #4A1A1A;
+  border-radius: var(--rs);
+  padding: 10px 13px;
+  font-size: 13px;
+  font-family: var(--ff-sans);
+  outline: none;
+  background: #2A0D0D;
+  color: var(--white);
+  transition: var(--t);
+}
     input::placeholder,
     textarea::placeholder {
       color: var(--text3)
     }
 
     input:focus,
-    textarea:focus,
-    select:focus {
-      border-color: var(--accent);
-      background: var(--g2);
-      box-shadow: 0 0 0 3px var(--accent-glow);
-    }
+textarea:focus,
+select:focus {
+  border-color: #7A2A2A;
+  background: #341111;
+  box-shadow: 0 0 0 3px rgba(150, 60, 60, 0.25);
+}
 
     select option {
-      background: #0d0d1f;
-      color: #fff
-    }
+  background: #2A0D0D;
+  color: #fff
+}
 
     textarea {
       resize: vertical;
@@ -1158,20 +1157,20 @@
     }
 
     .auth-card {
-      background: rgba(12, 12, 28, 0.80);
-      backdrop-filter: blur(30px) saturate(200%);
-      -webkit-backdrop-filter: blur(30px) saturate(200%);
-      border: 1px solid var(--border2);
-      border-radius: 24px;
-      padding: 38px 34px;
-      width: 100%;
-      max-width: 460px;
-      box-shadow: 0 20px 60px rgba(20, 20, 30, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.7);
-      text-align: center;
-      color: var(--white);
-      position: relative;
-      z-index: 1;
-    }
+  background: rgba(52, 17, 17, 0.80);
+  backdrop-filter: blur(30px) saturate(200%);
+  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  border: 1px solid var(--border2);
+  border-radius: 24px;
+  padding: 38px 34px;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(200, 80, 80, 0.08);
+  text-align: center;
+  color: var(--white);
+  position: relative;
+  z-index: 1;
+}
 
     .auth-logo {
       font-family: var(--ff-serif);
@@ -1689,36 +1688,36 @@
 
     /* ════ MODAL ════ */
     .modal-bg {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.6);
-      z-index: 1000;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-      backdrop-filter: blur(6px);
-    }
+  position: fixed;
+  inset: 0;
+  background: rgba(19, 5, 5, 0.7);
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  backdrop-filter: blur(6px);
+}
 
     .modal-bg.open {
       display: flex
     }
 
     .modal {
-      background: rgba(12, 12, 28, 0.85);
-      backdrop-filter: blur(30px) saturate(200%);
-      -webkit-backdrop-filter: blur(30px) saturate(200%);
-      border: 1px solid var(--border2);
-      border-radius: 22px;
-      padding: 24px;
-      width: 100%;
-      max-width: 440px;
-      max-height: 90dvh;
-      overflow-y: auto;
-      color: var(--white);
-      box-shadow: 0 20px 60px rgba(20, 20, 30, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.7);
-      animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
+  background: rgba(52, 17, 17, 0.85);
+  backdrop-filter: blur(30px) saturate(200%);
+  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  border: 1px solid var(--border2);
+  border-radius: 22px;
+  padding: 24px;
+  width: 100%;
+  max-width: 440px;
+  max-height: 90dvh;
+  overflow-y: auto;
+  color: var(--white);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(200, 80, 80, 0.08);
+  animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
 
     @keyframes modalIn {
       from {
@@ -1789,15 +1788,15 @@
 
     /* ════ IMAGE VIEWER ════ */
     .img-viewer {
-      position: fixed;
-      inset: 0;
-      z-index: 9998;
-      background: rgba(0, 0, 0, 0.95);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      backdrop-filter: blur(4px)
-    }
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: rgba(19, 5, 5, 0.95);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px)
+}
 
     .img-viewer.open {
       display: flex
@@ -1834,15 +1833,15 @@
 
     /* ════ ALARM RING ════ */
     .alarm-ring {
-      position: fixed;
-      inset: 0;
-      z-index: 99999;
-      background: rgba(0, 0, 0, 0.92);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      backdrop-filter: blur(12px)
-    }
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(19, 5, 5, 0.92);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(12px)
+}
 
     .alarm-ring.active {
       display: flex
@@ -1898,7 +1897,7 @@
   gap: 10px;
   padding: 10px 16px;
   border-top: 1px solid var(--border);
-  background: rgba(8, 8, 20, 0.5);
+  background: rgba(26, 7, 7, 0.7);
   backdrop-filter: var(--blur-sm);
 }
 .chat-in {
@@ -2545,19 +2544,19 @@
 }
 
     .bot-nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      background: rgba(8, 8, 20, 0.88);
-      backdrop-filter: blur(20px);
-      border-top: 1px solid var(--border);
-      padding: 1px 0;
-      padding-bottom: max(6px, env(safe-area-inset-bottom));
-      display: flex;
-      justify-content: space-around;
-    }
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: rgba(26, 7, 7, 0.88);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  padding: 1px 0;
+  padding-bottom: max(6px, env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: space-around;
+}
 
     .bot-ni {
       display: flex;
@@ -2953,7 +2952,7 @@
       position: fixed;
       inset: 0;
       z-index: -2;
-      background: radial-gradient(ellipse at 20% 20%, #120404 0%, #050505 100%);
+      background: radial-gradient(ellipse at 20% 20%, #0a0a1a 0%, #050508 100%);
     }
 
     #bg::before {
@@ -2961,38 +2960,38 @@
       position: absolute;
       inset: 0;
       background:
-        radial-gradient(circle at 15% 15%, hsla(357, 100%, 55%, 0.18), transparent 50%),
-        radial-gradient(circle at 85% 10%, hsla(15, 100%, 50%, 0.14), transparent 50%),
-        radial-gradient(circle at 50% 90%, hsla(0, 100%, 30%, 0.18), transparent 55%);
+        radial-gradient(circle at 15% 15%, hsla(var(--h), 100%, 55%, 0.18), transparent 50%),
+        radial-gradient(circle at 85% 10%, hsla(300, 85%, 60%, 0.18), transparent 50%),
+        radial-gradient(circle at 50% 90%, hsla(260, 80%, 50%, 0.12), transparent 55%);
       pointer-events: none;
     }
 
     /* Fix card glass — was showing solid bg */
     .card {
-      background: rgba(10, 6, 6, 0.55) !important;
-      backdrop-filter: blur(24px) saturate(160%) !important;
-      -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
-      border: 1px solid rgba(229, 9, 20, 0.14) !important;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
-    }
+  background: linear-gradient(180deg, #341111, #220909) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid #442020 !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(200, 80, 80, 0.06) !important;
+}
 
     .sidebar {
-      background: rgba(5, 2, 2, 0.78) !important;
-      backdrop-filter: blur(24px) saturate(160%) !important;
-      -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
-    }
+  background: linear-gradient(180deg, #160606, #0F0404) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+}
 
     .topbar {
-      background: rgba(5, 2, 2, 0.68) !important;
-      backdrop-filter: blur(20px) saturate(150%) !important;
-      -webkit-backdrop-filter: blur(20px) saturate(150%) !important;
-    }
+  background: rgba(26, 7, 7, 0.92) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+}
 
     .modal {
-      background: rgba(8, 3, 3, 0.88) !important;
-      backdrop-filter: blur(30px) saturate(180%) !important;
-      -webkit-backdrop-filter: blur(30px) saturate(180%) !important;
-    }
+  background: rgba(52, 17, 17, 0.85) !important;
+  backdrop-filter: blur(30px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(200%) !important;
+}
 
     /* ════ PRIVACY BANNER ════ */
     .priv-badge {
@@ -3404,7 +3403,7 @@
 .connect-stat{font-size:11px;color:var(--text3);text-align:center;max-width:120px;line-height:1.4}
 .connect-stat strong{color:var(--white);font-weight:700}
 
-.love-overlay{position:fixed;inset:0;z-index:9996;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(4,4,12,0.88);backdrop-filter:blur(16px);animation:loveOverlayIn 0.3s ease}
+.love-overlay{position:fixed;inset:0;z-index:9996;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(19,5,5,0.88);backdrop-filter:blur(16px);animation:loveOverlayIn 0.3s ease}
 .love-overlay.active{display:flex}
 @keyframes loveOverlayIn{from{opacity:0}to{opacity:1}}
 .love-card{background:rgba(255,255,255,0.06);backdrop-filter:blur(30px) saturate(200%);border:1px solid var(--border2);border-radius:28px;padding:40px 32px;text-align:center;max-width:380px;width:100%;animation:loveCardPop 0.5s cubic-bezier(0.34,1.56,0.64,1);position:relative;overflow:hidden}
@@ -3586,7 +3585,7 @@ vercel-live-feedback {
       </div>
       
 <img src="/icons/icon-512.png" alt="US"
-  style="height:72px;width:auto;margin:0 auto 8px;display:block;filter:drop-shadow(0 0 12px rgba(229,9,20,0.6))">
+  style="height:72px;width:auto;margin:0 auto 8px;display:block;filter:drop-shadow(0 0 12px rgba(150,100,220,0.6))">
 <div style="font-family:var(--ff-serif);font-size:28px;color:var(--white);text-align:center;margin-bottom:4px;letter-spacing:-1px">US</div>
 <div class="brand-tagline"
   style="margin:0 0 14px;font-size:10px;text-align:center;letter-spacing:2px;color:var(--accent2)">EVERYTHING TOGETHER.</div>
@@ -3639,7 +3638,7 @@ vercel-live-feedback {
 <div class="logo-mark" style="flex-direction:column;align-items:flex-start;gap:2px">
   <div style="display:flex;align-items:center;gap:9px">
     <img src="/icons/icon-512.png" alt="US"
-      style="height:38px;width:auto;display:block;filter:drop-shadow(0 0 8px rgba(229,9,20,0.5));flex-shrink:0">
+      style="height:38px;width:auto;display:block;filter:drop-shadow(0 0 8px rgba(150,100,220,0.5));flex-shrink:0">
     <span style="font-family:var(--ff-serif);font-size:22px;color:var(--white);letter-spacing:-0.5px">US</span>
   </div>
   <span style="font-family:var(--ff-sans);font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent2);margin-top:2px;padding-left:2px">Everything Together.</span>
@@ -5404,14 +5403,14 @@ async function removePartner() {
           S.theme = name;
           // Update PWA theme color
           const colorMap = {
-            't-blue': '#8f0000', 't-rose': '#c43f6a', 't-ocean': '#1a6fb5', 't-lavender': '#7c3aed',
+            't-blue': '#2f6feb', 't-rose': '#c43f6a', 't-ocean': '#1a6fb5', 't-lavender': '#7c3aed',
             't-sunset': '#c2541a', 't-mint': '#16a36a', 't-galaxy': '#2d00a0',
             't-cherry': '#c40060', 't-teal': '#0094a8', 't-amber': '#c97a00', 't-deep': '#0f3460'
           };
           const meta = document.getElementById('themeColorMeta');
           if (meta) meta.content = colorMap[name] || '#c43f6a';
           // Update accent CSS variable based on theme
-          const hMap = { 't-blue': 357, 't-rose': 340, 't-ocean': 210, 't-lavender': 270, 't-sunset': 18, 't-mint': 162, 't-galaxy': 260, 't-cherry': 330, 't-teal': 190, 't-amber': 38, 't-deep': 220 };
+          const hMap = { 't-blue': 215, 't-rose': 340, 't-ocean': 210, 't-lavender': 270, 't-sunset': 18, 't-mint': 162, 't-galaxy': 260, 't-cherry': 330, 't-teal': 190, 't-amber': 38, 't-deep': 220 };
           const h = hMap[name] || 340;
           document.documentElement.style.setProperty('--h', h);
           document.querySelectorAll('.theme-swatch').forEach(b => b.classList.toggle('active', b.dataset.theme === name));
