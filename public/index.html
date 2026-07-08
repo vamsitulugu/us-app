@@ -3469,22 +3469,6 @@ body {
   overflow: hidden !important;
   position: static !important;
 }
-/* ════ VERCEL WIDGET + BODY FLEX CHILD PROTECTION ════ */
-vercel-live-feedback {
-  position: fixed !important;
-  width: 0 !important;
-  height: 0 !important;
-  pointer-events: none;
-  overflow: visible;
-  
-}
-
-
-/* ══════════════════════════════════════════════════════
-   LUXURY CRIMSON THEME OVERRIDE — paste before </style>
-   Safe: only colors, shadows, radii, transitions.
-   No layout, width, height, flex, grid, or position touched.
-══════════════════════════════════════════════════════ */
 
 :root{
   --accent: #b3182b !important;
@@ -3615,6 +3599,15 @@ input:focus, textarea:focus, select:focus{
 
 /* Empty states + logo heart — crimson */
 .logo-heart{ background: linear-gradient(135deg, #c22436, #7a0f1d) !important; box-shadow: 0 4px 14px rgba(179,24,43,0.4) !important; }
+/* ════ VERCEL WIDGET + BODY FLEX CHILD PROTECTION ════ */
+vercel-live-feedback {
+  position: fixed !important;
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none;
+  overflow: visible;
+}
+
 
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
