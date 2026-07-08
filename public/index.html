@@ -3185,12 +3185,14 @@ function setJustPairedAt(ts) {
           dreamgoals: 'Dream Goals 💫', places: 'Places Memory 🗺️', meetplanner: 'Meet Planner 💕'
         };
         function goto(page, pushHistory = true) {
-          document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-          document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
-          const pg = document.getElementById('page-' + page); if (!pg) return;
-          pg.classList.add('active');
-          const ni = document.querySelector('.ni[data-page="' + page + '"]'); if (ni) ni.classList.add('active');
-          document.getElementById('topTitle').textContent = pageTitles[page] || page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
+  const pg = document.getElementById('page-' + page); if (!pg) return;
+  pg.classList.add('active');
+  const ni = document.querySelector('.ni[data-page="' + page + '"]'); if (ni) ni.classList.add('active');
+  document.getElementById('topTitle').textContent = pageTitles[page] || page;
+  const sb = document.getElementById('sidebar');
+  if (sb && window.innerWidth > 700) sb.scrollTop = 0;
           if (page !== 'camera' && camStream) stopCamera();
           if (pushHistory) {
     history.pushState({ page }, '', '#' + page);
