@@ -207,3 +207,95 @@
 .call-overlay {
   transition: opacity 0.3s ease, backdrop-filter 0.3s ease;
 }
+
+/* ─── WhatsApp-style top bar ─── */
+.call-topbar-full {
+  position: absolute; top: max(14px, env(safe-area-inset-top)); left: 16px; right: 16px;
+  z-index: 5; display: flex; align-items: center; justify-content: space-between;
+}
+.call-topbar-btn {
+  width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer;
+  background: rgba(255,255,255,0.14); backdrop-filter: blur(10px);
+  display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px;
+  flex-shrink: 0;
+}
+.call-topbar-title { flex: 1; text-align: center; padding: 0 8px; }
+.call-topbar-name { font-size: 14px; font-weight: 700; color: #fff; }
+.call-topbar-sub {
+  font-size: 11px; color: rgba(255,255,255,0.55); display: flex;
+  align-items: center; justify-content: center; gap: 5px; margin-top: 2px;
+}
+.call-signal-bars { display: flex; align-items: flex-end; gap: 2px; height: 12px; }
+.call-signal-bars span { width: 3px; border-radius: 1px; background: rgba(255,255,255,0.25); }
+.call-signal-bars span:nth-child(1) { height: 4px; }
+.call-signal-bars span:nth-child(2) { height: 7px; }
+.call-signal-bars span:nth-child(3) { height: 10px; }
+.call-signal-bars span:nth-child(4) { height: 13px; }
+.call-signal-bars span.active { background: #34c759; }
+.call-signal-bars.weak span.active { background: #ffcc00; }
+.call-signal-bars.poor span.active { background: #ff3b30; }
+
+/* Shift content down so it clears the top bar */
+.call-content { padding-top: max(78px, calc(env(safe-area-inset-top) + 66px)); }
+
+/* ─── WhatsApp-style bottom row (5 evenly spaced buttons) ─── */
+.call-controls-wa {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; max-width: 380px; padding: 0 6px;
+}
+.call-controls-wa .call-btn-end { transform: rotate(135deg); margin-left: 0; }
+
+/* ─── More menu (chat during call, etc.) ─── */
+.call-more-menu {
+  position: absolute; bottom: 104px; left: 50%; transform: translateX(-50%);
+  background: rgba(28,18,32,0.96); backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 6px;
+  min-width: 190px; z-index: 10; box-shadow: 0 14px 34px rgba(0,0,0,0.55);
+  animation: callMoreMenuIn 0.15s ease;
+}
+@keyframes callMoreMenuIn { from { opacity:0; transform:translateX(-50%) translateY(6px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+.call-more-menu button {
+  width: 100%; background: none; border: none; color: #fff; padding: 12px 14px;
+  text-align: left; font-size: 14px; border-radius: 9px; cursor: pointer;
+  display: flex; align-items: center; gap: 10px;
+}
+.call-more-menu button:active { background: rgba(255,255,255,0.1); }
+.call-more-backdrop { position: fixed; inset: 0; z-index: 9; }
+
+/* ─── Minimized PiP bubble ─── */
+.call-pip {
+  position: fixed; width: 84px; height: 84px; border-radius: 50%; overflow: hidden;
+  z-index: 999999; box-shadow: 0 8px 24px rgba(0,0,0,0.55);
+  border: 2px solid rgba(255,255,255,0.3); cursor: pointer; background: #111;
+  bottom: 110px; right: 16px; touch-action: none;
+  display: flex; align-items: center; justify-content: center;
+}
+.call-pip img.call-pip-static, .call-pip video {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.call-pip-avatar-fallback { font-size: 28px; font-weight: 700; color: #fff; }
+.call-pip-timer {
+  position: absolute; bottom: 0; left: 0; right: 0; text-align: center;
+  font-size: 9px; color: #fff; background: rgba(0,0,0,0.5); padding: 2px 0;
+  font-variant-numeric: tabular-nums;
+}
+.call-pip-mic-off {
+  position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%;
+  background: #ff3b30; display: flex; align-items: center; justify-content: center; font-size: 9px;
+}
+/* ─── Mid-call video upgrade banner ─── */
+.call-upgrade-banner {
+  position: absolute; top: 76px; left: 16px; right: 16px; z-index: 6;
+  background: rgba(28,18,32,0.96); backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+  padding: 12px 14px; color: #fff; font-size: 13px;
+  display: flex; flex-direction: column; gap: 10px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.5);
+  animation: callMoreMenuIn 0.2s ease;
+}
+.call-upgrade-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.call-upgrade-actions button {
+  border: none; border-radius: 8px; padding: 7px 14px; font-size: 13px;
+  font-weight: 600; cursor: pointer; background: rgba(255,255,255,0.12); color: #fff;
+}
+.call-upgrade-actions button.accept { background: #34c759; color: #06210f; }
