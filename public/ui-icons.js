@@ -92,6 +92,19 @@
     '🐾': 'paw-print',            // pets category
     '☀️': 'sun',                  // weather / day markers
     '🥇': 'medal',
+
+    // ── NEW in v4 — reported as still unconverted ──
+    '❤️': 'heart',
+    '📸': 'camera',
+    '💝': 'gift',
+    '🌹': 'flower',
+    '💞': 'heart-handshake',
+    '💕': 'heart',
+    '💜': 'heart',
+    '🛋️': 'sofa',
+    '🎤': 'mic',
+    '🏝️': 'palmtree',
+    '📺': 'tv',
   };
 
   function iconHTML(name) {
@@ -128,7 +141,13 @@
     '.connect-btn-ico', '.connect-btn-label', '.connect-stat',
     '.metric-n', '.fstat-n', '.pstat-n', '.stat-n',
     '.reconnect-ico', '#reconnectActivities .card-title',
-    '.love-card-ico', '.love-card-meta'
+    '.love-card-ico', '.love-card-meta',
+
+    // ── NEW in v4 — dream board tabs, type selects, misc inline icon buttons ──
+    '#dreamTabs .stab', 'select#msType option', 'select#surType option',
+    '.touch-heart-btn', '.sh-heart', '.logo-heart', '.hug-btn .connect-btn-ico',
+    '.missyou-btn .connect-btn-ico', '.cb-snap', '.pt-btn',
+    '.storage-cat-ico', '.storage-ring-label'
   ];
 
   // Explicit EXCLUDE list — never process these even if nested inside a safe zone
