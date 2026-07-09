@@ -5226,15 +5226,13 @@ select option { background: #0D0D0D; color: #fff; }
 </div>
       <!-- Mobile Bottom Nav -->
       <nav class="bot-nav" id="botNav">
-        <div class="bot-ni active" data-page="dashboard" onclick="gotoMob('dashboard',this)"><span
-            class="ico">🏠</span>Home</div>
-        <div class="bot-ni" data-page="chat" onclick="gotoMob('chat',this)"><span class="ico">💬</span>Chat<span data-chat-badge></span></div>
-        <div class="bot-ni" data-page="myspace" onclick="gotoMob('myspace',this)"><span class="ico">🌸</span>Space</div>
-        <div class="bot-ni" data-page="ai" onclick="gotoMob('ai',this)"><span class="ico">🤖</span>AI</div>
-        <div class="bot-ni" data-page="globe" onclick="gotoMob('globe',this)"><span class="ico">🌍</span>Globe</div>
-        <div class="bot-ni" data-page="games" onclick="gotoMob('games',this)"><span class="ico">🎮</span>Games</div>
-        <div class="bot-ni" data-page="settings" onclick="gotoMob('settings',this)"><span class="ico">⚙️</span>More
-        </div>
+        <div class="bot-ni active" data-page="dashboard"><span class="ico">🏠</span>Home</div>
+<div class="bot-ni" data-page="chat"><span class="ico">💬</span>Chat<span data-chat-badge></span></div>
+<div class="bot-ni" data-page="myspace"><span class="ico">🌸</span>Space</div>
+<div class="bot-ni" data-page="ai"><span class="ico">🤖</span>AI</div>
+<div class="bot-ni" data-page="globe"><span class="ico">🌍</span>Globe</div>
+<div class="bot-ni" data-page="games"><span class="ico">🎮</span>Games</div>
+<div class="bot-ni" data-page="settings"><span class="ico">⚙️</span>More</div>
       </nav>
 
       <!-- ════════ MODALS ════════ -->
@@ -5976,7 +5974,13 @@ function setJustPairedAt(ts) {
         function fmtDate(s) { return s ? new Date(s + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'; }
         function fmtDateShort(s) { return s ? new Date(s + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—'; }
 
-
+document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.bot-ni').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+    goto(el.dataset.page);
+  });
+});
         // Modern celebration — hearts & sparkles, no flowers/stars
         function spawnPetals(n = 8) {
           if ((S.settings || {}).celebAnimations === false) return; // respect user setting
