@@ -6169,6 +6169,7 @@ function setJustPairedAt(ts) {
           dreamgoals: 'Dream Goals 💫', places: 'Places Memory 🗺️', meetplanner: 'Meet Planner 💕'
         };
         function goto(page, pushHistory = true) {
+          if (window.PageManager) PageManager.currentPage = page;
           document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
           document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
           const pg = document.getElementById('page-' + page); if (!pg) return;
@@ -7173,13 +7174,43 @@ function logOut() { if (!confirm('Log out? You can sign back in anytime. Your da
 }
         }
 
+        // ─── PAGE MANAGER (lightweight) ──────────────────────────
+        // Tracks which page is currently visible so background loops can
+        // skip work the user can't see. Pages below have their own
+        // sync/iframe mechanism (syncThemeToFrame, chat.js polling, etc.)
+        // so the heavy full-state cloud poll can run far less often there.
+        window.PageManager = window.PageManager || {
+          currentPage: 'dashboard',
+          SELF_SYNCING_PAGES: new Set([
+            'chat', 'games', 'music', 'globe', 'collection',
+            'lovecounter', 'dreamgoals', 'meetplanner'
+          ]),
+          isSelfSyncing() { return this.SELF_SYNCING_PAGES.has(this.currentPage); }
+        };
+
         let _syncLoopStarted = false;
+        let _syncTickCount = 0;
 function startSyncLoop() {
   if (_syncLoopStarted) return;
   _syncLoopStarted = true;
   setInterval(async () => {
-    await loadFromCloud();
-    await checkPairStatus();
+    _syncTickCount++;
+
+    // Tab not visible: skip this tick entirely, no network calls at all.
+    if (document.hidden) return;
+
+    // On pages with their own sync mechanism (chat/games/music/etc.),
+    // only run the full-state cloud sync every 4th tick (~20s instead
+    // of 5s). Those pages already get freshness from their own polling
+    // or iframe sync, so they don't need the full blob this often.
+    const isLightTick = PageManager.isSelfSyncing() && (_syncTickCount % 4 !== 0);
+    if (!isLightTick) {
+      await loadFromCloud();
+    }
+
+    // checkPairStatus only matters before pairing; skip it forever once paired.
+    if (!S.paired) await checkPairStatus();
+
     checkIncomingTouch();
     checkIncomingMissYou();
     checkIncomingHug();

@@ -117,7 +117,17 @@ const Chat = (function () {
 
   function startPolling() {
     if (pollInterval) clearInterval(pollInterval);
-    pollInterval = setInterval(pollNew, 2500);
+    let _tick = 0;
+    pollInterval = setInterval(() => {
+      _tick++;
+      // Tab backgrounded: no network calls at all.
+      if (document.hidden) return;
+      const chatActive = document.getElementById('page-chat')?.classList.contains('active');
+      // Full 2.5s speed only while the chat page is actually open.
+      // Elsewhere in the app, check every 8th tick (~20s) — just enough
+      // to keep unread badges / last-message preview fresh.
+      if (chatActive || _tick % 8 === 0) pollNew();
+    }, 2500);
   }
 
   async function markRead() {

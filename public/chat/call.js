@@ -90,7 +90,18 @@ let iceQueue = [];
 
   function startPolling() {
     if (pollInterval) clearInterval(pollInterval);
-    pollInterval = setInterval(pollSignal, 500);
+    let _tick = 0;
+    pollInterval = setInterval(() => {
+      _tick++;
+      // Tab backgrounded: no network calls at all.
+      if (document.hidden) return;
+      // Full 500ms speed only while a call is actually connecting/active
+      // (pc exists) — that's when ICE/signaling needs low latency.
+      // Idle (no call), just check every 4th tick (~2s) to catch an
+      // incoming offer quickly enough for a responsive ring, without
+      // hammering the endpoint 24/7.
+      if (pc || _tick % 4 === 0) pollSignal();
+    }, 500);
     pollSignal(); // fire immediately, don't wait for first tick
   }
 
