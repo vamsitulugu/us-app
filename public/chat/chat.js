@@ -100,7 +100,7 @@ const Chat = (function () {
       rows.forEach(r => {
         const idx = msgs.findIndex(m => m.id === r.id || (r.client_id && m.client_id === r.client_id));
         if (idx > -1) msgs[idx] = r; else msgs.push(r);
-      });a
+      });
       lastMsgTs = rows[rows.length - 1].created_at;
       render();
       const box = document.getElementById('chatMsgs');
