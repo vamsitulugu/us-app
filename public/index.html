@@ -3713,6 +3713,185 @@ select option { background: #0D0D0D; color: #fff; }
 /* ── Scrollbars ── */
 ::-webkit-scrollbar-thumb { background: rgba(229, 9, 20, 0.18) !important; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(229, 9, 20, 0.32) !important; }
+/* ═══════════════════════════════════════════
+   PREMIUM MOTION SYSTEM — shared visual language
+   ═══════════════════════════════════════════ */
+:root{
+  --pfx-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --pfx-ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --pfx-glow: rgba(229,9,20,0.45);
+  --pfx-glow-soft: rgba(229,9,20,0.18);
+  --pfx-gold: rgba(255,196,102,0.55);
+}
+
+/* Aurora sweep — reusable across buttons/cards */
+.pfx-aurora{ position:relative; overflow:hidden; isolation:isolate; }
+.pfx-aurora::after{
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.22) 48%, var(--pfx-glow) 52%, transparent 65%);
+  transform:translateX(-120%); opacity:0;
+}
+.pfx-aurora.pfx-play::after{
+  animation: pfxAurora 700ms var(--pfx-ease) forwards;
+}
+@keyframes pfxAurora{
+  0%{ transform:translateX(-120%); opacity:0 }
+  15%{ opacity:1 }
+  100%{ transform:translateX(120%); opacity:0 }
+}
+
+/* Ambient glow ring (hug / achievement) */
+.pfx-glow-ring{
+  position:fixed; pointer-events:none; z-index:9995;
+  border-radius:50%; border:1px solid var(--pfx-glow);
+  box-shadow:0 0 30px var(--pfx-glow-soft), inset 0 0 20px var(--pfx-glow-soft);
+  opacity:0; transform:scale(0.6);
+}
+.pfx-glow-ring.pfx-play{
+  animation: pfxRing 650ms var(--pfx-ease) forwards;
+}
+@keyframes pfxRing{
+  0%{ opacity:0; transform:scale(0.6) }
+  30%{ opacity:1 }
+  100%{ opacity:0; transform:scale(1.6) }
+}
+
+/* Travelling light (touch / miss-you) */
+.pfx-travel-light{
+  position:fixed; z-index:9996; pointer-events:none;
+  width:10px; height:10px; border-radius:50%;
+  background:radial-gradient(circle, #fff 0%, var(--pfx-glow) 55%, transparent 75%);
+  box-shadow:0 0 16px 4px var(--pfx-glow-soft);
+  opacity:0;
+}
+.pfx-travel-light.pfx-play{
+  animation: pfxTravel var(--pfx-dur, 650ms) var(--pfx-ease) forwards;
+}
+@keyframes pfxTravel{
+  0%{ opacity:0; transform: translate(var(--x0,0), var(--y0,0)) scale(0.6) }
+  12%{ opacity:1 }
+  85%{ opacity:0.9 }
+  100%{ opacity:0; transform: translate(var(--x1,0), var(--y1,0)) scale(1) }
+}
+
+/* Merge / connect (partner joined, call connected) */
+.pfx-connect-line{
+  position:fixed; z-index:9994; pointer-events:none;
+  height:2px; border-radius:2px; transform-origin:left center;
+  background:linear-gradient(90deg, transparent, var(--pfx-glow), transparent);
+  opacity:0;
+}
+.pfx-connect-line.pfx-play{
+  animation: pfxConnect 900ms var(--pfx-ease) forwards;
+}
+@keyframes pfxConnect{
+  0%{ opacity:0; transform:scaleX(0) }
+  35%{ opacity:1; transform:scaleX(1) }
+  70%{ opacity:1; box-shadow:0 0 14px 2px var(--pfx-glow-soft) }
+  100%{ opacity:0; transform:scaleX(1) }
+}
+.pfx-connect-line.pfx-dissolve{
+  animation: pfxDissolve 800ms var(--pfx-ease-soft) forwards !important;
+}
+@keyframes pfxDissolve{
+  0%{ opacity:1; filter:blur(0) }
+  100%{ opacity:0; filter:blur(6px); transform:scaleX(1.15) }
+}
+
+/* Card entrance — memory / event added */
+.pfx-card-in{
+  animation: pfxCardIn 500ms var(--pfx-ease) both;
+}
+@keyframes pfxCardIn{
+  0%{ opacity:0; transform:scale(0.94) translateY(8px) }
+  100%{ opacity:1; transform:scale(1) translateY(0) }
+}
+.pfx-shimmer{ position:relative; overflow:hidden; }
+.pfx-shimmer::before{
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(120deg, transparent 40%, rgba(255,255,255,0.18) 50%, transparent 60%);
+  transform:translateX(-100%);
+  animation: pfxShimmer 700ms var(--pfx-ease) 80ms both;
+}
+@keyframes pfxShimmer{
+  to{ transform:translateX(100%) }
+}
+.pfx-flash{
+  position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  background:rgba(255,255,255,0.55); opacity:0;
+  animation: pfxFlash 350ms var(--pfx-ease-soft) both;
+}
+@keyframes pfxFlash{
+  0%{ opacity:0.55 } 100%{ opacity:0 }
+}
+
+/* Message bubble entrance */
+.pfx-msg-in{
+  animation: pfxMsgIn 350ms var(--pfx-ease) both;
+  position:relative; overflow:hidden;
+}
+@keyframes pfxMsgIn{
+  0%{ opacity:0; transform:translateY(8px) scale(0.97) }
+  100%{ opacity:1; transform:translateY(0) scale(1) }
+}
+.pfx-msg-in::after{
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(100deg, transparent 30%, rgba(255,255,255,0.25) 48%, transparent 62%);
+  transform:translateX(-140%);
+  animation: pfxAurora 550ms var(--pfx-ease) 60ms both;
+}
+
+/* Gift bloom */
+.pfx-gift-bloom{
+  position:fixed; z-index:9996; pointer-events:none; border-radius:50%;
+  background:radial-gradient(circle, var(--pfx-gold) 0%, transparent 70%);
+  opacity:0; transform:scale(0.3);
+}
+.pfx-gift-bloom.pfx-play{
+  animation: pfxBloom 700ms var(--pfx-ease) forwards;
+}
+@keyframes pfxBloom{
+  0%{ opacity:0; transform:scale(0.3) }
+  35%{ opacity:0.9; transform:scale(1) }
+  100%{ opacity:0; transform:scale(1.5) }
+}
+
+/* Sync icon morph */
+.pfx-sync-spin{ display:inline-block; transition:transform 500ms var(--pfx-ease); }
+.pfx-sync-spin.pfx-play{ transform:rotate(360deg); }
+.pfx-sync-check{
+  color:var(--green) !important;
+  text-shadow:0 0 10px rgba(52,211,153,0.5);
+  transition:color 300ms var(--pfx-ease-soft);
+}
+
+/* Frosted toast (replaces old .toast look, kept same element/id) */
+.toast{
+  background:rgba(15,15,20,0.55) !important;
+  backdrop-filter: blur(22px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(180%) !important;
+  border:1px solid rgba(255,255,255,0.14) !important;
+  position:relative; overflow:hidden;
+}
+.toast.show{
+  animation: pfxToastIn 450ms var(--pfx-ease) both;
+}
+@keyframes pfxToastIn{
+  0%{ opacity:0; transform:translateX(-50%) translateY(16px) scale(0.96) }
+  100%{ opacity:1; transform:translateX(-50%) translateY(0) scale(1) }
+}
+.toast::before{
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.14) 48%, transparent 66%);
+  transform:translateX(-120%);
+  animation: pfxAurora 600ms var(--pfx-ease) 100ms both;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .pfx-aurora::after, .pfx-glow-ring, .pfx-travel-light, .pfx-connect-line,
+  .pfx-card-in, .pfx-shimmer::before, .pfx-flash, .pfx-msg-in, .pfx-msg-in::after,
+  .pfx-gift-bloom, .toast.show, .toast::before { animation:none !important; }
+}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
@@ -5835,7 +6014,7 @@ async function checkPairStatus() {
 if (!localStorage.getItem(toastKey)) {
   localStorage.setItem(toastKey, '1');
   toast('💕 ' + S.partnerName + ' joined! You are now linked.');
-  spawnPetals();
+  PremiumFX.partnerMerge(document.getElementById('sbAv1'), document.getElementById('sbAv2'));
   setJustPairedAt(Date.now());
 }
 saveLocal();
@@ -5892,7 +6071,7 @@ function setJustPairedAt(ts) {
           const btn = document.getElementById('touchHeartBtn');
           if (btn) { btn.classList.add('touch-sent'); setTimeout(() => btn.classList.remove('touch-sent'), 700); }
           toast('Sent a touch to ' + (S.partnerName || 'them') + ' 💓');
-          spawnPetals(6);
+          PremiumFX.travelLight(document.getElementById('touchHeartBtn') || document.getElementById('ccTouchBtn'), document.getElementById('sbAv2'), { dur: 650 });
         }
     
         function checkIncomingTouch() {
@@ -5902,7 +6081,7 @@ function setJustPairedAt(ts) {
           localStorage.setItem('uwl_lastTouchSeen', String(lastTouchSeen));
           if (navigator.vibrate) navigator.vibrate([120, 60, 120, 60, 200]);
           toast((S.partnerName || 'Your partner') + ' sent you a touch 💓', 4000);
-          spawnPetals(10);
+          PremiumFX.glowRing(document.getElementById('sbAv1'), { size: 100 });
           const ripple = document.getElementById('touchRipple');
           if (ripple) { ripple.classList.add('show'); setTimeout(() => ripple.classList.remove('show'), 1600); }
         }
@@ -5971,39 +6150,6 @@ function setJustPairedAt(ts) {
         function fmtDate(s) { return s ? new Date(s + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'; }
         function fmtDateShort(s) { return s ? new Date(s + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—'; }
 
-
-        // Modern celebration — hearts & sparkles, no flowers/stars
-        function spawnPetals(n = 8) {
-          if ((S.settings || {}).celebAnimations === false) return; // respect user setting
-          if ((S.settings || {}).reducedMotion) return;
-          const particles = ['💕', '❤️', '✨', '💫', '🌹', '💖'];
-          for (let i = 0; i < n; i++)setTimeout(() => {
-            const p = document.createElement('div');
-            const em = particles[Math.floor(Math.random() * particles.length)];
-            const x = 20 + Math.random() * 60; // keep within 20-80% width
-            const rot = Math.random() > 0.5 ? '360deg' : '-360deg';
-            const dur = 1.8 + Math.random() * 1.5;
-            p.style.cssText = `
-      position:fixed;pointer-events:none;z-index:9999;
-      font-size:${14 + Math.random() * 12}px;
-      left:${x}vw;bottom:${30 + Math.random() * 20}px;
-      animation:riseUp ${dur}s cubic-bezier(0.16,1,0.3,1) forwards;
-      --rot:${rot};
-    `;
-            p.textContent = em;
-            if (!document.getElementById('riseUpStyle')) {
-              const s = document.createElement('style'); s.id = 'riseUpStyle';
-              s.textContent = `@keyframes riseUp{
-        0%{transform:translateY(0) rotate(0) scale(1);opacity:1}
-        60%{opacity:0.9;transform:translateY(-50vh) rotate(calc(var(--rot)*0.6)) scale(1.1)}
-        100%{transform:translateY(-100vh) rotate(var(--rot)) scale(0.3);opacity:0}
-      }`;
-              document.head.appendChild(s);
-            }
-            document.body.appendChild(p);
-            setTimeout(() => p.remove(), (dur + 0.2) * 1000);
-          }, i * 120);
-        }
 
         // ─── IMAGE VIEWER ────────────────────────────────────────
         function openImgViewer(url) { document.getElementById('imgViewerImg').src = url; document.getElementById('imgViewer').classList.add('open'); }
@@ -6207,7 +6353,7 @@ async function toggleNotifications() {
           const btn = document.getElementById('missYouBtn');
           if (btn) { btn.classList.add('missyou-sent'); setTimeout(() => btn.classList.remove('missyou-sent'), 650); }
           toast('💔 Sent — ' + (S.partnerName || 'they') + ' will know you miss them');
-          spawnPetals(6);
+          PremiumFX.travelLight(document.getElementById('missYouBtn') || document.getElementById('ccMissBtn'), document.getElementById('sbAv2'), { dur: 700, heart: true });
         }
         function sendMissYouBack() { closeMissYouPopup(); sendMissYou(); }
 
@@ -6229,7 +6375,7 @@ async function toggleNotifications() {
           const d = new Date(data.ts);
           document.getElementById('missYouMeta').textContent = '🕒 ' + d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' · ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           document.getElementById('missYouOverlay').classList.add('active');
-          spawnPetals(8);
+          PremiumFX.glowRing(document.getElementById('missYouOverlay').querySelector('.love-card-ico'), { size: 140 });
         }
         function closeMissYouPopup() { document.getElementById('missYouOverlay').classList.remove('active'); }
 
@@ -6275,7 +6421,7 @@ async function toggleNotifications() {
         function showHugRequestPopup() {
           document.getElementById('hugReqTitle').textContent = (S.partnerName || 'Your partner') + ' is sending you a hug 🤗';
           document.getElementById('hugReqSub').textContent = 'Tap Accept to hug them back';
-          spawnFloatingHearts('hugFloatWrap');
+          
           document.getElementById('hugRequestOverlay').classList.add('active');
         }
         function closeHugRequestPopup() { document.getElementById('hugRequestOverlay').classList.remove('active'); }
@@ -6302,9 +6448,9 @@ async function toggleNotifications() {
           if (S.partnerAvatar) setAvImg('hugAvB', S.partnerAvatar);
           const total = (S.hugStats || {}).total || 0;
           document.getElementById('hugSharedSub').textContent = 'Total hugs shared: ' + total;
-          spawnFloatingHearts('hugSharedFloatWrap');
           document.getElementById('hugSharedOverlay').classList.add('active');
-          spawnPetals(14);
+          PremiumFX.glowRing(document.getElementById('hugAvA'), { size: 110 });
+          PremiumFX.glowRing(document.getElementById('hugAvB'), { size: 110 });
           renderHugStats();
           setTimeout(closeHugSharedPopup, 4500);
         }
@@ -7151,7 +7297,7 @@ function startSyncLoop() {
         function openSurprise(id) {
           const s = (S.surprises || []).find(x => x.id === id); if (!s) return;
           if (todayStr() < s.unlock) { toast('🔒 Unlocks ' + fmtDate(s.unlock)); return; }
-          s.opened = true; renderSurprises(); scheduleSave(); spawnPetals(12);
+          s.opened = true; renderSurprises(); scheduleSave(); PremiumFX.giftBloom(document.getElementById('page-surprise'));
         }
         function delSurprise(id) { S.surprises = (S.surprises || []).filter(s => s.id !== id); renderSurprises(); scheduleSave(); }
         function renderSurprises() {
@@ -7197,7 +7343,7 @@ function startSyncLoop() {
         function addXP(n) {
           S.xp = (S.xp || 0) + n;
           const newLevel = levelFromXP(S.xp), prevLevel = levelFromXP(S.xp - n);
-          if (newLevel > prevLevel) { toast('🏆 Level Up! You are now Level ' + newLevel, 4000); spawnPetals(15); }
+          if (newLevel > prevLevel) { toast('🏆 Level Up! You are now Level ' + newLevel, 4000); PremiumFX.glowRing(document.querySelector('.metric-n'), { size: 130 });}
           scheduleSave();
           if (document.getElementById('page-level') && document.getElementById('page-level').classList.contains('active')) renderLevelPage();
         }
@@ -7811,6 +7957,143 @@ document.addEventListener('visibilitychange', () => {
   setInterval(pollForInvite, 1500);
 })();
 
+// ═══════════════════════════════════════════
+// PremiumFX — unified motion system
+// Replaces spawnPetals() and all emoji/particle bursts.
+// ═══════════════════════════════════════════
+const PremiumFX = (() => {
+  function elCenter(el) {
+    if (!el) return { x: innerWidth/2, y: innerHeight/2 };
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width/2, y: r.top + r.height/2 };
+  }
+
+  // Aurora light sweep across any element (button, card)
+  function aurora(el) {
+    if (!el || (S.settings||{}).reducedMotion) return;
+    el.classList.add('pfx-aurora');
+    el.classList.remove('pfx-play'); void el.offsetWidth;
+    el.classList.add('pfx-play');
+    setTimeout(() => el.classList.remove('pfx-play'), 750);
+  }
+
+  // Expanding glow ring behind an element (hug ambient glow, achievement)
+  function glowRing(el, opts = {}) {
+    if ((S.settings||{}).reducedMotion) return;
+    const c = elCenter(el);
+    const size = opts.size || 120;
+    const ring = document.createElement('div');
+    ring.className = 'pfx-glow-ring';
+    ring.style.cssText = `width:${size}px;height:${size}px;left:${c.x-size/2}px;top:${c.y-size/2}px;`;
+    document.body.appendChild(ring);
+    requestAnimationFrame(() => ring.classList.add('pfx-play'));
+    setTimeout(() => ring.remove(), 700);
+  }
+
+  // A single point of light travelling from -> to (touch / miss you)
+  function travelLight(fromEl, toEl, opts = {}) {
+    if ((S.settings||{}).reducedMotion) { return; }
+    const a = elCenter(fromEl), b = elCenter(toEl);
+    const dot = document.createElement('div');
+    dot.className = 'pfx-travel-light';
+    dot.style.setProperty('--x0', '0px'); dot.style.setProperty('--y0', '0px');
+    dot.style.setProperty('--x1', (b.x - a.x) + 'px'); dot.style.setProperty('--y1', (b.y - a.y) + 'px');
+    dot.style.setProperty('--pfx-dur', (opts.dur || 650) + 'ms');
+    dot.style.left = a.x + 'px'; dot.style.top = a.y + 'px';
+    if (opts.heart) {
+      dot.style.background = 'transparent';
+      dot.style.boxShadow = 'none';
+      dot.style.fontSize = '14px';
+      dot.style.width = 'auto'; dot.style.height = 'auto';
+      dot.style.filter = 'drop-shadow(0 0 8px var(--pfx-glow))';
+      dot.textContent = '♥';
+      dot.style.color = 'var(--accent)';
+    }
+    document.body.appendChild(dot);
+    requestAnimationFrame(() => dot.classList.add('pfx-play'));
+    setTimeout(() => dot.remove(), (opts.dur || 650) + 100);
+  }
+
+  // Glowing connect line between two elements (partner joined, call connected/ended)
+  function connectLine(fromEl, toEl, opts = {}) {
+    const a = elCenter(fromEl), b = elCenter(toEl);
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.hypot(dx, dy), angle = Math.atan2(dy, dx) * 180/Math.PI;
+    const line = document.createElement('div');
+    line.className = 'pfx-connect-line';
+    line.style.cssText = `width:${len}px;left:${a.x}px;top:${a.y}px;transform-origin:left center;transform:rotate(${angle}deg) scaleX(0);`;
+    document.body.appendChild(line);
+    requestAnimationFrame(() => line.classList.add('pfx-play'));
+    const life = opts.dissolve ? 900 : 950;
+    setTimeout(() => { if (opts.dissolve) line.classList.add('pfx-dissolve'); }, opts.dissolve ? 0 : 0);
+    setTimeout(() => line.remove(), life);
+    return line;
+  }
+
+  // Warm golden bloom (gift received)
+  function giftBloom(el) {
+    const c = elCenter(el);
+    const size = 220;
+    const bloom = document.createElement('div');
+    bloom.className = 'pfx-gift-bloom';
+    bloom.style.cssText = `width:${size}px;height:${size}px;left:${c.x-size/2}px;top:${c.y-size/2}px;`;
+    document.body.appendChild(bloom);
+    requestAnimationFrame(() => bloom.classList.add('pfx-play'));
+    setTimeout(() => bloom.remove(), 750);
+  }
+
+  // Card entrance with shimmer + flash (memory added, event added)
+  function cardIn(el, opts = {}) {
+    if (!el) return;
+    el.classList.add('pfx-card-in');
+    if (opts.shimmer) el.classList.add('pfx-shimmer');
+    if (opts.flash) {
+      const f = document.createElement('div');
+      f.className = 'pfx-flash';
+      const pos = getComputedStyle(el).position;
+      if (pos === 'static') el.style.position = 'relative';
+      el.appendChild(f);
+      setTimeout(() => f.remove(), 400);
+    }
+    setTimeout(() => el.classList.remove('pfx-card-in','pfx-shimmer'), 750);
+  }
+
+  // Message bubble entrance
+  function msgIn(el) {
+    if (!el) return;
+    el.classList.add('pfx-msg-in');
+    setTimeout(() => el.classList.remove('pfx-msg-in'), 600);
+  }
+
+  // Sync icon: one rotation → checkmark morph
+  function syncMorph(btnEl) {
+    if (!btnEl) return;
+    btnEl.classList.add('pfx-sync-spin','pfx-play');
+    const original = btnEl.innerHTML;
+    setTimeout(() => {
+      btnEl.innerHTML = '✓ Synced';
+      btnEl.classList.add('pfx-sync-check');
+      setTimeout(() => {
+        btnEl.innerHTML = original;
+        btnEl.classList.remove('pfx-sync-spin','pfx-play','pfx-sync-check');
+      }, 1000);
+    }, 500);
+  }
+
+  // Partner-joined merge: two circles move together into one glow
+  function partnerMerge(avA, avB) {
+    connectLine(avA, avB);
+    setTimeout(() => { glowRing(avA, {size:90}); glowRing(avB, {size:90}); }, 300);
+  }
+
+  return { aurora, glowRing, travelLight, connectLine, giftBloom, cardIn, msgIn, syncMorph, partnerMerge };
+})();
+window.PremiumFX = PremiumFX;
+
+// Reduced-motion-safe replacement for the old spawnPetals() particle burst.
+// Kept as a no-op shim so any leftover spawnPetals(...) calls don't error —
+// call sites should be migrated to PremiumFX per the map below.
+function spawnPetals(){ /* replaced by PremiumFX — intentionally inert */ }
 applyRebranding();
 init();
         // Register PWA service worker
