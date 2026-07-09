@@ -17,8 +17,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <link rel="stylesheet" href="/chat/chat.css">
-  <link rel="stylesheet" href="/chat/call.css">
-  <link rel="stylesheet" href="/premium-motion.css">
+  <link rel="stylesheet" href="/chat/call.css">zz
   <style>
     /* ════════════════════════════════════════════
    RESET & ROOT VARIABLES
@@ -5711,7 +5710,6 @@ async function removePartner() {
             saveLocal(); document.getElementById('authOverlay').style.display = 'none';
             await loadFromCloud(); pushMyProfile(); pullPartnerProfile(); saveToCloud();
             applyNames(); renderAll(); updatePairStatus(); syncLoveCounterToFrame();
-            PM.relationshipConnected(document.body);
             toast('Connected with ' + data.partnerName + '! 💕'); spawnPetals(); startAlarmCheck(); startSyncLoop();
             if (Notification.permission === 'granted') setTimeout(registerPushSubscription, 2000);
           } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
@@ -5777,7 +5775,7 @@ async function saveToCloud() {
         async function syncNow() {
           document.getElementById('syncBtn').textContent = '⏳...';
           await loadFromCloud(); await checkPairStatus(); checkIncomingTouch(); checkIncomingMissYou(); checkIncomingHug(); renderAll();
-          document.getElementById('syncBtn').textContent = '☁️ Sync';PM.syncComplete(document.getElementById('syncBtn')); toast('Synced! ☁️');
+          document.getElementById('syncBtn').textContent = '☁️ Sync'; toast('Synced! ☁️');
         }
         function updateSyncStatus(ok) {
           const pill = document.getElementById('syncPill'), dot = document.getElementById('syncDot'), txt = document.getElementById('syncText');
@@ -5837,7 +5835,6 @@ async function checkPairStatus() {
 if (!localStorage.getItem(toastKey)) {
   localStorage.setItem(toastKey, '1');
   toast('💕 ' + S.partnerName + ' joined! You are now linked.');
-  PM.partnerJoined(); 
   spawnPetals();
   setJustPairedAt(Date.now());
 }
@@ -5896,7 +5893,6 @@ function setJustPairedAt(ts) {
           if (btn) { btn.classList.add('touch-sent'); setTimeout(() => btn.classList.remove('touch-sent'), 700); }
           toast('Sent a touch to ' + (S.partnerName || 'them') + ' 💓');
           spawnPetals(6);
-          PM.touch(document.getElementById('touchHeartBtn'), event);
         }
     
         function checkIncomingTouch() {
@@ -5909,7 +5905,6 @@ function setJustPairedAt(ts) {
           spawnPetals(10);
           const ripple = document.getElementById('touchRipple');
           if (ripple) { ripple.classList.add('show'); setTimeout(() => ripple.classList.remove('show'), 1600); }
-          PM.touch(document.querySelector('.touch-heart-btn') || document.body);
         }
         // ─── NAVIGATION ──────────────────────────────────────────
         const pageTitles = {
@@ -6259,7 +6254,6 @@ async function toggleNotifications() {
           if (btn) { btn.classList.add('hug-sent'); setTimeout(() => btn.classList.remove('hug-sent'), 650); }
           toast('🤗 Hug sent — waiting for ' + (S.partnerName || 'them') + ' to accept');
           spawnPetals(5);
-          PM.hug(document.getElementById('hugBtn'));
         }
 
         function checkIncomingHug() {
@@ -6299,7 +6293,6 @@ async function toggleNotifications() {
           closeHugRequestPopup();
           scheduleSave();
           showHugSharedPopup();
-          PM.hug(document.getElementById('hugBtn'));
           addXP(6);
         }
 
@@ -6736,7 +6729,6 @@ async function toggleNotifications() {
           if (alarm && ev.time) { if (!S.reminders) S.reminders = []; S.reminders.push({ id: Date.now() + 1, title: '📅 ' + title, date, time: ev.time, forWhom: alarm, note: ev.note || '', fired: false, type: 'event' }); }
           ['evTitle', 'evDate', 'evTime', 'evNote'].forEach(id => document.getElementById(id).value = '');
           closeM('eventModal'); renderCalendar(); scheduleSave(); toast('Event added! 📅'); spawnPetals(5);
-          requestAnimationFrame(() => PM.eventAdded(document.querySelector('#eventList .bucket-row')));
         }
         function renderCalendar() {
           const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -7156,23 +7148,19 @@ function startSyncLoop() {
           };
           if (file) { const r = new FileReader(); r.onload = e => save(e.target.result); r.readAsDataURL(file); } else save('');
         }
-      function openSurprise(id) {
-  const s = (S.surprises || []).find(x => x.id === id); if (!s) return;
-  if (todayStr() < s.unlock) { toast('🔒 Unlocks ' + fmtDate(s.unlock)); return; }
-  s.opened = true; renderSurprises(); scheduleSave();
-  requestAnimationFrame(() => {
-    const box = document.querySelector('#surpriseList .fight-card');
-    PM.giftOpened(box);
-  });
-}
-function delSurprise(id) { S.surprises = (S.surprises || []).filter(s => s.id !== id); renderSurprises(); scheduleSave(); }
-function renderSurprises() {
-  const el = document.getElementById('surpriseList'); if (!el) return;
-  if (!S.surprises || !S.surprises.length) { el.innerHTML = '<div class="empty">No surprises yet</div>'; return; }
-  el.innerHTML = S.surprises.map(s => {
-    const locked = todayStr() < s.unlock, mine = s.by === S.role;
-    if (locked && !mine) return `<div class="fight-card" style="background:var(--g1);border-color:var(--border)"><span class="fight-status fight-open">🔒 Locked</span><div style="font-size:12px;color:var(--text2);margin-top:7px">A surprise is waiting for you! Opens ${fmtDate(s.unlock)} 🎉</div></div>`;
-    return `<div class="fight-card" style="background:var(--g1);border-color:var(--border)">
+        function openSurprise(id) {
+          const s = (S.surprises || []).find(x => x.id === id); if (!s) return;
+          if (todayStr() < s.unlock) { toast('🔒 Unlocks ' + fmtDate(s.unlock)); return; }
+          s.opened = true; renderSurprises(); scheduleSave(); spawnPetals(12);
+        }
+        function delSurprise(id) { S.surprises = (S.surprises || []).filter(s => s.id !== id); renderSurprises(); scheduleSave(); }
+        function renderSurprises() {
+          const el = document.getElementById('surpriseList'); if (!el) return;
+          if (!S.surprises || !S.surprises.length) { el.innerHTML = '<div class="empty">No surprises yet</div>'; return; }
+          el.innerHTML = S.surprises.map(s => {
+            const locked = todayStr() < s.unlock, mine = s.by === S.role;
+            if (locked && !mine) return `<div class="fight-card" style="background:var(--g1);border-color:var(--border)"><span class="fight-status fight-open">🔒 Locked</span><div style="font-size:12px;color:var(--text2);margin-top:7px">A surprise is waiting for you! Opens ${fmtDate(s.unlock)} 🎉</div></div>`;
+            return `<div class="fight-card" style="background:var(--g1);border-color:var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span class="fight-status ${locked ? 'fight-open' : 'fight-resolved'}">${locked ? '🔒 Locked (yours)' : '🔓 Unlocked'}</span>
         <button class="del-btn" onclick="delSurprise(${s.id})">✕</button>
@@ -7180,8 +7168,8 @@ function renderSurprises() {
       <div style="font-size:13px;font-weight:600;color:var(--white);margin:7px 0 3px">${esc(s.type)} ${esc(s.title)}</div>
       ${!locked ? `${s.msg ? `<div style="font-size:12px;color:var(--text2);margin-bottom:6px">${esc(s.msg)}</div>` : ''}${s.mediaUrl ? (s.mediaUrl.startsWith('data:video') ? `<video src="${s.mediaUrl}" controls style="width:100%;border-radius:10px"></video>` : s.mediaUrl.startsWith('data:audio') ? `<audio src="${s.mediaUrl}" controls style="width:100%"></audio>` : `<img src="${s.mediaUrl}" style="width:100%;border-radius:10px" onclick="openImgViewer('${s.mediaUrl}')">`) : ''}` : `<div style="font-size:11px;color:var(--text3)">Opens ${fmtDate(s.unlock)}</div>`}
     </div>`;
-  }).join('');
-}
+          }).join('');
+        }
         function saveFinGoal() {
           if (!S.finGoals) S.finGoals = {};
           S.finGoals[S.role] = parseFloat(document.getElementById('myFinGoal').value) || 0;
@@ -7209,7 +7197,7 @@ function renderSurprises() {
         function addXP(n) {
           S.xp = (S.xp || 0) + n;
           const newLevel = levelFromXP(S.xp), prevLevel = levelFromXP(S.xp - n);
-          if (newLevel > prevLevel) { toast('🏆 Level Up! You are now Level ' + newLevel, 4000); PM.achievement();  }
+          if (newLevel > prevLevel) { toast('🏆 Level Up! You are now Level ' + newLevel, 4000); spawnPetals(15); }
           scheduleSave();
           if (document.getElementById('page-level') && document.getElementById('page-level').classList.contains('active')) renderLevelPage();
         }
@@ -7889,6 +7877,5 @@ if ('serviceWorker' in navigator) {
 <script src="/chat/call.js"></script>
 <script src="/dashboard_chat_patch.js"></script>
 <script src="/ui-icons.js"></script>
-<script src="/premium-motion.js"></script>
 </body>
 </html>
