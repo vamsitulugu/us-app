@@ -8124,7 +8124,14 @@ document.addEventListener('visibilitychange', () => {
   }
   function closeGlobalInviteCard() { const el = document.getElementById('globalCkInviteOverlay'); if (el) el.remove(); }
 
-  setInterval(pollForInvite, 1500);
+  // Was: setInterval(pollForInvite, 1500) — fired forever on every page, even
+  // backgrounded tabs, hitting the full-state blob (same endpoint as startSyncLoop).
+  // Now: skip entirely when tab hidden, and poll at 5s instead of 1.5s — an
+  // invite card doesn't need sub-2s latency, just needs to show up promptly.
+  setInterval(() => {
+    if (document.hidden) return;
+    pollForInvite();
+  }, 5000);
 })();
 
 applyRebranding();
