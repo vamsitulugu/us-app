@@ -1649,45 +1649,6 @@
       left: 22px
     }
 
-    /* ════ THEME SWATCHES ════ */
-    .theme-grid {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      padding: 14px 18px
-    }
-
-    .theme-swatch {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      cursor: pointer;
-      border: 3px solid transparent;
-      transition: var(--t-spring);
-      position: relative;
-    }
-
-    .theme-swatch:hover {
-      transform: scale(1.12)
-    }
-
-    .theme-swatch.active {
-      border-color: var(--white);
-      transform: scale(1.12)
-    }
-
-    .theme-swatch.active::after {
-      content: '✓';
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-size: 13px;
-      font-weight: 700;
-    }
-
     /* ════ MODAL ════ */
     .modal-bg {
       position: fixed;
@@ -2505,10 +2466,6 @@
   .settings-group { margin-bottom: 10px }
   .settings-hero { padding: 18px 14px 16px }
   .sh-avatar { width: 76px; height: 76px }
-
-  /* Theme swatches */
-  .theme-grid { gap: 8px; padding: 12px 14px }
-  .theme-swatch { width: 34px; height: 34px }
 
   /* Pin pad */
   .pin-pad { max-width: 220px; gap: 10px }
@@ -4962,39 +4919,6 @@ select option { background: #0D0D0D; color: #fff; }
           </div>
         </div>
 
-        <!-- APP THEME -->
-        <div class="settings-group">
-          <div class="settings-group-header">🎨 App Theme</div>
-          <div style="padding:6px 18px 4px;font-size:11px;color:var(--text3)">Choose your couple colour theme</div>
-          <div class="theme-grid">
-            <div class="theme-swatch active" data-theme="t-blue"
-              style="background:linear-gradient(135deg,#5B9BFF,#1453C4)" title="Blue (default)"
-              onclick="setTheme('t-blue')">
-            </div>
-            <div class="theme-swatch" data-theme="t-rose" style="background:linear-gradient(135deg,#FF9EBE,#C44B78)"
-              title="Rose" onclick="setTheme('t-rose')">
-            </div>
-            <div class="theme-swatch" data-theme="t-ocean" style="background:linear-gradient(135deg,#89CFFF,#1A4B8C)"
-              title="Ocean" onclick="setTheme('t-ocean')"></div>
-            <div class="theme-swatch" data-theme="t-lavender" style="background:linear-gradient(135deg,#D4BBFF,#5B21B6)"
-              title="Lavender" onclick="setTheme('t-lavender')"></div>
-            <div class="theme-swatch" data-theme="t-sunset" style="background:linear-gradient(135deg,#FFD180,#C2541A)"
-              title="Sunset" onclick="setTheme('t-sunset')"></div>
-            <div class="theme-swatch" data-theme="t-mint" style="background:linear-gradient(135deg,#A8F5D8,#0A7A45)"
-              title="Mint" onclick="setTheme('t-mint')"></div>
-            <div class="theme-swatch" data-theme="t-galaxy" style="background:linear-gradient(135deg,#8B80FF,#2D00A0)"
-              title="Galaxy" onclick="setTheme('t-galaxy')"></div>
-            <div class="theme-swatch" data-theme="t-cherry" style="background:linear-gradient(135deg,#FF80B0,#C40060)"
-              title="Cherry" onclick="setTheme('t-cherry')"></div>
-            <div class="theme-swatch" data-theme="t-teal" style="background:linear-gradient(135deg,#80F0FF,#0094A8)"
-              title="Teal" onclick="setTheme('t-teal')"></div>
-            <div class="theme-swatch" data-theme="t-amber" style="background:linear-gradient(135deg,#FFD080,#C97A00)"
-              title="Amber" onclick="setTheme('t-amber')"></div>
-            <div class="theme-swatch" data-theme="t-deep" style="background:linear-gradient(135deg,#6080FF,#0F3460)"
-              title="Deep Blue" onclick="setTheme('t-deep')"></div>
-          </div>
-        </div>
-
         <!-- NOTIFICATIONS -->
         <div class="settings-group">
           <div class="settings-group-header">🔔 Notifications & Alarms</div>
@@ -5632,25 +5556,10 @@ async function removePartner() {
           if (!r.ok) throw new Error(data.error || 'API error');
           return data;
         }
-
-        // ─── THEME ───────────────────────────────────────────────
+        // ─── THEME (locked to red/dark) ───────────────────────────
         function setTheme(name, silent = false) {
-          document.body.className = name;
-          S.theme = name;
-          // Update PWA theme color
-          const colorMap = {
-            't-blue': '#2f6feb', 't-rose': '#c43f6a', 't-ocean': '#1a6fb5', 't-lavender': '#7c3aed',
-            't-sunset': '#c2541a', 't-mint': '#16a36a', 't-galaxy': '#2d00a0',
-            't-cherry': '#c40060', 't-teal': '#0094a8', 't-amber': '#c97a00', 't-deep': '#0f3460'
-          };
-          const meta = document.getElementById('themeColorMeta');
-          if (meta) meta.content = colorMap[name] || '#c43f6a';
-          // Update accent CSS variable based on theme
-          const hMap = { 't-blue': 215, 't-rose': 340, 't-ocean': 210, 't-lavender': 270, 't-sunset': 18, 't-mint': 162, 't-galaxy': 260, 't-cherry': 330, 't-teal': 190, 't-amber': 38, 't-deep': 220 };
-          const h = hMap[name] || 340;
-          document.documentElement.style.setProperty('--h', h);
-          document.querySelectorAll('.theme-swatch').forEach(b => b.classList.toggle('active', b.dataset.theme === name));
-          saveLocal(); if (!silent) toast('Theme updated! 🎨');
+          S.theme = 't-blue';
+          saveLocal();
         }
 
         // ─── MOBILE SIDEBAR ──────────────────────────────────────
@@ -5935,7 +5844,7 @@ function setJustPairedAt(ts) {
           if (page === 'calendar') renderCalendar();
           if (page === 'dashboard') renderDashboard();
           if (page === 'money') renderMoney();
-          if (page === 'settings') { loadSettings(); updateThemeSwatches(); }
+          if (page === 'settings') { loadSettings(); }
           if (page === 'profile') renderProfile();
           if (page === 'period') renderPeriodPage();
           if (page === 'fights') renderFights();
@@ -6180,7 +6089,6 @@ async function toggleNotifications() {
   applyNames(); scheduleSave(); renderDashboard(); toast('Settings saved! 💕'); spawnPetals(5);
   syncLoveCounterToFrame();
 }
-        function updateThemeSwatches() { document.querySelectorAll('.theme-swatch').forEach(b => b.classList.toggle('active', b.dataset.theme === S.theme)); }
         function renderSettingsPhotoHero() {
           const el = document.getElementById('settingsPhotoHero'); if (!el) return;
           const m = S.myName || 'You', p = S.partnerName || 'Partner';
