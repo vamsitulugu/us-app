@@ -8,25 +8,25 @@
 
   // ── Utility: fire a bloom centered on an element (or click point) ──
   function bloomOn(el, evt) {
-    if (!el) return;
-    el.classList.add('pm-glass-surface');
-    let bloom = el.querySelector(':scope > .pm-bloom');
-    if (!bloom) {
-      bloom = document.createElement('div');
-      bloom.className = 'pm-bloom';
-      el.appendChild(bloom);
-    }
-    const rect = el.getBoundingClientRect();
-    let x = 50, y = 50;
-    if (evt && evt.clientX != null) {
-      x = ((evt.clientX - rect.left) / rect.width) * 100;
-      y = ((evt.clientY - rect.top) / rect.height) * 100;
-    }
-    bloom.style.setProperty('--pm-bx', x + '%');
-    bloom.style.setProperty('--pm-by', y + '%');
-    bloom.classList.remove('pm-play'); void bloom.offsetWidth;
-    bloom.classList.add('pm-play');
+  if (!el) return;
+  el.classList.add('pm-glass-surface');
+  let bloom = el.querySelector(':scope > .pm-bloom');
+  if (!bloom) {
+    bloom = document.createElement('div');
+    bloom.className = 'pm-bloom';
+    el.appendChild(bloom);
   }
+  const rect = el.getBoundingClientRect();
+  let x = 50, y = 50;
+  if (evt && evt.clientX != null) {
+    x = ((evt.clientX - rect.left) / rect.width) * 100;
+    y = ((evt.clientY - rect.top) / rect.height) * 100;
+  }
+  bloom.style.setProperty('--pm-bx', x + '%');
+  bloom.style.setProperty('--pm-by', y + '%');
+  bloom.classList.remove('pm-play');
+  requestAnimationFrame(() => bloom.classList.add('pm-play')); // no forced reflow
+}
 
   // ── Utility: sweep a light reflection across an element ──
   function sweepOn(el) {
