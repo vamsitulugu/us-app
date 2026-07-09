@@ -23,7 +23,9 @@ const Chat = (function () {
     sendPresence('online');
     if (presenceInterval) clearInterval(presenceInterval);
     presenceInterval = setInterval(() => {
-      if (document.visibilityState === 'visible') sendPresence('online');
+      // Backgrounded tab: skip entirely, no network call.
+      if (document.hidden) return;
+      sendPresence('online');
     }, 20000);
 
     document.addEventListener('visibilitychange', () => {
@@ -669,7 +671,9 @@ el.innerHTML = results
     if (nameEl) nameEl.textContent = window.S.partnerName || 'Partner';
     const avEl = document.getElementById('chatHeaderAv');
     if (avEl) avEl.textContent = (window.S.partnerName || 'P')[0];
-    setInterval(fetchPresence, 15000);
+    // No standalone fetchPresence interval here — pollNew() already calls
+    // fetchPresence() on every tick (2.5s on the chat page, ~20s elsewhere,
+    // paused when backgrounded), so a separate 15s timer was pure duplication.
   }
   document.addEventListener('DOMContentLoaded', () => setTimeout(init, 500));
 

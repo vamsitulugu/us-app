@@ -4389,7 +4389,7 @@ select option { background: #0D0D0D; color: #fff; }
 </div>
 <div class="page" id="page-virtualhome">
   <div class="iframe-page-wrap">
-    <iframe id="virtualhomeFrame" src="/home/home.html" title="Virtual Home" loading="lazy"></iframe>
+    <iframe id="virtualhomeFrame" data-src="/home/home.html" title="Virtual Home"></iframe>
   </div>
 </div>
       <div class="page" id="page-dreamhome">
@@ -6170,6 +6170,7 @@ function setJustPairedAt(ts) {
         };
         function goto(page, pushHistory = true) {
           if (window.PageManager) PageManager.currentPage = page;
+          const _wasVirtualHome = document.getElementById('page-virtualhome')?.classList.contains('active');
           document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
           document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
           const pg = document.getElementById('page-' + page); if (!pg) return;
@@ -6201,6 +6202,21 @@ function setJustPairedAt(ts) {
           if (page === 'dreamgoals') { syncThemeToFrame('dreamgoalsFrame'); syncDreamGoalsToFrame(); }
           if (page === 'places') { syncThemeToFrame('placesFrame'); syncPlacesMemoryToFrame(); }
           if (page === 'meetplanner') { syncThemeToFrame('meetplannerFrame'); syncMeetPlannerToFrame(); }
+          if (page === 'virtualhome') {
+            // Load the Home world only when actually entering it — its 3D scene,
+            // Realtime channel, and sync timers all live inside this iframe, so
+            // simply loading it here (instead of eagerly at boot) keeps them off
+            // until the user actually opens Virtual Home.
+            const vf = document.getElementById('virtualhomeFrame');
+            if (vf && !vf.getAttribute('src')) vf.src = vf.dataset.src;
+          } else if (_wasVirtualHome) {
+            // Leaving Virtual Home: fully unload the iframe. This tears down its
+            // whole browsing context in one shot — all setIntervals, the
+            // Supabase Realtime channel, and audio loops stop with it. Guarantees
+            // zero background cost while the user is elsewhere in the app.
+            const vf = document.getElementById('virtualhomeFrame');
+            if (vf) vf.removeAttribute('src');
+          }
           closeMobSidebar();
         }
         window.addEventListener('popstate', (e) => {
