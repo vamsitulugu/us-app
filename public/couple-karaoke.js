@@ -70,9 +70,9 @@
       peerKey = 'ck_' + (ctx.role === 'user1' ? 'user2' : 'user1');
       return true;
     }
-    async function send(msg) {
-      if (!ctx && !init()) return;
-      const payload = { ...msg, from: ctx.role, ts: Date.now(), seq: ++_seq };
+  async function send(msg) {
+  if (!ctx && !init()) return;
+  const payload = { ...msg, from: ctx.role, ts: Date.now(), seq: Date.now() };
       outbox.push(payload);
       if (outbox.length > 20) outbox = outbox.slice(-20);
       try {
