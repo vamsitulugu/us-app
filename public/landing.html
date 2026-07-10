@@ -15,205 +15,208 @@
   --text3:rgba(255,255,255,0.36);--border:rgba(255,255,255,0.09);
   --border2:rgba(255,255,255,0.16);--g1:rgba(255,255,255,0.035);
   --g2:rgba(255,255,255,0.07);--g3:rgba(255,255,255,0.12);
-  --blur:blur(24px) saturate(180%);--r:18px;--rs:12px;
+  --blur:blur(24px) saturate(180%);--r:20px;--rs:12px;
   --red:#f87171;--red-bg:rgba(248,113,113,0.15);
   --green:#34d399;--green-bg:rgba(52,211,153,0.15);
   font-size:15px;
 }
 html{scroll-behavior:smooth}
-body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;overflow-x:hidden;background:#0a0a0a;line-height:1.5}
-#bg{position:fixed;inset:0;z-index:-3;background:radial-gradient(ellipse at 20% 20%,#111 0%,#050505 100%)}
-#bg::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 15% 15%,hsla(350,70%,45%,0.16),transparent 50%),radial-gradient(circle at 85% 10%,hsla(355,60%,35%,0.14),transparent 50%),radial-gradient(circle at 50% 90%,hsla(0,0%,20%,0.25),transparent 55%);pointer-events:none}
-#bg-grain{position:fixed;inset:0;z-index:-2;opacity:0.03;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;overflow-x:hidden;background:#050303;line-height:1.5}
+body.locked{overflow:hidden;height:100vh}
 
-/* Floating hearts layer */
+#intro{position:fixed;inset:0;z-index:9999;background:#020101;display:flex;align-items:center;justify-content:center;transition:opacity 1.1s ease, visibility 1.1s ease}
+#intro.done{opacity:0;visibility:hidden;pointer-events:none}
+#introCanvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#introLogoWrap{position:relative;z-index:2;opacity:0;transform:scale(0.86);transition:opacity 1.3s ease, transform 1.3s cubic-bezier(.2,.8,.2,1)}
+#introLogoWrap.show{opacity:1;transform:scale(1)}
+#introLogoWrap img{height:96px;width:auto;filter:drop-shadow(0 0 40px rgba(207,50,71,0.75)) drop-shadow(0 0 90px rgba(207,50,71,0.35))}
+#introSkip{position:fixed;bottom:26px;right:26px;z-index:10000;background:rgba(255,255,255,0.04);border:1px solid var(--border2);color:var(--text2);font-family:var(--ff-sans);font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:9px 16px;border-radius:30px;cursor:pointer;backdrop-filter:blur(10px);transition:all .2s}
+#introSkip:hover{background:rgba(255,255,255,0.09);color:#fff}
+#introSkip.hide{opacity:0;pointer-events:none}
+@media(max-width:640px){#introLogoWrap img{height:66px}}
+
+#bg{position:fixed;inset:0;z-index:-3;background:radial-gradient(ellipse at 20% 20%,#0d0808 0%,#030101 100%)}
+#bg::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 15% 15%,hsla(350,75%,32%,0.20),transparent 50%),radial-gradient(circle at 85% 8%,hsla(355,65%,26%,0.16),transparent 50%),radial-gradient(circle at 50% 95%,hsla(0,0%,10%,0.4),transparent 55%);pointer-events:none}
+#bg-grain{position:fixed;inset:0;z-index:-2;opacity:0.035;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
 #heart-field{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
-.fheart{position:absolute;bottom:-40px;font-size:16px;opacity:0;animation:riseHeart linear infinite}
+.fheart{position:absolute;bottom:-40px;font-size:16px;opacity:0;animation:riseHeart linear infinite;filter:drop-shadow(0 0 6px rgba(207,50,71,0.5))}
 @keyframes riseHeart{
   0%{transform:translateY(0) translateX(0) rotate(0deg);opacity:0}
-  8%{opacity:0.5}
-  92%{opacity:0.35}
+  8%{opacity:0.45}
+  92%{opacity:0.3}
   100%{transform:translateY(-110vh) translateX(var(--drift,30px)) rotate(25deg);opacity:0}
 }
 
-/* reveal-on-scroll */
-.reveal{opacity:0;transform:translateY(28px);transition:opacity 0.8s cubic-bezier(.2,.7,.3,1),transform 0.8s cubic-bezier(.2,.7,.3,1)}
+.reveal{opacity:0;transform:translateY(28px);transition:opacity 0.9s cubic-bezier(.2,.7,.3,1),transform 0.9s cubic-bezier(.2,.7,.3,1)}
 .reveal.in{opacity:1;transform:translateY(0)}
-.reveal-l{opacity:0;transform:translateX(-32px);transition:opacity 0.8s cubic-bezier(.2,.7,.3,1),transform 0.8s cubic-bezier(.2,.7,.3,1)}
+.reveal-l{opacity:0;transform:translateX(-36px);transition:opacity 0.9s cubic-bezier(.2,.7,.3,1),transform 0.9s cubic-bezier(.2,.7,.3,1)}
 .reveal-l.in{opacity:1;transform:translateX(0)}
-.reveal-r{opacity:0;transform:translateX(32px);transition:opacity 0.8s cubic-bezier(.2,.7,.3,1),transform 0.8s cubic-bezier(.2,.7,.3,1)}
+.reveal-r{opacity:0;transform:translateX(36px);transition:opacity 0.9s cubic-bezier(.2,.7,.3,1),transform 0.9s cubic-bezier(.2,.7,.3,1)}
 .reveal-r.in{opacity:1;transform:translateX(0)}
-.reveal-scale{opacity:0;transform:scale(0.9);transition:opacity 0.7s cubic-bezier(.2,.7,.3,1),transform 0.7s cubic-bezier(.2,.7,.3,1)}
+.reveal-scale{opacity:0;transform:scale(0.9);transition:opacity 0.8s cubic-bezier(.2,.7,.3,1),transform 0.8s cubic-bezier(.2,.7,.3,1)}
 .reveal-scale.in{opacity:1;transform:scale(1)}
 .stagger.in{transition-delay:var(--d,0s)}
 
-/* NAV */
-nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 5%;display:flex;align-items:center;justify-content:space-between;height:66px;background:rgba(10,10,10,0.55);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);transition:background 0.3s,border-color 0.3s}
-nav.scrolled{background:rgba(8,8,8,0.85);border-color:var(--border2)}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 5%;display:flex;align-items:center;justify-content:space-between;height:72px;background:rgba(5,3,3,0.4);backdrop-filter:blur(20px);border-bottom:1px solid transparent;transition:background 0.4s,border-color 0.4s}
+nav.scrolled{background:rgba(5,3,3,0.82);border-color:var(--border)}
 .nav-logo{display:flex;align-items:center;gap:10px;font-family:var(--ff-serif);font-size:20px;color:var(--white);text-decoration:none}
-.nav-logo img{height:38px;width:auto;filter:drop-shadow(0 0 8px rgba(232,56,79,0.5))}
-.nav-logo-sub{font-family:var(--ff-sans);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent)}
+.nav-logo img{height:34px;width:auto;filter:drop-shadow(0 0 10px rgba(207,50,71,0.55))}
+.nav-logo-sub{font-family:var(--ff-sans);font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--accent)}
 .nav-links{display:flex;align-items:center;gap:8px}
-.nav-btn{padding:8px 20px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:var(--ff-sans);transition:all 0.2s;text-decoration:none;display:inline-flex;align-items:center}
+.nav-btn{padding:9px 22px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:var(--ff-sans);transition:all 0.25s;text-decoration:none;display:inline-flex;align-items:center}
 .nav-btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2)}
-.nav-btn-ghost:hover{background:var(--g2);color:var(--white)}
-.nav-btn-accent{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 4px 16px var(--accent-glow);position:relative;overflow:hidden}
-.nav-btn-accent::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,0.35),transparent);transform:skewX(-20deg);transition:left 0.6s}
+.nav-btn-ghost:hover{background:var(--g2);color:var(--white);border-color:rgba(255,255,255,0.28)}
+.nav-btn-accent{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 4px 20px var(--accent-glow);position:relative;overflow:hidden}
+.nav-btn-accent::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,0.4),transparent);transform:skewX(-20deg);transition:left 0.6s}
 .nav-btn-accent:hover::after{left:130%}
-.nav-btn-accent:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.nav-btn-accent:hover{filter:brightness(1.12);transform:translateY(-1px)}
 
-/* HERO */
-.hero{min-height:100vh;display:flex;align-items:center;padding:90px 5% 60px;position:relative;overflow:hidden}
-.hero-blob{position:absolute;width:520px;height:520px;border-radius:50%;filter:blur(90px);opacity:0.35;z-index:0;animation:blobMove 14s ease-in-out infinite}
-.hero-blob.b1{background:radial-gradient(circle,var(--accent),transparent 70%);top:-160px;left:-120px}
-.hero-blob.b2{background:radial-gradient(circle,var(--accent2),transparent 70%);bottom:-180px;right:-100px;animation-delay:-6s}
-@keyframes blobMove{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(40px,-30px) scale(1.12)}}
-.hero-content{max-width:560px;z-index:2;position:relative}
-.hero-badge{display:inline-flex;align-items:center;gap:7px;background:var(--g2);border:1px solid var(--border2);border-radius:20px;padding:5px 14px;font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:28px}
-.hero-badge span{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:blink 2s ease-in-out infinite}
+.magnetic{display:inline-block;will-change:transform}
+
+.hero{min-height:100vh;display:flex;align-items:center;padding:110px 5% 60px;position:relative;overflow:hidden}
+.hero-blob{position:absolute;width:560px;height:560px;border-radius:50%;filter:blur(100px);opacity:0.30;z-index:0;animation:blobMove 16s ease-in-out infinite}
+.hero-blob.b1{background:radial-gradient(circle,var(--accent),transparent 70%);top:-180px;left:-140px}
+.hero-blob.b2{background:radial-gradient(circle,var(--accent2),transparent 70%);bottom:-200px;right:-120px;animation-delay:-7s}
+@keyframes blobMove{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(50px,-36px) scale(1.14)}}
+#heroParallax{position:absolute;inset:0;pointer-events:none;z-index:0}
+.hero-content{max-width:580px;z-index:2;position:relative}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:9px;background:var(--g2);border:1px solid var(--border2);border-radius:20px;padding:6px 16px 6px 12px;font-size:11px;font-weight:600;color:var(--accent);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:30px;opacity:0;animation:introFadeUp 1s .1s ease forwards}
+.hero-eyebrow span{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:blink 2s ease-in-out infinite;box-shadow:0 0 8px var(--accent)}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
-.hero-title{font-family:var(--ff-serif);font-size:clamp(40px,6vw,68px);line-height:1.05;color:var(--white);margin-bottom:20px}
-.hero-title .grad{background:linear-gradient(135deg,var(--accent),#ff8a9a,var(--accent));background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 4s linear infinite}
+@keyframes introFadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.hero-title{font-family:var(--ff-serif);font-size:clamp(42px,6.2vw,74px);line-height:1.03;color:var(--white);margin-bottom:22px;opacity:0;animation:introFadeUp 1s .25s ease forwards;letter-spacing:-0.01em}
+.hero-title .grad{background:linear-gradient(135deg,var(--accent),#ff8a9a,var(--accent));background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 5s linear infinite}
 @keyframes shimmer{to{background-position:200% center}}
-.hero-sub{font-size:16px;color:var(--text2);line-height:1.75;margin-bottom:36px;max-width:440px}
-.hero-btns{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:48px}
-.btn-hero-primary{padding:14px 28px;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--ff-sans);background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 6px 24px var(--accent-glow);transition:all 0.2s;display:inline-flex;align-items:center;gap:8px;position:relative;overflow:hidden}
-.btn-hero-primary::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,0.35),transparent);transform:skewX(-20deg);transition:left 0.6s}
+.hero-sub{font-size:16px;color:var(--text2);line-height:1.8;margin-bottom:38px;max-width:460px;opacity:0;animation:introFadeUp 1s .4s ease forwards}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:52px;opacity:0;animation:introFadeUp 1s .55s ease forwards}
+.btn-hero-primary{padding:15px 30px;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--ff-sans);background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 8px 28px var(--accent-glow);transition:all 0.25s;display:inline-flex;align-items:center;gap:8px;position:relative;overflow:hidden}
+.btn-hero-primary::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,0.4),transparent);transform:skewX(-20deg);transition:left 0.6s}
 .btn-hero-primary:hover::after{left:130%}
-.btn-hero-primary:hover{transform:translateY(-2px);box-shadow:0 10px 32px var(--accent-glow)}
-.btn-hero-secondary{padding:14px 28px;border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer;background:var(--g2);color:var(--white);border:1px solid var(--border2);font-family:var(--ff-sans);transition:all 0.2s;display:inline-flex;align-items:center;gap:8px;text-decoration:none}
-.btn-hero-secondary:hover{background:var(--g3);transform:translateY(-2px)}
-.hero-stats{display:flex;gap:28px;flex-wrap:wrap}
-.hstat{text-align:center}
-.hstat-n{font-family:var(--ff-serif);font-size:26px;color:var(--white)}
-.hstat-l{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+.btn-hero-primary:hover{transform:translateY(-2px);box-shadow:0 14px 36px var(--accent-glow)}
+.btn-hero-secondary{padding:15px 30px;border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer;background:var(--g2);color:var(--white);border:1px solid var(--border2);font-family:var(--ff-sans);transition:all 0.25s;display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+.btn-hero-secondary:hover{background:var(--g3);transform:translateY(-2px);border-color:rgba(255,255,255,0.3)}
+.hero-stats{display:flex;gap:30px;flex-wrap:wrap;opacity:0;animation:introFadeUp 1s .7s ease forwards}
+.hstat{text-align:left}
+.hstat-n{font-family:var(--ff-serif);font-size:28px;color:var(--white)}
+.hstat-l{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-top:3px}
 
-/* HERO VISUAL — kissing couple, no box, heartbeat + drifting hearts */
-.hero-visual{position:relative;z-index:2;display:flex;justify-content:center;align-items:flex-end;width:min(420px,42vw);height:520px}
-.hero-art-wrap{position:relative;width:100%;height:100%;display:flex;align-items:flex-end;justify-content:center}
-.hero-art-glow{position:absolute;left:50%;bottom:12%;width:70%;height:40%;transform:translateX(-50%);background:radial-gradient(circle,var(--accent-glow),transparent 70%);filter:blur(36px);z-index:0;animation:glowPulse 2.4s ease-in-out infinite}
-@keyframes glowPulse{0%,100%{opacity:0.55;transform:translateX(-50%) scale(1)}50%{opacity:0.9;transform:translateX(-50%) scale(1.12)}}
-.hero-art{position:relative;z-index:1;width:88%;filter:drop-shadow(0 24px 40px rgba(0,0,0,0.5));display:block;transform-origin:50% 90%;animation:kissPulse 2.4s ease-in-out infinite}
-@keyframes kissPulse{0%,100%{transform:scale(1) rotate(0deg)}45%{transform:scale(1.025) rotate(-0.4deg)}55%{transform:scale(1.03) rotate(-0.4deg)}}
-.kiss-heart{position:absolute;left:50%;top:28%;font-size:15px;opacity:0;z-index:2;animation:kissHeartRise 2.4s ease-out infinite}
-.kiss-heart:nth-child(2){animation-delay:0s;--kx:-8px}
-.kiss-heart:nth-child(3){animation-delay:0.6s;--kx:14px;font-size:12px}
-.kiss-heart:nth-child(4){animation-delay:1.2s;--kx:-4px;font-size:18px}
-.kiss-heart:nth-child(5){animation-delay:1.8s;--kx:10px;font-size:11px}
-@keyframes kissHeartRise{
-  0%{transform:translate(-50%,0) scale(0.4);opacity:0}
-  15%{opacity:1}
-  100%{transform:translate(calc(-50% + var(--kx,0px)),-90px) scale(1.1);opacity:0}
-}
+.hero-visual{position:relative;z-index:2;display:flex;justify-content:center;align-items:center;width:min(460px,44vw);opacity:0;animation:introFadeUp 1.2s .35s ease forwards}
+.hero-art-wrap{position:relative;width:100%;animation:floatArt 6s ease-in-out infinite}
+@keyframes floatArt{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-16px) rotate(-0.5deg)}}
+.hero-art-glow{position:absolute;inset:-14%;background:radial-gradient(circle,var(--accent-glow),transparent 65%);filter:blur(36px);z-index:0;border-radius:50%}
+.hero-art{position:relative;z-index:1;width:100%;border-radius:26px;box-shadow:0 40px 100px rgba(0,0,0,0.6),0 0 0 1px rgba(255,255,255,0.06);display:block;aspect-ratio:4/5;object-fit:cover;background:linear-gradient(160deg,#1a0d0f,#0a0505)}
+.hero-heart-pop{position:absolute;font-size:26px;z-index:2;animation:popHeart 2.8s ease-in-out infinite;filter:drop-shadow(0 0 10px rgba(207,50,71,0.7))}
+.hero-heart-pop.h1{top:6%;right:2%;animation-delay:0s}
+.hero-heart-pop.h2{bottom:14%;left:-4%;animation-delay:1.2s;font-size:18px}
+@keyframes popHeart{0%,100%{transform:translateY(0) scale(1);opacity:0.85}50%{transform:translateY(-10px) scale(1.15);opacity:1}}
 
-/* WALK STRIP — couple actually strides across the screen */
-.strip{position:relative;padding:40px 0;overflow:hidden;height:110px;display:flex;align-items:center}
-.strip-line{position:absolute;left:0;right:0;top:50%;height:1px;background:linear-gradient(90deg,transparent,var(--border2) 15%,var(--border2) 85%,transparent);z-index:0}
-.strip-text{position:absolute;left:50%;top:8px;transform:translateX(-50%);font-family:var(--ff-serif);font-size:13px;color:var(--text3);font-style:italic;white-space:nowrap;z-index:1;letter-spacing:0.5px}
-.walker{position:absolute;bottom:14px;height:72px;width:auto;left:-140px;z-index:2;animation:walkAcross 11s linear infinite;filter:drop-shadow(0 10px 14px rgba(0,0,0,0.45))}
-.walker img{height:100%;width:auto;display:block;animation:walkBob 0.5s ease-in-out infinite}
-@keyframes walkAcross{
-  0%{left:-140px}
-  100%{left:calc(100% + 40px)}
-}
-@keyframes walkBob{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-5px) rotate(0.8deg)}}
-.step-dust{position:absolute;bottom:12px;width:6px;height:6px;border-radius:50%;background:var(--text3);opacity:0;animation:dustPop 0.5s ease-out infinite}
-.step-dust.d1{animation-delay:0s}
-.step-dust.d2{animation-delay:0.25s}
-@keyframes dustPop{0%{opacity:0;transform:scale(0.4) translateY(0)}30%{opacity:0.5}100%{opacity:0;transform:scale(1) translateY(3px)}}
+.scroll-cue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0.5;z-index:2}
+.scroll-cue .line{width:1px;height:36px;background:linear-gradient(var(--accent),transparent);animation:scrollCue 2s ease-in-out infinite}
+@keyframes scrollCue{0%{opacity:0;transform:scaleY(0.3)}50%{opacity:1}100%{opacity:0;transform:scaleY(1)}}
+.scroll-cue span{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3)}
 
-/* FEATURES */
-.features{padding:80px 5%;position:relative}
-.section-tag{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
-.section-title{font-family:var(--ff-serif);font-size:clamp(28px,4vw,42px);color:var(--white);margin-bottom:48px;max-width:560px;line-height:1.15}
-.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
-.feat-card{background:var(--g1);backdrop-filter:var(--blur);border:1px solid var(--border);border-radius:var(--r);padding:24px;transition:all 0.25s;position:relative;overflow:hidden}
-.feat-card::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 80% 20%,var(--glow-c,transparent) 0%,transparent 65%);opacity:0;transition:opacity 0.3s}
-.feat-card:hover{transform:translateY(-6px);box-shadow:0 16px 40px rgba(0,0,0,0.45);border-color:var(--border2)}
+.strip{padding:30px 5%;display:flex;align-items:center;justify-content:center;gap:20px;opacity:0.9}
+.strip-badge{height:60px;width:60px;border-radius:50%;flex-shrink:0;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,0.12),rgba(207,50,71,0.18) 60%,rgba(0,0,0,0.4));border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:22px;animation:strollBob 2.6s ease-in-out infinite}
+@keyframes strollBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.strip-line{flex:1;max-width:220px;height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent)}
+.strip-text{font-family:var(--ff-serif);font-size:15px;color:var(--text2);font-style:italic;white-space:nowrap}
+
+.features{padding:90px 5%;position:relative}
+.section-tag{font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.section-title{font-family:var(--ff-serif);font-size:clamp(30px,4vw,44px);color:var(--white);margin-bottom:52px;max-width:600px;line-height:1.18}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px}
+.feat-card{background:var(--g1);backdrop-filter:var(--blur);border:1px solid var(--border);border-radius:var(--r);padding:26px;transition:all 0.3s;position:relative;overflow:hidden}
+.feat-card::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 80% 20%,var(--glow-c,transparent) 0%,transparent 65%);opacity:0;transition:opacity 0.35s}
+.feat-card:hover{transform:translateY(-7px);box-shadow:0 20px 50px rgba(0,0,0,0.5);border-color:var(--border2)}
 .feat-card:hover::before{opacity:1}
-.feat-ico{font-size:28px;margin-bottom:14px;display:inline-block;transition:transform 0.3s}
-.feat-card:hover .feat-ico{transform:scale(1.15) rotate(-4deg)}
-.feat-title{font-size:15px;font-weight:600;color:var(--white);margin-bottom:6px}
-.feat-desc{font-size:12px;color:var(--text2);line-height:1.7}
-.feat-badge{position:absolute;top:16px;right:16px;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:var(--accent2);color:#fff;padding:3px 8px;border-radius:20px}
+.feat-ico{width:44px;height:44px;border-radius:13px;background:linear-gradient(150deg,rgba(255,255,255,0.09),rgba(255,255,255,0.02));border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:18px;transition:transform 0.3s}
+.feat-card:hover .feat-ico{transform:scale(1.1) rotate(-4deg)}
+.feat-title{font-size:15px;font-weight:600;color:var(--white);margin-bottom:7px;letter-spacing:0.2px}
+.feat-desc{font-size:12.5px;color:var(--text2);line-height:1.75}
+.feat-badge{position:absolute;top:18px;right:18px;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:var(--accent2);color:#fff;padding:3px 9px;border-radius:20px}
 
-/* SHOWCASE — split with cartoon image */
-.showcase{padding:70px 5%;display:flex;align-items:center;gap:56px;flex-wrap:wrap}
-.showcase-img{flex:1;min-width:260px;max-width:380px;position:relative;display:flex;justify-content:center}
-.showcase-img img{width:82%;filter:drop-shadow(0 24px 50px rgba(0,0,0,0.5));display:block;animation:huggySway 4.2s ease-in-out infinite;transform-origin:50% 100%}
+.showcase{padding:80px 5%;display:flex;align-items:center;gap:60px;flex-wrap:wrap}
+.showcase-img{flex:1;min-width:260px;max-width:420px;position:relative}
+.showcase-img .art-panel{width:100%;aspect-ratio:4/5;border-radius:26px;box-shadow:0 30px 80px rgba(0,0,0,0.55);display:block;background:linear-gradient(160deg,#1c0e10,#080404);position:relative;overflow:hidden;object-fit:cover}
+.showcase-img .art-panel img{width:100%;height:100%;object-fit:cover;display:block}
+.showcase-img::after{content:'';position:absolute;inset:-18px;border:1px solid var(--border2);border-radius:34px;z-index:-1}
 .showcase-text{flex:1;min-width:280px}
-.showcase-text .section-title{margin-bottom:16px}
-.showcase-text p{color:var(--text2);font-size:14px;line-height:1.8;margin-bottom:20px;max-width:440px}
-.check-list{display:flex;flex-direction:column;gap:10px}
-.check-item{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text)}
-.check-item span.ico{width:20px;height:20px;border-radius:50%;background:var(--green-bg);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.showcase-text .section-title{margin-bottom:18px}
+.showcase-text p{color:var(--text2);font-size:14.5px;line-height:1.85;margin-bottom:24px;max-width:450px}
+.check-list{display:flex;flex-direction:column;gap:12px}
+.check-item{display:flex;align-items:center;gap:12px;font-size:13.5px;color:var(--text)}
+.check-item span.ico{width:22px;height:22px;border-radius:50%;background:var(--green-bg);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
 
-/* TESTIMONIALS */
-.testimonials{padding:60px 5%}
-.testi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
-.testi-card{background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:22px;transition:transform 0.3s,border-color 0.3s}
+.testimonials{padding:70px 5%}
+.testi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.testi-card{background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:24px;transition:transform 0.3s,border-color 0.3s}
 .testi-card:hover{transform:translateY(-4px);border-color:var(--border2)}
-.testi-stars{color:#fbbf24;font-size:14px;margin-bottom:10px}
-.testi-text{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:14px}
-.testi-author{display:flex;align-items:center;gap:10px}
-.testi-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
-.testi-name{font-size:12px;font-weight:600;color:var(--white)}
-.testi-sub{font-size:10px;color:var(--text3)}
+.testi-stars{color:#e0a13a;font-size:14px;margin-bottom:12px;letter-spacing:2px}
+.testi-text{font-size:13.5px;color:var(--text2);line-height:1.75;margin-bottom:16px}
+.testi-author{display:flex;align-items:center;gap:11px}
+.testi-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.testi-name{font-size:12.5px;font-weight:600;color:var(--white)}
+.testi-sub{font-size:10.5px;color:var(--text3)}
 
-/* CTA SECTION */
-.cta-section{padding:80px 5%;text-align:center}
-.cta-box{background:linear-gradient(135deg,rgba(232,56,79,0.14),rgba(185,28,46,0.10));border:1px solid rgba(232,56,79,0.28);border-radius:24px;padding:56px 32px;max-width:760px;margin:0 auto;position:relative;overflow:hidden}
-.cta-box .cta-img{width:150px;position:absolute;right:24px;bottom:0;opacity:0.95;animation:huggySway 3.6s ease-in-out infinite;pointer-events:none;transform-origin:50% 100%}
-@keyframes huggySway{0%,100%{transform:rotate(-1.2deg) translateY(0)}50%{transform:rotate(1.2deg) translateY(-6px)}}
-.cta-title{font-family:var(--ff-serif);font-size:clamp(28px,4vw,42px);color:var(--white);margin-bottom:14px;position:relative;z-index:1}
-.cta-sub{font-size:14px;color:var(--text2);margin-bottom:32px;line-height:1.7;position:relative;z-index:1}
+.cta-section{padding:90px 5%;text-align:center}
+.cta-box{background:linear-gradient(135deg,rgba(188,4,29,0.16),rgba(180,30,47,0.10));border:1px solid rgba(207,50,71,0.30);border-radius:28px;padding:64px 32px;max-width:780px;margin:0 auto;position:relative;overflow:hidden}
+.cta-box::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 90%,rgba(207,50,71,0.25),transparent 60%);pointer-events:none}
+.cta-title{font-family:var(--ff-serif);font-size:clamp(30px,4vw,44px);color:var(--white);margin-bottom:16px;position:relative;z-index:1}
+.cta-sub{font-size:14.5px;color:var(--text2);margin-bottom:36px;line-height:1.8;position:relative;z-index:1}
 .cta-box .btn-hero-primary{position:relative;z-index:1}
-@media(max-width:640px){.cta-box .cta-img{display:none}}
 
-/* FOOTER */
-footer{padding:30px 5%;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+footer{padding:34px 5%;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
 footer p{font-size:11px;color:var(--text3)}
 
-/* AUTH MODAL */
-.modal-bg{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(8px);background:rgba(0,0,0,0.75)}
+.modal-bg{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(10px);background:rgba(0,0,0,0.8)}
 .modal-bg.open{display:flex}
-.auth-card{background:rgba(12,12,12,0.94);backdrop-filter:blur(30px);border:1px solid var(--border2);border-radius:24px;padding:36px 32px;width:100%;max-width:460px;color:var(--white);box-shadow:0 24px 80px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.07);animation:popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);position:relative}
+.auth-card{background:rgba(9,6,6,0.95);backdrop-filter:blur(30px);border:1px solid var(--border2);border-radius:26px;padding:38px 34px;width:100%;max-width:460px;color:var(--white);box-shadow:0 30px 90px rgba(0,0,0,0.65),inset 0 1px 0 rgba(255,255,255,0.06);animation:popIn 0.35s cubic-bezier(0.34,1.56,0.64,1);position:relative}
 @keyframes popIn{from{opacity:0;transform:scale(0.88) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
 .modal-close{position:absolute;top:16px;right:18px;background:var(--g1);border:1px solid var(--border);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:16px;transition:all 0.2s}
 .modal-close:hover{background:var(--g2);color:var(--white)}
-.auth-logo-row{display:flex;flex-direction:column;align-items:center;margin-bottom:22px}
-.auth-logo-row img{height:60px;filter:drop-shadow(0 0 12px rgba(232,56,79,0.6));margin-bottom:8px}
+.auth-logo-row{display:flex;flex-direction:column;align-items:center;margin-bottom:24px}
+.auth-logo-row img{height:56px;filter:drop-shadow(0 0 14px rgba(207,50,71,0.65));margin-bottom:9px}
 .auth-logo-row .brand-name{font-family:var(--ff-serif);font-size:24px;color:var(--white)}
-.auth-logo-row .brand-tag{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-top:2px}
-.auth-headline{font-size:14px;color:var(--text2);text-align:center;margin-bottom:22px;line-height:1.6}
-.auth-tabs{display:flex;background:rgba(0,0,0,0.35);border-radius:var(--r);padding:5px;gap:4px;margin-bottom:20px}
-.auth-tab{flex:1;padding:9px;border-radius:var(--rs);cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);transition:all 0.2s;border:none;background:none;font-family:var(--ff-sans)}
-.auth-tab.active{background:var(--g2);color:var(--white);box-shadow:0 2px 10px rgba(0,0,0,0.3)}
+.auth-logo-row .brand-tag{font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-top:3px}
+.auth-headline{font-size:14px;color:var(--text2);text-align:center;margin-bottom:24px;line-height:1.6}
+.auth-tabs{display:flex;background:rgba(0,0,0,0.4);border-radius:var(--r);padding:5px;gap:4px;margin-bottom:22px}
+.auth-tab{flex:1;padding:10px;border-radius:var(--rs);cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);transition:all 0.2s;border:none;background:none;font-family:var(--ff-sans)}
+.auth-tab.active{background:var(--g2);color:var(--white);box-shadow:0 2px 12px rgba(0,0,0,0.35)}
 .auth-err{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,0.3);border-radius:var(--rs);padding:10px 14px;font-size:12px;margin-bottom:12px;display:none;line-height:1.6}
-.field{margin-bottom:13px}
-.field label{display:block;font-size:11px;color:var(--text2);margin-bottom:5px;font-weight:600;letter-spacing:0.3px;text-transform:uppercase}
-.field input,.field select{width:100%;border:1px solid var(--border);border-radius:var(--rs);padding:10px 13px;font-size:13px;font-family:var(--ff-sans);outline:none;background:var(--g1);color:var(--white);transition:all 0.2s}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;color:var(--text2);margin-bottom:6px;font-weight:600;letter-spacing:0.4px;text-transform:uppercase}
+.field input,.field select{width:100%;border:1px solid var(--border);border-radius:var(--rs);padding:11px 14px;font-size:13px;font-family:var(--ff-sans);outline:none;background:var(--g1);color:var(--white);transition:all 0.2s}
 .field input::placeholder{color:var(--text3)}
-.field input:focus{border-color:var(--accent);background:var(--g2);box-shadow:0 0 0 3px rgba(232,56,79,0.25)}
-.auth-btn{width:100%;padding:13px;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--ff-sans);background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 4px 20px var(--accent-glow);transition:all 0.2s;margin-top:4px}
-.auth-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.field input:focus{border-color:var(--accent);background:var(--g2);box-shadow:0 0 0 3px rgba(188,4,29,0.25)}
+.auth-btn{width:100%;padding:14px;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--ff-sans);background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 6px 24px var(--accent-glow);transition:all 0.2s;margin-top:4px}
+.auth-btn:hover{filter:brightness(1.12);transform:translateY(-1px)}
 .auth-btn:disabled{opacity:0.6;cursor:not-allowed}
-.auth-divider{text-align:center;font-size:11px;color:var(--text3);margin:14px 0}
-.auth-btn-alt{width:100%;padding:11px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;background:var(--g2);color:var(--white);border:1px solid var(--border2);font-family:var(--ff-sans);transition:all 0.2s}
+.auth-divider{text-align:center;font-size:11px;color:var(--text3);margin:15px 0}
+.auth-btn-alt{width:100%;padding:12px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;background:var(--g2);color:var(--white);border:1px solid var(--border2);font-family:var(--ff-sans);transition:all 0.2s}
 .auth-btn-alt:hover{background:var(--g3)}
 #loginView,#setupView,#pairView{display:none}
 #loginView.active,#setupView.active,#pairView.active{display:block;animation:fadeSlide 0.25s ease}
 @keyframes fadeSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@media(max-width:900px){.hero{flex-direction:column;text-align:center;align-items:center}.hero-content{max-width:100%}.hero-visual{width:min(340px,72vw);margin-top:36px}.hero-btns{justify-content:center}.hero-stats{justify-content:center}.showcase{flex-direction:column;text-align:center}.check-item{justify-content:center}}
-@media(max-width:600px){.nav-links .nav-btn-ghost{display:none}.hero-title{font-size:36px}.strip img{height:48px}.strip-text{font-size:12px}}
+@media(max-width:900px){.hero{flex-direction:column;text-align:center;align-items:center}.hero-content{max-width:100%}.hero-visual{width:min(340px,72vw);margin-top:40px}.hero-btns{justify-content:center}.hero-stats{justify-content:center}.showcase{flex-direction:column;text-align:center}.check-item{justify-content:center}}
+@media(max-width:600px){.nav-links .nav-btn-ghost{display:none}.hero-title{font-size:38px}.strip-text{font-size:12.5px}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important}}
 </style>
 </head>
-<body>
+<body class="locked">
+
+<div id="intro">
+  <canvas id="introCanvas"></canvas>
+  <div id="introLogoWrap">
+    <img src="/icons/icon-512.png" alt="Twin Hearts">
+  </div>
+</div>
+<button id="introSkip" onclick="skipIntro()">Skip</button>
+
 <div id="bg"></div>
 <div id="bg-grain"></div>
 <div id="heart-field"></div>
 
-<!-- NAV -->
 <nav id="mainNav">
   <a href="#" class="nav-logo" style="flex-direction:column;align-items:flex-start;gap:1px">
   <div style="display:flex;align-items:center;gap:9px">
@@ -223,24 +226,25 @@ footer p{font-size:11px;color:var(--text3)}
   <span class="nav-logo-sub" style="padding-left:2px">Everything Together.</span>
 </a>
   <div class="nav-links">
-    <button class="nav-btn nav-btn-ghost" onclick="openAuth('login')">Sign In</button>
-    <button class="nav-btn nav-btn-accent" onclick="openAuth('signup')">Create Account ›</button>
+    <button class="nav-btn nav-btn-ghost magnetic" onclick="openAuth('login')">Sign In</button>
+    <button class="nav-btn nav-btn-accent magnetic" onclick="openAuth('signup')">Create Account ›</button>
   </div>
 </nav>
 
-<!-- HERO -->
 <section class="hero">
-  <div class="hero-blob b1"></div>
-  <div class="hero-blob b2"></div>
+  <div id="heroParallax">
+    <div class="hero-blob b1"></div>
+    <div class="hero-blob b2"></div>
+  </div>
   <div class="hero-content">
-    <div class="hero-badge"><span></span> Your Private Space for Two</div>
+    <div class="hero-eyebrow"><span></span> Your Private Space for Two</div>
     <h1 class="hero-title">
       Your love, <span class="grad">Everything</span><br>Together.
     </h1>
     <p class="hero-sub">Chat, journal, share memories, plan meetups, track habits, play games together — everything your relationship deserves, in one private space built just for two.</p>
     <div class="hero-btns">
-      <button class="btn-hero-primary" onclick="openAuth('signup')">💕 Start Your Space</button>
-      <button class="btn-hero-secondary" onclick="openAuth('login')">Sign In →</button>
+      <button class="btn-hero-primary magnetic" onclick="openAuth('signup')">💕 Start Your Space</button>
+      <button class="btn-hero-secondary magnetic" onclick="openAuth('login')">Sign In →</button>
     </div>
     <div class="hero-stats">
       <div class="hstat"><div class="hstat-n">100%</div><div class="hstat-l">Private</div></div>
@@ -251,50 +255,43 @@ footer p{font-size:11px;color:var(--text3)}
   <div class="hero-visual">
     <div class="hero-art-wrap">
       <div class="hero-art-glow"></div>
-      <img class="hero-art" src="/images/couple-kiss.png" alt="Couple sharing a kiss">
-      <span class="kiss-heart">💕</span>
-      <span class="kiss-heart">💖</span>
-      <span class="kiss-heart">💗</span>
-      <span class="kiss-heart">🩷</span>
+      <img class="hero-art" src="/images/couple-hero.png" alt="Couple illustration">
+      <span class="hero-heart-pop h1">💕</span>
+      <span class="hero-heart-pop h2">💖</span>
     </div>
   </div>
+  <div class="scroll-cue"><div class="line"></div><span>Scroll</span></div>
 </section>
 
-<!-- WALK STRIP -->
-<div class="strip">
+<div class="strip reveal">
   <div class="strip-line"></div>
+  <div class="strip-badge">🚶‍♀️💕</div>
   <span class="strip-text">every day, side by side</span>
-  <div class="walker">
-    <img src="/images/couple-walking.png" alt="Couple walking together">
-    <span class="step-dust d1" style="left:6px"></span>
-    <span class="step-dust d2" style="left:34px"></span>
-  </div>
+  <div class="strip-line"></div>
 </div>
 
-<!-- FEATURES -->
 <section class="features">
   <div class="section-tag reveal">Everything you need</div>
   <h2 class="section-title reveal">Built for couples who want to grow together</h2>
   <div class="feat-grid">
-    <div class="feat-card reveal" style="--glow-c:rgba(232,56,79,0.2)"><div class="feat-ico">💬</div><div class="feat-title">Private Chat</div><div class="feat-desc">Real-time private messaging with voice notes, photo sharing, reactions and reply threads — just for two.</div></div>
-    <div class="feat-card reveal" style="--glow-c:rgba(232,56,79,0.2)"><div class="feat-ico">📞</div><div class="feat-title">Video &amp; Voice Calls</div><div class="feat-desc">Connect face to face anytime with built-in calling, no matter the distance between you.</div></div>
-    <div class="feat-card reveal" style="--glow-c:rgba(185,28,46,0.18)"><div class="feat-ico">📖</div><div class="feat-title">Shared Journal</div><div class="feat-desc">Write daily entries, log moods, and optionally share moments with your partner. Your story, always safe.</div></div>
-    <div class="feat-card reveal" style="--glow-c:rgba(52,211,153,0.15)"><div class="feat-ico">🌟</div><div class="feat-title">Bucket List &amp; Dreams</div><div class="feat-desc">Plan adventures, track shared goals, and celebrate every dream you tick off together.</div></div>
-    <div class="feat-card reveal" style="--glow-c:rgba(251,191,36,0.15)"><div class="feat-ico">📅</div><div class="feat-title">Calendar &amp; Reminders</div><div class="feat-desc">Sync your important dates, set alarms for anniversaries, dates and study schedules.</div></div>
-    <div class="feat-card reveal" style="--glow-c:rgba(232,56,79,0.2)"><div class="feat-ico">🩷</div><div class="feat-title">Period Tracker</div><div class="feat-desc">Track cycles with phase insights, symptom logging and partner mood tips — built with care.</div></div>
-    <div class="feat-card reveal" style="--glow-c:rgba(232,56,79,0.2)"><div class="feat-ico">🗺️</div><div class="feat-title">Meet Planner</div><div class="feat-desc">Plan meetups down to the city, stops, budget and itinerary — perfect for long-distance couples.</div></div>
-    <div class="feat-card reveal" style="--glow-c:rgba(185,28,46,0.18)"><div class="feat-ico">🌍</div><div class="feat-title">Memory Globe</div><div class="feat-desc">Pin every place you've been together on a living 3D globe of your shared journey.</div></div>
-    <div class="feat-card reveal" style="--glow-c:rgba(52,211,153,0.15)"><div class="feat-ico">📚</div><div class="feat-title">Study Together</div><div class="feat-desc">Track subjects and timetables side by side, and stay motivated as a team.</div></div>
-    <div class="feat-card reveal" style="--glow-c:rgba(232,56,79,0.2)"><div class="feat-ico">🏠</div><div class="feat-title">Virtual Home <span class="feat-badge">3D</span></div><div class="feat-desc">Decorate a fully interactive 3D home you both share, complete with ambience and lighting.</div></div>
-    <div class="feat-card reveal" style="--glow-c:rgba(251,191,36,0.15)"><div class="feat-ico">🎮</div><div class="feat-title">Couple Games <span class="feat-badge">New</span></div><div class="feat-desc">Play multiplayer mini-games together in real time, right inside the app.</div></div>
-    <div class="feat-card reveal" style="--glow-c:rgba(185,28,46,0.18)"><div class="feat-ico">🔒</div><div class="feat-title">Secret Vault</div><div class="feat-desc">A password-protected space for your most private notes, photos and memories.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(207,50,71,0.25)"><div class="feat-ico">💬</div><div class="feat-title">Private Chat</div><div class="feat-desc">Real-time private messaging with voice notes, photo sharing, reactions and reply threads — just for two.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(207,50,71,0.25)"><div class="feat-ico">📞</div><div class="feat-title">Video &amp; Voice Calls</div><div class="feat-desc">Connect face to face anytime with built-in calling, no matter the distance between you.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(185,28,46,0.2)"><div class="feat-ico">📖</div><div class="feat-title">Shared Journal</div><div class="feat-desc">Write daily entries, log moods, and optionally share moments with your partner. Your story, always safe.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(52,211,153,0.16)"><div class="feat-ico">🌟</div><div class="feat-title">Bucket List &amp; Dreams</div><div class="feat-desc">Plan adventures, track shared goals, and celebrate every dream you tick off together.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(224,161,58,0.16)"><div class="feat-ico">📅</div><div class="feat-title">Calendar &amp; Reminders</div><div class="feat-desc">Sync your important dates, set alarms for anniversaries, dates and study schedules.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(207,50,71,0.25)"><div class="feat-ico">🩷</div><div class="feat-title">Period Tracker</div><div class="feat-desc">Track cycles with phase insights, symptom logging and partner mood tips — built with care.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(207,50,71,0.25)"><div class="feat-ico">🗺️</div><div class="feat-title">Meet Planner</div><div class="feat-desc">Plan meetups down to the city, stops, budget and itinerary — perfect for long-distance couples.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(185,28,46,0.2)"><div class="feat-ico">🌍</div><div class="feat-title">Memory Globe</div><div class="feat-desc">Pin every place you've been together on a living 3D globe of your shared journey.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(52,211,153,0.16)"><div class="feat-ico">📚</div><div class="feat-title">Study Together</div><div class="feat-desc">Track subjects and timetables side by side, and stay motivated as a team.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(207,50,71,0.25)"><div class="feat-ico">🏠</div><div class="feat-title">Virtual Home <span class="feat-badge">3D</span></div><div class="feat-desc">Decorate a fully interactive 3D home you both share, complete with ambience and lighting.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(224,161,58,0.16)"><div class="feat-ico">🎮</div><div class="feat-title">Couple Games <span class="feat-badge">New</span></div><div class="feat-desc">Play multiplayer mini-games together in real time, right inside the app.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(185,28,46,0.2)"><div class="feat-ico">🔒</div><div class="feat-title">Secret Vault</div><div class="feat-desc">A password-protected space for your most private notes, photos and memories.</div></div>
   </div>
 </section>
 
-<!-- SHOWCASE -->
 <section class="showcase">
   <div class="showcase-img reveal-l">
-    <img src="/images/couple-cta.png" alt="Couple sharing a tender moment">
+    <div class="art-panel"><img src="/images/couple-cta.png" alt="Couple sharing a tender moment"></div>
   </div>
   <div class="showcase-text reveal-r">
     <div class="section-tag">Made for real relationships</div>
@@ -308,10 +305,9 @@ footer p{font-size:11px;color:var(--text3)}
   </div>
 </section>
 
-<!-- TESTIMONIALS -->
 <section class="testimonials">
   <div class="section-tag reveal" style="text-align:center">Loved by couples</div>
-  <div class="testi-grid" style="margin-top:32px">
+  <div class="testi-grid" style="margin-top:34px">
     <div class="testi-card reveal">
       <div class="testi-stars">★★★★★</div>
       <p class="testi-text">"The period tracker with partner mood tips is everything. He actually knows when to bring chocolate now 😂 This app is a must."</p>
@@ -330,23 +326,19 @@ footer p{font-size:11px;color:var(--text3)}
   </div>
 </section>
 
-<!-- CTA -->
 <section class="cta-section">
   <div class="cta-box reveal-scale">
-    <img class="cta-img" src="/images/couple-kiss.png" alt="">
     <h2 class="cta-title">Your love story deserves<br>a beautiful space.</h2>
     <p class="cta-sub">Free to start. Private by design. Built for two — always.</p>
-    <button class="btn-hero-primary" onclick="openAuth('signup')" style="font-size:15px;padding:15px 36px">💕 Create Your Space — Free</button>
+    <button class="btn-hero-primary magnetic" onclick="openAuth('signup')" style="font-size:15px;padding:16px 38px">💕 Create Your Space — Free</button>
   </div>
 </section>
 
-<!-- FOOTER -->
 <footer>
   <p>© 2026 Twin Hearts. Made with 💕 for couples everywhere.</p>
   <p style="font-size:11px;color:rgba(255,255,255,0.2)">Everything Together.</p>
 </footer>
 
-<!-- AUTH MODAL -->
 <div class="modal-bg" id="authModal">
   <div class="auth-card">
     <button class="modal-close" onclick="closeAuth()">✕</button>
@@ -356,7 +348,6 @@ footer p{font-size:11px;color:var(--text3)}
       <span class="brand-tag">Everything Together.</span>
     </div>
 
-    <!-- STEP 1: Email/Password Sign In -->
     <div id="loginView">
       <div class="auth-tabs">
         <button class="auth-tab active" onclick="authTab('login')">Sign In</button>
@@ -371,7 +362,6 @@ footer p{font-size:11px;color:var(--text3)}
       <button class="auth-btn-alt" onclick="authTab('register')">Create new account →</button>
     </div>
 
-    <!-- STEP 1: Email/Password Register -->
     <div id="registerView">
       <div class="auth-tabs">
         <button class="auth-tab" onclick="authTab('login')">Sign In</button>
@@ -387,7 +377,6 @@ footer p{font-size:11px;color:var(--text3)}
       <button class="auth-btn-alt" onclick="authTab('login')">Sign In →</button>
     </div>
 
-    <!-- STEP 2: After email auth — Get Started or Join Partner -->
     <div id="setupView">
       <div class="auth-tabs">
         <button class="auth-tab active" onclick="authTab('setup')">Get Started</button>
@@ -400,7 +389,6 @@ footer p{font-size:11px;color:var(--text3)}
       <button class="auth-btn" id="setupBtn" onclick="doSetupFromLanding()">Create Our Space ✨</button>
     </div>
 
-    <!-- STEP 2: Join Partner (after email auth) -->
     <div id="pairView">
       <div class="auth-tabs">
         <button class="auth-tab" onclick="authTab('setup')">Get Started</button>
@@ -417,6 +405,114 @@ footer p{font-size:11px;color:var(--text3)}
 </div>
 
 <script>
+(function(){
+  const canvas = document.getElementById('introCanvas');
+  const ctx = canvas.getContext('2d');
+  const introEl = document.getElementById('intro');
+  const logoWrap = document.getElementById('introLogoWrap');
+  const skipBtn = document.getElementById('introSkip');
+  let w,h,dpr;
+  function size(){
+    dpr = Math.min(window.devicePixelRatio||1,2);
+    w = canvas.width = innerWidth*dpr;
+    h = canvas.height = innerHeight*dpr;
+    canvas.style.width = innerWidth+'px';
+    canvas.style.height = innerHeight+'px';
+  }
+  size();
+  window.addEventListener('resize', size);
+
+  const N = window.innerWidth < 640 ? 70 : 130;
+  const particles = [];
+  const cx = ()=>innerWidth*dpr/2, cy = ()=>innerHeight*dpr/2;
+  for(let i=0;i<N;i++){
+    const ang = Math.random()*Math.PI*2;
+    const dist = (0.3+Math.random()*0.7)*Math.min(innerWidth,innerHeight)*dpr*0.55;
+    particles.push({
+      x: cx()+Math.cos(ang)*dist,
+      y: cy()+Math.sin(ang)*dist,
+      r: (0.8+Math.random()*1.8)*dpr,
+      a: 0,
+      delay: Math.random()*0.5
+    });
+  }
+
+  let start = null;
+  const CONVERGE_MS = 2400;
+  const HOLD_MS = 600;
+  let finished = false;
+
+  function draw(ts){
+    if(finished) return;
+    if(!start) start = ts;
+    const t = (ts-start)/CONVERGE_MS;
+    ctx.clearRect(0,0,w,h);
+    ctx.globalCompositeOperation = 'lighter';
+    particles.forEach(p=>{
+      const local = Math.max(0, Math.min(1, (t - p.delay*0.3) ));
+      const ease = 1-Math.pow(1-local,3);
+      const px = p.x + (cx()-p.x)*ease;
+      const py = p.y + (cy()-p.y)*ease;
+      p.a = Math.sin(Math.min(local*Math.PI,Math.PI)) ;
+      const grad = ctx.createRadialGradient(px,py,0,px,py,p.r*10);
+      grad.addColorStop(0, 'rgba(255,150,160,'+(0.9*p.a)+')');
+      grad.addColorStop(1, 'rgba(188,4,29,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(px,py,p.r*10,0,Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,220,222,'+p.a+')';
+      ctx.beginPath();
+      ctx.arc(px,py,p.r,0,Math.PI*2);
+      ctx.fill();
+    });
+    ctx.globalCompositeOperation = 'source-over';
+
+    if(t >= 0.72 && !logoWrap.classList.contains('show')){
+      logoWrap.classList.add('show');
+    }
+    if(t*CONVERGE_MS >= CONVERGE_MS + HOLD_MS){
+      finished = true;
+      endIntro();
+      return;
+    }
+    requestAnimationFrame(draw);
+  }
+
+  function endIntro(){
+    document.body.classList.remove('locked');
+    introEl.classList.add('done');
+    skipBtn.classList.add('hide');
+  }
+  window.skipIntro = function(){
+    finished = true;
+    endIntro();
+  };
+
+  requestAnimationFrame(draw);
+  setTimeout(()=>{ if(!finished){ finished=true; endIntro(); } }, CONVERGE_MS + HOLD_MS + 900);
+})();
+
+document.querySelectorAll('.magnetic').forEach(el=>{
+  el.addEventListener('mousemove', e=>{
+    const r = el.getBoundingClientRect();
+    const mx = e.clientX - r.left - r.width/2;
+    const my = e.clientY - r.top - r.height/2;
+    el.style.transform = `translate(${mx*0.18}px, ${my*0.28}px)`;
+  });
+  el.addEventListener('mouseleave', ()=>{ el.style.transform=''; });
+});
+
+const heroParallax = document.getElementById('heroParallax');
+if(heroParallax){
+  document.querySelector('.hero').addEventListener('mousemove', e=>{
+    const r = e.currentTarget.getBoundingClientRect();
+    const mx = (e.clientX - r.left)/r.width - 0.5;
+    const my = (e.clientY - r.top)/r.height - 0.5;
+    heroParallax.style.transform = `translate(${mx*22}px, ${my*18}px)`;
+  });
+}
+
 const API = 'https://us-app-av6d.onrender.com';
 let _authUser = null;
 
@@ -526,7 +622,6 @@ function saveAndGo(data, role) {
   window.location.href = '/';
 }
 
-// If already logged in, redirect to app
 const existing = JSON.parse(localStorage.getItem('uwl_v5') || '{}');
 if (existing.setupDone && existing.coupleId) {
   document.querySelectorAll('.nav-btn-accent').forEach(btn => {
@@ -539,7 +634,6 @@ if (existing.setupDone && existing.coupleId) {
   });
 }
 
-// Scroll-reveal animation (supports staggered children)
 const io = new IntersectionObserver((entries)=>{
   entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
 },{threshold:0.15});
@@ -549,13 +643,11 @@ document.querySelectorAll('.reveal,.reveal-l,.reveal-r,.reveal-scale').forEach((
   io.observe(el);
 });
 
-// Nav background on scroll
 const navEl = document.getElementById('mainNav');
 window.addEventListener('scroll', ()=>{
   navEl.classList.toggle('scrolled', window.scrollY > 30);
 });
 
-// Floating heart particles in background
 const heartField = document.getElementById('heart-field');
 const heartEmojis = ['💕','💖','💗','🩷','❤️'];
 for (let i = 0; i < 18; i++) {
