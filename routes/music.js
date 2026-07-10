@@ -1,7 +1,17 @@
 // ═══════════════════════════════════════════════════════
 //  Music Routes — song metadata CRUD (Supabase-backed).
-//  Place at: routes/music.js
+//  Place at: routes/music.js  (REPLACES your existing file)
 //  Wire up in server.js:  app.use('/api/music', require('./routes/music'));
+//
+//  CHANGES vs your current file (Premium Smart Music Import System):
+//   - POST now accepts the expanded metadata fields written by the new
+//     import pipeline: album, albumArtist, composer, genre, year,
+//     track, disc, durationMs, bitrate, fileSize, lyricsCached,
+//     lyricsSource, lyricsUpdatedAt. All are optional — every existing
+//     caller that only sends the old fields keeps working unchanged.
+//   - PATCH now also accepts the same expanded fields, so the verify
+//     form / karaoke lyrics-save / metadata edits can update them.
+//   - Nothing existing was removed or renamed.
 // ═══════════════════════════════════════════════════════
 const express  = require('express');
 const supabase = require('../middleware/supabase');
@@ -23,11 +33,18 @@ router.get('/:coupleId', async (req, res) => {
 
 // POST create song metadata (call AFTER audio+cover are uploaded to storage)
 router.post('/', async (req, res) => {
-  const { coupleId, title, artist, audioUrl, coverUrl, durationSec, lyrics, visibility, uploadedBy } = req.body;
+  const {
+    coupleId, title, artist, audioUrl, coverUrl, durationSec, lyrics, visibility, uploadedBy,
+    // ── expanded fields (Premium Smart Music Import System) ──
+    album, albumArtist, composer, genre, year, track, disc,
+    durationMs, bitrate, fileSize, lyricsCached, lyricsSource, lyricsUpdatedAt,
+  } = req.body;
+
   if (!coupleId || !title || !audioUrl || !uploadedBy) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
-  const { data, error } = await supabase.from('songs').insert({
+
+  const row = {
     couple_id:    coupleId,
     title,
     artist:       artist || 'Unknown Artist',
@@ -37,7 +54,23 @@ router.post('/', async (req, res) => {
     lyrics:       lyrics || '',
     visibility:   visibility || 'both',
     uploaded_by:  uploadedBy,
-  }).select().single();
+    // expanded — all nullable, all optional
+    album:            album || null,
+    album_artist:     albumArtist || null,
+    composer:         composer || null,
+    genre:            genre || null,
+    year:             year || null,
+    track:            track || null,
+    disc:             disc || null,
+    duration_ms:      durationMs || null,
+    bitrate:          bitrate || null,
+    file_size:        fileSize || null,
+    lyrics_cached:    !!lyricsCached,
+    lyrics_source:    lyricsSource || null,
+    lyrics_updated_at: lyricsUpdatedAt || null,
+  };
+
+  const { data, error } = await supabase.from('songs').insert(row).select().single();
   if (error) return res.status(500).json({ error: error.message });
 
   // Notify partner about the new shared song (skip if kept private to sender)
@@ -66,9 +99,21 @@ router.patch('/:id', async (req, res) => {
   if (fields.visibility  !== undefined) updates.visibility   = fields.visibility;
   if (fields.favorite    !== undefined) updates.favorite     = fields.favorite;
   if (fields.coverUrl    !== undefined) updates.cover_url    = fields.coverUrl;
-  if (fields.incrementPlay) {
-    updates.play_count  = supabase.raw ? undefined : undefined; // handled below
-  }
+
+  // ── expanded fields ──
+  if (fields.album            !== undefined) updates.album             = fields.album;
+  if (fields.albumArtist      !== undefined) updates.album_artist      = fields.albumArtist;
+  if (fields.composer         !== undefined) updates.composer          = fields.composer;
+  if (fields.genre            !== undefined) updates.genre             = fields.genre;
+  if (fields.year             !== undefined) updates.year              = fields.year;
+  if (fields.track            !== undefined) updates.track             = fields.track;
+  if (fields.disc             !== undefined) updates.disc              = fields.disc;
+  if (fields.durationMs       !== undefined) updates.duration_ms       = fields.durationMs;
+  if (fields.bitrate          !== undefined) updates.bitrate           = fields.bitrate;
+  if (fields.fileSize         !== undefined) updates.file_size         = fields.fileSize;
+  if (fields.lyricsCached     !== undefined) updates.lyrics_cached     = fields.lyricsCached;
+  if (fields.lyricsSource     !== undefined) updates.lyrics_source     = fields.lyricsSource;
+  if (fields.lyricsUpdatedAt  !== undefined) updates.lyrics_updated_at = fields.lyricsUpdatedAt;
 
   // increment play_count safely via read-modify-write (small table, fine)
   if (fields.incrementPlay) {
