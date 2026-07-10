@@ -7151,7 +7151,7 @@ function logOut() {
   if (!confirm('Log out? You can sign back in anytime. Your data stays safe in the cloud.')) return;
   resetForNewAccount();   // was: localStorage.removeItem('uwl_v5') only
   window.location.href = '/landing.html';
-}
+}   
         function quickMood(el, mood) {
           document.querySelectorAll('#dashMoodRow .mood').forEach(m => m.classList.remove('sel'));
           el.classList.add('sel'); S.selectedMood = mood;
@@ -8236,5 +8236,6 @@ if ('serviceWorker' in navigator) {
 <script src="/dashboard_chat_patch.js"></script>
 <script src="/ui-icons.js"></script>
 <script src="/premium-motion.js"></script>
+
 </body>
 </html>
