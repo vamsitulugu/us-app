@@ -190,7 +190,9 @@
   <title>Us With Love 💕</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#2f6feb" id="themeColorMeta">
+  <link rel="icon" href="/icons/icon-192.png" type="image/png">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Us With Love">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
@@ -8172,8 +8174,10 @@ if ('serviceWorker' in navigator) {
       el.style.cssText = 'position:fixed!important;width:0!important;height:0!important;overflow:visible!important;pointer-events:none!important;top:auto!important;left:auto!important;bottom:0!important;right:0!important;';
     }
   }
+
   // Fix immediately if already injected
   applyFix();
+
   // Watch for future injection (Vercel injects it after load)
   const observer = new MutationObserver(function(mutations) {
     mutations.forEach(function(m) {
@@ -8188,6 +8192,7 @@ if ('serviceWorker' in navigator) {
       });
     });
   });
+
   observer.observe(document.body, { childList: true });
 })();
 
@@ -8200,4 +8205,3 @@ if ('serviceWorker' in navigator) {
 <script src="/premium-motion.js"></script>
 </body>
 </html>
-

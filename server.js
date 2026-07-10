@@ -69,7 +69,6 @@ app.use('/api/auth',  authRoutes);
 app.use('/api/data',  dataRoutes);
 app.use('/api/ai',    aiRoutes);
 app.use('/api/media', mediaRoutes);
-app.use('/api/data', require('./routes/data'));
 app.use('/api/location', require('./routes/location'));
 app.use('/api/globe', require('./routes/globe'));
 app.use('/api/home', require('./routes/home'));

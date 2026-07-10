@@ -80,7 +80,7 @@
 
     // ── NEW in v3 — previously missing from the map ──
     '💚': 'heart-handshake',      // Reconnect Activities
-    '✌️': 'peace',                // Fight Log empty state (fallback below if unsupported)
+    '✌️': 'smile',                // Fight Log empty state ('peace' is not a valid Lucide icon name)
     '👐': 'hand-heart',           // Touch button
     '🤗': 'heart-handshake',      // Hug button / hug stat
     '🥺': 'heart-crack',          // Miss You button / stat
