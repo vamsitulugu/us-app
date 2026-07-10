@@ -8172,10 +8172,8 @@ if ('serviceWorker' in navigator) {
       el.style.cssText = 'position:fixed!important;width:0!important;height:0!important;overflow:visible!important;pointer-events:none!important;top:auto!important;left:auto!important;bottom:0!important;right:0!important;';
     }
   }
-
   // Fix immediately if already injected
   applyFix();
-
   // Watch for future injection (Vercel injects it after load)
   const observer = new MutationObserver(function(mutations) {
     mutations.forEach(function(m) {
@@ -8190,7 +8188,6 @@ if ('serviceWorker' in navigator) {
       });
     });
   });
-
   observer.observe(document.body, { childList: true });
 })();
 
@@ -8203,3 +8200,4 @@ if ('serviceWorker' in navigator) {
 <script src="/premium-motion.js"></script>
 </body>
 </html>
+
