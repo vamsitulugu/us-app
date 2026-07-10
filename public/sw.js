@@ -1,4 +1,4 @@
-// Service Worker for US 💕 PWA — v3
+// Service Worker for Twin Hearts 💕 PWA — v3
 const CACHE = 'uwl-v4';
 const OFFLINE_ASSETS = [
   '/',
@@ -30,6 +30,13 @@ self.addEventListener('fetch', e => {
 
   if (url.pathname.startsWith('/api/')) return; // never intercept API
 
+  // Chrome occasionally re-issues the page's own navigation request internally
+  // with cache: 'only-if-cached' (used for prerender / back-forward-cache
+  // probing). Forwarding that request as-is via fetch() throws, because
+  // 'only-if-cached' is only valid when mode is 'same-origin'. Let those
+  // pass through untouched instead of trying to handle them.
+  if (e.request.cache === 'only-if-cached' && e.request.mode !== 'same-origin') return;
+
   e.respondWith(
     fetch(e.request)
       .then(res => {
@@ -45,7 +52,7 @@ self.addEventListener('fetch', e => {
 
 // ── PUSH: fires even when app is fully closed ──────────
 self.addEventListener('push', e => {
-  let data = { title: 'US 💕', body: '', icon: '/icons/icon-192.png' };
+  let data = { title: 'Twin Hearts 💕', body: '', icon: '/icons/icon-192.png' };
   try { if (e.data) Object.assign(data, e.data.json()); } catch (_) {}
   e.waitUntil(
     self.registration.showNotification(data.title, {
