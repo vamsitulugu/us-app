@@ -136,13 +136,32 @@
       ? Math.round((fileSize * 8) / durationSec / 1000)
       : null;
 
+    // NOTE: ID3/MP4 frames from jsmediatags are sometimes objects like
+    // { id, data: "..." } or { data: { text: "..." } } rather than plain
+    // strings — casting those with String() produces the literal text
+    // "[object Object]". safeStr() unwraps the real value instead, or
+    // returns null if there's genuinely nothing usable (this is the fix
+    // for the "[object Object]" Album Artist bug).
+    function safeStr(value) {
+      if (value === null || value === undefined) return null;
+      if (typeof value === 'string') return value.trim() || null;
+      if (typeof value === 'number') return String(value);
+      if (typeof value === 'object') {
+        if (typeof value.text === 'string') return value.text.trim() || null;
+        if (typeof value.data === 'string') return value.data.trim() || null;
+        if (value.data && typeof value.data.text === 'string') return value.data.text.trim() || null;
+        return null;
+      }
+      return null;
+    }
+
     return {
-      title: (t.title && String(t.title).trim()) || fallback.title,
-      artist: (t.artist && String(t.artist).trim()) || fallback.artist,
-      album: (t.album && String(t.album).trim()) || null,
-      albumArtist: (t.albumArtist || t.band || t['TPE2']) ? String(t.albumArtist || t.band || t['TPE2']).trim() : null,
-      composer: (t.composer && String(t.composer).trim()) || null,
-      genre: (t.genre && String(t.genre).trim()) || null,
+      title: safeStr(t.title) || fallback.title,
+      artist: safeStr(t.artist) || fallback.artist,
+      album: safeStr(t.album),
+      albumArtist: safeStr(t.albumArtist) || safeStr(t.band) || safeStr(t['TPE2']),
+      composer: safeStr(t.composer),
+      genre: safeStr(t.genre),
       year: parseYear(t.year),
       track: track.num,
       trackTotal: track.total,

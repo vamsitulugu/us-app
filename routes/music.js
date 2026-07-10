@@ -38,6 +38,9 @@ router.post('/', async (req, res) => {
     // ── expanded fields (Premium Smart Music Import System) ──
     album, albumArtist, composer, genre, year, track, disc,
     durationMs, bitrate, fileSize, lyricsCached, lyricsSource, lyricsUpdatedAt,
+    // ── Metadata Normalization Engine — raw (original ID3) + clean (display) ──
+    rawTitle, cleanTitle, rawArtist, cleanArtist, rawAlbum, cleanAlbum,
+    rawAlbumArtist, cleanAlbumArtist,
   } = req.body;
 
   if (!coupleId || !title || !audioUrl || !uploadedBy) {
@@ -68,6 +71,16 @@ router.post('/', async (req, res) => {
     lyrics_cached:    !!lyricsCached,
     lyrics_source:    lyricsSource || null,
     lyrics_updated_at: lyricsUpdatedAt || null,
+    // Metadata Normalization Engine — both preserved permanently, the
+    // original ID3 tags (raw_*) are never overwritten by cleaning.
+    raw_title:          rawTitle || null,
+    clean_title:        cleanTitle || null,
+    raw_artist:         rawArtist || null,
+    clean_artist:       cleanArtist || null,
+    raw_album:          rawAlbum || null,
+    clean_album:        cleanAlbum || null,
+    raw_album_artist:   rawAlbumArtist || null,
+    clean_album_artist: cleanAlbumArtist || null,
   };
 
   const { data, error } = await supabase.from('songs').insert(row).select().single();
@@ -114,6 +127,16 @@ router.patch('/:id', async (req, res) => {
   if (fields.lyricsCached     !== undefined) updates.lyrics_cached     = fields.lyricsCached;
   if (fields.lyricsSource     !== undefined) updates.lyrics_source     = fields.lyricsSource;
   if (fields.lyricsUpdatedAt  !== undefined) updates.lyrics_updated_at = fields.lyricsUpdatedAt;
+
+  // ── Metadata Normalization Engine ──
+  if (fields.rawTitle         !== undefined) updates.raw_title          = fields.rawTitle;
+  if (fields.cleanTitle       !== undefined) updates.clean_title        = fields.cleanTitle;
+  if (fields.rawArtist        !== undefined) updates.raw_artist         = fields.rawArtist;
+  if (fields.cleanArtist      !== undefined) updates.clean_artist       = fields.cleanArtist;
+  if (fields.rawAlbum         !== undefined) updates.raw_album          = fields.rawAlbum;
+  if (fields.cleanAlbum       !== undefined) updates.clean_album        = fields.cleanAlbum;
+  if (fields.rawAlbumArtist   !== undefined) updates.raw_album_artist   = fields.rawAlbumArtist;
+  if (fields.cleanAlbumArtist !== undefined) updates.clean_album_artist = fields.cleanAlbumArtist;
 
   // increment play_count safely via read-modify-write (small table, fine)
   if (fields.incrementPlay) {

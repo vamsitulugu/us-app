@@ -27,8 +27,8 @@
 
   function whenReady(fn) {
     if (window.Store && window.AudioService && window.MusicPlayer &&
-        window.MetadataService && window.ArtworkService &&
-        window.LyricsImportService && window.CacheService) fn();
+        window.MetadataService && window.MetadataNormalizer && window.LyricsSearch &&
+        window.ArtworkService && window.LyricsImportService && window.CacheService) fn();
     else setTimeout(() => whenReady(fn), 150);
   }
 
@@ -260,9 +260,15 @@
     showProgress(file.name);
 
     try {
-      // STEP 1 — read metadata (async, non-blocking UI)
+      // STEP 1 — read raw metadata (async, non-blocking UI)
       setProgressStep('meta');
-      const meta = await window.MetadataService.extract(file);
+      const rawMeta = await window.MetadataService.extract(file);
+      // STEP 2 — normalize instantly, locally, no API calls. Preserves
+      // every raw* field and adds clean* fields alongside them (this is
+      // also where the "[object Object]" Album Artist bug is fully
+      // neutralized — MetadataNormalizer.coerceToString never lets a raw
+      // object reach the form, even if metadata-service missed a shape).
+      const meta = window.MetadataNormalizer.normalize(rawMeta);
       current.meta = meta;
 
       // STEP 3 — artwork already extracted as part of meta (local, instant)
@@ -270,13 +276,16 @@
       current.pictureDataUrl = meta.pictureDataUrl;
       await tinyDelay(150); // lets the animation actually be visible/readable
 
-      // STEP 5 — search lyrics automatically in the background; we await
-      // it here (not blocking artwork/verify rendering) so it's ready by
-      // the time the user finishes reviewing the form.
+      // STEP 5 — search lyrics automatically in the background using ONLY
+      // cleaned metadata (never the branded raw tags), via the multi-
+      // attempt strategy in lyrics-search.js. Not awaited here — it keeps
+      // running while the verify form is open, so it's usually ready by
+      // the time the user reviews the form.
       setProgressStep('lyrics');
-      const lyricsPromise = window.LyricsImportService.searchBeforeImport({
-        title: meta.title, artist: meta.artist, album: meta.album, durationSec: meta.durationSec,
-      });
+      const lyricsPromise = window.LyricsSearch.search(
+        { cleanTitle: meta.cleanTitle, cleanArtist: meta.cleanArtist, cleanAlbum: meta.cleanAlbum },
+        meta.durationSec
+      );
 
       hideProgress();
       const verified = await openVerifyForm(file, meta, lyricsPromise);
@@ -315,13 +324,16 @@
       resolveVerify = resolve;
       const $ = (id) => document.getElementById(id);
 
-      $('misTitle').value = meta.title || '';
-      $('misArtist').value = meta.artist || '';
-      $('misAlbum').value = meta.album || '';
-      $('misGenre').value = meta.genre || '';
+      // Display CLEANED values everywhere (Step: DISPLAY) — never the
+      // raw, site-branded tags. Raw values still travel with `meta` and
+      // are sent to the backend unchanged for storage (Step: DATABASE).
+      $('misTitle').value = meta.cleanTitle || meta.title || '';
+      $('misArtist').value = meta.cleanArtist || meta.artist || '';
+      $('misAlbum').value = meta.cleanAlbum || meta.album || '';
+      $('misGenre').value = meta.cleanGenre || meta.genre || '';
       $('misYear').value = meta.year || '';
-      $('misAlbumArtist').value = meta.albumArtist || '';
-      $('misComposer').value = meta.composer || '';
+      $('misAlbumArtist').value = meta.cleanAlbumArtist || '';
+      $('misComposer').value = meta.cleanComposer || '';
       $('misTrack').value = meta.track || '';
       $('misDisc').value = meta.disc || '';
       $('misVis').value = 'both';
@@ -466,6 +478,13 @@
       lyricsCached: !!lyricsRes.found,
       lyricsSource: lyricsRes.found ? lyricsRes.source : null,
       lyricsUpdatedAt: lyricsRes.found ? new Date().toISOString() : null,
+      // Metadata Normalization Engine — store BOTH versions permanently
+      // (Step: DATABASE). Original MP3/tags are never modified; this is
+      // purely additional bookkeeping on the song row.
+      rawTitle: meta.rawTitle, cleanTitle: meta.cleanTitle,
+      rawArtist: meta.rawArtist, cleanArtist: meta.cleanArtist,
+      rawAlbum: meta.rawAlbum, cleanAlbum: meta.cleanAlbum,
+      rawAlbumArtist: meta.rawAlbumArtist, cleanAlbumArtist: meta.cleanAlbumArtist,
     });
 
     window.Store.songs.unshift(song);
