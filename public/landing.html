@@ -606,9 +606,10 @@ async function doPairFromLanding() {
 }
 
 function saveAndGo(data, role) {
-  const existing = JSON.parse(localStorage.getItem('uwl_v5') || '{}');
-  localStorage.setItem('uwl_v5', JSON.stringify({
-    ...existing,
+  // Build a brand-new local state — do NOT spread the old cached state.
+  // Spreading `existing` is what let a signed-out account's photos/journal/
+  // notes/etc. bleed into the next account that logs in on the same browser.
+  const freshState = {
     coupleId: data.coupleId,
     connectCode: data.connectCode,
     myName: data.myName,
@@ -617,8 +618,9 @@ function saveAndGo(data, role) {
     role: role || data.role || 'user1',
     setupDone: true,
     paired: data.paired || false,
-    theme: existing.theme || 't-blue'
-  }));
+    theme: 't-blue'
+  };
+  localStorage.setItem('uwl_v5', JSON.stringify(freshState));
   window.location.href = '/';
 }
 

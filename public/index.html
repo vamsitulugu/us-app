@@ -5815,6 +5815,7 @@ function applyRebranding() {
   }
   walkTextNodes(document.body);
 }
+
         // ─── STATE ───────────────────────────────────────────────
         let S = {
           coupleId: null, connectCode: null, myName: 'You', partnerName: 'Partner',
@@ -5833,6 +5834,32 @@ function applyRebranding() {
           placesMemories: []
         };
         window.S = S;
+        function freshAppState() {
+  return {
+    coupleId: null, connectCode: null, myName: 'You', partnerName: 'Partner',
+    role: 'user1', anniversary: '', myBio: '', partnerBio: '',
+    myLoveLang: '', ptLoveLang: '', myAvatar: '', partnerAvatar: '',
+    vaultPin: '1234', calYear: new Date().getFullYear(), calMonth: new Date().getMonth(),
+    selectedMood: '😊 Happy', setupDone: false, paired: false, theme: 't-blue',
+    journal: [], habits: [], notes: [], bucket: [], events: [],
+    transactions: [], photos: [], vault: [],
+    milestones: [], wellness: {}, periods: [], symptoms: {}, fights: [],
+    mySubjects: [], myTimetable: [], reminders: [], ptSubjects: [], ptTimetable: [],
+    myLoc: null, ptLoc: null, places: {}, capsules: [], surprises: [],
+    sharedSongs: [], xp: 0, badges: [], dreamBoard: [], finGoals: {},
+    missYou: null, missCounts: { user1: 0, user2: 0 },
+    hug: null, hugStats: { total: 0, user1: 0, user2: 0 },
+    placesMemories: []
+  };
+}
+
+function resetForNewAccount() {
+  Object.keys(S).forEach(k => delete S[k]);
+  Object.assign(S, freshAppState());
+  localStorage.removeItem('uwl_v5');
+  ['uwl_lastTouchSeen','uwl_lastMissSeen','uwl_lastHugSeen',
+   'uwl_lastHugResultSeen','uwl_justPairedAt'].forEach(k => localStorage.removeItem(k));
+}
         let camStream = null, camFacing = 'environment', pinEntry = [], autoSaveTimer = null, alarmCheckInterval = null;
         // ─── PROFILE SYNC (role-tagged, prevents name/bday clobbering) ──
 function roleKey() { return S.role === 'user1' ? 'u1' : 'u2'; }
@@ -5923,6 +5950,7 @@ async function removePartner() {
           document.getElementById('authPair').style.display = tab === 'pair' ? 'block' : 'none';
         }
         async function doSetup() {
+          resetForNewAccount();
           const name = document.getElementById('authMyName').value.trim();
           const errEl = document.getElementById('setupErr');
           if (!name) { errEl.textContent = 'Please enter your name'; errEl.style.display = 'block'; return; }
@@ -5941,6 +5969,7 @@ async function removePartner() {
           finally { btn.textContent = 'Create Our Space ✨'; btn.disabled = false; }
         }
         async function doPair() {
+          resetForNewAccount();
           const name = document.getElementById('pairMyName').value.trim();
           const code = document.getElementById('pairCode').value.trim().toUpperCase();
           const errEl = document.getElementById('pairErr');
@@ -7118,7 +7147,11 @@ function renderCountdowns() {
           scheduleSave(); toast('Backup exported! 📤');
         }
         function clearAllData() { if (!confirm('Log out and clear all local data?\n\n(Cloud data in Supabase is preserved.)')) return; localStorage.removeItem('uwl_v5'); location.reload(); }
-function logOut() { if (!confirm('Log out? You can sign back in anytime. Your data stays safe in the cloud.')) return; localStorage.removeItem('uwl_v5'); window.location.href = '/landing.html'; }
+function logOut() {
+  if (!confirm('Log out? You can sign back in anytime. Your data stays safe in the cloud.')) return;
+  resetForNewAccount();   // was: localStorage.removeItem('uwl_v5') only
+  window.location.href = '/landing.html';
+}
         function quickMood(el, mood) {
           document.querySelectorAll('#dashMoodRow .mood').forEach(m => m.classList.remove('sel'));
           el.classList.add('sel'); S.selectedMood = mood;
