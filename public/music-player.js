@@ -26,8 +26,8 @@
   'use strict';
 
   const API = (function () {
-    try { return window.parent?.API || window.API || 'https://us-app-api.onrender.com'; }
-    catch (e) { return 'https://us-app-api.onrender.com'; }
+    try { return window.parent?.API || window.API || 'https://us-app-av6d.onrender.com'; }
+    catch (e) { return 'https://us-app-av6d.onrender.com'; }
   })();
 
   function getCoupleCtx() {

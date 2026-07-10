@@ -44,7 +44,7 @@ const apiLimiter = rateLimit({
 // ── CORS ──────────────────────────────────────────────
 const allowedOrigins = [
   'https://useverythingtogether.vercel.app',
-  process.env.APP_URL || 'https://us-app-api.onrender.com',
+  process.env.APP_URL || 'https://us-app-av6d.onrender.com',
   'http://localhost:3000',
   'http://127.0.0.1:3000',
   'http://localhost:3001',

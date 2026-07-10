@@ -1185,8 +1185,8 @@ function closeFxRack() {
 // ══════════════════════════════════════
 const MUSIC_API = (function() {
   // Reuse the same API base as index.html — read from parent frame or fallback
-  try { return window.parent.API || 'https://us-app-api.onrender.com'; }
-  catch(e) { return 'https://us-app-api.onrender.com'; }
+  try { return window.parent.API || 'https://us-app-av6d.onrender.com'; }
+  catch(e) { return 'https://us-app-av6d.onrender.com'; }
 })();
 
 async function musicApi(method, path, body) {

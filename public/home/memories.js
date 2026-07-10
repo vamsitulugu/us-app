@@ -1390,7 +1390,7 @@ const HomeMemories = (() => {
     if (!coupleId) return;
     try {
       // We call the existing globe API to get trip memories
-      const res = await fetch(`https://us-app-api.onrender.com/api/globe/${coupleId}`);
+      const res = await fetch(`https://us-app-av6d.onrender.com/api/globe/${coupleId}`);
       if (!res.ok) return;
       const trips = await res.json();
       if (!trips || !trips.length) return;

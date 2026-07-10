@@ -191,7 +191,7 @@ const AroundWorld = {
       let coupleId=null;
       try{ const raw=localStorage.getItem('uwl_v5'); if(raw) coupleId=JSON.parse(raw).coupleId; }catch(e){}
       if(!coupleId){ this.globeMemories=[]; return; }
-      const res = await fetch(`https://us-app-api.onrender.com/api/globe/${coupleId}`);
+      const res = await fetch(`https://us-app-av6d.onrender.com/api/globe/${coupleId}`);
       this.globeMemories = res.ok ? await res.json() : [];
     }catch(e){ this.globeMemories = []; }
   },
