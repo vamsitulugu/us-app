@@ -1,36 +1,56 @@
 /* ═══════════════════════════════════════════════════════════════
-   COUPLE KARAOKE — synchronized dual-camera singing room
+   COUPLE KARAOKE — synchronized dual-camera singing room  (v2 PATCH)
    Load AFTER music-player.js and music-player-karaoke-patch.js:
      <script src="/music-player.js"></script>
      <script src="/music-player-karaoke-patch.js"></script>
      <script src="/couple-karaoke.js"></script>
 
-   Does NOT touch the existing music player / solo Karaoke feature.
-   Adds one new "💞 Sing Together" entry point.
+   ─────────────────────────────────────────────────────────────
+   WHAT THIS PATCH FIXES (v1 -> v2)
+   ─────────────────────────────────────────────────────────────
+   1. "Sometimes lyrics show, sometimes not"
+      Root cause: lyrics were only loaded via loadDuetLyricsFor(song)
+      using whatever song.lyrics ALREADY happened to be cached. The
+      Room never triggered an actual fetch — it depended on the song
+      having been played normally elsewhere first. Fixed with
+      ensureRoomLyrics(song), which calls /api/lyrics/auto-fetch
+      directly (same endpoint your auto-fetch pipeline uses) if the
+      song has no lyrics yet, then renders.
 
-   ARCHITECTURE NOTES (read before wiring a backend):
-   - Video/audio between partners is peer-to-peer via WebRTC.
-   - Signaling (SDP offers/answers/ICE candidates) and the sync/
-     control/reaction messages all ride over the SAME generic
-     key-value channel the app already uses for partner-music sync:
-        POST /api/data/state   { coupleId, state: { key: value } }
-        GET  /api/data/state/:coupleId
-     This avoids requiring a new WebSocket server. It's polled every
-     ~0.7-1.2s, which is fine for invites/controls but is a latency
-     ceiling for perfectly frame-accurate sync — hence the client-side
-     drift-correction loop described below. If a WebSocket/Firebase
-     channel becomes available later, swap `Channel.send`/`pollOnce`
-     for a push-based transport and everything else keeps working.
-   - Playback sync model: the inviter is the HOST. The host's
-     AudioService is the source of truth. Every 2.5s (and on every
-     play/pause/seek/track-change) the host broadcasts
-     { type:'sync', songId, currentTime, playing, ts }.
-     The guest keeps its own local audio element in lockstep: hard
-     play()/pause() on state-change, and re-seeks whenever local
-     drift exceeds 400ms (accounting for message travel time via ts).
-   - Both partners hear the SAME song because the guest loads the
-     exact same track (by songId) from the shared music library that
-     already exists in Store — no separate audio pipe needed.
+   2. "Song different on each device after skipping/next"
+      Root cause: BOTH host and guest audio elements have their own
+      native 'ended' listener (inside AudioService) that auto-advances
+      the LOCAL queue. In a duet room only the HOST is supposed to
+      drive the playlist — the guest should just mirror. Previously
+      nothing stopped the guest's own player from silently advancing
+      itself the instant its audio finished, independent of the host.
+      Fixed with a single AudioService 'play' hook (see wireAudioHook)
+      that:
+        - on HOST: treats every 'play' as authoritative — updates
+          Room.songId, (re)loads lyrics, and immediately broadcasts.
+        - on GUEST: if a 'play' fires for a song that ISN'T the song
+          the host last told us to play, it means the guest's own
+          player auto-advanced on its own — snap it back to the
+          host's last known song/time instantly instead of just
+          waiting for the next scheduled sync tick.
+
+   3. "One device playing, other paused" / "sync issues" / "skip not
+      smooth"
+      - Every control action (play/pause/seek/track) now ALSO fires an
+        immediate broadcastSyncTick() right after broadcastControl(),
+        so the guest gets both the intent message and a fresh state
+        snapshot back-to-back — if one is dropped by the polling
+        transport the other still lands.
+      - Poll/broadcast intervals tightened (2.5s -> 1.5s tick,
+        1.2s -> 0.9s normal poll, 0.7s -> 0.5s fast poll,
+        drift threshold 0.4s -> 0.3s) so corrections land faster.
+      - New 'request_sync' message: a guest that hasn't heard from the
+        host in >4s asks for an immediate resync instead of waiting up
+        to 1.5s for the next scheduled tick. A small "Reconnecting…"
+        banner shows while stale.
+
+   Everything else (WebRTC, reactions, recording, invite flow, duet
+   LRC parsing) is unchanged from your existing file.
 ═══════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -40,12 +60,13 @@
       whenReady(() => joinRoom(e.data.songId, false));
     }
   });
-  
+
   const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }];
-  const DRIFT_THRESHOLD = 0.4; // seconds
-  const SYNC_BROADCAST_MS = 2500;
-  const SIGNAL_POLL_MS = 1200;
-  const FAST_POLL_MS = 700;
+  const DRIFT_THRESHOLD = 0.3; // seconds (was 0.4)
+  const SYNC_BROADCAST_MS = 1500; // was 2500
+  const SIGNAL_POLL_MS = 900;     // was 1200
+  const FAST_POLL_MS = 500;       // was 700
+  const STALE_MS = 4000; // if guest hasn't heard from host in this long, ask for resync + show banner
 
   function whenReady(fn) {
     if (window.AudioService && window.Store && window.MusicPlayer) fn();
@@ -60,7 +81,7 @@
   ═══════════════════════════════════════ */
   const Channel = (function () {
     let ctx = null, myKey = null, peerKey = null, lastPeerSeq = 0, pollTimer = null, fastTimer = null;
-    let outbox = [], _seq = 0;
+    let outbox = [];
     const handlers = [];
 
     function init() {
@@ -70,9 +91,9 @@
       peerKey = 'ck_' + (ctx.role === 'user1' ? 'user2' : 'user1');
       return true;
     }
-  async function send(msg) {
-  if (!ctx && !init()) return;
-  const payload = { ...msg, from: ctx.role, ts: Date.now(), seq: Date.now() };
+    async function send(msg) {
+      if (!ctx && !init()) return;
+      const payload = { ...msg, from: ctx.role, ts: Date.now(), seq: Date.now() + Math.random() };
       outbox.push(payload);
       if (outbox.length > 20) outbox = outbox.slice(-20);
       try {
@@ -111,11 +132,6 @@
 
   /* ═══════════════════════════════════════
      DUET LYRICS PARSER
-     Supports lines like:
-       [00:12.34][Vamsi] I'll always love you
-       [00:15.10][Likitha] I'll always miss you
-       [00:18.00][Both] Forever together
-     Falls back to plain LRC (no speaker tag) rendered as "Both".
   ═══════════════════════════════════════ */
   const TIME_TAG = /^\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?\]/;
   const SPEAKER_TAG = /^\[(vamsi|partner ?a|host|likitha|partner ?b|guest|both)\]/i;
@@ -148,7 +164,7 @@
     open: false, isHost: false, songId: null, songList: [],
     pc: null, localStream: null, remoteStream: null,
     cameraFacing: 'user', muted: false, cameraOff: false, speakerMuted: false,
-    lastHostSync: null, syncBroadcastTimer: null,
+    lastHostSync: null, lastHostMsgAt: 0, syncBroadcastTimer: null, staleCheckTimer: null,
     recording: false, recorder: null, recChunks: [], recCanvasStream: null, recRafId: null,
   };
 
@@ -188,12 +204,12 @@
     .ck-video-label .dot{width:7px;height:7px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399}
     .ck-video-tile.partner .ck-video-label .dot{background:#5b9bff;box-shadow:0 0 8px #5b9bff}
     .ck-video-tile.partner{ position:absolute; inset:0; max-height:none; z-index:0; }
-.ck-video-tile.self{
-  position:absolute; top:14px; right:14px;
-  width:110px; height:160px; max-height:none;
-  border-radius:16px; overflow:hidden; z-index:4;
-  border:2px solid rgba(255,255,255,.25); box-shadow:0 8px 24px rgba(0,0,0,.5);
-}
+    .ck-video-tile.self{
+      position:absolute; top:14px; right:14px;
+      width:110px; height:160px; max-height:none;
+      border-radius:16px; overflow:hidden; z-index:4;
+      border:2px solid rgba(255,255,255,.25); box-shadow:0 8px 24px rgba(0,0,0,.5);
+    }
 
     .ck-lyrics-stage{position:absolute;left:0;right:0;bottom:130px;display:flex;align-items:flex-end;justify-content:center;pointer-events:none;z-index:3;padding:0 26px}
     .ck-lyrics-stage::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(0,0,0,.35),transparent 65%)}
@@ -206,6 +222,11 @@
     .ck-topbar{position:absolute;top:0;left:0;right:0;padding:14px 14px 0;display:flex;justify-content:space-between;align-items:center;z-index:5}
     .ck-topbar-chip{padding:6px 12px;border-radius:16px;background:rgba(0,0,0,.4);backdrop-filter:blur(10px);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px}
     .ck-icon-btn{width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+
+    .ck-stale-banner{position:absolute;top:60px;left:50%;transform:translateX(-50%);z-index:6;padding:6px 14px;border-radius:16px;background:rgba(251,191,36,.18);border:1px solid rgba(251,191,36,.4);color:#fbbf24;font-size:11px;font-weight:700;display:none;align-items:center;gap:6px}
+    .ck-stale-banner.show{display:flex}
+    .ck-stale-dot{width:6px;height:6px;border-radius:50%;background:#fbbf24;animation:ckStalePulse 1s ease-in-out infinite}
+    @keyframes ckStalePulse{0%,100%{opacity:.4}50%{opacity:1}}
 
     .ck-progress-wrap{position:relative;z-index:5;padding:6px 18px 2px}
     .ck-progress-bar{height:4px;border-radius:3px;background:rgba(255,255,255,.15);cursor:pointer;position:relative}
@@ -374,9 +395,16 @@
         } else if (msg.type === 'ice' && Room.pc) {
           await Room.pc.addIceCandidate(new RTCIceCandidate(msg.candidate)).catch(() => {});
         } else if (msg.type === 'sync' && !Room.isHost) {
+          Room.lastHostMsgAt = Date.now();
+          hideStaleBanner();
           handleHostSync(msg);
         } else if (msg.type === 'control' && !Room.isHost) {
+          Room.lastHostMsgAt = Date.now();
+          hideStaleBanner();
           handleHostControl(msg);
+        } else if (msg.type === 'request_sync' && Room.isHost) {
+          // guest is asking for an immediate resync — comply right away
+          broadcastSyncTick();
         } else if (msg.type === 'reaction') {
           spawnFloatingReaction(msg.emoji);
         } else if (msg.type === 'leave') {
@@ -398,6 +426,11 @@
   function broadcastControl(action, extra) {
     if (!Room.isHost) return;
     Channel.send({ type: 'control', action, ...extra });
+    // Fire a fresh state snapshot right behind the control message — if
+    // one gets dropped by the polling transport, the other still lands
+    // and the guest self-corrects within one poll cycle instead of
+    // waiting up to SYNC_BROADCAST_MS for the next scheduled tick.
+    setTimeout(broadcastSyncTick, 120);
   }
   function handleHostSync(msg) {
     Room.lastHostSync = msg;
@@ -434,8 +467,47 @@
       window.AudioService.audio.currentTime = startAt || 0;
       if (!autoplay) window.AudioService.audio.pause();
     }, 200);
-    loadDuetLyricsFor(s);
     updateRoomSongInfo(s);
+    // NOTE: lyrics are now loaded centrally by the AudioService 'play'
+    // hook (wireAudioHook), so we don't call ensureRoomLyrics here too —
+    // it would just double-fetch the same song.
+  }
+
+  /* ═══════════════════════════════════════
+     CENTRAL PLAYBACK HOOK — the actual fix for #2/#3/#5
+     Every song change, on EITHER device, funnels through here exactly
+     once (AudioService only fires 'play' when a track truly starts).
+  ═══════════════════════════════════════ */
+  function wireAudioHook() {
+    window.AudioService.on('play', (song) => {
+      if (!Room.open || !song) return;
+
+      if (Room.isHost) {
+        // Host is always authoritative. Whether this play came from the
+        // Room's next/prev buttons, the mini-player, or a natural
+        // end-of-track auto-advance — treat it as the new truth and
+        // tell the guest immediately.
+        Room.songId = song.id;
+        updateRoomSongInfo(song);
+        ensureRoomLyrics(song);
+        broadcastSyncTick();
+        Channel.send({ type: 'control', action: 'track', songId: song.id });
+      } else {
+        // Guest: if this song doesn't match what the host last told us
+        // to play, the guest's OWN AudioService auto-advanced locally
+        // (e.g. its track ended a beat before the host's). That's the
+        // exact bug behind "different song on each device" — correct
+        // it immediately instead of letting it stand until the next
+        // sync tick.
+        if (Room.songId && song.id !== Room.songId) {
+          const sync = Room.lastHostSync;
+          loadGuestSong(Room.songId, sync ? sync.currentTime : 0, sync ? sync.playing : true);
+          return;
+        }
+        updateRoomSongInfo(song);
+        ensureRoomLyrics(song);
+      }
+    });
   }
 
   /* ═══════════════════════════════════════
@@ -455,6 +527,8 @@
           <button class="ck-icon-btn" id="ckLeaveBtn" title="Leave">✕</button>
         </div>
       </div>
+
+      <div class="ck-stale-banner" id="ckStaleBanner"><span class="ck-stale-dot"></span>Reconnecting…</div>
 
       <div class="ck-video-stage">
         <div class="ck-video-tile partner">
@@ -506,8 +580,11 @@
         window.MusicPlayer.toast('Only the host controls playback 🎤');
       }
     };
-    document.getElementById('ckPrevBtn').onclick = () => { if (Room.isHost) { window.AudioService.prev(); broadcastControl('track', { songId: window.AudioService.currentSong()?.id }); } };
-    document.getElementById('ckNextBtn').onclick = () => { if (Room.isHost) { window.AudioService.next(true); broadcastControl('track', { songId: window.AudioService.currentSong()?.id }); } };
+    // NOTE: next/prev only need to move the host's own queue now — the
+    // AudioService 'play' hook (wireAudioHook) takes care of telling the
+    // guest and reloading lyrics, so we don't duplicate that logic here.
+    document.getElementById('ckPrevBtn').onclick = () => { if (Room.isHost) window.AudioService.prev(); };
+    document.getElementById('ckNextBtn').onclick = () => { if (Room.isHost) window.AudioService.next(true); };
     document.getElementById('ckProgressBar').onclick = (e) => {
       if (!Room.isHost) return;
       const r = e.currentTarget.getBoundingClientRect();
@@ -539,6 +616,8 @@
 
   function showConnecting() { const el = document.getElementById('ckConnecting'); if (el) el.style.display = 'flex'; }
   function hideConnecting() { const el = document.getElementById('ckConnecting'); if (el) el.style.display = 'none'; }
+  function showStaleBanner() { const el = document.getElementById('ckStaleBanner'); if (el) el.classList.add('show'); }
+  function hideStaleBanner() { const el = document.getElementById('ckStaleBanner'); if (el) el.classList.remove('show'); }
 
   function updateRoomSongInfo(s) {
     const chip = document.getElementById('ckSongChip');
@@ -546,9 +625,11 @@
   }
 
   /* ═══════════════════════════════════════
-     DUET LYRICS RENDER
+     DUET LYRICS — now with real fetching (fixes "sometimes no lyrics")
   ═══════════════════════════════════════ */
   let duetLines = [];
+  let lyricsFetchToken = 0;
+
   function loadDuetLyricsFor(song) {
     duetLines = parseDuetLRC(song.lyrics);
     if (!duetLines.length) {
@@ -556,6 +637,44 @@
       document.getElementById('ckLyricNext').textContent = '';
     }
   }
+
+  // Actually fetches lyrics via the same auto-fetch endpoint your normal
+  // player uses, instead of silently trusting whatever song.lyrics
+  // already happens to be cached. This is what fixes lyrics randomly
+  // being missing in the Room.
+  async function ensureRoomLyrics(song) {
+    if (song.lyrics && song.lyrics.trim()) { loadDuetLyricsFor(song); return; }
+
+    const myToken = ++lyricsFetchToken;
+    const curEl = document.getElementById('ckLyricCur');
+    const nextEl = document.getElementById('ckLyricNext');
+    if (curEl) curEl.textContent = '🎧 Loading lyrics…';
+    if (nextEl) nextEl.textContent = '';
+
+    try {
+      const ctx = window.MusicPlayer.getCoupleCtx();
+      const res = await window.MusicPlayer.api('POST', '/api/lyrics/auto-fetch', {
+        songId: song.id,
+        coupleId: ctx ? ctx.coupleId : undefined,
+        title: song.title,
+        artist: song.artist,
+        durationSec: song.duration_sec || undefined,
+      });
+      if (myToken !== lyricsFetchToken) return; // song changed again while we were fetching
+      if (res && res.found) {
+        song.lyrics = res.lrcNative || res.lrc || '';
+        song.lyrics_native = res.lrcNative || res.lrc || '';
+        song.lyrics_latin = res.lrcLatin || null;
+      }
+    } catch (e) { /* fall through to "no lyrics" state below */ }
+
+    if (myToken !== lyricsFetchToken) return;
+    // Only render if we're still showing this same song (avoid stomping
+    // over a faster-arriving track-change).
+    const cur = window.AudioService.currentSong();
+    if (cur && cur.id === song.id) loadDuetLyricsFor(song);
+  }
+
   function speakerClass(sp) { return sp === 'a' ? 'speaker-a' : sp === 'b' ? 'speaker-b' : 'speaker-both'; }
   function updateDuetLyricHighlight(t) {
     if (!duetLines.length) return;
@@ -687,9 +806,11 @@
   async function joinRoom(songId, isHost) {
     Room.open = true; Room.isHost = isHost; Room.songId = songId;
     Room.songList = window.Store.songs;
+    Room.lastHostMsgAt = Date.now();
     injectRoom();
     document.getElementById('ckRoom').classList.add('open');
     showConnecting();
+    hideStaleBanner();
 
     const ctx = window.MusicPlayer.getCoupleCtx();
     if (ctx) {
@@ -701,14 +822,28 @@
       } catch (e) {}
     }
     const song = window.Store.songs.find(x => x.id === songId);
-    if (song) { updateRoomSongInfo(song); loadDuetLyricsFor(song); }
 
     if (isHost) {
-      window.AudioService.play(Room.songList, songId);
+      window.AudioService.play(Room.songList, songId); // 'play' event -> wireAudioHook handles lyrics + first broadcast
       Room.syncBroadcastTimer = setInterval(broadcastSyncTick, SYNC_BROADCAST_MS);
     } else {
       window.AudioService.audio.pause();
+      if (song) { updateRoomSongInfo(song); ensureRoomLyrics(song); }
+      // Ask the host for an immediate state snapshot instead of waiting
+      // up to SYNC_BROADCAST_MS for its next scheduled tick.
+      Channel.send({ type: 'request_sync' });
     }
+
+    // Watchdog: guest shows a "Reconnecting…" banner if the host goes
+    // quiet for longer than STALE_MS, and proactively asks for a resync.
+    if (Room.staleCheckTimer) clearInterval(Room.staleCheckTimer);
+    Room.staleCheckTimer = setInterval(() => {
+      if (!Room.open || Room.isHost) return;
+      if (Date.now() - Room.lastHostMsgAt > STALE_MS) {
+        showStaleBanner();
+        Channel.send({ type: 'request_sync' });
+      }
+    }, 1500);
 
     Channel.startPolling(true);
     await setupPeerConnection(isHost);
@@ -725,11 +860,13 @@
     if (!silent) Channel.send({ type: 'leave' });
     Room.open = false;
     if (Room.syncBroadcastTimer) clearInterval(Room.syncBroadcastTimer);
+    if (Room.staleCheckTimer) clearInterval(Room.staleCheckTimer);
     if (Room.recording) stopRecording();
     if (Room.pc) { Room.pc.close(); Room.pc = null; }
     if (Room.localStream) { Room.localStream.getTracks().forEach(t => t.stop()); Room.localStream = null; }
     window.AudioService.audio.pause();
     const el = document.getElementById('ckRoom'); if (el) el.classList.remove('open');
+    hideStaleBanner();
     Channel.stopPolling();
     listenForInvites();
   }
@@ -743,17 +880,18 @@
     injectInviteOverlays();
     injectRoom();
     wireSignalHandling();
+    wireAudioHook();
     listenForInvites();
   });
 
   window.CoupleKaraoke = {
-  sendInvite,
-  sendInviteById: function(songId) {
-    const s = window.Store.songs.find(x => x.id === songId);
-    if (s) sendInvite(s);
-    else window.MusicPlayer.toast('Song not found');
-  },
-  joinRoom,
-  leaveRoom
-};
+    sendInvite,
+    sendInviteById: function (songId) {
+      const s = window.Store.songs.find(x => x.id === songId);
+      if (s) sendInvite(s);
+      else window.MusicPlayer.toast('Song not found');
+    },
+    joinRoom,
+    leaveRoom
+  };
 })();
