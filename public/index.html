@@ -187,14 +187,14 @@
   @keyframes al-pulse { 0%,100%{opacity:0.3} 50%{opacity:1} }
 </style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-  <title>Twin Hearts 💕 — Everything Together.</title>
+  <title>Us With Love 💕</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#2f6feb" id="themeColorMeta">
   <link rel="icon" href="/icons/icon-192.png" type="image/png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Twin Hearts">
+  <meta name="apple-mobile-web-app-title" content="Us With Love">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <link
     href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap"
@@ -4119,9 +4119,9 @@ select option { background: #0D0D0D; color: #fff; }
         
       </div>
       
-<img src="/icons/icon-512.png" alt="Twin Hearts"
+<img src="/icons/icon-512.png" alt="US"
   style="height:72px;width:auto;margin:0 auto 8px;display:block;filter:drop-shadow(0 0 12px rgba(150,100,220,0.6))">
-<div style="font-family:var(--ff-serif);font-size:28px;color:var(--white);text-align:center;margin-bottom:4px;letter-spacing:-1px">Twin Hearts</div>
+<div style="font-family:var(--ff-serif);font-size:28px;color:var(--white);text-align:center;margin-bottom:4px;letter-spacing:-1px">US</div>
 <div class="brand-tagline"
   style="margin:0 0 14px;font-size:10px;text-align:center;letter-spacing:2px;color:var(--accent2)">EVERYTHING TOGETHER.</div>
       <div class="auth-sub">Your private space for two — journal, plans, memories & more.</div>
@@ -4172,9 +4172,9 @@ select option { background: #0D0D0D; color: #fff; }
     
 <div class="logo-mark" style="flex-direction:column;align-items:flex-start;gap:2px">
   <div style="display:flex;align-items:center;gap:9px">
-    <img src="/icons/icon-512.png" alt="Twin Hearts"
+    <img src="/icons/icon-512.png" alt="US"
       style="height:38px;width:auto;display:block;filter:drop-shadow(0 0 8px rgba(150,100,220,0.5));flex-shrink:0">
-    <span style="font-family:var(--ff-serif);font-size:22px;color:var(--white);letter-spacing:-0.5px">Twin Hearts</span>
+    <span style="font-family:var(--ff-serif);font-size:22px;color:var(--white);letter-spacing:-0.5px">US</span>
   </div>
   <span style="font-family:var(--ff-sans);font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent2);margin-top:2px;padding-left:2px">Everything Together.</span>
 </div>
@@ -5773,26 +5773,26 @@ select option { background: #0D0D0D; color: #fff; }
         const API = 'https://us-app-av6d.onrender.com';
         // ─── REBRAND CONSTANTS ────────────────────────────────────
 const BRAND = {
-  name: 'Twin Hearts',
+  name: 'US',
   tagline: 'Everything Together.',
-  nameShort: 'Twin Hearts',
-  nameClass: 'brand-th'
+  nameShort: 'US',
+  nameClass: 'brand-us'
 };
 
 // Apply rebranding to all static text nodes on load
 function applyRebranding() {
   // Update document title
-  document.title = 'Twin Hearts 💕 — Everything Together.';
+  document.title = 'US 💕 — Everything Together.';
   
   // Update theme meta
   const themeTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
-  if(themeTitle) themeTitle.content = 'Twin Hearts';
+  if(themeTitle) themeTitle.content = 'US';
 
   // Walk all text nodes and replace brand strings
   const brandReplacements = [
-    [/Us With Love/gi, 'Twin Hearts'],
-    [/US With Love/gi, 'Twin Hearts'],
-    [/Us with Love/gi, 'Twin Hearts'],
+    [/Us With Love/gi, 'US'],
+    [/US With Love/gi, 'US'],
+    [/Us with Love/gi, 'US'],
     [/Together\. Always\./gi, 'Everything Together.'],
     [/TOGETHER\. ALWAYS\./gi, 'EVERYTHING TOGETHER.'],
     [/Together Always/gi, 'Everything Together'],
