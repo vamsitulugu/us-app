@@ -33,5 +33,49 @@
     return JSON.stringify(obj, Object.keys(obj).sort());
   }
 
-  global.SearchUtils = { haversine, toRad, debounce, hashKey };
+  /** Levenshtein edit distance — powers fuzzy/typo-tolerant matching. */
+  function editDistance(a, b) {
+    a = (a || '').toLowerCase(); b = (b || '').toLowerCase();
+    const m = a.length, n = b.length;
+    if (!m) return n; if (!n) return m;
+    const dp = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        dp[i][j] = a[i - 1] === b[j - 1]
+          ? dp[i - 1][j - 1]
+          : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      }
+    }
+    return dp[m][n];
+  }
+
+  /** 0..1 fuzzy similarity score (1 = identical), tolerant of typos like "Hotal"/"Hospitl". */
+  function fuzzyScore(query, target) {
+    if (!query || !target) return 0;
+    query = query.toLowerCase().trim(); target = target.toLowerCase().trim();
+    if (target.includes(query)) return 1; // substring match is always a strong hit
+    const dist = editDistance(query, target.slice(0, query.length + 3));
+    const maxLen = Math.max(query.length, 3);
+    return Math.max(0, 1 - dist / maxLen);
+  }
+
+  /** Removes duplicate places across providers using proximity + name similarity. */
+  function dedupe(places, distThresholdKm = 0.05) {
+    const out = [];
+    for (const p of places) {
+      const dupe = out.find(o =>
+        o.lat != null && p.lat != null &&
+        haversine(o, p) < distThresholdKm &&
+        fuzzyScore(o.name || '', p.name || '') > 0.6
+      );
+      if (!dupe) out.push(p);
+      else if ((p.raw && Object.keys(p.raw).length) > (dupe.raw && Object.keys(dupe.raw).length || 0)) {
+        Object.assign(dupe, p, { id: dupe.id });
+      }
+    }
+    return out;
+  }
+
+  global.SearchUtils = { haversine, toRad, debounce, hashKey, editDistance, fuzzyScore, dedupe };
 })(window);

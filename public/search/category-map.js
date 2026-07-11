@@ -50,6 +50,19 @@
     government:       { label: 'Government Offices',  icon: '🏛️', group: 'civic',     osm: ['["office"="government"]'] },
     police:           { label: 'Police Stations',     icon: '🚓', group: 'civic',     osm: ['["amenity"="police"]'] },
     post_office:      { label: 'Post Offices',        icon: '📮', group: 'civic',     osm: ['["amenity"="post_office"]'] },
+    fire_station:     { label: 'Fire Stations',       icon: '🚒', group: 'civic',     osm: ['["amenity"="fire_station"]'] },
+    temple:           { label: 'Temples',             icon: '🛕', group: 'worship',   osm: ['["amenity"="place_of_worship"]["religion"="hindu"]', '["amenity"="place_of_worship"]["religion"="buddhist"]'] },
+    mosque:           { label: 'Mosques',             icon: '🕌', group: 'worship',   osm: ['["amenity"="place_of_worship"]["religion"="muslim"]'] },
+    church:           { label: 'Churches',            icon: '⛪', group: 'worship',   osm: ['["amenity"="place_of_worship"]["religion"="christian"]'] },
+    movie_theatre:    { label: 'Movie Theatres',      icon: '🎬', group: 'leisure',   osm: ['["amenity"="cinema"]'] },
+    parking:          { label: 'Parking',             icon: '🅿️', group: 'transport', osm: ['["amenity"="parking"]'] },
+    taxi:             { label: 'Taxi Stands',         icon: '🚕', group: 'transport', osm: ['["amenity"="taxi"]'] },
+    car_rental:       { label: 'Car Rental',          icon: '🚗', group: 'transport', osm: ['["amenity"="car_rental"]'] },
+    lake:             { label: 'Lakes',               icon: '🏞️', group: 'nature',    osm: ['["natural"="water"]["water"="lake"]'] },
+    tourist_place:    { label: 'Tourist Places',      icon: '🗺️', group: 'leisure',   osm: ['["tourism"="attraction"]', '["tourism"="viewpoint"]'] },
+    camping:          { label: 'Camping',             icon: '⛺', group: 'stay',      osm: ['["tourism"="camp_site"]'] },
+    resort:           { label: 'Resorts',             icon: '🏝️', group: 'stay',      osm: ['["tourism"="resort"]'] },
+    spa:              { label: 'Spa',                 icon: '💆', group: 'personal',  osm: ['["leisure"="spa"]', '["shop"="spa"]'] },
     custom:           { label: 'Custom Search',       icon: '📍', group: 'other',     osm: [] } // free-text, no fixed tag
   };
 
@@ -57,7 +70,7 @@
   const CATEGORY_ORDER = Object.keys(CATEGORY_MAP);
 
   /** Groups, in display order, for building a two-level filter UI. */
-  const GROUP_ORDER = ['stay', 'food', 'leisure', 'nature', 'shopping', 'health', 'money', 'transport', 'personal', 'education', 'civic', 'other'];
+  const GROUP_ORDER = ['stay', 'food', 'leisure', 'nature', 'shopping', 'health', 'money', 'transport', 'personal', 'education', 'civic', 'worship', 'other'];
 
   /** Returns the category meta, falling back to a generic pin if unknown. */
   function getCategory(id) {
