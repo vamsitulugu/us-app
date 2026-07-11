@@ -48,7 +48,7 @@ router.get('/:coupleId', async (req, res) => {
 router.post('/', async (req, res) => {
   const { coupleId, clientId, senderRole, type, text, mediaUrl, mediaMeta, replyTo, forwarded } = req.body;
   if (!coupleId || !senderRole || !clientId) return res.status(400).json({ error: 'Missing data' });
-  if (!text && !mediaUrl) return res.status(400).json({ error: 'Empty message' });
+  if (!text && !mediaUrl && !mediaMeta) return res.status(400).json({ error: 'Empty message' });
 
   const row = {
     couple_id:   coupleId,

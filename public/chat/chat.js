@@ -228,12 +228,33 @@ const Chat = (function () {
     const status = mine ? (m.read ? '✓✓' : m.delivered ? '✓✓' : '✓') : '';
     const statusClass = mine && m.read ? 'read' : '';
 
+    const quoted = m.reply_to ? renderQuote(m.reply_to) : '';
+
     return `<div class="chat-row ${mine ? 'me' : 'them'}${isNew ? ' msg-pop-in' : ''}" data-id="${m.id}" onclick="Chat.onBubbleClick('${m.id}', event)" oncontextmenu="Chat.openMenu('${m.id}', event); return false;" ontouchstart="Chat.startLongPress('${m.id}')" ontouchend="Chat.endLongPress()" ontouchmove="Chat.endLongPress()">
+      <div class="chat-swipe-reply-icon">↩️</div>
       <div class="chat-bubble ${mine ? 'mine' : 'theirs'}">
+        ${quoted}
         ${body}
         ${reactions}
         <div class="chat-meta"><span>${time}${m.edited ? ' · edited' : ''}</span>${mine ? `<span class="chat-status ${statusClass}">${status}</span>` : ''}</div>
       </div>
+    </div>`;
+  }
+
+  function renderQuote(replyId) {
+    const src = msgs.find(x => x.id === replyId || x.id === Number(replyId) || String(x.id) === String(replyId));
+    if (!src) return `<div class="chat-quote"><div class="chat-quote-text">Original message</div></div>`;
+    const who = isMine(src) ? (window.S.myName || 'You') : (window.S.partnerName || 'Partner');
+    let preview = src.text;
+    if (!preview) {
+      preview = src.type === 'image' ? '📷 Photo' : src.type === 'gif' ? 'GIF' : src.type === 'voice' ? '🎤 Voice message'
+        : src.type === 'audio' ? '🎵 Audio' : src.type === 'sticker' ? (src.media_meta?.emoji || '🙂') + ' Sticker'
+        : src.type === 'gift' ? '🎁 Gift' : src.type === 'contact' ? '👤 Contact' : src.type === 'location' ? '📍 Location'
+        : src.type === 'poll' ? '📊 Poll' : 'Message';
+    }
+    return `<div class="chat-quote" onclick="event.stopPropagation();Chat.scrollToMsg(${src.id})">
+      <div class="chat-quote-name">${esc(who)}</div>
+      <div class="chat-quote-text">${esc(String(preview).slice(0, 80))}</div>
     </div>`;
   }
 
@@ -813,6 +834,66 @@ function menuItemsHtml(m, id) {
     document.getElementById('chatGifPanel')?.classList.remove('open');
   }
 
+  // ─── SWIPE TO REPLY (WhatsApp-style) ──────────────────
+  let swipeState = null;
+  const SWIPE_TRIGGER = 64, SWIPE_MAX = 84;
+  function initSwipeToReply() {
+    const box = document.getElementById('chatMsgs');
+    if (!box || box._swipeInit) return;
+    box._swipeInit = true;
+    box.addEventListener('touchstart', onSwipeStart, { passive: true });
+    box.addEventListener('touchmove', onSwipeMove, { passive: false });
+    box.addEventListener('touchend', onSwipeEnd, { passive: true });
+    box.addEventListener('touchcancel', onSwipeEnd, { passive: true });
+    // Mouse support for desktop testing
+    box.addEventListener('mousedown', onSwipeStart);
+    box.addEventListener('mousemove', onSwipeMove);
+    window.addEventListener('mouseup', onSwipeEnd);
+  }
+  function swipePoint(e) { return e.touches ? e.touches[0] : e; }
+  function onSwipeStart(e) {
+    const row = e.target.closest && e.target.closest('.chat-row');
+    if (!row || e.target.closest('.chat-swipe-reply-icon')) return;
+    const p = swipePoint(e);
+    swipeState = { row, startX: p.clientX, startY: p.clientY, dx: 0, locked: null, id: row.dataset.id };
+  }
+  function onSwipeMove(e) {
+    if (!swipeState) return;
+    const p = swipePoint(e);
+    const dx = p.clientX - swipeState.startX;
+    const dy = p.clientY - swipeState.startY;
+    if (swipeState.locked === null) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      swipeState.locked = Math.abs(dx) > Math.abs(dy);
+      if (swipeState.locked) endLongPress();
+    }
+    if (!swipeState.locked) { swipeState = null; return; }
+    if (dx <= 0) { swipeState.dx = 0; } // only swipe rightward, like WhatsApp
+    else { swipeState.dx = Math.min(dx, SWIPE_MAX); }
+    if (e.cancelable) e.preventDefault();
+    const bubble = swipeState.row.querySelector('.chat-bubble');
+    const icon = swipeState.row.querySelector('.chat-swipe-reply-icon');
+    if (bubble) bubble.style.transform = `translateX(${swipeState.dx}px)`;
+    if (icon) {
+      const p2 = Math.min(1, swipeState.dx / SWIPE_TRIGGER);
+      icon.style.opacity = p2;
+      icon.style.transform = `translateX(${-8 + swipeState.dx * 0.3}px) scale(${0.7 + p2 * 0.3})`;
+    }
+  }
+  function onSwipeEnd() {
+    if (!swipeState) return;
+    const { row, dx, id } = swipeState;
+    const bubble = row.querySelector('.chat-bubble');
+    const icon = row.querySelector('.chat-swipe-reply-icon');
+    if (bubble) { bubble.style.transition = 'transform .2s ease'; bubble.style.transform = 'translateX(0)'; setTimeout(() => { if (bubble) bubble.style.transition = ''; }, 220); }
+    if (icon) { icon.style.transition = 'opacity .2s ease, transform .2s ease'; icon.style.opacity = 0; icon.style.transform = ''; setTimeout(() => { if (icon) icon.style.transition = ''; }, 220); }
+    if (dx >= SWIPE_TRIGGER) {
+      if (navigator.vibrate) navigator.vibrate(25);
+      replyTo(id);
+    }
+    swipeState = null;
+  }
+
   // ─── INIT ────────────────────────────────────────────
   function init() {
     if (!coupleId()) { setTimeout(init, 1000); return; }
@@ -820,6 +901,7 @@ function menuItemsHtml(m, id) {
     startPresence();
     startPolling();
     fetchPresence();
+    initSwipeToReply();
     const nameEl = document.getElementById('chatHeaderName');
     if (nameEl) nameEl.textContent = window.S.partnerName || 'Partner';
     const avEl = document.getElementById('chatHeaderAv');
