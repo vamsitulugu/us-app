@@ -431,16 +431,16 @@
 
   function injectLyricsStyles() {
     const css = `
-    .lyr-panel{position:absolute;inset:0;background:rgba(4,4,12,.72);backdrop-filter:blur(20px);z-index:5;display:flex;flex-direction:column}
-    .lyr-close{align-self:flex-end;margin:10px 14px}
-    #fpLyricsWrap{flex:1;overflow-y:auto;padding:20vh 26px;mask-image:linear-gradient(to bottom,transparent,#000 12%,#000 88%,transparent)}
-    #fpLyricsWrap::-webkit-scrollbar{width:0}
-    .lyr-list{display:flex;flex-direction:column;gap:18px;text-align:center}
-    .lyr-line{font-size:16px;color:rgba(255,255,255,.35);transition:all .35s cubic-bezier(.4,0,.2,1);cursor:pointer;line-height:1.5}
-    .lyr-line.prev{color:rgba(255,255,255,.22)}
-    .lyr-line.next{color:rgba(255,255,255,.55);font-size:17px}
-    .lyr-line.current{color:#fff;font-size:22px;font-weight:700;text-shadow:0 0 20px var(--accent-glow,rgba(91,155,255,.6)),0 0 40px var(--accent-glow,rgba(91,155,255,.3));transform:scale(1.03)}
-    .lyr-unavailable{text-align:center;color:rgba(255,255,255,.4);font-size:14px;padding:60px 24px;line-height:1.8}
+    .lyr-panel{position:absolute;inset:0;top:64px;background:rgba(4,4,12,.88);backdrop-filter:blur(24px) saturate(160%);z-index:10;display:flex;flex-direction:column;border-radius:20px 20px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.4)}
+.lyr-close{display:none} /* the shared ✕ in fp-top now closes lyrics too — see JS patch below */
+#fpLyricsWrap{flex:1;overflow-y:auto;padding:24px 26px 40px;mask-image:linear-gradient(to bottom,transparent,#000 6%,#000 92%,transparent);scroll-behavior:smooth}
+#fpLyricsWrap::-webkit-scrollbar{width:0}
+.lyr-list{display:flex;flex-direction:column;gap:16px;text-align:center;padding-top:30vh;padding-bottom:30vh}
+.lyr-line{font-size:16px;color:rgba(255,255,255,.4);transition:color .25s ease,opacity .25s ease;cursor:pointer;line-height:1.6;font-weight:500}
+.lyr-line.prev{color:rgba(255,255,255,.25)}
+.lyr-line.next{color:rgba(255,255,255,.6)}
+.lyr-line.current{color:#fff;font-weight:700;text-shadow:0 0 14px var(--accent-glow,rgba(91,155,255,.45))}
+.lyr-unavailable{text-align:center;color:rgba(255,255,255,.4);font-size:14px;padding:60px 24px;line-height:1.8}
     `;
     const style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
   }
@@ -531,20 +531,28 @@
           </div>
         </div>
         <div class="lyr-panel" id="fpLyricsPanel" style="display:none">
-          <button class="fp-iconbtn lyr-close" onclick="toggleFpLyrics()">✕</button>
-          <div id="fpLyricsWrap"></div>
-        </div>
+  <div id="fpLyricsWrap"></div>
+</div>
         <div class="fp-queue" id="fpQueuePanel" style="display:none"></div>
       </div>`;
     document.body.appendChild(bg);
     bg.addEventListener('click', e => { if (e.target === bg) window.closeFullPlayer(); });
   }
-  window.openFullPlayer = function () {
+  let _fpScrollY = 0;
+window.openFullPlayer = function () {
   if (typeof closeKaraokeMode === 'function' && karaokeState && karaokeState.open) closeKaraokeMode();
+  _fpScrollY = window.scrollY || 0;
+  document.body.classList.add('fp-locked');
+  document.body.style.top = -_fpScrollY + 'px';
   document.getElementById('fullPlayerBg').classList.add('open');
   syncFpUI();
 };
-  window.closeFullPlayer = function () { document.getElementById('fullPlayerBg').classList.remove('open'); };
+window.closeFullPlayer = function () {
+  document.getElementById('fullPlayerBg').classList.remove('open');
+  document.body.classList.remove('fp-locked');
+  document.body.style.top = '';
+  window.scrollTo(0, _fpScrollY);
+};
   window.toggleFpQueue = function () {
     const p = document.getElementById('fpQueuePanel'); const showing = p.style.display !== 'none';
     p.style.display = showing ? 'none' : 'block'; if (!showing) renderFpQueue();
@@ -565,6 +573,9 @@
     panel.style.display = showing ? 'none' : 'block';
     if (!showing) loadLyricsFor(AudioService.currentSong());
   };
+  // The 📜 button in .fp-row2 now doubles as the lyrics close button —
+  // no separate ✕ floating inside the panel needed anymore, one clear
+  // control instead of two overlapping ones.
   window.shareCurrentSong = function () {
     const s = AudioService.currentSong(); if (!s) return;
     if (navigator.share) navigator.share({ title: s.title, text: `🎵 ${s.title} — ${s.artist || ''}` }).catch(() => {});
@@ -738,10 +749,11 @@ function wireFullPlayerSwipe() {
 .mini-skip-flash{position:absolute;inset:0;background:rgba(255,255,255,.06);opacity:0;pointer-events:none;transition:opacity .2s}
 .mini-skip-flash.show{opacity:1}
     .fp-bg{position:fixed;inset:0;z-index:1000;background:rgba(2,2,8,0.97);display:none;overflow:hidden}
+body.fp-locked{overflow:hidden;position:fixed;width:100%}
     .fp-bg.open{display:block}
     .fp-anim-bg{position:absolute;inset:-10%;background-size:cover;background-position:center;filter:blur(60px) saturate(160%) brightness(.6);opacity:.55;transform:scale(1.15);transition:background-image .4s}
     .fp-wrap{position:relative;height:100%;display:flex;flex-direction:column;max-width:480px;margin:0 auto;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
-    .fp-top{display:flex;justify-content:space-between;align-items:center;padding:14px 16px}
+    .fp-top{display:flex;justify-content:space-between;align-items:center;padding:calc(14px + env(safe-area-inset-top)) 16px 14px;position:relative;z-index:20;flex-shrink:0}
     .fp-iconbtn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#fff;width:36px;height:36px;border-radius:50%;font-size:15px;cursor:pointer}
     .fp-toplabel{font-size:11px;font-weight:700;color:rgba(255,255,255,.6);letter-spacing:.5px;text-transform:uppercase}
     .fp-body{flex:1;overflow-y:auto;padding:0 24px 20px;display:flex;flex-direction:column}
