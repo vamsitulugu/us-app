@@ -26,6 +26,8 @@
   const MIRRORS = [
     'https://overpass.kumi.systems/api/interpreter',
     'https://overpass.private.coffee/api/interpreter',
+    'https://overpass.osm.ch/api/interpreter',
+    'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
     'https://overpass.openstreetmap.ru/api/interpreter',
     'https://overpass-api.de/api/interpreter'
   ];
