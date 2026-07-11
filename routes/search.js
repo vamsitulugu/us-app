@@ -69,34 +69,42 @@ router.post('/overpass', async (req, res) => {
     // Cache miss or table not present yet — fall through to live fetch
   }
 
-  // 2. Live fetch, trying each mirror until one works (each capped at MIRROR_TIMEOUT_MS)
-  let lastErr = null;
-  for (const mirror of MIRRORS) {
-    try {
-      const r = await fetchWithTimeout(mirror, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: query
-      }, MIRROR_TIMEOUT_MS);
+  // 2. Live fetch — race all mirrors in parallel (first success wins), each
+  //    capped at MIRROR_TIMEOUT_MS. Running in parallel (not sequentially)
+  //    keeps total wall-clock time bounded even if one mirror hangs.
+  const attempts = MIRRORS.map(mirror =>
+    fetchWithTimeout(mirror, {
+      method: 'POST',
+      headers: {
+        // Overpass's documented format is a form-encoded "data" param, not
+        // a raw body — some mirrors (overpass-api.de) 406 on a raw POST.
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'US-CouplesApp/1.0 (search feature; contact via app)'
+      },
+      body: 'data=' + encodeURIComponent(query)
+    }, MIRROR_TIMEOUT_MS).then(async r => {
       if (!r.ok) throw new Error(`${mirror} returned ${r.status}`);
-      const json = await r.json();
+      return r.json();
+    })
+  );
 
-      // 3. Best-effort cache write (never blocks the response)
-      supabase.from('poi_cache').upsert({
-        cache_key: key,
-        result: json,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'cache_key' }).then(() => {}).catch(() => {});
-
-      return res.json(json);
-    } catch (e) {
-      lastErr = e;
-      // try next mirror
-    }
+  let json;
+  try {
+    json = await Promise.any(attempts);
+  } catch (aggregateErr) {
+    const lastErr = aggregateErr.errors?.[aggregateErr.errors.length - 1] || aggregateErr;
+    console.error('[search/overpass] all mirrors failed:', lastErr?.message);
+    return res.status(502).json({ error: 'All Overpass mirrors failed', detail: lastErr?.message });
   }
 
-  console.error('[search/overpass] all mirrors failed:', lastErr?.message);
-  res.status(502).json({ error: 'All Overpass mirrors failed', detail: lastErr?.message });
+  // 3. Best-effort cache write (never blocks the response)
+  supabase.from('poi_cache').upsert({
+    cache_key: key,
+    result: json,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'cache_key' }).then(() => {}).catch(() => {});
+
+  res.json(json);
 });
 
 module.exports = router;

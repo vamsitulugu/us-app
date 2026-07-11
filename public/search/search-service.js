@@ -113,7 +113,7 @@
     const signal = freshSignal('searchCategory');
     try {
       const results = await global.OverpassService.searchNearby({ catIds, lat, lng, radiusM, limit, signal });
-      setCached(key, results);
+      if (results.length > 0) setCached(key, results); // don't cache empty — likely a transient failure, not "no POIs here"
       return results;
     } catch (e) {
       if (e.name === 'AbortError') return []; // superseded by a newer call — not a real error

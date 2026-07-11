@@ -72,7 +72,12 @@
     let lastErr = null;
     for (const mirror of MIRRORS) {
       try {
-        const res = await fetch(mirror, { method: 'POST', body: query, signal });
+        const res = await fetch(mirror, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'data=' + encodeURIComponent(query),
+          signal
+        });
         if (!res.ok) throw new Error(`Overpass ${mirror} returned ${res.status}`);
         return await res.json();
       } catch (e) {
