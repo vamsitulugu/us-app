@@ -1,23 +1,17 @@
 /* ═══════════════════════════════════════════════════════════════
-   LYRICS SEARCH — multi-attempt strategy layer
+   LYRICS SEARCH — thin client adapter over the Smart Search Engine.
 
-   Sits ABOVE lyrics-import-service.js (which does the actual network
-   call to /api/lyrics/auto-fetch). This file NEVER calls fetch itself
-   — it only decides WHAT to search for and in WHAT order, always using
-   cleaned metadata (never raw, branded metadata like
-   "Fire Storm :: SenSongsMp3.Com").
+   The full 5-attempt × multi-provider strategy (Step 5) now runs
+   SERVER-SIDE in routes/lyrics.js's smartSearch(), so a single call to
+   POST /api/lyrics/auto-fetch already tries every attempt against every
+   provider in priority order before giving up. This file exists so
+   callers (import-service.js, lyrics-background-worker.js) keep a
+   stable, simple interface and don't need to know that detail changed.
 
-   Strategy (spec order):
-     1. cleanTitle + cleanArtist
-     2. cleanTitle alone
-     3. cleanTitle + cleanAlbum
-     4. cleanTitle + duration
-     5. fuzzy — loosened title (strip parenthetical/bracketed suffixes
-        like "(Remix)", "(From \"Movie\")") + artist
-
-   Stops at the first attempt that returns a match. Returns the same
-   shape as LyricsImportService.searchBeforeImport() plus which
-   attempt succeeded, for transparency/debugging.
+   IMPORTANT: this file is for IMPORT-TIME / BACKGROUND-WORKER use only.
+   Playback code must use lyrics-manager.js / lyrics-cache.js instead —
+   never this file — since this ultimately calls a provider-hitting
+   endpoint.
 ═══════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -27,42 +21,24 @@
     else setTimeout(() => whenReady(fn), 100);
   }
 
-  function fuzzyTitle(title) {
-    if (!title) return title;
-    // strip trailing parenthetical/bracketed qualifiers for a looser pass,
-    // e.g. "Fire Storm (Remix)" -> "Fire Storm", "Hellallallo [From Movie]" -> "Hellallallo"
-    return title.replace(/\s*[\(\[][^()\[\]]*[\)\]]\s*$/g, '').trim() || title;
-  }
-
   /**
    * @param {object} clean  { cleanTitle, cleanArtist, cleanAlbum }
    * @param {number} durationSec
-   * @returns {Promise<object>} same shape as LyricsImportService result,
-   *          with an added `attempt` field ('title+artist' | 'title' |
-   *          'title+album' | 'title+duration' | 'fuzzy' | null)
+   * @param {object} [ids]  { songId, coupleId } — include once the song
+   *        row exists so results get cached/tracked against it.
+   * @returns {Promise<object>} { found, provider, lyricsNative, lyricsLatin, syncType }
    */
-  async function search(clean, durationSec) {
-    const title = clean.cleanTitle;
-    const artist = clean.cleanArtist;
-    const album = clean.cleanAlbum;
-
-    if (!title) return { found: false, attempt: null };
-
-    const attempts = [
-      { key: 'title+artist', params: { title, artist, durationSec } },
-      { key: 'title', params: { title, durationSec: undefined } },
-      { key: 'title+album', params: { title, album, durationSec } },
-      { key: 'title+duration', params: { title, durationSec } },
-      { key: 'fuzzy', params: { title: fuzzyTitle(title), artist, durationSec } },
-    ];
-
-    for (const attempt of attempts) {
-      // skip attempts that don't actually add any signal beyond a prior one
-      const res = await window.LyricsImportService.searchBeforeImport(attempt.params);
-      if (res && res.found) return { ...res, attempt: attempt.key };
-    }
-    return { found: false, attempt: null };
+  async function search(clean, durationSec, ids) {
+    if (!clean || !clean.cleanTitle) return { found: false };
+    return window.LyricsImportService.searchBeforeImport({
+      title: clean.cleanTitle,
+      artist: clean.cleanArtist,
+      album: clean.cleanAlbum,
+      durationSec,
+      songId: ids && ids.songId,
+      coupleId: ids && ids.coupleId,
+    });
   }
 
-  whenReady(() => { window.LyricsSearch = { search, fuzzyTitle }; });
+  whenReady(() => { window.LyricsSearch = { search }; });
 })();

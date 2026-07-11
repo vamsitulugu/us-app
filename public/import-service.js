@@ -28,6 +28,7 @@
   function whenReady(fn) {
     if (window.Store && window.AudioService && window.MusicPlayer &&
         window.MetadataService && window.MetadataNormalizer && window.LyricsSearch &&
+        window.LyricsBackgroundWorker &&
         window.ArtworkService && window.LyricsImportService && window.CacheService) fn();
     else setTimeout(() => whenReady(fn), 150);
   }
@@ -395,8 +396,11 @@
           if (action === 'cancel') { resolveVerify(null); return; }
           if (action === 'replace') payload._replaceId = dup.id;
         }
-        // wait for lyrics if still in flight (rarely more than a second)
-        const lyricsRes = current.lyricsResult || await lyricsPromise;
+        // Step 8 — do NOT block Save on the lyrics search. Use whatever
+        // has already resolved (fast path — often ready by now since it
+        // started the moment metadata was read), otherwise save with no
+        // lyrics and let the background worker pick it up right after.
+        const lyricsRes = current.lyricsResult || { found: false, _pending: true };
         resolveVerify({ ...payload, meta, lyricsRes });
       };
 
@@ -492,6 +496,12 @@
     if (window.MusicPlayer && window.MusicPlayer.loadSongs) { /* already merged locally above */ }
     if (typeof window.renderMusicTracks === 'function') window.renderMusicTracks();
     if (typeof window.checkAchievements === 'function') window.checkAchievements();
+
+    // Step 8 — background lyric search, fired AFTER save, never blocking
+    // the user. If lyrics_cached is already true (fast path found them
+    // before Save was clicked), the worker sees that and skips instantly.
+    window.LyricsBackgroundWorker.enqueue(song, ctx.coupleId);
+
     toast('✅ ' + verified.title + ' imported!');
   }
 

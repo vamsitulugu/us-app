@@ -470,6 +470,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
         </div>
       </div>
       <button class="mode-pill" style="margin:0" onclick="openAchievementsModal()">🏅</button>
+      <button class="mode-pill" style="margin:0" onclick="openLyricsAdminDashboard()">🛠</button>
     </div>
     <div class="mode-pills">
       <div class="mode-pill play-all" onclick="playAll('my')">▶ Play All</div>
@@ -896,7 +897,12 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <script src="/music-player.js"></script>
 <script src="/music-player-karaoke-patch.js"></script>
 <script src="/couple-karaoke.js"></script>
-<script src="/lyrics-auto-fetch.js"></script>
+<script src="/lyrics-cache.js"></script>
+<script src="/lyrics-provider.js"></script>
+<script src="/lyrics-background-worker.js"></script>
+<script src="/lyrics-manager.js"></script>
+<script src="/player-lyrics-hook.js"></script>
+<script src="/lyrics-admin-dashboard.js"></script>
 <script>
 // ══════════════════════════════════════
 // STATE
@@ -2004,5 +2010,6 @@ window.checkAchievements = checkAchievements;
 <script src="/artwork-service.js"></script>
 <script src="/cache-service.js"></script>
 <script src="/import-service.js"></script>
+
 </body>
 </html>
