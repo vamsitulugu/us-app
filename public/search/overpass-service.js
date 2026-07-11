@@ -9,6 +9,14 @@
  * ─────────────────────────────────────────────────────────────
  */
 (function (global) {
+  // Public Overpass mirrors frequently reject cross-origin POSTs from
+  // browser apps on arbitrary deployed domains (CORS block / 406).
+  // We route through our own backend instead — see routes/search.js —
+  // which proxies to the mirrors server-side (no CORS there) and also
+  // caches results in Supabase. Set to null to bypass the proxy and
+  // hit mirrors directly (only reliable on localhost).
+  const PROXY_ENDPOINT = '/api/search/overpass';
+
   const MIRRORS = [
     'https://overpass-api.de/api/interpreter',
     'https://overpass.kumi.systems/api/interpreter',
@@ -40,6 +48,25 @@
    * @param {AbortSignal} signal  for request cancellation (stale-request handling)
    */
   async function runQuery(query, signal) {
+    // 1. Preferred path: our own backend proxy (no CORS issues, cached in Supabase)
+    if (PROXY_ENDPOINT) {
+      try {
+        const res = await fetch(PROXY_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query }),
+          signal
+        });
+        if (res.ok) return await res.json();
+        console.warn(`[overpass-service] proxy returned ${res.status}, falling back to direct mirrors`);
+      } catch (e) {
+        if (e.name === 'AbortError') throw e;
+        console.warn('[overpass-service] proxy unreachable, falling back to direct mirrors:', e.message);
+      }
+    }
+
+    // 2. Fallback: call public mirrors directly from the browser
+    //    (works on localhost; may be CORS-blocked on some deployed domains)
     let lastErr = null;
     for (const mirror of MIRRORS) {
       try {
