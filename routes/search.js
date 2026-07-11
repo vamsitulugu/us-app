@@ -108,3 +108,25 @@ router.post('/overpass', async (req, res) => {
 });
 
 module.exports = router;
+
+// ── GET /api/search/_diag ───────────────────────────────
+// TEMPORARY diagnostic route — tests raw connectivity from this
+// server to each Overpass mirror and reports timing/status for each.
+// Delete this route once the mirror issue is resolved.
+router.get('/_diag', async (req, res) => {
+  const testQuery = '[out:json];node(1);out;';
+  const results = await Promise.all(MIRRORS.map(async mirror => {
+    const start = Date.now();
+    try {
+      const r = await fetchWithTimeout(mirror, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'data=' + encodeURIComponent(testQuery)
+      }, 15000);
+      return { mirror, status: r.status, ok: r.ok, ms: Date.now() - start };
+    } catch (e) {
+      return { mirror, error: e.name + ': ' + e.message, ms: Date.now() - start };
+    }
+  }));
+  res.json({ results });
+});
