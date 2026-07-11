@@ -26,10 +26,22 @@ const MIRRORS = [
 ];
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours — POIs don't move often
+const MIRROR_TIMEOUT_MS = 9000; // fail a slow mirror fast, don't let it eat Render's gateway timeout
 
 // Rounds lat/lng to ~1km grid so nearby repeat searches hit the same cache row
 function cacheKeyFor(query) {
   return require('crypto').createHash('md5').update(query).digest('hex');
+}
+
+/** fetch() with a hard timeout — Overpass mirrors can hang instead of erroring. */
+async function fetchWithTimeout(url, opts, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...opts, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // ── POST /api/search/overpass ───────────────────────────
@@ -57,15 +69,15 @@ router.post('/overpass', async (req, res) => {
     // Cache miss or table not present yet — fall through to live fetch
   }
 
-  // 2. Live fetch, trying each mirror until one works
+  // 2. Live fetch, trying each mirror until one works (each capped at MIRROR_TIMEOUT_MS)
   let lastErr = null;
   for (const mirror of MIRRORS) {
     try {
-      const r = await fetch(mirror, {
+      const r = await fetchWithTimeout(mirror, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
         body: query
-      });
+      }, MIRROR_TIMEOUT_MS);
       if (!r.ok) throw new Error(`${mirror} returned ${r.status}`);
       const json = await r.json();
 

@@ -93,9 +93,14 @@
     if (cached) return cached;
 
     const signal = freshSignal('searchText');
-    const results = await global.NominatimService.search(query, { near, limit, signal });
-    setCached(key, results);
-    return results;
+    try {
+      const results = await global.NominatimService.search(query, { near, limit, signal });
+      setCached(key, results);
+      return results;
+    } catch (e) {
+      if (e.name === 'AbortError') return []; // superseded by a newer call — not a real error
+      throw e;
+    }
   }
 
   /** Category-based nearby search, e.g. "hospitals near this point". */
@@ -106,9 +111,14 @@
     if (cached) return cached;
 
     const signal = freshSignal('searchCategory');
-    const results = await global.OverpassService.searchNearby({ catIds, lat, lng, radiusM, limit, signal });
-    setCached(key, results);
-    return results;
+    try {
+      const results = await global.OverpassService.searchNearby({ catIds, lat, lng, radiusM, limit, signal });
+      setCached(key, results);
+      return results;
+    } catch (e) {
+      if (e.name === 'AbortError') return []; // superseded by a newer call — not a real error
+      throw e;
+    }
   }
 
   /** Category search using the device's current GPS position as origin. */
