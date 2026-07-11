@@ -143,6 +143,20 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 .track-item:hover .track-del{opacity:1}
 .track-del:hover{background:var(--red-bg);color:var(--red)}
 
+.header-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.icon-btn{
+  width:36px;height:36px;border-radius:12px;display:flex;align-items:center;
+  justify-content:center;font-size:15px;cursor:pointer;border:1px solid var(--border);
+  background:var(--g1);color:var(--text2);transition:var(--t);position:relative;flex-shrink:0
+}
+.icon-btn:hover{background:var(--g2);color:var(--white)}
+.icon-btn.upload-btn{
+  background:linear-gradient(135deg,var(--accent),var(--accent-d));
+  border-color:transparent;color:#fff;box-shadow:0 2px 10px var(--accent-glow)
+}
+.icon-btn.upload-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.icon-btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+
 /* ── EMPTY STATE ── */
 .empty-pl{text-align:center;padding:36px 20px}
 .empty-pl-ico{font-size:44px;margin-bottom:10px}
@@ -462,51 +476,49 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
   <!-- MY PLAYLIST -->
   <div id="pl-my">
     <div class="sec-header">
-      <div>
-        <div class="sec-title">My Playlist</div>
-        <div class="sec-sub" id="myMusicStats">0 songs</div>
-        <div class="upload-progress-bar" id="uploadProgressBar">
-          <div class="upload-progress-fill" id="uploadProgressFill"></div>
-        </div>
-      </div>
-      <button class="mode-pill" style="margin:0" onclick="openAchievementsModal()">🏅</button>
-      <button class="mode-pill" style="margin:0" onclick="openLyricsAdminDashboard()">🛠</button>
+  <div>
+    <div class="sec-title">My Playlist</div>
+    <div class="sec-sub" id="myMusicStats">0 songs</div>
+    <div class="upload-progress-bar" id="uploadProgressBar">
+      <div class="upload-progress-fill" id="uploadProgressFill"></div>
     </div>
+  </div>
+  <div class="header-actions">
+    <label class="icon-btn upload-btn upload-zone" title="Upload for partner" style="background:linear-gradient(135deg,var(--accent2),var(--accent2-d));box-shadow:0 2px 10px var(--accent2-glow)">
+      <input type="file" multiple accept="audio/*">
+      ➕
+    </label>
+    <button class="icon-btn" onclick="openAchievementsModal()" title="Achievements">🏅</button>
+    <button class="icon-btn" onclick="openLyricsAdminDashboard()" title="Lyrics Dashboard">🛠</button>
+  </div>
+</div>
     <div class="mode-pills">
       <div class="mode-pill play-all" onclick="playAll('my')">▶ Play All</div>
       <div class="mode-pill" id="myShufflePill" onclick="toggleShuffle()">⇄ Shuffle</div>
       <div class="mode-pill" id="myRepeatPill" onclick="toggleRepeat()">↩ Repeat</div>
     </div>
-    <label class="upload-zone" id="myUploadZone">
-      <input type="file" multiple accept="audio/*">
-      <div class="upload-icon">🎵</div>
-      <div class="upload-text">Tap to upload songs from your phone</div>
-      <div class="upload-sub">MP3, M4A, WAV, OGG, FLAC supported</div>
-      <div class="fmt-chips">
-        <span class="fmt-chip">MP3</span><span class="fmt-chip">M4A</span>
-        <span class="fmt-chip">WAV</span><span class="fmt-chip">OGG</span><span class="fmt-chip">FLAC</span>
-      </div>
-    </label>
+
     <div class="track-list" id="myTrackList"></div>
   </div>
 
   <!-- PARTNER PLAYLIST -->
   <div id="pl-partner" style="display:none">
     <div class="sec-header">
-      <div>
-        <div class="sec-title">Partner's Playlist</div>
-        <div class="sec-sub" id="ptMusicStats">0 songs</div>
-      </div>
-    </div>
+  <div>
+    <div class="sec-title">Partner's Playlist</div>
+    <div class="sec-sub" id="ptMusicStats">0 songs</div>
+  </div>
+  <div class="header-actions">
+    <label class="icon-btn upload-btn" title="Upload for partner" style="background:linear-gradient(135deg,var(--accent2),var(--accent2-d));box-shadow:0 2px 10px var(--accent2-glow)">
+      <input type="file" multiple accept="audio/*">
+      ➕
+    </label>
+  </div>
+</div>
     <div class="mode-pills">
       <div class="mode-pill play-all-pt" onclick="playAll('partner')">▶ Play All</div>
     </div>
-    <label class="upload-zone" style="border-color:hsla(300,85%,65%,0.3)">
-      <input type="file" multiple accept="audio/*">
-      <div class="upload-icon">💜</div>
-      <div class="upload-text">Upload partner's songs</div>
-      <div class="upload-sub">Both of you can listen together</div>
-    </label>
+
     <div class="track-list" id="ptTrackList"></div>
   </div>
 

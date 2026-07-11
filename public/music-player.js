@@ -452,8 +452,9 @@
     if (document.getElementById('miniPlayerBar')) return;
     const bar = document.createElement('div'); bar.id = 'miniPlayerBar';
     bar.innerHTML = `
-      <div class="mini-progress"><div class="mini-progress-fill" id="miniProgressFill"></div></div>
-      <div class="mini-inner">
+      <div class="mini-progress" id="miniProgressArea"><div class="mini-progress-fill" id="miniProgressFill"></div></div>
+      <div class="mini-inner" id="miniInner">
+        <div class="mini-skip-flash" id="miniSkipFlash"></div>
         <div class="mini-art" id="miniArt" onclick="openFullPlayer()"><span>🎵</span></div>
         <div class="mini-info" onclick="openFullPlayer()">
           <div class="mini-title" id="miniTitle">Not playing</div>
@@ -466,6 +467,36 @@
         </div>
       </div>`;
     document.body.appendChild(bar);
+
+    // Tap the progress strip to seek
+    document.getElementById('miniProgressArea').addEventListener('click', (e) => {
+      const r = e.currentTarget.getBoundingClientRect();
+      AudioService.seekPct((e.clientX - r.left) / r.width);
+    });
+
+    // Swipe left/right on the card to skip track (real-app gesture)
+    const inner = document.getElementById('miniInner');
+    let startX = 0, startY = 0, dx = 0, dragging = false;
+    inner.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX; startY = e.touches[0].clientY; dx = 0; dragging = true;
+      bar.classList.add('swiping');
+    }, { passive: true });
+    inner.addEventListener('touchmove', (e) => {
+      if (!dragging) return;
+      dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+      if (Math.abs(dx) > Math.abs(dy)) inner.style.transform = `translateX(${dx * 0.5}px)`;
+    }, { passive: true });
+    inner.addEventListener('touchend', () => {
+      dragging = false;
+      bar.classList.remove('swiping');
+      inner.style.transform = '';
+      const flash = document.getElementById('miniSkipFlash');
+      if (dx > 60) { AudioService.prev(); flashSkip(flash); }
+      else if (dx < -60) { AudioService.next(true); flashSkip(flash); }
+      dx = 0;
+    });
+    function flashSkip(el) { el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 200); }
   }
   function injectFullPlayer() {
     if (document.getElementById('fullPlayerBg')) return;
@@ -595,7 +626,29 @@
     if (e.code === 'ArrowRight') AudioService.seek(AudioService.audio.currentTime + 5);
     if (e.code === 'ArrowLeft') AudioService.seek(AudioService.audio.currentTime - 5);
   });
-
+function wireFullPlayerSwipe() {
+    const wrap = document.querySelector('#fullPlayerBg .fp-wrap');
+    if (!wrap || wrap._swipeWired) return;
+    wrap._swipeWired = true;
+    let startY = 0, dy = 0, dragging = false;
+    wrap.addEventListener('touchstart', (e) => {
+      if (e.target.closest('.fp-body') && e.target.closest('.fp-body').scrollTop > 0) return;
+      startY = e.touches[0].clientY; dy = 0; dragging = true;
+    }, { passive: true });
+    wrap.addEventListener('touchmove', (e) => {
+      if (!dragging) return;
+      dy = e.touches[0].clientY - startY;
+      if (dy > 0) wrap.style.transform = `translateY(${dy}px)`;
+    }, { passive: true });
+    wrap.addEventListener('touchend', () => {
+      dragging = false;
+      wrap.style.transition = 'transform .25s cubic-bezier(.4,0,.2,1)';
+      if (dy > 110) { window.closeFullPlayer(); }
+      wrap.style.transform = '';
+      setTimeout(() => wrap.style.transition = '', 260);
+      dy = 0;
+    });
+  }
   /* ═══════════════════════════════════════
      COMPATIBILITY SHIMS for existing karaoke /
      FX rack / achievements / action-sheet code,
@@ -663,22 +716,27 @@
   ═══════════════════════════════════════ */
   function injectCoreStyles() {
     const css = `
-    #miniPlayerBar{position:fixed;left:0;right:0;bottom:0;z-index:500;background:rgba(6,6,16,0.96);backdrop-filter:blur(24px) saturate(180%);border-top:1px solid rgba(255,255,255,0.1);transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);padding-bottom:env(safe-area-inset-bottom)}
-    #miniPlayerBar.show{transform:translateY(0)}
-    .mini-progress{height:2px;background:rgba(255,255,255,.08)}
-    .mini-progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--accent,#5b9bff),var(--accent2,#e455e0));transition:width .1s linear}
-    .mini-inner{display:flex;align-items:center;gap:11px;padding:9px 14px;cursor:pointer}
-    .mini-art{width:44px;height:44px;border-radius:9px;flex-shrink:0;background:linear-gradient(135deg,var(--accent,#5b9bff),var(--accent2,#e455e0));display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;position:relative}
-    .mini-art img{width:100%;height:100%;object-fit:cover}
-    .mini-art.spinning{animation:miniSpin 8s linear infinite}
-    @keyframes miniSpin{from{filter:hue-rotate(0)}to{filter:hue-rotate(360deg)}}
-    .mini-info{flex:1;min-width:0}
-    .mini-title{font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .mini-artist{font-size:11px;color:rgba(255,255,255,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .mini-controls{display:flex;align-items:center;gap:4px;flex-shrink:0}
-    .mini-btn{background:none;border:none;color:rgba(255,255,255,.7);font-size:16px;padding:6px;border-radius:8px;cursor:pointer}
-    .mini-btn:hover{color:#fff;background:rgba(255,255,255,.08)}
-    .mini-btn.play{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent,#5b9bff),var(--accent-d,#2f6feb));color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px}
+    #miniPlayerBar{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:500;background:rgba(10,10,22,0.92);backdrop-filter:blur(28px) saturate(200%);border:1px solid rgba(255,255,255,0.1);border-radius:20px;box-shadow:0 12px 40px rgba(0,0,0,0.5);transform:translateY(140%) scale(0.96);opacity:0;transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .3s;overflow:hidden;touch-action:pan-y}
+#miniPlayerBar.show{transform:translateY(0) scale(1);opacity:1}
+#miniPlayerBar.swiping{transition:none}
+.mini-progress{height:3px;background:rgba(255,255,255,.08);cursor:pointer}
+.mini-progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--accent,#5b9bff),var(--accent2,#e455e0));transition:width .1s linear;box-shadow:0 0 8px var(--accent-glow,rgba(91,155,255,.5))}
+.mini-inner{display:flex;align-items:center;gap:12px;padding:11px 12px;cursor:pointer;user-select:none}
+.mini-art{width:48px;height:48px;border-radius:12px;flex-shrink:0;background:linear-gradient(135deg,var(--accent,#5b9bff),var(--accent2,#e455e0));display:flex;align-items:center;justify-content:center;font-size:19px;overflow:hidden;position:relative;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.mini-art img{width:100%;height:100%;object-fit:cover}
+.mini-art.spinning{animation:miniSpin 8s linear infinite}
+@keyframes miniSpin{from{filter:hue-rotate(0)}to{filter:hue-rotate(360deg)}}
+.mini-info{flex:1;min-width:0}
+.mini-title{font-size:13.5px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-artist{font-size:11px;color:rgba(255,255,255,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.mini-controls{display:flex;align-items:center;gap:2px;flex-shrink:0}
+.mini-btn{background:none;border:none;color:rgba(255,255,255,.7);font-size:17px;padding:8px;border-radius:10px;cursor:pointer;transition:.15s}
+.mini-btn:hover{color:#fff;background:rgba(255,255,255,.08)}
+.mini-btn:active{transform:scale(0.88)}
+.mini-btn.play{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent,#5b9bff),var(--accent-d,#2f6feb));color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 3px 10px var(--accent-glow,rgba(91,155,255,.4))}
+.mini-btn.play:active{transform:scale(0.92)}
+.mini-skip-flash{position:absolute;inset:0;background:rgba(255,255,255,.06);opacity:0;pointer-events:none;transition:opacity .2s}
+.mini-skip-flash.show{opacity:1}
     .fp-bg{position:fixed;inset:0;z-index:1000;background:rgba(2,2,8,0.97);display:none;overflow:hidden}
     .fp-bg.open{display:block}
     .fp-anim-bg{position:absolute;inset:-10%;background-size:cover;background-position:center;filter:blur(60px) saturate(160%) brightness(.6);opacity:.55;transform:scale(1.15);transition:background-image .4s}
@@ -723,6 +781,7 @@
     injectLyricsStyles();
     injectMiniPlayer();
     injectFullPlayer();
+    wireFullPlayerSwipe();
     initUploadZones();
     const oldBar = document.getElementById('nowPlayingBar'); if (oldBar) oldBar.style.display = 'none';
     loadSongs();
