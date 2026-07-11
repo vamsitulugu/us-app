@@ -19,11 +19,24 @@
   })();
   const PROXY_ENDPOINT = API_BASE + '/api/search/overpass';
 
+  // overpass-api.de (the "main" public instance) began broadly rejecting
+  // requests with 406 in April 2026 as an anti-scraper measure — this is
+  // a known, widespread issue, not something specific to us. Mirrors are
+  // ordered with the more permissive ones first.
   const MIRRORS = [
-    'https://overpass-api.de/api/interpreter',
     'https://overpass.kumi.systems/api/interpreter',
-    'https://overpass.openstreetmap.ru/api/interpreter'
+    'https://overpass.private.coffee/api/interpreter',
+    'https://overpass.openstreetmap.ru/api/interpreter',
+    'https://overpass-api.de/api/interpreter'
   ];
+
+  // Headers several mirrors now require/expect (missing ones -> 406).
+  const OVERPASS_HEADERS = {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'Accept': '*/*',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'User-Agent': 'USCouplesApp/1.0 (personal project; contact via app)'
+  };
 
   /**
    * Builds an Overpass QL query for one or more categories around a point.
@@ -50,31 +63,17 @@
    * @param {AbortSignal} signal  for request cancellation (stale-request handling)
    */
   async function runQuery(query, signal) {
-    // 1. Preferred path: our own backend proxy (no CORS issues, cached in Supabase)
-    if (PROXY_ENDPOINT) {
-      try {
-        const res = await fetch(PROXY_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query }),
-          signal
-        });
-        if (res.ok) return await res.json();
-        console.warn(`[overpass-service] proxy returned ${res.status}, falling back to direct mirrors`);
-      } catch (e) {
-        if (e.name === 'AbortError') throw e;
-        console.warn('[overpass-service] proxy unreachable, falling back to direct mirrors:', e.message);
-      }
-    }
-
-    // 2. Fallback: call public mirrors directly from the browser
-    //    (works on localhost; may be CORS-blocked on some deployed domains)
+    // 1. Preferred path: call mirrors directly from the browser. Public
+    //    Overpass instances have been penalizing/blocking cloud-datacenter
+    //    IPs (Render, AWS, etc.) more aggressively than real user IPs since
+    //    ~April 2026, so going direct from the browser is now more reliable
+    //    than proxying through our own backend for this specific API.
     let lastErr = null;
     for (const mirror of MIRRORS) {
       try {
         const res = await fetch(mirror, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          headers: OVERPASS_HEADERS,
           body: 'data=' + encodeURIComponent(query),
           signal
         });
@@ -86,6 +85,24 @@
         // try next mirror
       }
     }
+
+    // 2. Fallback: our own backend proxy (adds Supabase caching too)
+    if (PROXY_ENDPOINT) {
+      try {
+        const res = await fetch(PROXY_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query }),
+          signal
+        });
+        if (res.ok) return await res.json();
+        console.warn(`[overpass-service] proxy also returned ${res.status}`);
+      } catch (e) {
+        if (e.name === 'AbortError') throw e;
+        lastErr = e;
+      }
+    }
+
     throw lastErr || new Error('All Overpass mirrors failed');
   }
 

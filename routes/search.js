@@ -19,11 +19,22 @@ const express  = require('express');
 const supabase = require('../middleware/supabase');
 const router   = express.Router();
 
+// overpass-api.de began broadly rejecting requests with 406 in April 2026
+// (a known, widespread anti-scraper measure, not specific to us) — kept
+// last as a final fallback rather than removed entirely.
 const MIRRORS = [
-  'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.openstreetmap.ru/api/interpreter'
+  'https://overpass.private.coffee/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
+  'https://overpass-api.de/api/interpreter'
 ];
+
+const OVERPASS_HEADERS = {
+  'Content-Type': 'application/x-www-form-urlencoded',
+  'Accept': '*/*',
+  'Accept-Encoding': 'gzip, deflate, br',
+  'User-Agent': 'US-CouplesApp/1.0 (search feature; contact via app)'
+};
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours — POIs don't move often
 const MIRROR_TIMEOUT_MS = 9000; // fail a slow mirror fast, don't let it eat Render's gateway timeout
@@ -75,12 +86,7 @@ router.post('/overpass', async (req, res) => {
   const attempts = MIRRORS.map(mirror =>
     fetchWithTimeout(mirror, {
       method: 'POST',
-      headers: {
-        // Overpass's documented format is a form-encoded "data" param, not
-        // a raw body — some mirrors (overpass-api.de) 406 on a raw POST.
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'US-CouplesApp/1.0 (search feature; contact via app)'
-      },
+      headers: OVERPASS_HEADERS,
       body: 'data=' + encodeURIComponent(query)
     }, MIRROR_TIMEOUT_MS).then(async r => {
       if (!r.ok) throw new Error(`${mirror} returned ${r.status}`);
@@ -120,7 +126,7 @@ router.get('/_diag', async (req, res) => {
     try {
       const r = await fetchWithTimeout(mirror, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: OVERPASS_HEADERS,
         body: 'data=' + encodeURIComponent(testQuery)
       }, 15000);
       return { mirror, status: r.status, ok: r.ok, ms: Date.now() - start };
