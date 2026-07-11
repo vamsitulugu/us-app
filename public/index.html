@@ -2067,6 +2067,53 @@
   background: var(--g2);
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
+
+/* ── AI CHAT INPUT — smaller, elegant, auto-height pill (scoped, doesn't affect other .chat-in usages) ── */
+.ai-bar { padding: 8px 12px; gap: 8px; }
+.ai-in {
+  border-radius: 22px;
+  padding: 9px 16px;
+  max-height: 110px;
+  min-height: 38px;
+  font-size: 13px;
+}
+.ai-send-btn {
+  width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1), opacity 0.2s, background 0.2s;
+  opacity: 0.55;
+}
+.ai-send-btn.is-ready { opacity: 1; transform: scale(1.02); }
+.ai-send-btn:active { transform: scale(0.9); }
+.ai-send-btn.is-sending { opacity: 0.6; pointer-events: none; }
+.ai-send-btn.is-sending .ai-send-ico { animation: aiSendSpin 0.9s linear infinite; display: inline-block; }
+@keyframes aiSendSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* ── Message entrance ── */
+.ai-msg.ai-pop-in { animation: aiMsgPopIn 0.3s cubic-bezier(0.22,1,0.36,1); }
+@keyframes aiMsgPopIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Loading bubble sizing (keeps the typing dots from looking cramped) ── */
+.ai-bubble-loading { padding: 14px 18px; }
+
+/* ── Streaming text + blinking caret ── */
+.ai-stream-text { white-space: normal; }
+.ai-caret {
+  display: inline-block; width: 2px; height: 13px; background: currentColor;
+  margin-left: 2px; vertical-align: -2px; opacity: 0.7;
+  animation: aiCaretBlink 0.9s steps(1) infinite;
+}
+@keyframes aiCaretBlink { 0%,49%{opacity:0.7} 50%,100%{opacity:0} }
+
+/* ── Slightly richer message cards ── */
+.ai-bubble { box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+.ai-msgs { scroll-behavior: smooth; }
+.ai-msgs::-webkit-scrollbar { width: 6px; }
+.ai-msgs::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+.ai-msgs::-webkit-scrollbar-track { background: transparent; }
     /* ════ MISC ════ */
     .empty {
       text-align: center;
@@ -4475,15 +4522,17 @@ select option { background: #0D0D0D; color: #fff; }
     <div class="chat-composer-banner" id="chatComposerBanner"></div>
 
     <div class="chat-composer">
-      <label class="chat-composer-btn" style="cursor:pointer">📷
-        <input type="file" accept="image/*" style="display:none" onchange="Chat.onImagePick(this)">
-      </label>
+      <button class="chat-composer-btn plus-btn" id="chatMoreBtn" onclick="Chat.openSheet()" title="Attach">
+        <span class="plus-ico">＋</span>
+      </button>
       <textarea id="chatIn" rows="1" placeholder="Type a message..."
         oninput="Chat.onTypingInput(); this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,120)+'px'"
         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();Chat.sendText();}"></textarea>
       <span class="chat-rec-timer" id="chatRecTimer" style="display:none">00:00</span>
+      <button class="chat-composer-btn" id="chatCancelRecBtn" style="display:none" onclick="Chat.cancelRecording()" title="Discard">🗑️</button>
+      <button class="chat-composer-btn rec-active" id="chatStopRecBtn" style="display:none" onclick="Chat.toggleRecord()" title="Send voice message">✔</button>
       <button class="chat-composer-btn" id="chatRecBtn" onclick="Chat.toggleRecord()" title="Voice message">🎙️</button>
-      <button class="chat-composer-btn send" onclick="Chat.sendText()">➤</button>
+      <button class="chat-composer-btn send" id="chatSendBtn" onclick="Chat.sendText()">➤</button>
     </div>
   </div>
 </div>
@@ -5197,10 +5246,13 @@ select option { background: #0D0D0D; color: #fff; }
             <div class="pill" onclick="askAI('Give us 5 deep conversation questions to learn more about each other')">💭
               Deep talk</div>
           </div>
-          <div class="chat-bar">
-            <textarea class="chat-in" id="aiIn" rows="1" placeholder="Ask anything about your relationship..."
+          <div class="chat-bar ai-bar">
+            <textarea class="chat-in ai-in" id="aiIn" rows="1" placeholder="Ask anything about your relationship..."
+              oninput="this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,110)+'px'; document.getElementById('aiSendBtn').classList.toggle('is-ready', this.value.trim().length>0)"
               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"></textarea>
-            <button class="ic-btn accent" onclick="sendAI()">➤</button>
+            <button class="ic-btn accent ai-send-btn" id="aiSendBtn" onclick="sendAI()" title="Send">
+              <span class="ai-send-ico">➤</span>
+            </button>
           </div>
         </div>
       </div>
@@ -7094,23 +7146,97 @@ async function toggleNotifications() {
         function renderMoney() { const ms = new Date(); ms.setDate(1); const mss = ms.toISOString().slice(0, 10); const tm = S.transactions.filter(t => t.date >= mss); const inc = tm.filter(t => t.type === 'income').reduce((s, t) => s + t.amt, 0); const exp = tm.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0); const net = inc - exp; document.getElementById('mInc').textContent = '₹' + inc.toLocaleString('en-IN'); document.getElementById('mExp').textContent = '₹' + exp.toLocaleString('en-IN'); const ne = document.getElementById('mNet'); ne.textContent = '₹' + Math.abs(net).toLocaleString('en-IN'); ne.style.color = net >= 0 ? 'var(--green)' : 'var(--red)'; const el = document.getElementById('transList'); if (!S.transactions.length) { el.innerHTML = '<div class="empty">No transactions yet</div>'; return; } const ce = { 'Food': '🍽️', 'Transport': '🚗', 'Entertainment': '🎬', 'Shopping': '🛒', 'Travel': '✈️', 'Health': '💊', 'Date': '🌹', 'Other': '💳' }; el.innerHTML = S.transactions.slice(0, 60).map(t => `<div class="money-row"><div class="money-ic ${t.type === 'income' ? 'inc' : 'exp'}">${ce[t.category] || (t.type === 'income' ? '💰' : '💳')}</div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--white)">${esc(t.desc)}</div><div style="font-size:10px;color:var(--text3)">${esc(t.category)} · ${fmtDateShort(t.date)}</div></div><span class="${t.type === 'income' ? 'inc-amt' : 'exp-amt'}">${t.type === 'income' ? '+' : '-'}₹${t.amt.toLocaleString('en-IN')}</span><button class="del-btn" style="margin-left:5px" onclick="delTransaction(${t.id})">✕</button></div>`).join(''); renderFinanceSplit(); }
 
         // ─── AI LOVE GUIDE ───────────────────────────────────────
-        async function sendAI() { const inp = document.getElementById('aiIn'); const txt = inp.value.trim(); if (!txt) return; inp.value = ''; inp.style.height = 'auto'; askAI(txt); }
+        let aiStreaming = false;
+        async function sendAI() {
+          if (aiStreaming) return;
+          const inp = document.getElementById('aiIn');
+          const txt = inp.value.trim();
+          if (!txt) return;
+          inp.value = ''; inp.style.height = 'auto';
+          document.getElementById('aiSendBtn')?.classList.remove('is-ready');
+          askAI(txt);
+        }
+        function renderAiText(raw) {
+          return raw
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/\n/g, '<br>')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        }
         async function askAI(question) {
-          const msgs = document.getElementById('aiMsgs');
-          const ud = document.createElement('div'); ud.className = 'ai-msg me';
+          const msgsEl = document.getElementById('aiMsgs');
+          const sendBtn = document.getElementById('aiSendBtn');
+          const ud = document.createElement('div'); ud.className = 'ai-msg me ai-pop-in';
           ud.innerHTML = `<div class="av av1" style="width:30px;height:30px;font-size:11px">${esc(S.myName[0] || 'U')}</div><div><div class="ai-bubble">${esc(question)}</div></div>`;
-          msgs.appendChild(ud);
-          const ld = document.createElement('div'); ld.className = 'ai-msg bot';
-          ld.innerHTML = `<div class="ai-av">🤖</div><div><div class="ai-bubble"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
-          msgs.appendChild(ld); msgs.scrollTop = msgs.scrollHeight;
+          msgsEl.appendChild(ud);
+          const ld = document.createElement('div'); ld.className = 'ai-msg bot ai-pop-in';
+          ld.innerHTML = `<div class="ai-av">🤖</div><div><div class="ai-bubble ai-bubble-loading"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
+          msgsEl.appendChild(ld);
+          const bubbleEl = ld.querySelector('.ai-bubble');
+          msgsEl.scrollTop = msgsEl.scrollHeight;
+
+          aiStreaming = true;
+          sendBtn?.classList.add('is-sending');
+          sendBtn?.setAttribute('disabled', 'disabled');
+
+          let full = '';
+          let gotFirstToken = false;
+          const autoScrollIfNear = () => {
+            const nearBottom = msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight < 140;
+            if (nearBottom) msgsEl.scrollTop = msgsEl.scrollHeight;
+          };
+
           try {
-            const data = await api('POST', '/api/ai/chat', { message: question, myName: S.myName, partnerName: S.partnerName, anniversary: S.anniversary, recentMood: S.journal[0]?.mood || '' });
-            ld.innerHTML = `<div class="ai-av">🤖</div><div><div class="ai-bubble">${data.reply.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div></div>`;
+            const resp = await fetch(API + '/api/ai/chat/stream', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message: question, myName: S.myName, partnerName: S.partnerName, anniversary: S.anniversary, recentMood: S.journal[0]?.mood || '' })
+            });
+            if (!resp.ok || !resp.body) throw new Error('Stream unavailable (HTTP ' + resp.status + ')');
+
+            const reader = resp.body.getReader();
+            const decoder = new TextDecoder();
+            let buf = '';
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              buf += decoder.decode(value, { stream: true });
+              const lines = buf.split('\n');
+              buf = lines.pop();
+              for (const line of lines) {
+                const t = line.trim();
+                if (!t.startsWith('data:')) continue;
+                const payload = t.slice(5).trim();
+                if (payload === '[DONE]') continue;
+                let json; try { json = JSON.parse(payload); } catch (e) { continue; }
+                if (json.error) throw new Error(json.error);
+                if (json.delta) {
+                  if (!gotFirstToken) { gotFirstToken = true; bubbleEl.classList.remove('ai-bubble-loading'); bubbleEl.innerHTML = '<span class="ai-stream-text"></span><span class="ai-caret"></span>'; }
+                  full += json.delta;
+                  bubbleEl.querySelector('.ai-stream-text').innerHTML = renderAiText(full);
+                  autoScrollIfNear();
+                }
+              }
+            }
+            if (!gotFirstToken) throw new Error('No response received');
+            bubbleEl.innerHTML = renderAiText(full);
             spawnPetals(3);
           } catch (e) {
-            ld.innerHTML = `<div class="ai-av">⚠️</div><div><div class="ai-bubble" style="background:var(--red-bg);color:var(--red)">${esc(e.message.includes('401') ? 'Invalid API key — check .env file.' : e.message)}</div></div>`;
+            // Fall back to the non-streaming endpoint (e.g. proxy buffers SSE, older browser, etc.)
+            try {
+              const data = await api('POST', '/api/ai/chat', { message: question, myName: S.myName, partnerName: S.partnerName, anniversary: S.anniversary, recentMood: S.journal[0]?.mood || '' });
+              bubbleEl.classList.remove('ai-bubble-loading');
+              bubbleEl.innerHTML = renderAiText(data.reply);
+              spawnPetals(3);
+            } catch (e2) {
+              bubbleEl.classList.remove('ai-bubble-loading');
+              bubbleEl.style.background = 'var(--red-bg)'; bubbleEl.style.color = 'var(--red)';
+              bubbleEl.innerHTML = esc(e2.message.includes('401') ? 'Invalid API key — check .env file.' : e2.message);
+            }
           }
-          msgs.scrollTop = msgs.scrollHeight;
+          aiStreaming = false;
+          sendBtn?.classList.remove('is-sending');
+          sendBtn?.removeAttribute('disabled');
+          msgsEl.scrollTop = msgsEl.scrollHeight;
         }
 
         // ─── DASHBOARD ───────────────────────────────────────────

@@ -11,6 +11,68 @@ const Call = (function () {
   let ringTimeout = null;
   function clearRingTimeout() { if (ringTimeout) clearTimeout(ringTimeout); ringTimeout = null; }
 
+  // ─── Ringtone / ringback engine ───────────────────────────────
+  // Synthesized with WebAudio so it never depends on a missing mp3 asset.
+  // "incoming" = classic two-tone ring, "outgoing" = softer ringback beep.
+  let ringAudioCtx = null, ringGain = null, ringLoopTimer = null, vibrateTimer = null;
+  function ensureRingCtx() {
+    if (!ringAudioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      ringAudioCtx = new AC();
+    }
+    if (ringAudioCtx.state === 'suspended') ringAudioCtx.resume().catch(() => {});
+    return ringAudioCtx;
+  }
+  function playTone(ctx, freq, start, dur, vol) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = freq;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0, start);
+    gain.gain.linearRampToValueAtTime(vol, start + 0.03);
+    gain.gain.setValueAtTime(vol, start + dur - 0.05);
+    gain.gain.linearRampToValueAtTime(0, start + dur);
+    osc.connect(gain).connect(ringGain || ctx.destination);
+    osc.start(start); osc.stop(start + dur);
+  }
+  function startRingtone(kind) {
+    stopRingtone();
+    const ctx = ensureRingCtx();
+    if (!ctx) return;
+    ringGain = ctx.createGain();
+    ringGain.gain.value = kind === 'incoming' ? 0.16 : 0.08;
+    ringGain.connect(ctx.destination);
+    const cycle = () => {
+      const t = ctx.currentTime;
+      if (kind === 'incoming') {
+        // Classic UK-style double ring: two short bursts of a two-tone chord
+        playTone(ctx, 440, t, 0.4, ringGain.gain.value);
+        playTone(ctx, 480, t, 0.4, ringGain.gain.value);
+        playTone(ctx, 440, t + 0.6, 0.4, ringGain.gain.value);
+        playTone(ctx, 480, t + 0.6, 0.4, ringGain.gain.value);
+      } else {
+        // Gentle single-beep ringback for the caller's "Calling..." screen
+        playTone(ctx, 480, t, 1.0, ringGain.gain.value);
+      }
+    };
+    cycle();
+    ringLoopTimer = setInterval(cycle, kind === 'incoming' ? 2000 : 3000);
+    if (kind === 'incoming' && navigator.vibrate) {
+      navigator.vibrate([300, 150, 300, 150, 500]);
+      vibrateTimer = setInterval(() => navigator.vibrate([300, 150, 300, 150, 500]), 2000);
+    }
+  }
+  function stopRingtone() {
+    if (ringLoopTimer) { clearInterval(ringLoopTimer); ringLoopTimer = null; }
+    if (vibrateTimer) { clearInterval(vibrateTimer); vibrateTimer = null; }
+    if (navigator.vibrate) navigator.vibrate(0);
+    if (ringGain) {
+      try { ringGain.gain.linearRampToValueAtTime(0, (ringAudioCtx?.currentTime || 0) + 0.15); } catch (e) {}
+      ringGain = null;
+    }
+  }
+
   function coupleId() { return window.S && window.S.coupleId; }
   function myRole() { return window.S && window.S.role; }
   function otherRole() { return myRole() === 'user1' ? 'user2' : 'user1'; }
@@ -176,6 +238,7 @@ let iceQueue = [];
   }
 
   function renderRinging(type, incoming) {
+    startRingtone(incoming ? 'incoming' : 'outgoing');
     const el = ensureOverlay();
     el.classList.remove('call-active-video');
     const name = window.S.partnerName || 'Partner';
@@ -210,6 +273,7 @@ let iceQueue = [];
   }
 
   function renderActive() {
+    stopRingtone();
     const el = ensureOverlay();
     el.classList.add('open');
     const name = window.S.partnerName || 'Partner';
@@ -223,6 +287,7 @@ let iceQueue = [];
         ${controlsHtml(true)}`;
       document.getElementById('callRemoteVideo').srcObject = remoteStream;
       document.getElementById('callLocalVideo').srcObject = localStream;
+      startAutoHide(el);
     } else {
       el.classList.remove('call-active-video');
       const av = window.S.partnerAvatar;
@@ -246,7 +311,12 @@ let iceQueue = [];
   }
 
   function controlsHtml(video) {
-    return `<div class="call-controls call-controls-wa">
+    // NOTE: call-controls-active anchors this bar to the bottom of the
+    // overlay (position:absolute) — without it, in video calls (where
+    // there's no .call-content flex spacer above), this bar had no layout
+    // context and rendered pinned to the TOP, overlapping the topbar.
+    // call-controls-wa keeps the WhatsApp-style even spacing.
+    return `<div class="call-controls call-controls-wa call-controls-active" id="callControlsBar">
       <button type="button" class="call-btn call-btn-sm" onclick="Call.toggleMoreMenu()" title="More">⋯</button>
       ${video
         ? `<button type="button" class="call-btn call-btn-sm" id="flipBtn" onclick="Call.flipCamera()" title="Flip camera">🔄</button>`
@@ -327,6 +397,34 @@ let iceQueue = [];
   }
 
   // ─── More menu ───
+  // ─── Auto-hide controls (video calls): tap to show, fades after 4s ───
+  let autoHideTimer = null;
+  function stopAutoHide() {
+    if (autoHideTimer) { clearTimeout(autoHideTimer); autoHideTimer = null; }
+    const el = document.getElementById('callOverlay');
+    if (el) el.removeEventListener('click', onOverlayTap);
+  }
+  function scheduleHide() {
+    if (autoHideTimer) clearTimeout(autoHideTimer);
+    autoHideTimer = setTimeout(() => {
+      document.getElementById('callControlsBar')?.classList.add('controls-hidden');
+      document.querySelector('.call-topbar-full')?.classList.add('controls-hidden');
+    }, 4000);
+  }
+  function onOverlayTap(e) {
+    if (e.target.closest('.call-btn, .call-more-menu, .call-upgrade-banner')) return; // don't fight real taps
+    const bar = document.getElementById('callControlsBar');
+    const top = document.querySelector('.call-topbar-full');
+    const hidden = bar?.classList.contains('controls-hidden');
+    bar?.classList.toggle('controls-hidden', !hidden ? true : false);
+    if (hidden) { bar?.classList.remove('controls-hidden'); top?.classList.remove('controls-hidden'); scheduleHide(); }
+    else { bar?.classList.add('controls-hidden'); top?.classList.add('controls-hidden'); }
+  }
+  function startAutoHide(el) {
+    el.addEventListener('click', onOverlayTap);
+    scheduleHide();
+  }
+
   function toggleMoreMenu() {
     const host = document.getElementById('callMoreMenuHost');
     if (!host) return;
@@ -543,7 +641,6 @@ let iceQueue = [];
     isCaller = false;
     renderRinging(callType, true);
     startPolling();
-    if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
     clearRingTimeout();
     ringTimeout = setTimeout(() => {
       if (pendingOffer) {
@@ -609,6 +706,8 @@ let iceQueue = [];
   }
   function cleanup() {
     clearRingTimeout();
+    stopRingtone();
+    stopAutoHide();
     if (pc) { pc.close(); pc = null; }
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
     remoteStream = null;

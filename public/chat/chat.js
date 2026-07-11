@@ -12,6 +12,8 @@ const Chat = (function () {
   let recording = false, mediaRecorder = null, recChunks = [], recStart = 0, recTimerInt = null, recCancelled = false;
   let replyingTo = null;
   let lpTimer = null, lpFired = false;
+  const seenIds = new Set();
+  function trackKey(m) { return m.client_id || m.id; }
 
   function coupleId() { return window.S && window.S.coupleId; }
   function myRole() { return window.S && window.S.role; }
@@ -171,8 +173,10 @@ const Chat = (function () {
     const d = new Date(m.created_at);
     const ds = d.toDateString();
     if (ds !== lastDate) { lastDate = ds; html += `<div class="chat-date-sep"><span>${fmtDaySep(d)}</span></div>`; }
-    html += renderBubble(m);
+    const isNew = !seenIds.has(trackKey(m));
+    html += renderBubble(m, isNew);
   });
+  visible.forEach(m => seenIds.add(trackKey(m)));
   box.innerHTML = html || `<div class="empty" style="padding:60px 20px"><div class="empty-ico">💬</div>Say hello 👋</div>`;
   renderPinned();
 
@@ -190,7 +194,7 @@ const Chat = (function () {
     return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
-  function renderBubble(m) {
+  function renderBubble(m, isNew) {
     if (m.deleted) {
       return `<div class="chat-row ${isMine(m) ? 'me' : 'them'}"><div class="chat-bubble deleted-bubble">🚫 Message deleted</div></div>`;
     }
@@ -206,7 +210,16 @@ const Chat = (function () {
       body = `<a href="https://maps.google.com/?q=${lat},${lng}" target="_blank" rel="noopener" style="display:block;color:inherit;text-decoration:none">📍 <u>Shared location</u></a>`;
     }
     else if (m.type === 'gift') body = `<div class="msg-gift"><div class="msg-gift-emoji">${esc(m.media_meta?.emoji || '🎁')}</div><div class="msg-gift-name">${esc(m.media_meta?.name || 'Gift')}</div></div>`;
-    else if (m.type === 'call_log') return `<div class="chat-call-log"><span>${esc(m.text)}</span><span class="chat-call-time">${time}</span></div>`;
+    else if (m.type === 'sticker') body = `<div class="msg-sticker" title="${esc(m.media_meta?.name || '')}">${esc(m.media_meta?.emoji || '🙂')}</div>`;
+    else if (m.type === 'contact') body = `<div class="msg-contact"><div class="msg-contact-av">${esc((m.media_meta?.name || '?')[0])}</div><div><div class="msg-contact-name">${esc(m.media_meta?.name || 'Contact')}</div><div class="msg-contact-sub">Contact card</div></div></div>`;
+    else if (m.type === 'poll') {
+      const opts = m.media_meta?.options || [];
+      body = `<div class="msg-poll">
+        <div class="msg-poll-q">📊 ${esc(m.text || 'Poll')}</div>
+        ${opts.map(o => `<div class="msg-poll-opt" onclick="event.stopPropagation();Chat.votePoll(${m.id},'${esc(o).replace(/'/g,"\\'")}')">${esc(o)}</div>`).join('')}
+      </div>`;
+    }
+    else if (m.type === 'call_log') return `<div class="chat-call-log${isNew ? ' msg-pop-in' : ''}"><span>${esc(m.text)}</span><span class="chat-call-time">${time}</span></div>`;
     else body = `<div class="chat-text">${linkify(esc(m.text || ''))}</div>`;
 
     const reactions = m.reactions && Object.keys(m.reactions).length
@@ -215,7 +228,7 @@ const Chat = (function () {
     const status = mine ? (m.read ? '✓✓' : m.delivered ? '✓✓' : '✓') : '';
     const statusClass = mine && m.read ? 'read' : '';
 
-    return `<div class="chat-row ${mine ? 'me' : 'them'}" data-id="${m.id}" onclick="Chat.onBubbleClick('${m.id}', event)" oncontextmenu="Chat.openMenu('${m.id}', event); return false;" ontouchstart="Chat.startLongPress('${m.id}')" ontouchend="Chat.endLongPress()" ontouchmove="Chat.endLongPress()">
+    return `<div class="chat-row ${mine ? 'me' : 'them'}${isNew ? ' msg-pop-in' : ''}" data-id="${m.id}" onclick="Chat.onBubbleClick('${m.id}', event)" oncontextmenu="Chat.openMenu('${m.id}', event); return false;" ontouchstart="Chat.startLongPress('${m.id}')" ontouchend="Chat.endLongPress()" ontouchmove="Chat.endLongPress()">
       <div class="chat-bubble ${mine ? 'mine' : 'theirs'}">
         ${body}
         ${reactions}
@@ -580,19 +593,24 @@ function menuItemsHtml(m, id) {
     sheet.innerHTML = `<div class="chat-bottom-sheet">
       <div class="chat-sheet-handle"></div>
       <div class="chat-sheet-grid">
-        <div class="chat-sheet-opt" onclick="Chat.openEmojiPanel()"><span>😊</span>Emoji</div>
-        <div class="chat-sheet-opt" onclick="Chat.openGifPanel()"><span>🎬</span>GIF</div>
-        <div class="chat-sheet-opt" onclick="Chat.openGiftPanel()"><span>🎁</span>Gifts</div>
-        <div class="chat-sheet-opt" onclick="Chat.closeSheet();Chat.toggleRecord()"><span>🎤</span>Voice</div>
+        <div class="chat-sheet-opt" onclick="document.getElementById('chatGalleryInput').click()"><span>🖼</span>Photos</div>
         <div class="chat-sheet-opt" onclick="document.getElementById('chatCameraInput').click()"><span>📷</span>Camera</div>
-        <div class="chat-sheet-opt" onclick="document.getElementById('chatGalleryInput').click()"><span>🖼</span>Gallery</div>
-        <div class="chat-sheet-opt" onclick="document.getElementById('chatFileInput').click()"><span>📁</span>Files</div>
-        <div class="chat-sheet-opt" onclick="Chat.sendLocation()"><span>📍</span>Location</div>
+        <div class="chat-sheet-opt" onclick="document.getElementById('chatVideoInput').click()"><span>🎥</span>Videos</div>
+        <div class="chat-sheet-opt" onclick="document.getElementById('chatFileInput').click()"><span>📁</span>Documents</div>
         <div class="chat-sheet-opt" onclick="document.getElementById('chatAudioInput').click()"><span>🎵</span>Audio</div>
-        <div class="chat-sheet-opt" onclick="toast('Coming soon')"><span>📞</span>Contact</div>
+        <div class="chat-sheet-opt" onclick="Chat.closeSheet();Chat.toggleRecord()"><span>🎤</span>Voice</div>
+        <div class="chat-sheet-opt" onclick="Chat.openGifPanel()"><span>🎬</span>GIFs</div>
+        <div class="chat-sheet-opt" onclick="Chat.openStickerPanel()"><span>🎭</span>Stickers</div>
+        <div class="chat-sheet-opt" onclick="Chat.openEmojiPanel()"><span>😊</span>Emojis</div>
+        <div class="chat-sheet-opt" onclick="Chat.sendLocation()"><span>📍</span>Location</div>
+        <div class="chat-sheet-opt" onclick="Chat.sendContactCard()"><span>👤</span>Contact</div>
+        <div class="chat-sheet-opt" onclick="Chat.openGiftPanel()"><span>🎁</span>Couple Gifts</div>
+        <div class="chat-sheet-opt" onclick="Chat.openMemories()"><span>📔</span>Memories</div>
+        <div class="chat-sheet-opt" onclick="Chat.openPollComposer()"><span>📊</span>Poll</div>
       </div>
       <input type="file" id="chatCameraInput" accept="image/*" capture="environment" style="display:none" onchange="Chat.onImagePick(this)">
-      <input type="file" id="chatGalleryInput" accept="image/*,video/*" style="display:none" onchange="Chat.onImagePick(this)">
+      <input type="file" id="chatGalleryInput" accept="image/*" multiple style="display:none" onchange="Chat.onImagePick(this)">
+      <input type="file" id="chatVideoInput" accept="video/*" style="display:none" onchange="Chat.onImagePick(this)">
       <input type="file" id="chatFileInput" style="display:none" onchange="Chat.onImagePick(this)">
       <input type="file" id="chatAudioInput" accept="audio/*" style="display:none" onchange="Chat.onAudioPick(this)">
     </div>`;
@@ -601,22 +619,156 @@ function menuItemsHtml(m, id) {
   }
   function closeSheet() { document.getElementById('chatBottomSheet')?.classList.remove('open'); }
 
-  const EMOJIS = ['😀','😂','🥰','😍','😘','😊','😉','😢','😭','😡','🥺','😴','🤗','👍','👎','👏','🙏','💪','❤️','🧡','💛','💚','💙','💜','🖤','🤍','💕','💖','💗','💓','💯','🔥','✨','🎉','😎','🤔','😅','😜','🤩','😇'];
+  const EMOJI_CATEGORIES = {
+    'Recent': [],
+    'Smileys': ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','😊','😇','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤗','🤩','🤔','🤨','😐','😑','😶','😏','😒','🙄','😬','😴','😪','😷','🤒','🤕'],
+    'Emotions': ['😢','😭','😤','😠','😡','🥺','😨','😰','😥','😓','🤯','😳','🥵','🥶','😱','😖','😣','😞','😔','😟','😕','🙁','☹️','😩','😫','😵','🤐','🥴','🤢','🤮'],
+    'Love': ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💕','💞','💓','💗','💖','💘','💝','💟','💔','❣️','💌','😻','😽','💑','💏','👩‍❤️‍👨','👩‍❤️‍💋‍👨'],
+    'Gestures': ['👍','👎','👊','✊','🤛','🤜','🤞','✌️','🤟','🤘','👌','🤏','👈','👉','👆','👇','☝️','✋','🤚','🖐️','🖖','👋','🤙','💪','🙏','👏','🙌','🤝','🫶'],
+    'Celebration': ['🎉','🎊','🎈','🎁','🎂','🍾','🥂','✨','🌟','💫','🔥','💯','🏆','🥳','🎆','🎇','🪅','🎀'],
+  };
+  const EMOJI_KEYWORDS = {
+    love:['❤️','😍','🥰','💕','💖','😘'], heart:['❤️','🧡','💛','💚','💙','💜','🖤','🤍','💔'],
+    happy:['😀','😄','😊','🥳'], sad:['😢','😭','😞','😔'], laugh:['😂','🤣','😆'],
+    angry:['😠','😡','😤'], kiss:['😘','😙','😚','💋'], hug:['🤗','🫂'], fire:['🔥'],
+    party:['🎉','🎊','🥳','🎈'], cake:['🎂','🍰'], ring:['💍'], star:['🌟','✨','⭐'],
+    thumbsup:['👍'], clap:['👏'], pray:['🙏'], think:['🤔'], cry:['😭','😢'],
+    cool:['😎'], wink:['😉'], tired:['😴','😪'], sick:['🤒','🤢'], flower:['🌹','💐','🌸'],
+  };
+  function getRecentEmojis() {
+    try { return JSON.parse(localStorage.getItem('chatRecentEmojis') || '[]'); } catch (e) { return []; }
+  }
+  function pushRecentEmoji(e) {
+    try {
+      let r = getRecentEmojis().filter(x => x !== e);
+      r.unshift(e);
+      r = r.slice(0, 24);
+      localStorage.setItem('chatRecentEmojis', JSON.stringify(r));
+    } catch (err) {}
+  }
+  let emojiActiveCat = 'Smileys';
   function openEmojiPanel() {
     closeSheet();
     let panel = document.getElementById('chatEmojiPanel');
-    if (panel) { panel.classList.toggle('open'); return; }
+    if (panel) { panel.classList.add('open'); return; }
     panel = document.createElement('div');
     panel.id = 'chatEmojiPanel';
     panel.className = 'chat-bottom-sheet-overlay open';
-    panel.innerHTML = `<div class="chat-bottom-sheet chat-emoji-sheet">
+    panel.innerHTML = `<div class="chat-bottom-sheet chat-emoji-sheet" style="padding-bottom:4px">
       <div class="chat-sheet-handle"></div>
-      <div class="chat-emoji-grid">${EMOJIS.map(e => `<span onclick="Chat.sendEmojiTap('${e}')">${e}</span>`).join('')}</div>
+      <div class="picker-gif-search"><input type="text" id="emojiSearchInput" placeholder="Search emoji (e.g. love, fire, cake)..." oninput="Chat.filterEmoji(this.value)"></div>
+      <div class="picker-tabs" id="emojiTabs">
+        ${Object.keys(EMOJI_CATEGORIES).map(cat => `<div class="picker-tab${cat === emojiActiveCat ? ' active' : ''}" data-cat="${cat}" onclick="Chat.switchEmojiTab('${cat}')">${cat}</div>`).join('')}
+      </div>
+      <div class="picker-body" id="emojiBody" style="max-height:260px"></div>
+    </div>`;
+    panel.onclick = e => { if (e.target === panel) panel.classList.remove('open'); };
+    document.body.appendChild(panel);
+    renderEmojiGrid(emojiActiveCat);
+  }
+  function switchEmojiTab(cat) {
+    emojiActiveCat = cat;
+    document.querySelectorAll('#emojiTabs .picker-tab').forEach(t => t.classList.toggle('active', t.dataset.cat === cat));
+    document.getElementById('emojiSearchInput').value = '';
+    renderEmojiGrid(cat);
+  }
+  function renderEmojiGrid(cat) {
+    const body = document.getElementById('emojiBody');
+    if (!body) return;
+    const list = cat === 'Recent' ? getRecentEmojis() : EMOJI_CATEGORIES[cat];
+    body.innerHTML = list.length
+      ? `<div class="picker-emoji-grid">${list.map(e => `<div class="picker-emoji" onclick="Chat.sendEmojiTap('${e}')">${e}</div>`).join('')}</div>`
+      : `<div class="picker-loading">${cat === 'Recent' ? 'No recent emoji yet — send a few!' : 'No emoji here'}</div>`;
+  }
+  let emojiFilterDebounce;
+  function filterEmoji(q) {
+    clearTimeout(emojiFilterDebounce);
+    emojiFilterDebounce = setTimeout(() => {
+      const body = document.getElementById('emojiBody');
+      const query = q.trim().toLowerCase();
+      if (!query) { renderEmojiGrid(emojiActiveCat); return; }
+      let results = [];
+      Object.entries(EMOJI_KEYWORDS).forEach(([kw, emojis]) => { if (kw.includes(query)) results.push(...emojis); });
+      results = [...new Set(results)];
+      body.innerHTML = results.length
+        ? `<div class="picker-emoji-grid">${results.map(e => `<div class="picker-emoji" onclick="Chat.sendEmojiTap('${e}')">${e}</div>`).join('')}</div>`
+        : `<div class="picker-loading">No matches — try "love", "fire", "cake"...</div>`;
+    }, 150);
+  }
+  function sendEmojiTap(e) { pushRecentEmoji(e); sendEmoji(e); }
+
+  // ─── STICKERS ─────────────────────────────────────────
+  const STICKERS = [
+    { emoji: '😍', name: 'Adore' }, { emoji: '🥰', name: 'In Love' }, { emoji: '😘', name: 'Kiss' },
+    { emoji: '🤗', name: 'Hug' }, { emoji: '😂', name: 'LOL' }, { emoji: '🥺', name: 'Puppy Eyes' },
+    { emoji: '😴', name: 'Sleepy' }, { emoji: '🙈', name: 'Shy' }, { emoji: '💃', name: 'Dance' },
+    { emoji: '🎉', name: 'Yay!' }, { emoji: '😤', name: 'Grumpy' }, { emoji: '🥳', name: 'Party' },
+  ];
+  function openStickerPanel() {
+    closeSheet();
+    let panel = document.getElementById('chatStickerPanel');
+    if (panel) { panel.classList.add('open'); return; }
+    panel = document.createElement('div');
+    panel.id = 'chatStickerPanel';
+    panel.className = 'chat-bottom-sheet-overlay open';
+    panel.innerHTML = `<div class="chat-bottom-sheet">
+      <div class="chat-sheet-handle"></div>
+      <div class="picker-sticker-grid">
+        ${STICKERS.map(s => `<div class="picker-sticker" onclick="Chat.sendSticker('${s.emoji}','${s.name}')"><div class="picker-sticker-emoji">${s.emoji}</div><div class="picker-sticker-name">${s.name}</div></div>`).join('')}
+      </div>
     </div>`;
     panel.onclick = e => { if (e.target === panel) panel.classList.remove('open'); };
     document.body.appendChild(panel);
   }
-  function sendEmojiTap(e) { sendEmoji(e); }
+  function sendSticker(emoji, name) {
+    document.getElementById('chatStickerPanel')?.classList.remove('open');
+    sendMessage({ type: 'sticker', mediaMeta: { emoji, name } });
+  }
+
+  // ─── CONTACT CARD ───────────────────────────────────────
+  function sendContactCard() {
+    closeSheet();
+    const name = (window.S && window.S.myName) || 'Me';
+    sendMessage({ type: 'contact', mediaMeta: { name } });
+  }
+
+  // ─── MEMORIES (routes to the existing Camera/Memories page) ──
+  function openMemories() {
+    closeSheet();
+    if (typeof window.goto === 'function') window.goto('camera');
+    else toast('Open Memories from the menu 📔');
+  }
+
+  // ─── POLLS (lightweight — no schema/backend changes; stored in mediaMeta) ──
+  function openPollComposer() {
+    closeSheet();
+    let panel = document.getElementById('chatPollPanel');
+    if (panel) { panel.remove(); }
+    panel = document.createElement('div');
+    panel.id = 'chatPollPanel';
+    panel.className = 'chat-bottom-sheet-overlay open';
+    panel.innerHTML = `<div class="chat-bottom-sheet">
+      <div class="chat-sheet-handle"></div>
+      <div style="padding:4px 4px 10px;font-size:14px;font-weight:700;color:var(--white)">📊 Create a Poll</div>
+      <input type="text" id="pollQuestion" placeholder="Ask a question..." style="width:100%;padding:10px 14px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;margin-bottom:8px">
+      <input type="text" id="pollOpt1" placeholder="Option 1" style="width:100%;padding:9px 14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;margin-bottom:8px">
+      <input type="text" id="pollOpt2" placeholder="Option 2" style="width:100%;padding:9px 14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;margin-bottom:8px">
+      <input type="text" id="pollOpt3" placeholder="Option 3 (optional)" style="width:100%;padding:9px 14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;margin-bottom:12px">
+      <button class="chat-sheet-item" style="background:var(--accent);border-radius:12px;font-weight:700" onclick="Chat.submitPoll()">Send Poll</button>
+    </div>`;
+    panel.onclick = e => { if (e.target === panel) panel.remove(); };
+    document.body.appendChild(panel);
+  }
+  function submitPoll() {
+    const q = document.getElementById('pollQuestion')?.value.trim();
+    const opts = [document.getElementById('pollOpt1')?.value.trim(), document.getElementById('pollOpt2')?.value.trim(), document.getElementById('pollOpt3')?.value.trim()].filter(Boolean);
+    if (!q || opts.length < 2) { toast('Add a question and at least 2 options'); return; }
+    document.getElementById('chatPollPanel')?.remove();
+    sendMessage({ type: 'poll', text: q, mediaMeta: { options: opts } });
+  }
+  function votePoll(msgId, option) {
+    sendMessage({ type: 'text', text: `🗳️ Voted "${option}"`, replyTo: msgId });
+  }
 
   async function openGifPanel() {
     closeSheet();
@@ -641,17 +793,18 @@ function menuItemsHtml(m, id) {
       const el = document.getElementById('gifResults');
       el.innerHTML = '<div class="empty">Loading...</div>';
       try {
-        // Public Tenor demo key — replace GIF_API_KEY with your own Tenor key for production
-        const key = 'ptJ3RSKMUd0ovjoM12Ra11JvlsssLRK4';
-const r = await fetch(`https://api.giphy.com/v1/gifs/search?q=${encodeURIComponent(q||'love')}&api_key=${key}&limit=24`);
-const data = await r.json();
-const results = data.data || [];
-if (!results.length) { el.innerHTML = '<div class="empty">No GIFs found</div>'; return; }
-el.innerHTML = results
-  .map(g => g.images?.fixed_height_small?.url || g.images?.original?.url)
-  .filter(url => !!url)
-  .map(url => `<img src="${esc(url)}" loading="lazy" onclick="Chat.sendGif('${esc(url)}')">`)
-  .join('') || '<div class="empty">No GIFs found</div>';
+        // Tenor v2 public demo key — swap GIF_API_KEY for your own free key from
+        // https://developers.google.com/tenor/guides/quickstart for production use.
+        const key = 'LIVDSRZULELA';
+        const r = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(q||'love')}&key=${key}&client_key=couple_app&limit=24&media_filter=tinygif`);
+        const data = await r.json();
+        const results = data.results || [];
+        if (!results.length) { el.innerHTML = '<div class="empty">No GIFs found</div>'; return; }
+        el.innerHTML = results
+          .map(g => g.media_formats?.tinygif?.url || g.media_formats?.gif?.url)
+          .filter(url => !!url)
+          .map(url => `<img src="${esc(url)}" loading="lazy" onclick="Chat.sendGif('${esc(url)}')">`)
+          .join('') || '<div class="empty">No GIFs found</div>';
       } catch (e) { el.innerHTML = '<div class="empty">GIF search failed — check connection</div>'; }
     }, 400);
   }
@@ -682,9 +835,10 @@ el.innerHTML = results
     onBubbleClick, openMenu, reactTo, replyTo, closeBanner, togglePin, toggleStar,
     openStarred, deleteMsg, enterSelectMode, deleteSelected, exitSelectMode,
     openSearch, closeSearch, runSearch, scrollToMsg, sendGif, sendEmoji, sendEmojiTap,
-    openEmojiPanel, openGifPanel, searchGifs, markRead, init, openSheet, closeSheet,
+    openEmojiPanel, switchEmojiTab, filterEmoji, openGifPanel, searchGifs, markRead, init, openSheet, closeSheet,
     forwardMsg, copyMsg, editMsg, cancelEdit, infoMsg, cancelRecording, startLongPress, endLongPress,
-    onAudioPick, sendLocation, openGiftPanel, sendGift,toggleVoicePlay
+    onAudioPick, sendLocation, openGiftPanel, sendGift, toggleVoicePlay,
+    openStickerPanel, sendSticker, sendContactCard, openMemories, openPollComposer, submitPoll, votePoll
   };
 })();
 window.Chat = Chat;

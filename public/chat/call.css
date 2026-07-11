@@ -3,15 +3,22 @@
 .call-overlay {
   position: fixed; inset: 0; z-index: 99998;
   display: flex; flex-direction: column;
-  background: linear-gradient(180deg, #0b0410 0%, #1a0a1f 55%, #0b0410 100%);
-  opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+  background: linear-gradient(165deg, #0b0410 0%, #1a0a1f 45%, #12071a 75%, #0b0410 100%);
+  opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
   overflow: hidden;
 }
 .call-overlay.open { opacity: 1; pointer-events: auto; }
+.call-overlay.open .call-content { animation: callCardIn 0.4s cubic-bezier(0.22,1,0.36,1); }
+@keyframes callCardIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
 
 .call-bg-blur {
   position: absolute; inset: 0;
-  background: radial-gradient(circle at 50% 20%, rgba(229,9,20,0.18), transparent 60%);
+  background:
+    radial-gradient(circle at 50% 15%, rgba(229,9,20,0.22), transparent 55%),
+    radial-gradient(circle at 20% 85%, rgba(255,106,0,0.10), transparent 50%);
   pointer-events: none;
 }
 
@@ -46,11 +53,22 @@
   margin-top: 50px;
   flex-shrink: 0;
 }
-.call-avatar-ring.pulse { animation: callPulseRing 1.6s ease-in-out infinite; }
-.call-avatar-ring.connected { animation: none; box-shadow: 0 0 46px var(--accent-glow, rgba(229,9,20,0.35)); }
+.call-avatar-ring.pulse { animation: callPulseRing 1.8s ease-out infinite, callBreathe 3.6s ease-in-out infinite; }
+.call-avatar-ring.connected {
+  animation: callBreatheSoft 4s ease-in-out infinite;
+  box-shadow: 0 0 50px var(--accent-glow, rgba(229,9,20,0.4));
+}
 @keyframes callPulseRing {
-  0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.22); }
-  50%     { box-shadow: 0 0 0 26px rgba(255,255,255,0); }
+  0%   { box-shadow: 0 0 0 0 rgba(255,255,255,0.25); }
+  100% { box-shadow: 0 0 0 30px rgba(255,255,255,0); }
+}
+@keyframes callBreathe {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.035); }
+}
+@keyframes callBreatheSoft {
+  0%,100% { box-shadow: 0 0 46px var(--accent-glow, rgba(229,9,20,0.32)); }
+  50%     { box-shadow: 0 0 62px var(--accent-glow, rgba(229,9,20,0.48)); }
 }
 .call-avatar {
   width: 100%; height: 100%; border-radius: 50%; overflow: hidden;
@@ -87,8 +105,10 @@
   width: 54px; height: 54px; border-radius: 50%; font-size: 21px;
   background: rgba(255,255,255,0.14);
   backdrop-filter: blur(10px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(255,255,255,0.06);
 }
-.call-btn-sm.call-btn-active { background: #fff; color: #111; }
+.call-btn-sm:hover { background: rgba(255,255,255,0.2); }
+.call-btn-sm.call-btn-active { background: #fff; color: #111; box-shadow: 0 4px 14px rgba(0,0,0,0.3); }
 .call-btn-sm:disabled { opacity: 0.4; pointer-events: none; }
 
 .call-btn-end, .call-btn-decline {
@@ -112,8 +132,21 @@
   padding: 22px 20px max(28px, env(safe-area-inset-bottom));
   z-index: 3;
   background: linear-gradient(180deg, transparent, rgba(0,0,0,0.55) 55%);
+  transition: opacity 0.25s ease, transform 0.25s ease;
 }
 .call-controls-active .call-btn-end { margin-left: 14px; }
+
+/* Tap-to-hide state for video calls (auto-fades after 4s idle) */
+.call-controls-active.controls-hidden {
+  opacity: 0; transform: translateY(12px); pointer-events: none;
+}
+.call-topbar-full.controls-hidden {
+  opacity: 0; transform: translateY(-8px); pointer-events: none;
+}
+.call-topbar-full {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.call-active-video .call-remote-video { cursor: pointer; }
 
 .call-incoming-labels {
   display: flex; justify-content: space-between; width: 100%; max-width: 380px;
