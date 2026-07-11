@@ -9,13 +9,15 @@
  * ─────────────────────────────────────────────────────────────
  */
 (function (global) {
-  // Public Overpass mirrors frequently reject cross-origin POSTs from
-  // browser apps on arbitrary deployed domains (CORS block / 406).
-  // We route through our own backend instead — see routes/search.js —
-  // which proxies to the mirrors server-side (no CORS there) and also
-  // caches results in Supabase. Set to null to bypass the proxy and
-  // hit mirrors directly (only reliable on localhost).
-  const PROXY_ENDPOINT = '/api/search/overpass';
+  // Frontend (Vercel) and backend (Render) are separate deployments,
+  // so relative paths like '/api/search/overpass' resolve against the
+  // wrong origin. Match the same API-base pattern used everywhere else
+  // in the app (artwork-service.js, meetplanner.js, etc).
+  const API_BASE = (function () {
+    try { return window.parent?.API || window.API || 'https://us-app-av6d.onrender.com'; }
+    catch (e) { return 'https://us-app-av6d.onrender.com'; }
+  })();
+  const PROXY_ENDPOINT = API_BASE + '/api/search/overpass';
 
   const MIRRORS = [
     'https://overpass-api.de/api/interpreter',
