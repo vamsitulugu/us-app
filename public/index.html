@@ -3494,6 +3494,30 @@
   color: var(--text3);
 }
 /* ── IFRAME PAGES ── */
+.lm-search-results {
+  max-height: 220px; overflow-y: auto; margin-top: 6px; border-radius: 10px;
+  background: rgba(0,0,0,0.25); display: none;
+}
+.lm-search-results.show { display: block; }
+.lm-search-results .lm-sr-item {
+  padding: 10px 12px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex; gap: 8px; align-items: center;
+}
+.lm-search-results .lm-sr-item:last-child { border-bottom: none; }
+.lm-search-results .lm-sr-item:hover, .lm-search-results .lm-sr-item.active { background: rgba(255,60,90,0.18); }
+.lm-search-results .lm-sr-ico { font-size: 16px; flex-shrink: 0; }
+.lm-search-results .lm-sr-body { min-width: 0; flex: 1; }
+.lm-search-results .lm-sr-name { font-size: 13px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lm-search-results .lm-sr-meta { font-size: 11px; color: var(--text3, #999); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lm-search-results .lm-sr-empty { padding: 12px; font-size: 12px; color: var(--text3, #999); text-align: center; }
+.lm-search-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+.lm-search-chips .lm-chip {
+  font-size: 11px; padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,0.08);
+  color: #ddd; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); white-space: nowrap;
+}
+.lm-search-chips .lm-chip.active { background: #ff3c5a; color: #fff; border-color: #ff3c5a; }
+.lm-search-status { font-size: 11px; color: var(--text3, #999); padding: 4px 2px; }
+
 .iframe-page-wrap {
   width: calc(100% + 2 * var(--space));
   margin-left: calc(-1 * var(--space));
@@ -5108,6 +5132,15 @@ select option { background: #0D0D0D; color: #fff; }
     <div class="field" id="lmPlaceCustomNameWrap" style="display:none">
       <label>Place Name</label><input type="text" id="lmPlaceCustomName" placeholder="e.g. Mom's House">
     </div>
+
+    <div class="field">
+      <label>🔎 Search for a place</label>
+      <input type="text" id="lmPlaceSearchInput" placeholder="e.g. 'Toit Brewpub' or 'Apollo Hospital'"
+             oninput="LiveMap.onSearchInput(this.value)" autocomplete="off">
+      <div id="lmPlaceSearchResults" class="lm-search-results"></div>
+    </div>
+    <div class="lm-search-chips" id="lmPlaceSearchChips"></div>
+
     <button class="btn btn-glass btn-sm" onclick="LiveMap.useCurrentLocForPlace()">📡 Use My Current Location</button>
     <div class="row2" style="margin-top:10px">
       <div class="field"><label>Latitude</label><input type="number" id="lmPlaceLat" step="0.000001"></div>

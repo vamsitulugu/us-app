@@ -40,7 +40,7 @@
     'User-Agent': 'USCouplesApp/1.0 (personal project; contact via app)'
   };
 
-  const PER_MIRROR_TIMEOUT_MS = 7000;
+  const PER_MIRROR_TIMEOUT_MS = 6000;
 
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -78,29 +78,26 @@
       body: 'data=' + encodeURIComponent(query)
     }, PER_MIRROR_TIMEOUT_MS, signal);
     if (!res.ok) throw new Error(`Overpass ${mirror} returned ${res.status}`);
-    return await res.json();
+    const data = await res.json();
+    if (!data || !Array.isArray(data.elements)) throw new Error(`Overpass ${mirror} returned malformed body`);
+    return data;
   }
 
   /**
-   * Runs the query, walking mirrors in order. Each mirror gets one
-   * immediate attempt and — for transient network errors only, not
-   * 4xx — one retry after a short backoff, before moving on.
+   * Runs the query by firing every mirror AT ONCE and taking the first
+   * one that succeeds (Promise.any). This is the actual fix for the
+   * "sequential walk stalls on dead mirrors" problem: instead of paying
+   * a timeout for every dead mirror in turn (which can add up to a
+   * minute across 7 mirrors), we pay ONE timeout window total, and any
+   * single healthy mirror among the 7 wins immediately.
    */
   async function runQuery(query, signal) {
-    let lastErr = null;
-    for (const mirror of MIRRORS) {
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          return await tryMirror(mirror, query, signal);
-        } catch (e) {
-          if (signal?.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });
-          lastErr = e;
-          const status = /returned (\d+)/.exec(e.message || '')?.[1];
-          const isClientError = status && Number(status) >= 400 && Number(status) < 500;
-          if (isClientError || attempt === 1) break; // no point retrying a 4xx, or out of retries
-          await sleep(400 * (attempt + 1)); // small backoff before the retry
-        }
-      }
+    const attempts = MIRRORS.map(mirror => tryMirror(mirror, query, signal));
+    try {
+      return await Promise.any(attempts);
+    } catch (aggregateErr) {
+      if (signal?.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });
+      console.warn('[overpass-service] every mirror failed:', (aggregateErr.errors || []).map(e => e.message));
     }
 
     // Backend proxy as a last resort before giving up on "live" data.
@@ -114,11 +111,10 @@
         if (res.ok) return await res.json();
       } catch (e) {
         if (signal?.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });
-        lastErr = e;
       }
     }
 
-    throw lastErr || new Error('All Overpass mirrors failed');
+    throw new Error('All Overpass mirrors and the backend proxy failed');
   }
 
   function normalize(data, catId, origin) {

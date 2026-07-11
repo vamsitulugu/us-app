@@ -35,6 +35,7 @@ const LiveMap = (() => {
     myAnimFrom: null, ptAnimFrom: null,
     myAnimStart: 0, ptAnimStart: 0,
     placeMarkers: [],
+    searchResults: [],
     watchId: null,
     tracking: true,
     lastPingAt: 0,
@@ -364,6 +365,100 @@ const LiveMap = (() => {
 
   function flyTo(lat, lng) { if (st.map) st.map.setView([lat, lng], 15); }
 
+  /* ── PLACE SEARCH (via SearchService — Overpass/Nominatim/Photon engine) ── */
+  const CAT_SEARCH_MAP = { College: 'college', Hostel: 'hotel', Cafe: 'cafe', Restaurant: 'restaurant', Gym: 'gym' };
+  const CAT_GUESS_FROM_OSM = {
+    college: 'College', university: 'College',
+    hotel: 'Hostel', hostel: 'Hostel', guest_house: 'Hostel',
+    cafe: 'Cafe', restaurant: 'Restaurant',
+    fitness_centre: 'Gym', gym: 'Gym'
+  };
+  let _lmSearchTimer = null;
+
+  function _searchOrigin() {
+    if (S.myLoc && S.myLoc.lat != null && S.myLoc.lng != null) return { lat: S.myLoc.lat, lng: S.myLoc.lng };
+    if (st.map) { const c = st.map.getCenter(); return { lat: c.lat, lng: c.lng }; }
+    return null;
+  }
+
+  function _renderSearchChips() {
+    const chipsEl = document.getElementById('lmPlaceSearchChips');
+    if (!chipsEl) return;
+    chipsEl.innerHTML = Object.keys(CAT_SEARCH_MAP).map(label =>
+      `<div class="lm-chip" data-cat="${label}" onclick="LiveMap.searchByChip('${label}')">${CATS[label].ico} ${label}s nearby</div>`
+    ).join('');
+  }
+
+  function _renderSearchResults(results) {
+    const resultsEl = document.getElementById('lmPlaceSearchResults');
+    resultsEl.className = 'lm-search-results show';
+    if (!results.length) { resultsEl.innerHTML = '<div class="lm-sr-empty">No results — try a different search or category</div>'; return; }
+    resultsEl.innerHTML = results.map((r, i) => `
+      <div class="lm-sr-item" onclick="LiveMap.pickSearchResult(${i})">
+        <div class="lm-sr-ico">${r.icon || '📍'}</div>
+        <div class="lm-sr-body">
+          <div class="lm-sr-name">${esc(r.name)}</div>
+          <div class="lm-sr-meta">${r.distKm != null ? r.distKm.toFixed(1) + ' km · ' : ''}${esc((r.address || '').slice(0, 50))}${r.fromOfflineCache ? ' · saved' : ''}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  /** Live-typing search box — free text via SearchService (Nominatim+Photon merged, ranked, fuzzy). */
+  function onSearchInput(q) {
+    clearTimeout(_lmSearchTimer);
+    document.querySelectorAll('#lmPlaceSearchChips .lm-chip').forEach(c => c.classList.remove('active'));
+    const resultsEl = document.getElementById('lmPlaceSearchResults');
+    if (!q || q.trim().length < 2) { resultsEl.classList.remove('show'); resultsEl.innerHTML = ''; return; }
+    resultsEl.className = 'lm-search-results show';
+    resultsEl.innerHTML = '<div class="lm-sr-empty">Searching…</div>';
+    _lmSearchTimer = setTimeout(async () => {
+      if (!window.SearchService) { resultsEl.innerHTML = '<div class="lm-sr-empty">Search engine still loading — try again in a moment</div>'; return; }
+      try {
+        const results = await window.SearchService.searchText(q.trim(), { near: _searchOrigin(), limit: 12 });
+        st.searchResults = results;
+        _renderSearchResults(results);
+      } catch (e) {
+        resultsEl.innerHTML = '<div class="lm-sr-empty">Search failed — try again</div>';
+      }
+    }, 300);
+  }
+
+  /** Category chip tap — nearby-by-category via SearchService (Overpass multi-mirror engine). */
+  async function searchByChip(label) {
+    document.querySelectorAll('#lmPlaceSearchChips .lm-chip').forEach(c => c.classList.toggle('active', c.dataset.cat === label));
+    const origin = _searchOrigin();
+    const resultsEl = document.getElementById('lmPlaceSearchResults');
+    if (!origin) { toast('Enable location, or open the map first'); return; }
+    if (!window.SearchService) { resultsEl.className = 'lm-search-results show'; resultsEl.innerHTML = '<div class="lm-sr-empty">Search engine still loading — try again in a moment</div>'; return; }
+    resultsEl.className = 'lm-search-results show';
+    resultsEl.innerHTML = `<div class="lm-sr-empty">Searching ${label.toLowerCase()}s nearby…</div>`;
+    try {
+      const results = await window.SearchService.searchCategory([CAT_SEARCH_MAP[label]], { lat: origin.lat, lng: origin.lng, radiusM: 8000, limit: 20 });
+      st.searchResults = results;
+      _renderSearchResults(results);
+    } catch (e) {
+      resultsEl.innerHTML = '<div class="lm-sr-empty">Search failed — try again</div>';
+    }
+  }
+
+  /** User tapped a search result — auto-fill the Add Place form from it. */
+  function pickSearchResult(i) {
+    const r = (st.searchResults || [])[i];
+    if (!r) return;
+    document.getElementById('lmPlaceLat').value = r.lat.toFixed(6);
+    document.getElementById('lmPlaceLng').value = r.lng.toFixed(6);
+    document.getElementById('lmPlaceAddress').value = r.address || '';
+    const guess = CAT_GUESS_FROM_OSM[r.category] || 'Custom';
+    document.getElementById('lmPlaceCat').value = guess;
+    onCatChange();
+    if (guess === 'Custom') document.getElementById('lmPlaceCustomName').value = r.name;
+    document.getElementById('lmPlaceSearchInput').value = r.name;
+    document.getElementById('lmPlaceSearchResults').classList.remove('show');
+    document.querySelectorAll('#lmPlaceSearchChips .lm-chip').forEach(c => c.classList.remove('active'));
+    if (window.SearchService) window.SearchService.recordVisit(r);
+    toast('📍 ' + r.name + ' selected — review & save');
+  }
+
   /* ── ADD / DELETE PLACE ──────────────────────────────────── */
   function openPlaceModal() {
     document.getElementById('lmPlaceCat').value = 'Home';
@@ -372,6 +467,11 @@ const LiveMap = (() => {
     document.getElementById('lmPlaceLat').value = '';
     document.getElementById('lmPlaceLng').value = '';
     document.getElementById('lmPlaceAddress').value = '';
+    document.getElementById('lmPlaceSearchInput').value = '';
+    const resultsEl = document.getElementById('lmPlaceSearchResults');
+    resultsEl.classList.remove('show'); resultsEl.innerHTML = '';
+    st.searchResults = [];
+    _renderSearchChips();
     openM('lmPlaceModal');
   }
   function onCatChange() {
@@ -435,6 +535,7 @@ const LiveMap = (() => {
     onEnterPage, onLeavePage,
     toggleTracking, startTracking, stopTracking,
     openPlaceModal, onCatChange, useCurrentLocForPlace, savePlace, deletePlace,
+    onSearchInput, searchByChip, pickSearchResult,
     flyTo,
     _debug: st
   };
