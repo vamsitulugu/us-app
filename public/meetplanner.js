@@ -59,15 +59,15 @@ const MP = {
 };
 
 const CAT_META = {
-  hotel:         { ico: '🏨', label: 'Hotel',         query: '["tourism"="hotel"]' },
-  tourist:       { ico: '🗿', label: 'Tourist Place',  query: '["tourism"="attraction"]' },
-  cafe:          { ico: '☕', label: 'Cafe',           query: '["amenity"="cafe"]' },
-  restaurant:    { ico: '🍽️', label: 'Restaurant',     query: '["amenity"="restaurant"]' },
-  mall:          { ico: '🛍️', label: 'Shopping Mall',  query: '["shop"="mall"]' },
-  park:          { ico: '🌳', label: 'Park',           query: '["leisure"="park"]' },
-  museum:        { ico: '🏛️', label: 'Museum',         query: '["tourism"="museum"]' },
-  temple:        { ico: '🛕', label: 'Temple',         query: '["amenity"="place_of_worship"]' },
-  entertainment: { ico: '🎬', label: 'Entertainment',  query: '["amenity"~"cinema|theatre|nightclub"]' },
+  hotel:         { ico: '🏨', label: 'Hotel',         query: '["tourism"="hotel"]',    searchIds: ['hotel'] },
+  tourist:       { ico: '🗿', label: 'Tourist Place',  query: '["tourism"="attraction"]', searchIds: ['tourist_place'] },
+  cafe:          { ico: '☕', label: 'Cafe',           query: '["amenity"="cafe"]',     searchIds: ['cafe'] },
+  restaurant:    { ico: '🍽️', label: 'Restaurant',     query: '["amenity"="restaurant"]', searchIds: ['restaurant'] },
+  mall:          { ico: '🛍️', label: 'Shopping Mall',  query: '["shop"="mall"]',        searchIds: ['mall'] },
+  park:          { ico: '🌳', label: 'Park',           query: '["leisure"="park"]',     searchIds: ['park'] },
+  museum:        { ico: '🏛️', label: 'Museum',         query: '["tourism"="museum"]',   searchIds: ['museum'] },
+  temple:        { ico: '🛕', label: 'Temple',         query: '["amenity"="place_of_worship"]', searchIds: ['temple', 'mosque', 'church'] },
+  entertainment: { ico: '🎬', label: 'Entertainment',  query: '["amenity"~"cinema|theatre|nightclub"]', searchIds: ['movie_theatre'] },
   custom:        { ico: '📍', label: 'Custom' },
 };
 const MODE_META = {
@@ -80,6 +80,7 @@ const MODE_META = {
 
 /* ── HERO ──────────────────────────────────────────────────── */
 function renderHero() {
+  if (!Array.isArray(MP.savedPlans)) MP.savedPlans = []; // defensive — API can return {plans:[...]} or an error object, never let a bad shape crash the hero stats
   const el = document.getElementById('mpHero'); if (!el) return;
   const upcoming = MP.savedPlans.filter(p => p.status === 'planned').length;
   const completed = MP.savedPlans.filter(p => p.status === 'completed').length;
@@ -174,29 +175,26 @@ function mpSetPoiCat(cat, el) {
 async function mpSearchPOI() {
   if (!MP.city) return;
   const listEl = document.getElementById('mpPoiList');
-  listEl.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text3)"><span class="mp-spinner"></span> Searching ${CAT_META[MP.poiCat].label.toLowerCase()}s in ${esc(MP.city.name)}...</div>`;
   const meta = CAT_META[MP.poiCat];
+  listEl.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text3)"><span class="mp-spinner"></span> Searching ${meta.label.toLowerCase()}s in ${esc(MP.city.name)}...</div>`;
   const { lat, lng } = MP.city;
   const radius = 12000; // 12km around city center
-  const query = `[out:json][timeout:20];(node${meta.query}(around:${radius},${lat},${lng});way${meta.query}(around:${radius},${lat},${lng}););out center 30;`;
   try {
-    const r = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: query });
-    const data = await r.json();
-    const items = (data.elements || []).map(el => {
-      const p = el.center || el;
-      const tags = el.tags || {};
-      return {
-        id: 'osm_' + el.type + el.id,
-        name: tags.name || meta.label,
-        cat: MP.poiCat, icon: meta.ico,
-        lat: p.lat, lng: p.lon,
-        address: [tags['addr:street'], tags['addr:suburb']].filter(Boolean).join(', '),
-        distKm: haversine({ lat, lng }, { lat: p.lat, lng: p.lon })
-      };
-    }).filter(x => x.lat && x.lng).sort((a, b) => a.distKm - b.distKm).slice(0, 25);
-    MP.poiResults = items;
+    if (!window.SearchService) throw new Error('SearchService not loaded');
+    // Goes through the multi-mirror Overpass provider engine (7 independent
+    // mirrors + retry/backoff + offline IndexedDB fallback) instead of a
+    // single hardcoded overpass-api.de call, which browsers CORS-block anyway.
+    const results = await window.SearchService.searchCategory(meta.searchIds || [MP.poiCat], { lat, lng, radiusM: radius, limit: 30 });
+    MP.poiResults = results.map(r => ({
+      id: r.id, name: r.name, cat: MP.poiCat, icon: r.icon || meta.ico,
+      lat: r.lat, lng: r.lng, address: r.address, distKm: r.distKm
+    }));
     _renderPoiList();
+    if (results.length && results[0]._live === false) {
+      listEl.insertAdjacentHTML('afterbegin', '<div class="mp-loc-result-item" style="opacity:.7">⚠️ Live search unavailable right now — showing saved results</div>');
+    }
   } catch (e) {
+    console.warn('[meetplanner] POI search failed:', e.message);
     listEl.innerHTML = '<div class="mp-loc-result-item">Search failed — try again or use custom search</div>';
   }
 }
@@ -206,17 +204,20 @@ async function mpCustomSearch() {
   const listEl = document.getElementById('mpPoiList');
   listEl.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text3)"><span class="mp-spinner"></span> Searching "${esc(q)}"...</div>`;
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=15&q=${encodeURIComponent(q + ' ' + MP.city.name)}`;
-    const r = await fetch(url);
-    const data = await r.json();
-    MP.poiResults = data.map(d => ({
-      id: 'nom_' + d.place_id, name: d.display_name.split(',')[0], cat: 'custom', icon: CAT_META.custom.ico,
-      lat: parseFloat(d.lat), lng: parseFloat(d.lon),
-      address: d.display_name, distKm: haversine(MP.city, { lat: parseFloat(d.lat), lng: parseFloat(d.lon) })
+    if (!window.SearchService) throw new Error('SearchService not loaded');
+    // Merged Nominatim + Photon, deduped and ranked, with fuzzy/typo tolerance
+    // and an offline-cache fallback if both providers are unreachable.
+    const results = await window.SearchService.searchText(q + ' ' + MP.city.name, { near: MP.city, limit: 15 });
+    MP.poiResults = results.map(r => ({
+      id: r.id, name: r.name, cat: 'custom', icon: CAT_META.custom.ico,
+      lat: r.lat, lng: r.lng, address: r.address, distKm: r.distKm
     }));
     document.querySelectorAll('.mp-poi-chip').forEach(c => c.classList.remove('active'));
     _renderPoiList();
-  } catch (e) { listEl.innerHTML = '<div class="mp-loc-result-item">Search failed</div>'; }
+  } catch (e) {
+    console.warn('[meetplanner] custom search failed:', e.message);
+    listEl.innerHTML = '<div class="mp-loc-result-item">Search failed</div>';
+  }
 }
 function _renderPoiList() {
   const listEl = document.getElementById('mpPoiList');
@@ -458,7 +459,7 @@ async function mpLoadSavedPlans() {
   el.innerHTML = `<div style="text-align:center;padding:30px;color:var(--text3)"><span class="mp-spinner"></span> Loading...</div>`;
   try {
     const data = await api('GET', '/api/meetplanner/' + coupleId);
-    MP.savedPlans = data || [];
+    MP.savedPlans = Array.isArray(data) ? data : (Array.isArray(data?.plans) ? data.plans : (Array.isArray(data?.data) ? data.data : []));
     renderHero();
     if (!MP.savedPlans.length) {
       el.innerHTML = `<div class="mp-empty"><div class="mp-empty-ico">💌</div><div class="mp-empty-text">No saved meetups yet.<br>Plan one in the "Plan New" tab!</div></div>`;
