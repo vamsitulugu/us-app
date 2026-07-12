@@ -3565,6 +3565,44 @@
 .lm-search-chips .lm-chip.active { background: #ff3c5a; color: #fff; border-color: #ff3c5a; }
 .lm-search-status { font-size: 11px; color: var(--text3, #999); padding: 4px 2px; }
 
+/* ── PHASE 2: Live Map toolbar (style switch + quick actions) ── */
+.lm-toolbar { margin-top: 12px; }
+.lm-style-seg {
+  display: flex; gap: 4px; padding: 4px; border-radius: 14px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--gb, rgba(255,255,255,0.06));
+  margin-bottom: 8px;
+}
+.lm-style-seg .lm-tool-btn { flex: 1; justify-content: center; }
+.lm-tool-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 13px; border-radius: 11px; cursor: pointer;
+  background: rgba(255,255,255,0.045); border: 1px solid var(--gb, rgba(255,255,255,0.07));
+  color: var(--text2, #ccc); font-size: 12px; font-weight: 600;
+  transition: transform .15s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;
+  user-select: none; white-space: nowrap;
+}
+.lm-tool-btn .lm-tool-ico {
+  font-size: 15px; line-height: 1; display: inline-flex;
+}
+.lm-tool-btn:active { transform: scale(0.96); }
+.lm-tool-btn:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.16); }
+.lm-tool-btn.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-d));
+  border-color: var(--accent); color: #fff;
+  box-shadow: 0 4px 14px var(--accent-glow);
+}
+.lm-action-row {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.lm-action-row .lm-tool-btn { background: var(--g1); }
+.lm-action-row .lm-tool-btn:hover { background: var(--g2); }
+.lm-journey-line {
+  font-size: 12px; font-weight: 600; color: var(--white);
+  background: var(--g1); border: 1px solid var(--gb, rgba(255,255,255,0.07));
+  border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; line-height: 1.6;
+}
+.lm-journey-arrow { color: var(--accent); font-weight: 700; margin: 0 2px; }
+
 .iframe-page-wrap {
   width: calc(100% + 2 * var(--space));
   margin-left: calc(-1 * var(--space));
@@ -5173,14 +5211,18 @@ select option { background: #0D0D0D; color: #fff; }
     <div id="mapView" style="width:100%;height:340px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border)"></div>
 
     <!-- PHASE 2: map style switcher + quick actions -->
-    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
-      <div class="lm-chip lm-style-btn active" data-style="street" onclick="LiveMap.setMapStyle('street')">🗺️ Map</div>
-      <div class="lm-chip lm-style-btn" data-style="dark" onclick="LiveMap.setMapStyle('dark')">🌙 Dark</div>
-      <div class="lm-chip lm-style-btn" data-style="satellite" onclick="LiveMap.setMapStyle('satellite')">🛰️ Satellite</div>
-      <div class="lm-chip" onclick="LiveMap.locateMe()">📍 Locate Me</div>
-      <div class="lm-chip" onclick="LiveMap.locatePartner()">💜 Locate Partner</div>
-      <div class="lm-chip" onclick="LiveMap.showMeetingPoint()">🤝 Meeting Point</div>
-      <div class="lm-chip" onclick="LiveMap.openRouteHistory()">🛣️ Daily Route</div>
+    <div class="lm-toolbar">
+      <div class="lm-style-seg">
+        <div class="lm-tool-btn lm-style-btn active" data-style="street" onclick="LiveMap.setMapStyle('street')"><span class="lm-tool-ico">🗺️</span>Map</div>
+        <div class="lm-tool-btn lm-style-btn" data-style="dark" onclick="LiveMap.setMapStyle('dark')"><span class="lm-tool-ico">🌙</span>Dark</div>
+        <div class="lm-tool-btn lm-style-btn" data-style="satellite" onclick="LiveMap.setMapStyle('satellite')"><span class="lm-tool-ico">🛰️</span>Satellite</div>
+      </div>
+      <div class="lm-action-row">
+        <div class="lm-tool-btn" onclick="LiveMap.locateMe()"><span class="lm-tool-ico">📍</span>Locate Me</div>
+        <div class="lm-tool-btn" onclick="LiveMap.locatePartner()"><span class="lm-tool-ico">💜</span>Locate Partner</div>
+        <div class="lm-tool-btn" onclick="LiveMap.showMeetingPoint()"><span class="lm-tool-ico">🤝</span>Meeting Point</div>
+        <div class="lm-tool-btn" onclick="LiveMap.openRouteHistory()"><span class="lm-tool-ico">🛣️</span>Daily Route</div>
+      </div>
     </div>
 
     <div class="period-stats" style="margin-top:14px">
@@ -5250,6 +5292,7 @@ select option { background: #0D0D0D; color: #fff; }
 <div class="modal-bg" id="lmRouteModal">
   <div class="modal">
     <div class="modal-title">🛣️ Daily Route<button class="modal-close" onclick="closeM('lmRouteModal')">✕</button></div>
+    <div id="lmRouteRoleToggle" class="lm-action-row" style="margin-bottom:10px"></div>
     <div id="lmRouteDatePicker" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
     <div id="lmRouteBody"><div class="empty">Loading…</div></div>
   </div>
@@ -7409,8 +7452,15 @@ function logOut() {
           if (S.theme) { setTheme(S.theme, true); }
         }
 
-        // ─── MODAL CLOSE ON BG CLICK ─────────────────────────────
-        document.querySelectorAll('.modal-bg').forEach(bg => bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('open'); }));
+        // ─── MODAL CLOSE ON BG CLICK OR ✕ BUTTON (delegated — survives any
+        // dynamically-added modals and doesn't depend on binding order) ───
+        document.addEventListener('click', e => {
+          const bg = e.target.closest('.modal-bg');
+          if (!bg) return;
+          if (e.target === bg || e.target.closest('.modal-close')) {
+            bg.classList.remove('open');
+          }
+        });
 
         // ─── INIT ────────────────────────────────────────────────
         async function init() {
@@ -7516,6 +7566,7 @@ function startSyncLoop() {
           return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
         }
         function shareMyLocation() {
+          if (window.LiveMap) { window.LiveMap.startTracking(); toast('Live tracking started 📡'); return; }
           if (!navigator.geolocation) { toast('Geolocation not supported'); return; }
           toast('Getting your location... 📡');
           navigator.geolocation.getCurrentPosition(pos => {
@@ -7526,6 +7577,7 @@ function startSyncLoop() {
           }, (err) => toast('Location denied: ' + err.message), { enableHighAccuracy: true, timeout: 10000 });
         }
         function renderMapPage() {
+          if (window.LiveMap) { window.LiveMap.onEnterPage(); return; }
           const mapDiv = document.getElementById('mapView');
           if (!mapDiv) return;
           if (!leafletMap && window.L) {

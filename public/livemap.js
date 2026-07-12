@@ -47,6 +47,7 @@ const LiveMap = (() => {
     // Phase 2
     tileLayer: null, mapStyle: 'street', // street | dark | satellite
     routeLine: null, routeStopMarkers: [], routeDates: [], routeSelectedDate: null, routeData: null,
+    routeViewRole: null, // set on openRouteHistory — 'user1' | 'user2', defaults to self
     playbackTimer: null, playbackIdx: 0, playbackMarker: null,
     geofenceState: {}, // placeId -> 'inside' | 'outside'
     meetingMarker: null,
@@ -174,15 +175,20 @@ const LiveMap = (() => {
     }
 
     // ── Outlier gate: reject physically implausible jumps ──
+    // Self-healing: if we keep rejecting fixes (meaning our anchor point
+    // was itself probably wrong — e.g. a bad first network-location fix),
+    // give up rejecting after a few tries and accept the new fix as truth.
     if (S.myLoc && S.myLoc.ts) {
       const dtSec = Math.max(0.5, (now - S.myLoc.ts) / 1000);
       const jumpKm = haversine(S.myLoc, { lat, lng });
       const impliedSpeed = (jumpKm * 1000) / dtSec; // m/s
-      if (impliedSpeed > MAX_PLAUSIBLE_SPEED_MPS) {
-        console.warn('LiveMap: rejecting implausible jump (' + Math.round(impliedSpeed) + ' m/s)');
+      if (impliedSpeed > MAX_PLAUSIBLE_SPEED_MPS && (st._rejectStreak || 0) < 3) {
+        st._rejectStreak = (st._rejectStreak || 0) + 1;
+        console.warn('LiveMap: rejecting implausible jump (' + Math.round(impliedSpeed) + ' m/s), streak ' + st._rejectStreak);
         return;
       }
     }
+    st._rejectStreak = 0;
 
     // ── Smoothing: exponential moving average blends new fix with last known ──
     // point, so stationary jitter doesn't visibly wander. Skipped for the first fix
@@ -390,7 +396,16 @@ const LiveMap = (() => {
     if (st.map || !window.L) return;
     const mapDiv = document.getElementById('mapView');
     if (!mapDiv) return;
-    st.map = L.map('mapView', { zoomControl: true }).setView([20.2961, 85.8245], 5);
+    try {
+      st.map = L.map('mapView', { zoomControl: true }).setView([20.2961, 85.8245], 5);
+    } catch (e) {
+      // Container already had a Leaflet instance from somewhere else — reset
+      // the div and retry once instead of leaving the whole page dead.
+      console.warn('LiveMap: mapView already initialized, resetting', e);
+      if (mapDiv._leaflet_id) delete mapDiv._leaflet_id;
+      mapDiv.innerHTML = '';
+      st.map = L.map('mapView', { zoomControl: true }).setView([20.2961, 85.8245], 5);
+    }
     setMapStyle(st.mapStyle || 'street');
     setTimeout(() => st.map.invalidateSize(), 100);
   }
@@ -699,11 +714,13 @@ const LiveMap = (() => {
   /* ══════════════════════════════════════════════════════════
      PHASE 2 — DAILY ROUTE / TIMELINE / JOURNEY PLAYBACK
      ══════════════════════════════════════════════════════════ */
-  async function openRouteHistory() {
+  async function openRouteHistory(role) {
+    st.routeViewRole = role || S.role;
     openM('lmRouteModal');
     document.getElementById('lmRouteBody').innerHTML = '<div class="empty">Loading dates…</div>';
+    _renderRouteRoleToggle();
     try {
-      const { dates } = await api('GET', `/api/route/${S.coupleId}/${S.role}/dates`);
+      const { dates } = await api('GET', `/api/route/${S.coupleId}/${st.routeViewRole}/dates`);
       st.routeDates = dates || [];
       const today = _localDateStr();
       if (!st.routeDates.includes(today)) st.routeDates.unshift(today);
@@ -713,6 +730,30 @@ const LiveMap = (() => {
       document.getElementById('lmRouteBody').innerHTML = '<div class="empty">Couldn\'t load route history — try again</div>';
     }
   }
+  function switchRouteRole(role) {
+    if (role === st.routeViewRole) return;
+    openRouteHistory(role);
+  }
+  function _renderRouteRoleToggle() {
+    const el = document.getElementById('lmRouteRoleToggle');
+    if (!el) return;
+    const partnerRole = S.role === 'user1' ? 'user2' : 'user1';
+    el.innerHTML = `
+      <div class="lm-tool-btn ${st.routeViewRole === S.role ? 'active' : ''}" onclick="LiveMap.switchRouteRole('${S.role}')"><span class="lm-tool-ico">🧍</span>${esc(S.myName || 'You')}</div>
+      <div class="lm-tool-btn ${st.routeViewRole === partnerRole ? 'active' : ''}" onclick="LiveMap.switchRouteRole('${partnerRole}')"><span class="lm-tool-ico">💜</span>${esc(S.partnerName || 'Partner')}</div>`;
+  }
+
+  /** Find the nearest saved place (either owner) within radius, for labeling stops. */
+  function _nearestPlaceName(lat, lng, radiusM) {
+    radiusM = radiusM || 150;
+    let best = null, bestD = Infinity;
+    (S.placesList || []).forEach(p => {
+      const d = haversine({ lat, lng }, { lat: p.lat, lng: p.lng }) * 1000;
+      if (d <= radiusM && d < bestD) { bestD = d; best = p; }
+    });
+    return best ? (best.name || best.cat) : null;
+  }
+
   function _renderRouteDatePicker() {
     const el = document.getElementById('lmRouteDatePicker');
     if (!el) return;
@@ -727,14 +768,26 @@ const LiveMap = (() => {
     const body = document.getElementById('lmRouteBody');
     body.innerHTML = '<div class="empty">Loading route…</div>';
     try {
-      const data = await api('GET', `/api/route/${S.coupleId}/${S.role}/${date}`);
+      const role = st.routeViewRole || S.role;
+      const data = await api('GET', `/api/route/${S.coupleId}/${role}/${date}`);
       st.routeData = data;
       _renderRouteStats(data);
       _drawRouteOnMap(data.points);
       _renderStopsList(data.stops);
+      _renderJourneySummary(data.stops);
     } catch (e) {
       body.innerHTML = '<div class="empty">No route data for this day yet</div>';
     }
+  }
+  /** "Home → College → Shopping → Home" style summary line, using saved place names. */
+  function _renderJourneySummary(stops) {
+    const el = document.getElementById('lmJourneySummary');
+    if (!el) return;
+    if (!stops || !stops.length) { el.innerHTML = ''; return; }
+    const names = stops.map(s => _nearestPlaceName(s.lat, s.lng) || 'Unknown stop');
+    // Collapse consecutive duplicates (e.g. two clusters at the same place back-to-back)
+    const collapsed = names.filter((n, i) => n !== names[i - 1]);
+    el.innerHTML = `<div class="lm-journey-line">${collapsed.map(esc).join(' <span class="lm-journey-arrow">→</span> ')}</div>`;
   }
   function _renderRouteStats(data) {
     const body = document.getElementById('lmRouteBody');
@@ -748,6 +801,7 @@ const LiveMap = (() => {
         <div class="pstat"><div class="pstat-n">${data.stats.durationMin} min</div><div class="pstat-l">Duration</div></div>
         <div class="pstat"><div class="pstat-n">${data.stops.length}</div><div class="pstat-l">Stops</div></div>
       </div>
+      <div id="lmJourneySummary"></div>
       <button class="btn btn-glass btn-sm" onclick="LiveMap.playbackRoute()">▶ Play Journey</button>
       <div id="lmStopsList" style="margin-top:10px"></div>`;
   }
@@ -764,16 +818,19 @@ const LiveMap = (() => {
     const el = document.getElementById('lmStopsList');
     if (!el) return;
     if (!stops || !stops.length) { el.innerHTML = '<div class="empty">No stops detected — mostly on the move</div>'; return; }
-    el.innerHTML = stops.map((s, i) => `
+    el.innerHTML = stops.map((s, i) => {
+      const placeName = _nearestPlaceName(s.lat, s.lng);
+      return `
       <div class="money-row">
         <div class="money-ic inc">📍</div>
         <div style="flex:1">
-          <div style="font-size:12px;font-weight:500;color:var(--white)">Stop ${i + 1} · ${s.minutes} min</div>
+          <div style="font-size:12px;font-weight:500;color:var(--white)">${placeName ? esc(placeName) : 'Stop ' + (i + 1)} · ${s.minutes} min</div>
           <div style="font-size:10px;color:var(--text3)">${new Date(s.arrivedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${new Date(s.leftAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
         </div>
         <button class="btn btn-glass btn-xs" onclick="LiveMap.flyTo(${s.lat},${s.lng})">View</button>
         <button class="btn btn-glass btn-xs" onclick="LiveMap.openStreetView(${s.lat},${s.lng})">👁</button>
-      </div>`).join('');
+      </div>`;
+    }).join('');
     stops.forEach(s => {
       const icon = L.divIcon({ html: `<div style="width:16px;height:16px;border-radius:50%;background:#ffd166;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4)"></div>`, className: '', iconSize: [16, 16] });
       const m = L.marker([s.lat, s.lng], { icon }).addTo(st.map).bindPopup(`Stopped ${s.minutes} min`);
@@ -834,7 +891,7 @@ const LiveMap = (() => {
     // Phase 2
     setMapStyle, locateMe, locatePartner, showMeetingPoint,
     openStreetView, _svFallback,
-    openRouteHistory, loadRouteDay, playbackRoute,
+    openRouteHistory, loadRouteDay, playbackRoute, switchRouteRole,
     _debug: st
   };
 })();
