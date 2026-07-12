@@ -3,6 +3,18 @@
 
 <head>
   <meta charset="UTF-8">
+  <!-- Resource hints: warm up connections to origins this app always
+       needs (data backend, auth/storage, fonts, CDNs) so DNS+TLS
+       negotiation overlaps with HTML parsing instead of happening
+       serially the first time each origin is actually requested.
+       Purely additive — no behavior change, only earlier connections. -->
+  <link rel="preconnect" href="https://jxqszgehgmkpzhkpfxnc.supabase.co" crossorigin>
+  <link rel="preconnect" href="https://us-app-av6d.onrender.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://unpkg.com">
+  <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
   <style id="skeletonStyles">
   /* Critical, dependency-free styles — inline so they apply before any
      external CSS/font loads. Prevents the "unstyled flash" entirely. */
@@ -8934,7 +8946,7 @@ function renderSurprises() {
         <button class="del-btn" onclick="delSurprise(${s.id})">✕</button>
       </div>
       <div style="font-size:13px;font-weight:600;color:var(--white);margin:7px 0 3px">${esc(s.type)} ${esc(s.title)}</div>
-      ${!locked ? `${s.msg ? `<div style="font-size:12px;color:var(--text2);margin-bottom:6px">${esc(s.msg)}</div>` : ''}${s.mediaUrl ? (s.mediaUrl.startsWith('data:video') ? `<video src="${s.mediaUrl}" controls style="width:100%;border-radius:10px"></video>` : s.mediaUrl.startsWith('data:audio') ? `<audio src="${s.mediaUrl}" controls style="width:100%"></audio>` : `<img src="${s.mediaUrl}" style="width:100%;border-radius:10px" onclick="openImgViewer('${s.mediaUrl}')">`) : ''}` : `<div style="font-size:11px;color:var(--text3)">Opens ${fmtDate(s.unlock)}</div>`}
+      ${!locked ? `${s.msg ? `<div style="font-size:12px;color:var(--text2);margin-bottom:6px">${esc(s.msg)}</div>` : ''}${s.mediaUrl ? (s.mediaUrl.startsWith('data:video') ? `<video src="${s.mediaUrl}" controls style="width:100%;border-radius:10px"></video>` : s.mediaUrl.startsWith('data:audio') ? `<audio src="${s.mediaUrl}" controls style="width:100%"></audio>` : `<img src="${s.mediaUrl}" style="width:100%;border-radius:10px" loading="lazy" decoding="async" onclick="openImgViewer('${s.mediaUrl}')">`) : ''}` : `<div style="font-size:11px;color:var(--text3)">Opens ${fmtDate(s.unlock)}</div>`}
     </div>`;
   }).join('');
 }
