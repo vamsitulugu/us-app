@@ -5172,6 +5172,17 @@ select option { background: #0D0D0D; color: #fff; }
 
     <div id="mapView" style="width:100%;height:340px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border)"></div>
 
+    <!-- PHASE 2: map style switcher + quick actions -->
+    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+      <div class="lm-chip lm-style-btn active" data-style="street" onclick="LiveMap.setMapStyle('street')">🗺️ Map</div>
+      <div class="lm-chip lm-style-btn" data-style="dark" onclick="LiveMap.setMapStyle('dark')">🌙 Dark</div>
+      <div class="lm-chip lm-style-btn" data-style="satellite" onclick="LiveMap.setMapStyle('satellite')">🛰️ Satellite</div>
+      <div class="lm-chip" onclick="LiveMap.locateMe()">📍 Locate Me</div>
+      <div class="lm-chip" onclick="LiveMap.locatePartner()">💜 Locate Partner</div>
+      <div class="lm-chip" onclick="LiveMap.showMeetingPoint()">🤝 Meeting Point</div>
+      <div class="lm-chip" onclick="LiveMap.openRouteHistory()">🛣️ Daily Route</div>
+    </div>
+
     <div class="period-stats" style="margin-top:14px">
       <div class="pstat"><div class="pstat-n" id="mapDistance">—</div><div class="pstat-l">Distance</div></div>
       <div class="pstat"><div class="pstat-n" id="mapETA">—</div><div class="pstat-l">ETA (drive)</div></div>
@@ -5232,6 +5243,23 @@ select option { background: #0D0D0D; color: #fff; }
     </div>
     <div class="field"><label>Address (optional)</label><input type="text" id="lmPlaceAddress" placeholder="e.g. 12 MG Road"></div>
     <button class="btn btn-accent" onclick="LiveMap.savePlace()">Save Place 📌</button>
+  </div>
+</div>
+
+<!-- PHASE 2: DAILY ROUTE / TIMELINE / PLAYBACK MODAL -->
+<div class="modal-bg" id="lmRouteModal">
+  <div class="modal">
+    <div class="modal-title">🛣️ Daily Route<button class="modal-close" onclick="closeM('lmRouteModal')">✕</button></div>
+    <div id="lmRouteDatePicker" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
+    <div id="lmRouteBody"><div class="empty">Loading…</div></div>
+  </div>
+</div>
+
+<!-- PHASE 2: STREET VIEW MODAL (Mapillary, graceful Google Maps fallback) -->
+<div class="modal-bg" id="lmStreetViewModal">
+  <div class="modal">
+    <div class="modal-title">👁 Street View<button class="modal-close" onclick="closeM('lmStreetViewModal')">✕</button></div>
+    <div id="lmStreetViewBody"><div class="empty">Loading…</div></div>
   </div>
 </div>
 

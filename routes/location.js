@@ -51,6 +51,16 @@ router.post('/ping', async (req, res) => {
       });
   });
 
+  // Phase 2 — daily route history (separate table, not trimmed to 60,
+  // grouped by calendar day for the Daily Route feature). Best-effort,
+  // never blocks or fails the ping response.
+  const localDate = req.body.localDate || new Date().toISOString().slice(0, 10);
+  supabase.from('route_points').insert({
+    couple_id: coupleId, role, lat, lng,
+    accuracy: accuracy ?? null, speed: speed ?? null,
+    local_date: localDate
+  }).then(() => {}).catch(() => {});
+
   return res.json({ ok: true });
 });
 

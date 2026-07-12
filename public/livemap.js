@@ -44,9 +44,16 @@ const LiveMap = (() => {
     pageActive: false,
     myLast: null, ptLast: null,
     permState: 'unknown', // unknown | granted | denied | unsupported
+    // Phase 2
+    tileLayer: null, mapStyle: 'street', // street | dark | satellite
+    routeLine: null, routeStopMarkers: [], routeDates: [], routeSelectedDate: null, routeData: null,
+    playbackTimer: null, playbackIdx: 0, playbackMarker: null,
+    geofenceState: {}, // placeId -> 'inside' | 'outside'
+    meetingMarker: null,
   };
 
   function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  function _localDateStr(d) { d = d || new Date(); const tz = d.getTimezoneOffset() * 60000; return new Date(d - tz).toISOString().slice(0, 10); }
   function haversine(a, b) {
     if (!a || !b) return null;
     const R = 6371, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180;
@@ -96,11 +103,28 @@ const LiveMap = (() => {
       return;
     }
     if (st.watchId != null) return; // already tracking
-    st.watchId = navigator.geolocation.watchPosition(_onPosition, _onPosError, {
+    st._highAccuracyFailed = false;
+    st.watchId = navigator.geolocation.watchPosition(_onPosition, _onPosErrorWithFallback, {
       enableHighAccuracy: true, maximumAge: 5000, timeout: 15000
     });
     st.tracking = true;
     _syncTrackToggle();
+  }
+
+  // If high-accuracy GPS repeatedly fails (common indoors/older devices), fall
+  // back once to a relaxed watch (network/coarse location) so we still get a
+  // rough fix instead of leaving the user stuck on "Locating…" forever.
+  function _onPosErrorWithFallback(err) {
+    if (!st._highAccuracyFailed && (err.code === 2 || err.code === 3)) {
+      st._highAccuracyFailed = true;
+      if (st.watchId != null) { navigator.geolocation.clearWatch(st.watchId); st.watchId = null; }
+      st.watchId = navigator.geolocation.watchPosition(_onPosition, _onPosError, {
+        enableHighAccuracy: false, maximumAge: 20000, timeout: 20000
+      });
+      _showPermBanner('⚠️ High-accuracy GPS unavailable — using network location instead (less precise).');
+      return;
+    }
+    _onPosError(err);
   }
 
   function stopTracking(explicit) {
@@ -132,28 +156,64 @@ const LiveMap = (() => {
     _updateMyStatusUI();
   }
 
+  const MAX_ACCEPTABLE_ACCURACY_M = 100;   // reject fixes worse than this (cell/wifi-only)
+  const MAX_PLAUSIBLE_SPEED_MPS   = 60;    // ~216 km/h — beyond this, treat as GPS glitch, not a real jump
+  const SMOOTH_ALPHA              = 0.35;  // EMA smoothing factor (lower = smoother, higher = snappier)
+
   function _onPosition(pos) {
     st.permState = 'granted';
     _hidePermBanner();
     const { latitude: lat, longitude: lng, accuracy, heading, speed } = pos.coords;
     const now = Date.now();
 
-    S.myLoc = { lat, lng, ts: now, moving: (speed || 0) > 1 };
-    st.myLast = { lat, lng, updatedAt: new Date(now).toISOString(), online: true };
-    _animateMarker('my', lat, lng);
+    // ── Accuracy gate: reject low-quality fixes (cell/wifi triangulation) ──
+    // unless it's our very first fix ever (better a rough dot than no dot).
+    if (accuracy != null && accuracy > MAX_ACCEPTABLE_ACCURACY_M && S.myLoc) {
+      console.warn('LiveMap: rejecting low-accuracy fix (' + Math.round(accuracy) + 'm)');
+      return;
+    }
+
+    // ── Outlier gate: reject physically implausible jumps ──
+    if (S.myLoc && S.myLoc.ts) {
+      const dtSec = Math.max(0.5, (now - S.myLoc.ts) / 1000);
+      const jumpKm = haversine(S.myLoc, { lat, lng });
+      const impliedSpeed = (jumpKm * 1000) / dtSec; // m/s
+      if (impliedSpeed > MAX_PLAUSIBLE_SPEED_MPS) {
+        console.warn('LiveMap: rejecting implausible jump (' + Math.round(impliedSpeed) + ' m/s)');
+        return;
+      }
+    }
+
+    // ── Smoothing: exponential moving average blends new fix with last known ──
+    // point, so stationary jitter doesn't visibly wander. Skipped for the first fix
+    // and for large accuracy-confirmed real moves (don't smooth away real travel).
+    let outLat = lat, outLng = lng;
+    if (S.myLoc && accuracy != null && accuracy < 30) {
+      const rawJumpM = haversine(S.myLoc, { lat, lng }) * 1000;
+      if (rawJumpM < 25) { // only smooth small jitter, not genuine movement
+        outLat = S.myLoc.lat + (lat - S.myLoc.lat) * SMOOTH_ALPHA;
+        outLng = S.myLoc.lng + (lng - S.myLoc.lng) * SMOOTH_ALPHA;
+      }
+    }
+
+    S.myLoc = { lat: outLat, lng: outLng, ts: now, moving: (speed || 0) > 1, accuracy, heading };
+    st.myLast = { lat: outLat, lng: outLng, updatedAt: new Date(now).toISOString(), online: true, accuracy, heading };
+    _animateMarker('my', outLat, outLng, accuracy, heading);
     _updateMyStatusUI();
+    _checkGeofences(outLat, outLng);
 
     // Throttle server pings — time-based OR distance-based trigger
-    const moved = st.lastPingPos ? haversine(st.lastPingPos, { lat, lng }) * 1000 : Infinity;
+    const moved = st.lastPingPos ? haversine(st.lastPingPos, { lat: outLat, lng: outLng }) * 1000 : Infinity;
     const dueTime = now - st.lastPingAt >= PING_MIN_INTERVAL_MS;
     if ((dueTime && moved > 2) || moved > PING_MIN_DISTANCE_M || !st.lastPingPos) {
       st.lastPingAt = now;
-      st.lastPingPos = { lat, lng };
+      st.lastPingPos = { lat: outLat, lng: outLng };
       if (navigator.onLine && S.coupleId) {
         api('POST', '/api/location/ping', {
-          coupleId: S.coupleId, role: S.role, lat, lng,
+          coupleId: S.coupleId, role: S.role, lat: outLat, lng: outLng,
           accuracy: accuracy || null, heading: heading || null,
-          speed: speed || null, moving: (speed || 0) > 1
+          speed: speed || null, moving: (speed || 0) > 1,
+          localDate: _localDateStr()
         }).catch(() => { /* offline or transient — next tick will retry */ });
       }
     }
@@ -195,9 +255,9 @@ const LiveMap = (() => {
         if (theirs) {
   const changed = !st.ptLast || st.ptLast.lat !== theirs.lat || st.ptLast.lng !== theirs.lng;
   st.ptLast = theirs;
-  if (changed && theirs.lat != null && theirs.lng != null && S.ptLoc?.lat !== theirs.lat) {
-    S.ptLoc = { lat: theirs.lat, lng: theirs.lng, ts: Date.parse(theirs.updatedAt), moving: theirs.moving };
-    _animateMarker('pt', theirs.lat, theirs.lng);
+  if (changed && theirs.lat != null && theirs.lng != null) {
+    S.ptLoc = { lat: theirs.lat, lng: theirs.lng, ts: Date.parse(theirs.updatedAt), moving: theirs.moving, accuracy: theirs.accuracy, heading: theirs.heading };
+    _animateMarker('pt', theirs.lat, theirs.lng, theirs.accuracy, theirs.heading);
   }
 }
       }
@@ -246,30 +306,48 @@ const LiveMap = (() => {
   }
 
   /* ── SMOOTH MARKER ANIMATION ─────────────────────────────── */
-  function _animateMarker(who, lat, lng) {
+  function _animateMarker(who, lat, lng, accuracy, heading) {
     if (!st.map || !window.L) return;
     const fromMarker = who === 'my' ? st.myMarker : st.ptMarker;
     const from = fromMarker ? fromMarker.getLatLng() : { lat, lng };
     if (who === 'my') { st.myAnimFrom = from; st.myAnimTarget = { lat, lng }; st.myAnimStart = performance.now(); }
     else { st.ptAnimFrom = from; st.ptAnimTarget = { lat, lng }; st.ptAnimStart = performance.now(); }
-    _ensureMarker(who, lat, lng);
+    _ensureMarker(who, lat, lng, accuracy, heading);
     _tickAnim();
   }
 
-  function _ensureMarker(who, lat, lng) {
+  function _ensureAccuracyCircle(who, lat, lng, accuracy) {
+    const key = who === 'my' ? 'myAccCircle' : 'ptAccCircle';
+    if (accuracy == null || !(accuracy > 0)) {
+      if (st[key]) { st.map.removeLayer(st[key]); st[key] = null; }
+      return;
+    }
+    const color = who === 'my' ? '#5b9bff' : '#ff6baf';
+    if (!st[key]) {
+      st[key] = L.circle([lat, lng], { radius: accuracy, color, weight: 1, fillColor: color, fillOpacity: 0.10, interactive: false }).addTo(st.map);
+    } else {
+      st[key].setLatLng([lat, lng]);
+      st[key].setRadius(accuracy);
+    }
+  }
+
+  function _ensureMarker(who, lat, lng, accuracy, heading) {
   if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) {
     console.warn('LiveMap: ignoring invalid coords for', who, lat, lng);
     return;
   }
+  _ensureAccuracyCircle(who, lat, lng, accuracy);
   const name = who === 'my' ? (S.myName || 'U') : (S.partnerName || 'P');
   const avatar = who === 'my' ? S.myAvatar : S.partnerAvatar;
-  const cls = who === 'my' ? 'av1' : 'av2';
   const size = who === 'my' ? 30 : 38;
   const inner = avatar
     ? `<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0">`
     : esc(name[0] || (who === 'my' ? 'U' : 'P'));
   const color = who === 'my' ? 'var(--accent)' : 'var(--accent2)';
-  const html = `<div style="position:relative;width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;color:#fff;font-size:${size*0.4}px;font-weight:700;border:3px solid #fff;box-shadow:0 0 0 4px ${who==='my'?'rgba(91,155,255,0.35)':'rgba(255,107,175,0.35)'},0 4px 14px rgba(0,0,0,0.4)">${inner}</div>`;
+  const arrow = (heading != null && !isNaN(heading))
+    ? `<div style="position:absolute;top:-9px;left:50%;transform:translateX(-50%) rotate(${heading}deg);transform-origin:50% ${size/2+9}px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid ${who==='my'?'#5b9bff':'#ff6baf'}"></div>`
+    : '';
+  const html = `<div style="position:relative;width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;color:#fff;font-size:${size*0.4}px;font-weight:700;border:3px solid #fff;box-shadow:0 0 0 4px ${who==='my'?'rgba(91,155,255,0.35)':'rgba(255,107,175,0.35)'},0 4px 14px rgba(0,0,0,0.4)">${arrow}${inner}</div>`;
   const icon = L.divIcon({ html, className: '', iconSize: [size, size] });
   if (who === 'my') {
     if (!st.myMarker) st.myMarker = L.marker([lat, lng], { icon, zIndexOffset: 400 }).addTo(st.map);
@@ -313,7 +391,7 @@ const LiveMap = (() => {
     const mapDiv = document.getElementById('mapView');
     if (!mapDiv) return;
     st.map = L.map('mapView', { zoomControl: true }).setView([20.2961, 85.8245], 5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(st.map);
+    setMapStyle(st.mapStyle || 'street');
     setTimeout(() => st.map.invalidateSize(), 100);
   }
 
@@ -337,7 +415,7 @@ const LiveMap = (() => {
         html: `<div style="width:26px;height:26px;border-radius:8px;background:${color};display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.35)">${ico}</div>`,
         className: '', iconSize: [26, 26]
       });
-      const m = L.marker([p.lat, p.lng], { icon }).addTo(st.map).bindPopup(`<b>${esc(p.name)}</b><br>${esc(p.cat)}`);
+      const m = L.marker([p.lat, p.lng], { icon }).addTo(st.map).bindPopup(`<b>${esc(p.name)}</b><br>${esc(p.cat)}<br><a href="#" onclick="LiveMap.openStreetView(${p.lat},${p.lng});return false;">👁 Street View</a>`);
       st.placeMarkers.push(m);
     });
   }
@@ -473,15 +551,31 @@ const LiveMap = (() => {
     st.searchResults = [];
     _renderSearchChips();
     openM('lmPlaceModal');
+    useCurrentLocForPlace(true /* silent — don't toast if GPS not ready yet */);
   }
   function onCatChange() {
     const v = document.getElementById('lmPlaceCat').value;
     document.getElementById('lmPlaceCustomNameWrap').style.display = v === 'Custom' ? 'block' : 'none';
   }
-  function useCurrentLocForPlace() {
-    if (!S.myLoc) { toast('No current location yet — enable tracking first'); return; }
-    document.getElementById('lmPlaceLat').value = S.myLoc.lat.toFixed(6);
-    document.getElementById('lmPlaceLng').value = S.myLoc.lng.toFixed(6);
+  async function useCurrentLocForPlace(silent) {
+    if (!S.myLoc) { if (!silent) toast('No current location yet — enable tracking first'); return; }
+    const latEl = document.getElementById('lmPlaceLat'), lngEl = document.getElementById('lmPlaceLng'), addrEl = document.getElementById('lmPlaceAddress');
+    latEl.value = S.myLoc.lat.toFixed(6);
+    lngEl.value = S.myLoc.lng.toFixed(6);
+    if (!addrEl.value) {
+      addrEl.value = 'Detecting address…';
+      try {
+        if (window.NominatimService) {
+          const r = await window.NominatimService.reverse(S.myLoc.lat, S.myLoc.lng);
+          addrEl.value = r?.address || r?.displayName || '';
+        } else {
+          addrEl.value = '';
+        }
+      } catch (e) {
+        addrEl.value = '';
+        console.warn('LiveMap: reverse geocode failed', e);
+      }
+    }
   }
   function savePlace() {
     const cat = document.getElementById('lmPlaceCat').value;
@@ -501,6 +595,206 @@ const LiveMap = (() => {
   function deletePlace(id) {
     S.placesList = (S.placesList || []).filter(p => p.id !== id);
     _renderPlacesLists(); scheduleSave();
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     PHASE 2 — MAP STYLES
+     ══════════════════════════════════════════════════════════ */
+  const TILE_LAYERS = {
+    street:    { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '© OpenStreetMap' },
+    dark:      { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attribution: '© OpenStreetMap, © CARTO' },
+    satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attribution: 'Tiles © Esri' }
+  };
+  function setMapStyle(style) {
+    if (!st.map || !TILE_LAYERS[style]) return;
+    if (st.tileLayer) st.map.removeLayer(st.tileLayer);
+    const cfg = TILE_LAYERS[style];
+    st.tileLayer = L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: 19 }).addTo(st.map);
+    st.mapStyle = style;
+    document.querySelectorAll('.lm-style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === style));
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     PHASE 2 — LOCATE ME / LOCATE PARTNER
+     ══════════════════════════════════════════════════════════ */
+  function locateMe() {
+    if (!S.myLoc) { toast('Still finding your location…'); return; }
+    st.map && st.map.setView([S.myLoc.lat, S.myLoc.lng], 16);
+  }
+  function locatePartner() {
+    if (!S.ptLoc) { toast('Partner hasn\'t shared their location yet'); return; }
+    st.map && st.map.setView([S.ptLoc.lat, S.ptLoc.lng], 16);
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     PHASE 2 — MEETING POINT (simple geographic midpoint)
+     ══════════════════════════════════════════════════════════ */
+  function showMeetingPoint() {
+    if (!S.myLoc || !S.ptLoc) { toast('Both of you need to share location first'); return; }
+    const mid = { lat: (S.myLoc.lat + S.ptLoc.lat) / 2, lng: (S.myLoc.lng + S.ptLoc.lng) / 2 };
+    if (st.meetingMarker) st.map.removeLayer(st.meetingMarker);
+    const icon = L.divIcon({
+      html: `<div style="width:30px;height:30px;border-radius:50%;background:#ffd166;display:flex;align-items:center;justify-content:center;font-size:16px;border:3px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,0.4)">🤝</div>`,
+      className: '', iconSize: [30, 30]
+    });
+    st.meetingMarker = L.marker([mid.lat, mid.lng], { icon }).addTo(st.map)
+      .bindPopup('<b>Meeting point</b><br>Roughly halfway between you two').openPopup();
+    st.map.setView([mid.lat, mid.lng], 13);
+    const distEach = haversine(S.myLoc, mid);
+    toast(`🤝 Meeting point set — about ${distEach.toFixed(1)} km from each of you`);
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     PHASE 2 — STREET VIEW (Mapillary iframe, graceful fallback)
+     No API key required for the public Mapillary embed viewer.
+     If it has no imagery for the point, we fall back to a direct
+     "open in Google Maps Street View" link (no API key needed —
+     this is just a URL scheme, not a billed API call).
+     ══════════════════════════════════════════════════════════ */
+  function openStreetView(lat, lng) {
+    const modal = document.getElementById('lmStreetViewModal');
+    const body = document.getElementById('lmStreetViewBody');
+    if (!modal || !body) { window.open(`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`, '_blank'); return; }
+    body.innerHTML = `
+      <iframe id="lmSvFrame" width="100%" height="360" frameborder="0"
+        style="border-radius:var(--rs);background:#111"
+        src="https://www.mapillary.com/embed?map_style=Mapillary%20streets&lat=${lat}&lng=${lng}&z=17"
+        onerror="LiveMap._svFallback(${lat},${lng})">
+      </iframe>
+      <div style="font-size:10px;color:var(--text3);margin-top:8px">
+        No imagery here? <a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}" target="_blank" style="color:var(--accent)">Open Google Street View instead ↗</a>
+      </div>`;
+    openM('lmStreetViewModal');
+  }
+  function _svFallback(lat, lng) {
+    const body = document.getElementById('lmStreetViewBody');
+    if (body) body.innerHTML = `<div class="empty">Street-level imagery isn't available for this spot.<br><a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}" target="_blank" style="color:var(--accent)">Try Google Street View ↗</a></div>`;
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     PHASE 2 — SAFE ARRIVAL / GEOFENCE (entered / left a saved place)
+     Runs client-side every time a fresh GPS fix comes in — no new
+     backend calls, purely derived from S.myLoc + S.placesList.
+     ══════════════════════════════════════════════════════════ */
+  const GEOFENCE_RADIUS_M = 100;
+  function _checkGeofences(lat, lng) {
+    if (!Array.isArray(S.placesList)) return;
+    S.placesList.filter(p => p.owner === S.role).forEach(p => {
+      const d = haversine({ lat, lng }, { lat: p.lat, lng: p.lng }) * 1000;
+      const inside = d <= GEOFENCE_RADIUS_M;
+      const prev = st.geofenceState[p.id];
+      if (inside && prev !== 'inside') {
+        st.geofenceState[p.id] = 'inside';
+        toast(`✅ Arrived at ${p.name || p.cat}`);
+        if (window.fireBackgroundNotification) window.fireBackgroundNotification(`Safe arrival 💕`, `You've arrived at ${p.name || p.cat}`);
+      } else if (!inside && prev === 'inside') {
+        st.geofenceState[p.id] = 'outside';
+        toast(`👋 Left ${p.name || p.cat}`);
+      } else if (!prev) {
+        st.geofenceState[p.id] = inside ? 'inside' : 'outside';
+      }
+    });
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     PHASE 2 — DAILY ROUTE / TIMELINE / JOURNEY PLAYBACK
+     ══════════════════════════════════════════════════════════ */
+  async function openRouteHistory() {
+    openM('lmRouteModal');
+    document.getElementById('lmRouteBody').innerHTML = '<div class="empty">Loading dates…</div>';
+    try {
+      const { dates } = await api('GET', `/api/route/${S.coupleId}/${S.role}/dates`);
+      st.routeDates = dates || [];
+      const today = _localDateStr();
+      if (!st.routeDates.includes(today)) st.routeDates.unshift(today);
+      _renderRouteDatePicker();
+      loadRouteDay(st.routeDates[0]);
+    } catch (e) {
+      document.getElementById('lmRouteBody').innerHTML = '<div class="empty">Couldn\'t load route history — try again</div>';
+    }
+  }
+  function _renderRouteDatePicker() {
+    const el = document.getElementById('lmRouteDatePicker');
+    if (!el) return;
+    el.innerHTML = st.routeDates.slice(0, 14).map(d => {
+      const label = d === _localDateStr() ? 'Today' : d === _localDateStr(new Date(Date.now() - 86400000)) ? 'Yesterday' : d.slice(5);
+      return `<div class="lm-chip ${d === st.routeSelectedDate ? 'active' : ''}" onclick="LiveMap.loadRouteDay('${d}')">${label}</div>`;
+    }).join('');
+  }
+  async function loadRouteDay(date) {
+    st.routeSelectedDate = date;
+    _renderRouteDatePicker();
+    const body = document.getElementById('lmRouteBody');
+    body.innerHTML = '<div class="empty">Loading route…</div>';
+    try {
+      const data = await api('GET', `/api/route/${S.coupleId}/${S.role}/${date}`);
+      st.routeData = data;
+      _renderRouteStats(data);
+      _drawRouteOnMap(data.points);
+      _renderStopsList(data.stops);
+    } catch (e) {
+      body.innerHTML = '<div class="empty">No route data for this day yet</div>';
+    }
+  }
+  function _renderRouteStats(data) {
+    const body = document.getElementById('lmRouteBody');
+    if (!data.points || !data.points.length) {
+      body.innerHTML = '<div class="empty">No movement recorded for this day</div>';
+      return;
+    }
+    body.innerHTML = `
+      <div class="period-stats" style="margin-bottom:10px">
+        <div class="pstat"><div class="pstat-n">${data.stats.distanceKm} km</div><div class="pstat-l">Distance</div></div>
+        <div class="pstat"><div class="pstat-n">${data.stats.durationMin} min</div><div class="pstat-l">Duration</div></div>
+        <div class="pstat"><div class="pstat-n">${data.stops.length}</div><div class="pstat-l">Stops</div></div>
+      </div>
+      <button class="btn btn-glass btn-sm" onclick="LiveMap.playbackRoute()">▶ Play Journey</button>
+      <div id="lmStopsList" style="margin-top:10px"></div>`;
+  }
+  function _drawRouteOnMap(points) {
+    if (!st.map) return;
+    if (st.routeLine) { st.map.removeLayer(st.routeLine); st.routeLine = null; }
+    st.routeStopMarkers.forEach(m => st.map.removeLayer(m)); st.routeStopMarkers = [];
+    if (!points || points.length < 2) return;
+    const latlngs = points.map(p => [p.lat, p.lng]);
+    st.routeLine = L.polyline(latlngs, { color: 'var(--accent)', weight: 4, opacity: 0.75 }).addTo(st.map);
+    st.map.fitBounds(latlngs, { padding: [50, 50] });
+  }
+  function _renderStopsList(stops) {
+    const el = document.getElementById('lmStopsList');
+    if (!el) return;
+    if (!stops || !stops.length) { el.innerHTML = '<div class="empty">No stops detected — mostly on the move</div>'; return; }
+    el.innerHTML = stops.map((s, i) => `
+      <div class="money-row">
+        <div class="money-ic inc">📍</div>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:500;color:var(--white)">Stop ${i + 1} · ${s.minutes} min</div>
+          <div style="font-size:10px;color:var(--text3)">${new Date(s.arrivedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${new Date(s.leftAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+        </div>
+        <button class="btn btn-glass btn-xs" onclick="LiveMap.flyTo(${s.lat},${s.lng})">View</button>
+        <button class="btn btn-glass btn-xs" onclick="LiveMap.openStreetView(${s.lat},${s.lng})">👁</button>
+      </div>`).join('');
+    stops.forEach(s => {
+      const icon = L.divIcon({ html: `<div style="width:16px;height:16px;border-radius:50%;background:#ffd166;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4)"></div>`, className: '', iconSize: [16, 16] });
+      const m = L.marker([s.lat, s.lng], { icon }).addTo(st.map).bindPopup(`Stopped ${s.minutes} min`);
+      st.routeStopMarkers.push(m);
+    });
+  }
+  function playbackRoute() {
+    const points = st.routeData?.points;
+    if (!points || points.length < 2) { toast('Nothing to play back'); return; }
+    if (st.playbackTimer) { clearInterval(st.playbackTimer); st.playbackTimer = null; }
+    st.playbackIdx = 0;
+    if (st.playbackMarker) { st.map.removeLayer(st.playbackMarker); }
+    const icon = L.divIcon({ html: `<div style="width:22px;height:22px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.5)"></div>`, className: '', iconSize: [22, 22] });
+    st.playbackMarker = L.marker([points[0].lat, points[0].lng], { icon, zIndexOffset: 600 }).addTo(st.map);
+    const speedMs = Math.max(20, Math.floor(4000 / points.length)); // finish in ~4s regardless of point count
+    st.playbackTimer = setInterval(() => {
+      st.playbackIdx++;
+      if (st.playbackIdx >= points.length) { clearInterval(st.playbackTimer); st.playbackTimer = null; return; }
+      const p = points[st.playbackIdx];
+      st.playbackMarker.setLatLng([p.lat, p.lng]);
+    }, speedMs);
   }
 
   /* ── PAGE LIFECYCLE ──────────────────────────────────────── */
@@ -537,6 +831,10 @@ const LiveMap = (() => {
     openPlaceModal, onCatChange, useCurrentLocForPlace, savePlace, deletePlace,
     onSearchInput, searchByChip, pickSearchResult,
     flyTo,
+    // Phase 2
+    setMapStyle, locateMe, locatePartner, showMeetingPoint,
+    openStreetView, _svFallback,
+    openRouteHistory, loadRouteDay, playbackRoute,
     _debug: st
   };
 })();
