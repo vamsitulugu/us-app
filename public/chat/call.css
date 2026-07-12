@@ -15,26 +15,17 @@
 }
 
 .call-bg-blur {
-  position: absolute; inset: -20px;
-  background-size: cover; background-position: center;
-  filter: blur(35px) brightness(0.55) saturate(1.15);
-  transform: scale(1.15);
-  pointer-events: none;
-}
-.call-bg-blur:not([style*="background-image"]) {
+  position: absolute; inset: 0;
   background:
-    radial-gradient(circle at 50% 15%, rgba(229,9,20,0.35), transparent 55%),
-    radial-gradient(circle at 20% 85%, rgba(255,106,0,0.16), transparent 50%);
-}
-.call-bg-scrim {
-  position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 35%, rgba(0,0,0,0.55) 100%);
+    radial-gradient(circle at 50% 15%, rgba(229,9,20,0.22), transparent 55%),
+    radial-gradient(circle at 20% 85%, rgba(255,106,0,0.10), transparent 50%);
+  pointer-events: none;
 }
 
 .call-content {
   position: relative; z-index: 1;
   flex: 1;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  display: flex; flex-direction: column; align-items: center;
   padding: max(48px, env(safe-area-inset-top)) 20px 20px;
   width: 100%;
   box-sizing: border-box;
@@ -42,7 +33,7 @@
 
 .call-status-label {
   font-size: 13px; color: rgba(255,255,255,0.55); font-weight: 600;
-  letter-spacing: 0.3px; margin-bottom: 22px;
+  letter-spacing: 0.3px; margin-bottom: 6px;
 }
 
 .call-partner-name {
@@ -55,10 +46,11 @@
 }
 
 .call-avatar-ring {
-  width: 168px; height: 168px; border-radius: 50%;
+  width: 148px; height: 148px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   background: linear-gradient(135deg, var(--accent,#E50914), var(--accent2,#ff6a00));
   padding: 4px;
+  margin-top: 50px;
   flex-shrink: 0;
 }
 .call-avatar-ring.pulse { animation: callPulseRing 1.8s ease-out infinite, callBreathe 3.6s ease-in-out infinite; }
@@ -84,6 +76,8 @@
   display: flex; align-items: center; justify-content: center;
   font-size: 48px; font-weight: 700; color: #fff;
 }
+
+.call-content::after { content: ''; flex: 1; }
 
 .call-controls {
   display: flex; align-items: center; justify-content: center;
@@ -133,14 +127,14 @@
 
 .call-controls-active {
   position: absolute; left: 0; right: 0; bottom: 0;
-  display: flex; flex-direction: column; align-items: center;
-  gap: 22px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 18px;
   padding: 22px 20px max(28px, env(safe-area-inset-bottom));
   z-index: 3;
   background: linear-gradient(180deg, transparent, rgba(0,0,0,0.55) 55%);
   transition: opacity 0.25s ease, transform 0.25s ease;
 }
-.call-btn-end-standalone { margin: 0; }
+.call-controls-active .call-btn-end { margin-left: 14px; }
 
 /* Tap-to-hide state for video calls (auto-fades after 4s idle) */
 .call-controls-active.controls-hidden {
@@ -192,7 +186,7 @@
 }
 
 @media(max-width:480px) {
-  .call-avatar-ring { width: 140px; height: 140px; }
+  .call-avatar-ring { width: 116px; height: 116px; margin-top: 30px; }
   .call-avatar { font-size: 36px; }
   .call-partner-name { font-size: 22px; }
   .call-local-video { width: 82px; height: 118px; }

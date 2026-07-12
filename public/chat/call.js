@@ -12,13 +12,9 @@ const Call = (function () {
   function clearRingTimeout() { if (ringTimeout) clearTimeout(ringTimeout); ringTimeout = null; }
 
   // ─── Ringtone / ringback engine ───────────────────────────────
-  // Tries a real audio file first (drop your own ringtone at these paths),
-  // and falls back to a synthesized WebAudio tone if the file is missing —
-  // so it always works even with no assets in the repo.
-  const RINGTONE_FILE = '/sounds/ringtone.mp3';   // incoming call
-  const RINGBACK_FILE = '/sounds/ringback.mp3';   // outgoing call ("Calling...")
-  let ringFileEl = null, vibrateTimer = null;
-  let ringAudioCtx = null, ringGain = null, ringLoopTimer = null;
+  // Synthesized with WebAudio so it never depends on a missing mp3 asset.
+  // "incoming" = classic two-tone ring, "outgoing" = softer ringback beep.
+  let ringAudioCtx = null, ringGain = null, ringLoopTimer = null, vibrateTimer = null;
   function ensureRingCtx() {
     if (!ringAudioCtx) {
       const AC = window.AudioContext || window.webkitAudioContext;
@@ -40,7 +36,8 @@ const Call = (function () {
     osc.connect(gain).connect(ringGain || ctx.destination);
     osc.start(start); osc.stop(start + dur);
   }
-  function startSynthTone(kind) {
+  function startRingtone(kind) {
+    stopRingtone();
     const ctx = ensureRingCtx();
     if (!ctx) return;
     ringGain = ctx.createGain();
@@ -49,43 +46,24 @@ const Call = (function () {
     const cycle = () => {
       const t = ctx.currentTime;
       if (kind === 'incoming') {
+        // Classic UK-style double ring: two short bursts of a two-tone chord
         playTone(ctx, 440, t, 0.4, ringGain.gain.value);
         playTone(ctx, 480, t, 0.4, ringGain.gain.value);
         playTone(ctx, 440, t + 0.6, 0.4, ringGain.gain.value);
         playTone(ctx, 480, t + 0.6, 0.4, ringGain.gain.value);
       } else {
+        // Gentle single-beep ringback for the caller's "Calling..." screen
         playTone(ctx, 480, t, 1.0, ringGain.gain.value);
       }
     };
     cycle();
     ringLoopTimer = setInterval(cycle, kind === 'incoming' ? 2000 : 3000);
-  }
-  function startRingtone(kind) {
-    stopRingtone();
-    const file = kind === 'incoming' ? RINGTONE_FILE : RINGBACK_FILE;
-    ringFileEl = new Audio(file);
-    ringFileEl.loop = true;
-    ringFileEl.volume = kind === 'incoming' ? 0.9 : 0.5;
-    let usedFile = false;
-    const playPromise = ringFileEl.play();
-    if (playPromise && playPromise.then) {
-      playPromise.then(() => { usedFile = true; }).catch(() => {
-        ringFileEl = null;
-        startSynthTone(kind);
-      });
-    }
-    // If the file 404s / errors, ditch it and use the synthesized tone instead
-    ringFileEl.addEventListener('error', () => {
-      if (ringFileEl) { ringFileEl = null; }
-      if (!ringLoopTimer) startSynthTone(kind);
-    }, { once: true });
     if (kind === 'incoming' && navigator.vibrate) {
       navigator.vibrate([300, 150, 300, 150, 500]);
       vibrateTimer = setInterval(() => navigator.vibrate([300, 150, 300, 150, 500]), 2000);
     }
   }
   function stopRingtone() {
-    if (ringFileEl) { try { ringFileEl.pause(); ringFileEl.currentTime = 0; } catch (e) {} ringFileEl = null; }
     if (ringLoopTimer) { clearInterval(ringLoopTimer); ringLoopTimer = null; }
     if (vibrateTimer) { clearInterval(vibrateTimer); vibrateTimer = null; }
     if (navigator.vibrate) navigator.vibrate(0);
@@ -267,8 +245,7 @@ let iceQueue = [];
     const av = window.S.partnerAvatar;
 
     el.innerHTML = `
-      <div class="call-bg-blur"${av ? ` style="background-image:url('${av}')"` : ''}></div>
-      <div class="call-bg-scrim"></div>
+      <div class="call-bg-blur"></div>
       ${topbarHtml()}
       <div class="call-content">
         <div class="call-status-label">${incoming ? (type === 'video' ? 'Incoming video call' : 'Incoming voice call') : 'Calling...'}</div>
@@ -315,8 +292,7 @@ let iceQueue = [];
       el.classList.remove('call-active-video');
       const av = window.S.partnerAvatar;
       el.innerHTML = `
-        <div class="call-bg-blur"${av ? ` style="background-image:url('${av}')"` : ''}></div>
-        <div class="call-bg-scrim"></div>
+        <div class="call-bg-blur"></div>
         ${topbarHtml()}
         <div class="call-content">
           <div class="call-status-label">Connected</div>
@@ -335,25 +311,25 @@ let iceQueue = [];
   }
 
   function controlsHtml(video) {
-    // WhatsApp layout: a row of small toggle icons, with the red end-call
-    // button standing alone, larger, centered beneath it — not crammed
-    // into the same row as the toggles.
-    return `<div class="call-controls-active" id="callControlsBar">
-      <div class="call-controls call-controls-wa">
-        <button type="button" class="call-btn call-btn-sm" onclick="Call.toggleMoreMenu()" title="More">⋯</button>
-        ${video
-          ? `<button type="button" class="call-btn call-btn-sm" id="flipBtn" onclick="Call.flipCamera()" title="Flip camera">🔄</button>`
-          : `<button type="button" class="call-btn call-btn-sm" id="camBtn" onclick="Call.toggleCam()" title="Video">
-               <span id="camIcon">📹</span>
-             </button>`}
-        <button type="button" class="call-btn call-btn-sm" id="speakerBtn" onclick="Call.toggleSpeaker()" title="Speaker">
-          <span id="speakerIcon">🔊</span>
-        </button>
-        <button type="button" class="call-btn call-btn-sm" id="muteBtn" onclick="Call.toggleMute()" title="Mute">
-          <span id="muteIcon">🎙️</span>
-        </button>
-      </div>
-      <button type="button" class="call-btn call-btn-end call-btn-end-standalone" onclick="Call.endCall()">📞</button>
+    // NOTE: call-controls-active anchors this bar to the bottom of the
+    // overlay (position:absolute) — without it, in video calls (where
+    // there's no .call-content flex spacer above), this bar had no layout
+    // context and rendered pinned to the TOP, overlapping the topbar.
+    // call-controls-wa keeps the WhatsApp-style even spacing.
+    return `<div class="call-controls call-controls-wa call-controls-active" id="callControlsBar">
+      <button type="button" class="call-btn call-btn-sm" onclick="Call.toggleMoreMenu()" title="More">⋯</button>
+      ${video
+        ? `<button type="button" class="call-btn call-btn-sm" id="flipBtn" onclick="Call.flipCamera()" title="Flip camera">🔄</button>`
+        : `<button type="button" class="call-btn call-btn-sm" id="camBtn" onclick="Call.toggleCam()" title="Video">
+             <span id="camIcon">📹</span>
+           </button>`}
+      <button type="button" class="call-btn call-btn-sm" id="speakerBtn" onclick="Call.toggleSpeaker()" title="Speaker">
+        <span id="speakerIcon">🔊</span>
+      </button>
+      <button type="button" class="call-btn call-btn-sm" id="muteBtn" onclick="Call.toggleMute()" title="Mute">
+        <span id="muteIcon">🎙️</span>
+      </button>
+      <button type="button" class="call-btn call-btn-end" onclick="Call.endCall()">📞</button>
     </div>`;
   }
 
@@ -627,13 +603,13 @@ let iceQueue = [];
 
   // ─── CALL FLOW ───────────────────────────────────────
   async function startCall(type) {
+    if (!coupleId()) { toast('Not connected to a partner yet'); return; }
+    if (!S.paired) { toast('⚠️ Your partner hasn\'t joined yet — pair first'); return; }
+    if (pc) { toast('A call is already in progress'); return; }
+    callType = type; isCaller = true;
+    isMuted = false; isCamOff = false; isSpeakerOn = true;
+    renderRinging(type, false);
     try {
-      if (!coupleId()) { toast('Not connected to a partner yet'); return; }
-      if (!S.paired) { toast("⚠️ Your partner hasn't joined yet — pair first"); return; }
-      if (pc) { toast('A call is already in progress'); return; }
-      callType = type; isCaller = true;
-      isMuted = false; isCamOff = false; isSpeakerOn = true;
-      renderRinging(type, false);
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
       await setupPeer();
       localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
@@ -653,7 +629,7 @@ let iceQueue = [];
       }, 30000);
     } catch (e) {
       console.error('startCall failed:', e);
-      toast(e && e.name === 'NotAllowedError' ? 'Camera/mic permission denied' : ('Could not start call' + (e && e.message ? ': ' + e.message : '')));
+      toast(e && e.name === 'NotAllowedError' ? 'Camera/mic permission denied' : 'Could not start call');
       cleanup();
     }
   }
