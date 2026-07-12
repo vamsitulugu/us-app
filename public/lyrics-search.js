@@ -16,11 +16,9 @@
 (function () {
   'use strict';
 
-  function whenReady(fn, attempt) {
-    attempt = attempt || 0;
+  function whenReady(fn) {
     if (window.LyricsImportService) fn();
-    else if (attempt >= 100) console.warn('[LyricsSearch] LyricsImportService never became available — giving up.');
-    else setTimeout(() => whenReady(fn, attempt + 1), 100);
+    else setTimeout(() => whenReady(fn), 100);
   }
 
   /**

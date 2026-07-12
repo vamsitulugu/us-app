@@ -6119,19 +6119,8 @@ async function removePartner() {
   } catch (e) { toast('Could not remove partner: ' + e.message); }
 }
         // ─── PERSISTENCE (localStorage) ─────────────────────────
-        function loadLocal() { try { const r = lsGet('uwl_v5'); if (r) Object.assign(S, JSON.parse(r)); } catch (e) { } }
-        function saveLocal() { try { lsSet('uwl_v5', JSON.stringify(S)); } catch (e) { } }
-
-        // Safe localStorage helpers — used by the small incremental
-        // notification-bookkeeping features below (touch/hug/miss-you
-        // "already seen" markers, one-time toast keys, etc). These were
-        // originally calling localStorage directly without a guard, so
-        // Safari private browsing (throws on write), a full storage
-        // quota, or localStorage being disabled would throw and silently
-        // break that feature's bookkeeping mid-function. Same try/catch
-        // pattern as loadLocal/saveLocal above, just reusable.
-        function lsGet(key) { try { return lsGet(key); } catch (e) { return null; } }
-        function lsSet(key, val) { try { lsSet(key, val); } catch (e) { } }
+        function loadLocal() { try { const r = localStorage.getItem('uwl_v5'); if (r) Object.assign(S, JSON.parse(r)); } catch (e) { } }
+        function saveLocal() { try { localStorage.setItem('uwl_v5', JSON.stringify(S)); } catch (e) { } }
 
         // ─── API ─────────────────────────────────────────────────
         async function api(method, path, body) {
@@ -6330,8 +6319,8 @@ async function checkPairStatus() {
   S.partnerName = (S.role === 'user1' ? c.user2_name : c.user1_name) || S.partnerName;
   applyNames(); updatePairStatus();
   const toastKey = 'uwl_pairToastShown_' + S.coupleId;
-if (!lsGet(toastKey)) {
-  lsSet(toastKey, '1');
+if (!localStorage.getItem(toastKey)) {
+  localStorage.setItem(toastKey, '1');
   toast('💕 ' + S.partnerName + ' joined! You are now linked.');
   PM.partnerJoined(); 
   spawnPetals();
@@ -6372,21 +6361,21 @@ if (_unpairStrikes < 4) {
   } catch (e) { console.warn('Pair check:', e.message); }
 }
 function getJustPairedAt() {
-  return parseInt(lsGet('uwl_justPairedAt') || '0');
+  return parseInt(localStorage.getItem('uwl_justPairedAt') || '0');
 }
 function setJustPairedAt(ts) {
-  lsSet('uwl_justPairedAt', String(ts));
+  localStorage.setItem('uwl_justPairedAt', String(ts));
 }
         function copyCode() {
           const code = S.connectCode || '—';
           navigator.clipboard ? navigator.clipboard.writeText(code).then(() => toast('Code copied: ' + code + ' 📋')) : toast('Your code: ' + code);
         }
         // ─── TOUCH FEATURE ───────────────────────────────────────
-        let lastTouchSeen = parseInt(lsGet('uwl_lastTouchSeen') || '0');
+        let lastTouchSeen = parseInt(localStorage.getItem('uwl_lastTouchSeen') || '0');
         function sendTouch() {
           S.touch = { from: S.role, ts: Date.now() };
           lastTouchSeen = S.touch.ts;
-          lsSet('uwl_lastTouchSeen', String(lastTouchSeen));
+          localStorage.setItem('uwl_lastTouchSeen', String(lastTouchSeen));
           scheduleSave();
           const btn = document.getElementById('touchHeartBtn');
           if (btn) { btn.classList.add('touch-sent'); setTimeout(() => btn.classList.remove('touch-sent'), 700); }
@@ -6399,7 +6388,7 @@ function setJustPairedAt(ts) {
           if (!S.touch || S.touch.from === S.role) return;
           if (S.touch.ts <= lastTouchSeen) return;
           lastTouchSeen = S.touch.ts;
-          lsSet('uwl_lastTouchSeen', String(lastTouchSeen));
+          localStorage.setItem('uwl_lastTouchSeen', String(lastTouchSeen));
           if (navigator.vibrate) navigator.vibrate([120, 60, 120, 60, 200]);
           toast((S.partnerName || 'Your partner') + ' sent you a touch 💓', 4000);
           spawnPetals(10);
@@ -6746,7 +6735,7 @@ async function toggleNotifications() {
   </div>`;
         }
         // ─── MISS YOU FEATURE ──────────────────────────────────────
-        let lastMissSeen = parseInt(lsGet('uwl_lastMissSeen') || '0');
+        let lastMissSeen = parseInt(localStorage.getItem('uwl_lastMissSeen') || '0');
 
         function sendMissYou() {
           const ts = Date.now();
@@ -6754,7 +6743,7 @@ async function toggleNotifications() {
           if (!S.missCounts) S.missCounts = { user1: 0, user2: 0 };
           S.missCounts[S.role] = (S.missCounts[S.role] || 0) + 1;
           lastMissSeen = ts;
-          lsSet('uwl_lastMissSeen', String(ts));
+          localStorage.setItem('uwl_lastMissSeen', String(ts));
           scheduleSave();
           renderMissYouStats();
           const btn = document.getElementById('missYouBtn');
@@ -6768,7 +6757,7 @@ async function toggleNotifications() {
           if (!S.missYou || S.missYou.from === S.role) return;
           if (S.missYou.ts <= lastMissSeen) return;
           lastMissSeen = S.missYou.ts;
-          lsSet('uwl_lastMissSeen', String(lastMissSeen));
+          localStorage.setItem('uwl_lastMissSeen', String(lastMissSeen));
           if (navigator.vibrate) navigator.vibrate([150, 80, 150, 80, 300]);
           showMissYouPopup(S.missYou);
           fireBackgroundNotification('💔 ' + (S.partnerName || 'Someone') + ' misses you', (S.partnerName || 'Your partner') + ' is thinking of you right now 💕');
@@ -6794,14 +6783,14 @@ async function toggleNotifications() {
         }
 
         // ─── VIRTUAL HUG FEATURE ───────────────────────────────────
-        let lastHugSeen = parseInt(lsGet('uwl_lastHugSeen') || '0');
-        let lastHugResultSeen = parseInt(lsGet('uwl_lastHugResultSeen') || '0');
+        let lastHugSeen = parseInt(localStorage.getItem('uwl_lastHugSeen') || '0');
+        let lastHugResultSeen = parseInt(localStorage.getItem('uwl_lastHugResultSeen') || '0');
 
         function sendHug() {
           const id = Date.now();
           S.hug = { id, from: S.role, ts: id, status: 'pending' };
           lastHugSeen = id;
-          lsSet('uwl_lastHugSeen', String(id));
+          localStorage.setItem('uwl_lastHugSeen', String(id));
           scheduleSave();
           const btn = document.getElementById('hugBtn');
           if (btn) { btn.classList.add('hug-sent'); setTimeout(() => btn.classList.remove('hug-sent'), 650); }
@@ -6814,14 +6803,14 @@ async function toggleNotifications() {
           if (!S.hug) return;
           if (S.hug.status === 'pending' && S.hug.from !== S.role && S.hug.id > lastHugSeen) {
             lastHugSeen = S.hug.id;
-            lsSet('uwl_lastHugSeen', String(lastHugSeen));
+            localStorage.setItem('uwl_lastHugSeen', String(lastHugSeen));
             if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 100, 50, 250]);
             showHugRequestPopup();
             fireBackgroundNotification('🤗 ' + (S.partnerName || 'Someone') + ' sent you a hug', 'Tap to accept and hug back 💕');
           }
           if (S.hug.status === 'accepted' && S.hug.acceptedTs && S.hug.acceptedTs > lastHugResultSeen) {
             lastHugResultSeen = S.hug.acceptedTs;
-            lsSet('uwl_lastHugResultSeen', String(lastHugResultSeen));
+            localStorage.setItem('uwl_lastHugResultSeen', String(lastHugResultSeen));
             showHugSharedPopup();
           }
         }
@@ -6843,7 +6832,7 @@ async function toggleNotifications() {
           S.hugStats.total = (S.hugStats.total || 0) + 1;
           S.hugStats[S.hug.from] = (S.hugStats[S.hug.from] || 0) + 1;
           lastHugResultSeen = S.hug.acceptedTs;
-          lsSet('uwl_lastHugResultSeen', String(lastHugResultSeen));
+          localStorage.setItem('uwl_lastHugResultSeen', String(lastHugResultSeen));
           closeHugRequestPopup();
           scheduleSave();
           showHugSharedPopup();
@@ -8431,7 +8420,7 @@ document.addEventListener('visibilitychange', () => {
 // ═══════ GLOBAL COUPLE-KARAOKE INVITE LISTENER (works on any page) ═══════
 (function() {
   const seqStoreKey = () => 'ck_lastSeenSeq_' + (S.coupleId || 'nc');
-  let lastSeenSeq = Number(lsGet(seqStoreKey())) || 0;
+  let lastSeenSeq = Number(localStorage.getItem(seqStoreKey())) || 0;
   const INVITE_FRESHNESS_MS = 25000; // ignore anything older than this — fixes the
   // "invite card reappears on every refresh" bug: lastSeenSeq used to reset to 0
   // on every page load, so the very first poll after a refresh treated every
@@ -8454,7 +8443,7 @@ document.addEventListener('visibilitychange', () => {
       const fresh = msgs.filter(m => m.seq > lastSeenSeq).sort((a,b) => a.seq - b.seq);
       if (!fresh.length) return;
       lastSeenSeq = fresh[fresh.length - 1].seq;
-      lsSet(seqStoreKey(), String(lastSeenSeq));
+      localStorage.setItem(seqStoreKey(), String(lastSeenSeq));
       const now = Date.now();
       fresh.forEach(msg => {
         if (msg.type === 'invite' && (now - msg.seq) < INVITE_FRESHNESS_MS) showGlobalInviteCard(msg);

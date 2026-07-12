@@ -18,11 +18,9 @@
 (function () {
   'use strict';
 
-  function whenReady(fn, attempt) {
-    attempt = attempt || 0;
+  function whenReady(fn) {
     if (window.LyricsCache && window.LyricsBackgroundWorker) fn();
-    else if (attempt >= 100) console.warn('[LyricsManager] dependencies never became available — giving up.');
-    else setTimeout(() => whenReady(fn, attempt + 1), 100);
+    else setTimeout(() => whenReady(fn), 100);
   }
 
   const resolvedListeners = new Map(); // songId -> [callbacks]
@@ -49,14 +47,9 @@
   async function getLyrics(song, coupleId) {
     if (!song) return { state: 'unavailable' };
 
-    // Step 3 — memory cache. Only trust it as a fast-path when it reflects
-    // a real outcome ('cached'/'missing'). A stale 'unknown'/'searching'
-    // entry (written before the background search resolved) must not
-    // short-circuit past the already-loaded row data checked next —
-    // that was the root cause of lyrics getting stuck on "Searching..."
-    // forever on a song's 2nd play/reopen in the same session.
+    // Step 3 — memory cache
     const mem = window.LyricsCache.getMemory(song.id);
-    if (mem && (mem.state === 'cached' || mem.state === 'missing')) return memToResult(mem, song);
+    if (mem) return memToResult(mem, song);
 
     // Already-loaded Supabase row data counts as the Supabase cache hit —
     // no network call needed at all in the common case.
@@ -65,8 +58,6 @@
       window.LyricsCache.setMemory(song.id, entry);
       return { state: 'found', lrc: entry.lrc, lrcLatin: entry.lrcLatin, provider: entry.provider, syncType: entry.syncType };
     }
-
-    if (mem) return memToResult(mem, song);
 
     // Step 4 — Supabase cache (pure read, no provider call)
     const status = await window.LyricsCache.checkSupabase(song.id);
@@ -103,31 +94,6 @@
       if (resolvedSongId === songId) cb(result);
     });
   }
-
-  // Keep the memory cache truthful once a background search actually
-  // resolves. Without this, LyricsCache's memory entry for a song stays
-  // stuck at whatever checkSupabase() last wrote (often 'unknown'),
-  // so replaying/reopening that song later always short-circuits to
-  // a permanent "searching" state instead of picking up the result
-  // that's sitting right there. Registered once, globally, for every
-  // song the background worker ever resolves — not per-song like
-  // subscribe() above.
-  whenReady(() => {
-    window.LyricsBackgroundWorker.on((songId, result) => {
-      if (result && result.skipped) return; // no lyric payload in this emit — the song.lyrics fast path already wrote correct memory
-      if (result && result.found) {
-        window.LyricsCache.setMemory(songId, {
-          state: 'cached',
-          lrc: result.lyricsNative || result.lrc,
-          lrcLatin: result.lyricsLatin || result.lrcLatin || null,
-          provider: result.provider,
-          syncType: result.syncType
-        });
-      } else {
-        window.LyricsCache.setMemory(songId, { state: 'missing' });
-      }
-    });
-  });
 
   window.LyricsManager = { getLyrics, subscribe };
 })();

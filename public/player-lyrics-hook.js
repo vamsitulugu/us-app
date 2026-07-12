@@ -22,11 +22,9 @@
 (function () {
   'use strict';
 
-  function whenReady(fn, attempt) {
-    attempt = attempt || 0;
+  function whenReady(fn) {
     if (window.AudioService && window.Store && window.MusicPlayer && window.LyricsManager && typeof parseLyrics === 'function') fn();
-    else if (attempt >= 100) console.warn('[PlayerLyricsHook] dependencies never became available — giving up.');
-    else setTimeout(() => whenReady(fn, attempt + 1), 150);
+    else setTimeout(() => whenReady(fn), 150);
   }
 
   function getCoupleCtx() {
