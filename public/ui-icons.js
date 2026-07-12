@@ -48,7 +48,7 @@
     '🏠': 'layout-dashboard', '💬': 'message-circle', '📷': 'images', '🖼️': 'image',
     '💑': 'user-round', '👤': 'user', '🌟': 'list-todo', '📅': 'calendar-days',
     '📍': 'map-pinned', '🌍': 'globe', '🗺️': 'map', '🗓️': 'calendar-days',
-    '⏱️': 'heart', '🎙️': 'archive', '🎵': 'music', '🎮': 'gamepad-2',
+    '⏱️': 'heart', '🎙️': 'mic', '🎵': 'music', '🎮': 'gamepad-2',
     '💫': 'target', '💰': 'wallet', '⚡': 'shield-alert', '💌': 'package-open',
     '🎁': 'gift', '🏆': 'trophy', '🏡': 'home', '🌸': 'flower-2', '🩷': 'droplet',
     '📚': 'book-open', '🔐': 'lock', '🔒': 'lock', '🔓': 'lock-open',

@@ -4497,12 +4497,47 @@ select option { background: #0D0D0D; color: #fff; }
         <div class="chat-header-status" id="chatHeaderStatus">offline</div>
       </div>
       <div class="chat-header-actions">
-  <button class="ic-btn" style="width:34px;height:34px;font-size:14px" onclick="Call.startCall('voice')" title="Voice Call">🎙️</button>
-  <button class="ic-btn" style="width:34px;height:34px;font-size:14px" onclick="Call.startCall('video')" title="Video Call">📹</button>
+  <button class="ic-btn" id="chatVoiceCallBtn" style="width:34px;height:34px;font-size:14px" title="Voice Call">🎙️</button>
+  <button class="ic-btn" id="chatVideoCallBtn" style="width:34px;height:34px;font-size:14px" title="Video Call">📹</button>
   <button class="ic-btn" style="width:34px;height:34px;font-size:14px" onclick="Chat.openStarred()" title="Starred">⭐</button>
   <button class="ic-btn" style="width:34px;height:34px;font-size:14px" onclick="Chat.openSearch()" title="Search">🔍</button>
 </div>
     </div>
+<script>
+// Bound via addEventListener (not inline onclick) so a click can never fail
+// silently — any error, from any cause, is caught and shown as a visible
+// toast right here instead of only appearing in a console nobody has open.
+(function wireCallButtons() {
+  function safeStart(type) {
+    return function (e) {
+      e.preventDefault();
+      try {
+        if (typeof Call === 'undefined' || !Call || typeof Call.startCall !== 'function') {
+          if (typeof toast === 'function') toast('Call module not loaded yet — refresh and try again');
+          console.error('Call.startCall unavailable', { CallDefined: typeof Call !== 'undefined' });
+          return;
+        }
+        Call.startCall(type);
+      } catch (err) {
+        console.error('Call button click failed:', err);
+        if (typeof toast === 'function') toast('Call failed to start: ' + (err && err.message ? err.message : err));
+      }
+    };
+  }
+  function attach() {
+    const voiceBtn = document.getElementById('chatVoiceCallBtn');
+    const videoBtn = document.getElementById('chatVideoCallBtn');
+    if (voiceBtn && !voiceBtn._wired) { voiceBtn.addEventListener('click', safeStart('voice')); voiceBtn._wired = true; }
+    if (videoBtn && !videoBtn._wired) { videoBtn.addEventListener('click', safeStart('video')); videoBtn._wired = true; }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach);
+  else attach();
+  // Header can be re-rendered by page navigation — re-attach on a short interval
+  // for the first few seconds after load, cheap and self-limiting.
+  let tries = 0;
+  const iv = setInterval(() => { attach(); if (++tries > 20) clearInterval(iv); }, 500);
+})();
+</script>
 
     <div class="chat-search-bar" id="chatSearchBar">
       <div class="search-row">
@@ -6346,6 +6381,18 @@ function setJustPairedAt(ts) {
 
         // ─── UI HELPERS ──────────────────────────────────────────
         function toast(msg, dur = 3000) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), dur); }
+        // Global safety net: without this, an uncaught error or a rejected
+        // promise nobody awaited just fails silently — the exact symptom
+        // behind "the button does nothing." Now anything like that surfaces
+        // as a visible toast, no devtools required to notice it.
+        window.addEventListener('error', (e) => {
+          console.error('Uncaught error:', e.error || e.message);
+          try { toast('⚠️ ' + (e.message || 'Something went wrong'), 4000); } catch (_) {}
+        });
+        window.addEventListener('unhandledrejection', (e) => {
+          console.error('Unhandled promise rejection:', e.reason);
+          try { toast('⚠️ ' + (e.reason && e.reason.message ? e.reason.message : 'Something went wrong'), 4000); } catch (_) {}
+        });
         function openM(id) { document.getElementById(id).classList.add('open'); }
         function closeM(id) { document.getElementById(id).classList.remove('open'); }
         function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }

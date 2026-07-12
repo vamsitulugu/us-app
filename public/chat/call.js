@@ -147,7 +147,7 @@ let iceQueue = [];
 
   async function handleSignal(m) {
     if (m.type === 'offer' && !pc) {
-      if (m.ts && Date.now() - m.ts > 20000) return; // ignore stale offers
+      if (m.ts && Date.now() - m.ts > 45000) return; // ignore stale offers
       showIncoming(m);
     }
     else if (m.type === 'answer' && pc) {
@@ -177,13 +177,14 @@ let iceQueue = [];
     let _tick = 0;
     pollInterval = setInterval(() => {
       _tick++;
-      // Tab backgrounded: no network calls at all.
-      if (document.hidden) return;
       // Full 500ms speed only while a call is actually connecting/active
       // (pc exists) — that's when ICE/signaling needs low latency.
       // Idle (no call), just check every 4th tick (~2s) to catch an
       // incoming offer quickly enough for a responsive ring, without
-      // hammering the endpoint 24/7.
+      // hammering the endpoint 24/7. Deliberately NOT gated on
+      // document.hidden — some mobile browsers report the page as hidden
+      // even while it's the actual foreground tab, which was silently
+      // blocking incoming-call detection on those devices.
       if (pc || _tick % 4 === 0) pollSignal();
     }, 500);
     pollSignal(); // fire immediately, don't wait for first tick

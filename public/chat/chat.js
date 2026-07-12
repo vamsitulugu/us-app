@@ -93,7 +93,29 @@ const Chat = (function () {
     render();
     scrollToBottom(false);
     reanchorAfterImages();
+    settleScrollBurst();
   } catch (e) {}
+}
+
+// Catch-all safety net: re-pin to bottom a few more times over the next
+// second, in case something other than images shifts layout after the
+// initial render (web font swap, etc.) — cheap, and only acts while the
+// user is still at/near the bottom.
+function settleScrollBurst() {
+  const box = document.getElementById('chatMsgs');
+  if (!box) return;
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      const stillNearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 400;
+      if (stillNearBottom) box.scrollTop = box.scrollHeight;
+    });
+  }
+  [50, 200, 500, 1000].forEach(delay => {
+    setTimeout(() => {
+      const stillNearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 400;
+      if (stillNearBottom) box.scrollTop = box.scrollHeight;
+    }, delay);
+  });
 }
 
 // Images (map previews, gifs, stickers, photos) finish loading after the
