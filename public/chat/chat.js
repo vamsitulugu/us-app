@@ -21,6 +21,7 @@ const Chat = (function () {
   function isMine(m) { return m.sender_role === myRole(); }
 
   // ─── PRESENCE ───────────────────────────────────────
+  let _presenceListenersAttached = false; // guards against duplicate listeners if startPresence() is ever called more than once
   function startPresence() {
     sendPresence('online');
     if (presenceInterval) clearInterval(presenceInterval);
@@ -30,6 +31,8 @@ const Chat = (function () {
       sendPresence('online');
     }, 20000);
 
+    if (_presenceListenersAttached) return; // listeners already wired once — never attach a second copy
+    _presenceListenersAttached = true;
     document.addEventListener('visibilitychange', () => {
       sendPresence(document.visibilityState === 'visible' ? 'online' : 'away');
     });
