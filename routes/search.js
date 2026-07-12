@@ -115,6 +115,8 @@ router.post('/overpass', async (req, res) => {
   res.json(json);
 });
 
+module.exports = router;
+
 // ── GET /api/search/_diag ───────────────────────────────
 // TEMPORARY diagnostic route — tests raw connectivity from this
 // server to each Overpass mirror and reports timing/status for each.
@@ -136,5 +138,3 @@ router.get('/_diag', async (req, res) => {
   }));
   res.json({ results });
 });
-
-module.exports = router;

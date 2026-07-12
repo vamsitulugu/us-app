@@ -238,6 +238,8 @@ async function sendPushToPartner(coupleId, senderRole, payload) {
   }
 }
 
+module.exports = router;
+module.exports.sendPushToPartner = sendPushToPartner;
 // ── POST /api/auth/register ────────────────────────────
 router.post('/register', async (req, res) => {
   const { email, password, myName, partnerName, anniversary } = req.body;
@@ -316,4 +318,3 @@ router.post('/login', async (req, res) => {
   });
 });
 module.exports = router;
-module.exports.sendPushToPartner = sendPushToPartner;
