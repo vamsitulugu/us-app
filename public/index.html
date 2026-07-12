@@ -2439,7 +2439,7 @@
     .ai-wrap {
       display: flex;
       flex-direction: column;
-      height: calc(100dvh - 118px)
+      height: 100%
     }
 
     .ai-msgs {
@@ -3604,6 +3604,21 @@
 }
 .lm-journey-arrow { color: var(--accent); font-weight: 700; margin: 0 2px; }
 
+.content:has(#page-ai.active) {
+  overflow: hidden;
+  padding: 0;
+}
+#page-ai.page.active { height: 100%; }
+.content:has(#page-map.active) {
+  padding-left: 0;
+  padding-right: 0;
+}
+#page-map.page.active { padding: 0 8px; }
+#mapView { border-radius: 0; margin-left: -8px; width: calc(100% + 16px); }
+@media(min-width: 460px) {
+  #page-map.page.active { padding: 0 var(--space); }
+  #mapView { margin-left: 0; width: 100%; border-radius: var(--r); }
+}
 .iframe-page-wrap {
   width: calc(100% + 2 * var(--space));
   margin-left: calc(-1 * var(--space));

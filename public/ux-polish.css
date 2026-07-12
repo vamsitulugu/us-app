@@ -70,3 +70,78 @@ html, body { overscroll-behavior-y: none; }
 /* ── 1. Call PiP — make sure minimized calls never sit under the
    (now-hiding) bottom nav and stay reachable from any page ──── */
 .call-pip { z-index: 9995 !important; }
+
+/* ══════════════════════════════════════════════════════════════
+   ROUND 2 — reported issues
+══════════════════════════════════════════════════════════════ */
+
+/* ── A. "White page" iframe pages (Collection, Love Counter, Meet
+   Planner, Places, Dream Goals, Music, Games) ───────────────────
+   Root cause: each of those pages is its own document loaded in
+   an <iframe>, styled with translucent "glass" cards
+   (background: rgba(255,255,255,0.04–0.13)) that are only visible
+   against that page's own dark body background (#0a0710). While
+   that background IS correctly declared in every one of those
+   files, the parent never guarantees the <iframe> box itself
+   paints dark first — so on a slow load, a stale cache, or any
+   moment the child document hasn't finished painting, the
+   default white iframe canvas shows through, and since the glass
+   cards are only 4–13% white-on-white they become invisible. This
+   forces the iframe box itself dark immediately, independent of
+   how fast the child document paints. */
+.iframe-page-wrap,
+.iframe-page-wrap iframe {
+  background: #0a0710 !important;
+}
+
+/* ── B. Globe / Virtual Home / Live Map / Chat not filling the
+   screen edge-to-edge on mobile ─────────────────────────────────
+   Root cause: .iframe-page-wrap cancels .content's padding with
+   negative margins sized to match --space / the 12px mobile
+   padding rule. That match is fragile — any future change to
+   either value (or a breakpoint mismatch) reopens a visible gap,
+   which is what's happening. Replacing the "cancel the padding"
+   math with "the page itself has zero padding" removes the
+   dependency entirely — guaranteed edge-to-edge regardless of
+   what .content's padding is anywhere else. */
+.content:has(.page.active .iframe-page-wrap) {
+  padding: 0 !important;
+}
+.iframe-page-wrap {
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+#page-map.page.active,
+#page-map.page.active #mapView {
+  border-radius: 0 !important;
+}
+
+/* ── C. AI page scrolling as a whole instead of just the chat ──
+   Root cause: .ai-wrap (which holds the message list, quick-reply
+   pills, and the input bar together) and .ai-msgs were never
+   given a flex/scroll layout — only cosmetic scrollbar rules
+   existed for .ai-msgs, nothing that actually constrains its
+   height or makes it the scroll container. With no container
+   height limit, the whole page (topbar included, since nothing
+   below is clipping it) grows and the browser scrolls the outer
+   page instead. Making .ai-wrap a fixed-height flex column with
+   only .ai-msgs scrolling fixes this without touching any JS. */
+#page-ai.page.active { display: flex; flex-direction: column; }
+.ai-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.ai-msgs {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.ai-wrap .pills,
+.ai-wrap .ai-bar {
+  flex-shrink: 0;
+}
