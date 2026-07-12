@@ -189,7 +189,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
   <title>Us With Love 💕</title>
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#2f6feb" id="themeColorMeta">
+  <meta name="theme-color" content="#0a0710" id="themeColorMeta">
+  <link rel="stylesheet" href="/ux-polish.css">
   <link rel="icon" href="/icons/icon-192.png" type="image/png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -4365,12 +4366,14 @@ select option { background: #0D0D0D; color: #fff; }
   <!-- MAIN -->
   <div class="main">
     <div class="topbar">
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="tb-left">
         <div class="hamburger" id="hamburger" onclick="toggleMobSidebar()">☰</div>
+        <img src="/icons/icon-192.png" class="tb-logo" id="tbLogo" alt="US" />
         <div class="tb-title" id="topTitle">Dashboard</div>
-
-       <span style="font-size:10px;color:var(--text3)" id="lastSaved"></span>
-<div id="hbTopbarPill" class="hb-topbar-pill" onclick="HeartbeatManager.openStats()" title="Heartbeat Stats"></div>
+        <span style="font-size:10px;color:var(--text3)" id="lastSaved"></span>
+        <div id="hbTopbarPill" class="hb-topbar-pill" onclick="HeartbeatManager.openStats()" title="Heartbeat Stats"></div>
+      </div>
+      <div class="tb-right">
         <button class="ic-btn" onclick="openSearch()" title="Search" style="font-size:16px">🔍</button>
         <button class="btn btn-glass btn-sm" onclick="syncNow()" id="syncBtn">☁️ Sync</button>
       </div>
@@ -6180,7 +6183,7 @@ async function removePartner() {
             applyNames(); renderAll(); updatePairStatus(); syncLoveCounterToFrame();
             PM.relationshipConnected(document.body);
             toast('Connected with ' + data.partnerName + '! 💕'); spawnPetals(); startAlarmCheck(); startSyncLoop();
-            if (Notification.permission === 'granted') setTimeout(registerPushSubscription, 2000);
+            if (Notification.permission === 'granted') setTimeout(() => registerPushSubscription({ silent: true }), 2000);
           } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
           finally { btn.textContent = 'Connect with Partner 💕'; btn.disabled = false; }
         }
@@ -7501,7 +7504,7 @@ function logOut() {
   AppLoader.ready('data');
 });
             startAlarmCheck();
-            if (Notification.permission === 'granted') setTimeout(registerPushSubscription, 2000);
+            if (Notification.permission === 'granted') setTimeout(() => registerPushSubscription({ silent: true }), 2000);
             startSyncLoop();
           }
           if (!history.state) {
@@ -8320,7 +8323,7 @@ function openJoinPartnerModal() {
         const _origST = window.setTheme;
         window.setTheme = function(n, s) { _origST && _origST(n, s); setTimeout(() => ['gamesFrame','musicFrame','dreamgoalsFrame','placesFrame','lovecounterFrame','collectionFrame','meetplannerFrame'].forEach(syncThemeToFrame), 150); };
 // ── PUSH NOTIFICATION SUBSCRIPTION ─────────────────────
-async function registerPushSubscription() {
+async function registerPushSubscription(opts = {}) {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     toast('⚠️ Push not supported on this browser'); return;
   }
@@ -8345,7 +8348,7 @@ async function registerPushSubscription() {
       body: JSON.stringify({ coupleId: S.coupleId, role: S.role, subscription: sub.toJSON() })
     });
     const result = await r.json();
-    if (r.ok) toast('✅ Push subscribed! ' + JSON.stringify(result).slice(0,60));
+    if (r.ok) { console.log('Push subscribed:', result); if (opts.silent !== true) toast('🔔 Notifications enabled'); }
     else toast('❌ Subscribe failed: ' + (result.error || r.status));
   } catch(e) {
     toast('❌ Push error: ' + e.message);
@@ -8353,9 +8356,11 @@ async function registerPushSubscription() {
   }
 }
 
-// Auto-register if permission already granted
+// Auto-register if permission already granted — silent: this runs on
+// every launch just to keep the subscription fresh, so it must never
+// surface a "Push Subscription OK" style toast to the user.
 if (Notification.permission === 'granted' && S.coupleId) {
-  setTimeout(registerPushSubscription, 3000);
+  setTimeout(() => registerPushSubscription({ silent: true }), 3000);
 }
 function syncAuthOverlay() {
   const ov = document.getElementById('authOverlay');
@@ -8540,6 +8545,7 @@ if ('serviceWorker' in navigator) {
 <script src="/dashboard_chat_patch.js"></script>
 <script src="/ui-icons.js"></script>
 <script src="/premium-motion.js"></script>
+<script src="/ux-polish-patch.js"></script>
 
 </body>
 </html>

@@ -1,5 +1,5 @@
 // Service Worker for US 💕 PWA — v3
-const CACHE = 'uwl-v4';
+const CACHE = 'uwl-v5';
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
