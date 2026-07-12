@@ -2436,6 +2436,17 @@
    
  
 
+    /* .content is the shared outer scroll container for every page. The AI
+       page already scrolls internally via .ai-msgs, so leaving .content's own
+       overflow/padding active creates a second, nested scroll container that
+       can move by a few px on its own (rubber-band bounce, extra whitespace
+       under the composer) even when .ai-msgs has nothing new to show. The
+       chat page solves this the same way — neutralize .content only while
+       that page is active, so .ai-wrap owns 100% of the scrollable area. */
+    .content:has(#page-ai.active) {
+      overflow: hidden;
+      padding: 0;
+    }
     .ai-wrap {
       display: flex;
       flex-direction: column;
@@ -4540,7 +4551,7 @@ select option { background: #0D0D0D; color: #fff; }
         <div class="chat-header-status" id="chatHeaderStatus">offline</div>
       </div>
       <div class="chat-header-actions">
-  <button class="ic-btn" id="chatVoiceCallBtn" style="width:34px;height:34px;font-size:14px" title="Voice Call">🎙️</button>
+  <button class="ic-btn" id="chatVoiceCallBtn" style="width:34px;height:34px;font-size:14px" title="Voice Call">📞</button>
   <button class="ic-btn" id="chatVideoCallBtn" style="width:34px;height:34px;font-size:14px" title="Video Call">📹</button>
   <button class="ic-btn" style="width:34px;height:34px;font-size:14px" onclick="Chat.openStarred()" title="Starred">⭐</button>
   <button class="ic-btn" style="width:34px;height:34px;font-size:14px" onclick="Chat.openSearch()" title="Search">🔍</button>
@@ -6400,6 +6411,12 @@ function setJustPairedAt(ts) {
         function goto(page, pushHistory = true) {
           if (window.PageManager) PageManager.currentPage = page;
           const _wasVirtualHome = document.getElementById('page-virtualhome')?.classList.contains('active');
+          // Any in-chat modal (GIF picker, emoji picker, attach sheet, etc.) is
+          // tied to the chat page's DOM. Leaving the page — including via the
+          // Android hardware Back button, which also routes through goto() —
+          // must tear these down immediately so they can never be left mounted
+          // and visible over another page.
+          if (typeof Chat !== 'undefined' && Chat && typeof Chat.destroyPanels === 'function') Chat.destroyPanels();
           document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
           document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
           const pg = document.getElementById('page-' + page); if (!pg) return;
@@ -6411,6 +6428,18 @@ function setJustPairedAt(ts) {
     history.pushState({ page }, '', '#' + page);
   }
           if (page === 'calendar') renderCalendar();
+          if (page === 'chat' && window.Chat) {
+            // #chatMsgs is display:none until this page is active, so the
+            // one-time Chat.init() that ran at app boot saw scrollHeight 0
+            // and its scrollToBottom() call was a no-op — leaving the view
+            // stuck at the top (oldest messages) whenever chat wasn't the
+            // first page open. Re-sync now that layout is real. requestAnimationFrame
+            // lets the browser apply display:block before we measure/scroll.
+            requestAnimationFrame(() => {
+              Chat.scrollToBottom(false);
+              if (typeof Chat.markRead === 'function') Chat.markRead();
+            });
+          }
           if (page === 'dashboard') renderDashboard();
           if (page === 'money') renderMoney();
           if (page === 'settings') { loadSettings(); }

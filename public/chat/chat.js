@@ -701,6 +701,27 @@ function menuItemsHtml(m, id) {
   }
   function closeSheet() { document.getElementById('chatBottomSheet')?.classList.remove('open'); }
 
+  // ─── PANEL LIFECYCLE ─────────────────────────────────
+  // Every modal above (attach sheet, gift/emoji/sticker/poll/GIF panels,
+  // contact sheet, message long-press menu) is appended straight to
+  // document.body as a position:fixed overlay so it can sit above the whole
+  // app. That also means the SPA router's page-swap — which only toggles the
+  // .active class on .page elements — never touches them: they are outside
+  // any .page and simply keep existing, which is how a GIF panel opened in
+  // Chat could still be visible after Android Back or navigating elsewhere.
+  // destroyPanels() removes every one of these overlay nodes from the DOM
+  // outright (not just hiding them), which also drops any listeners attached
+  // directly to those nodes. It's called from the app's central goto()
+  // router on every navigation (including Android Back, since that also
+  // resolves to a goto() via popstate), and from unload.
+  const PANEL_IDS = ['chatGiftPanel', 'chatMsgMenu', 'chatBottomSheet', 'chatEmojiPanel',
+    'chatStickerPanel', 'chatContactSheet', 'chatPollPanel', 'chatGifPanel'];
+  function destroyPanels() {
+    clearTimeout(gifDebounce);
+    PANEL_IDS.forEach(id => document.getElementById(id)?.remove());
+  }
+  window.addEventListener('pagehide', destroyPanels);
+
   const EMOJI_CATEGORIES = {
     'Recent': [],
     'Smileys': ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','😊','😇','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤗','🤩','🤔','🤨','😐','😑','😶','😏','😒','🙄','😬','😴','😪','😷','🤒','🤕'],
@@ -1004,7 +1025,8 @@ function menuItemsHtml(m, id) {
     openEmojiPanel, switchEmojiTab, filterEmoji, openGifPanel, searchGifs, markRead, init, openSheet, closeSheet,
     forwardMsg, copyMsg, editMsg, cancelEdit, infoMsg, cancelRecording, startLongPress, endLongPress,
     onAudioPick, sendLocation, openGiftPanel, sendGift, toggleVoicePlay,
-    openStickerPanel, sendSticker, sendContactCard, openContactCard, openMemories, openPollComposer, submitPoll, votePoll
+    openStickerPanel, sendSticker, sendContactCard, openContactCard, openMemories, openPollComposer, submitPoll, votePoll,
+    destroyPanels
   };
 })();
 window.Chat = Chat;
