@@ -177,9 +177,10 @@
      reach a real user, while genuine feedback (sync, pairing,
      errors relevant to the user) still shows normally. */
   var DEBUG_TOAST_PATTERNS = [
-    /push subscription/i,
+    /push subscri/i,
     /^debug[:\s]/i,
-    /service ?worker registered/i
+    /service ?worker registered/i,
+    /\{"ok"\s*:\s*true\}/i   // raw JSON.stringify() echoed into a toast
   ];
   function installToastFilter() {
     if (typeof window.toast !== 'function' || window.toast.__polished) return false;
@@ -200,53 +201,23 @@
   }, 50);
   setTimeout(function () { clearInterval(toastPoll); }, 10000);
 
-  /* ---- 6. Mobile header logo — insert once, only on small screens. */
-  function ensureTopbarLogo() {
-    var titleEl = document.getElementById('topTitle');
-    if (!titleEl || document.querySelector('.tb-logo')) return;
-    var img = document.createElement('img');
-    img.src = '/icons/icon-192.png';
-    img.alt = 'US';
-    img.className = 'tb-logo';
-    titleEl.parentNode.insertBefore(img, titleEl);
-  }
-  ensureTopbarLogo();
+  /* ---- 6. Note: the mobile header logo and the search/sync
+     right-alignment (formerly patched here at runtime via DOM
+     surgery) are now fixed permanently in index.html's markup
+     (.tb-row / .tb-left / .tb-actions / .tb-logo-mobile) and
+     app-polish.css. No JS is needed for either anymore — removing
+     the old runtime patch also removes the risk of it racing with
+     or double-wrapping the now-correct static markup. */
 
-  /* ---- 7. Group topbar action buttons into a right-aligned
-     wrapper so the CSS `.tb-actions { margin-left:auto }` rule
-     applies even though the original markup put every control in
-     one flex row. Done defensively — only runs if the expected
-     buttons exist and aren't already wrapped. */
-  function groupTopbarActions() {
-    var syncBtn = document.getElementById('syncBtn');
-    if (!syncBtn || syncBtn.closest('.tb-actions')) return;
-    var row = syncBtn.parentElement;
-    if (!row || !row.classList.contains('topbar')) {
-      // actions live in the inner flex div — climb one more level
-      // only if needed; otherwise use direct parent.
-    }
-    var wrap = document.createElement('div');
-    wrap.className = 'tb-actions';
-    var searchBtn = row.querySelector('[title="Search"]');
-    var pill = document.getElementById('hbTopbarPill');
-    [pill, searchBtn, syncBtn].forEach(function (el) {
-      if (el) wrap.appendChild(el);
-    });
-    row.appendChild(wrap);
-  }
-  groupTopbarActions();
-
-  /* ---- 8. Passive scroll/touch listeners for smoother scrolling. */
+  /* ---- 7. Passive scroll/touch listeners for smoother scrolling. */
   ['touchstart', 'touchmove', 'wheel'].forEach(function (evt) {
     window.addEventListener(evt, function () {}, { passive: true });
   });
 
-  /* ---- 9. Keep the DOM ready-checks resilient if this file loads
+  /* ---- 8. Keep the DOM ready-checks resilient if this file loads
      before the inline app script finishes defining everything. */
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
-      ensureTopbarLogo();
-      groupTopbarActions();
       installGotoWrapper();
       installToastFilter();
     });

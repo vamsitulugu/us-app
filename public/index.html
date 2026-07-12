@@ -4366,14 +4366,18 @@ select option { background: #0D0D0D; color: #fff; }
   <!-- MAIN -->
   <div class="main">
     <div class="topbar">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="hamburger" id="hamburger" onclick="toggleMobSidebar()">☰</div>
-        <div class="tb-title" id="topTitle">Dashboard</div>
-
-       <span style="font-size:10px;color:var(--text3)" id="lastSaved"></span>
-<div id="hbTopbarPill" class="hb-topbar-pill" onclick="HeartbeatManager.openStats()" title="Heartbeat Stats"></div>
-        <button class="ic-btn" onclick="openSearch()" title="Search" style="font-size:16px">🔍</button>
-        <button class="btn btn-glass btn-sm" onclick="syncNow()" id="syncBtn">☁️ Sync</button>
+      <div class="tb-row">
+        <div class="tb-left">
+          <img src="/icons/icon-192.png" alt="US" class="tb-logo-mobile">
+          <div class="hamburger" id="hamburger" onclick="toggleMobSidebar()"><span></span><span></span><span></span></div>
+          <div class="tb-title" id="topTitle">Dashboard</div>
+          <span style="font-size:10px;color:var(--text3)" id="lastSaved"></span>
+          <div id="hbTopbarPill" class="hb-topbar-pill" onclick="HeartbeatManager.openStats()" title="Heartbeat Stats"></div>
+        </div>
+        <div class="tb-actions">
+          <button class="ic-btn" onclick="openSearch()" title="Search" style="font-size:16px">🔍</button>
+          <button class="btn btn-glass btn-sm" onclick="syncNow()" id="syncBtn">☁️ Sync</button>
+        </div>
       </div>
     </div>
 
@@ -6125,10 +6129,12 @@ async function removePartner() {
         function toggleMobSidebar() {
           document.getElementById('sidebar').classList.toggle('mob-open');
           document.getElementById('sbOverlay').classList.toggle('active');
+          const h = document.getElementById('hamburger'); if (h) h.classList.toggle('active');
         }
         function closeMobSidebar() {
           document.getElementById('sidebar').classList.remove('mob-open');
           document.getElementById('sbOverlay').classList.remove('active');
+          const h = document.getElementById('hamburger'); if (h) h.classList.remove('active');
         }
         function gotoMob(page, el) {
           document.querySelectorAll('.bot-ni').forEach(n => n.classList.remove('active'));
@@ -8322,15 +8328,20 @@ function openJoinPartnerModal() {
         window.setTheme = function(n, s) { _origST && _origST(n, s); setTimeout(() => ['gamesFrame','musicFrame','dreamgoalsFrame','placesFrame','lovecounterFrame','collectionFrame','meetplannerFrame'].forEach(syncThemeToFrame), 150); };
 // ── PUSH NOTIFICATION SUBSCRIPTION ─────────────────────
 async function registerPushSubscription() {
+  // NOTE: this runs on every app launch (see call sites), so it must
+  // never surface developer/diagnostic messages to the end user —
+  // only console logs. Push registration itself is unaffected; it
+  // still runs and still fails loudly in devtools if something is
+  // actually wrong.
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    toast('⚠️ Push not supported on this browser'); return;
+    console.log('[push] not supported on this browser'); return;
   }
-  if (Notification.permission === 'denied') { toast('⚠️ Notifications blocked in browser settings'); return; }
-  if (!S.coupleId) { toast('⚠️ No coupleId yet'); return; }
+  if (Notification.permission === 'denied') { console.log('[push] notifications blocked in browser settings'); return; }
+  if (!S.coupleId) { console.log('[push] no coupleId yet'); return; }
   try {
     const keyRes = await fetch(API + '/api/auth/push/vapidkey');
     const { publicKey } = await keyRes.json();
-    if (!publicKey) { toast('⚠️ No VAPID key from server'); return; }
+    if (!publicKey) { console.log('[push] no VAPID key from server'); return; }
 
     const reg = await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
@@ -8346,11 +8357,10 @@ async function registerPushSubscription() {
       body: JSON.stringify({ coupleId: S.coupleId, role: S.role, subscription: sub.toJSON() })
     });
     const result = await r.json();
-    if (r.ok) toast('✅ Push subscribed! ' + JSON.stringify(result).slice(0,60));
-    else toast('❌ Subscribe failed: ' + (result.error || r.status));
+    if (r.ok) console.log('[push] subscribed', result);
+    else console.warn('[push] subscribe failed', result.error || r.status);
   } catch(e) {
-    toast('❌ Push error: ' + e.message);
-    console.error('Push subscription error:', e);
+    console.error('[push] subscription error:', e);
   }
 }
 
