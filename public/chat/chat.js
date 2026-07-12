@@ -203,6 +203,23 @@ function reanchorAfterImages() {
     });
   }
 
+  // Tracks the message signatures + last date-separator from the
+  // previous render() call, so a pure tail-append (by far the most
+  // frequent update — new message arrives, or a poll tick finds
+  // nothing new) can patch the DOM incrementally instead of
+  // re-rendering and re-decoding every bubble/image in the whole
+  // conversation. The signature includes every field that changes a
+  // bubble's appearance, so an edit/reaction/read-receipt/delete on an
+  // *existing* message always invalidates the fast path and falls back
+  // to the exact original full-rebuild behavior below.
+  let _renderedSigs = [];
+  let _renderedLastDate = null;
+
+  function _msgSig(m) {
+    const rx = m.reactions ? Object.entries(m.reactions).map(([e, r]) => e + ':' + r.length).sort().join(',') : '';
+    return trackKey(m) + '|' + (m.deleted ? 1 : 0) + '|' + (m.delivered ? 1 : 0) + '|' + (m.read ? 1 : 0) + '|' + (m.text || '') + '|' + rx;
+  }
+
   // ─── RENDER ──────────────────────────────────────────
   function render() {
   const box = document.getElementById('chatMsgs');
@@ -211,6 +228,52 @@ function reanchorAfterImages() {
   const wasNearBottom = prevBottomOffset - box.clientHeight < 150;
 
   const visible = msgs.filter(m => !(m.deleted_for || '').split(',').includes(myRole()));
+  const currentSigs = visible.map(_msgSig);
+
+  // Fast path: everything previously rendered is still identical, in the
+  // same order, and we only have new messages appended at the end.
+  const isPureAppend = box.children.length > 0 &&
+    _renderedSigs.length > 0 &&
+    currentSigs.length >= _renderedSigs.length &&
+    _renderedSigs.every((s, i) => currentSigs[i] === s);
+
+  if (isPureAppend) {
+    const newOnes = visible.slice(_renderedSigs.length);
+    if (newOnes.length === 0) {
+      // Nothing changed at all (typical poll tick) — skip touching the DOM.
+      renderPinned();
+      return;
+    }
+    let lastDate = _renderedLastDate;
+    const frag = document.createDocumentFragment();
+    newOnes.forEach(m => {
+      const d = new Date(m.created_at);
+      const ds = d.toDateString();
+      if (ds !== lastDate) {
+        lastDate = ds;
+        const sep = document.createElement('div');
+        sep.className = 'chat-date-sep';
+        sep.innerHTML = `<span>${fmtDaySep(d)}</span>`;
+        frag.appendChild(sep);
+      }
+      const isNew = !seenIds.has(trackKey(m));
+      const wrap = document.createElement('div');
+      wrap.innerHTML = renderBubble(m, isNew);
+      frag.appendChild(wrap.firstElementChild || wrap);
+      seenIds.add(trackKey(m));
+    });
+    box.appendChild(frag);
+    _renderedSigs = currentSigs;
+    _renderedLastDate = lastDate;
+    renderPinned();
+    if (wasNearBottom) box.scrollTop = box.scrollHeight;
+    else box.scrollTop = box.scrollHeight - prevBottomOffset;
+    return;
+  }
+
+  // Full rebuild — anything that isn't a pure append (edits, deletes,
+  // reactions, reorders, first render). Identical to the original
+  // implementation.
   let html = '', lastDate = null;
   visible.forEach(m => {
     const d = new Date(m.created_at);
@@ -221,6 +284,8 @@ function reanchorAfterImages() {
   });
   visible.forEach(m => seenIds.add(trackKey(m)));
   box.innerHTML = html || `<div class="empty" style="padding:60px 20px"><div class="empty-ico">💬</div>Say hello 👋</div>`;
+  _renderedSigs = currentSigs;
+  _renderedLastDate = lastDate;
   renderPinned();
 
   if (wasNearBottom) {

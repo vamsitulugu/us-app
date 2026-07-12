@@ -8346,6 +8346,21 @@ async function toggleNotifications() {
           wrapDiv.appendChild(tb);
         }
 
+        // Long AI conversations can accumulate many message bubbles over a
+        // session. Since the view always stays scrolled near the bottom,
+        // bubbles far above the fold are never seen again — trimming the
+        // oldest ones once the count gets large keeps memory/DOM size
+        // bounded without ever touching a message still in view.
+        const AI_MAX_DOM_MESSAGES = 120;
+        function trimAiHistoryDom(msgsEl) {
+          const nodes = msgsEl.children;
+          if (nodes.length <= AI_MAX_DOM_MESSAGES) return;
+          const removeCount = nodes.length - AI_MAX_DOM_MESSAGES;
+          for (let i = 0; i < removeCount; i++) {
+            if (msgsEl.firstElementChild) msgsEl.removeChild(msgsEl.firstElementChild);
+          }
+        }
+
         async function askAI(question, isRegenerate) {
           const msgsEl = document.getElementById('aiMsgs');
           const sendBtn = document.getElementById('aiSendBtn');
@@ -8357,6 +8372,7 @@ async function toggleNotifications() {
             const ud = document.createElement('div'); ud.className = 'ai-msg me ai-pop-in';
             ud.innerHTML = `<div class="av av1" style="width:30px;height:30px;font-size:11px">${esc(S.myName[0] || 'U')}</div><div><div class="ai-bubble">${esc(question)}</div><div class="ai-msg-time">${nowTimeShort()}</div></div>`;
             msgsEl.appendChild(ud);
+            trimAiHistoryDom(msgsEl);
           }
 
           const ld = document.createElement('div'); ld.className = 'ai-msg bot ai-pop-in';
@@ -8368,6 +8384,7 @@ async function toggleNotifications() {
           const avDiv = document.createElement('div'); avDiv.className = 'ai-av'; avDiv.textContent = '🤖';
           ld.appendChild(avDiv); ld.appendChild(wrapDiv);
           msgsEl.appendChild(ld);
+          trimAiHistoryDom(msgsEl);
           msgsEl.scrollTop = msgsEl.scrollHeight;
 
           aiStreaming = true;
