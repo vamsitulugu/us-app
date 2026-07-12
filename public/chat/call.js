@@ -41,12 +41,14 @@ const Call = (function () {
     osc.start(start); osc.stop(start + dur);
   }
   function startSynthTone(kind) {
+    if (ringLoopTimer) return; // already running — never start a second overlapping interval
     const ctx = ensureRingCtx();
     if (!ctx) return;
     ringGain = ctx.createGain();
     ringGain.gain.value = kind === 'incoming' ? 0.16 : 0.08;
     ringGain.connect(ctx.destination);
     const cycle = () => {
+      if (!ringGain) { if (ringLoopTimer) { clearInterval(ringLoopTimer); ringLoopTimer = null; } return; }
       const t = ctx.currentTime;
       if (kind === 'incoming') {
         playTone(ctx, 440, t, 0.4, ringGain.gain.value);
@@ -66,18 +68,17 @@ const Call = (function () {
     ringFileEl = new Audio(file);
     ringFileEl.loop = true;
     ringFileEl.volume = kind === 'incoming' ? 0.9 : 0.5;
-    let usedFile = false;
     const playPromise = ringFileEl.play();
     if (playPromise && playPromise.then) {
-      playPromise.then(() => { usedFile = true; }).catch(() => {
+      playPromise.then(() => {}).catch(() => {
         ringFileEl = null;
-        startSynthTone(kind);
+        startSynthTone(kind); // guarded by the ringLoopTimer check above — safe even if 'error' also fires
       });
     }
     // If the file 404s / errors, ditch it and use the synthesized tone instead
     ringFileEl.addEventListener('error', () => {
       if (ringFileEl) { ringFileEl = null; }
-      if (!ringLoopTimer) startSynthTone(kind);
+      startSynthTone(kind); // guarded internally — won't double-start if the .catch() above already did
     }, { once: true });
     if (kind === 'incoming' && navigator.vibrate) {
       navigator.vibrate([300, 150, 300, 150, 500]);
@@ -627,16 +628,24 @@ let iceQueue = [];
   }
 
   // ─── CALL FLOW ───────────────────────────────────────
+  let callStarting = false; // reentrancy lock — a double-tap used to start two overlapping
+                             // setup sequences; the second one's cleanup() could null
+                             // localStream while the first was still mid-setup, crashing
+                             // on "Cannot read properties of null (reading 'getTracks')".
   async function startCall(type) {
+    if (callStarting) { toast('Already starting a call…'); return; }
+    if (pc) { toast('A call is already in progress'); return; }
+    callStarting = true;
+    clearRingTimeout(); // kill any leftover timer from a previous attempt before it can fire mid-setup
     try {
       if (!coupleId()) { toast('Not connected to a partner yet'); return; }
       if (!S.paired) { toast("⚠️ Your partner hasn't joined yet — pair first"); return; }
-      if (pc) { toast('A call is already in progress'); return; }
       callType = type; isCaller = true;
       isMuted = false; isCamOff = false; isSpeakerOn = true;
       renderRinging(type, false);
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
       await setupPeer();
+      if (!localStream) throw new Error('Microphone/camera stream was lost during setup — please try again');
       localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
@@ -656,6 +665,8 @@ let iceQueue = [];
       console.error('startCall failed:', e);
       toast(e && e.name === 'NotAllowedError' ? 'Camera/mic permission denied' : ('Could not start call' + (e && e.message ? ': ' + e.message : '')));
       cleanup();
+    } finally {
+      callStarting = false;
     }
   }
 
@@ -677,13 +688,15 @@ let iceQueue = [];
   }
 
   async function acceptCall() {
-    if (!pendingOffer) return;
+    if (!pendingOffer || callStarting) return;
+    callStarting = true;
     clearRingTimeout();
     isMuted = false; isCamOff = false; isSpeakerOn = true;
     const offer = pendingOffer;
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: callType === 'video' });
       await setupPeer();
+      if (!localStream) throw new Error('Microphone/camera stream was lost during setup — please try again');
       localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
       await pc.setRemoteDescription(new RTCSessionDescription(offer.sdp));
       for (const cand of iceQueue) { try { await pc.addIceCandidate(cand); } catch (e) {} }
@@ -694,9 +707,11 @@ let iceQueue = [];
       onConnecting();
     } catch (e) {
       console.error('acceptCall failed:', e);
-      toast(e && e.name === 'NotAllowedError' ? 'Permission denied' : 'Could not answer call');
+      toast(e && e.name === 'NotAllowedError' ? 'Permission denied' : ('Could not answer call' + (e && e.message ? ': ' + e.message : '')));
       pushSignal({ type: 'decline' });
       cleanup();
+    } finally {
+      callStarting = false;
     }
   }
   function declineCall() {
@@ -730,6 +745,7 @@ let iceQueue = [];
     cleanup();
   }
   function cleanup() {
+    callStarting = false;
     clearRingTimeout();
     stopRingtone();
     stopAutoHide();
