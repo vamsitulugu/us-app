@@ -627,13 +627,13 @@ let iceQueue = [];
 
   // ─── CALL FLOW ───────────────────────────────────────
   async function startCall(type) {
-    if (!coupleId()) { toast('Not connected to a partner yet'); return; }
-    if (!S.paired) { toast('⚠️ Your partner hasn\'t joined yet — pair first'); return; }
-    if (pc) { toast('A call is already in progress'); return; }
-    callType = type; isCaller = true;
-    isMuted = false; isCamOff = false; isSpeakerOn = true;
-    renderRinging(type, false);
     try {
+      if (!coupleId()) { toast('Not connected to a partner yet'); return; }
+      if (!S.paired) { toast("⚠️ Your partner hasn't joined yet — pair first"); return; }
+      if (pc) { toast('A call is already in progress'); return; }
+      callType = type; isCaller = true;
+      isMuted = false; isCamOff = false; isSpeakerOn = true;
+      renderRinging(type, false);
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
       await setupPeer();
       localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
@@ -653,7 +653,7 @@ let iceQueue = [];
       }, 30000);
     } catch (e) {
       console.error('startCall failed:', e);
-      toast(e && e.name === 'NotAllowedError' ? 'Camera/mic permission denied' : 'Could not start call');
+      toast(e && e.name === 'NotAllowedError' ? 'Camera/mic permission denied' : ('Could not start call' + (e && e.message ? ': ' + e.message : '')));
       cleanup();
     }
   }

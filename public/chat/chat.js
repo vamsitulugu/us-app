@@ -207,11 +207,18 @@ const Chat = (function () {
     else if (m.type === 'audio') body = `<audio controls src="${esc(m.media_url)}" style="max-width:220px"></audio>`;
     else if (m.type === 'location') {
       const lat = m.media_meta?.lat, lng = m.media_meta?.lng;
-      body = `<a href="https://maps.google.com/?q=${lat},${lng}" target="_blank" rel="noopener" style="display:block;color:inherit;text-decoration:none">📍 <u>Shared location</u></a>`;
+      const mapImg = `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=15&size=280x140&markers=${lat},${lng},red-pushpin`;
+      body = `<div class="msg-location" onclick="event.stopPropagation();window.open('https://maps.google.com/?q=${lat},${lng}','_blank')">
+        <img src="${mapImg}" class="msg-location-map" loading="lazy" alt="map preview">
+        <div class="msg-location-info">
+          <div class="msg-location-title">📍 Location</div>
+          <div class="msg-location-sub">Tap to open in Maps</div>
+        </div>
+      </div>`;
     }
     else if (m.type === 'gift') body = `<div class="msg-gift"><div class="msg-gift-emoji">${esc(m.media_meta?.emoji || '🎁')}</div><div class="msg-gift-name">${esc(m.media_meta?.name || 'Gift')}</div></div>`;
     else if (m.type === 'sticker') body = `<div class="msg-sticker" title="${esc(m.media_meta?.name || '')}">${esc(m.media_meta?.emoji || '🙂')}</div>`;
-    else if (m.type === 'contact') body = `<div class="msg-contact"><div class="msg-contact-av">${esc((m.media_meta?.name || '?')[0])}</div><div><div class="msg-contact-name">${esc(m.media_meta?.name || 'Contact')}</div><div class="msg-contact-sub">Contact card</div></div></div>`;
+    else if (m.type === 'contact') body = `<div class="msg-contact" onclick="event.stopPropagation();Chat.openContactCard('${esc(m.media_meta?.name || '')}')"><div class="msg-contact-av">${esc((m.media_meta?.name || '?')[0])}</div><div><div class="msg-contact-name">${esc(m.media_meta?.name || 'Contact')}</div><div class="msg-contact-sub">Contact card · tap to view</div></div></div>`;
     else if (m.type === 'poll') {
       const opts = m.media_meta?.options || [];
       body = `<div class="msg-poll">
@@ -752,6 +759,26 @@ function menuItemsHtml(m, id) {
     const name = (window.S && window.S.myName) || 'Me';
     sendMessage({ type: 'contact', mediaMeta: { name } });
   }
+  function openContactCard(name) {
+    document.getElementById('chatContactSheet')?.remove();
+    const isPartner = name && window.S && name === window.S.partnerName;
+    const sheet = document.createElement('div');
+    sheet.id = 'chatContactSheet';
+    sheet.className = 'chat-sheet-overlay';
+    sheet.innerHTML = `<div class="chat-sheet chat-contact-detail">
+      <div class="chat-sheet-handle"></div>
+      <div class="msg-contact-av" style="width:64px;height:64px;font-size:24px;margin:0 auto 12px">${esc((name||'?')[0])}</div>
+      <div style="text-align:center;font-weight:700;font-size:16px;margin-bottom:2px">${esc(name||'Contact')}</div>
+      <div style="text-align:center;color:rgba(255,255,255,.5);font-size:12.5px;margin-bottom:18px">Contact card</div>
+      ${isPartner ? `
+        <div class="ctx-item" onclick="document.getElementById('chatContactSheet').remove();Call.startCall('voice')">🎙️ Voice call</div>
+        <div class="ctx-item" onclick="document.getElementById('chatContactSheet').remove();Call.startCall('video')">📹 Video call</div>
+      ` : `<div class="ctx-item" style="opacity:.6;cursor:default">This contact isn't linked to a call</div>`}
+      <div class="ctx-item" onclick="document.getElementById('chatContactSheet').remove()">Close</div>
+    </div>`;
+    sheet.onclick = e => { if (e.target === sheet) sheet.remove(); };
+    document.body.appendChild(sheet);
+  }
 
   // ─── MEMORIES (routes to the existing Camera/Memories page) ──
   function openMemories() {
@@ -814,15 +841,18 @@ function menuItemsHtml(m, id) {
       const el = document.getElementById('gifResults');
       el.innerHTML = '<div class="empty">Loading...</div>';
       try {
-        // Tenor v2 public demo key — swap GIF_API_KEY for your own free key from
-        // https://developers.google.com/tenor/guides/quickstart for production use.
-        const key = 'LIVDSRZULELA';
-        const r = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(q||'love')}&key=${key}&client_key=couple_app&limit=24&media_filter=tinygif`);
+        // Tenor's public API was fully shut down by Google on June 30, 2026 —
+        // that's why GIF search returned nothing no matter what you typed.
+        // Switched to Giphy, using their long-standing public dev key (rate-limited
+        // to 100 req/hr but needs no signup). Get your own free key at
+        // https://developers.giphy.com for production use — swap it in below.
+        const key = 'dc6zaTOxFJmzC';
+        const r = await fetch(`https://api.giphy.com/v1/gifs/search?q=${encodeURIComponent(q||'love')}&api_key=${key}&limit=24&rating=pg-13`);
         const data = await r.json();
-        const results = data.results || [];
+        const results = data.data || [];
         if (!results.length) { el.innerHTML = '<div class="empty">No GIFs found</div>'; return; }
         el.innerHTML = results
-          .map(g => g.media_formats?.tinygif?.url || g.media_formats?.gif?.url)
+          .map(g => g.images?.fixed_height_small?.url || g.images?.fixed_height?.url || g.images?.downsized?.url)
           .filter(url => !!url)
           .map(url => `<img src="${esc(url)}" loading="lazy" onclick="Chat.sendGif('${esc(url)}')">`)
           .join('') || '<div class="empty">No GIFs found</div>';
@@ -920,7 +950,7 @@ function menuItemsHtml(m, id) {
     openEmojiPanel, switchEmojiTab, filterEmoji, openGifPanel, searchGifs, markRead, init, openSheet, closeSheet,
     forwardMsg, copyMsg, editMsg, cancelEdit, infoMsg, cancelRecording, startLongPress, endLongPress,
     onAudioPick, sendLocation, openGiftPanel, sendGift, toggleVoicePlay,
-    openStickerPanel, sendSticker, sendContactCard, openMemories, openPollComposer, submitPoll, votePoll
+    openStickerPanel, sendSticker, sendContactCard, openContactCard, openMemories, openPollComposer, submitPoll, votePoll
   };
 })();
 window.Chat = Chat;
