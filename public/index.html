@@ -1722,6 +1722,89 @@
     .period-symptom-freq-row:last-child{border-bottom:none}
     .period-symptom-bar-wrap{flex:1;height:6px;background:var(--g2);border-radius:3px;margin:0 10px;overflow:hidden}
     .period-symptom-bar{height:100%;background:linear-gradient(90deg,#ff6b9d,#c2185b);border-radius:3px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+    /* ════ MILESTONE TIMELINE (DEEP) ════ */
+    .ml-stats-row{display:flex;gap:10px;margin-bottom:14px}
+    .ml-stat-box{flex:1;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px 8px;text-align:center}
+    .ml-stat-n{font-family:var(--ff-serif);font-size:20px;color:var(--white);line-height:1}
+    .ml-stat-l{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;margin-top:4px}
+    .ml-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+    .ml-insight-ico{font-size:20px;flex-shrink:0}
+    .ml-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+    .ml-insight-text strong{color:var(--white)}
+    .ml-timeline{position:relative;padding-left:26px}
+    .ml-timeline::before{content:'';position:absolute;left:9px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--accent),rgba(229,9,20,0.08))}
+    .ml-year-header{font-family:var(--ff-serif);font-size:15px;color:var(--white);margin:18px 0 10px;position:relative}
+    .ml-year-header:first-child{margin-top:0}
+    .ml-year-header::before{content:'';position:absolute;left:-26px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--white);border:3px solid var(--accent)}
+    .ml-item{position:relative;margin-bottom:16px}
+    .ml-item::before{content:'';position:absolute;left:-21px;top:6px;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+    .ml-card{background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;transition:var(--t)}
+    .ml-card:hover{border-color:var(--border2);transform:translateX(2px)}
+    .ml-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+    .ml-card-title{font-size:13px;font-weight:600;color:var(--white)}
+    .ml-card-date{font-size:9px;color:var(--text3);white-space:nowrap;text-transform:uppercase;letter-spacing:0.3px}
+    .ml-card-note{font-size:12px;color:var(--text2);margin-top:5px;line-height:1.55}
+    .ml-card-gap{font-size:9px;color:var(--text3);margin-top:6px;font-style:italic}
+    /* ════ MEMORIES ANALYTICS ════ */
+    .mem-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+    .mem-insight-ico{font-size:20px;flex-shrink:0}
+    .mem-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+    .mem-insight-text strong{color:var(--white)}
+    .mem-month-row{display:flex;align-items:flex-end;gap:6px;height:70px;padding:6px 0 0}
+    .mem-month-bar{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,var(--accent),var(--accent-d,#8f0000));min-height:3px;transition:height 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+    .mem-month-label{font-size:8px;color:var(--text3);text-align:center;margin-top:4px}
+    /* ════ XP / ACHIEVEMENTS ANALYTICS ════ */
+    .xp-hero{display:flex;flex-direction:column;align-items:center;padding:24px 20px;margin-bottom:14px}
+    .xp-ring-wrap{position:relative;width:140px;height:140px;margin-bottom:10px}
+    .xp-ring-wrap svg{transform:rotate(-90deg)}
+    .xp-ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .xp-ring-lvl{font-family:var(--ff-serif);font-size:34px;color:var(--white);line-height:1}
+    .xp-ring-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+    .xp-hero-sub{font-size:12px;color:var(--text2);text-align:center}
+    .xp-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+    .xp-insight-ico{font-size:20px;flex-shrink:0}
+    .xp-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+    .xp-insight-text strong{color:var(--white)}
+    .xp-badge-grid{display:flex;gap:10px;flex-wrap:wrap}
+    .xp-badge{min-width:100px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px 10px;text-align:center;transition:var(--t)}
+    .xp-badge.earned{border-color:rgba(229,9,20,0.35);background:linear-gradient(160deg,rgba(229,9,20,0.1),rgba(229,9,20,0.02))}
+    .xp-badge-emoji{font-size:28px;margin-bottom:6px}
+    .xp-badge-name{font-size:10px;color:var(--white);font-weight:600}
+    .xp-badge-locked .xp-badge-emoji{opacity:0.35;filter:grayscale(1)}
+    .xp-badge-locked .xp-badge-name{color:var(--text3)}
+    .xp-badge-prog-wrap{height:4px;background:var(--g2);border-radius:2px;margin-top:8px;overflow:hidden}
+    .xp-badge-prog{height:100%;background:linear-gradient(90deg,var(--accent),#ff6b6b);border-radius:2px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+    .xp-badge-prog-txt{font-size:8px;color:var(--text3);margin-top:4px}
+    /* ════ RELATIONSHIP INSIGHT ════ */
+    .rel-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:16px}
+    .rel-insight-ico{font-size:20px;flex-shrink:0}
+    .rel-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+    .rel-insight-text strong{color:var(--white)}
+    /* ════ FIGHT ANALYTICS ════ */
+    .fa-hero{display:flex;align-items:center;gap:20px;padding:20px;margin-bottom:14px}
+    .fa-ring-wrap{position:relative;width:100px;height:100px;flex-shrink:0}
+    .fa-ring-wrap svg{transform:rotate(-90deg)}
+    .fa-ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .fa-ring-pct{font-family:var(--ff-serif);font-size:20px;color:var(--white)}
+    .fa-ring-label{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+    .fa-hero-stats{flex:1}
+    .fa-hero-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+    .fa-hero-amt{font-family:var(--ff-serif);font-size:24px;color:var(--white)}
+    .fa-hero-sub{font-size:11px;color:var(--text2);margin-top:4px;line-height:1.5}
+    .fa-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(248,113,113,0.1),rgba(143,0,0,0.05));border:1px solid rgba(248,113,113,0.2);border-radius:var(--r);margin-bottom:14px}
+    .fa-insight-ico{font-size:20px;flex-shrink:0}
+    .fa-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+    .fa-insight-text strong{color:var(--white)}
+    .fa-trend-row{display:flex;align-items:flex-end;gap:6px;height:70px;padding:6px 0 0}
+    .fa-trend-bar{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#f87171,#8f0000);min-height:3px;transition:height 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+    .fa-trend-label{font-size:8px;color:var(--text3);text-align:center;margin-top:4px}
+    .fa-cause-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
+    .fa-cause-row:last-child{border-bottom:none}
+    .fa-cause-bar-wrap{flex:1;height:6px;background:var(--g2);border-radius:3px;margin:0 10px;overflow:hidden}
+    .fa-cause-bar{height:100%;background:linear-gradient(90deg,#f87171,#8f0000);border-radius:3px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+    @media(max-width:700px){
+      .fa-hero{flex-direction:column;text-align:center;padding:16px}
+    }
     /* ════ FIGHTS ════ */
     .fight-card {
       background: rgba(248, 113, 113, 0.06);
@@ -4670,6 +4753,7 @@ select option { background: #0D0D0D; color: #fff; }
             <div class="metric-l">Habit Streak</div>
           </div>
         </div>
+        <div class="rel-insight-card" id="relInsightCard"></div>
         <!-- ═══ HEARTBEAT CONNECTION WIDGET ═══ -->
         <div id="hbWidgetContainer"></div>
           <!-- Pulse ring (global, positioned absolute by HB manager) -->
@@ -4912,6 +4996,11 @@ select option { background: #0D0D0D; color: #fff; }
                 style="display:none" onchange="uploadVideo(this)"></label>
           </div>
         </div>
+        <div class="mem-insight-card" id="memInsightCard"></div>
+        <div class="card">
+          <div class="card-title">📅 Memories Added by Month</div>
+          <div class="mem-month-row" id="memMonthCard"></div>
+        </div>
         <div class="card">
           <div class="card-title">💝 Our Memories <span class="tag" id="photoCountTag">0</span></div>
           <div class="photo-grid" id="photoGrid">
@@ -5031,6 +5120,8 @@ select option { background: #0D0D0D; color: #fff; }
         <div class="card" style="margin-top:16px">
           <div class="card-title">💫 Love Milestones<button class="btn-ghost btn-sm" onclick="openM('milestoneModal')">+
               Add</button></div>
+          <div class="ml-stats-row" id="mlStatsRow"></div>
+          <div class="ml-insight-card" id="mlInsightCard"></div>
           <div id="milestonesEl">
             <div class="empty" style="padding:14px 0">
               <div class="empty-ico">💫</div>Add special moments!
@@ -5134,6 +5225,16 @@ select option { background: #0D0D0D; color: #fff; }
 
       <!-- ════ FIGHT LOG ════ -->
       <div class="page" id="page-fights">
+        <div class="card fa-hero" id="faHeroCard"></div>
+        <div class="fa-insight-card" id="faInsightCard"></div>
+        <div class="card">
+          <div class="card-title">📈 Recent Intensity Trend</div>
+          <div class="fa-trend-row" id="faTrendCard"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🔎 Common Triggers</div>
+          <div id="faCauseCard"></div>
+        </div>
         <div class="card">
           <div class="card-title">⚡ Fight Log<button class="btn btn-accent btn-sm" onclick="openM('fightModal')">+ Log
               Fight</button></div>
@@ -7239,8 +7340,42 @@ async function toggleNotifications() {
         <button class="pt-btn" style="color:#A32D2D" onclick="delPhoto(${i})">Delete</button>
       </div>
     </div>`).join('');
+          renderMemoryAnalytics();
         }
-        
+        function renderMemoryAnalytics() {
+          const insEl = document.getElementById('memInsightCard'), monEl = document.getElementById('memMonthCard');
+          if (!insEl && !monEl) return;
+          const photos = S.photos || [];
+          const videos = photos.filter(p => p.type === 'video').length;
+
+          if (insEl) {
+            let text, ico = '💡';
+            if (!photos.length) { text = 'Add your first photo or video to start building your shared memory album.'; }
+            else {
+              const thisMonth = new Date().toISOString().slice(0, 7);
+              const thisMonthCount = photos.filter(p => (p.date || '').startsWith(thisMonth)).length;
+              if (thisMonthCount > 0) { ico = '📸'; text = `You've added <strong>${thisMonthCount}</strong> memor${thisMonthCount === 1 ? 'y' : 'ies'} this month — ${photos.length} total, ${videos} video${videos === 1 ? '' : 's'}.`; }
+              else { ico = '🕰️'; text = `You have <strong>${photos.length}</strong> memories saved so far. Add a new one to keep the story going.`; }
+            }
+            insEl.innerHTML = `<div class="mem-insight-ico">${ico}</div><div class="mem-insight-text">${text}</div>`;
+          }
+
+          if (monEl) {
+            if (!photos.length) { monEl.parentElement.style.display = 'none'; }
+            else {
+              monEl.parentElement.style.display = '';
+              const months = []; for (let i = 5; i >= 0; i--) { const d = new Date(); d.setMonth(d.getMonth() - i); months.push(d.toISOString().slice(0, 7)); }
+              const counts = months.map(m => photos.filter(p => (p.date || '').startsWith(m)).length);
+              const max = Math.max(...counts, 1);
+              const labels = months.map(m => new Date(m + '-01T00:00:00').toLocaleDateString('en', { month: 'short' }));
+              monEl.innerHTML = counts.map((c, i) => `
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+                  <div class="mem-month-bar" style="height:${Math.max(3, Math.round((c / max) * 60))}px" title="${c} memories"></div>
+                  <div class="mem-month-label">${labels[i]}</div>
+                </div>`).join('');
+            }
+          }
+        }
         function delPhoto(i) { S.photos.splice(i, 1); renderPhotos(); scheduleSave(); }
 
         // ─── PROFILE ─────────────────────────────────────────────
@@ -7270,18 +7405,62 @@ async function toggleNotifications() {
         function renderMilestones() {
           renderTimelineStories();
           const el = document.getElementById('milestonesEl');
+          const statsEl = document.getElementById('mlStatsRow'), insEl = document.getElementById('mlInsightCard');
           const all = [...(S.milestones || []), ...(S.events || []).filter(e => ['Anniversary', 'Date'].includes(e.cat))].sort((a, b) => a.date.localeCompare(b.date));
-          if (!all.length) { PS.empty(el, { icon: 'heart', title: 'No milestones yet', desc: 'Mark the moments that matter \u2014 anniversaries, firsts, anything worth remembering.', actionLabel: 'Add Milestone', onAction: () => openM('milestoneModal'), compact: true }); return; }
-          el.innerHTML = all.map(m => `
-    <div style="display:flex;gap:11px;padding:11px 0;border-bottom:1px solid var(--border)">
-      <div class="timeline-dot"></div>
-      <div>
-        <div style="font-size:13px;font-weight:600;color:var(--white)">${m.type ? esc(m.type) + ' ' : ''}${esc(m.title)}</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:3px">${fmtDate(m.date)}</div>
-        ${m.note ? `<div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5">${esc(m.note)}</div>` : ''}
-        <button class="del-btn" style="margin-left:auto" onclick="delMilestone(${m.id})">✕</button>
+          if (!all.length) {
+            PS.empty(el, { icon: 'heart', title: 'No milestones yet', desc: 'Mark the moments that matter \u2014 anniversaries, firsts, anything worth remembering.', actionLabel: 'Add Milestone', onAction: () => openM('milestoneModal'), compact: true });
+            if (statsEl) statsEl.style.display = 'none';
+            if (insEl) insEl.style.display = 'none';
+            return;
+          }
+          if (statsEl) statsEl.style.display = '';
+          if (insEl) insEl.style.display = '';
+
+          // Stats
+          const thisYear = new Date().getFullYear();
+          const thisYearCount = all.filter(m => new Date(m.date + 'T00:00:00').getFullYear() === thisYear).length;
+          const years = new Set(all.map(m => new Date(m.date + 'T00:00:00').getFullYear()));
+          if (statsEl) statsEl.innerHTML = `
+            <div class="ml-stat-box"><div class="ml-stat-n">${all.length}</div><div class="ml-stat-l">Total</div></div>
+            <div class="ml-stat-box"><div class="ml-stat-n" style="color:var(--accent)">${thisYearCount}</div><div class="ml-stat-l">This Year</div></div>
+            <div class="ml-stat-box"><div class="ml-stat-n" style="color:var(--green)">${years.size}</div><div class="ml-stat-l">Years Spanned</div></div>`;
+
+          // Insight
+          if (insEl) {
+            const mostRecent = all[all.length - 1];
+            const daysSince = Math.floor((Date.now() - new Date(mostRecent.date + 'T00:00:00').getTime()) / 86400000);
+            let text, ico = '💫';
+            if (daysSince <= 30) { ico = '✨'; text = `Your most recent milestone — "<strong>${esc(mostRecent.title)}</strong>" — was just ${daysSince === 0 ? 'today' : daysSince + ' day' + (daysSince === 1 ? '' : 's') + ' ago'}.`; }
+            else { ico = '📖'; text = `It's been <strong>${daysSince} days</strong> since your last milestone ("${esc(mostRecent.title)}") — maybe it's time to mark a new one.`; }
+            insEl.innerHTML = `<div class="ml-insight-ico">${ico}</div><div class="ml-insight-text">${text}</div>`;
+          }
+
+          // Grouped, reverse-chronological timeline with gap notes
+          const desc = [...all].reverse();
+          let html = '', lastYear = null, prevDate = null;
+          desc.forEach(m => {
+            const y = new Date(m.date + 'T00:00:00').getFullYear();
+            if (y !== lastYear) { html += `<div class="ml-year-header">${y}</div>`; lastYear = y; prevDate = null; }
+            let gapHtml = '';
+            if (prevDate) {
+              const gapDays = Math.round((new Date(prevDate) - new Date(m.date + 'T00:00:00')) / 86400000);
+              if (gapDays >= 60) gapHtml = `<div class="ml-card-gap">↑ ${Math.round(gapDays / 30)} months later</div>`;
+            }
+            prevDate = m.date + 'T00:00:00';
+            html += `
+    <div class="ml-item">
+      <div class="ml-card">
+        <div class="ml-card-top">
+          <div class="ml-card-title">${m.type ? esc(m.type) + ' ' : ''}${esc(m.title)}</div>
+          <div class="ml-card-date">${fmtDateShort(m.date)}</div>
+        </div>
+        ${m.note ? `<div class="ml-card-note">${esc(m.note)}</div>` : ''}
+        ${gapHtml}
+        <button class="del-btn" style="margin-top:6px" onclick="delMilestone(${m.id})">✕</button>
       </div>
-    </div>`).join('');
+    </div>`;
+          });
+          el.innerHTML = `<div class="ml-timeline">${html}</div>`;
         }
         function delMilestone(id) { S.milestones = (S.milestones||[]).filter(m=>m.id!==id); renderMilestones(); scheduleSave(); toast('Removed'); }
         function renderTimelineStories() {
@@ -7475,6 +7654,7 @@ async function toggleNotifications() {
               actionLabel: 'Resolve Together',
               onAction: () => document.getElementById('reconnectActivities')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
             });
+            renderFightAnalytics();
             return;
           }
           let html = `<div class="fight-stats-bar">
@@ -7511,6 +7691,80 @@ async function toggleNotifications() {
       <div style="font-size:24px">${a.e}</div>
       <div><div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:3px">${a.t}</div><div style="font-size:12px;color:var(--text2);line-height:1.55">${a.d}</div></div>
     </div>`).join('');
+          renderFightAnalytics();
+        }
+        function renderFightAnalytics() {
+          const heroEl = document.getElementById('faHeroCard'), insEl = document.getElementById('faInsightCard'), trendEl = document.getElementById('faTrendCard'), causeEl = document.getElementById('faCauseCard');
+          if (!heroEl && !insEl && !trendEl && !causeEl) return;
+          const fights = S.fights || [];
+          const resolved = fights.filter(f => f.status === 'resolved').length;
+          const resRate = fights.length ? Math.round((resolved / fights.length) * 100) : 0;
+          const avg = fights.length ? Math.round(fights.reduce((s, f) => s + f.intensity, 0) / fights.length) : 0;
+
+          if (heroEl) {
+            const r = 42, circ = 2 * Math.PI * r, offset = circ - (resRate / 100) * circ;
+            heroEl.innerHTML = `
+              <div class="fa-ring-wrap">
+                <svg viewBox="0 0 100 100" width="100" height="100">
+                  <circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--g2)" stroke-width="8"/>
+                  <circle cx="50" cy="50" r="${r}" fill="none" stroke="url(#faGrad)" stroke-width="8"
+                    stroke-dasharray="${circ}" stroke-dashoffset="${circ}" stroke-linecap="round"
+                    style="transition:stroke-dashoffset 1.2s cubic-bezier(0.34,1.56,0.64,1)" id="faRingCircle"/>
+                  <defs><linearGradient id="faGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#f87171"/><stop offset="100%" stop-color="var(--green)"/>
+                  </linearGradient></defs>
+                </svg>
+                <div class="fa-ring-text"><div class="fa-ring-pct">${resRate}%</div><div class="fa-ring-label">Resolved</div></div>
+              </div>
+              <div class="fa-hero-stats">
+                <div class="fa-hero-title">Conflict Resolution Rate</div>
+                <div class="fa-hero-amt">${resolved}/${fights.length}</div>
+                <div class="fa-hero-sub">Avg intensity ${avg}/10 across ${fights.length} logged fight${fights.length === 1 ? '' : 's'}</div>
+              </div>`;
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+              const c = document.getElementById('faRingCircle'); if (c) c.style.strokeDashoffset = offset;
+            }));
+          }
+
+          if (insEl) {
+            let text, ico = '💡';
+            if (!fights.length) { text = 'No conflicts logged yet — healthy communication keeps it that way.'; }
+            else if (resRate === 100) { ico = '💚'; text = `Every fight you've logged has been resolved — <strong>${resRate}%</strong> resolution rate.`; }
+            else if (avg >= 7) { ico = '⚠️'; text = `Average intensity is running high at <strong>${avg}/10</strong> — try a reconnect activity soon.`; }
+            else if (resRate >= 60) { ico = '✅'; text = `You've resolved <strong>${resRate}%</strong> of logged conflicts — good communication.`; }
+            else { ico = '💭'; text = `<strong>${fights.length - resolved}</strong> fight${fights.length - resolved === 1 ? ' is' : 's are'} still open — try the reconnect activities below.`; }
+            insEl.innerHTML = `<div class="fa-insight-ico">${ico}</div><div class="fa-insight-text">${text}</div>`;
+          }
+
+          if (trendEl) {
+            if (fights.length < 2) { trendEl.parentElement.style.display = 'none'; }
+            else {
+              trendEl.parentElement.style.display = '';
+              const recent = fights.slice(0, 8).slice().reverse();
+              trendEl.innerHTML = recent.map(f => `
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+                  <div class="fa-trend-bar" style="height:${Math.max(3, Math.round((f.intensity / 10) * 60))}px" title="${f.intensity}/10"></div>
+                  <div class="fa-trend-label">${(f.date || '').slice(5)}</div>
+                </div>`).join('');
+            }
+          }
+
+          if (causeEl) {
+            const causeCounts = {};
+            fights.forEach(f => { const key = (f.reason || '').trim(); if (key) causeCounts[key] = (causeCounts[key] || 0) + 1; });
+            const entries = Object.entries(causeCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            if (!entries.length) { causeEl.parentElement.style.display = 'none'; }
+            else {
+              causeEl.parentElement.style.display = '';
+              const max = Math.max(...entries.map(e => e[1]));
+              causeEl.innerHTML = entries.map(([reason, count]) => `
+                <div class="fa-cause-row">
+                  <span style="font-size:12px;color:var(--text2);min-width:90px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(reason)}</span>
+                  <div class="fa-cause-bar-wrap"><div class="fa-cause-bar" style="width:${Math.round((count / max) * 100)}%"></div></div>
+                  <span style="font-size:11px;color:var(--text3)">${count}x</span>
+                </div>`).join('');
+            }
+          }
         }
         function askAIaboutFight(topic) { S._pendingAI = 'We had a fight about: ' + topic + '. Give us specific, empathetic advice to understand each other and resolve this quickly.'; goto('ai'); setTimeout(() => askAI(S._pendingAI), 300); }
 
@@ -8222,6 +8476,27 @@ async function toggleNotifications() {
           renderFights();
           renderMoodGraph();
           renderCountdowns();
+          renderRelInsight();
+        }
+        function renderRelInsight() {
+          const el = document.getElementById('relInsightCard'); if (!el) return;
+          const days = S.anniversary ? Math.max(0, Math.floor((Date.now() - new Date(S.anniversary).getTime()) / 86400000)) : 0;
+          const hugs = (S.hugStats && S.hugStats.total) || 0;
+          const touches = (S.touchStats && S.touchStats.total) || 0;
+          const openFights = (S.fights || []).filter(f => f.status === 'open').length;
+          const habits = S.habits || [];
+          const today = todayStr();
+          const last7 = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); last7.push(d.toISOString().slice(0, 10)); }
+          const possible = habits.length * 7;
+          const actual = habits.reduce((s, h) => s + last7.filter(d => (h.doneDates || []).includes(d)).length, 0);
+          const consistency = possible > 0 ? Math.round((actual / possible) * 100) : null;
+          let text, ico = '💕';
+          if (openFights > 0) { ico = '💭'; text = `You have <strong>${openFights}</strong> open conflict${openFights === 1 ? '' : 's'} — a reconnect activity could help this week.`; }
+          else if (consistency !== null && consistency >= 70) { ico = '🔥'; text = `Great week — <strong>${consistency}%</strong> habit consistency and no open conflicts.`; }
+          else if (hugs + touches > 0) { ico = '🤗'; text = `You've shared <strong>${hugs + touches}</strong> touch/hug moments together so far.`; }
+          else if (days > 0) { ico = '💍'; text = `<strong>${days}</strong> days together and counting — keep building your story.`; }
+          else { text = 'Add your anniversary date to start tracking your journey together.'; }
+          el.innerHTML = `<div class="rel-insight-ico">${ico}</div><div class="rel-insight-text">${text}</div>`;
         }
         function daysUntilNext(dateStr) {
   if (!dateStr) return null;
@@ -8712,16 +8987,35 @@ function renderSurprises() {
           const pct = Math.min(100, Math.round((xp - curBase) / (nextBase - curBase) * 100));
           const el = document.getElementById('levelPageContent'); if (!el) return;
           const earned = BADGES.filter(b => xp >= b.xp), locked = BADGES.filter(b => xp < b.xp);
+          const r = 60, circ = 2 * Math.PI * r, offset = circ - (pct / 100) * circ;
+          const nextBadge = locked[0];
+          let insText, insIco = '💡';
+          if (!xp) { insIco = '🌱'; insText = 'Chat, log habits, and complete dreams together to start earning XP.'; }
+          else if (nextBadge) { const remain = nextBadge.xp - xp; insIco = '🎯'; insText = `<strong>${remain} XP</strong> away from unlocking "${nextBadge.name}" ${nextBadge.emoji}`; }
+          else { insIco = '👑'; insText = `You've unlocked every badge — <strong>${xp} XP</strong> and counting!`; }
           el.innerHTML = `
-    <div class="profile-hero" style="text-align:center">
-      <div style="font-size:13px;color:var(--text2)">Couple Level</div>
-      <div style="font-size:42px;font-weight:700;font-family:var(--ff-serif);color:var(--white)">${lvl}</div>
-      <div class="study-progress" style="max-width:320px;margin:10px auto"><div class="study-fill" style="width:${pct}%"></div></div>
-      <div style="font-size:11px;color:var(--text3)">${xp} XP · ${nextBase - xp > 0 ? (nextBase - xp) + ' XP to next level' : 'Max reached'}</div>
+    <div class="card xp-hero">
+      <div class="xp-ring-wrap">
+        <svg viewBox="0 0 140 140" width="140" height="140">
+          <circle cx="70" cy="70" r="${r}" fill="none" stroke="var(--g2)" stroke-width="10"/>
+          <circle cx="70" cy="70" r="${r}" fill="none" stroke="url(#xpGrad)" stroke-width="10"
+            stroke-dasharray="${circ}" stroke-dashoffset="${circ}" stroke-linecap="round"
+            style="transition:stroke-dashoffset 1.2s cubic-bezier(0.34,1.56,0.64,1)" id="xpRingCircle"/>
+          <defs><linearGradient id="xpGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="#ff6b6b"/>
+          </linearGradient></defs>
+        </svg>
+        <div class="xp-ring-text"><div class="xp-ring-lvl">${lvl}</div><div class="xp-ring-label">Couple Level</div></div>
+      </div>
+      <div class="xp-hero-sub">${xp} XP · ${nextBase - xp > 0 ? (nextBase - xp) + ' XP to next level' : 'Max reached'}</div>
     </div>
-    <div class="card"><div class="card-title">🏅 Badges Earned</div><div style="display:flex;gap:10px;flex-wrap:wrap">${earned.length ? earned.map(b => `<div class="stat-item" style="min-width:90px"><div style="font-size:26px">${b.emoji}</div><div class="stat-l">${esc(b.name)}</div></div>`).join('') : '<div class="empty">Earn XP to unlock badges!</div>'}</div></div>
-    <div class="card"><div class="card-title">🔒 Locked Badges</div><div style="display:flex;gap:10px;flex-wrap:wrap">${locked.map(b => `<div class="stat-item" style="min-width:90px;opacity:0.45"><div style="font-size:26px">${b.emoji}</div><div class="stat-l">${esc(b.name)}</div><div style="font-size:9px;color:var(--text3)">${b.xp} XP</div></div>`).join('')}</div></div>
+    <div class="xp-insight-card"><div class="xp-insight-ico">${insIco}</div><div class="xp-insight-text">${insText}</div></div>
+    <div class="card"><div class="card-title">🏅 Badges Earned</div><div class="xp-badge-grid">${earned.length ? earned.map(b => `<div class="xp-badge earned"><div class="xp-badge-emoji">${b.emoji}</div><div class="xp-badge-name">${esc(b.name)}</div></div>`).join('') : '<div class="empty">Earn XP to unlock badges!</div>'}</div></div>
+    <div class="card"><div class="card-title">🔒 Locked Badges</div><div class="xp-badge-grid">${locked.map(b => { const prevXp = [0, ...BADGES.map(x => x.xp)][BADGES.indexOf(b)]; const bpct = Math.min(100, Math.round(((xp - prevXp) / (b.xp - prevXp)) * 100)); return `<div class="xp-badge xp-badge-locked"><div class="xp-badge-emoji">${b.emoji}</div><div class="xp-badge-name">${esc(b.name)}</div><div class="xp-badge-prog-wrap"><div class="xp-badge-prog" style="width:${Math.max(0, bpct)}%"></div></div><div class="xp-badge-prog-txt">${xp}/${b.xp} XP</div></div>`; }).join('')}</div></div>
     <div class="card"><div class="card-title">✨ How to earn XP</div><div style="font-size:12px;color:var(--text2);line-height:2">💬 Chatting +1 · ✅ Habit done +5 · 💧 Wellness logged +2 · 🌟 Dream completed +8 · ⚡ Fight resolved +6 · 🎵 Share a song +5 · 💌 Love capsule +15 · 🎁 Surprise +10</div></div>`;
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            const c = document.getElementById('xpRingCircle'); if (c) c.style.strokeDashoffset = offset;
+          }));
         }
         let dreamCurTab = 'House';
         function dreamTab(cat, el) { dreamCurTab = cat; document.querySelectorAll('#dreamTabs .stab').forEach(t => t.classList.remove('active')); el.classList.add('active'); renderDreamHome(); }
