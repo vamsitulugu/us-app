@@ -3658,6 +3658,143 @@
   flex-shrink:0; animation:blink 2s ease-in-out infinite;
 }
 
+/* ═══════════════ AI PAGE 2.0 — PREMIUM UPGRADE ═══════════════ */
+
+/* Ambient background for the AI page only */
+#page-ai { position: relative; }
+#page-ai::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 15% 0%, hsla(var(--h),100%,55%,0.10), transparent 45%),
+    radial-gradient(circle at 90% 10%, rgba(143,0,0,0.14), transparent 45%);
+  pointer-events: none;
+  z-index: 0;
+}
+.ai-wrap { position: relative; z-index: 1; }
+
+/* Welcome / empty state */
+.ai-welcome {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 30px 20px; gap: 6px;
+}
+.ai-welcome-orb {
+  width: 68px; height: 68px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center; font-size: 28px;
+  box-shadow: 0 0 0 0 var(--accent-glow), 0 8px 30px var(--accent-glow);
+  animation: aiOrbBreathe 3.2s ease-in-out infinite;
+  margin-bottom: 14px;
+}
+@keyframes aiOrbBreathe {
+  0%,100% { transform: scale(1); box-shadow: 0 0 0 0 var(--accent-glow), 0 8px 30px var(--accent-glow); }
+  50% { transform: scale(1.06); box-shadow: 0 0 0 10px transparent, 0 12px 40px var(--accent-glow); }
+}
+.ai-welcome-title { font-family: var(--ff-serif); font-size: 21px; color: var(--white); }
+.ai-welcome-sub { font-size: 12.5px; color: var(--text3); max-width: 320px; line-height: 1.6; margin-top: 2px; }
+.ai-welcome-suggest {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 20px; width: 100%; max-width: 420px;
+}
+@media (max-width: 480px) { .ai-welcome-suggest { grid-template-columns: 1fr; } }
+.ai-sugg-card {
+  text-align: left; padding: 12px 13px; border-radius: 14px;
+  background: var(--g1); border: 1px solid var(--border);
+  cursor: pointer; transition: var(--t);
+  display: flex; align-items: center; gap: 10px;
+}
+.ai-sugg-card:hover { background: var(--g2); transform: translateY(-2px); border-color: var(--border2); }
+.ai-sugg-ico { font-size: 18px; flex-shrink: 0; }
+.ai-sugg-txt { font-size: 12px; color: var(--text2); line-height: 1.4; }
+
+/* Thinking indicator */
+.ai-thinking-wave {
+  display: inline-flex; align-items: center; gap: 4px; height: 16px;
+}
+.ai-thinking-wave span {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent);
+  animation: aiWaveBounce 1.1s ease-in-out infinite;
+}
+.ai-thinking-wave span:nth-child(2) { animation-delay: 0.15s; }
+.ai-thinking-wave span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes aiWaveBounce {
+  0%,60%,100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+.ai-thinking-label {
+  font-size: 11px; color: var(--text3); margin-left: 8px; font-style: italic;
+}
+
+/* Message toolbar (copy / regenerate / continue) */
+.ai-msg-toolbar {
+  display: flex; gap: 4px; margin-top: 6px; opacity: 0; transform: translateY(-2px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.ai-msg.bot:hover .ai-msg-toolbar,
+.ai-msg-toolbar.always { opacity: 1; transform: translateY(0); }
+.ai-tb-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 600; color: var(--text3);
+  background: var(--g1); border: 1px solid var(--border); border-radius: 20px;
+  padding: 4px 9px; cursor: pointer; transition: var(--t);
+}
+.ai-tb-btn:hover { background: var(--g2); color: var(--white); }
+.ai-tb-btn.copied { color: var(--green); border-color: rgba(52,211,153,0.3); }
+
+/* Timestamp */
+.ai-msg-time { font-size: 9px; color: var(--text3); margin-top: 4px; padding: 0 4px; }
+.ai-msg.me .ai-msg-time { text-align: right; }
+
+/* Markdown-rendered content inside bubbles */
+.ai-bubble h1, .ai-bubble h2, .ai-bubble h3 {
+  font-family: var(--ff-serif); color: var(--white); margin: 10px 0 6px; line-height: 1.3;
+}
+.ai-bubble h1 { font-size: 17px; } .ai-bubble h2 { font-size: 15.5px; } .ai-bubble h3 { font-size: 14px; }
+.ai-bubble p { margin: 6px 0; }
+.ai-bubble ul, .ai-bubble ol { margin: 6px 0 6px 18px; }
+.ai-bubble li { margin: 3px 0; }
+.ai-bubble blockquote {
+  border-left: 3px solid var(--accent); margin: 8px 0; padding: 4px 12px;
+  color: var(--text2); background: rgba(255,255,255,0.03); border-radius: 0 8px 8px 0;
+}
+.ai-bubble a { color: var(--accent-l); text-decoration: underline; text-underline-offset: 2px; }
+.ai-bubble strong { color: var(--white); }
+.ai-bubble code.ai-inline-code {
+  background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 5px;
+  font-family: 'SF Mono', Consolas, monospace; font-size: 12px; color: #ffb4b4;
+}
+.ai-code-block {
+  margin: 10px 0; border-radius: 12px; overflow: hidden;
+  border: 1px solid var(--border); background: #0a0a0a;
+}
+.ai-code-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 12px; background: rgba(255,255,255,0.04); font-size: 10px;
+  color: var(--text3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.ai-code-copy {
+  cursor: pointer; color: var(--text3); background: none; border: none; font-size: 10px;
+  font-weight: 600; padding: 2px 7px; border-radius: 6px; transition: var(--t);
+}
+.ai-code-copy:hover { background: var(--g2); color: var(--white); }
+.ai-code-block pre {
+  margin: 0; padding: 12px; overflow-x: auto; font-family: 'SF Mono', Consolas, monospace;
+  font-size: 12px; line-height: 1.6; color: #d4d4d4;
+}
+.ai-bubble table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 12px; }
+.ai-bubble th, .ai-bubble td { border: 1px solid var(--border); padding: 6px 9px; text-align: left; }
+.ai-bubble th { background: var(--g2); color: var(--white); }
+
+/* Pills — subtle entrance */
+.pills { animation: pillsIn 0.4s ease 0.1s both; }
+@keyframes pillsIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Date separator (for future use) */
+.ai-date-sep {
+  text-align: center; font-size: 10px; color: var(--text3); margin: 10px 0;
+  text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;
+}
+
 /* ════ MISS YOU & VIRTUAL HUG ════ */
 .connect-btns-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:4px}
 .connect-btn-wrap{display:flex;flex-direction:column;align-items:center;gap:8px}
@@ -5346,12 +5483,15 @@ select option { background: #0D0D0D; color: #fff; }
       <div class="page" id="page-ai">
         <div class="ai-wrap">
           <div class="ai-msgs" id="aiMsgs">
-            <div class="ai-msg bot">
-              <div class="ai-av">🤖</div>
-              <div>
-                <div class="ai-bubble">Hi! I'm your AI Love Guide 💕 I'm here to help with relationship advice, date
-                  ideas, love letters, communication tips, and anything you need as a couple. What can I help with
-                  today?</div>
+            <div class="ai-welcome" id="aiWelcome">
+              <div class="ai-welcome-orb">🤖</div>
+              <div class="ai-welcome-title">AI Love Guide</div>
+              <div class="ai-welcome-sub">Relationship advice, date ideas, love letters, and communication tips — just for you two 💕</div>
+              <div class="ai-welcome-suggest">
+                <div class="ai-sugg-card" onclick="askAI('Give us 5 creative and romantic date night ideas for tonight')"><span class="ai-sugg-ico">💑</span><span class="ai-sugg-txt">Plan a date night</span></div>
+                <div class="ai-sugg-card" onclick="askAI('How can we improve communication as a couple? Be specific and practical')"><span class="ai-sugg-ico">🗣️</span><span class="ai-sugg-txt">Improve communication</span></div>
+                <div class="ai-sugg-card" onclick="askAI('Write a heartfelt, poetic love letter from me to my partner')"><span class="ai-sugg-ico">💌</span><span class="ai-sugg-txt">Write a love letter</span></div>
+                <div class="ai-sugg-card" onclick="askAI('Give us 5 deep conversation questions to learn more about each other')"><span class="ai-sugg-ico">💭</span><span class="ai-sugg-txt">Deep talk questions</span></div>
               </div>
             </div>
           </div>
@@ -6406,12 +6546,12 @@ function setJustPairedAt(ts) {
           dashboard: 'Dashboard',  camera: 'Our Memories',
           vault: 'Secret Vault', myspace: 'My Space', bucket: 'Bucket List',
           profile: 'Our Profile', calendar: 'Calendar', money: 'Money',
-          ai: 'AI Love Guide',lovecounter: 'Love Counter ⏱️',
-          collection: 'Collection 🎙️', settings: 'Settings', period: 'Period Tracker',
-          fights: 'Fight Log', study: 'Study Together', map: 'Live Map 📍',
-          music: 'Music 🎵', capsule: 'Love Capsule 💌', surprise: 'Surprises 🎁',chat: 'Chat 💬',
-          level: 'Couple Level 🏆',globe: 'Memory Globe 🌍', dreamhome: 'Dream Home 🏡',games: 'Couple Games 🎮',
-          dreamgoals: 'Dream Goals 💫', places: 'Places Memory 🗺️', meetplanner: 'Meet Planner 💕'
+          ai: 'AI Love Guide',lovecounter: 'Love Counter ',
+          collection: 'Collection ', settings: 'Settings', period: 'Period Tracker',
+          fights: 'Fight Log', study: 'Study Together', map: 'Live Map ',
+          music: 'Music ', capsule: 'Love Capsule ', surprise: 'Surprises ',chat: 'Chat ',
+          level: 'Couple Level ',globe: 'Memory Globe ', dreamhome: 'Dream Home ',games: 'Couple Games ',
+          dreamgoals: 'Dream Goals ', places: 'Places Memory ', meetplanner: 'Meet Planner '
         };
         function goto(page, pushHistory = true) {
           if (window.PageManager) PageManager.currentPage = page;
@@ -7313,8 +7453,10 @@ async function toggleNotifications() {
         function delTransaction(id) { S.transactions = S.transactions.filter(t => t.id !== id); renderMoney(); scheduleSave(); }
         function renderMoney() { const ms = new Date(); ms.setDate(1); const mss = ms.toISOString().slice(0, 10); const tm = S.transactions.filter(t => t.date >= mss); const inc = tm.filter(t => t.type === 'income').reduce((s, t) => s + t.amt, 0); const exp = tm.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0); const net = inc - exp; document.getElementById('mInc').textContent = '₹' + inc.toLocaleString('en-IN'); document.getElementById('mExp').textContent = '₹' + exp.toLocaleString('en-IN'); const ne = document.getElementById('mNet'); ne.textContent = '₹' + Math.abs(net).toLocaleString('en-IN'); ne.style.color = net >= 0 ? 'var(--green)' : 'var(--red)'; const el = document.getElementById('transList'); if (!S.transactions.length) { PS.empty(el, { icon: 'wallet', title: 'No transactions yet', desc: 'Log your shared spending here to track income, expenses, and savings together.', actionLabel: 'Add First Expense', onAction: () => openM('moneyModal') }); return; } const ce = { 'Food': '🍽️', 'Transport': '🚗', 'Entertainment': '🎬', 'Shopping': '🛒', 'Travel': '✈️', 'Health': '💊', 'Date': '🌹', 'Other': '💳' }; el.innerHTML = S.transactions.slice(0, 60).map(t => `<div class="money-row"><div class="money-ic ${t.type === 'income' ? 'inc' : 'exp'}">${ce[t.category] || (t.type === 'income' ? '💰' : '💳')}</div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--white)">${esc(t.desc)}</div><div style="font-size:10px;color:var(--text3)">${esc(t.category)} · ${fmtDateShort(t.date)}</div></div><span class="${t.type === 'income' ? 'inc-amt' : 'exp-amt'}">${t.type === 'income' ? '+' : '-'}₹${t.amt.toLocaleString('en-IN')}</span><button class="del-btn" style="margin-left:5px" onclick="delTransaction(${t.id})">✕</button></div>`).join(''); renderFinanceSplit(); }
 
-        // ─── AI LOVE GUIDE ───────────────────────────────────────
+        // ─── AI LOVE GUIDE 2.0 ───────────────────────────────────
         let aiStreaming = false;
+        let aiLastQuestion = '';
+
         async function sendAI() {
           if (aiStreaming) return;
           const inp = document.getElementById('aiIn');
@@ -7324,22 +7466,97 @@ async function toggleNotifications() {
           document.getElementById('aiSendBtn')?.classList.remove('is-ready');
           askAI(txt);
         }
+
+        // Lightweight markdown → HTML (headers, bold, italic, lists, code
+        // blocks, inline code, links, blockquotes, tables) — frontend only.
         function renderAiText(raw) {
-          return raw
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-            .replace(/\n/g, '<br>')
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+          if (!raw) return '';
+          const escd = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const codeBlocks = [];
+          let txt = escd.replace(/```(\w*)\n?([\s\S]*?)```/g, (m, lang, code) => {
+            const idx = codeBlocks.length;
+            codeBlocks.push({ lang: lang || 'text', code: code.replace(/\n$/, '') });
+            return `\u0000CODEBLOCK${idx}\u0000`;
+          });
+          txt = txt
+            .replace(/^### (.*)$/gm, '<h3>$1</h3>')
+            .replace(/^## (.*)$/gm, '<h2>$1</h2>')
+            .replace(/^# (.*)$/gm, '<h1>$1</h1>')
+            .replace(/^&gt; (.*)$/gm, '<blockquote>$1</blockquote>')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>')
+            .replace(/`([^`]+)`/g, '<code class="ai-inline-code">$1</code>')
+            .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+          // Lists — group consecutive bullet/numbered lines
+          txt = txt.replace(/(^|\n)((?:[-*] .*(?:\n|$))+)/g, (m, pre, block) => {
+            const items = block.trim().split('\n').map(l => '<li>' + l.replace(/^[-*] /, '') + '</li>').join('');
+            return pre + '<ul>' + items + '</ul>';
+          });
+          txt = txt.replace(/(^|\n)((?:\d+\. .*(?:\n|$))+)/g, (m, pre, block) => {
+            const items = block.trim().split('\n').map(l => '<li>' + l.replace(/^\d+\. /, '') + '</li>').join('');
+            return pre + '<ol>' + items + '</ol>';
+          });
+          txt = txt.split(/\n{2,}/).map(p => {
+            if (/^<(h1|h2|h3|ul|ol|blockquote)/.test(p.trim())) return p;
+            return p.trim() ? '<p>' + p.replace(/\n/g, '<br>') + '</p>' : '';
+          }).join('');
+          txt = txt.replace(/\u0000CODEBLOCK(\d+)\u0000/g, (m, i) => {
+            const cb = codeBlocks[i];
+            const codeEsc = cb.code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const blockId = 'aicode_' + Date.now() + '_' + i;
+            return `<div class="ai-code-block"><div class="ai-code-head"><span>${esc(cb.lang)}</span><button class="ai-code-copy" onclick="copyAiCode(this)" data-code="${encodeURIComponent(cb.code)}">📋 Copy</button></div><pre id="${blockId}"><code>${codeEsc}</code></pre></div>`;
+          });
+          return txt || escd.replace(/\n/g, '<br>');
         }
-        async function askAI(question) {
+
+        function copyAiCode(btn) {
+          const code = decodeURIComponent(btn.dataset.code || '');
+          navigator.clipboard?.writeText(code).then(() => {
+            const orig = btn.textContent; btn.textContent = '✓ Copied';
+            setTimeout(() => btn.textContent = orig, 1500);
+          });
+        }
+        function copyAiMessage(btn, rawText) {
+          navigator.clipboard?.writeText(rawText).then(() => {
+            btn.classList.add('copied'); btn.innerHTML = '✓ Copied';
+            setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = '📋 Copy'; }, 1500);
+          });
+        }
+        function regenerateAi() { if (aiLastQuestion) askAI(aiLastQuestion, true); }
+        function nowTimeShort() { return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+
+        function addAiMsgToolbar(wrapDiv, bubbleEl, rawTextGetter) {
+          const tb = document.createElement('div');
+          tb.className = 'ai-msg-toolbar';
+          tb.innerHTML = `
+            <button class="ai-tb-btn ai-copy-btn">📋 Copy</button>
+            <button class="ai-tb-btn" onclick="regenerateAi()">🔄 Regenerate</button>`;
+          tb.querySelector('.ai-copy-btn').onclick = (e) => copyAiMessage(e.target, rawTextGetter());
+          wrapDiv.appendChild(tb);
+        }
+
+        async function askAI(question, isRegenerate) {
           const msgsEl = document.getElementById('aiMsgs');
           const sendBtn = document.getElementById('aiSendBtn');
-          const ud = document.createElement('div'); ud.className = 'ai-msg me ai-pop-in';
-          ud.innerHTML = `<div class="av av1" style="width:30px;height:30px;font-size:11px">${esc(S.myName[0] || 'U')}</div><div><div class="ai-bubble">${esc(question)}</div></div>`;
-          msgsEl.appendChild(ud);
+          const welcome = document.getElementById('aiWelcome');
+          if (welcome) welcome.remove();
+          aiLastQuestion = question;
+
+          if (!isRegenerate) {
+            const ud = document.createElement('div'); ud.className = 'ai-msg me ai-pop-in';
+            ud.innerHTML = `<div class="av av1" style="width:30px;height:30px;font-size:11px">${esc(S.myName[0] || 'U')}</div><div><div class="ai-bubble">${esc(question)}</div><div class="ai-msg-time">${nowTimeShort()}</div></div>`;
+            msgsEl.appendChild(ud);
+          }
+
           const ld = document.createElement('div'); ld.className = 'ai-msg bot ai-pop-in';
-          ld.innerHTML = `<div class="ai-av">🤖</div><div><div class="ai-bubble ai-bubble-loading"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
+          const wrapDiv = document.createElement('div');
+          const bubbleEl = document.createElement('div');
+          bubbleEl.className = 'ai-bubble ai-bubble-loading';
+          bubbleEl.innerHTML = `<span class="ai-thinking-wave"><span></span><span></span><span></span></span><span class="ai-thinking-label">Thinking...</span>`;
+          wrapDiv.appendChild(bubbleEl);
+          const avDiv = document.createElement('div'); avDiv.className = 'ai-av'; avDiv.textContent = '🤖';
+          ld.appendChild(avDiv); ld.appendChild(wrapDiv);
           msgsEl.appendChild(ld);
-          const bubbleEl = ld.querySelector('.ai-bubble');
           msgsEl.scrollTop = msgsEl.scrollHeight;
 
           aiStreaming = true;
@@ -7352,6 +7569,30 @@ async function toggleNotifications() {
             const nearBottom = msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight < 140;
             if (nearBottom) msgsEl.scrollTop = msgsEl.scrollHeight;
           };
+
+          // Progressive-reveal fallback (used only if the stream endpoint
+          // isn't available and we fall back to the non-streaming call).
+          function progressiveReveal(text) {
+            return new Promise(resolve => {
+              bubbleEl.classList.remove('ai-bubble-loading');
+              bubbleEl.innerHTML = '<span class="ai-stream-text"></span><span class="ai-caret"></span>';
+              const target = bubbleEl.querySelector('.ai-stream-text');
+              const chunks = text.match(/[\s\S]{1,3}/g) || [];
+              let i = 0;
+              const total = chunks.length;
+              // Adaptive speed: short replies flash in near-instantly, longer
+              // ones reveal continuously without ever feeling padded/slow.
+              const perChunkMs = total < 40 ? 4 : total < 150 ? 9 : 14;
+              const tick = () => {
+                i++;
+                target.innerHTML = renderAiText(chunks.slice(0, i).join(''));
+                autoScrollIfNear();
+                if (i < total) setTimeout(tick, perChunkMs);
+                else resolve();
+              };
+              tick();
+            });
+          }
 
           try {
             const resp = await fetch(API + '/api/ai/chat/stream', {
@@ -7387,18 +7628,30 @@ async function toggleNotifications() {
             }
             if (!gotFirstToken) throw new Error('No response received');
             bubbleEl.innerHTML = renderAiText(full);
+            addAiMsgToolbar(wrapDiv, bubbleEl, () => full);
+            const tsEl = document.createElement('div'); tsEl.className = 'ai-msg-time'; tsEl.textContent = nowTimeShort();
+            wrapDiv.appendChild(tsEl);
             spawnPetals(3);
           } catch (e) {
-            // Fall back to the non-streaming endpoint (e.g. proxy buffers SSE, older browser, etc.)
+            // Fall back to the non-streaming endpoint with a progressive
+            // reveal so it never feels instant/robotic even without SSE.
             try {
               const data = await api('POST', '/api/ai/chat', { message: question, myName: S.myName, partnerName: S.partnerName, anniversary: S.anniversary, recentMood: S.journal[0]?.mood || '' });
-              bubbleEl.classList.remove('ai-bubble-loading');
-              bubbleEl.innerHTML = renderAiText(data.reply);
+              full = data.reply || '';
+              await progressiveReveal(full);
+              bubbleEl.innerHTML = renderAiText(full);
+              addAiMsgToolbar(wrapDiv, bubbleEl, () => full);
+              const tsEl = document.createElement('div'); tsEl.className = 'ai-msg-time'; tsEl.textContent = nowTimeShort();
+              wrapDiv.appendChild(tsEl);
               spawnPetals(3);
             } catch (e2) {
               bubbleEl.classList.remove('ai-bubble-loading');
               bubbleEl.style.background = 'var(--red-bg)'; bubbleEl.style.color = 'var(--red)';
               bubbleEl.innerHTML = esc(e2.message.includes('401') ? 'Invalid API key — check .env file.' : e2.message);
+              const retryBtn = document.createElement('button');
+              retryBtn.className = 'btn btn-glass btn-xs'; retryBtn.style.marginTop = '8px';
+              retryBtn.textContent = '🔄 Retry'; retryBtn.onclick = () => askAI(question, true);
+              wrapDiv.appendChild(retryBtn);
             }
           }
           aiStreaming = false;
@@ -7406,7 +7659,6 @@ async function toggleNotifications() {
           sendBtn?.removeAttribute('disabled');
           msgsEl.scrollTop = msgsEl.scrollHeight;
         }
-
         // ─── DASHBOARD ───────────────────────────────────────────
         function renderDashboard() {
           
