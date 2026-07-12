@@ -160,6 +160,12 @@
     '🚿': 'droplet', '🏟️': 'landmark', '🏟': 'landmark', '🔁': 'repeat',
     '🔉': 'volume-1', '👫': 'users', '👨': 'user', '👩': 'user', '👧': 'user',
     '🗝️': 'key', '🥹': 'smile',
+
+    // ── NEW in v6 — reported still-unconverted spots: period tracker
+    // symptom tags, live map tool buttons, AI Love Guide communication pill ──
+    '🌀': 'wind', '💧': 'droplet', '😴': 'moon', '🤕': 'bandage',
+    '🤢': 'frown', '🤝': 'handshake', '🛣️': 'route', '🛣': 'route',
+    '🗣️': 'megaphone', '🗣': 'megaphone',
   };
 
   function iconHTML(name) {
@@ -222,7 +228,7 @@
     '[class*="-badge"]', '[class*="-ico"]', '[class*="-close"]',
     '[class*="-title"]', '[class*="-emoji"]', '[class*="-label"]',
     '[class*="-tag"]', '[class*="-banner"]', '[class*="stat"]',
-    '[class*="-sub"]', '[class*="section-title"]'
+    '[class*="-sub"]', '[class*="section-title"]', '.prof-heart-ico'
   ];
 
   // Explicit EXCLUDE list — never process these even if nested inside a safe zone

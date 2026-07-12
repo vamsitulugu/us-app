@@ -4682,7 +4682,7 @@ select option { background: #0D0D0D; color: #fff; }
               <div style="font-size:13px;font-weight:600;color:var(--white);text-align:center" id="profMyName">You</div>
               <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:2px">tap to change</div>
             </div>
-            <div style="font-size:28px">💕</div>
+            <div class="prof-heart-ico" style="font-size:28px">💕</div>
             <div>
               <div class="av-large av2" id="profAv2" style="margin:0 auto 8px" onclick="pickAvatar('pt')">P</div>
               <input type="file" id="ptAvatarInput" accept="image/*" style="display:none"
@@ -8493,7 +8493,7 @@ document.addEventListener('visibilitychange', () => {
     el.style.cssText = 'position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px';
     el.innerHTML = `
       <div style="width:100%;max-width:340px;background:linear-gradient(160deg,rgba(30,10,40,.97),rgba(10,10,24,.97));border:1px solid rgba(255,255,255,.15);border-radius:24px;padding:28px 22px;text-align:center">
-        <div style="font-size:40px">❤️</div>
+        <div class="prof-heart-ico" style="font-size:40px">❤️</div>
         <div style="font-family:var(--ff-serif);font-size:17px;color:#fff;margin:12px 0 20px">
           <strong>${esc(S.partnerName || 'Your partner')}</strong> invited you to sing together 🎤
         </div>
