@@ -203,7 +203,12 @@
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <link rel="stylesheet" href="/chat/chat.css">
   <link rel="stylesheet" href="/chat/call.css">
+  <!-- theme-burgundy.css loads after this page's own <style> block so its
+       :root redeclaration of --accent/--accent2 wins; premium-states.css
+       adds the empty/loading/error/success component layer. -->
+  <link rel="stylesheet" href="/theme-burgundy.css">
   <link rel="stylesheet" href="/premium-motion.css">
+  <link rel="stylesheet" href="/premium-states.css">
   <link rel="stylesheet" href="/app-polish.css">
   <style>
     /* ════════════════════════════════════════════
@@ -5255,7 +5260,7 @@ select option { background: #0D0D0D; color: #fff; }
       🏠 My Important Places
       <button class="btn btn-accent btn-sm" onclick="LiveMap.openPlaceModal('self')">+ Add Place</button>
     </div>
-    <div id="myPlacesList"><div class="empty">No places saved yet — add Home, College, Office…</div></div>
+    <div id="myPlacesList"></div>
   </div>
 
   <!-- PARTNER IMPORTANT PLACES -->
@@ -6964,7 +6969,7 @@ async function toggleNotifications() {
           renderTimelineStories();
           const el = document.getElementById('milestonesEl');
           const all = [...(S.milestones || []), ...(S.events || []).filter(e => ['Anniversary', 'Date'].includes(e.cat))].sort((a, b) => a.date.localeCompare(b.date));
-          if (!all.length) { el.innerHTML = '<div class="empty" style="padding:12px 0"><div class="empty-ico">💫</div>No milestones yet</div>'; return; }
+          if (!all.length) { PS.empty(el, { icon: 'heart', title: 'No milestones yet', desc: 'Mark the moments that matter \u2014 anniversaries, firsts, anything worth remembering.', actionLabel: 'Add Milestone', onAction: () => openM('milestoneModal'), compact: true }); return; }
           el.innerHTML = all.map(m => `
     <div style="display:flex;gap:11px;padding:11px 0;border-bottom:1px solid var(--border)">
       <div class="timeline-dot"></div>
@@ -7102,7 +7107,16 @@ async function toggleNotifications() {
           const resolved = S.fights.filter(f => f.status === 'resolved').length;
           const avg = S.fights.length ? Math.round(S.fights.reduce((s, f) => s + f.intensity, 0) / S.fights.length) : 0;
           const el = document.getElementById('fightList');
-          if (!S.fights.length) { el.innerHTML = '<div class="fight-stats-bar"><div class="fstat-box"><div class="fstat-n">0</div><div class="fstat-l">Total</div></div></div><div class="empty"><div class="empty-ico">✌️</div>No fights logged — that\'s amazing! 💕</div>'; return; }
+          if (!S.fights.length) {
+            PS.empty(el, {
+              icon: 'heart',
+              title: 'No conflicts recorded.',
+              desc: "That's a great sign — healthy communication keeps it that way. If something ever comes up, log it here so you can work through it together.",
+              actionLabel: 'Resolve Together',
+              onAction: () => document.getElementById('reconnectActivities')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            });
+            return;
+          }
           let html = `<div class="fight-stats-bar">
     <div class="fstat-box"><div class="fstat-n">${S.fights.length}</div><div class="fstat-l">Total</div></div>
     <div class="fstat-box"><div class="fstat-n" style="color:var(--red)">${open}</div><div class="fstat-l">Open</div></div>
@@ -7166,10 +7180,10 @@ async function toggleNotifications() {
         function delStudySlot(id) { S.myTimetable = (S.myTimetable || []).filter(s => s.id !== id); renderStudyPage(); scheduleSave(); }
         function renderStudyPage() {
           const mySubjEl = document.getElementById('myStudySubjects');
-          if (!S.mySubjects || !S.mySubjects.length) { mySubjEl.innerHTML = '<div class="empty" style="padding:10px 0">No subjects yet</div>'; }
+          if (!S.mySubjects || !S.mySubjects.length) { PS.empty(mySubjEl, { icon: 'book', title: 'No subjects yet', desc: 'Add a subject to start tracking chapters and progress.', actionLabel: 'Add Subject', onAction: () => openM('studySubjectModal'), compact: true }); }
           else { mySubjEl.innerHTML = S.mySubjects.map(s => { const p = s.total > 0 ? Math.round(s.done / s.total * 100) : 0; return `<div style="margin-bottom:11px;padding:12px;background:var(--g1);border-radius:var(--rs);border:1px solid var(--border)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:13px;color:var(--white);font-weight:500">${esc(s.emoji)} ${esc(s.name)}</div><div style="font-size:10px;color:var(--text3)">${s.done}/${s.total} ch</div></div><div class="study-progress"><div class="study-fill" style="width:${p}%"></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px"><div style="font-size:10px;color:var(--text3)">${p}%</div><div style="display:flex;gap:5px"><button class="btn btn-glass btn-xs" onclick="updateSubjectProgress(${s.id},-1)">−</button><button class="btn btn-accent btn-xs" onclick="updateSubjectProgress(${s.id},1)">+1 ✓</button><button class="del-btn" onclick="delSubject(${s.id})">✕</button></div></div></div>`; }).join(''); }
           const myTTEl = document.getElementById('myTimetable');
-          if (!S.myTimetable || !S.myTimetable.length) { myTTEl.innerHTML = '<div class="empty" style="padding:8px 0">No slots yet</div>'; }
+          if (!S.myTimetable || !S.myTimetable.length) { PS.empty(myTTEl, { icon: 'generic', title: 'No slots yet', desc: "Block out study time so you both know when the other's focused.", actionLabel: 'Add Slot', onAction: () => openM('studySlotModal'), compact: true }); }
           else { const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']; let html = ''; days.forEach(day => { const slots = (S.myTimetable || []).filter(s => s.day === day).sort((a, b) => a.start.localeCompare(b.start)); if (slots.length) { html += `<div style="font-size:10px;color:var(--text3);font-weight:700;margin:9px 0 4px;text-transform:uppercase;letter-spacing:0.5px">${day}</div>`; slots.forEach(s => { html += `<div class="slot${s.done ? ' done-slot' : ''}"><div class="slot-time">${s.start || '—'} – ${s.end || '—'}</div><div style="font-size:12px;flex:1;color:var(--text)">${esc(s.subject)}</div><div style="display:flex;gap:5px"><div class="hc${s.done ? ' done' : ''}" style="width:20px;height:20px;font-size:10px" onclick="toggleStudySlot(${s.id})">${s.done ? '✓' : ''}</div><button class="del-btn" onclick="delStudySlot(${s.id})">✕</button></div></div>`; }); } }); myTTEl.innerHTML = html || '<div class="empty" style="padding:8px 0">No slots</div>'; }
           const ptSubjEl = document.getElementById('ptStudySubjects'), ptTTEl = document.getElementById('ptTimetable');
           if (!S.paired) { if (ptSubjEl) ptSubjEl.innerHTML = '<div class="empty" style="padding:10px 0;font-size:12px">Partner joins to see their study</div>'; if (ptTTEl) ptTTEl.innerHTML = '<div class="empty" style="padding:8px 0;font-size:12px">Partner joins to see timetable</div>'; }
@@ -7209,7 +7223,7 @@ async function toggleNotifications() {
           const vis = document.getElementById('journalVisibility')?.value || 'self';
           S.journal.unshift({ id: Date.now(), date: todayStr(), mood: S.selectedMood, body, visibility: vis, by: S.role }); document.getElementById('journalBody').value = ''; renderJournal(); scheduleSave(); toast('Journal saved! 📖'); spawnPetals(4);
         }
-        function renderJournal() { const el = document.getElementById('myJournalEntries'); if (!S.journal.length) { el.innerHTML = '<div class="empty"><div class="empty-ico">📖</div>No entries yet. Write your first!</div>'; return; } el.innerHTML = S.journal.map((e, i) => `<div style="background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;position:relative;transition:var(--t)"><div style="font-size:10px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">${fmtDate(e.date)}</div>${e.mood ? `<div style="display:inline-block;font-size:11px;background:var(--g2);color:var(--text);border-radius:10px;padding:2px 8px;margin-bottom:7px;border:1px solid var(--border)">${esc(e.mood)}</div>` : ''}<div style="font-size:13px;color:var(--text2);line-height:1.65">${esc(e.body)}</div><button class="del-btn" onclick="delJournal(${i})" style="position:absolute;top:12px;right:12px">✕</button></div>`).join(''); }
+        function renderJournal() { const el = document.getElementById('myJournalEntries'); if (!S.journal.length) { PS.empty(el, { icon: 'book', title: "No entries yet", desc: "Write down today's memory \u2014 a feeling, a moment, anything worth keeping.", actionLabel: 'Write First Entry', onAction: () => document.getElementById('journalBody')?.focus() }); return; } el.innerHTML = S.journal.map((e, i) => `<div style="background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;position:relative;transition:var(--t)"><div style="font-size:10px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">${fmtDate(e.date)}</div>${e.mood ? `<div style="display:inline-block;font-size:11px;background:var(--g2);color:var(--text);border-radius:10px;padding:2px 8px;margin-bottom:7px;border:1px solid var(--border)">${esc(e.mood)}</div>` : ''}<div style="font-size:13px;color:var(--text2);line-height:1.65">${esc(e.body)}</div><button class="del-btn" onclick="delJournal(${i})" style="position:absolute;top:12px;right:12px">✕</button></div>`).join(''); }
         function delJournal(i) { S.journal.splice(i, 1); renderJournal(); scheduleSave(); }
         document.getElementById('moodRow').addEventListener('click', e => { const m = e.target.closest('.mood'); if (!m) return; document.querySelectorAll('.mood').forEach(x => x.classList.remove('sel')); m.classList.add('sel'); S.selectedMood = m.dataset.mood; });
 
@@ -7218,7 +7232,7 @@ async function toggleNotifications() {
         function toggleHabit(id) { const h = S.habits.find(x => x.id === id); if (!h) return; const today = todayStr(); if (!h.doneToday) { h.doneToday = true; if (!h.doneDates) h.doneDates = []; if (!h.doneDates.includes(today)) h.doneDates.push(today); h.streak = calcStreak(h.doneDates); spawnPetals(3); addXP(5); } else { h.doneToday = false; h.doneDates = (h.doneDates || []).filter(d => d !== today); h.streak = calcStreak(h.doneDates); } renderHabits(); scheduleSave(); }
         function calcStreak(dates) { if (!dates || !dates.length) return 0; let streak = 0, cur = new Date(); if (!dates.includes(todayStr())) cur.setDate(cur.getDate() - 1); for (let i = 0; i < 365; i++) { const d = cur.toISOString().slice(0, 10); if (dates.includes(d)) { streak++; cur.setDate(cur.getDate() - 1); } else break; } return streak; }
         function delHabit(id) { S.habits = S.habits.filter(h => h.id !== id); renderHabits(); scheduleSave(); }
-        function renderHabits() { const el = document.getElementById('myHabitsList'); if (!S.habits.length) { el.innerHTML = '<div class="empty" style="padding:8px 0">No habits yet</div>'; return; } const today = todayStr(); S.habits.forEach(h => h.doneToday = (h.doneDates || []).includes(today)); el.innerHTML = S.habits.map(h => `<div class="habit-row"><div class="hc${h.doneToday ? ' done' : ''}" onclick="toggleHabit(${h.id})">${h.doneToday ? '✓' : ''}</div><span style="font-size:16px">${esc(h.emoji)}</span><span style="font-size:13px;flex:1;color:var(--text)">${esc(h.name)}</span><span class="streak-badge">${h.streak}🔥</span><button class="del-btn" onclick="delHabit(${h.id})">✕</button></div>`).join(''); const max = Math.max(0, ...S.habits.map(h => h.streak || 0)); document.getElementById('habitStreak').textContent = max + '🔥'; }
+        function renderHabits() { const el = document.getElementById('myHabitsList'); if (!S.habits.length) { PS.empty(el, { icon: 'generic', title: 'No habits yet', desc: 'Track small daily habits together and build streaks.', actionLabel: 'Add Habit', onAction: () => openM('habitModal'), compact: true }); return; } const today = todayStr(); S.habits.forEach(h => h.doneToday = (h.doneDates || []).includes(today)); el.innerHTML = S.habits.map(h => `<div class="habit-row"><div class="hc${h.doneToday ? ' done' : ''}" onclick="toggleHabit(${h.id})">${h.doneToday ? '✓' : ''}</div><span style="font-size:16px">${esc(h.emoji)}</span><span style="font-size:13px;flex:1;color:var(--text)">${esc(h.name)}</span><span class="streak-badge">${h.streak}🔥</span><button class="del-btn" onclick="delHabit(${h.id})">✕</button></div>`).join(''); const max = Math.max(0, ...S.habits.map(h => h.streak || 0)); document.getElementById('habitStreak').textContent = max + '🔥'; }
 
         // ─── NOTES ───────────────────────────────────────────────
         const noteColors = ['rgba(255,107,157,0.12)', 'rgba(150,100,220,0.12)', 'rgba(100,200,150,0.12)', 'rgba(255,180,50,0.12)', 'rgba(100,180,255,0.12)'];
@@ -7230,12 +7244,12 @@ async function toggleNotifications() {
         }
         function delNote(i) { S.notes.splice(i, 1); renderNotes(); scheduleSave(); }
         function renderNotes() {
-          const el = document.getElementById('notesGrid'); if (!S.notes.length) { el.innerHTML = '<div class="empty" style="grid-column:1/-1">No notes yet. Write something sweet!</div>'; return; } const visibleNotes = S.notes.filter(n => canSeeItem(n));
+          const el = document.getElementById('notesGrid'); if (!S.notes.length) { el.style.gridColumn = '1/-1'; PS.empty(el, { icon: 'heart', title: 'No notes yet', desc: 'Write something sweet \u2014 it\u2019ll show up here for both of you.', actionLabel: 'Write a Note', onAction: () => document.getElementById('noteIn')?.focus() }); return; } const visibleNotes = S.notes.filter(n => canSeeItem(n));
           el.innerHTML = visibleNotes.map((n, i) => {
            const realIdx = S.notes.indexOf(n);
             return `<div class="note-card" style="background:${n.color}"><div style="font-size:10px;color:var(--text3);margin-bottom:5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap">${privBadgeHtml(n.visibility)}<span>${n.me ? esc(S.myName) : esc(S.partnerName)} · ${fmtDateShort(n.date)}</span></div><div style="font-size:13px;color:var(--text)">${esc(n.text)}</div>${n.reminderDate ? `<div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--yellow-bg);color:var(--yellow);border-radius:8px;padding:3px 7px;margin-top:6px;border:1px solid rgba(251,191,36,0.3)">🔔 ${fmtDateShort(n.reminderDate)} ${n.reminderTime || ''}</div>` : ''}<button class="del-btn" onclick="delNote(${realIdx})" style="position:absolute;top:9px;right:9px">✕</button></div>`;}).join('');
         }
-        function renderReminders() { const el = document.getElementById('remindersList'); if (!el) return; if (!S.reminders || !S.reminders.length) { el.innerHTML = '<div class="empty"><div class="empty-ico">🔔</div>No reminders yet</div>'; return; } const sorted = [...S.reminders].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)); el.innerHTML = sorted.map(r => `<div class="card" style="margin-bottom:9px;padding:13px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:4px">🔔 ${esc(r.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(r.date)} at ${r.time || '—'}</div><div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--blue-bg);color:var(--blue);border-radius:7px;padding:2px 7px;margin-top:5px;border:1px solid rgba(96,165,250,0.3)">📣 ${r.forWhom === 'both' ? 'Both of us' : r.forWhom === 'self' ? 'Just me' : 'Partner only'}</div>${r.note ? `<div style="font-size:11px;color:var(--text3);margin-top:5px">${esc(r.note)}</div>` : ''}</div><button class="del-btn" onclick="delReminder(${r.id})">✕</button></div></div>`).join('');}
+        function renderReminders() { const el = document.getElementById('remindersList'); if (!el) return; if (!S.reminders || !S.reminders.length) { PS.empty(el, { icon: 'generic', title: 'No reminders yet', desc: 'Set an alarm for something you don\u2019t want to forget.', actionLabel: 'Set a Reminder', onAction: () => document.getElementById('remTitle')?.focus() }); return; } const sorted = [...S.reminders].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)); el.innerHTML = sorted.map(r => `<div class="card" style="margin-bottom:9px;padding:13px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:4px">🔔 ${esc(r.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(r.date)} at ${r.time || '—'}</div><div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--blue-bg);color:var(--blue);border-radius:7px;padding:2px 7px;margin-top:5px;border:1px solid rgba(96,165,250,0.3)">📣 ${r.forWhom === 'both' ? 'Both of us' : r.forWhom === 'self' ? 'Just me' : 'Partner only'}</div>${r.note ? `<div style="font-size:11px;color:var(--text3);margin-top:5px">${esc(r.note)}</div>` : ''}</div><button class="del-btn" onclick="delReminder(${r.id})">✕</button></div></div>`).join('');}
 
       
         // ─── REMINDERS & ALARMS ──────────────────────────────────
@@ -7260,7 +7274,7 @@ async function toggleNotifications() {
         }
         function toggleBucket(id) { const b = S.bucket.find(x => x.id === id); if (b) { b.done = !b.done; renderBucket(); scheduleSave(); if (b.done) { spawnPetals(12); addXP(8); } } }
         function delBucket(id) { S.bucket = S.bucket.filter(b => b.id !== id); renderBucket(); scheduleSave(); }
-        function renderBucket() { const el = document.getElementById('bucketList'); const done = S.bucket.filter(b => b.done).length; document.getElementById('bucketTag').textContent = done + '/' + S.bucket.length; document.getElementById('bucketCount').textContent = S.bucket.length; if (!S.bucket.length) { el.innerHTML = '<div class="empty"><div class="empty-ico">🌟</div>Add your first dream together!</div>'; return; } const ce = { Travel: '✈️', Experience: '🎭', Achievement: '🏆', Home: '🏠', Romance: '💕', Adventure: '🏔️', Other: '💫' }; el.innerHTML = S.bucket.filter(b => canSeeItem(b)).map(b => `<div class="bucket-row"><div class="bc${b.done ? ' done' : ''}" onclick="toggleBucket(${b.id})">${b.done ? '✓' : ''}</div><div class="bt${b.done ? ' done' : ''}"><span style="margin-right:6px">${ce[b.cat] || '💫'}</span>${esc(b.title)}${privBadgeHtml(b.visibility)}</div>${b.date ? `<span style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDateShort(b.date)}</span>` : ''}<button class="del-btn" onclick="delBucket(${b.id})">✕</button></div>`).join(''); }
+        function renderBucket() { const el = document.getElementById('bucketList'); const done = S.bucket.filter(b => b.done).length; document.getElementById('bucketTag').textContent = done + '/' + S.bucket.length; document.getElementById('bucketCount').textContent = S.bucket.length; if (!S.bucket.length) { PS.empty(el, { icon: 'dream', title: 'Nothing on the list yet', desc: 'Add your first dream together \u2014 a trip, an experience, anything you want to chase as a team.', actionLabel: 'Add Dream', onAction: () => openM('bucketModal') }); return; } const ce = { Travel: '✈️', Experience: '🎭', Achievement: '🏆', Home: '🏠', Romance: '💕', Adventure: '🏔️', Other: '💫' }; el.innerHTML = S.bucket.filter(b => canSeeItem(b)).map(b => `<div class="bucket-row"><div class="bc${b.done ? ' done' : ''}" onclick="toggleBucket(${b.id})">${b.done ? '✓' : ''}</div><div class="bt${b.done ? ' done' : ''}"><span style="margin-right:6px">${ce[b.cat] || '💫'}</span>${esc(b.title)}${privBadgeHtml(b.visibility)}</div>${b.date ? `<span style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDateShort(b.date)}</span>` : ''}<button class="del-btn" onclick="delBucket(${b.id})">✕</button></div>`).join(''); }
 
         // ─── CALENDAR ────────────────────────────────────────────
         function calNav(d) { S.calMonth += d; if (S.calMonth > 11) { S.calMonth = 0; S.calYear++; } if (S.calMonth < 0) { S.calMonth = 11; S.calYear--; } renderCalendar(); }
@@ -7287,7 +7301,7 @@ async function toggleNotifications() {
           document.getElementById('calDays').innerHTML = html;
           const today2 = todayStr(); const up = S.events.filter(e => e.date >= today2).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 10);
           const evEl = document.getElementById('eventList'); const ce = { 'Anniversary': '💕', 'Date': '🌹', 'Birthday': '🎂', 'Trip': '✈️', 'Special': '⭐', 'Study': '📚', 'Other': '📌' };
-          if (!up.length) { evEl.innerHTML = '<div class="empty">No upcoming events</div>'; renderDashEvents(); return; }
+          if (!up.length) { PS.empty(evEl, { icon: 'generic', title: 'No upcoming events', desc: 'Add a date so you both know what\u2019s coming up.', actionLabel: 'Add Event', onAction: () => openM('eventModal'), compact: true }); renderDashEvents(); return; }
           evEl.innerHTML = up.map(e => `<div class="bucket-row"><div style="font-size:17px">${ce[e.cat] || '📌'}</div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--white)">${esc(e.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(e.date)}${e.time ? ' · ' + esc(e.time) : ''}${e.alarm ? ' · 🔔' : ''}</div></div><button class="del-btn" onclick="delEvent(${e.id})">✕</button></div>`).join('');
           renderDashEvents();
         }
@@ -7297,7 +7311,7 @@ async function toggleNotifications() {
         // ─── MONEY ───────────────────────────────────────────────
         function addTransaction() { const desc = document.getElementById('moneyDesc').value.trim(); const amt = parseFloat(document.getElementById('moneyAmt').value); if (!desc || isNaN(amt)) { toast('Fill in description and amount'); return; } S.transactions.unshift({ id: Date.now(), type: document.getElementById('moneyType').value, desc, amt, by: S.role, category: document.getElementById('moneyCategory').value || 'Other', date: document.getElementById('moneyDate').value || todayStr() });['moneyDesc', 'moneyAmt', 'moneyCategory', 'moneyDate'].forEach(id => document.getElementById(id).value = ''); closeM('moneyModal'); renderMoney(); scheduleSave(); toast('Transaction added! 💰'); }
         function delTransaction(id) { S.transactions = S.transactions.filter(t => t.id !== id); renderMoney(); scheduleSave(); }
-        function renderMoney() { const ms = new Date(); ms.setDate(1); const mss = ms.toISOString().slice(0, 10); const tm = S.transactions.filter(t => t.date >= mss); const inc = tm.filter(t => t.type === 'income').reduce((s, t) => s + t.amt, 0); const exp = tm.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0); const net = inc - exp; document.getElementById('mInc').textContent = '₹' + inc.toLocaleString('en-IN'); document.getElementById('mExp').textContent = '₹' + exp.toLocaleString('en-IN'); const ne = document.getElementById('mNet'); ne.textContent = '₹' + Math.abs(net).toLocaleString('en-IN'); ne.style.color = net >= 0 ? 'var(--green)' : 'var(--red)'; const el = document.getElementById('transList'); if (!S.transactions.length) { el.innerHTML = '<div class="empty">No transactions yet</div>'; return; } const ce = { 'Food': '🍽️', 'Transport': '🚗', 'Entertainment': '🎬', 'Shopping': '🛒', 'Travel': '✈️', 'Health': '💊', 'Date': '🌹', 'Other': '💳' }; el.innerHTML = S.transactions.slice(0, 60).map(t => `<div class="money-row"><div class="money-ic ${t.type === 'income' ? 'inc' : 'exp'}">${ce[t.category] || (t.type === 'income' ? '💰' : '💳')}</div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--white)">${esc(t.desc)}</div><div style="font-size:10px;color:var(--text3)">${esc(t.category)} · ${fmtDateShort(t.date)}</div></div><span class="${t.type === 'income' ? 'inc-amt' : 'exp-amt'}">${t.type === 'income' ? '+' : '-'}₹${t.amt.toLocaleString('en-IN')}</span><button class="del-btn" style="margin-left:5px" onclick="delTransaction(${t.id})">✕</button></div>`).join(''); renderFinanceSplit(); }
+        function renderMoney() { const ms = new Date(); ms.setDate(1); const mss = ms.toISOString().slice(0, 10); const tm = S.transactions.filter(t => t.date >= mss); const inc = tm.filter(t => t.type === 'income').reduce((s, t) => s + t.amt, 0); const exp = tm.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0); const net = inc - exp; document.getElementById('mInc').textContent = '₹' + inc.toLocaleString('en-IN'); document.getElementById('mExp').textContent = '₹' + exp.toLocaleString('en-IN'); const ne = document.getElementById('mNet'); ne.textContent = '₹' + Math.abs(net).toLocaleString('en-IN'); ne.style.color = net >= 0 ? 'var(--green)' : 'var(--red)'; const el = document.getElementById('transList'); if (!S.transactions.length) { PS.empty(el, { icon: 'wallet', title: 'No transactions yet', desc: 'Log your shared spending here to track income, expenses, and savings together.', actionLabel: 'Add First Expense', onAction: () => openM('moneyModal') }); return; } const ce = { 'Food': '🍽️', 'Transport': '🚗', 'Entertainment': '🎬', 'Shopping': '🛒', 'Travel': '✈️', 'Health': '💊', 'Date': '🌹', 'Other': '💳' }; el.innerHTML = S.transactions.slice(0, 60).map(t => `<div class="money-row"><div class="money-ic ${t.type === 'income' ? 'inc' : 'exp'}">${ce[t.category] || (t.type === 'income' ? '💰' : '💳')}</div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--white)">${esc(t.desc)}</div><div style="font-size:10px;color:var(--text3)">${esc(t.category)} · ${fmtDateShort(t.date)}</div></div><span class="${t.type === 'income' ? 'inc-amt' : 'exp-amt'}">${t.type === 'income' ? '+' : '-'}₹${t.amt.toLocaleString('en-IN')}</span><button class="del-btn" style="margin-left:5px" onclick="delTransaction(${t.id})">✕</button></div>`).join(''); renderFinanceSplit(); }
 
         // ─── AI LOVE GUIDE ───────────────────────────────────────
         let aiStreaming = false;
@@ -7788,7 +7802,16 @@ function startSyncLoop() {
         function delCapsule(id) { S.capsules = (S.capsules || []).filter(c => c.id !== id); renderCapsules(); scheduleSave(); }
         function renderCapsules() {
           const el = document.getElementById('capsuleList'); if (!el) return;
-          if (!S.capsules || !S.capsules.length) { el.innerHTML = '<div class="empty">No capsules yet</div>'; return; }
+          if (!S.capsules || !S.capsules.length) {
+            PS.empty(el, {
+              icon: 'capsule',
+              title: 'No capsules yet',
+              desc: 'Write a message today, pick a future date, and it stays sealed until then — a little surprise waiting on the calendar.',
+              actionLabel: 'Create Capsule',
+              onAction: () => document.getElementById('capsuleMsg')?.focus()
+            });
+            return;
+          }
           el.innerHTML = S.capsules.map(c => {
             const locked = todayStr() < c.unlock;
             return `<div class="fight-card" style="background:var(--g1);border-color:var(--border)">
@@ -7829,7 +7852,7 @@ function startSyncLoop() {
 function delSurprise(id) { S.surprises = (S.surprises || []).filter(s => s.id !== id); renderSurprises(); scheduleSave(); }
 function renderSurprises() {
   const el = document.getElementById('surpriseList'); if (!el) return;
-  if (!S.surprises || !S.surprises.length) { el.innerHTML = '<div class="empty">No surprises yet</div>'; return; }
+  if (!S.surprises || !S.surprises.length) { PS.empty(el, { icon: 'capsule', title: 'No surprises yet', desc: 'Hide a message, photo, or note for a future date \u2014 they\u2019ll only see it once it unlocks.', actionLabel: 'New Surprise', onAction: () => openM('surpriseModal') }); return; }
   el.innerHTML = S.surprises.map(s => {
     const locked = todayStr() < s.unlock, mine = s.by === S.role;
     if (locked && !mine) return `<div class="fight-card" style="background:var(--g1);border-color:var(--border)"><span class="fight-status fight-open">🔒 Locked</span><div style="font-size:12px;color:var(--text2);margin-top:7px">A surprise is waiting for you! Opens ${fmtDate(s.unlock)} 🎉</div></div>`;
@@ -8580,6 +8603,7 @@ if ('serviceWorker' in navigator) {
 <script src="/dashboard_chat_patch.js"></script>
 <script src="/ui-icons.js"></script>
 <script src="/premium-motion.js"></script>
+<script src="/premium-states.js"></script>
 <script src="/app-polish.js"></script>
 
 </body>

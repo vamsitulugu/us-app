@@ -1,0 +1,212 @@
+/* ============================================================
+   premium-states.css — empty / loading / error / success states
+   ------------------------------------------------------------
+   ROOT CAUSE this fills: the app has a skeleton for the initial
+   app-shell load (#skeletonStyles in index.html) and one bespoke
+   empty state (globe.html #emptyState), but every per-feature list
+   — Dream Goals, Fight Log, Money, Study Together, Virtual Home,
+   Love Capsules, Journal, etc. — has no empty/loading/error markup
+   of its own. Today those simply render nothing: a blank card area
+   with no illustration, no copy, no next action. That blank space
+   is the actual defect, not a missing "nice-to-have".
+
+   This file is theme-agnostic on purpose: every color reference is
+   var(--accent) / var(--text2) / var(--border) etc., so it inherits
+   whatever palette the page (and theme-burgundy.css) define, with
+   zero hardcoded hex values to keep in sync later.
+
+   Usage is additive markup only — see premium-states.js for the
+   two calls that build these from a one-line config object, so no
+   page needs hand-written HTML per empty state.
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .ps-empty *, .ps-skel *, .ps-error *, .ps-check * { animation-duration: 0.001ms !important; }
+}
+
+/* ── EMPTY STATE ─────────────────────────────────────────── */
+.ps-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 48px 24px 40px;
+  animation: psFadeUp 420ms cubic-bezier(.22,.61,.36,1) both;
+}
+/* Compact variant — for empty states nested inside small sub-cards
+   (e.g. Study Together's per-subject panels) where the full 48px
+   illustration-scale padding would dominate a card that's mostly
+   meant to hold a short list. Same component, tighter footprint. */
+.ps-empty.ps-compact {
+  padding: 20px 16px 18px;
+  gap: 10px;
+}
+.ps-empty.ps-compact .ps-empty-icon {
+  width: 52px; height: 52px;
+}
+.ps-empty.ps-compact .ps-empty-icon svg { width: 22px; height: 22px; }
+.ps-empty.ps-compact .ps-empty-title { font-size: 13.5px; }
+.ps-empty.ps-compact .ps-empty-desc { font-size: 12px; }
+.ps-empty.ps-compact .ps-empty-btn { padding: 7px 14px; font-size: 12px; }
+.ps-empty-icon {
+  width: 76px; height: 76px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle, var(--accent-glow) 0%, transparent 72%);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  position: relative;
+}
+.ps-empty-icon svg { width: 32px; height: 32px; }
+.ps-empty-icon::after {
+  content: '';
+  position: absolute; inset: 0; border-radius: 50%;
+  box-shadow: 0 0 0 0 var(--accent-glow);
+  animation: psBreathe 2.8s cubic-bezier(.22,.61,.36,1) infinite;
+}
+.ps-empty-title {
+  font-size: 16px; font-weight: 600; color: var(--text);
+  margin: 0;
+}
+.ps-empty-desc {
+  font-size: 13.5px; color: var(--text2);
+  max-width: 300px; line-height: 1.5; margin: 0;
+}
+.ps-empty-actions {
+  display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+  margin-top: 6px;
+}
+.ps-empty-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 18px; border-radius: var(--rs, 12px);
+  background: var(--accent); color: #fff;
+  font-size: 13.5px; font-weight: 600;
+  border: none; cursor: pointer;
+  transition: transform 220ms cubic-bezier(.22,.61,.36,1),
+              box-shadow 220ms cubic-bezier(.22,.61,.36,1);
+}
+.ps-empty-btn:active { transform: scale(.96); }
+.ps-empty-btn:hover { box-shadow: 0 0 0 6px var(--accent-glow); }
+.ps-empty-btn.ps-secondary {
+  background: transparent; color: var(--text2);
+  border: 1px solid var(--border2, var(--border));
+}
+.ps-empty-hint {
+  font-size: 12px; color: var(--text3, var(--text2));
+  margin-top: 4px;
+}
+@keyframes psFadeUp {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes psBreathe {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+  50%      { box-shadow: 0 0 0 10px transparent; }
+}
+
+/* ── SKELETON / SHIMMER (per-list, not the app-shell one) ──── */
+.ps-skel-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0;
+}
+.ps-skel-block {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--g2, rgba(255,255,255,0.08));
+}
+.ps-skel-block::after {
+  content: '';
+  position: absolute; inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent);
+  animation: psShimmer 1.6s ease-in-out infinite;
+}
+.ps-skel-circle { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; }
+.ps-skel-line { height: 12px; flex: 1; }
+.ps-skel-line.short { max-width: 40%; }
+.ps-skel-card { height: 84px; border-radius: var(--r, 18px); margin-bottom: 12px; }
+@keyframes psShimmer {
+  100% { transform: translateX(100%); }
+}
+
+/* ── ERROR STATE ─────────────────────────────────────────── */
+.ps-error {
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; gap: 12px;
+  padding: 40px 24px;
+  animation: psFadeUp 420ms cubic-bezier(.22,.61,.36,1) both;
+}
+.ps-error-icon {
+  width: 56px; height: 56px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--red-bg, rgba(248,113,113,0.15));
+  color: var(--red, #f87171);
+}
+.ps-error-icon svg { width: 26px; height: 26px; }
+.ps-error-title { font-size: 15px; font-weight: 600; color: var(--text); margin: 0; }
+.ps-error-desc { font-size: 13px; color: var(--text2); max-width: 280px; margin: 0; }
+.ps-error-retry {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px; border-radius: var(--rs, 12px);
+  background: var(--g2); color: var(--text);
+  border: 1px solid var(--border2, var(--border));
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: transform 220ms cubic-bezier(.22,.61,.36,1), background 220ms ease;
+}
+.ps-error-retry:active { transform: scale(.96); }
+.ps-error-retry.ps-loading svg { animation: psSpin 0.8s linear infinite; }
+@keyframes psSpin { to { transform: rotate(360deg); } }
+
+/* ── SUCCESS CHECKMARK ───────────────────────────────────── */
+.ps-check-badge {
+  position: fixed; z-index: 9997;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--green-bg, rgba(52,211,153,0.15));
+  border: 1.5px solid var(--green, #34d399);
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+}
+.ps-check-badge.ps-play {
+  animation: psCheckIn 900ms cubic-bezier(.22,.61,.36,1) forwards;
+}
+.ps-check-badge svg {
+  width: 24px; height: 24px; color: var(--green, #34d399);
+  stroke-dasharray: 24; stroke-dashoffset: 24;
+}
+.ps-check-badge.ps-play svg {
+  animation: psCheckDraw 420ms 180ms cubic-bezier(.22,.61,.36,1) forwards;
+}
+@keyframes psCheckIn {
+  0%   { opacity: 0; transform: scale(.6); }
+  30%  { opacity: 1; transform: scale(1.05); }
+  55%  { transform: scale(1); }
+  85%  { opacity: 1; }
+  100% { opacity: 0; transform: scale(1); }
+}
+@keyframes psCheckDraw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* ── PROGRESS RING / BAR ─────────────────────────────────── */
+.ps-ring { transform: rotate(-90deg); }
+.ps-ring-track { fill: none; stroke: var(--g2); }
+.ps-ring-fill {
+  fill: none; stroke: var(--accent);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 620ms cubic-bezier(.22,.61,.36,1);
+}
+.ps-bar {
+  height: 8px; border-radius: 999px;
+  background: var(--g2);
+  overflow: hidden;
+}
+.ps-bar-fill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-d), var(--accent));
+  box-shadow: 0 0 10px var(--accent-glow);
+  transition: width 620ms cubic-bezier(.22,.61,.36,1);
+}
+.ps-counter { font-variant-numeric: tabular-nums; }

@@ -217,10 +217,47 @@
     const oldRipple = document.getElementById('touchRipple');
     if (oldRipple) oldRipple.style.display = 'none'; // retire emoji ripple
 
-    // Give every .btn/.ic-btn a bloom-on-press for free.
+    // Give every button-like element a bloom-on-press for free — native
+    // <button> elements (the vast majority of tap targets across every
+    // page in this app) plus the known div-based tap targets (tabs,
+    // chips, pills) that don't use a real <button> tag.
     document.body.addEventListener('pointerdown', function (e) {
-      const target = e.target.closest('.btn, .ic-btn, .connect-action-btn, .cc-btn');
+      const target = e.target.closest(
+        'button, .btn, .ic-btn, .connect-action-btn, .cc-btn, ' +
+        '[class*="-tab"]:not([class*="-tabs"]), ' +
+        '[class*="-chip"]:not([class*="-chips"]), ' +
+        '[class*="-pill"]:not([class*="-pills"])'
+      );
       if (target) PM.buttonPress(target, e);
+    }, { passive: true });
+
+    // ── CARD LONG-PRESS ──────────────────────────────────────
+    // Delegated globally so every .card / *-card element on every
+    // page gets long-press feedback automatically, no per-page wiring.
+    let lpTimer = null, lpEl = null;
+    const LP_DELAY = 420;
+    function lpStart(e) {
+      const card = e.target.closest('.card, [class*="-card"]');
+      if (!card) return;
+      lpEl = card;
+      lpTimer = setTimeout(function () { lpEl && lpEl.classList.add('pm-longpress'); }, LP_DELAY);
+    }
+    function lpEnd() {
+      clearTimeout(lpTimer);
+      if (lpEl) lpEl.classList.remove('pm-longpress');
+      lpEl = null;
+    }
+    document.body.addEventListener('pointerdown', lpStart, { passive: true });
+    document.body.addEventListener('pointerup', lpEnd, { passive: true });
+    document.body.addEventListener('pointercancel', lpEnd, { passive: true });
+    document.body.addEventListener('pointermove', function (e) {
+      // Cancel if the finger drifts (scrolling), so long-press doesn't
+      // fire mid-scroll.
+      if (lpEl) {
+        const r = lpEl.getBoundingClientRect();
+        if (e.clientX < r.left - 10 || e.clientX > r.right + 10 ||
+            e.clientY < r.top - 10 || e.clientY > r.bottom + 10) lpEnd();
+      }
     }, { passive: true });
   });
 })();

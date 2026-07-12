@@ -231,6 +231,9 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
   font-size:12px;color:rgba(167,139,250,0.9);display:flex;align-items:center;gap:8px;
 }
 </style>
+<link rel="stylesheet" href="/theme-burgundy.css">
+<link rel="stylesheet" href="/premium-motion.css">
+<link rel="stylesheet" href="/premium-states.css">
 </head>
 <body>
 
@@ -544,12 +547,22 @@ function filterDreams(dreams,section) {
 function renderGrid(gridId, dreams, section) {
   const el=document.getElementById(gridId); if(!el) return;
   if(!dreams.length){
-    el.innerHTML=`<div class="dg-empty" style="grid-column:1/-1">
-      <div class="dg-empty-ico">${section==='my'?'🌟':section==='partner'?'💜':'✨'}</div>
-      <div class="dg-empty-text">${section==='my'?'No dreams here yet.<br>Tap + Add Dream to start!':section==='partner'?'Partner hasn\'t added dreams here yet.':'No shared goals yet.<br>Add a goal you want to achieve together!'}</div>
-    </div>`;
+    el.style.gridColumn='1/-1';
+    const copy = {
+      my:      { title:"You haven't created your first dream yet.", desc:"Big or small — write down something you want to reach for, and track it right here.", action:"Create Dream" },
+      partner: { title:"Partner hasn't added dreams here yet.",     desc:"Once they add one, you'll see it here so you can cheer them on.", action:null },
+      shared:  { title:"No shared goals yet.",                       desc:"Add something you both want to achieve together — a trip, a milestone, anything.", action:"Add Shared Goal" }
+    }[section] || { title:"Nothing here yet.", desc:"", action:"Add" };
+    PS.empty(el, {
+      icon: 'dream',
+      title: copy.title,
+      desc: copy.desc,
+      actionLabel: copy.action || undefined,
+      onAction: copy.action ? function(){ openDGModal(section); } : undefined
+    });
     return;
   }
+  el.style.gridColumn='';
   el.innerHTML=dreams.map(d=>renderDreamCard(d,section)).join('');
 }
 
@@ -816,5 +829,7 @@ function renderAll() {
 loadDGState();
 renderAll();
 </script>
+<script src="/premium-motion.js"></script>
+<script src="/premium-states.js"></script>
 </body>
 </html>
