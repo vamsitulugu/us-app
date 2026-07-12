@@ -1014,6 +1014,48 @@
       font-weight: 700;
       border: 1px solid rgba(251, 191, 36, 0.25);
     }
+  /* ════ HABIT ANALYTICS ════ */
+    .habit-hero{display:flex;align-items:center;gap:20px;padding:20px;margin-bottom:14px}
+    .habit-ring-wrap{position:relative;width:100px;height:100px;flex-shrink:0}
+    .habit-ring-wrap svg{transform:rotate(-90deg)}
+    .habit-ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .habit-ring-pct{font-family:var(--ff-serif);font-size:20px;color:var(--white)}
+    .habit-ring-label{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+    .habit-hero-stats{flex:1}
+    .habit-hero-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+    .habit-hero-amt{font-family:var(--ff-serif);font-size:24px;color:var(--white)}
+    .habit-hero-sub{font-size:11px;color:var(--text2);margin-top:4px;line-height:1.5}
+    .habit-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+    .habit-insight-ico{font-size:20px;flex-shrink:0}
+    .habit-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+    .habit-insight-text strong{color:var(--white)}
+    .habit-heatmap-wrap{overflow-x:auto;padding-bottom:4px}
+    .habit-heatmap{display:grid;grid-template-rows:repeat(7,11px);grid-auto-flow:column;gap:3px;width:max-content}
+    .habit-heat-cell{width:11px;height:11px;border-radius:3px;background:var(--g2)}
+    .habit-heat-legend{display:flex;align-items:center;gap:4px;margin-top:8px;font-size:9px;color:var(--text3)}
+    .habit-heat-legend .habit-heat-cell{width:9px;height:9px}
+    @media(max-width:700px){
+      .habit-hero{flex-direction:column;text-align:center;padding:16px}
+    }
+/* ════ WELLNESS ANALYTICS ════ */
+    .well-hero{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+    .well-ring-card{flex:1;min-width:90px;background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:14px 8px;text-align:center}
+    .well-ring-wrap{position:relative;width:64px;height:64px;margin:0 auto 6px}
+    .well-ring-wrap svg{transform:rotate(-90deg)}
+    .well-ring-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--white)}
+    .well-ring-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.3px}
+    .well-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+    .well-insight-ico{font-size:20px;flex-shrink:0}
+    .well-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+    .well-insight-text strong{color:var(--white)}
+    .well-trend-row{display:flex;align-items:flex-end;gap:6px;height:70px;padding:6px 0 0}
+    .well-trend-bar{flex:1;border-radius:4px 4px 2px 2px;min-height:3px;transition:height 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+    .well-trend-label{font-size:8px;color:var(--text3);text-align:center;margin-top:4px}
+    @media(max-width:700px){
+      .well-ring-card{min-width:75px;padding:10px 6px}
+      .well-ring-wrap{width:52px;height:52px}
+      .well-ring-text{font-size:12px}
+    }
 
     /* ════ NOTES ════ */
     .note-grid {
@@ -1153,6 +1195,45 @@
 
     .cd.other-m {
       color: var(--text3)
+    }
+
+  /* ════ MONEY ANALYTICS ════ */
+    .fin-hero{display:flex;align-items:center;gap:20px;padding:20px;margin-bottom:14px}
+    .fin-ring-wrap{position:relative;width:110px;height:110px;flex-shrink:0}
+    .fin-ring-wrap svg{transform:rotate(-90deg)}
+    .fin-ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .fin-ring-pct{font-family:var(--ff-serif);font-size:22px;color:var(--white)}
+    .fin-ring-label{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+    .fin-hero-stats{flex:1}
+    .fin-hero-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+    .fin-hero-amt{font-family:var(--ff-serif);font-size:26px;color:var(--white)}
+    .fin-hero-sub{font-size:11px;color:var(--text2);margin-top:4px;line-height:1.5}
+    .fin-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+    .fin-insight-ico{font-size:20px;flex-shrink:0}
+    .fin-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+    .fin-insight-text strong{color:var(--white)}
+    .fin-donut-card{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+    .fin-donut-wrap{position:relative;width:140px;height:140px;flex-shrink:0}
+    .fin-donut-wrap svg{transform:rotate(-90deg)}
+    .fin-donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .fin-donut-total{font-family:var(--ff-serif);font-size:16px;color:var(--white)}
+    .fin-donut-total-l{font-size:8px;color:var(--text3);text-transform:uppercase}
+    .fin-legend{flex:1;min-width:140px;display:flex;flex-direction:column;gap:8px}
+    .fin-legend-row{display:flex;align-items:center;gap:8px;font-size:12px}
+    .fin-legend-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0}
+    .fin-legend-name{flex:1;color:var(--text2)}
+    .fin-legend-amt{color:var(--white);font-weight:600;font-size:11px}
+    .fin-trend-row{display:flex;align-items:flex-end;gap:5px;height:70px;padding:6px 0 0}
+    .fin-trend-bar{flex:1;border-radius:4px 4px 2px 2px;background:linear-gradient(180deg,var(--accent),var(--accent-d));min-height:3px;transition:height 0.7s cubic-bezier(0.34,1.56,0.64,1);position:relative}
+    .fin-trend-label{font-size:8px;color:var(--text3);text-align:center;margin-top:4px}
+    .fin-goal-card{padding:16px}
+    .fin-goal-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+    .fin-goal-pct{font-size:20px;font-weight:700;font-family:var(--ff-serif);color:var(--white)}
+    .fin-goal-remain{font-size:11px;color:var(--text3)}
+    @media(max-width:700px){
+      .fin-hero{flex-direction:column;text-align:center;padding:16px}
+      .fin-donut-card{flex-direction:column;text-align:center}
+      .fin-legend{width:100%}
     }
 
     /* ════ MONEY ════ */
@@ -1629,7 +1710,18 @@
       border-color: #ff6b9d;
       color: #ff6b9d
     }
-
+  /* ════ PERIOD ANALYTICS ════ */
+    .period-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(255,107,157,0.1),rgba(255,107,157,0.04));border:1px solid rgba(255,107,157,0.2);border-radius:var(--r);margin-bottom:14px}
+    .period-insight-ico{font-size:20px;flex-shrink:0}
+    .period-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+    .period-insight-text strong{color:var(--white)}
+    .period-cycle-row{display:flex;align-items:flex-end;gap:6px;height:70px;padding:6px 0 0}
+    .period-cycle-bar{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#ff6b9d,#c2185b);min-height:3px;transition:height 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+    .period-cycle-label{font-size:8px;color:var(--text3);text-align:center;margin-top:4px}
+    .period-symptom-freq-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
+    .period-symptom-freq-row:last-child{border-bottom:none}
+    .period-symptom-bar-wrap{flex:1;height:6px;background:var(--g2);border-radius:3px;margin:0 10px;overflow:hidden}
+    .period-symptom-bar{height:100%;background:linear-gradient(90deg,#ff6b9d,#c2185b);border-radius:3px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
     /* ════ FIGHTS ════ */
     .fight-card {
       background: rgba(248, 113, 113, 0.06);
@@ -1731,7 +1823,28 @@
       font-weight: 700;
       min-width: 65px
     }
-
+  /* ════ STUDY ANALYTICS ════ */
+    .study-hero{display:flex;align-items:center;gap:20px;padding:20px;margin-bottom:14px}
+    .study-ring-wrap{position:relative;width:100px;height:100px;flex-shrink:0}
+    .study-ring-wrap svg{transform:rotate(-90deg)}
+    .study-ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .study-ring-pct{font-family:var(--ff-serif);font-size:20px;color:var(--white)}
+    .study-ring-label{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+    .study-hero-stats{flex:1}
+    .study-hero-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+    .study-hero-amt{font-family:var(--ff-serif);font-size:24px;color:var(--white)}
+    .study-hero-sub{font-size:11px;color:var(--text2);margin-top:4px;line-height:1.5}
+    .study-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+    .study-insight-ico{font-size:20px;flex-shrink:0}
+    .study-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+    .study-insight-text strong{color:var(--white)}
+    .study-week-row{display:flex;align-items:flex-end;gap:6px;height:80px;padding:6px 0 0}
+    .study-week-bar{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,var(--accent),var(--accent-d));min-height:3px;transition:height 0.7s cubic-bezier(0.34,1.56,0.64,1);position:relative}
+    .study-week-bar.today-bar{background:linear-gradient(180deg,var(--green),#0f9d6e)}
+    .study-week-label{font-size:8px;color:var(--text3);text-align:center;margin-top:4px}
+    @media(max-width:700px){
+      .study-hero{flex-direction:column;text-align:center;padding:16px}
+    }
     /* ════ SETTINGS (Premium) ════ */
     .settings-group {
       background: var(--g1);
@@ -4945,6 +5058,7 @@ select option { background: #0D0D0D; color: #fff; }
       </div>
       <!-- ════ PERIOD TRACKER ════ -->
       <div class="page" id="page-period">
+        <div class="period-insight-card" id="periodInsightCard"></div>
         <div class="period-hero">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
             <div>
@@ -4984,6 +5098,14 @@ select option { background: #0D0D0D; color: #fff; }
             <div>Sat</div>
           </div>
           <div class="cal-days" id="periodCalDays"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">📈 Recent Cycle Lengths</div>
+          <div class="period-cycle-row" id="periodCycleCard"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🔎 Most Common Symptoms</div>
+          <div id="periodSymptomCard"></div>
         </div>
         <div class="card">
           <div class="card-title">📋 Today's Symptoms</div>
@@ -5087,6 +5209,20 @@ select option { background: #0D0D0D; color: #fff; }
         </div>
 
         <div class="sc" id="sc-habits">
+          <div class="card habit-hero" id="habitHeroCard"></div>
+          <div class="habit-insight-card" id="habitInsightCard"></div>
+          <div class="card">
+            <div class="card-title">🗓️ 12-Week Activity</div>
+            <div class="habit-heatmap-wrap"><div class="habit-heatmap" id="habitHeatmap"></div></div>
+            <div class="habit-heat-legend">
+              <span>Less</span>
+              <div class="habit-heat-cell" style="background:var(--g2)"></div>
+              <div class="habit-heat-cell" style="background:rgba(229,9,20,0.25)"></div>
+              <div class="habit-heat-cell" style="background:rgba(229,9,20,0.55)"></div>
+              <div class="habit-heat-cell" style="background:#E50914"></div>
+              <span>More</span>
+            </div>
+          </div>
           <div class="two-col">
             <div>
               <div class="user-block-head">
@@ -5136,6 +5272,12 @@ select option { background: #0D0D0D; color: #fff; }
         </div>
 
         <div class="sc" id="sc-wellness">
+          <div class="well-hero" id="wellHeroCard"></div>
+          <div class="well-insight-card" id="wellInsightCard"></div>
+          <div class="card">
+            <div class="card-title">😴 7-Day Sleep Trend</div>
+            <div class="well-trend-row" id="wellTrendCard"></div>
+          </div>
           <div class="two-col">
             <div class="card" style="margin-bottom:0">
               <div class="card-title">😊 Mood History</div>
@@ -5187,6 +5329,12 @@ select option { background: #0D0D0D; color: #fff; }
 
       <!-- ════ STUDY ════ -->
       <div class="page" id="page-study">
+        <div class="card study-hero" id="studyHeroCard"></div>
+        <div class="study-insight-card" id="studyInsightCard"></div>
+        <div class="card">
+          <div class="card-title">📊 Weekly Study Hours</div>
+          <div class="study-week-row" id="studyWeekCard"></div>
+        </div>
         <div class="info-banner">📚 Track your studies together — see each other's progress side by side!</div>
         <div class="study-grid">
           <div>
@@ -5279,6 +5427,8 @@ select option { background: #0D0D0D; color: #fff; }
 
       <!-- ════ MONEY ════ -->
       <div class="page" id="page-money">
+        <div class="card fin-hero" id="finHeroCard"></div>
+        <div class="fin-insight-card" id="finInsightCard"></div>
         <div class="m-grid">
           <div class="m-card">
             <div class="m-amt" style="color:var(--green)" id="mInc">₹0</div>
@@ -5292,6 +5442,14 @@ select option { background: #0D0D0D; color: #fff; }
             <div class="m-amt" id="mNet">₹0</div>
             <div class="metric-l" style="color:var(--text3)">Savings</div>
           </div>
+        </div>
+        <div class="card">
+          <div class="card-title">🥧 Spending by Category</div>
+          <div class="fin-donut-card" id="finDonutCard"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">📊 8-Week Spending Trend</div>
+          <div class="fin-trend-row" id="finTrendCard"></div>
         </div>
         <div class="card">
           <div class="card-title">💳 Transactions<button class="btn btn-accent btn-sm" onclick="openM('moneyModal')">+
@@ -5311,6 +5469,10 @@ select option { background: #0D0D0D; color: #fff; }
             </div>
             <div class="field" style="margin-top:10px"><label>Monthly Goal (₹)</label><input type="number"
                 id="myFinGoal" placeholder="0" oninput="saveFinGoal('my')"></div>
+            <div class="fin-goal-row" style="margin-top:6px">
+              <span class="fin-goal-pct" id="finGoalPct">0%</span>
+              <span class="fin-goal-remain" id="finGoalRemain"></span>
+            </div>
             <div class="study-progress">
               <div class="study-fill" id="myFinGoalBar" style="width:0%"></div>
             </div>
@@ -6589,7 +6751,7 @@ function setJustPairedAt(ts) {
           if (page === 'money') renderMoney();
           if (page === 'settings') { loadSettings(); }
           if (page === 'profile') renderProfile();
-          if (page === 'period') renderPeriodPage();
+          if (page === 'period') { renderPeriodPage(); renderPeriodAnalytics(); }
           if (page === 'fights') renderFights();
           if (page === 'study') renderStudyPage();
           if (page === 'map') renderMapPage();
@@ -7150,10 +7312,10 @@ async function toggleNotifications() {
           S.periods.unshift({ id: Date.now(), start, flow: parseInt(document.getElementById('periodFlow').value) || 5, cycle: parseInt(document.getElementById('periodCycle').value) || 28, note: document.getElementById('periodNote').value });
           S.periods.sort((a, b) => b.start.localeCompare(a.start));
           ['periodStart', 'periodFlow', 'periodCycle', 'periodNote'].forEach(id => document.getElementById(id).value = '');
-          closeM('periodModal'); renderPeriodPage(); scheduleSave(); toast('Period logged! 🩷');
+          closeM('periodModal'); renderPeriodPage(); renderPeriodAnalytics(); scheduleSave(); toast('Period logged! 🩷');
         }
         function toggleSymptom(el) { el.classList.toggle('sel'); }
-        function saveSymptoms() { if (!S.symptoms) S.symptoms = {}; const t = todayStr(); S.symptoms[t] = Array.from(document.querySelectorAll('.symptom-tag.sel')).map(el => el.dataset.s); scheduleSave(); toast('Symptoms saved!'); }
+        function saveSymptoms() { if (!S.symptoms) S.symptoms = {}; const t = todayStr(); S.symptoms[t] = Array.from(document.querySelectorAll('.symptom-tag.sel')).map(el => el.dataset.s); renderPeriodAnalytics(); scheduleSave(); toast('Symptoms saved!'); }
         function getPeriodPhase() {
           if (!S.periods || !S.periods.length) return { phase: 'unknown', daysToNext: '—', cycleLen: 28, flowDays: 5 };
           const last = S.periods[0]; const sd = new Date(last.start + 'T00:00:00'); const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -7194,6 +7356,64 @@ async function toggleNotifications() {
         <button class="del-btn" onclick="delPeriod(${i})">✕</button>
       </div>
     </div>`).join('');
+        }
+        function renderPeriodAnalytics() {
+          const insEl = document.getElementById('periodInsightCard'), cycleEl = document.getElementById('periodCycleCard'), symEl = document.getElementById('periodSymptomCard');
+          if (!insEl && !cycleEl && !symEl) return;
+          const periods = S.periods || [];
+
+          if (insEl) {
+            let text, ico = '💡';
+            if (periods.length < 2) { text = 'Log at least 2 periods to see cycle trend insights.'; }
+            else {
+              const cycles = [];
+              for (let i = 0; i < periods.length - 1; i++) {
+                const d1 = new Date(periods[i].start + 'T00:00:00'), d2 = new Date(periods[i + 1].start + 'T00:00:00');
+                cycles.push(Math.abs(Math.round((d1 - d2) / 86400000)));
+              }
+              const avgCycle = Math.round(cycles.reduce((a, b) => a + b, 0) / cycles.length);
+              const variance = Math.max(...cycles) - Math.min(...cycles);
+              if (variance <= 3) { ico = '✅'; text = `Your cycle is very regular — averaging <strong>${avgCycle} days</strong>.`; }
+              else { ico = '📊'; text = `Your average cycle is <strong>${avgCycle} days</strong>, varying by up to ${variance} days.`; }
+            }
+            insEl.innerHTML = `<div class="period-insight-ico">${ico}</div><div class="period-insight-text">${text}</div>`;
+          }
+
+          if (cycleEl) {
+            if (periods.length < 2) { cycleEl.parentElement.style.display = 'none'; }
+            else {
+              cycleEl.parentElement.style.display = '';
+              const recent = periods.slice(0, 6).reverse();
+              const cycles = [];
+              for (let i = 0; i < recent.length - 1; i++) {
+                const d1 = new Date(recent[i].start + 'T00:00:00'), d2 = new Date(recent[i + 1].start + 'T00:00:00');
+                cycles.push({ len: Math.abs(Math.round((d2 - d1) / 86400000)), label: fmtDateShort(recent[i + 1].start) });
+              }
+              const max = Math.max(...cycles.map(c => c.len), 28);
+              cycleEl.innerHTML = cycles.map(c => `
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+                  <div class="period-cycle-bar" style="height:${Math.max(3, Math.round((c.len / max) * 60))}px" title="${c.len} days"></div>
+                  <div class="period-cycle-label">${c.label}</div>
+                </div>`).join('');
+            }
+          }
+
+          if (symEl) {
+            const symptomCounts = {};
+            Object.values(S.symptoms || {}).forEach(arr => (arr || []).forEach(s => { symptomCounts[s] = (symptomCounts[s] || 0) + 1; }));
+            const entries = Object.entries(symptomCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            if (!entries.length) { symEl.parentElement.style.display = 'none'; }
+            else {
+              symEl.parentElement.style.display = '';
+              const max = Math.max(...entries.map(e => e[1]));
+              symEl.innerHTML = entries.map(([s, count]) => `
+                <div class="period-symptom-freq-row">
+                  <span style="font-size:12px;color:var(--text2);min-width:90px">${esc(s)}</span>
+                  <div class="period-symptom-bar-wrap"><div class="period-symptom-bar" style="width:${Math.round((count / max) * 100)}%"></div></div>
+                  <span style="font-size:11px;color:var(--text3)">${count}x</span>
+                </div>`).join('');
+            }
+          }
         }
         function delPeriod(i) { S.periods.splice(i, 1); renderPeriodPage(); scheduleSave(); }
         function renderPeriodCalendar() {
@@ -7328,6 +7548,80 @@ async function toggleNotifications() {
           const ptSubjEl = document.getElementById('ptStudySubjects'), ptTTEl = document.getElementById('ptTimetable');
           if (!S.paired) { if (ptSubjEl) ptSubjEl.innerHTML = '<div class="empty" style="padding:10px 0;font-size:12px">Partner joins to see their study</div>'; if (ptTTEl) ptTTEl.innerHTML = '<div class="empty" style="padding:8px 0;font-size:12px">Partner joins to see timetable</div>'; }
           else { if (!S.ptSubjects || !S.ptSubjects.length) { if (ptSubjEl) ptSubjEl.innerHTML = '<div class="empty" style="padding:10px 0;font-size:12px">Partner hasn\'t added subjects yet</div>'; } else { ptSubjEl.innerHTML = S.ptSubjects.map(s => { const p = s.total > 0 ? Math.round(s.done / s.total * 100) : 0; return `<div style="margin-bottom:11px;padding:12px;background:var(--g1);border-radius:var(--rs);border:1px solid var(--border)"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><div style="font-size:13px;color:var(--white);font-weight:500">${esc(s.emoji)} ${esc(s.name)}</div><div style="font-size:10px;color:var(--text3)">${s.done}/${s.total}</div></div><div class="study-progress"><div class="study-fill" style="width:${p}%"></div></div><div style="font-size:10px;color:var(--text3);margin-top:4px">${p}% complete</div></div>`; }).join(''); } if (!S.ptTimetable || !S.ptTimetable.length) { if (ptTTEl) ptTTEl.innerHTML = '<div class="empty" style="padding:8px 0;font-size:12px">Partner hasn\'t added slots yet</div>'; } else { const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']; let html = ''; days.forEach(day => { const slots = (S.ptTimetable || []).filter(sl => sl.day === day).sort((a, b) => a.start.localeCompare(b.start)); if (slots.length) { html += `<div style="font-size:10px;color:var(--text3);font-weight:700;margin:9px 0 4px;text-transform:uppercase">${day}</div>`; slots.forEach(sl => { html += `<div class="slot${sl.done ? ' done-slot' : ''}"><div class="slot-time">${sl.start || '—'} – ${sl.end || '—'}</div><div style="font-size:12px;flex:1;color:var(--text)">${esc(sl.subject)}</div></div>`; }); } }); if (ptTTEl) ptTTEl.innerHTML = html || '<div class="empty" style="padding:8px 0;font-size:12px">No slots</div>'; } }
+          renderStudyHero();
+          renderStudyWeek();
+        }
+
+        function renderStudyHero() {
+          const el = document.getElementById('studyHeroCard'); if (!el) return;
+          const subs = S.mySubjects || [];
+          const totalCh = subs.reduce((s, x) => s + (x.total || 0), 0);
+          const doneCh = subs.reduce((s, x) => s + (x.done || 0), 0);
+          const pct = totalCh > 0 ? Math.round((doneCh / totalCh) * 100) : 0;
+          const slots = S.myTimetable || [];
+          const totalHrs = slots.reduce((sum, s) => {
+            if (!s.start || !s.end) return sum;
+            const [sh, sm] = s.start.split(':').map(Number), [eh, em] = s.end.split(':').map(Number);
+            const mins = (eh * 60 + em) - (sh * 60 + sm);
+            return sum + (mins > 0 ? mins / 60 : 0);
+          }, 0);
+          const r = 42, circ = 2 * Math.PI * r, offset = circ - (pct / 100) * circ;
+          el.innerHTML = `
+            <div class="study-ring-wrap">
+              <svg viewBox="0 0 100 100" width="100" height="100">
+                <circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--g2)" stroke-width="8"/>
+                <circle cx="50" cy="50" r="${r}" fill="none" stroke="url(#studyGrad)" stroke-width="8"
+                  stroke-dasharray="${circ}" stroke-dashoffset="${circ}" stroke-linecap="round"
+                  style="transition:stroke-dashoffset 1.2s cubic-bezier(0.34,1.56,0.64,1)" id="studyRingCircle"/>
+                <defs><linearGradient id="studyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="#ff6b6b"/>
+                </linearGradient></defs>
+              </svg>
+              <div class="study-ring-text"><div class="study-ring-pct">${pct}%</div><div class="study-ring-label">Complete</div></div>
+            </div>
+            <div class="study-hero-stats">
+              <div class="study-hero-title">Weekly Scheduled Study</div>
+              <div class="study-hero-amt">${totalHrs.toFixed(1)}h</div>
+              <div class="study-hero-sub">${doneCh}/${totalCh} chapters done across ${subs.length} subject${subs.length === 1 ? '' : 's'}</div>
+            </div>`;
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            const c = document.getElementById('studyRingCircle');
+            if (c) c.style.strokeDashoffset = offset;
+          }));
+          const insEl = document.getElementById('studyInsightCard'); if (!insEl) return;
+          const slotsTotal = slots.length, slotsDone = slots.filter(s => s.done).length;
+          let text, ico = '💡';
+          if (!slots.length) { text = 'Add timetable slots to start tracking your study rhythm.'; }
+          else {
+            const rate = Math.round((slotsDone / slotsTotal) * 100);
+            if (rate >= 80) { ico = '🔥'; text = `Great consistency — <strong>${rate}%</strong> of this week's slots completed.`; }
+            else if (rate >= 40) { ico = '📚'; text = `You've completed <strong>${slotsDone} of ${slotsTotal}</strong> study slots this week.`; }
+            else { ico = '⏰'; text = `Only <strong>${slotsDone}/${slotsTotal}</strong> slots done — try to catch up this week.`; }
+          }
+          insEl.innerHTML = `<div class="study-insight-ico">${ico}</div><div class="study-insight-text">${text}</div>`;
+        }
+
+        function renderStudyWeek() {
+          const el = document.getElementById('studyWeekCard'); if (!el) return;
+          const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          const todayIdx = new Date().getDay();
+          const slots = S.myTimetable || [];
+          const hoursByDay = days.map(day => {
+            const daySlots = slots.filter(s => s.day === day);
+            return daySlots.reduce((sum, s) => {
+              if (!s.start || !s.end) return sum;
+              const [sh, sm] = s.start.split(':').map(Number), [eh, em] = s.end.split(':').map(Number);
+              const mins = (eh * 60 + em) - (sh * 60 + sm);
+              return sum + (mins > 0 ? mins / 60 : 0);
+            }, 0);
+          });
+          const max = Math.max(...hoursByDay, 1);
+          const short = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+          el.innerHTML = hoursByDay.map((h, i) => `
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+              <div class="study-week-bar${i === todayIdx ? ' today-bar' : ''}" style="height:${Math.max(3, Math.round((h / max) * 68))}px" title="${h.toFixed(1)}h"></div>
+              <div class="study-week-label">${short[i]}</div>
+            </div>`).join('');
         }
 
         // ─── VAULT ───────────────────────────────────────────────
@@ -7372,7 +7666,76 @@ async function toggleNotifications() {
         function toggleHabit(id) { const h = S.habits.find(x => x.id === id); if (!h) return; const today = todayStr(); if (!h.doneToday) { h.doneToday = true; if (!h.doneDates) h.doneDates = []; if (!h.doneDates.includes(today)) h.doneDates.push(today); h.streak = calcStreak(h.doneDates); spawnPetals(3); addXP(5); } else { h.doneToday = false; h.doneDates = (h.doneDates || []).filter(d => d !== today); h.streak = calcStreak(h.doneDates); } renderHabits(); scheduleSave(); }
         function calcStreak(dates) { if (!dates || !dates.length) return 0; let streak = 0, cur = new Date(); if (!dates.includes(todayStr())) cur.setDate(cur.getDate() - 1); for (let i = 0; i < 365; i++) { const d = cur.toISOString().slice(0, 10); if (dates.includes(d)) { streak++; cur.setDate(cur.getDate() - 1); } else break; } return streak; }
         function delHabit(id) { S.habits = S.habits.filter(h => h.id !== id); renderHabits(); scheduleSave(); }
-        function renderHabits() { const el = document.getElementById('myHabitsList'); if (!S.habits.length) { PS.empty(el, { icon: 'generic', title: 'No habits yet', desc: 'Track small daily habits together and build streaks.', actionLabel: 'Add Habit', onAction: () => openM('habitModal'), compact: true }); return; } const today = todayStr(); S.habits.forEach(h => h.doneToday = (h.doneDates || []).includes(today)); el.innerHTML = S.habits.map(h => `<div class="habit-row"><div class="hc${h.doneToday ? ' done' : ''}" onclick="toggleHabit(${h.id})">${h.doneToday ? '✓' : ''}</div><span style="font-size:16px">${esc(h.emoji)}</span><span style="font-size:13px;flex:1;color:var(--text)">${esc(h.name)}</span><span class="streak-badge">${h.streak}🔥</span><button class="del-btn" onclick="delHabit(${h.id})">✕</button></div>`).join(''); const max = Math.max(0, ...S.habits.map(h => h.streak || 0)); document.getElementById('habitStreak').textContent = max + '🔥'; }
+        function renderHabits() { const el = document.getElementById('myHabitsList'); if (!S.habits.length) { PS.empty(el, { icon: 'generic', title: 'No habits yet', desc: 'Track small daily habits together and build streaks.', actionLabel: 'Add Habit', onAction: () => openM('habitModal'), compact: true }); renderHabitAnalytics(); return; } const today = todayStr(); S.habits.forEach(h => h.doneToday = (h.doneDates || []).includes(today)); el.innerHTML = S.habits.map(h => `<div class="habit-row"><div class="hc${h.doneToday ? ' done' : ''}" onclick="toggleHabit(${h.id})">${h.doneToday ? '✓' : ''}</div><span style="font-size:16px">${esc(h.emoji)}</span><span style="font-size:13px;flex:1;color:var(--text)">${esc(h.name)}</span><span class="streak-badge">${h.streak}🔥</span><button class="del-btn" onclick="delHabit(${h.id})">✕</button></div>`).join(''); const max = Math.max(0, ...S.habits.map(h => h.streak || 0)); document.getElementById('habitStreak').textContent = max + '🔥'; renderHabitAnalytics(); }
+
+        function renderHabitAnalytics() {
+          const heroEl = document.getElementById('habitHeroCard'), insEl = document.getElementById('habitInsightCard'), heatEl = document.getElementById('habitHeatmap');
+          if (!heroEl && !insEl && !heatEl) return;
+          const habits = S.habits || [];
+          const today = todayStr();
+          const doneToday = habits.filter(h => (h.doneDates || []).includes(today)).length;
+          const totalStreak = habits.reduce((s, h) => s + (h.streak || 0), 0);
+          const avgStreak = habits.length ? Math.round(totalStreak / habits.length) : 0;
+          const last7 = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); last7.push(d.toISOString().slice(0, 10)); }
+          const possible = habits.length * 7;
+          const actual = habits.reduce((s, h) => s + last7.filter(d => (h.doneDates || []).includes(d)).length, 0);
+          const consistency = possible > 0 ? Math.round((actual / possible) * 100) : 0;
+
+          if (heroEl) {
+            const r = 42, circ = 2 * Math.PI * r, offset = circ - (consistency / 100) * circ;
+            heroEl.innerHTML = `
+              <div class="habit-ring-wrap">
+                <svg viewBox="0 0 100 100" width="100" height="100">
+                  <circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--g2)" stroke-width="8"/>
+                  <circle cx="50" cy="50" r="${r}" fill="none" stroke="url(#habitGrad)" stroke-width="8"
+                    stroke-dasharray="${circ}" stroke-dashoffset="${circ}" stroke-linecap="round"
+                    style="transition:stroke-dashoffset 1.2s cubic-bezier(0.34,1.56,0.64,1)" id="habitRingCircle"/>
+                  <defs><linearGradient id="habitGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="#ff6b6b"/>
+                  </linearGradient></defs>
+                </svg>
+                <div class="habit-ring-text"><div class="habit-ring-pct">${consistency}%</div><div class="habit-ring-label">7-Day</div></div>
+              </div>
+              <div class="habit-hero-stats">
+                <div class="habit-hero-title">Today's Progress</div>
+                <div class="habit-hero-amt">${doneToday}/${habits.length}</div>
+                <div class="habit-hero-sub">Avg streak: ${avgStreak}🔥 across ${habits.length} habit${habits.length === 1 ? '' : 's'}</div>
+              </div>`;
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+              const c = document.getElementById('habitRingCircle'); if (c) c.style.strokeDashoffset = offset;
+            }));
+          }
+
+          if (insEl) {
+            let text, ico = '💡';
+            if (!habits.length) { text = 'Add your first habit to start building streaks together.'; }
+            else if (consistency >= 80) { ico = '🔥'; text = `Amazing consistency — <strong>${consistency}%</strong> completion over the last 7 days.`; }
+            else if (consistency >= 50) { ico = '✅'; text = `You're at <strong>${consistency}%</strong> consistency this week — keep it up.`; }
+            else { ico = '💪'; text = `Consistency is at <strong>${consistency}%</strong> — try checking in daily to build momentum.`; }
+            insEl.innerHTML = `<div class="habit-insight-ico">${ico}</div><div class="habit-insight-text">${text}</div>`;
+          }
+
+          if (heatEl) {
+            if (!habits.length) { heatEl.parentElement.style.display = 'none'; }
+            else {
+              heatEl.parentElement.style.display = '';
+              const days = 84; // 12 weeks
+              const cells = [];
+              for (let i = days - 1; i >= 0; i--) {
+                const d = new Date(); d.setDate(d.getDate() - i);
+                const ds = d.toISOString().slice(0, 10);
+                const count = habits.filter(h => (h.doneDates || []).includes(ds)).length;
+                const frac = habits.length ? count / habits.length : 0;
+                let bg = 'var(--g2)';
+                if (frac > 0 && frac < 0.34) bg = 'rgba(229,9,20,0.25)';
+                else if (frac >= 0.34 && frac < 0.67) bg = 'rgba(229,9,20,0.55)';
+                else if (frac >= 0.67) bg = '#E50914';
+                cells.push(`<div class="habit-heat-cell" style="background:${bg}" title="${ds}: ${count}/${habits.length}"></div>`);
+              }
+              heatEl.innerHTML = cells.join('');
+            }
+          }
+        }
 
         // ─── NOTES ───────────────────────────────────────────────
         const noteColors = ['rgba(255,107,157,0.12)', 'rgba(150,100,220,0.12)', 'rgba(100,200,150,0.12)', 'rgba(255,180,50,0.12)', 'rgba(100,180,255,0.12)'];
@@ -7402,10 +7765,73 @@ async function toggleNotifications() {
         function dismissAlarm() { document.getElementById('alarmRing').classList.remove('active'); }
 
         // ─── WELLNESS ────────────────────────────────────────────
-        function saveWellness() { const today = todayStr(); if (!S.wellness) S.wellness = {}; S.wellness[today] = { water: parseInt(document.getElementById('waterIn').value) || 0, sleep: parseFloat(document.getElementById('sleepIn').value) || 0, exercise: parseInt(document.getElementById('exerciseIn').value) || 0, mood: S.selectedMood }; renderWellnessSummary(); scheduleSave(); addXP(2); }
+        function saveWellness() { const today = todayStr(); if (!S.wellness) S.wellness = {}; S.wellness[today] = { water: parseInt(document.getElementById('waterIn').value) || 0, sleep: parseFloat(document.getElementById('sleepIn').value) || 0, exercise: parseInt(document.getElementById('exerciseIn').value) || 0, mood: S.selectedMood }; renderWellnessSummary(); renderWellnessAnalytics(); scheduleSave(); addXP(2); }
         function renderWellnessMoods() { const el = document.getElementById('myMoodWeek'); if (!el) return; const days = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); const ds = d.toISOString().slice(0, 10); const day = d.toLocaleDateString('en', { weekday: 'short' }); const w = (S.wellness || {})[ds]; days.push(`<div class="mood-hist-dot"><div class="mood-hist-day">${day}</div><div class="mood-hist-emoji">${w?.mood?.split(' ')[0] || '—'}</div></div>`); } el.innerHTML = days.join(''); }
         function renderWellnessSummary() { const el = document.getElementById('wellnessSummary'); if (!el) return; const today = todayStr(); const w = (S.wellness || {})[today] || {}; const vals = Object.values(S.wellness || {}); const aw = vals.reduce((s, d) => s + (d.water || 0), 0) / Math.max(1, vals.length); const as = vals.reduce((s, d) => s + (d.sleep || 0), 0) / Math.max(1, vals.length); el.innerHTML = `<div>💧 Today's water: <strong>${w.water || 0}</strong> glasses</div><div>😴 Today's sleep: <strong>${w.sleep || 0}</strong> hours</div><div>🏃 Today's exercise: <strong>${w.exercise || 0}</strong> min</div><div style="margin-top:9px;color:var(--text3)">7-day avg water: ${aw.toFixed(1)} glasses · avg sleep: ${as.toFixed(1)}h</div>`; }
-        function spTab(id, el) { document.querySelectorAll('.stab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.sc').forEach(c => c.classList.remove('active')); el.classList.add('active'); document.getElementById('sc-' + id).classList.add('active'); if (id === 'wellness') { renderWellnessMoods(); renderWellnessSummary(); } if (id === 'reminders') renderReminders(); }
+        function renderWellnessAnalytics() {
+          const heroEl = document.getElementById('wellHeroCard'), insEl = document.getElementById('wellInsightCard'), trendEl = document.getElementById('wellTrendCard');
+          if (!heroEl && !insEl && !trendEl) return;
+          const today = todayStr();
+          const w = (S.wellness || {})[today] || {};
+          const goals = { water: 8, sleep: 8, exercise: 30 };
+          const metrics = [
+            { key: 'water', label: 'Water', val: w.water || 0, goal: goals.water, unit: 'glasses', color: '#60a5fa', emoji: '💧' },
+            { key: 'sleep', label: 'Sleep', val: w.sleep || 0, goal: goals.sleep, unit: 'hrs', color: '#a78bfa', emoji: '😴' },
+            { key: 'exercise', label: 'Exercise', val: w.exercise || 0, goal: goals.exercise, unit: 'min', color: '#34d399', emoji: '🏃' }
+          ];
+
+          if (heroEl) {
+            heroEl.innerHTML = metrics.map(m => {
+              const pct = Math.min(100, Math.round((m.val / m.goal) * 100));
+              const r = 26, circ = 2 * Math.PI * r, offset = circ - (pct / 100) * circ;
+              const id = 'wellRing_' + m.key;
+              return `<div class="well-ring-card">
+                <div class="well-ring-wrap">
+                  <svg viewBox="0 0 64 64" width="64" height="64">
+                    <circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--g2)" stroke-width="6"/>
+                    <circle cx="32" cy="32" r="${r}" fill="none" stroke="${m.color}" stroke-width="6"
+                      stroke-dasharray="${circ}" stroke-dashoffset="${circ}" stroke-linecap="round"
+                      style="transition:stroke-dashoffset 1.1s cubic-bezier(0.34,1.56,0.64,1)" id="${id}"/>
+                  </svg>
+                  <div class="well-ring-text">${m.emoji}</div>
+                </div>
+                <div style="font-size:12px;color:var(--white);font-weight:600">${m.val}${m.val ? '' : ''}<span style="font-size:9px;color:var(--text3)"> /${m.goal}${m.unit === 'glasses' ? '' : m.unit}</span></div>
+                <div class="well-ring-label">${m.label}</div>
+              </div>`;
+            }).join('');
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+              metrics.forEach(m => {
+                const pct = Math.min(100, Math.round((m.val / m.goal) * 100));
+                const r = 26, circ = 2 * Math.PI * r, offset = circ - (pct / 100) * circ;
+                const c = document.getElementById('wellRing_' + m.key);
+                if (c) c.style.strokeDashoffset = offset;
+              });
+            }));
+          }
+
+          if (insEl) {
+            const metGoals = metrics.filter(m => m.val >= m.goal).length;
+            let text, ico = '💡';
+            if (!w.water && !w.sleep && !w.exercise) { text = 'Log today\'s water, sleep, and exercise to see your wellness insights.'; }
+            else if (metGoals === 3) { ico = '🌟'; text = `Perfect day — you hit <strong>all 3</strong> wellness goals today!`; }
+            else if (metGoals >= 1) { ico = '✅'; text = `You've hit <strong>${metGoals}/3</strong> wellness goals today. Keep going!`; }
+            else { ico = '🌱'; text = `Log your water, sleep and exercise to start tracking today's wellness.`; }
+            insEl.innerHTML = `<div class="well-insight-ico">${ico}</div><div class="well-insight-text">${text}</div>`;
+          }
+
+          if (trendEl) {
+            const days = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); days.push(d.toISOString().slice(0, 10)); }
+            const short = days.map(d => new Date(d + 'T00:00:00').toLocaleDateString('en', { weekday: 'short' })[0]);
+            const sleepVals = days.map(d => (S.wellness || {})[d]?.sleep || 0);
+            const max = Math.max(...sleepVals, 8);
+            trendEl.innerHTML = days.map((d, i) => `
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+                <div class="well-trend-bar" style="height:${Math.max(3, Math.round((sleepVals[i] / max) * 60))}px;background:linear-gradient(180deg,#a78bfa,#7c5cd6)" title="${sleepVals[i]}h sleep"></div>
+                <div class="well-trend-label">${short[i]}</div>
+              </div>`).join('');
+          }
+        }
+        function spTab(id, el) { document.querySelectorAll('.stab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.sc').forEach(c => c.classList.remove('active')); el.classList.add('active'); document.getElementById('sc-' + id).classList.add('active'); if (id === 'wellness') { renderWellnessMoods(); renderWellnessSummary(); renderWellnessAnalytics(); } if (id === 'reminders') renderReminders(); if (id === 'habits') renderHabitAnalytics(); }
 
         // ─── BUCKET LIST ─────────────────────────────────────────
         function addBucket() {
@@ -7451,7 +7877,126 @@ async function toggleNotifications() {
         // ─── MONEY ───────────────────────────────────────────────
         function addTransaction() { const desc = document.getElementById('moneyDesc').value.trim(); const amt = parseFloat(document.getElementById('moneyAmt').value); if (!desc || isNaN(amt)) { toast('Fill in description and amount'); return; } S.transactions.unshift({ id: Date.now(), type: document.getElementById('moneyType').value, desc, amt, by: S.role, category: document.getElementById('moneyCategory').value || 'Other', date: document.getElementById('moneyDate').value || todayStr() });['moneyDesc', 'moneyAmt', 'moneyCategory', 'moneyDate'].forEach(id => document.getElementById(id).value = ''); closeM('moneyModal'); renderMoney(); scheduleSave(); toast('Transaction added! 💰'); }
         function delTransaction(id) { S.transactions = S.transactions.filter(t => t.id !== id); renderMoney(); scheduleSave(); }
-        function renderMoney() { const ms = new Date(); ms.setDate(1); const mss = ms.toISOString().slice(0, 10); const tm = S.transactions.filter(t => t.date >= mss); const inc = tm.filter(t => t.type === 'income').reduce((s, t) => s + t.amt, 0); const exp = tm.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0); const net = inc - exp; document.getElementById('mInc').textContent = '₹' + inc.toLocaleString('en-IN'); document.getElementById('mExp').textContent = '₹' + exp.toLocaleString('en-IN'); const ne = document.getElementById('mNet'); ne.textContent = '₹' + Math.abs(net).toLocaleString('en-IN'); ne.style.color = net >= 0 ? 'var(--green)' : 'var(--red)'; const el = document.getElementById('transList'); if (!S.transactions.length) { PS.empty(el, { icon: 'wallet', title: 'No transactions yet', desc: 'Log your shared spending here to track income, expenses, and savings together.', actionLabel: 'Add First Expense', onAction: () => openM('moneyModal') }); return; } const ce = { 'Food': '🍽️', 'Transport': '🚗', 'Entertainment': '🎬', 'Shopping': '🛒', 'Travel': '✈️', 'Health': '💊', 'Date': '🌹', 'Other': '💳' }; el.innerHTML = S.transactions.slice(0, 60).map(t => `<div class="money-row"><div class="money-ic ${t.type === 'income' ? 'inc' : 'exp'}">${ce[t.category] || (t.type === 'income' ? '💰' : '💳')}</div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--white)">${esc(t.desc)}</div><div style="font-size:10px;color:var(--text3)">${esc(t.category)} · ${fmtDateShort(t.date)}</div></div><span class="${t.type === 'income' ? 'inc-amt' : 'exp-amt'}">${t.type === 'income' ? '+' : '-'}₹${t.amt.toLocaleString('en-IN')}</span><button class="del-btn" style="margin-left:5px" onclick="delTransaction(${t.id})">✕</button></div>`).join(''); renderFinanceSplit(); }
+        function renderMoney() {
+          const ms = new Date(); ms.setDate(1); const mss = ms.toISOString().slice(0, 10);
+          const tm = S.transactions.filter(t => t.date >= mss);
+          const inc = tm.filter(t => t.type === 'income').reduce((s, t) => s + t.amt, 0);
+          const exp = tm.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0);
+          const net = inc - exp;
+          document.getElementById('mInc').textContent = '₹' + inc.toLocaleString('en-IN');
+          document.getElementById('mExp').textContent = '₹' + exp.toLocaleString('en-IN');
+          const ne = document.getElementById('mNet'); ne.textContent = '₹' + Math.abs(net).toLocaleString('en-IN'); ne.style.color = net >= 0 ? 'var(--green)' : 'var(--red)';
+
+          renderFinHero(inc, exp);
+          renderFinInsight(mss);
+          renderFinDonut(tm);
+          renderFinTrend();
+
+          const el = document.getElementById('transList');
+          if (!S.transactions.length) { PS.empty(el, { icon: 'wallet', title: 'No transactions yet', desc: 'Log your shared spending here to track income, expenses, and savings together.', actionLabel: 'Add First Expense', onAction: () => openM('moneyModal') }); renderFinanceSplit(); return; }
+          const ce = { 'Food': '🍽️', 'Transport': '🚗', 'Entertainment': '🎬', 'Shopping': '🛒', 'Travel': '✈️', 'Health': '💊', 'Date': '🌹', 'Other': '💳' };
+          el.innerHTML = S.transactions.slice(0, 60).map(t => `<div class="money-row"><div class="money-ic ${t.type === 'income' ? 'inc' : 'exp'}">${ce[t.category] || (t.type === 'income' ? '💰' : '💳')}</div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--white)">${esc(t.desc)}</div><div style="font-size:10px;color:var(--text3)">${esc(t.category)} · ${fmtDateShort(t.date)}</div></div><span class="${t.type === 'income' ? 'inc-amt' : 'exp-amt'}">${t.type === 'income' ? '+' : '-'}₹${t.amt.toLocaleString('en-IN')}</span><button class="del-btn" style="margin-left:5px" onclick="delTransaction(${t.id})">✕</button></div>`).join('');
+          renderFinanceSplit();
+        }
+
+        function renderFinHero(inc, exp) {
+          const el = document.getElementById('finHeroCard'); if (!el) return;
+          const rate = inc > 0 ? Math.max(0, Math.min(100, Math.round(((inc - exp) / inc) * 100))) : 0;
+          const r = 46, circ = 2 * Math.PI * r, offset = circ - (rate / 100) * circ;
+          const net = inc - exp;
+          el.innerHTML = `
+            <div class="fin-ring-wrap">
+              <svg viewBox="0 0 100 100" width="110" height="110">
+                <circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--g2)" stroke-width="8"/>
+                <circle cx="50" cy="50" r="${r}" fill="none" stroke="url(#finGrad)" stroke-width="8"
+                  stroke-dasharray="${circ}" stroke-dashoffset="${circ}" stroke-linecap="round"
+                  style="transition:stroke-dashoffset 1.2s cubic-bezier(0.34,1.56,0.64,1)" id="finRingCircle"/>
+                <defs><linearGradient id="finGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="#ff6b6b"/>
+                </linearGradient></defs>
+              </svg>
+              <div class="fin-ring-text"><div class="fin-ring-pct">${rate}%</div><div class="fin-ring-label">Saved</div></div>
+            </div>
+            <div class="fin-hero-stats">
+              <div class="fin-hero-title">This Month's Net</div>
+              <div class="fin-hero-amt" style="color:${net >= 0 ? 'var(--green)' : 'var(--red)'}">${net >= 0 ? '+' : '-'}₹${Math.abs(net).toLocaleString('en-IN')}</div>
+              <div class="fin-hero-sub">₹${inc.toLocaleString('en-IN')} in · ₹${exp.toLocaleString('en-IN')} out</div>
+            </div>`;
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            const c = document.getElementById('finRingCircle');
+            if (c) c.style.strokeDashoffset = offset;
+          }));
+        }
+
+        function renderFinInsight(mss) {
+          const el = document.getElementById('finInsightCard'); if (!el) return;
+          const lastMonthEnd = new Date(mss); lastMonthEnd.setDate(0);
+          const lastMonthStart = new Date(lastMonthEnd); lastMonthStart.setDate(1);
+          const lmss = lastMonthStart.toISOString().slice(0, 10), lmee = lastMonthEnd.toISOString().slice(0, 10);
+          const thisExp = S.transactions.filter(t => t.type === 'expense' && t.date >= mss).reduce((s, t) => s + t.amt, 0);
+          const lastExp = S.transactions.filter(t => t.type === 'expense' && t.date >= lmss && t.date <= lmee).reduce((s, t) => s + t.amt, 0);
+          let text, ico = '💡';
+          if (lastExp === 0 && thisExp === 0) { text = 'Start logging transactions to see spending insights here.'; }
+          else if (lastExp === 0) { text = `You've spent <strong>₹${thisExp.toLocaleString('en-IN')}</strong> so far this month.`; }
+          else {
+            const diff = Math.round(((thisExp - lastExp) / lastExp) * 100);
+            if (diff > 5) { ico = '📈'; text = `Spending is up <strong>${diff}%</strong> vs last month. Keep an eye on it.`; }
+            else if (diff < -5) { ico = '📉'; text = `Nice — spending is down <strong>${Math.abs(diff)}%</strong> vs last month.`; }
+            else { ico = '⚖️'; text = `Spending is steady, close to last month's ₹${lastExp.toLocaleString('en-IN')}.`; }
+          }
+          el.innerHTML = `<div class="fin-insight-ico">${ico}</div><div class="fin-insight-text">${text}</div>`;
+        }
+
+        const FIN_CAT_COLORS = { Food:'#ff6b6b', Transport:'#60a5fa', Entertainment:'#a78bfa', Shopping:'#fbbf24', Travel:'#34d399', Health:'#f472b6', Date:'#ff8fa3', Other:'#94a3b8' };
+        function renderFinDonut(tm) {
+          const el = document.getElementById('finDonutCard'); if (!el) return;
+          const exp = tm.filter(t => t.type === 'expense');
+          if (!exp.length) { el.innerHTML = '<div class="empty" style="padding:20px 0;width:100%">No expenses logged this month yet</div>'; return; }
+          const byCat = {};
+          exp.forEach(t => { byCat[t.category || 'Other'] = (byCat[t.category || 'Other'] || 0) + t.amt; });
+          const total = Object.values(byCat).reduce((a, b) => a + b, 0);
+          const entries = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+          const r = 60, circ = 2 * Math.PI * r;
+          let offsetAcc = 0;
+          const segs = entries.map(([cat, amt]) => {
+            const frac = amt / total;
+            const dash = frac * circ;
+            const seg = `<circle cx="70" cy="70" r="${r}" fill="none" stroke="${FIN_CAT_COLORS[cat] || '#94a3b8'}" stroke-width="16"
+              stroke-dasharray="${dash} ${circ - dash}" stroke-dashoffset="${-offsetAcc}" stroke-linecap="butt"/>`;
+            offsetAcc += dash;
+            return seg;
+          }).join('');
+          const legend = entries.map(([cat, amt]) => `
+            <div class="fin-legend-row">
+              <div class="fin-legend-dot" style="background:${FIN_CAT_COLORS[cat] || '#94a3b8'}"></div>
+              <div class="fin-legend-name">${esc(cat)}</div>
+              <div class="fin-legend-amt">₹${amt.toLocaleString('en-IN')}</div>
+            </div>`).join('');
+          el.innerHTML = `
+            <div class="fin-donut-wrap">
+              <svg viewBox="0 0 140 140" width="140" height="140">${segs}</svg>
+              <div class="fin-donut-center"><div class="fin-donut-total">₹${total.toLocaleString('en-IN')}</div><div class="fin-donut-total-l">Total</div></div>
+            </div>
+            <div class="fin-legend">${legend}</div>`;
+        }
+
+        function renderFinTrend() {
+          const el = document.getElementById('finTrendCard'); if (!el) return;
+          const weeks = [];
+          for (let i = 7; i >= 0; i--) {
+            const end = new Date(); end.setDate(end.getDate() - (i * 7));
+            const start = new Date(end); start.setDate(start.getDate() - 6);
+            const ss = start.toISOString().slice(0, 10), es = end.toISOString().slice(0, 10);
+            const amt = S.transactions.filter(t => t.type === 'expense' && t.date >= ss && t.date <= es).reduce((s, t) => s + t.amt, 0);
+            weeks.push({ amt, label: 'W' + (8 - i) });
+          }
+          const max = Math.max(...weeks.map(w => w.amt), 1);
+          el.innerHTML = weeks.map(w => `
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+              <div class="fin-trend-bar" style="height:${Math.max(3, Math.round((w.amt / max) * 60))}px" title="₹${w.amt.toLocaleString('en-IN')}"></div>
+              <div class="fin-trend-label">${w.label}</div>
+            </div>`).join('');
+        }
 
         // ─── AI LOVE GUIDE 2.0 ───────────────────────────────────
         let aiStreaming = false;
@@ -8136,6 +8681,9 @@ function renderSurprises() {
           const mySpend = mine.filter(t => t.type === 'expense' && t.date >= mss).reduce((s, t) => s + t.amt, 0);
           const myGoal = (S.finGoals || {})[S.role] || 0;
           const gb1 = document.getElementById('myFinGoalBar'); if (gb1) gb1.style.width = Math.min(100, myGoal ? mySpend / myGoal * 100 : 0) + '%';
+          const pctEl = document.getElementById('finGoalPct'), remEl = document.getElementById('finGoalRemain');
+          if (pctEl) { const pct = myGoal ? Math.min(100, Math.round(mySpend / myGoal * 100)) : 0; pctEl.textContent = pct + '%'; pctEl.style.color = pct >= 100 ? 'var(--red)' : pct >= 80 ? 'var(--yellow)' : 'var(--green)'; }
+          if (remEl) { const daysLeft = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate() - new Date().getDate(); remEl.textContent = myGoal ? `₹${Math.max(0, myGoal - mySpend).toLocaleString('en-IN')} left · ${daysLeft}d` : 'Set a goal'; }
           const gi1 = document.getElementById('myFinGoal'); if (gi1 && document.activeElement !== gi1) gi1.value = myGoal || '';
           const av1 = document.getElementById('finAv1'); if (av1) av1.textContent = (S.myName || 'U')[0];
           const av2 = document.getElementById('finAv2'); if (av2) av2.textContent = (S.partnerName || 'P')[0];
