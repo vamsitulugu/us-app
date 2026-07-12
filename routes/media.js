@@ -133,4 +133,18 @@ router.delete('/delete-recording', async (req, res) => {
     return res.json({ ok: true });
 });
 
+// ── Friendly error handling for Multer upload failures ──
+// Without this, an oversized file falls through to the generic
+// 500 handler in server.js instead of a clear "file too large"
+// message the frontend can show the user.
+router.use((err, req, res, next) => {
+    if (err && err.name === 'MulterError') {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(413).json({ error: 'File is too large. Please choose a smaller file.' });
+        }
+        return res.status(400).json({ error: 'Upload failed: ' + err.message });
+    }
+    next(err);
+});
+
 module.exports = router;

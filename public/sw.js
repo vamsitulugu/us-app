@@ -39,7 +39,10 @@ self.addEventListener('fetch', e => {
         }
         return res;
       })
-      .catch(() => caches.match(e.request).then(r => r || caches.match('/index.html')))
+      .catch(() => {
+        if (e.request.method !== 'GET') return Promise.reject(new Error('network error'));
+        return caches.match(e.request).then(r => r || caches.match('/index.html'));
+      })
   );
 });
 

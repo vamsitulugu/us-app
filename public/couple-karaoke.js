@@ -825,6 +825,7 @@
 
     if (isHost) {
       window.AudioService.play(Room.songList, songId); // 'play' event -> wireAudioHook handles lyrics + first broadcast
+      if (Room.syncBroadcastTimer) clearInterval(Room.syncBroadcastTimer);
       Room.syncBroadcastTimer = setInterval(broadcastSyncTick, SYNC_BROADCAST_MS);
     } else {
       window.AudioService.audio.pause();

@@ -17,9 +17,11 @@
 (function () {
   'use strict';
 
-  function whenReady(fn) {
+  function whenReady(fn, attempt) {
+    attempt = attempt || 0;
     if (window.LyricsSearch && window.MetadataNormalizer) fn();
-    else setTimeout(() => whenReady(fn), 150);
+    else if (attempt >= 100) console.warn('[LyricsBackgroundWorker] dependencies never became available — giving up.');
+    else setTimeout(() => whenReady(fn, attempt + 1), 150);
   }
 
   const queue = [];

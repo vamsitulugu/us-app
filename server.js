@@ -65,7 +65,10 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── API Routes ─────────────────────────────────────────
-app.use('/api/auth',  authRoutes);
+// General API rate limit applied first, auth gets its own (stricter) limit
+// layered on top for its specific path.
+app.use('/api', apiLimiter);
+app.use('/api/auth',  authLimiter, authRoutes);
 app.use('/api/data',  dataRoutes);
 app.use('/api/ai',    aiRoutes);
 app.use('/api/media', mediaRoutes);
@@ -78,6 +81,7 @@ app.use('/api/call', require('./routes/call'));
 app.use('/api/music', require('./routes/music'));
 app.use('/api/lyrics', require('./routes/lyrics'));
 app.use('/api/search', require('./routes/search'));
+app.use('/api/meetplanner', require('./routes/meetplanner'));
 // ── Health check ───────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
