@@ -362,6 +362,11 @@ function reanchorAfterImages() {
       created_at: new Date().toISOString(), delivered: false, read: false, ...payload
     };
     msgs.push(optimistic); render(); scrollToBottom(true);
+    if (window.playAppSound) {
+      const soundByType = { gif: 'chat.gif.sent', image: 'chat.image.sent', file: 'chat.file.sent',
+        sticker: 'chat.sticker.sent', voice: 'chat.voice.sent' };
+      window.playAppSound(soundByType[payload.type] || 'chat.message.sent');
+    }
     try {
       const saved = await api('POST', '/api/chat', { coupleId: coupleId(), clientId, senderRole: myRole(), ...payload });
       const idx = msgs.findIndex(m => m.client_id === clientId);
