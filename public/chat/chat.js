@@ -92,7 +92,28 @@ const Chat = (function () {
     lastMsgTs = msgs.length ? msgs[msgs.length - 1].created_at : null;
     render();
     scrollToBottom(false);
+    reanchorAfterImages();
   } catch (e) {}
+}
+
+// Images (map previews, gifs, stickers, photos) finish loading after the
+// synchronous scrollToBottom() call above, and each one that loads pushes
+// the page taller — silently stranding the scroll position partway up the
+// conversation instead of at the true bottom. Re-pin to bottom as each image
+// resolves, but only while the user hasn't scrolled away from the bottom.
+function reanchorAfterImages() {
+  const box = document.getElementById('chatMsgs');
+  if (!box) return;
+  const imgs = box.querySelectorAll('img');
+  imgs.forEach(img => {
+    if (img.complete) return;
+    const onDone = () => {
+      const stillNearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 400;
+      if (stillNearBottom) box.scrollTop = box.scrollHeight;
+    };
+    img.addEventListener('load', onDone, { once: true });
+    img.addEventListener('error', onDone, { once: true });
+  });
 }
 
   async function pollNew() {
@@ -109,7 +130,7 @@ const Chat = (function () {
       render();
       const box = document.getElementById('chatMsgs');
       const nearBottom = box && (box.scrollHeight - box.scrollTop - box.clientHeight < 150);
-      if (nearBottom || rows.some(isMine)) scrollToBottom(true);
+      if (nearBottom || rows.some(isMine)) { scrollToBottom(true); reanchorAfterImages(); }
       else updateJumpBadge(rows.filter(r => !isMine(r)).length);
       if (rows.some(r => !isMine(r)) && document.getElementById('page-chat')?.classList.contains('active') && document.hasFocus()) {
         markRead();
@@ -206,10 +227,14 @@ const Chat = (function () {
     else if (m.type === 'voice') body = renderVoice(m);
     else if (m.type === 'audio') body = `<audio controls src="${esc(m.media_url)}" style="max-width:220px"></audio>`;
     else if (m.type === 'location') {
-      const lat = m.media_meta?.lat, lng = m.media_meta?.lng;
-      const mapImg = `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=15&size=280x140&markers=${lat},${lng},red-pushpin`;
+      const lat = parseFloat(m.media_meta?.lat), lng = parseFloat(m.media_meta?.lng);
+      const tile = lonLatToTile(lat, lng, 15);
+      const mapImg = `https://tile.openstreetmap.org/15/${tile.x}/${tile.y}.png`;
       body = `<div class="msg-location" onclick="event.stopPropagation();window.open('https://maps.google.com/?q=${lat},${lng}','_blank')">
-        <img src="${mapImg}" class="msg-location-map" loading="lazy" alt="map preview">
+        <div class="msg-location-map-wrap">
+          <img src="${mapImg}" class="msg-location-map" loading="lazy" alt="map preview" onerror="this.closest('.msg-location-map-wrap').classList.add('map-failed')">
+          <div class="msg-location-pin">📍</div>
+        </div>
         <div class="msg-location-info">
           <div class="msg-location-title">📍 Location</div>
           <div class="msg-location-sub">Tap to open in Maps</div>
@@ -267,6 +292,13 @@ const Chat = (function () {
 
   function linkify(text) {
     return text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  }
+  function lonLatToTile(lat, lon, zoom) {
+    const n = Math.pow(2, zoom);
+    const x = Math.floor((lon + 180) / 360 * n);
+    const latRad = lat * Math.PI / 180;
+    const y = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n);
+    return { x: Math.max(0, Math.min(n - 1, x)), y: Math.max(0, Math.min(n - 1, y)) };
   }
 
   function renderVoice(m) {

@@ -397,7 +397,17 @@
 
 /* ── LOCATION CARD (map thumbnail + tap-to-open) ── */
 .msg-location { min-width: 220px; max-width: 260px; border-radius: 12px; overflow: hidden; cursor: pointer; }
-.msg-location-map { display: block; width: 100%; height: 130px; object-fit: cover; background: rgba(255,255,255,.06); }
+.msg-location-map-wrap { position: relative; width: 100%; height: 130px; background: rgba(255,255,255,.06); }
+.msg-location-map { display: block; width: 100%; height: 100%; object-fit: cover; }
+.msg-location-pin {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -100%);
+  font-size: 26px; filter: drop-shadow(0 3px 4px rgba(0,0,0,.5));
+  pointer-events: none;
+}
+.msg-location-map-wrap.map-failed .msg-location-map { display: none; }
+.msg-location-map-wrap.map-failed { display: flex; align-items: center; justify-content: center; }
+.msg-location-map-wrap.map-failed::after { content: '🗺️'; font-size: 34px; opacity: .5; }
+.msg-location-map-wrap.map-failed .msg-location-pin { position: static; transform: none; }
 .msg-location-info { padding: 8px 10px 4px; }
 .msg-location-title { font-size: 13px; font-weight: 700; }
 .msg-location-sub { font-size: 10.5px; opacity: 0.7; text-decoration: underline; }
