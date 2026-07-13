@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "507582768271",
+    "project_id": "us-app-3818a",
+    "storage_bucket": "us-app-3818a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:507582768271:android:b9675284cbadec2a793cfa",
+        "android_client_info": {
+          "package_name": "com.uswithlove.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBQptWB-g_Q5GGa60ZGXCetjTF687Z2c40"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

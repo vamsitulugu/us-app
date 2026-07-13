@@ -8607,6 +8607,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
 });
             startAlarmCheck();
             if (Notification.permission === 'granted') setTimeout(registerPushSubscription, 2000);
+            setupNativeNotifications();
             startSyncLoop();
           }
           if (!history.state) {
@@ -9455,6 +9456,17 @@ function openJoinPartnerModal() {
         // Patch setTheme to sync iframes
         const _origST = window.setTheme;
         window.setTheme = function(n, s) { _origST && _origST(n, s); setTimeout(() => ['gamesFrame','musicFrame','dreamgoalsFrame','placesFrame','lovecounterFrame','collectionFrame','meetplannerFrame'].forEach(syncThemeToFrame), 150); };
+
+        async function setupNativeNotifications() {
+  if (!window.Capacitor?.isNativePlatform?.()) return; // only runs in the APK, not on web
+  const { PushNotifications } = window.Capacitor.Plugins;
+  const perm = await PushNotifications.requestPermissions();
+  if (perm.receive !== 'granted') return;
+  await PushNotifications.register();
+  PushNotifications.addListener('registration', async (token) => {
+    await api('POST', '/api/auth/register-fcm-token', { coupleId: S.coupleId, role: S.role, token: token.value });
+  });
+}
 // ── PUSH NOTIFICATION SUBSCRIPTION ─────────────────────
 async function registerPushSubscription() {
   // NOTE: this runs on every app launch (see call sites), so it must
