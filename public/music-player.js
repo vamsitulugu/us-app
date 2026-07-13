@@ -299,7 +299,7 @@
     return `<div class="track-item${isActive ? ' active' : ''}" onclick="playFromList('${listKey}','${s.id}')">
       <div class="track-num"></div>
       <div class="track-playing-anim"><div class="bar-anim"></div><div class="bar-anim"></div><div class="bar-anim"></div></div>
-      <div class="track-art">${s.cover_url ? `<img src="${s.cover_url}" alt="" loading="lazy" decoding="async">` : `<span>🎵</span>`}</div>
+      <div class="track-art">${s.cover_url ? `<img src="${s.cover_url}" alt="">` : `<span>🎵</span>`}</div>
       <div class="track-info">
         <div class="track-title">${escH(s.title)}${s.favorite ? ' <span class="track-fav-badge">❤️</span>' : ''}</div>
         <div class="track-artist">${escH(s.artist || 'Unknown Artist')}</div>
@@ -561,7 +561,7 @@ window.closeFullPlayer = function () {
     const p = document.getElementById('fpQueuePanel'); const list = AudioService.getQueueSongs(); const cur = AudioService.currentSong();
     p.innerHTML = `<div class="fp-queue-title">Queue — ${list.length} songs</div>` + (list.length ? list.map(s => `
       <div class="fp-queue-row${cur && cur.id === s.id ? ' active' : ''}" onclick="playFromList('all','${s.id}')">
-        <div class="track-art" style="width:34px;height:34px">${s.cover_url ? `<img src="${s.cover_url}" loading="lazy" decoding="async">` : '🎵'}</div>
+        <div class="track-art" style="width:34px;height:34px">${s.cover_url ? `<img src="${s.cover_url}">` : '🎵'}</div>
         <div style="flex:1;min-width:0"><div class="fp-queue-t">${escH(s.title)}</div><div class="fp-queue-a">${escH(s.artist || '')}</div></div>
       </div>`).join('') : `<div class="empty-pl"><div class="empty-pl-text">Queue is empty</div></div>`);
   }
@@ -698,7 +698,7 @@ function wireFullPlayerSwipe() {
     sheet.innerHTML = `
       <div class="sheet-handle"></div>
       <div class="sheet-track-head">
-        <div class="sheet-track-art">${s.cover_url ? `<img src="${s.cover_url}" alt="" loading="lazy" decoding="async">` : `<span>🎵</span>`}</div>
+        <div class="sheet-track-art">${s.cover_url ? `<img src="${s.cover_url}" alt="">` : `<span>🎵</span>`}</div>
         <div style="min-width:0"><div class="sheet-title">${escH(s.title)}</div><div class="sheet-artist">${escH(s.artist || 'Unknown Artist')}</div></div>
       </div>
       <div class="sheet-actions">

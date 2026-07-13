@@ -132,48 +132,14 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   CARD INTERACTIONS — lift on hover, press on touch, long-press
-   pulse. Covers .card plus every *-card class across every page
-   (dream-card, fight-card, mp-card, note-card, love-card, etc.)
-   without needing to enumerate each one per-page.
+   BUTTON INTERACTION (global — replaces bouncy :active states)
 ═══════════════════════════════════════════════════════════ */
-.card, [class*="-card"] {
-  transition: transform var(--pm-fast) var(--pm-ease),
-              box-shadow var(--pm-med) var(--pm-ease) !important;
-}
-/* Hover lift — desktop / pointer devices only, so touch screens
-   don't get a "stuck hover" state after tapping. */
-@media (hover: hover) and (pointer: fine) {
-  .card:hover, [class*="-card"]:hover {
-    transform: translateY(-3px) !important;
-    box-shadow: 0 14px 32px rgba(0,0,0,.35), 0 0 0 1px var(--pm-glass-border) !important;
-  }
-}
-/* Touch press — settles back down with a soft glow ring instead of
-   a hard snap, consistent with the button press language. */
-.card:active, [class*="-card"]:active {
-  transform: translateY(0) scale(.985) !important;
-  box-shadow: 0 6px 18px rgba(0,0,0,.3), 0 0 0 4px var(--pm-glow) !important;
-}
-/* Long-press — .pm-longpress is toggled by premium-motion.js after
-   ~420ms of continuous press, giving a distinct "held" cue before
-   any context action fires. */
-.card.pm-longpress, [class*="-card"].pm-longpress {
-  transform: scale(.97) !important;
-  box-shadow: 0 0 0 10px var(--pm-glow) !important;
-}
-button, .btn, .ic-btn, .cc-btn, .connect-action-btn, .pk, .storage-action-btn,
-[class*="-tab"]:not([class*="-tabs"]),
-[class*="-chip"]:not([class*="-chips"]),
-[class*="-pill"]:not([class*="-pills"]) {
+.btn, .ic-btn, .cc-btn, .connect-action-btn, .pk, .storage-action-btn {
   transition: transform var(--pm-fast) var(--pm-ease),
               box-shadow var(--pm-fast) var(--pm-ease),
               filter var(--pm-fast) var(--pm-ease) !important;
 }
-button:active, .btn:active, .ic-btn:active, .cc-btn:active, .connect-action-btn:active, .pk:active,
-[class*="-tab"]:not([class*="-tabs"]):active,
-[class*="-chip"]:not([class*="-chips"]):active,
-[class*="-pill"]:not([class*="-pills"]):active {
+.btn:active, .ic-btn:active, .cc-btn:active, .connect-action-btn:active, .pk:active {
   transform: scale(.96) !important;
   box-shadow: 0 0 0 8px var(--pm-glow), 0 4px 16px rgba(0,0,0,.4) !important;
 }

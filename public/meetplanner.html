@@ -195,9 +195,6 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 
 #mpToast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(12px);background:rgba(15,15,15,0.9);backdrop-filter:blur(16px);color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;z-index:9999;opacity:0;transition:all 0.3s;pointer-events:none;white-space:nowrap;box-shadow:0 6px 24px rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);font-family:var(--ff-sans);font-weight:500}
 </style>
-<link rel="stylesheet" href="/theme-burgundy.css">
-<link rel="stylesheet" href="/premium-motion.css">
-<link rel="stylesheet" href="/premium-states.css">
 </head>
 <body>
 
@@ -292,7 +289,10 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 
   <button class="mp-btn mp-btn-accent mp-btn-full" id="mpSaveBtn" style="display:none" onclick="mpSavePlan()">💾 Save This Itinerary</button>
 
-  <div class="mp-empty" id="mpResultEmpty"></div>
+  <div class="mp-empty" id="mpResultEmpty">
+    <div class="mp-empty-ico">🧭</div>
+    <div class="mp-empty-text">Pick a city and add stops in "Plan New" to build your roadmap.</div>
+  </div>
 
 </div>
 
@@ -347,8 +347,6 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <div id="mpToast"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="/premium-motion.js"></script>
-<script src="/premium-states.js"></script>
 <script src="/meetplanner.js"></script>
 <script src="/search/search-utils.js?v=2"></script>
 <script src="/search/category-map.js?v=2"></script>
@@ -358,12 +356,5 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <script src="/search/nominatim-service.js?v=2"></script>
 <script src="/search/photon-service.js?v=2"></script>
 <script src="/search/search-service.js?v=2"></script>
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-<script src="/ui-icons.js"></script>
-<!-- Premium Sound System (additive, non-invasive) -->
-<script src="/js/audio/sound-engine.js"></script>
-<script src="/js/audio/sound-library.js"></script>
-<script src="/js/audio/audio-integration.js"></script>
-<script src="/js/audio/audio-settings-ui.js"></script>
 </body>
 </html>

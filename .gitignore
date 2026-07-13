@@ -3,15 +3,3 @@
 node_modules/
 *.log
 .DS_Store
-
-# Android / Capacitor build artifacts — machine-specific or regenerated on build
-android/local.properties
-android/.gradle/
-android/app/build/
-android/build/
-android/captures/
-android/.idea/
-android/*.iml
-android/app/*.iml
-*.keystore
-*.jks

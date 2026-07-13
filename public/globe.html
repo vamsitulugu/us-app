@@ -626,9 +626,6 @@
 
     
   </style>
-<link rel="stylesheet" href="/theme-burgundy.css">
-<link rel="stylesheet" href="/premium-motion.css">
-<link rel="stylesheet" href="/premium-states.css">
 </head>
 <body>
 <div id="app">
@@ -651,7 +648,6 @@
     <div class="top-title">
       <div class="globe-ico">🌍</div>
       <span>Memory Globe</span>
-      <button class="ic-btn" id="searchToggleBtn" title="Search" style="width:32px;height:32px;font-size:14px;margin-left:4px" onclick="toggleGlobalSearch()">🔎</button>
     </div>
     <div class="top-actions">
       <button class="ic-btn" title="Live Location" id="liveToggleBtn" onclick="toggleLiveLocation()">📡</button>
@@ -780,6 +776,7 @@
     style="width:100%;padding:10px 14px;border-radius:20px;border:1px solid var(--border2);background:rgba(10,10,25,0.85);backdrop-filter:blur(16px);color:#fff;font-size:13px;outline:none">
   <div id="globalSearchResults" class="loc-results"></div>
 </div>
+<button class="ic-btn" id="searchToggleBtn" style="position:absolute;top:16px;left:16px;z-index:56" onclick="toggleGlobalSearch()">🔎</button>
   <!-- ═══ TIMELINE VIEW ═══ -->
   <div id="timelineView" style="display:none;position:absolute;inset:60px 0 140px;z-index:3;overflow-y:auto;padding:20px">
     <div id="timelineContent"></div>
@@ -3115,14 +3112,5 @@ document.addEventListener('click', e => {
 <script src="/search/nominatim-service.js?v=2"></script>
 <script src="/search/photon-service.js?v=2"></script>
 <script src="/search/search-service.js?v=2"></script>
-<script src="/premium-motion.js"></script>
-<script src="/premium-states.js"></script>
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-<script src="/ui-icons.js"></script>
-<!-- Premium Sound System (additive, non-invasive) -->
-<script src="/js/audio/sound-engine.js"></script>
-<script src="/js/audio/sound-library.js"></script>
-<script src="/js/audio/audio-integration.js"></script>
-<script src="/js/audio/audio-settings-ui.js"></script>
 </body>
 </html>

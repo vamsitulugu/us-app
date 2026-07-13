@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Matches manifest.json theme_color/background_color and the app's red/dark UI -->
-    <color name="colorPrimary">#1a0010</color>
-    <color name="colorPrimaryDark">#1a0010</color>
-    <color name="colorAccent">#e11d48</color>
-</resources>

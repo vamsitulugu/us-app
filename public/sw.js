@@ -1,5 +1,5 @@
-// Service Worker for US 💕 PWA — v4
-const CACHE = 'uwl-v5';
+// Service Worker for US 💕 PWA — v3
+const CACHE = 'uwl-v4';
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
@@ -29,32 +29,6 @@ self.addEventListener('fetch', e => {
   if (url.origin !== self.location.origin) return;
 
   if (url.pathname.startsWith('/api/')) return; // never intercept API
-
-  // Static, fingerprint-free assets (scripts/styles/fonts/images/icons)
-  // are safe to serve cache-first with a background revalidation: they
-  // change far less often than the app shell, and if a page pulls in a
-  // stale copy once, the next fetch is already updated in the cache.
-  // Navigation requests (HTML) keep the exact original network-first
-  // behavior below, so the app shell itself is never served stale.
-  const isNavigation = e.request.mode === 'navigate' || e.request.destination === 'document';
-  const isStaticAsset = !isNavigation && ['script', 'style', 'font', 'image'].includes(e.request.destination);
-
-  if (isStaticAsset && e.request.method === 'GET') {
-    e.respondWith(
-      caches.open(CACHE).then(async (c) => {
-        const cached = await c.match(e.request);
-        const networkFetch = fetch(e.request).then(res => {
-          if (res && res.status === 200) c.put(e.request, res.clone());
-          return res;
-        }).catch(() => null);
-        // Serve the cached copy instantly if we have one; otherwise wait
-        // on the network. Either way, the cache is refreshed in the
-        // background for next time.
-        return cached || (await networkFetch) || caches.match('/index.html');
-      })
-    );
-    return;
-  }
 
   e.respondWith(
     fetch(e.request)

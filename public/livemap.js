@@ -450,11 +450,7 @@ const LiveMap = (() => {
         ${deletable ? `<button class="del-btn" onclick="LiveMap.deletePlace('${p.id}')">✕</button>` : ''}
       </div>`;
     const myEl = document.getElementById('myPlacesList');
-    if (myEl) {
-      if (mine.length) myEl.innerHTML = mine.map(p => rowHtml(p, true)).join('');
-      else if (window.PS) PS.empty(myEl, { icon: 'home', title: 'No places saved yet', desc: 'Add Home, College, Office \u2014 anywhere you want a quick shortcut to.', actionLabel: 'Add Place', onAction: () => LiveMap.openPlaceModal('self'), compact: true });
-      else myEl.innerHTML = '<div class="empty">No places saved yet — add Home, College, Office…</div>';
-    }
+    if (myEl) myEl.innerHTML = mine.length ? mine.map(p => rowHtml(p, true)).join('') : '<div class="empty">No places saved yet — add Home, College, Office…</div>';
     const ptEl = document.getElementById('ptPlacesList');
     if (ptEl) ptEl.innerHTML = theirs.length ? theirs.map(p => rowHtml(p, false)).join('') : '<div class="empty">Synced once your partner adds places</div>';
     _renderPlaceMarkers();

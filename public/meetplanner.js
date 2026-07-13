@@ -574,7 +574,7 @@ function mpLoadCompletePhotos(input) {
 }
 function _renderCompleteThumbs() {
   document.getElementById('mpCompletePhotoThumbs').innerHTML = _completePhotos.map((p, i) => `
-    <div class="mp-photo-thumb"><img src="${p}" loading="lazy" decoding="async"><button onclick="mpRemoveCompletePhoto(${i})">✕</button></div>`).join('');
+    <div class="mp-photo-thumb"><img src="${p}"><button onclick="mpRemoveCompletePhoto(${i})">✕</button></div>`).join('');
 }
 function mpRemoveCompletePhoto(i) { _completePhotos.splice(i, 1); _renderCompleteThumbs(); }
 async function mpConfirmComplete() {
