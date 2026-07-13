@@ -1,0 +1,185 @@
+diff --git a/.gitignore b/.gitignore
+index 50904df..903381d 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -2,4 +2,16 @@
+ .env
+ node_modules/
+ *.log
+-.DS_Store
+\ No newline at end of file
++.DS_Store
++
++# Android / Capacitor build artifacts — machine-specific or regenerated on build
++android/local.properties
++android/.gradle/
++android/app/build/
++android/build/
++android/captures/
++android/.idea/
++android/*.iml
++android/app/*.iml
++*.keystore
++*.jks
+\ No newline at end of file
+diff --git a/android/app/build.gradle b/android/app/build.gradle
+new file mode 100644
+index 0000000..d9c237e
+--- /dev/null
++++ b/android/app/build.gradle
+@@ -0,0 +1,62 @@
++apply plugin: 'com.android.application'
++
++android {
++    namespace = "com.usapp.everythingtogether"
++    compileSdk = rootProject.ext.compileSdkVersion
++    defaultConfig {
++        applicationId "com.usapp.everythingtogether"
++        minSdkVersion rootProject.ext.minSdkVersion
++        targetSdkVersion rootProject.ext.targetSdkVersion
++        versionCode 1
++        versionName "1.0.0"
++        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
++        aaptOptions {
++             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
++             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
++            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
++        }
++    }
++    buildTypes {
++        release {
++            // Release-only: shrinks/obfuscates unused code and strips unused
++            // resources to reduce APK size. Debug builds are untouched —
++            // minifyEnabled stays false there so local testing/logs are
++            // never affected.
++            minifyEnabled true
++            shrinkResources true
++            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
++        }
++        debug {
++            minifyEnabled false
++        }
++    }
++}
++
++repositories {
++    flatDir{
++        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
++    }
++}
++
++dependencies {
++    implementation fileTree(include: ['*.jar'], dir: 'libs')
++    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
++    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
++    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
++    implementation project(':capacitor-android')
++    testImplementation "junit:junit:$junitVersion"
++    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
++    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
++    implementation project(':capacitor-cordova-android-plugins')
++}
++
++apply from: 'capacitor.build.gradle'
++
++try {
++    def servicesJSON = file('google-services.json')
++    if (servicesJSON.text) {
++        apply plugin: 'com.google.gms.google-services'
++    }
++} catch(Exception e) {
++    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
++}
+diff --git a/android/app/proguard-rules.pro b/android/app/proguard-rules.pro
+new file mode 100644
+index 0000000..391b13b
+--- /dev/null
++++ b/android/app/proguard-rules.pro
+@@ -0,0 +1,32 @@
++# Add project specific ProGuard rules here.
++# You can control the set of applied configuration files using the
++# proguardFiles setting in build.gradle.
++#
++# For more details, see
++#   http://developer.android.com/guide/developing/tools/proguard.html
++
++# ── Capacitor / WebView JS bridge ──────────────────────────────────
++# Capacitor's native<->JS bridge calls plugin methods via reflection.
++# Without these keep rules, R8 (enabled above for release builds) would
++# strip the annotated methods/classes since it can't see the JS-side
++# calls, silently breaking every native feature (camera, splash, status
++# bar, share, etc.) ONLY in release builds — debug would keep working,
++# making this very easy to miss without the rule.
++-keep class com.getcapacitor.** { *; }
++-keep @com.getcapacitor.annotation.CapacitorPlugin public class * { *; }
++-keepclassmembers,allowobfuscation class * {
++    @com.getcapacitor.annotation.PermissionCallback <methods>;
++    @com.getcapacitor.annotation.ActivityCallback <methods>;
++}
++-keepattributes JavascriptInterface
++-keepclassmembers class * {
++    @android.webkit.JavascriptInterface <methods>;
++}
++
++# Uncomment this to preserve the line number information for
++# debugging stack traces.
++#-keepattributes SourceFile,LineNumberTable
++
++# If you keep the line number information, uncomment this to
++# hide the original source file name.
++#-renamesourcefileattribute SourceFile
+diff --git a/package.json b/package.json
+index e60bae0..3fbe56f 100644
+--- a/package.json
++++ b/package.json
+@@ -23,6 +23,21 @@
+     "web-push": "^3.6.7"
+   },
+   "devDependencies": {
++    "@capacitor/android": "^8.4.1",
++    "@capacitor/app": "^8.1.0",
++    "@capacitor/assets": "^3.0.5",
++    "@capacitor/camera": "^8.2.1",
++    "@capacitor/cli": "^8.4.1",
++    "@capacitor/clipboard": "^8.0.1",
++    "@capacitor/core": "^8.4.1",
++    "@capacitor/device": "^8.0.2",
++    "@capacitor/filesystem": "^8.1.2",
++    "@capacitor/haptics": "^8.0.2",
++    "@capacitor/keyboard": "^8.0.5",
++    "@capacitor/network": "^8.0.1",
++    "@capacitor/share": "^8.0.1",
++    "@capacitor/splash-screen": "^8.0.1",
++    "@capacitor/status-bar": "^8.0.2",
+     "nodemon": "^3.1.4"
+   }
+ }
+diff --git a/public/index.html b/public/index.html
+index 5cd5d15..39d53aa 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -9728,6 +9728,8 @@ if ('serviceWorker' in navigator) {
+ <script src="/chat/call.js"></script>
+ <script src="/dashboard_chat_patch.js"></script>
+ <script src="/app-polish.js"></script>
++<!-- Native-Android bridge (Capacitor build only). No-op on web/PWA — see file header. -->
++<script src="/capacitor-bridge.js"></script>
+ 
+ <!-- Premium Sound System (additive, non-invasive) -->
+ <script src="/js/audio/sound-engine.js"></script>
+diff --git a/server.js b/server.js
+index e486d7d..58ee6b2 100644
+--- a/server.js
++++ b/server.js
+@@ -45,6 +45,11 @@ const apiLimiter = rateLimit({
+ const allowedOrigins = [
+   'https://useverythingtogether.vercel.app',
+   process.env.APP_URL || 'https://us-app-av6d.onrender.com',
++  // The Android APK (Capacitor, androidScheme:'https') serves its bundled
++  // web assets from this origin — without it, every fetch() call made
++  // from inside the app would be blocked by CORS.
++  'https://localhost',
++  'capacitor://localhost',
+   'http://localhost:3000',
+   'http://127.0.0.1:3000',
+   'http://localhost:3001',
