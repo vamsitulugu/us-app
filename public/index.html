@@ -4583,57 +4583,17 @@ select option { background: #0D0D0D; color: #fff; }
     </div>
   </div>
 </div>
-  <!-- AUTH OVERLAY -->
-  <div class="auth-overlay" id="authOverlay">
-    <div class="auth-card">
-      <div style="display:flex;justify-content:center;margin-bottom:14px">
-        
-      </div>
-      
-<img src="/icons/icon-512.png" alt="US"
-  style="height:72px;width:auto;margin:0 auto 8px;display:block;filter:drop-shadow(0 0 12px rgba(150,100,220,0.6))">
-<div style="font-family:var(--ff-serif);font-size:28px;color:var(--white);text-align:center;margin-bottom:4px;letter-spacing:-1px">US</div>
-<div class="brand-tagline"
-  style="margin:0 0 14px;font-size:10px;text-align:center;letter-spacing:2px;color:var(--accent2)">EVERYTHING TOGETHER.</div>
-      <div class="auth-sub">Your private space for two — journal, plans, memories & more.</div>
-      <div class="auth-tabs">
-        <button class="auth-tab active" onclick="switchAuthTab('setup')">Get Started</button>
-        <button class="auth-tab" onclick="switchAuthTab('pair')">Join Partner</button>
-      </div>
-      <div id="authSetup" class="auth-form">
-        <div id="setupErr" class="auth-err"></div>
-        <div class="field"><label>Your Name</label><input type="text" id="authMyName" placeholder="Your name"
-            autocomplete="off"></div>
-        <div class="field"><label>Partner's Name</label><input type="text" id="authPtName" placeholder="Partner's name"
-            autocomplete="off"></div>
-        <div class="field"><label>Together Since (optional)</label><input type="date" id="authAnniv"></div>
-<div class="field"><label>Your Birthday (optional)</label><input type="date" id="authMyBday"></div>
-<div class="field"><label>Partner's Birthday (optional)</label><input type="date" id="authPtBday"></div>
-        <button class="btn btn-accent" id="setupBtn" onclick="doSetup()"
-          style="width:100%;justify-content:center;padding:13px;font-size:14px;margin-top:5px">Create Our Space
-          ✨</button>
-        <div style="text-align:center;font-size:11px;color:var(--text3);margin:16px 0">Already have a connect code?
-        </div>
-        <button class="btn btn-glass" onclick="switchAuthTab('pair')" style="width:100%;justify-content:center">Join
-          with Code →</button>
-      </div>
-      <div id="authPair" class="auth-form" style="display:none">
-        <div id="pairErr" class="auth-err"></div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.65">Enter your partner's 6-digit
-          connect code to share everything between your two devices.</div>
-        <div class="field"><label>Your Name</label><input type="text" id="pairMyName" placeholder="Your name"
-            autocomplete="off"></div>
-        <div class="field"><label>Connect Code</label><input type="text" id="pairCode" placeholder="A1B2C3"
-            maxlength="6"
-            style="text-transform:uppercase;letter-spacing:4px;font-size:18px;font-weight:700;text-align:center"></div>
-        <button class="btn btn-accent" id="pairBtn" onclick="doPair()"
-          style="width:100%;justify-content:center;padding:13px;font-size:14px;margin-top:5px">Connect with Partner
-          💕</button>
-        <div style="text-align:center;font-size:11px;color:var(--text3);margin:16px 0">New here?</div>
-        <button class="btn btn-glass" onclick="switchAuthTab('setup')" style="width:100%;justify-content:center">Start
-          Fresh →</button>
-      </div>
-    </div>
+  <!-- Hidden pair-code form: kept (not shown to the user) because
+       openJoinPartnerModal()/doPair() still read these fields when
+       linking a partner from inside the app's settings page. The old
+       "Get Started / Join Partner" landing-style auth card that used
+       to render here has been removed — real auth now happens on
+       /landing.html before this page is ever reached. -->
+  <div id="authOverlay" style="display:none">
+    <div id="pairErr" class="auth-err"></div>
+    <input type="text" id="pairMyName" placeholder="Your name" autocomplete="off">
+    <input type="text" id="pairCode" placeholder="A1B2C3" maxlength="6">
+    <button id="pairBtn" onclick="doPair()">Connect with Partner</button>
   </div>
 
   <!-- SIDEBAR -->
@@ -6576,30 +6536,6 @@ async function removePartner() {
         }
 
         // ─── AUTH ─────────────────────────────────────────────────
-        function switchAuthTab(tab) {
-          document.querySelectorAll('.auth-tab').forEach((t, i) => t.classList.toggle('active', i === (tab === 'setup' ? 0 : 1)));
-          document.getElementById('authSetup').style.display = tab === 'setup' ? 'block' : 'none';
-          document.getElementById('authPair').style.display = tab === 'pair' ? 'block' : 'none';
-        }
-        async function doSetup() {
-          resetForNewAccount();
-          const name = document.getElementById('authMyName').value.trim();
-          const errEl = document.getElementById('setupErr');
-          if (!name) { errEl.textContent = 'Please enter your name'; errEl.style.display = 'block'; return; }
-          errEl.style.display = 'none';
-          const btn = document.getElementById('setupBtn'); btn.textContent = 'Creating...'; btn.disabled = true;
-          try {
-            const data = await api('POST', '/api/auth/setup', { myName: name, partnerName: document.getElementById('authPtName').value.trim() || 'Partner', anniversary: document.getElementById('authAnniv').value, vaultPin: '1234' });
-            S.myBday = document.getElementById('authMyBday').value || '';
-            S.ptBday = document.getElementById('authPtBday').value || '';
-            S.coupleId = data.coupleId; S.connectCode = data.connectCode; S.myName = data.myName;
-            S.partnerName = data.partnerName; S.role = 'user1'; S.setupDone = true; S.paired = false;
-            pushMyProfile(); saveLocal(); saveToCloud();
-            document.getElementById('authOverlay').style.display = 'none';
-            applyNames(); renderAll(); updatePairStatus(); toast('Welcome, ' + name + '! Share your connect code 💕'); spawnPetals(); startAlarmCheck(); startSyncLoop();
-          } catch (e) { errEl.textContent = 'Error: ' + e.message; errEl.style.display = 'block'; }
-          finally { btn.textContent = 'Create Our Space ✨'; btn.disabled = false; }
-        }
         async function doPair() {
           resetForNewAccount();
           const name = document.getElementById('pairMyName').value.trim();
@@ -9547,10 +9483,9 @@ if (Notification.permission === 'granted' && S.coupleId) {
   setTimeout(registerPushSubscription, 3000);
 }
 function syncAuthOverlay() {
-  const ov = document.getElementById('authOverlay');
-  if (!ov) return;
-  const shouldShow = !(S.setupDone && S.coupleId);
-  ov.style.display = shouldShow ? 'flex' : 'none';
+  // No-op: the old visible auth overlay was removed. Auth gating is
+  // handled by the /landing.html redirect in init(); this hidden
+  // container only holds fields used by openJoinPartnerModal()/doPair().
 }
 
 // Re-sync whenever the page is restored from bfcache (common on mobile)
