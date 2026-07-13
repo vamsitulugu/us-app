@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Us With Love</string>
+    <string name="title_activity_main">Us With Love</string>
+    <string name="package_name">com.uswithlove.app</string>
+    <string name="custom_url_scheme">com.uswithlove.app</string>
+</resources>

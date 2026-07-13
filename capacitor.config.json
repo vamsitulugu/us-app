@@ -1,0 +1,32 @@
+{
+  "appId": "com.uswithlove.app",
+  "appName": "Us With Love",
+  "webDir": "public",
+  "server": {
+    "url": "https://useverythingtogether.vercel.app",
+    "androidScheme": "https",
+    "allowNavigation": [
+      "useverythingtogether.vercel.app",
+      "us-app-av6d.onrender.com",
+      "*.supabase.co"
+    ]
+  },
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "launchAutoHide": false,
+      "backgroundColor": "#1a0010",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#1a0010"
+    }
+  }
+}
