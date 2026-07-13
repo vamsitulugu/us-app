@@ -6567,7 +6567,7 @@ function saveLocal() {
             applyNames(); renderAll(); updatePairStatus(); syncLoveCounterToFrame();
             PM.relationshipConnected(document.body);
             toast('Connected with ' + data.partnerName + '! 💕'); spawnPetals(); startAlarmCheck(); startSyncLoop();
-            if (Notification.permission === 'granted') setTimeout(registerPushSubscription, 2000);
+            if ('Notification' in window && Notification.permission === 'granted') setTimeout(registerPushSubscription, 2000);
           } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
           finally { btn.textContent = 'Connect with Partner 💕'; btn.disabled = false; }
         }
@@ -7044,7 +7044,8 @@ async function toggleNotifications() {
     toast('Blocked — enable notifications for this site in your browser settings');
     return;
   }
-  const p = await Notification.requestPermission();
+  if (!('Notification' in window)) return;
+const p = await Notification.requestPermission();
   syncNotifToggleUI();
   if (p === 'granted') {
     toast('Notifications enabled! 🔔');
@@ -9493,7 +9494,7 @@ async function registerPushSubscription() {
 }
 
 // Auto-register if permission already granted
-if (Notification.permission === 'granted' && S.coupleId) {
+if ('Notification' in window && Notification.permission === 'granted' && S.coupleId) {
   setTimeout(registerPushSubscription, 3000);
 }
 function syncAuthOverlay() {
