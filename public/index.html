@@ -6578,11 +6578,15 @@ async function removePartner() {
 
         // ─── CLOUD SYNC ──────────────────────────────────────────
  async function loadFromCloud() {
-  if (!S.coupleId) return;
+  if (!S.coupleId) { console.log('[US-CLOUD] loadFromCloud: no coupleId, skipping'); return; }
   if (_loadInFlight) return;
   _loadInFlight = true;
   try {
     const state = await api('GET', '/api/data/state/' + S.coupleId);
+    console.log('[US-CLOUD] GET /api/data/state result:', state ? {
+      journalLen: (state.journal||[]).length, photosLen: (state.photos||[]).length,
+      paired: state.paired, partnerName: state.partnerName
+    } : 'null (no saved state row for this coupleId)');
     if (state) {
       const protect = ['coupleId', 'connectCode', 'myName', 'partnerName',
   'role', 'setupDone', 'theme', 'vaultPin',
@@ -6607,6 +6611,10 @@ async function saveToCloud() {
   _isSaving = true;
   try {
     const st = { ...S }; delete st.coupleId; delete st.connectCode;
+    console.log('[US-CLOUD] saveToCloud pushing:', {
+      journalLen: (st.journal||[]).length, photosLen: (st.photos||[]).length,
+      _loadInFlight, note: _loadInFlight ? 'WARNING: saving while a cloud load is still in flight' : 'ok'
+    });
     await api('POST', '/api/data/state', {
       coupleId: S.coupleId,
       state: st,
@@ -8569,9 +8577,14 @@ function logOut() {
         // ─── INIT ────────────────────────────────────────────────
         async function init() {
         loadLocal(); // always load from localStorage first — instant, never blank
+        console.log('[US-INIT] STEP 5 - Local state loaded:', {
+          coupleId: S.coupleId, paired: S.paired, role: S.role,
+          journalLen: (S.journal||[]).length, photosLen: (S.photos||[]).length
+        });
         AppLoader.ready('theme');
         syncAuthOverlay();
         if (!S.coupleId) {
+          console.log('[US-INIT] STEP 5 - No coupleId, redirecting to auth');
           AppLoader.showAuthSkeleton();
           AppLoader.ready('auth');  
           window.location.href = logoutRedirectUrl();
@@ -8592,15 +8605,23 @@ function logOut() {
           if (S.setupDone && S.coupleId) {
             renderAll(); // render immediately from localStorage — no blank screen
             updatePairStatus();
+            console.log('[US-INIT] STEP 6 - Calling loadFromCloud() for coupleId', S.coupleId);
             // Then sync from cloud in background
             loadFromCloud().then(() => {
+  console.log('[US-INIT] STEP 6 - Cloud load complete:', {
+    paired: S.paired, journalLen: (S.journal||[]).length, photosLen: (S.photos||[]).length,
+    partnerName: S.partnerName
+  });
   checkPairStatus();
   checkIncomingTouch();
   checkIncomingMissYou();
   checkIncomingHug();
+  updatePairStatus();
   renderAll();
-  AppLoader.ready('data');   
-}).catch(() => {
+  AppLoader.ready('data');
+  console.log('[US-INIT] STEP 7 - Navigation/render complete');
+}).catch((e) => {
+  console.log('[US-INIT] STEP 6 - loadFromCloud FAILED:', e && e.message);
   AppLoader.ready('data');
 });
             startAlarmCheck();

@@ -227,6 +227,10 @@
   // Builds the exact shape index.html's `S` object / uwl_v5 expects,
   // so the dashboard loads with zero changes to index.html itself.
   function persistSession(data, role) {
+    console.log('[US-AUTH] STEP 2 - User/session data from server:', {
+      coupleId: data.coupleId, paired: data.paired, myName: data.myName,
+      partnerName: data.partnerName, connectCode: data.connectCode, role
+    });
     const S = {
       coupleId: data.coupleId, connectCode: data.connectCode,
       myName: data.myName, partnerName: data.partnerName || 'Partner',
@@ -245,6 +249,10 @@
       placesMemories: []
     };
     localStorage.setItem('uwl_v5', JSON.stringify(S));
+    console.log('[US-AUTH] STEP 3 - Local session persisted:', {
+      coupleId: S.coupleId, paired: S.paired, setupDone: S.setupDone,
+      journalLen: S.journal.length, photosLen: S.photos.length
+    });
     return S;
   }
 
@@ -330,6 +338,7 @@
   // ─── Sign in / Sign up ───────────────────────────────────────────
   function routeAfterAuth(data, role) {
     const session = persistSession(data, role);
+    console.log('[US-AUTH] STEP 4 - Routing decision:', session.paired ? 'DASHBOARD (paired)' : 'COUPLE-LINK (not paired)');
     if (session.paired) { goToDashboard(); }
     else { showCoupleLink(session); }
   }
@@ -342,9 +351,12 @@
     const btn = document.getElementById('btn-signin');
     btn.disabled = true; btn.textContent = 'Signing in…';
     try {
+      console.log('[US-AUTH] STEP 1 - Calling /api/auth/login for', email);
       const data = await api('POST', '/api/auth/login', { email, password: pass });
+      console.log('[US-AUTH] STEP 1 - Login response OK, coupleId:', data.coupleId, 'paired:', data.paired);
       routeAfterAuth(data, data.role || 'user1');
     } catch (e) {
+      console.log('[US-AUTH] STEP 1 - Login FAILED:', e.message);
       showErr('signin', e.message);
       btn.disabled = false; btn.textContent = 'Sign In';
     }
@@ -377,19 +389,22 @@
   // signed-in user isn't kicked back to Sign In just from being offline.
   (async function boot() {
     const session = getSession();
+    console.log('[US-AUTH] BOOT - cached session found:', !!session, session ? { coupleId: session.coupleId, paired: session.paired } : null);
 
     if (session) {
       try {
         const couple = await api('GET', '/api/auth/couple/' + session.coupleId);
+        console.log('[US-AUTH] BOOT - server couple check:', couple);
         session.paired = !!couple.paired;
         session.partnerName = couple.user2_name || session.partnerName;
         session.connectCode = couple.connect_code || session.connectCode;
         session.anniversary = couple.anniversary || session.anniversary;
         localStorage.setItem('uwl_v5', JSON.stringify(session));
       } catch (e) {
-        // offline — trust the last-known cached state below
+        console.log('[US-AUTH] BOOT - couple check FAILED (offline?):', e.message);
       }
 
+      console.log('[US-AUTH] BOOT - routing:', session.paired ? 'DASHBOARD' : 'COUPLE-LINK');
       if (session.paired) {
         goToDashboard();
         return;
