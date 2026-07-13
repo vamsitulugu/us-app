@@ -53,6 +53,16 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 .dg-stat-n{font-family:var(--ff-serif);font-size:26px;color:var(--white);line-height:1}
 .dg-stat-l{font-size:9px;color:var(--text3);margin-top:5px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
 @media(max-width:500px){.dg-hero{grid-template-columns:repeat(2,1fr)}}
+/* ── GOAL ANALYTICS ── */
+.ga-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,var(--accent-glow),var(--accent2-glow));border:1px solid var(--border2);border-radius:var(--r);margin:0 16px 18px;backdrop-filter:var(--blur-sm)}
+.ga-insight-ico{font-size:20px;flex-shrink:0}
+.ga-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+.ga-insight-text strong{color:var(--white)}
+.ga-cat-card{margin:0 16px 18px;background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;backdrop-filter:var(--blur-sm)}
+.ga-cat-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;font-weight:600}
+.ga-cat-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0}
+.ga-cat-bar-wrap{flex:1;height:6px;background:var(--g2);border-radius:3px;margin:0 10px;overflow:hidden}
+.ga-cat-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
 
 /* ── TABS ── */
 .dg-tabs{display:flex;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;padding:0 16px}
@@ -231,11 +241,19 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
   font-size:12px;color:rgba(167,139,250,0.9);display:flex;align-items:center;gap:8px;
 }
 </style>
+<link rel="stylesheet" href="/theme-burgundy.css">
+<link rel="stylesheet" href="/premium-motion.css">
+<link rel="stylesheet" href="/premium-states.css">
 </head>
 <body>
 
 <!-- ═══ STATS HERO ═══ -->
 <div class="dg-hero" id="dgHero"></div>
+<div class="ga-insight-card" id="gaInsightCard"></div>
+<div class="ga-cat-card" id="gaCatCardWrap" style="display:none">
+  <div class="ga-cat-title">🌟 Goals by Category</div>
+  <div id="gaCatCard"></div>
+</div>
 
 <!-- ═══ TABS ═══ -->
 <div class="dg-tabs">
@@ -508,6 +526,37 @@ function renderStats() {
     <div class="dg-stat"><div class="dg-stat-n" style="color:var(--green)">${completed}</div><div class="dg-stat-l">Completed</div></div>
     <div class="dg-stat"><div class="dg-stat-n" style="color:var(--yellow)">${avgProg}%</div><div class="dg-stat-l">Avg Progress</div></div>
   `;
+  renderGoalAnalytics(all, total, completed, inprog, avgProg);
+}
+
+function renderGoalAnalytics(all, total, completed, inprog, avgProg) {
+  const insEl = document.getElementById('gaInsightCard');
+  const catWrap = document.getElementById('gaCatCardWrap'), catEl = document.getElementById('gaCatCard');
+  if (insEl) {
+    let text, ico = '💡';
+    if (!total) { text = 'Add your first shared dream to start tracking progress together.'; }
+    else if (completed === total) { ico = '🌟'; text = `Incredible — you've completed <strong>all ${total}</strong> of your dreams!`; }
+    else if (avgProg >= 70) { ico = '🔥'; text = `You're averaging <strong>${avgProg}%</strong> progress — most dreams are close to done.`; }
+    else if (inprog > 0) { ico = '🚀'; text = `<strong>${inprog}</strong> dream${inprog === 1 ? ' is' : 's are'} actively in progress, ${completed} completed so far.`; }
+    else { ico = '🌱'; text = `You have <strong>${total}</strong> dream${total === 1 ? '' : 's'} logged — start moving one forward today.`; }
+    insEl.innerHTML = `<div class="ga-insight-ico">${ico}</div><div class="ga-insight-text">${text}</div>`;
+  }
+  if (catEl && catWrap) {
+    const catCounts = {};
+    all.forEach(d => { const c = d.category || 'Other'; catCounts[c] = (catCounts[c] || 0) + 1; });
+    const entries = Object.entries(catCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    if (!entries.length) { catWrap.style.display = 'none'; }
+    else {
+      catWrap.style.display = '';
+      const max = Math.max(...entries.map(e => e[1]));
+      catEl.innerHTML = entries.map(([cat, count]) => `
+        <div class="ga-cat-row">
+          <span style="font-size:12px;color:var(--text2);min-width:80px">${cat}</span>
+          <div class="ga-cat-bar-wrap"><div class="ga-cat-bar" style="width:${Math.round((count / max) * 100)}%"></div></div>
+          <span style="font-size:11px;color:var(--text3)">${count}</span>
+        </div>`).join('');
+    }
+  }
 }
 
 // ══ RENDER SECTION ══
@@ -544,12 +593,22 @@ function filterDreams(dreams,section) {
 function renderGrid(gridId, dreams, section) {
   const el=document.getElementById(gridId); if(!el) return;
   if(!dreams.length){
-    el.innerHTML=`<div class="dg-empty" style="grid-column:1/-1">
-      <div class="dg-empty-ico">${section==='my'?'🌟':section==='partner'?'💜':'✨'}</div>
-      <div class="dg-empty-text">${section==='my'?'No dreams here yet.<br>Tap + Add Dream to start!':section==='partner'?'Partner hasn\'t added dreams here yet.':'No shared goals yet.<br>Add a goal you want to achieve together!'}</div>
-    </div>`;
+    el.style.gridColumn='1/-1';
+    const copy = {
+      my:      { title:"You haven't created your first dream yet.", desc:"Big or small — write down something you want to reach for, and track it right here.", action:"Create Dream" },
+      partner: { title:"Partner hasn't added dreams here yet.",     desc:"Once they add one, you'll see it here so you can cheer them on.", action:null },
+      shared:  { title:"No shared goals yet.",                       desc:"Add something you both want to achieve together — a trip, a milestone, anything.", action:"Add Shared Goal" }
+    }[section] || { title:"Nothing here yet.", desc:"", action:"Add" };
+    PS.empty(el, {
+      icon: 'dream',
+      title: copy.title,
+      desc: copy.desc,
+      actionLabel: copy.action || undefined,
+      onAction: copy.action ? function(){ openDGModal(section); } : undefined
+    });
     return;
   }
+  el.style.gridColumn='';
   el.innerHTML=dreams.map(d=>renderDreamCard(d,section)).join('');
 }
 
@@ -816,5 +875,14 @@ function renderAll() {
 loadDGState();
 renderAll();
 </script>
+<script src="/premium-motion.js"></script>
+<script src="/premium-states.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="/ui-icons.js"></script>
+<!-- Premium Sound System (additive, non-invasive) -->
+<script src="/js/audio/sound-engine.js"></script>
+<script src="/js/audio/sound-library.js"></script>
+<script src="/js/audio/audio-integration.js"></script>
+<script src="/js/audio/audio-settings-ui.js"></script>
 </body>
 </html>

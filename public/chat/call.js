@@ -364,6 +364,7 @@ let iceQueue = [];
     const track = localStream.getAudioTracks()[0];
     if (!track) return;
     isMuted = !isMuted;
+    window.playAppSound?.(isMuted ? 'call.muted' : 'call.unmuted');
     track.enabled = !isMuted;
     document.getElementById('muteBtn')?.classList.toggle('call-btn-active', isMuted);
     const icon = document.getElementById('muteIcon');
@@ -380,6 +381,7 @@ let iceQueue = [];
     const track = localStream.getVideoTracks()[0];
     if (!track) { requestVideoUpgrade(); return; }
     isCamOff = !isCamOff;
+    window.playAppSound?.(isCamOff ? 'call.camera.off' : 'call.camera.on');
     track.enabled = !isCamOff;
     document.getElementById('camBtn')?.classList.toggle('call-btn-active', isCamOff);
     const icon = document.getElementById('camIcon');
@@ -390,6 +392,7 @@ let iceQueue = [];
 
   function toggleSpeaker() {
     isSpeakerOn = !isSpeakerOn;
+    window.playAppSound?.(isSpeakerOn ? 'call.speaker.on' : 'call.speaker.off');
     document.getElementById('speakerBtn')?.classList.toggle('call-btn-active', !isSpeakerOn);
     const icon = document.getElementById('speakerIcon');
     if (icon) icon.textContent = isSpeakerOn ? '🔊' : '🔈';
@@ -642,6 +645,7 @@ let iceQueue = [];
       if (!S.paired) { toast("⚠️ Your partner hasn't joined yet — pair first"); return; }
       callType = type; isCaller = true;
       isMuted = false; isCamOff = false; isSpeakerOn = true;
+      window.playAppSound?.('call.outgoing');
       renderRinging(type, false);
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
       await setupPeer();
@@ -732,14 +736,15 @@ let iceQueue = [];
     };
     pc.onicecandidate = e => { if (e.candidate) pushSignal({ type: 'ice', candidate: e.candidate }); };
     pc.onconnectionstatechange = () => {
-      if (pc.connectionState === 'connected') { clearRingTimeout(); renderActive(); }
-      if (pc.connectionState === 'failed') { toast('Call disconnected'); endCall(true); }
-      else if (pc.connectionState === 'disconnected') { toast('Connection lost — reconnecting...'); }
+      if (pc.connectionState === 'connected') { clearRingTimeout(); renderActive(); window.playAppSound?.(callType === 'video' ? 'call.video.connected' : 'call.connected'); }
+      if (pc.connectionState === 'failed') { window.playAppSound?.('call.failed'); toast('Call disconnected'); endCall(true); }
+      else if (pc.connectionState === 'disconnected') { window.playAppSound?.('call.network.reconnect'); toast('Connection lost — reconnecting...'); }
     };
   }
   function onConnecting() { const lbl = document.querySelector('.call-status-label'); if (lbl) lbl.textContent = 'Connecting...'; }
 
   function endCall(notify = true) {
+    window.playAppSound?.('call.ended');
     if (notify) pushSignal({ type: 'end' });
     logCall('ended', seconds);
     cleanup();

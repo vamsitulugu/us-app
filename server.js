@@ -45,6 +45,11 @@ const apiLimiter = rateLimit({
 const allowedOrigins = [
   'https://useverythingtogether.vercel.app',
   process.env.APP_URL || 'https://us-app-av6d.onrender.com',
+  // The Android APK (Capacitor, androidScheme:'https') serves its bundled
+  // web assets from this origin — without it, every fetch() call made
+  // from inside the app would be blocked by CORS.
+  'https://localhost',
+  'capacitor://localhost',
   'http://localhost:3000',
   'http://127.0.0.1:3000',
   'http://localhost:3001',

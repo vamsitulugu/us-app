@@ -3,6 +3,18 @@
 
 <head>
   <meta charset="UTF-8">
+  <!-- Resource hints: warm up connections to origins this app always
+       needs (data backend, auth/storage, fonts, CDNs) so DNS+TLS
+       negotiation overlaps with HTML parsing instead of happening
+       serially the first time each origin is actually requested.
+       Purely additive — no behavior change, only earlier connections. -->
+  <link rel="preconnect" href="https://jxqszgehgmkpzhkpfxnc.supabase.co" crossorigin>
+  <link rel="preconnect" href="https://us-app-av6d.onrender.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://unpkg.com">
+  <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
   <style id="skeletonStyles">
   /* Critical, dependency-free styles — inline so they apply before any
      external CSS/font loads. Prevents the "unstyled flash" entirely. */
@@ -203,7 +215,12 @@
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <link rel="stylesheet" href="/chat/chat.css">
   <link rel="stylesheet" href="/chat/call.css">
+  <!-- theme-burgundy.css loads after this page's own <style> block so its
+       :root redeclaration of --accent/--accent2 wins; premium-states.css
+       adds the empty/loading/error/success component layer. -->
+  <link rel="stylesheet" href="/theme-burgundy.css">
   <link rel="stylesheet" href="/premium-motion.css">
+  <link rel="stylesheet" href="/premium-states.css">
   <link rel="stylesheet" href="/app-polish.css">
   <style>
     /* ════════════════════════════════════════════
@@ -1009,6 +1026,48 @@
       font-weight: 700;
       border: 1px solid rgba(251, 191, 36, 0.25);
     }
+  /* ════ HABIT ANALYTICS ════ */
+    .habit-hero{display:flex;align-items:center;gap:20px;padding:20px;margin-bottom:14px}
+    .habit-ring-wrap{position:relative;width:100px;height:100px;flex-shrink:0}
+    .habit-ring-wrap svg{transform:rotate(-90deg)}
+    .habit-ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .habit-ring-pct{font-family:var(--ff-serif);font-size:20px;color:var(--white)}
+    .habit-ring-label{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+    .habit-hero-stats{flex:1}
+    .habit-hero-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+    .habit-hero-amt{font-family:var(--ff-serif);font-size:24px;color:var(--white)}
+    .habit-hero-sub{font-size:11px;color:var(--text2);margin-top:4px;line-height:1.5}
+    .habit-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+    .habit-insight-ico{font-size:20px;flex-shrink:0}
+    .habit-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+    .habit-insight-text strong{color:var(--white)}
+    .habit-heatmap-wrap{overflow-x:auto;padding-bottom:4px}
+    .habit-heatmap{display:grid;grid-template-rows:repeat(7,11px);grid-auto-flow:column;gap:3px;width:max-content}
+    .habit-heat-cell{width:11px;height:11px;border-radius:3px;background:var(--g2)}
+    .habit-heat-legend{display:flex;align-items:center;gap:4px;margin-top:8px;font-size:9px;color:var(--text3)}
+    .habit-heat-legend .habit-heat-cell{width:9px;height:9px}
+    @media(max-width:700px){
+      .habit-hero{flex-direction:column;text-align:center;padding:16px}
+    }
+/* ════ WELLNESS ANALYTICS ════ */
+    .well-hero{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+    .well-ring-card{flex:1;min-width:90px;background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:14px 8px;text-align:center}
+    .well-ring-wrap{position:relative;width:64px;height:64px;margin:0 auto 6px}
+    .well-ring-wrap svg{transform:rotate(-90deg)}
+    .well-ring-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--white)}
+    .well-ring-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.3px}
+    .well-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+    .well-insight-ico{font-size:20px;flex-shrink:0}
+    .well-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+    .well-insight-text strong{color:var(--white)}
+    .well-trend-row{display:flex;align-items:flex-end;gap:6px;height:70px;padding:6px 0 0}
+    .well-trend-bar{flex:1;border-radius:4px 4px 2px 2px;min-height:3px;transition:height 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+    .well-trend-label{font-size:8px;color:var(--text3);text-align:center;margin-top:4px}
+    @media(max-width:700px){
+      .well-ring-card{min-width:75px;padding:10px 6px}
+      .well-ring-wrap{width:52px;height:52px}
+      .well-ring-text{font-size:12px}
+    }
 
     /* ════ NOTES ════ */
     .note-grid {
@@ -1148,6 +1207,45 @@
 
     .cd.other-m {
       color: var(--text3)
+    }
+
+  /* ════ MONEY ANALYTICS ════ */
+    .fin-hero{display:flex;align-items:center;gap:20px;padding:20px;margin-bottom:14px}
+    .fin-ring-wrap{position:relative;width:110px;height:110px;flex-shrink:0}
+    .fin-ring-wrap svg{transform:rotate(-90deg)}
+    .fin-ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .fin-ring-pct{font-family:var(--ff-serif);font-size:22px;color:var(--white)}
+    .fin-ring-label{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+    .fin-hero-stats{flex:1}
+    .fin-hero-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+    .fin-hero-amt{font-family:var(--ff-serif);font-size:26px;color:var(--white)}
+    .fin-hero-sub{font-size:11px;color:var(--text2);margin-top:4px;line-height:1.5}
+    .fin-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+    .fin-insight-ico{font-size:20px;flex-shrink:0}
+    .fin-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+    .fin-insight-text strong{color:var(--white)}
+    .fin-donut-card{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+    .fin-donut-wrap{position:relative;width:140px;height:140px;flex-shrink:0}
+    .fin-donut-wrap svg{transform:rotate(-90deg)}
+    .fin-donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .fin-donut-total{font-family:var(--ff-serif);font-size:16px;color:var(--white)}
+    .fin-donut-total-l{font-size:8px;color:var(--text3);text-transform:uppercase}
+    .fin-legend{flex:1;min-width:140px;display:flex;flex-direction:column;gap:8px}
+    .fin-legend-row{display:flex;align-items:center;gap:8px;font-size:12px}
+    .fin-legend-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0}
+    .fin-legend-name{flex:1;color:var(--text2)}
+    .fin-legend-amt{color:var(--white);font-weight:600;font-size:11px}
+    .fin-trend-row{display:flex;align-items:flex-end;gap:5px;height:70px;padding:6px 0 0}
+    .fin-trend-bar{flex:1;border-radius:4px 4px 2px 2px;background:linear-gradient(180deg,var(--accent),var(--accent-d));min-height:3px;transition:height 0.7s cubic-bezier(0.34,1.56,0.64,1);position:relative}
+    .fin-trend-label{font-size:8px;color:var(--text3);text-align:center;margin-top:4px}
+    .fin-goal-card{padding:16px}
+    .fin-goal-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+    .fin-goal-pct{font-size:20px;font-weight:700;font-family:var(--ff-serif);color:var(--white)}
+    .fin-goal-remain{font-size:11px;color:var(--text3)}
+    @media(max-width:700px){
+      .fin-hero{flex-direction:column;text-align:center;padding:16px}
+      .fin-donut-card{flex-direction:column;text-align:center}
+      .fin-legend{width:100%}
     }
 
     /* ════ MONEY ════ */
@@ -1624,7 +1722,101 @@
       border-color: #ff6b9d;
       color: #ff6b9d
     }
-
+  /* ════ PERIOD ANALYTICS ════ */
+    .period-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(255,107,157,0.1),rgba(255,107,157,0.04));border:1px solid rgba(255,107,157,0.2);border-radius:var(--r);margin-bottom:14px}
+    .period-insight-ico{font-size:20px;flex-shrink:0}
+    .period-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+    .period-insight-text strong{color:var(--white)}
+    .period-cycle-row{display:flex;align-items:flex-end;gap:6px;height:70px;padding:6px 0 0}
+    .period-cycle-bar{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#ff6b9d,#c2185b);min-height:3px;transition:height 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+    .period-cycle-label{font-size:8px;color:var(--text3);text-align:center;margin-top:4px}
+    .period-symptom-freq-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
+    .period-symptom-freq-row:last-child{border-bottom:none}
+    .period-symptom-bar-wrap{flex:1;height:6px;background:var(--g2);border-radius:3px;margin:0 10px;overflow:hidden}
+    .period-symptom-bar{height:100%;background:linear-gradient(90deg,#ff6b9d,#c2185b);border-radius:3px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+    /* ════ MILESTONE TIMELINE (DEEP) ════ */
+    .ml-stats-row{display:flex;gap:10px;margin-bottom:14px}
+    .ml-stat-box{flex:1;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px 8px;text-align:center}
+    .ml-stat-n{font-family:var(--ff-serif);font-size:20px;color:var(--white);line-height:1}
+    .ml-stat-l{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;margin-top:4px}
+    .ml-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+    .ml-insight-ico{font-size:20px;flex-shrink:0}
+    .ml-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+    .ml-insight-text strong{color:var(--white)}
+    .ml-timeline{position:relative;padding-left:26px}
+    .ml-timeline::before{content:'';position:absolute;left:9px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--accent),rgba(229,9,20,0.08))}
+    .ml-year-header{font-family:var(--ff-serif);font-size:15px;color:var(--white);margin:18px 0 10px;position:relative}
+    .ml-year-header:first-child{margin-top:0}
+    .ml-year-header::before{content:'';position:absolute;left:-26px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--white);border:3px solid var(--accent)}
+    .ml-item{position:relative;margin-bottom:16px}
+    .ml-item::before{content:'';position:absolute;left:-21px;top:6px;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+    .ml-card{background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;transition:var(--t)}
+    .ml-card:hover{border-color:var(--border2);transform:translateX(2px)}
+    .ml-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+    .ml-card-title{font-size:13px;font-weight:600;color:var(--white)}
+    .ml-card-date{font-size:9px;color:var(--text3);white-space:nowrap;text-transform:uppercase;letter-spacing:0.3px}
+    .ml-card-note{font-size:12px;color:var(--text2);margin-top:5px;line-height:1.55}
+    .ml-card-gap{font-size:9px;color:var(--text3);margin-top:6px;font-style:italic}
+    /* ════ MEMORIES ANALYTICS ════ */
+    .mem-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+    .mem-insight-ico{font-size:20px;flex-shrink:0}
+    .mem-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+    .mem-insight-text strong{color:var(--white)}
+    .mem-month-row{display:flex;align-items:flex-end;gap:6px;height:70px;padding:6px 0 0}
+    .mem-month-bar{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,var(--accent),var(--accent-d,#8f0000));min-height:3px;transition:height 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+    .mem-month-label{font-size:8px;color:var(--text3);text-align:center;margin-top:4px}
+    /* ════ XP / ACHIEVEMENTS ANALYTICS ════ */
+    .xp-hero{display:flex;flex-direction:column;align-items:center;padding:24px 20px;margin-bottom:14px}
+    .xp-ring-wrap{position:relative;width:140px;height:140px;margin-bottom:10px}
+    .xp-ring-wrap svg{transform:rotate(-90deg)}
+    .xp-ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .xp-ring-lvl{font-family:var(--ff-serif);font-size:34px;color:var(--white);line-height:1}
+    .xp-ring-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+    .xp-hero-sub{font-size:12px;color:var(--text2);text-align:center}
+    .xp-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+    .xp-insight-ico{font-size:20px;flex-shrink:0}
+    .xp-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+    .xp-insight-text strong{color:var(--white)}
+    .xp-badge-grid{display:flex;gap:10px;flex-wrap:wrap}
+    .xp-badge{min-width:100px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px 10px;text-align:center;transition:var(--t)}
+    .xp-badge.earned{border-color:rgba(229,9,20,0.35);background:linear-gradient(160deg,rgba(229,9,20,0.1),rgba(229,9,20,0.02))}
+    .xp-badge-emoji{font-size:28px;margin-bottom:6px}
+    .xp-badge-name{font-size:10px;color:var(--white);font-weight:600}
+    .xp-badge-locked .xp-badge-emoji{opacity:0.35;filter:grayscale(1)}
+    .xp-badge-locked .xp-badge-name{color:var(--text3)}
+    .xp-badge-prog-wrap{height:4px;background:var(--g2);border-radius:2px;margin-top:8px;overflow:hidden}
+    .xp-badge-prog{height:100%;background:linear-gradient(90deg,var(--accent),#ff6b6b);border-radius:2px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+    .xp-badge-prog-txt{font-size:8px;color:var(--text3);margin-top:4px}
+    /* ════ RELATIONSHIP INSIGHT ════ */
+    .rel-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:16px}
+    .rel-insight-ico{font-size:20px;flex-shrink:0}
+    .rel-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+    .rel-insight-text strong{color:var(--white)}
+    /* ════ FIGHT ANALYTICS ════ */
+    .fa-hero{display:flex;align-items:center;gap:20px;padding:20px;margin-bottom:14px}
+    .fa-ring-wrap{position:relative;width:100px;height:100px;flex-shrink:0}
+    .fa-ring-wrap svg{transform:rotate(-90deg)}
+    .fa-ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .fa-ring-pct{font-family:var(--ff-serif);font-size:20px;color:var(--white)}
+    .fa-ring-label{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+    .fa-hero-stats{flex:1}
+    .fa-hero-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+    .fa-hero-amt{font-family:var(--ff-serif);font-size:24px;color:var(--white)}
+    .fa-hero-sub{font-size:11px;color:var(--text2);margin-top:4px;line-height:1.5}
+    .fa-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(248,113,113,0.1),rgba(143,0,0,0.05));border:1px solid rgba(248,113,113,0.2);border-radius:var(--r);margin-bottom:14px}
+    .fa-insight-ico{font-size:20px;flex-shrink:0}
+    .fa-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+    .fa-insight-text strong{color:var(--white)}
+    .fa-trend-row{display:flex;align-items:flex-end;gap:6px;height:70px;padding:6px 0 0}
+    .fa-trend-bar{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#f87171,#8f0000);min-height:3px;transition:height 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+    .fa-trend-label{font-size:8px;color:var(--text3);text-align:center;margin-top:4px}
+    .fa-cause-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
+    .fa-cause-row:last-child{border-bottom:none}
+    .fa-cause-bar-wrap{flex:1;height:6px;background:var(--g2);border-radius:3px;margin:0 10px;overflow:hidden}
+    .fa-cause-bar{height:100%;background:linear-gradient(90deg,#f87171,#8f0000);border-radius:3px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+    @media(max-width:700px){
+      .fa-hero{flex-direction:column;text-align:center;padding:16px}
+    }
     /* ════ FIGHTS ════ */
     .fight-card {
       background: rgba(248, 113, 113, 0.06);
@@ -1726,7 +1918,28 @@
       font-weight: 700;
       min-width: 65px
     }
-
+  /* ════ STUDY ANALYTICS ════ */
+    .study-hero{display:flex;align-items:center;gap:20px;padding:20px;margin-bottom:14px}
+    .study-ring-wrap{position:relative;width:100px;height:100px;flex-shrink:0}
+    .study-ring-wrap svg{transform:rotate(-90deg)}
+    .study-ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .study-ring-pct{font-family:var(--ff-serif);font-size:20px;color:var(--white)}
+    .study-ring-label{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+    .study-hero-stats{flex:1}
+    .study-hero-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+    .study-hero-amt{font-family:var(--ff-serif);font-size:24px;color:var(--white)}
+    .study-hero-sub{font-size:11px;color:var(--text2);margin-top:4px;line-height:1.5}
+    .study-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+    .study-insight-ico{font-size:20px;flex-shrink:0}
+    .study-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+    .study-insight-text strong{color:var(--white)}
+    .study-week-row{display:flex;align-items:flex-end;gap:6px;height:80px;padding:6px 0 0}
+    .study-week-bar{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,var(--accent),var(--accent-d));min-height:3px;transition:height 0.7s cubic-bezier(0.34,1.56,0.64,1);position:relative}
+    .study-week-bar.today-bar{background:linear-gradient(180deg,var(--green),#0f9d6e)}
+    .study-week-label{font-size:8px;color:var(--text3);text-align:center;margin-top:4px}
+    @media(max-width:700px){
+      .study-hero{flex-direction:column;text-align:center;padding:16px}
+    }
     /* ════ SETTINGS (Premium) ════ */
     .settings-group {
       background: var(--g1);
@@ -3653,6 +3866,143 @@
   flex-shrink:0; animation:blink 2s ease-in-out infinite;
 }
 
+/* ═══════════════ AI PAGE 2.0 — PREMIUM UPGRADE ═══════════════ */
+
+/* Ambient background for the AI page only */
+#page-ai { position: relative; }
+#page-ai::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 15% 0%, hsla(var(--h),100%,55%,0.10), transparent 45%),
+    radial-gradient(circle at 90% 10%, rgba(143,0,0,0.14), transparent 45%);
+  pointer-events: none;
+  z-index: 0;
+}
+.ai-wrap { position: relative; z-index: 1; }
+
+/* Welcome / empty state */
+.ai-welcome {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 30px 20px; gap: 6px;
+}
+.ai-welcome-orb {
+  width: 68px; height: 68px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center; font-size: 28px;
+  box-shadow: 0 0 0 0 var(--accent-glow), 0 8px 30px var(--accent-glow);
+  animation: aiOrbBreathe 3.2s ease-in-out infinite;
+  margin-bottom: 14px;
+}
+@keyframes aiOrbBreathe {
+  0%,100% { transform: scale(1); box-shadow: 0 0 0 0 var(--accent-glow), 0 8px 30px var(--accent-glow); }
+  50% { transform: scale(1.06); box-shadow: 0 0 0 10px transparent, 0 12px 40px var(--accent-glow); }
+}
+.ai-welcome-title { font-family: var(--ff-serif); font-size: 21px; color: var(--white); }
+.ai-welcome-sub { font-size: 12.5px; color: var(--text3); max-width: 320px; line-height: 1.6; margin-top: 2px; }
+.ai-welcome-suggest {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 20px; width: 100%; max-width: 420px;
+}
+@media (max-width: 480px) { .ai-welcome-suggest { grid-template-columns: 1fr; } }
+.ai-sugg-card {
+  text-align: left; padding: 12px 13px; border-radius: 14px;
+  background: var(--g1); border: 1px solid var(--border);
+  cursor: pointer; transition: var(--t);
+  display: flex; align-items: center; gap: 10px;
+}
+.ai-sugg-card:hover { background: var(--g2); transform: translateY(-2px); border-color: var(--border2); }
+.ai-sugg-ico { font-size: 18px; flex-shrink: 0; }
+.ai-sugg-txt { font-size: 12px; color: var(--text2); line-height: 1.4; }
+
+/* Thinking indicator */
+.ai-thinking-wave {
+  display: inline-flex; align-items: center; gap: 4px; height: 16px;
+}
+.ai-thinking-wave span {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent);
+  animation: aiWaveBounce 1.1s ease-in-out infinite;
+}
+.ai-thinking-wave span:nth-child(2) { animation-delay: 0.15s; }
+.ai-thinking-wave span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes aiWaveBounce {
+  0%,60%,100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+.ai-thinking-label {
+  font-size: 11px; color: var(--text3); margin-left: 8px; font-style: italic;
+}
+
+/* Message toolbar (copy / regenerate / continue) */
+.ai-msg-toolbar {
+  display: flex; gap: 4px; margin-top: 6px; opacity: 0; transform: translateY(-2px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.ai-msg.bot:hover .ai-msg-toolbar,
+.ai-msg-toolbar.always { opacity: 1; transform: translateY(0); }
+.ai-tb-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 600; color: var(--text3);
+  background: var(--g1); border: 1px solid var(--border); border-radius: 20px;
+  padding: 4px 9px; cursor: pointer; transition: var(--t);
+}
+.ai-tb-btn:hover { background: var(--g2); color: var(--white); }
+.ai-tb-btn.copied { color: var(--green); border-color: rgba(52,211,153,0.3); }
+
+/* Timestamp */
+.ai-msg-time { font-size: 9px; color: var(--text3); margin-top: 4px; padding: 0 4px; }
+.ai-msg.me .ai-msg-time { text-align: right; }
+
+/* Markdown-rendered content inside bubbles */
+.ai-bubble h1, .ai-bubble h2, .ai-bubble h3 {
+  font-family: var(--ff-serif); color: var(--white); margin: 10px 0 6px; line-height: 1.3;
+}
+.ai-bubble h1 { font-size: 17px; } .ai-bubble h2 { font-size: 15.5px; } .ai-bubble h3 { font-size: 14px; }
+.ai-bubble p { margin: 6px 0; }
+.ai-bubble ul, .ai-bubble ol { margin: 6px 0 6px 18px; }
+.ai-bubble li { margin: 3px 0; }
+.ai-bubble blockquote {
+  border-left: 3px solid var(--accent); margin: 8px 0; padding: 4px 12px;
+  color: var(--text2); background: rgba(255,255,255,0.03); border-radius: 0 8px 8px 0;
+}
+.ai-bubble a { color: var(--accent-l); text-decoration: underline; text-underline-offset: 2px; }
+.ai-bubble strong { color: var(--white); }
+.ai-bubble code.ai-inline-code {
+  background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 5px;
+  font-family: 'SF Mono', Consolas, monospace; font-size: 12px; color: #ffb4b4;
+}
+.ai-code-block {
+  margin: 10px 0; border-radius: 12px; overflow: hidden;
+  border: 1px solid var(--border); background: #0a0a0a;
+}
+.ai-code-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 12px; background: rgba(255,255,255,0.04); font-size: 10px;
+  color: var(--text3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.ai-code-copy {
+  cursor: pointer; color: var(--text3); background: none; border: none; font-size: 10px;
+  font-weight: 600; padding: 2px 7px; border-radius: 6px; transition: var(--t);
+}
+.ai-code-copy:hover { background: var(--g2); color: var(--white); }
+.ai-code-block pre {
+  margin: 0; padding: 12px; overflow-x: auto; font-family: 'SF Mono', Consolas, monospace;
+  font-size: 12px; line-height: 1.6; color: #d4d4d4;
+}
+.ai-bubble table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 12px; }
+.ai-bubble th, .ai-bubble td { border: 1px solid var(--border); padding: 6px 9px; text-align: left; }
+.ai-bubble th { background: var(--g2); color: var(--white); }
+
+/* Pills — subtle entrance */
+.pills { animation: pillsIn 0.4s ease 0.1s both; }
+@keyframes pillsIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Date separator (for future use) */
+.ai-date-sep {
+  text-align: center; font-size: 10px; color: var(--text3); margin: 10px 0;
+  text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;
+}
+
 /* ════ MISS YOU & VIRTUAL HUG ════ */
 .connect-btns-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:4px}
 .connect-btn-wrap{display:flex;flex-direction:column;align-items:center;gap:8px}
@@ -4415,6 +4765,7 @@ select option { background: #0D0D0D; color: #fff; }
             <div class="metric-l">Habit Streak</div>
           </div>
         </div>
+        <div class="rel-insight-card" id="relInsightCard"></div>
         <!-- ═══ HEARTBEAT CONNECTION WIDGET ═══ -->
         <div id="hbWidgetContainer"></div>
           <!-- Pulse ring (global, positioned absolute by HB manager) -->
@@ -4657,6 +5008,11 @@ select option { background: #0D0D0D; color: #fff; }
                 style="display:none" onchange="uploadVideo(this)"></label>
           </div>
         </div>
+        <div class="mem-insight-card" id="memInsightCard"></div>
+        <div class="card">
+          <div class="card-title">📅 Memories Added by Month</div>
+          <div class="mem-month-row" id="memMonthCard"></div>
+        </div>
         <div class="card">
           <div class="card-title">💝 Our Memories <span class="tag" id="photoCountTag">0</span></div>
           <div class="photo-grid" id="photoGrid">
@@ -4677,7 +5033,7 @@ select option { background: #0D0D0D; color: #fff; }
               <div style="font-size:13px;font-weight:600;color:var(--white);text-align:center" id="profMyName">You</div>
               <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:2px">tap to change</div>
             </div>
-            <div style="font-size:28px">💕</div>
+            <div class="prof-heart-ico" style="font-size:28px">💕</div>
             <div>
               <div class="av-large av2" id="profAv2" style="margin:0 auto 8px" onclick="pickAvatar('pt')">P</div>
               <input type="file" id="ptAvatarInput" accept="image/*" style="display:none"
@@ -4776,6 +5132,8 @@ select option { background: #0D0D0D; color: #fff; }
         <div class="card" style="margin-top:16px">
           <div class="card-title">💫 Love Milestones<button class="btn-ghost btn-sm" onclick="openM('milestoneModal')">+
               Add</button></div>
+          <div class="ml-stats-row" id="mlStatsRow"></div>
+          <div class="ml-insight-card" id="mlInsightCard"></div>
           <div id="milestonesEl">
             <div class="empty" style="padding:14px 0">
               <div class="empty-ico">💫</div>Add special moments!
@@ -4803,6 +5161,7 @@ select option { background: #0D0D0D; color: #fff; }
       </div>
       <!-- ════ PERIOD TRACKER ════ -->
       <div class="page" id="page-period">
+        <div class="period-insight-card" id="periodInsightCard"></div>
         <div class="period-hero">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
             <div>
@@ -4844,6 +5203,14 @@ select option { background: #0D0D0D; color: #fff; }
           <div class="cal-days" id="periodCalDays"></div>
         </div>
         <div class="card">
+          <div class="card-title">📈 Recent Cycle Lengths</div>
+          <div class="period-cycle-row" id="periodCycleCard"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🔎 Most Common Symptoms</div>
+          <div id="periodSymptomCard"></div>
+        </div>
+        <div class="card">
           <div class="card-title">📋 Today's Symptoms</div>
           <div class="symptom-grid" id="symptomGrid">
             <div class="symptom-tag" data-s="Cramps">🌀 Cramps</div>
@@ -4870,6 +5237,16 @@ select option { background: #0D0D0D; color: #fff; }
 
       <!-- ════ FIGHT LOG ════ -->
       <div class="page" id="page-fights">
+        <div class="card fa-hero" id="faHeroCard"></div>
+        <div class="fa-insight-card" id="faInsightCard"></div>
+        <div class="card">
+          <div class="card-title">📈 Recent Intensity Trend</div>
+          <div class="fa-trend-row" id="faTrendCard"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🔎 Common Triggers</div>
+          <div id="faCauseCard"></div>
+        </div>
         <div class="card">
           <div class="card-title">⚡ Fight Log<button class="btn btn-accent btn-sm" onclick="openM('fightModal')">+ Log
               Fight</button></div>
@@ -4945,6 +5322,20 @@ select option { background: #0D0D0D; color: #fff; }
         </div>
 
         <div class="sc" id="sc-habits">
+          <div class="card habit-hero" id="habitHeroCard"></div>
+          <div class="habit-insight-card" id="habitInsightCard"></div>
+          <div class="card">
+            <div class="card-title">🗓️ 12-Week Activity</div>
+            <div class="habit-heatmap-wrap"><div class="habit-heatmap" id="habitHeatmap"></div></div>
+            <div class="habit-heat-legend">
+              <span>Less</span>
+              <div class="habit-heat-cell" style="background:var(--g2)"></div>
+              <div class="habit-heat-cell" style="background:rgba(229,9,20,0.25)"></div>
+              <div class="habit-heat-cell" style="background:rgba(229,9,20,0.55)"></div>
+              <div class="habit-heat-cell" style="background:#E50914"></div>
+              <span>More</span>
+            </div>
+          </div>
           <div class="two-col">
             <div>
               <div class="user-block-head">
@@ -4994,6 +5385,12 @@ select option { background: #0D0D0D; color: #fff; }
         </div>
 
         <div class="sc" id="sc-wellness">
+          <div class="well-hero" id="wellHeroCard"></div>
+          <div class="well-insight-card" id="wellInsightCard"></div>
+          <div class="card">
+            <div class="card-title">😴 7-Day Sleep Trend</div>
+            <div class="well-trend-row" id="wellTrendCard"></div>
+          </div>
           <div class="two-col">
             <div class="card" style="margin-bottom:0">
               <div class="card-title">😊 Mood History</div>
@@ -5045,6 +5442,12 @@ select option { background: #0D0D0D; color: #fff; }
 
       <!-- ════ STUDY ════ -->
       <div class="page" id="page-study">
+        <div class="card study-hero" id="studyHeroCard"></div>
+        <div class="study-insight-card" id="studyInsightCard"></div>
+        <div class="card">
+          <div class="card-title">📊 Weekly Study Hours</div>
+          <div class="study-week-row" id="studyWeekCard"></div>
+        </div>
         <div class="info-banner">📚 Track your studies together — see each other's progress side by side!</div>
         <div class="study-grid">
           <div>
@@ -5137,6 +5540,8 @@ select option { background: #0D0D0D; color: #fff; }
 
       <!-- ════ MONEY ════ -->
       <div class="page" id="page-money">
+        <div class="card fin-hero" id="finHeroCard"></div>
+        <div class="fin-insight-card" id="finInsightCard"></div>
         <div class="m-grid">
           <div class="m-card">
             <div class="m-amt" style="color:var(--green)" id="mInc">₹0</div>
@@ -5150,6 +5555,14 @@ select option { background: #0D0D0D; color: #fff; }
             <div class="m-amt" id="mNet">₹0</div>
             <div class="metric-l" style="color:var(--text3)">Savings</div>
           </div>
+        </div>
+        <div class="card">
+          <div class="card-title">🥧 Spending by Category</div>
+          <div class="fin-donut-card" id="finDonutCard"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">📊 8-Week Spending Trend</div>
+          <div class="fin-trend-row" id="finTrendCard"></div>
         </div>
         <div class="card">
           <div class="card-title">💳 Transactions<button class="btn btn-accent btn-sm" onclick="openM('moneyModal')">+
@@ -5169,6 +5582,10 @@ select option { background: #0D0D0D; color: #fff; }
             </div>
             <div class="field" style="margin-top:10px"><label>Monthly Goal (₹)</label><input type="number"
                 id="myFinGoal" placeholder="0" oninput="saveFinGoal('my')"></div>
+            <div class="fin-goal-row" style="margin-top:6px">
+              <span class="fin-goal-pct" id="finGoalPct">0%</span>
+              <span class="fin-goal-remain" id="finGoalRemain"></span>
+            </div>
             <div class="study-progress">
               <div class="study-fill" id="myFinGoalBar" style="width:0%"></div>
             </div>
@@ -5255,7 +5672,7 @@ select option { background: #0D0D0D; color: #fff; }
       🏠 My Important Places
       <button class="btn btn-accent btn-sm" onclick="LiveMap.openPlaceModal('self')">+ Add Place</button>
     </div>
-    <div id="myPlacesList"><div class="empty">No places saved yet — add Home, College, Office…</div></div>
+    <div id="myPlacesList"></div>
   </div>
 
   <!-- PARTNER IMPORTANT PLACES -->
@@ -5341,12 +5758,15 @@ select option { background: #0D0D0D; color: #fff; }
       <div class="page" id="page-ai">
         <div class="ai-wrap">
           <div class="ai-msgs" id="aiMsgs">
-            <div class="ai-msg bot">
-              <div class="ai-av">🤖</div>
-              <div>
-                <div class="ai-bubble">Hi! I'm your AI Love Guide 💕 I'm here to help with relationship advice, date
-                  ideas, love letters, communication tips, and anything you need as a couple. What can I help with
-                  today?</div>
+            <div class="ai-welcome" id="aiWelcome">
+              <div class="ai-welcome-orb">🤖</div>
+              <div class="ai-welcome-title">AI Love Guide</div>
+              <div class="ai-welcome-sub">Relationship advice, date ideas, love letters, and communication tips — just for you two 💕</div>
+              <div class="ai-welcome-suggest">
+                <div class="ai-sugg-card" onclick="askAI('Give us 5 creative and romantic date night ideas for tonight')"><span class="ai-sugg-ico">💑</span><span class="ai-sugg-txt">Plan a date night</span></div>
+                <div class="ai-sugg-card" onclick="askAI('How can we improve communication as a couple? Be specific and practical')"><span class="ai-sugg-ico">🗣️</span><span class="ai-sugg-txt">Improve communication</span></div>
+                <div class="ai-sugg-card" onclick="askAI('Write a heartfelt, poetic love letter from me to my partner')"><span class="ai-sugg-ico">💌</span><span class="ai-sugg-txt">Write a love letter</span></div>
+                <div class="ai-sugg-card" onclick="askAI('Give us 5 deep conversation questions to learn more about each other')"><span class="ai-sugg-ico">💭</span><span class="ai-sugg-txt">Deep talk questions</span></div>
               </div>
             </div>
           </div>
@@ -5976,6 +6396,9 @@ select option { background: #0D0D0D; color: #fff; }
      JAVASCRIPT
 ════════════════════════════════════════════ -->
       <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+      <script src="/ui-icons.js"></script>
+      <script src="/premium-motion.js"></script>
+      <script src="/premium-states.js"></script>
       <script>
         const API = 'https://us-app-av6d.onrender.com';
         // ─── REBRAND CONSTANTS ────────────────────────────────────
@@ -6401,12 +6824,12 @@ function setJustPairedAt(ts) {
           dashboard: 'Dashboard',  camera: 'Our Memories',
           vault: 'Secret Vault', myspace: 'My Space', bucket: 'Bucket List',
           profile: 'Our Profile', calendar: 'Calendar', money: 'Money',
-          ai: 'AI Love Guide',lovecounter: 'Love Counter ⏱️',
-          collection: 'Collection 🎙️', settings: 'Settings', period: 'Period Tracker',
-          fights: 'Fight Log', study: 'Study Together', map: 'Live Map 📍',
-          music: 'Music 🎵', capsule: 'Love Capsule 💌', surprise: 'Surprises 🎁',chat: 'Chat 💬',
-          level: 'Couple Level 🏆',globe: 'Memory Globe 🌍', dreamhome: 'Dream Home 🏡',games: 'Couple Games 🎮',
-          dreamgoals: 'Dream Goals 💫', places: 'Places Memory 🗺️', meetplanner: 'Meet Planner 💕'
+          ai: 'AI Love Guide',lovecounter: 'Love Counter ',
+          collection: 'Collection ', settings: 'Settings', period: 'Period Tracker',
+          fights: 'Fight Log', study: 'Study Together', map: 'Live Map ',
+          music: 'Music ', capsule: 'Love Capsule ', surprise: 'Surprises ',chat: 'Chat ',
+          level: 'Couple Level ',globe: 'Memory Globe ', dreamhome: 'Dream Home ',games: 'Couple Games ',
+          dreamgoals: 'Dream Goals ', places: 'Places Memory ', meetplanner: 'Meet Planner '
         };
         function goto(page, pushHistory = true) {
           if (window.PageManager) PageManager.currentPage = page;
@@ -6444,7 +6867,7 @@ function setJustPairedAt(ts) {
           if (page === 'money') renderMoney();
           if (page === 'settings') { loadSettings(); }
           if (page === 'profile') renderProfile();
-          if (page === 'period') renderPeriodPage();
+          if (page === 'period') { renderPeriodPage(); renderPeriodAnalytics(); }
           if (page === 'fights') renderFights();
           if (page === 'study') renderStudyPage();
           if (page === 'map') renderMapPage();
@@ -6932,8 +7355,42 @@ async function toggleNotifications() {
         <button class="pt-btn" style="color:#A32D2D" onclick="delPhoto(${i})">Delete</button>
       </div>
     </div>`).join('');
+          renderMemoryAnalytics();
         }
-        
+        function renderMemoryAnalytics() {
+          const insEl = document.getElementById('memInsightCard'), monEl = document.getElementById('memMonthCard');
+          if (!insEl && !monEl) return;
+          const photos = S.photos || [];
+          const videos = photos.filter(p => p.type === 'video').length;
+
+          if (insEl) {
+            let text, ico = '💡';
+            if (!photos.length) { text = 'Add your first photo or video to start building your shared memory album.'; }
+            else {
+              const thisMonth = new Date().toISOString().slice(0, 7);
+              const thisMonthCount = photos.filter(p => (p.date || '').startsWith(thisMonth)).length;
+              if (thisMonthCount > 0) { ico = '📸'; text = `You've added <strong>${thisMonthCount}</strong> memor${thisMonthCount === 1 ? 'y' : 'ies'} this month — ${photos.length} total, ${videos} video${videos === 1 ? '' : 's'}.`; }
+              else { ico = '🕰️'; text = `You have <strong>${photos.length}</strong> memories saved so far. Add a new one to keep the story going.`; }
+            }
+            insEl.innerHTML = `<div class="mem-insight-ico">${ico}</div><div class="mem-insight-text">${text}</div>`;
+          }
+
+          if (monEl) {
+            if (!photos.length) { monEl.parentElement.style.display = 'none'; }
+            else {
+              monEl.parentElement.style.display = '';
+              const months = []; for (let i = 5; i >= 0; i--) { const d = new Date(); d.setMonth(d.getMonth() - i); months.push(d.toISOString().slice(0, 7)); }
+              const counts = months.map(m => photos.filter(p => (p.date || '').startsWith(m)).length);
+              const max = Math.max(...counts, 1);
+              const labels = months.map(m => new Date(m + '-01T00:00:00').toLocaleDateString('en', { month: 'short' }));
+              monEl.innerHTML = counts.map((c, i) => `
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+                  <div class="mem-month-bar" style="height:${Math.max(3, Math.round((c / max) * 60))}px" title="${c} memories"></div>
+                  <div class="mem-month-label">${labels[i]}</div>
+                </div>`).join('');
+            }
+          }
+        }
         function delPhoto(i) { S.photos.splice(i, 1); renderPhotos(); scheduleSave(); }
 
         // ─── PROFILE ─────────────────────────────────────────────
@@ -6963,18 +7420,62 @@ async function toggleNotifications() {
         function renderMilestones() {
           renderTimelineStories();
           const el = document.getElementById('milestonesEl');
+          const statsEl = document.getElementById('mlStatsRow'), insEl = document.getElementById('mlInsightCard');
           const all = [...(S.milestones || []), ...(S.events || []).filter(e => ['Anniversary', 'Date'].includes(e.cat))].sort((a, b) => a.date.localeCompare(b.date));
-          if (!all.length) { el.innerHTML = '<div class="empty" style="padding:12px 0"><div class="empty-ico">💫</div>No milestones yet</div>'; return; }
-          el.innerHTML = all.map(m => `
-    <div style="display:flex;gap:11px;padding:11px 0;border-bottom:1px solid var(--border)">
-      <div class="timeline-dot"></div>
-      <div>
-        <div style="font-size:13px;font-weight:600;color:var(--white)">${m.type ? esc(m.type) + ' ' : ''}${esc(m.title)}</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:3px">${fmtDate(m.date)}</div>
-        ${m.note ? `<div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5">${esc(m.note)}</div>` : ''}
-        <button class="del-btn" style="margin-left:auto" onclick="delMilestone(${m.id})">✕</button>
+          if (!all.length) {
+            PS.empty(el, { icon: 'heart', title: 'No milestones yet', desc: 'Mark the moments that matter \u2014 anniversaries, firsts, anything worth remembering.', actionLabel: 'Add Milestone', onAction: () => openM('milestoneModal'), compact: true });
+            if (statsEl) statsEl.style.display = 'none';
+            if (insEl) insEl.style.display = 'none';
+            return;
+          }
+          if (statsEl) statsEl.style.display = '';
+          if (insEl) insEl.style.display = '';
+
+          // Stats
+          const thisYear = new Date().getFullYear();
+          const thisYearCount = all.filter(m => new Date(m.date + 'T00:00:00').getFullYear() === thisYear).length;
+          const years = new Set(all.map(m => new Date(m.date + 'T00:00:00').getFullYear()));
+          if (statsEl) statsEl.innerHTML = `
+            <div class="ml-stat-box"><div class="ml-stat-n">${all.length}</div><div class="ml-stat-l">Total</div></div>
+            <div class="ml-stat-box"><div class="ml-stat-n" style="color:var(--accent)">${thisYearCount}</div><div class="ml-stat-l">This Year</div></div>
+            <div class="ml-stat-box"><div class="ml-stat-n" style="color:var(--green)">${years.size}</div><div class="ml-stat-l">Years Spanned</div></div>`;
+
+          // Insight
+          if (insEl) {
+            const mostRecent = all[all.length - 1];
+            const daysSince = Math.floor((Date.now() - new Date(mostRecent.date + 'T00:00:00').getTime()) / 86400000);
+            let text, ico = '💫';
+            if (daysSince <= 30) { ico = '✨'; text = `Your most recent milestone — "<strong>${esc(mostRecent.title)}</strong>" — was just ${daysSince === 0 ? 'today' : daysSince + ' day' + (daysSince === 1 ? '' : 's') + ' ago'}.`; }
+            else { ico = '📖'; text = `It's been <strong>${daysSince} days</strong> since your last milestone ("${esc(mostRecent.title)}") — maybe it's time to mark a new one.`; }
+            insEl.innerHTML = `<div class="ml-insight-ico">${ico}</div><div class="ml-insight-text">${text}</div>`;
+          }
+
+          // Grouped, reverse-chronological timeline with gap notes
+          const desc = [...all].reverse();
+          let html = '', lastYear = null, prevDate = null;
+          desc.forEach(m => {
+            const y = new Date(m.date + 'T00:00:00').getFullYear();
+            if (y !== lastYear) { html += `<div class="ml-year-header">${y}</div>`; lastYear = y; prevDate = null; }
+            let gapHtml = '';
+            if (prevDate) {
+              const gapDays = Math.round((new Date(prevDate) - new Date(m.date + 'T00:00:00')) / 86400000);
+              if (gapDays >= 60) gapHtml = `<div class="ml-card-gap">↑ ${Math.round(gapDays / 30)} months later</div>`;
+            }
+            prevDate = m.date + 'T00:00:00';
+            html += `
+    <div class="ml-item">
+      <div class="ml-card">
+        <div class="ml-card-top">
+          <div class="ml-card-title">${m.type ? esc(m.type) + ' ' : ''}${esc(m.title)}</div>
+          <div class="ml-card-date">${fmtDateShort(m.date)}</div>
+        </div>
+        ${m.note ? `<div class="ml-card-note">${esc(m.note)}</div>` : ''}
+        ${gapHtml}
+        <button class="del-btn" style="margin-top:6px" onclick="delMilestone(${m.id})">✕</button>
       </div>
-    </div>`).join('');
+    </div>`;
+          });
+          el.innerHTML = `<div class="ml-timeline">${html}</div>`;
         }
         function delMilestone(id) { S.milestones = (S.milestones||[]).filter(m=>m.id!==id); renderMilestones(); scheduleSave(); toast('Removed'); }
         function renderTimelineStories() {
@@ -7005,10 +7506,10 @@ async function toggleNotifications() {
           S.periods.unshift({ id: Date.now(), start, flow: parseInt(document.getElementById('periodFlow').value) || 5, cycle: parseInt(document.getElementById('periodCycle').value) || 28, note: document.getElementById('periodNote').value });
           S.periods.sort((a, b) => b.start.localeCompare(a.start));
           ['periodStart', 'periodFlow', 'periodCycle', 'periodNote'].forEach(id => document.getElementById(id).value = '');
-          closeM('periodModal'); renderPeriodPage(); scheduleSave(); toast('Period logged! 🩷');
+          closeM('periodModal'); renderPeriodPage(); renderPeriodAnalytics(); scheduleSave(); toast('Period logged! 🩷');
         }
         function toggleSymptom(el) { el.classList.toggle('sel'); }
-        function saveSymptoms() { if (!S.symptoms) S.symptoms = {}; const t = todayStr(); S.symptoms[t] = Array.from(document.querySelectorAll('.symptom-tag.sel')).map(el => el.dataset.s); scheduleSave(); toast('Symptoms saved!'); }
+        function saveSymptoms() { if (!S.symptoms) S.symptoms = {}; const t = todayStr(); S.symptoms[t] = Array.from(document.querySelectorAll('.symptom-tag.sel')).map(el => el.dataset.s); renderPeriodAnalytics(); scheduleSave(); toast('Symptoms saved!'); }
         function getPeriodPhase() {
           if (!S.periods || !S.periods.length) return { phase: 'unknown', daysToNext: '—', cycleLen: 28, flowDays: 5 };
           const last = S.periods[0]; const sd = new Date(last.start + 'T00:00:00'); const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -7049,6 +7550,64 @@ async function toggleNotifications() {
         <button class="del-btn" onclick="delPeriod(${i})">✕</button>
       </div>
     </div>`).join('');
+        }
+        function renderPeriodAnalytics() {
+          const insEl = document.getElementById('periodInsightCard'), cycleEl = document.getElementById('periodCycleCard'), symEl = document.getElementById('periodSymptomCard');
+          if (!insEl && !cycleEl && !symEl) return;
+          const periods = S.periods || [];
+
+          if (insEl) {
+            let text, ico = '💡';
+            if (periods.length < 2) { text = 'Log at least 2 periods to see cycle trend insights.'; }
+            else {
+              const cycles = [];
+              for (let i = 0; i < periods.length - 1; i++) {
+                const d1 = new Date(periods[i].start + 'T00:00:00'), d2 = new Date(periods[i + 1].start + 'T00:00:00');
+                cycles.push(Math.abs(Math.round((d1 - d2) / 86400000)));
+              }
+              const avgCycle = Math.round(cycles.reduce((a, b) => a + b, 0) / cycles.length);
+              const variance = Math.max(...cycles) - Math.min(...cycles);
+              if (variance <= 3) { ico = '✅'; text = `Your cycle is very regular — averaging <strong>${avgCycle} days</strong>.`; }
+              else { ico = '📊'; text = `Your average cycle is <strong>${avgCycle} days</strong>, varying by up to ${variance} days.`; }
+            }
+            insEl.innerHTML = `<div class="period-insight-ico">${ico}</div><div class="period-insight-text">${text}</div>`;
+          }
+
+          if (cycleEl) {
+            if (periods.length < 2) { cycleEl.parentElement.style.display = 'none'; }
+            else {
+              cycleEl.parentElement.style.display = '';
+              const recent = periods.slice(0, 6).reverse();
+              const cycles = [];
+              for (let i = 0; i < recent.length - 1; i++) {
+                const d1 = new Date(recent[i].start + 'T00:00:00'), d2 = new Date(recent[i + 1].start + 'T00:00:00');
+                cycles.push({ len: Math.abs(Math.round((d2 - d1) / 86400000)), label: fmtDateShort(recent[i + 1].start) });
+              }
+              const max = Math.max(...cycles.map(c => c.len), 28);
+              cycleEl.innerHTML = cycles.map(c => `
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+                  <div class="period-cycle-bar" style="height:${Math.max(3, Math.round((c.len / max) * 60))}px" title="${c.len} days"></div>
+                  <div class="period-cycle-label">${c.label}</div>
+                </div>`).join('');
+            }
+          }
+
+          if (symEl) {
+            const symptomCounts = {};
+            Object.values(S.symptoms || {}).forEach(arr => (arr || []).forEach(s => { symptomCounts[s] = (symptomCounts[s] || 0) + 1; }));
+            const entries = Object.entries(symptomCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            if (!entries.length) { symEl.parentElement.style.display = 'none'; }
+            else {
+              symEl.parentElement.style.display = '';
+              const max = Math.max(...entries.map(e => e[1]));
+              symEl.innerHTML = entries.map(([s, count]) => `
+                <div class="period-symptom-freq-row">
+                  <span style="font-size:12px;color:var(--text2);min-width:90px">${esc(s)}</span>
+                  <div class="period-symptom-bar-wrap"><div class="period-symptom-bar" style="width:${Math.round((count / max) * 100)}%"></div></div>
+                  <span style="font-size:11px;color:var(--text3)">${count}x</span>
+                </div>`).join('');
+            }
+          }
         }
         function delPeriod(i) { S.periods.splice(i, 1); renderPeriodPage(); scheduleSave(); }
         function renderPeriodCalendar() {
@@ -7102,7 +7661,17 @@ async function toggleNotifications() {
           const resolved = S.fights.filter(f => f.status === 'resolved').length;
           const avg = S.fights.length ? Math.round(S.fights.reduce((s, f) => s + f.intensity, 0) / S.fights.length) : 0;
           const el = document.getElementById('fightList');
-          if (!S.fights.length) { el.innerHTML = '<div class="fight-stats-bar"><div class="fstat-box"><div class="fstat-n">0</div><div class="fstat-l">Total</div></div></div><div class="empty"><div class="empty-ico">✌️</div>No fights logged — that\'s amazing! 💕</div>'; return; }
+          if (!S.fights.length) {
+            PS.empty(el, {
+              icon: 'heart',
+              title: 'No conflicts recorded.',
+              desc: "That's a great sign — healthy communication keeps it that way. If something ever comes up, log it here so you can work through it together.",
+              actionLabel: 'Resolve Together',
+              onAction: () => document.getElementById('reconnectActivities')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            });
+            renderFightAnalytics();
+            return;
+          }
           let html = `<div class="fight-stats-bar">
     <div class="fstat-box"><div class="fstat-n">${S.fights.length}</div><div class="fstat-l">Total</div></div>
     <div class="fstat-box"><div class="fstat-n" style="color:var(--red)">${open}</div><div class="fstat-l">Open</div></div>
@@ -7137,6 +7706,80 @@ async function toggleNotifications() {
       <div style="font-size:24px">${a.e}</div>
       <div><div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:3px">${a.t}</div><div style="font-size:12px;color:var(--text2);line-height:1.55">${a.d}</div></div>
     </div>`).join('');
+          renderFightAnalytics();
+        }
+        function renderFightAnalytics() {
+          const heroEl = document.getElementById('faHeroCard'), insEl = document.getElementById('faInsightCard'), trendEl = document.getElementById('faTrendCard'), causeEl = document.getElementById('faCauseCard');
+          if (!heroEl && !insEl && !trendEl && !causeEl) return;
+          const fights = S.fights || [];
+          const resolved = fights.filter(f => f.status === 'resolved').length;
+          const resRate = fights.length ? Math.round((resolved / fights.length) * 100) : 0;
+          const avg = fights.length ? Math.round(fights.reduce((s, f) => s + f.intensity, 0) / fights.length) : 0;
+
+          if (heroEl) {
+            const r = 42, circ = 2 * Math.PI * r, offset = circ - (resRate / 100) * circ;
+            heroEl.innerHTML = `
+              <div class="fa-ring-wrap">
+                <svg viewBox="0 0 100 100" width="100" height="100">
+                  <circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--g2)" stroke-width="8"/>
+                  <circle cx="50" cy="50" r="${r}" fill="none" stroke="url(#faGrad)" stroke-width="8"
+                    stroke-dasharray="${circ}" stroke-dashoffset="${circ}" stroke-linecap="round"
+                    style="transition:stroke-dashoffset 1.2s cubic-bezier(0.34,1.56,0.64,1)" id="faRingCircle"/>
+                  <defs><linearGradient id="faGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#f87171"/><stop offset="100%" stop-color="var(--green)"/>
+                  </linearGradient></defs>
+                </svg>
+                <div class="fa-ring-text"><div class="fa-ring-pct">${resRate}%</div><div class="fa-ring-label">Resolved</div></div>
+              </div>
+              <div class="fa-hero-stats">
+                <div class="fa-hero-title">Conflict Resolution Rate</div>
+                <div class="fa-hero-amt">${resolved}/${fights.length}</div>
+                <div class="fa-hero-sub">Avg intensity ${avg}/10 across ${fights.length} logged fight${fights.length === 1 ? '' : 's'}</div>
+              </div>`;
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+              const c = document.getElementById('faRingCircle'); if (c) c.style.strokeDashoffset = offset;
+            }));
+          }
+
+          if (insEl) {
+            let text, ico = '💡';
+            if (!fights.length) { text = 'No conflicts logged yet — healthy communication keeps it that way.'; }
+            else if (resRate === 100) { ico = '💚'; text = `Every fight you've logged has been resolved — <strong>${resRate}%</strong> resolution rate.`; }
+            else if (avg >= 7) { ico = '⚠️'; text = `Average intensity is running high at <strong>${avg}/10</strong> — try a reconnect activity soon.`; }
+            else if (resRate >= 60) { ico = '✅'; text = `You've resolved <strong>${resRate}%</strong> of logged conflicts — good communication.`; }
+            else { ico = '💭'; text = `<strong>${fights.length - resolved}</strong> fight${fights.length - resolved === 1 ? ' is' : 's are'} still open — try the reconnect activities below.`; }
+            insEl.innerHTML = `<div class="fa-insight-ico">${ico}</div><div class="fa-insight-text">${text}</div>`;
+          }
+
+          if (trendEl) {
+            if (fights.length < 2) { trendEl.parentElement.style.display = 'none'; }
+            else {
+              trendEl.parentElement.style.display = '';
+              const recent = fights.slice(0, 8).slice().reverse();
+              trendEl.innerHTML = recent.map(f => `
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+                  <div class="fa-trend-bar" style="height:${Math.max(3, Math.round((f.intensity / 10) * 60))}px" title="${f.intensity}/10"></div>
+                  <div class="fa-trend-label">${(f.date || '').slice(5)}</div>
+                </div>`).join('');
+            }
+          }
+
+          if (causeEl) {
+            const causeCounts = {};
+            fights.forEach(f => { const key = (f.reason || '').trim(); if (key) causeCounts[key] = (causeCounts[key] || 0) + 1; });
+            const entries = Object.entries(causeCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            if (!entries.length) { causeEl.parentElement.style.display = 'none'; }
+            else {
+              causeEl.parentElement.style.display = '';
+              const max = Math.max(...entries.map(e => e[1]));
+              causeEl.innerHTML = entries.map(([reason, count]) => `
+                <div class="fa-cause-row">
+                  <span style="font-size:12px;color:var(--text2);min-width:90px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(reason)}</span>
+                  <div class="fa-cause-bar-wrap"><div class="fa-cause-bar" style="width:${Math.round((count / max) * 100)}%"></div></div>
+                  <span style="font-size:11px;color:var(--text3)">${count}x</span>
+                </div>`).join('');
+            }
+          }
         }
         function askAIaboutFight(topic) { S._pendingAI = 'We had a fight about: ' + topic + '. Give us specific, empathetic advice to understand each other and resolve this quickly.'; goto('ai'); setTimeout(() => askAI(S._pendingAI), 300); }
 
@@ -7166,14 +7809,88 @@ async function toggleNotifications() {
         function delStudySlot(id) { S.myTimetable = (S.myTimetable || []).filter(s => s.id !== id); renderStudyPage(); scheduleSave(); }
         function renderStudyPage() {
           const mySubjEl = document.getElementById('myStudySubjects');
-          if (!S.mySubjects || !S.mySubjects.length) { mySubjEl.innerHTML = '<div class="empty" style="padding:10px 0">No subjects yet</div>'; }
+          if (!S.mySubjects || !S.mySubjects.length) { PS.empty(mySubjEl, { icon: 'book', title: 'No subjects yet', desc: 'Add a subject to start tracking chapters and progress.', actionLabel: 'Add Subject', onAction: () => openM('studySubjectModal'), compact: true }); }
           else { mySubjEl.innerHTML = S.mySubjects.map(s => { const p = s.total > 0 ? Math.round(s.done / s.total * 100) : 0; return `<div style="margin-bottom:11px;padding:12px;background:var(--g1);border-radius:var(--rs);border:1px solid var(--border)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:13px;color:var(--white);font-weight:500">${esc(s.emoji)} ${esc(s.name)}</div><div style="font-size:10px;color:var(--text3)">${s.done}/${s.total} ch</div></div><div class="study-progress"><div class="study-fill" style="width:${p}%"></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px"><div style="font-size:10px;color:var(--text3)">${p}%</div><div style="display:flex;gap:5px"><button class="btn btn-glass btn-xs" onclick="updateSubjectProgress(${s.id},-1)">−</button><button class="btn btn-accent btn-xs" onclick="updateSubjectProgress(${s.id},1)">+1 ✓</button><button class="del-btn" onclick="delSubject(${s.id})">✕</button></div></div></div>`; }).join(''); }
           const myTTEl = document.getElementById('myTimetable');
-          if (!S.myTimetable || !S.myTimetable.length) { myTTEl.innerHTML = '<div class="empty" style="padding:8px 0">No slots yet</div>'; }
+          if (!S.myTimetable || !S.myTimetable.length) { PS.empty(myTTEl, { icon: 'generic', title: 'No slots yet', desc: "Block out study time so you both know when the other's focused.", actionLabel: 'Add Slot', onAction: () => openM('studySlotModal'), compact: true }); }
           else { const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']; let html = ''; days.forEach(day => { const slots = (S.myTimetable || []).filter(s => s.day === day).sort((a, b) => a.start.localeCompare(b.start)); if (slots.length) { html += `<div style="font-size:10px;color:var(--text3);font-weight:700;margin:9px 0 4px;text-transform:uppercase;letter-spacing:0.5px">${day}</div>`; slots.forEach(s => { html += `<div class="slot${s.done ? ' done-slot' : ''}"><div class="slot-time">${s.start || '—'} – ${s.end || '—'}</div><div style="font-size:12px;flex:1;color:var(--text)">${esc(s.subject)}</div><div style="display:flex;gap:5px"><div class="hc${s.done ? ' done' : ''}" style="width:20px;height:20px;font-size:10px" onclick="toggleStudySlot(${s.id})">${s.done ? '✓' : ''}</div><button class="del-btn" onclick="delStudySlot(${s.id})">✕</button></div></div>`; }); } }); myTTEl.innerHTML = html || '<div class="empty" style="padding:8px 0">No slots</div>'; }
           const ptSubjEl = document.getElementById('ptStudySubjects'), ptTTEl = document.getElementById('ptTimetable');
           if (!S.paired) { if (ptSubjEl) ptSubjEl.innerHTML = '<div class="empty" style="padding:10px 0;font-size:12px">Partner joins to see their study</div>'; if (ptTTEl) ptTTEl.innerHTML = '<div class="empty" style="padding:8px 0;font-size:12px">Partner joins to see timetable</div>'; }
           else { if (!S.ptSubjects || !S.ptSubjects.length) { if (ptSubjEl) ptSubjEl.innerHTML = '<div class="empty" style="padding:10px 0;font-size:12px">Partner hasn\'t added subjects yet</div>'; } else { ptSubjEl.innerHTML = S.ptSubjects.map(s => { const p = s.total > 0 ? Math.round(s.done / s.total * 100) : 0; return `<div style="margin-bottom:11px;padding:12px;background:var(--g1);border-radius:var(--rs);border:1px solid var(--border)"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><div style="font-size:13px;color:var(--white);font-weight:500">${esc(s.emoji)} ${esc(s.name)}</div><div style="font-size:10px;color:var(--text3)">${s.done}/${s.total}</div></div><div class="study-progress"><div class="study-fill" style="width:${p}%"></div></div><div style="font-size:10px;color:var(--text3);margin-top:4px">${p}% complete</div></div>`; }).join(''); } if (!S.ptTimetable || !S.ptTimetable.length) { if (ptTTEl) ptTTEl.innerHTML = '<div class="empty" style="padding:8px 0;font-size:12px">Partner hasn\'t added slots yet</div>'; } else { const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']; let html = ''; days.forEach(day => { const slots = (S.ptTimetable || []).filter(sl => sl.day === day).sort((a, b) => a.start.localeCompare(b.start)); if (slots.length) { html += `<div style="font-size:10px;color:var(--text3);font-weight:700;margin:9px 0 4px;text-transform:uppercase">${day}</div>`; slots.forEach(sl => { html += `<div class="slot${sl.done ? ' done-slot' : ''}"><div class="slot-time">${sl.start || '—'} – ${sl.end || '—'}</div><div style="font-size:12px;flex:1;color:var(--text)">${esc(sl.subject)}</div></div>`; }); } }); if (ptTTEl) ptTTEl.innerHTML = html || '<div class="empty" style="padding:8px 0;font-size:12px">No slots</div>'; } }
+          renderStudyHero();
+          renderStudyWeek();
+        }
+
+        function renderStudyHero() {
+          const el = document.getElementById('studyHeroCard'); if (!el) return;
+          const subs = S.mySubjects || [];
+          const totalCh = subs.reduce((s, x) => s + (x.total || 0), 0);
+          const doneCh = subs.reduce((s, x) => s + (x.done || 0), 0);
+          const pct = totalCh > 0 ? Math.round((doneCh / totalCh) * 100) : 0;
+          const slots = S.myTimetable || [];
+          const totalHrs = slots.reduce((sum, s) => {
+            if (!s.start || !s.end) return sum;
+            const [sh, sm] = s.start.split(':').map(Number), [eh, em] = s.end.split(':').map(Number);
+            const mins = (eh * 60 + em) - (sh * 60 + sm);
+            return sum + (mins > 0 ? mins / 60 : 0);
+          }, 0);
+          const r = 42, circ = 2 * Math.PI * r, offset = circ - (pct / 100) * circ;
+          el.innerHTML = `
+            <div class="study-ring-wrap">
+              <svg viewBox="0 0 100 100" width="100" height="100">
+                <circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--g2)" stroke-width="8"/>
+                <circle cx="50" cy="50" r="${r}" fill="none" stroke="url(#studyGrad)" stroke-width="8"
+                  stroke-dasharray="${circ}" stroke-dashoffset="${circ}" stroke-linecap="round"
+                  style="transition:stroke-dashoffset 1.2s cubic-bezier(0.34,1.56,0.64,1)" id="studyRingCircle"/>
+                <defs><linearGradient id="studyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="#ff6b6b"/>
+                </linearGradient></defs>
+              </svg>
+              <div class="study-ring-text"><div class="study-ring-pct">${pct}%</div><div class="study-ring-label">Complete</div></div>
+            </div>
+            <div class="study-hero-stats">
+              <div class="study-hero-title">Weekly Scheduled Study</div>
+              <div class="study-hero-amt">${totalHrs.toFixed(1)}h</div>
+              <div class="study-hero-sub">${doneCh}/${totalCh} chapters done across ${subs.length} subject${subs.length === 1 ? '' : 's'}</div>
+            </div>`;
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            const c = document.getElementById('studyRingCircle');
+            if (c) c.style.strokeDashoffset = offset;
+          }));
+          const insEl = document.getElementById('studyInsightCard'); if (!insEl) return;
+          const slotsTotal = slots.length, slotsDone = slots.filter(s => s.done).length;
+          let text, ico = '💡';
+          if (!slots.length) { text = 'Add timetable slots to start tracking your study rhythm.'; }
+          else {
+            const rate = Math.round((slotsDone / slotsTotal) * 100);
+            if (rate >= 80) { ico = '🔥'; text = `Great consistency — <strong>${rate}%</strong> of this week's slots completed.`; }
+            else if (rate >= 40) { ico = '📚'; text = `You've completed <strong>${slotsDone} of ${slotsTotal}</strong> study slots this week.`; }
+            else { ico = '⏰'; text = `Only <strong>${slotsDone}/${slotsTotal}</strong> slots done — try to catch up this week.`; }
+          }
+          insEl.innerHTML = `<div class="study-insight-ico">${ico}</div><div class="study-insight-text">${text}</div>`;
+        }
+
+        function renderStudyWeek() {
+          const el = document.getElementById('studyWeekCard'); if (!el) return;
+          const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          const todayIdx = new Date().getDay();
+          const slots = S.myTimetable || [];
+          const hoursByDay = days.map(day => {
+            const daySlots = slots.filter(s => s.day === day);
+            return daySlots.reduce((sum, s) => {
+              if (!s.start || !s.end) return sum;
+              const [sh, sm] = s.start.split(':').map(Number), [eh, em] = s.end.split(':').map(Number);
+              const mins = (eh * 60 + em) - (sh * 60 + sm);
+              return sum + (mins > 0 ? mins / 60 : 0);
+            }, 0);
+          });
+          const max = Math.max(...hoursByDay, 1);
+          const short = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+          el.innerHTML = hoursByDay.map((h, i) => `
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+              <div class="study-week-bar${i === todayIdx ? ' today-bar' : ''}" style="height:${Math.max(3, Math.round((h / max) * 68))}px" title="${h.toFixed(1)}h"></div>
+              <div class="study-week-label">${short[i]}</div>
+            </div>`).join('');
         }
 
         // ─── VAULT ───────────────────────────────────────────────
@@ -7209,7 +7926,7 @@ async function toggleNotifications() {
           const vis = document.getElementById('journalVisibility')?.value || 'self';
           S.journal.unshift({ id: Date.now(), date: todayStr(), mood: S.selectedMood, body, visibility: vis, by: S.role }); document.getElementById('journalBody').value = ''; renderJournal(); scheduleSave(); toast('Journal saved! 📖'); spawnPetals(4);
         }
-        function renderJournal() { const el = document.getElementById('myJournalEntries'); if (!S.journal.length) { el.innerHTML = '<div class="empty"><div class="empty-ico">📖</div>No entries yet. Write your first!</div>'; return; } el.innerHTML = S.journal.map((e, i) => `<div style="background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;position:relative;transition:var(--t)"><div style="font-size:10px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">${fmtDate(e.date)}</div>${e.mood ? `<div style="display:inline-block;font-size:11px;background:var(--g2);color:var(--text);border-radius:10px;padding:2px 8px;margin-bottom:7px;border:1px solid var(--border)">${esc(e.mood)}</div>` : ''}<div style="font-size:13px;color:var(--text2);line-height:1.65">${esc(e.body)}</div><button class="del-btn" onclick="delJournal(${i})" style="position:absolute;top:12px;right:12px">✕</button></div>`).join(''); }
+        function renderJournal() { const el = document.getElementById('myJournalEntries'); if (!S.journal.length) { PS.empty(el, { icon: 'book', title: "No entries yet", desc: "Write down today's memory \u2014 a feeling, a moment, anything worth keeping.", actionLabel: 'Write First Entry', onAction: () => document.getElementById('journalBody')?.focus() }); return; } el.innerHTML = S.journal.map((e, i) => `<div style="background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;position:relative;transition:var(--t)"><div style="font-size:10px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">${fmtDate(e.date)}</div>${e.mood ? `<div style="display:inline-block;font-size:11px;background:var(--g2);color:var(--text);border-radius:10px;padding:2px 8px;margin-bottom:7px;border:1px solid var(--border)">${esc(e.mood)}</div>` : ''}<div style="font-size:13px;color:var(--text2);line-height:1.65">${esc(e.body)}</div><button class="del-btn" onclick="delJournal(${i})" style="position:absolute;top:12px;right:12px">✕</button></div>`).join(''); }
         function delJournal(i) { S.journal.splice(i, 1); renderJournal(); scheduleSave(); }
         document.getElementById('moodRow').addEventListener('click', e => { const m = e.target.closest('.mood'); if (!m) return; document.querySelectorAll('.mood').forEach(x => x.classList.remove('sel')); m.classList.add('sel'); S.selectedMood = m.dataset.mood; });
 
@@ -7218,7 +7935,76 @@ async function toggleNotifications() {
         function toggleHabit(id) { const h = S.habits.find(x => x.id === id); if (!h) return; const today = todayStr(); if (!h.doneToday) { h.doneToday = true; if (!h.doneDates) h.doneDates = []; if (!h.doneDates.includes(today)) h.doneDates.push(today); h.streak = calcStreak(h.doneDates); spawnPetals(3); addXP(5); } else { h.doneToday = false; h.doneDates = (h.doneDates || []).filter(d => d !== today); h.streak = calcStreak(h.doneDates); } renderHabits(); scheduleSave(); }
         function calcStreak(dates) { if (!dates || !dates.length) return 0; let streak = 0, cur = new Date(); if (!dates.includes(todayStr())) cur.setDate(cur.getDate() - 1); for (let i = 0; i < 365; i++) { const d = cur.toISOString().slice(0, 10); if (dates.includes(d)) { streak++; cur.setDate(cur.getDate() - 1); } else break; } return streak; }
         function delHabit(id) { S.habits = S.habits.filter(h => h.id !== id); renderHabits(); scheduleSave(); }
-        function renderHabits() { const el = document.getElementById('myHabitsList'); if (!S.habits.length) { el.innerHTML = '<div class="empty" style="padding:8px 0">No habits yet</div>'; return; } const today = todayStr(); S.habits.forEach(h => h.doneToday = (h.doneDates || []).includes(today)); el.innerHTML = S.habits.map(h => `<div class="habit-row"><div class="hc${h.doneToday ? ' done' : ''}" onclick="toggleHabit(${h.id})">${h.doneToday ? '✓' : ''}</div><span style="font-size:16px">${esc(h.emoji)}</span><span style="font-size:13px;flex:1;color:var(--text)">${esc(h.name)}</span><span class="streak-badge">${h.streak}🔥</span><button class="del-btn" onclick="delHabit(${h.id})">✕</button></div>`).join(''); const max = Math.max(0, ...S.habits.map(h => h.streak || 0)); document.getElementById('habitStreak').textContent = max + '🔥'; }
+        function renderHabits() { const el = document.getElementById('myHabitsList'); if (!S.habits.length) { PS.empty(el, { icon: 'generic', title: 'No habits yet', desc: 'Track small daily habits together and build streaks.', actionLabel: 'Add Habit', onAction: () => openM('habitModal'), compact: true }); renderHabitAnalytics(); return; } const today = todayStr(); S.habits.forEach(h => h.doneToday = (h.doneDates || []).includes(today)); el.innerHTML = S.habits.map(h => `<div class="habit-row"><div class="hc${h.doneToday ? ' done' : ''}" onclick="toggleHabit(${h.id})">${h.doneToday ? '✓' : ''}</div><span style="font-size:16px">${esc(h.emoji)}</span><span style="font-size:13px;flex:1;color:var(--text)">${esc(h.name)}</span><span class="streak-badge">${h.streak}🔥</span><button class="del-btn" onclick="delHabit(${h.id})">✕</button></div>`).join(''); const max = Math.max(0, ...S.habits.map(h => h.streak || 0)); document.getElementById('habitStreak').textContent = max + '🔥'; renderHabitAnalytics(); }
+
+        function renderHabitAnalytics() {
+          const heroEl = document.getElementById('habitHeroCard'), insEl = document.getElementById('habitInsightCard'), heatEl = document.getElementById('habitHeatmap');
+          if (!heroEl && !insEl && !heatEl) return;
+          const habits = S.habits || [];
+          const today = todayStr();
+          const doneToday = habits.filter(h => (h.doneDates || []).includes(today)).length;
+          const totalStreak = habits.reduce((s, h) => s + (h.streak || 0), 0);
+          const avgStreak = habits.length ? Math.round(totalStreak / habits.length) : 0;
+          const last7 = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); last7.push(d.toISOString().slice(0, 10)); }
+          const possible = habits.length * 7;
+          const actual = habits.reduce((s, h) => s + last7.filter(d => (h.doneDates || []).includes(d)).length, 0);
+          const consistency = possible > 0 ? Math.round((actual / possible) * 100) : 0;
+
+          if (heroEl) {
+            const r = 42, circ = 2 * Math.PI * r, offset = circ - (consistency / 100) * circ;
+            heroEl.innerHTML = `
+              <div class="habit-ring-wrap">
+                <svg viewBox="0 0 100 100" width="100" height="100">
+                  <circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--g2)" stroke-width="8"/>
+                  <circle cx="50" cy="50" r="${r}" fill="none" stroke="url(#habitGrad)" stroke-width="8"
+                    stroke-dasharray="${circ}" stroke-dashoffset="${circ}" stroke-linecap="round"
+                    style="transition:stroke-dashoffset 1.2s cubic-bezier(0.34,1.56,0.64,1)" id="habitRingCircle"/>
+                  <defs><linearGradient id="habitGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="#ff6b6b"/>
+                  </linearGradient></defs>
+                </svg>
+                <div class="habit-ring-text"><div class="habit-ring-pct">${consistency}%</div><div class="habit-ring-label">7-Day</div></div>
+              </div>
+              <div class="habit-hero-stats">
+                <div class="habit-hero-title">Today's Progress</div>
+                <div class="habit-hero-amt">${doneToday}/${habits.length}</div>
+                <div class="habit-hero-sub">Avg streak: ${avgStreak}🔥 across ${habits.length} habit${habits.length === 1 ? '' : 's'}</div>
+              </div>`;
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+              const c = document.getElementById('habitRingCircle'); if (c) c.style.strokeDashoffset = offset;
+            }));
+          }
+
+          if (insEl) {
+            let text, ico = '💡';
+            if (!habits.length) { text = 'Add your first habit to start building streaks together.'; }
+            else if (consistency >= 80) { ico = '🔥'; text = `Amazing consistency — <strong>${consistency}%</strong> completion over the last 7 days.`; }
+            else if (consistency >= 50) { ico = '✅'; text = `You're at <strong>${consistency}%</strong> consistency this week — keep it up.`; }
+            else { ico = '💪'; text = `Consistency is at <strong>${consistency}%</strong> — try checking in daily to build momentum.`; }
+            insEl.innerHTML = `<div class="habit-insight-ico">${ico}</div><div class="habit-insight-text">${text}</div>`;
+          }
+
+          if (heatEl) {
+            if (!habits.length) { heatEl.parentElement.style.display = 'none'; }
+            else {
+              heatEl.parentElement.style.display = '';
+              const days = 84; // 12 weeks
+              const cells = [];
+              for (let i = days - 1; i >= 0; i--) {
+                const d = new Date(); d.setDate(d.getDate() - i);
+                const ds = d.toISOString().slice(0, 10);
+                const count = habits.filter(h => (h.doneDates || []).includes(ds)).length;
+                const frac = habits.length ? count / habits.length : 0;
+                let bg = 'var(--g2)';
+                if (frac > 0 && frac < 0.34) bg = 'rgba(229,9,20,0.25)';
+                else if (frac >= 0.34 && frac < 0.67) bg = 'rgba(229,9,20,0.55)';
+                else if (frac >= 0.67) bg = '#E50914';
+                cells.push(`<div class="habit-heat-cell" style="background:${bg}" title="${ds}: ${count}/${habits.length}"></div>`);
+              }
+              heatEl.innerHTML = cells.join('');
+            }
+          }
+        }
 
         // ─── NOTES ───────────────────────────────────────────────
         const noteColors = ['rgba(255,107,157,0.12)', 'rgba(150,100,220,0.12)', 'rgba(100,200,150,0.12)', 'rgba(255,180,50,0.12)', 'rgba(100,180,255,0.12)'];
@@ -7230,12 +8016,12 @@ async function toggleNotifications() {
         }
         function delNote(i) { S.notes.splice(i, 1); renderNotes(); scheduleSave(); }
         function renderNotes() {
-          const el = document.getElementById('notesGrid'); if (!S.notes.length) { el.innerHTML = '<div class="empty" style="grid-column:1/-1">No notes yet. Write something sweet!</div>'; return; } const visibleNotes = S.notes.filter(n => canSeeItem(n));
+          const el = document.getElementById('notesGrid'); if (!S.notes.length) { el.style.gridColumn = '1/-1'; PS.empty(el, { icon: 'heart', title: 'No notes yet', desc: 'Write something sweet \u2014 it\u2019ll show up here for both of you.', actionLabel: 'Write a Note', onAction: () => document.getElementById('noteIn')?.focus() }); return; } const visibleNotes = S.notes.filter(n => canSeeItem(n));
           el.innerHTML = visibleNotes.map((n, i) => {
            const realIdx = S.notes.indexOf(n);
             return `<div class="note-card" style="background:${n.color}"><div style="font-size:10px;color:var(--text3);margin-bottom:5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap">${privBadgeHtml(n.visibility)}<span>${n.me ? esc(S.myName) : esc(S.partnerName)} · ${fmtDateShort(n.date)}</span></div><div style="font-size:13px;color:var(--text)">${esc(n.text)}</div>${n.reminderDate ? `<div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--yellow-bg);color:var(--yellow);border-radius:8px;padding:3px 7px;margin-top:6px;border:1px solid rgba(251,191,36,0.3)">🔔 ${fmtDateShort(n.reminderDate)} ${n.reminderTime || ''}</div>` : ''}<button class="del-btn" onclick="delNote(${realIdx})" style="position:absolute;top:9px;right:9px">✕</button></div>`;}).join('');
         }
-        function renderReminders() { const el = document.getElementById('remindersList'); if (!el) return; if (!S.reminders || !S.reminders.length) { el.innerHTML = '<div class="empty"><div class="empty-ico">🔔</div>No reminders yet</div>'; return; } const sorted = [...S.reminders].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)); el.innerHTML = sorted.map(r => `<div class="card" style="margin-bottom:9px;padding:13px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:4px">🔔 ${esc(r.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(r.date)} at ${r.time || '—'}</div><div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--blue-bg);color:var(--blue);border-radius:7px;padding:2px 7px;margin-top:5px;border:1px solid rgba(96,165,250,0.3)">📣 ${r.forWhom === 'both' ? 'Both of us' : r.forWhom === 'self' ? 'Just me' : 'Partner only'}</div>${r.note ? `<div style="font-size:11px;color:var(--text3);margin-top:5px">${esc(r.note)}</div>` : ''}</div><button class="del-btn" onclick="delReminder(${r.id})">✕</button></div></div>`).join('');}
+        function renderReminders() { const el = document.getElementById('remindersList'); if (!el) return; if (!S.reminders || !S.reminders.length) { PS.empty(el, { icon: 'generic', title: 'No reminders yet', desc: 'Set an alarm for something you don\u2019t want to forget.', actionLabel: 'Set a Reminder', onAction: () => document.getElementById('remTitle')?.focus() }); return; } const sorted = [...S.reminders].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)); el.innerHTML = sorted.map(r => `<div class="card" style="margin-bottom:9px;padding:13px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:4px">🔔 ${esc(r.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(r.date)} at ${r.time || '—'}</div><div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--blue-bg);color:var(--blue);border-radius:7px;padding:2px 7px;margin-top:5px;border:1px solid rgba(96,165,250,0.3)">📣 ${r.forWhom === 'both' ? 'Both of us' : r.forWhom === 'self' ? 'Just me' : 'Partner only'}</div>${r.note ? `<div style="font-size:11px;color:var(--text3);margin-top:5px">${esc(r.note)}</div>` : ''}</div><button class="del-btn" onclick="delReminder(${r.id})">✕</button></div></div>`).join('');}
 
       
         // ─── REMINDERS & ALARMS ──────────────────────────────────
@@ -7248,10 +8034,73 @@ async function toggleNotifications() {
         function dismissAlarm() { document.getElementById('alarmRing').classList.remove('active'); }
 
         // ─── WELLNESS ────────────────────────────────────────────
-        function saveWellness() { const today = todayStr(); if (!S.wellness) S.wellness = {}; S.wellness[today] = { water: parseInt(document.getElementById('waterIn').value) || 0, sleep: parseFloat(document.getElementById('sleepIn').value) || 0, exercise: parseInt(document.getElementById('exerciseIn').value) || 0, mood: S.selectedMood }; renderWellnessSummary(); scheduleSave(); addXP(2); }
+        function saveWellness() { const today = todayStr(); if (!S.wellness) S.wellness = {}; S.wellness[today] = { water: parseInt(document.getElementById('waterIn').value) || 0, sleep: parseFloat(document.getElementById('sleepIn').value) || 0, exercise: parseInt(document.getElementById('exerciseIn').value) || 0, mood: S.selectedMood }; renderWellnessSummary(); renderWellnessAnalytics(); scheduleSave(); addXP(2); }
         function renderWellnessMoods() { const el = document.getElementById('myMoodWeek'); if (!el) return; const days = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); const ds = d.toISOString().slice(0, 10); const day = d.toLocaleDateString('en', { weekday: 'short' }); const w = (S.wellness || {})[ds]; days.push(`<div class="mood-hist-dot"><div class="mood-hist-day">${day}</div><div class="mood-hist-emoji">${w?.mood?.split(' ')[0] || '—'}</div></div>`); } el.innerHTML = days.join(''); }
         function renderWellnessSummary() { const el = document.getElementById('wellnessSummary'); if (!el) return; const today = todayStr(); const w = (S.wellness || {})[today] || {}; const vals = Object.values(S.wellness || {}); const aw = vals.reduce((s, d) => s + (d.water || 0), 0) / Math.max(1, vals.length); const as = vals.reduce((s, d) => s + (d.sleep || 0), 0) / Math.max(1, vals.length); el.innerHTML = `<div>💧 Today's water: <strong>${w.water || 0}</strong> glasses</div><div>😴 Today's sleep: <strong>${w.sleep || 0}</strong> hours</div><div>🏃 Today's exercise: <strong>${w.exercise || 0}</strong> min</div><div style="margin-top:9px;color:var(--text3)">7-day avg water: ${aw.toFixed(1)} glasses · avg sleep: ${as.toFixed(1)}h</div>`; }
-        function spTab(id, el) { document.querySelectorAll('.stab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.sc').forEach(c => c.classList.remove('active')); el.classList.add('active'); document.getElementById('sc-' + id).classList.add('active'); if (id === 'wellness') { renderWellnessMoods(); renderWellnessSummary(); } if (id === 'reminders') renderReminders(); }
+        function renderWellnessAnalytics() {
+          const heroEl = document.getElementById('wellHeroCard'), insEl = document.getElementById('wellInsightCard'), trendEl = document.getElementById('wellTrendCard');
+          if (!heroEl && !insEl && !trendEl) return;
+          const today = todayStr();
+          const w = (S.wellness || {})[today] || {};
+          const goals = { water: 8, sleep: 8, exercise: 30 };
+          const metrics = [
+            { key: 'water', label: 'Water', val: w.water || 0, goal: goals.water, unit: 'glasses', color: '#60a5fa', emoji: '💧' },
+            { key: 'sleep', label: 'Sleep', val: w.sleep || 0, goal: goals.sleep, unit: 'hrs', color: '#a78bfa', emoji: '😴' },
+            { key: 'exercise', label: 'Exercise', val: w.exercise || 0, goal: goals.exercise, unit: 'min', color: '#34d399', emoji: '🏃' }
+          ];
+
+          if (heroEl) {
+            heroEl.innerHTML = metrics.map(m => {
+              const pct = Math.min(100, Math.round((m.val / m.goal) * 100));
+              const r = 26, circ = 2 * Math.PI * r, offset = circ - (pct / 100) * circ;
+              const id = 'wellRing_' + m.key;
+              return `<div class="well-ring-card">
+                <div class="well-ring-wrap">
+                  <svg viewBox="0 0 64 64" width="64" height="64">
+                    <circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--g2)" stroke-width="6"/>
+                    <circle cx="32" cy="32" r="${r}" fill="none" stroke="${m.color}" stroke-width="6"
+                      stroke-dasharray="${circ}" stroke-dashoffset="${circ}" stroke-linecap="round"
+                      style="transition:stroke-dashoffset 1.1s cubic-bezier(0.34,1.56,0.64,1)" id="${id}"/>
+                  </svg>
+                  <div class="well-ring-text">${m.emoji}</div>
+                </div>
+                <div style="font-size:12px;color:var(--white);font-weight:600">${m.val}${m.val ? '' : ''}<span style="font-size:9px;color:var(--text3)"> /${m.goal}${m.unit === 'glasses' ? '' : m.unit}</span></div>
+                <div class="well-ring-label">${m.label}</div>
+              </div>`;
+            }).join('');
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+              metrics.forEach(m => {
+                const pct = Math.min(100, Math.round((m.val / m.goal) * 100));
+                const r = 26, circ = 2 * Math.PI * r, offset = circ - (pct / 100) * circ;
+                const c = document.getElementById('wellRing_' + m.key);
+                if (c) c.style.strokeDashoffset = offset;
+              });
+            }));
+          }
+
+          if (insEl) {
+            const metGoals = metrics.filter(m => m.val >= m.goal).length;
+            let text, ico = '💡';
+            if (!w.water && !w.sleep && !w.exercise) { text = 'Log today\'s water, sleep, and exercise to see your wellness insights.'; }
+            else if (metGoals === 3) { ico = '🌟'; text = `Perfect day — you hit <strong>all 3</strong> wellness goals today!`; }
+            else if (metGoals >= 1) { ico = '✅'; text = `You've hit <strong>${metGoals}/3</strong> wellness goals today. Keep going!`; }
+            else { ico = '🌱'; text = `Log your water, sleep and exercise to start tracking today's wellness.`; }
+            insEl.innerHTML = `<div class="well-insight-ico">${ico}</div><div class="well-insight-text">${text}</div>`;
+          }
+
+          if (trendEl) {
+            const days = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); days.push(d.toISOString().slice(0, 10)); }
+            const short = days.map(d => new Date(d + 'T00:00:00').toLocaleDateString('en', { weekday: 'short' })[0]);
+            const sleepVals = days.map(d => (S.wellness || {})[d]?.sleep || 0);
+            const max = Math.max(...sleepVals, 8);
+            trendEl.innerHTML = days.map((d, i) => `
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+                <div class="well-trend-bar" style="height:${Math.max(3, Math.round((sleepVals[i] / max) * 60))}px;background:linear-gradient(180deg,#a78bfa,#7c5cd6)" title="${sleepVals[i]}h sleep"></div>
+                <div class="well-trend-label">${short[i]}</div>
+              </div>`).join('');
+          }
+        }
+        function spTab(id, el) { document.querySelectorAll('.stab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.sc').forEach(c => c.classList.remove('active')); el.classList.add('active'); document.getElementById('sc-' + id).classList.add('active'); if (id === 'wellness') { renderWellnessMoods(); renderWellnessSummary(); renderWellnessAnalytics(); } if (id === 'reminders') renderReminders(); if (id === 'habits') renderHabitAnalytics(); }
 
         // ─── BUCKET LIST ─────────────────────────────────────────
         function addBucket() {
@@ -7260,7 +8109,7 @@ async function toggleNotifications() {
         }
         function toggleBucket(id) { const b = S.bucket.find(x => x.id === id); if (b) { b.done = !b.done; renderBucket(); scheduleSave(); if (b.done) { spawnPetals(12); addXP(8); } } }
         function delBucket(id) { S.bucket = S.bucket.filter(b => b.id !== id); renderBucket(); scheduleSave(); }
-        function renderBucket() { const el = document.getElementById('bucketList'); const done = S.bucket.filter(b => b.done).length; document.getElementById('bucketTag').textContent = done + '/' + S.bucket.length; document.getElementById('bucketCount').textContent = S.bucket.length; if (!S.bucket.length) { el.innerHTML = '<div class="empty"><div class="empty-ico">🌟</div>Add your first dream together!</div>'; return; } const ce = { Travel: '✈️', Experience: '🎭', Achievement: '🏆', Home: '🏠', Romance: '💕', Adventure: '🏔️', Other: '💫' }; el.innerHTML = S.bucket.filter(b => canSeeItem(b)).map(b => `<div class="bucket-row"><div class="bc${b.done ? ' done' : ''}" onclick="toggleBucket(${b.id})">${b.done ? '✓' : ''}</div><div class="bt${b.done ? ' done' : ''}"><span style="margin-right:6px">${ce[b.cat] || '💫'}</span>${esc(b.title)}${privBadgeHtml(b.visibility)}</div>${b.date ? `<span style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDateShort(b.date)}</span>` : ''}<button class="del-btn" onclick="delBucket(${b.id})">✕</button></div>`).join(''); }
+        function renderBucket() { const el = document.getElementById('bucketList'); const done = S.bucket.filter(b => b.done).length; document.getElementById('bucketTag').textContent = done + '/' + S.bucket.length; document.getElementById('bucketCount').textContent = S.bucket.length; if (!S.bucket.length) { PS.empty(el, { icon: 'dream', title: 'Nothing on the list yet', desc: 'Add your first dream together \u2014 a trip, an experience, anything you want to chase as a team.', actionLabel: 'Add Dream', onAction: () => openM('bucketModal') }); return; } const ce = { Travel: '✈️', Experience: '🎭', Achievement: '🏆', Home: '🏠', Romance: '💕', Adventure: '🏔️', Other: '💫' }; el.innerHTML = S.bucket.filter(b => canSeeItem(b)).map(b => `<div class="bucket-row"><div class="bc${b.done ? ' done' : ''}" onclick="toggleBucket(${b.id})">${b.done ? '✓' : ''}</div><div class="bt${b.done ? ' done' : ''}"><span style="margin-right:6px">${ce[b.cat] || '💫'}</span>${esc(b.title)}${privBadgeHtml(b.visibility)}</div>${b.date ? `<span style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDateShort(b.date)}</span>` : ''}<button class="del-btn" onclick="delBucket(${b.id})">✕</button></div>`).join(''); }
 
         // ─── CALENDAR ────────────────────────────────────────────
         function calNav(d) { S.calMonth += d; if (S.calMonth > 11) { S.calMonth = 0; S.calYear++; } if (S.calMonth < 0) { S.calMonth = 11; S.calYear--; } renderCalendar(); }
@@ -7287,7 +8136,7 @@ async function toggleNotifications() {
           document.getElementById('calDays').innerHTML = html;
           const today2 = todayStr(); const up = S.events.filter(e => e.date >= today2).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 10);
           const evEl = document.getElementById('eventList'); const ce = { 'Anniversary': '💕', 'Date': '🌹', 'Birthday': '🎂', 'Trip': '✈️', 'Special': '⭐', 'Study': '📚', 'Other': '📌' };
-          if (!up.length) { evEl.innerHTML = '<div class="empty">No upcoming events</div>'; renderDashEvents(); return; }
+          if (!up.length) { PS.empty(evEl, { icon: 'generic', title: 'No upcoming events', desc: 'Add a date so you both know what\u2019s coming up.', actionLabel: 'Add Event', onAction: () => openM('eventModal'), compact: true }); renderDashEvents(); return; }
           evEl.innerHTML = up.map(e => `<div class="bucket-row"><div style="font-size:17px">${ce[e.cat] || '📌'}</div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--white)">${esc(e.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(e.date)}${e.time ? ' · ' + esc(e.time) : ''}${e.alarm ? ' · 🔔' : ''}</div></div><button class="del-btn" onclick="delEvent(${e.id})">✕</button></div>`).join('');
           renderDashEvents();
         }
@@ -7297,10 +8146,131 @@ async function toggleNotifications() {
         // ─── MONEY ───────────────────────────────────────────────
         function addTransaction() { const desc = document.getElementById('moneyDesc').value.trim(); const amt = parseFloat(document.getElementById('moneyAmt').value); if (!desc || isNaN(amt)) { toast('Fill in description and amount'); return; } S.transactions.unshift({ id: Date.now(), type: document.getElementById('moneyType').value, desc, amt, by: S.role, category: document.getElementById('moneyCategory').value || 'Other', date: document.getElementById('moneyDate').value || todayStr() });['moneyDesc', 'moneyAmt', 'moneyCategory', 'moneyDate'].forEach(id => document.getElementById(id).value = ''); closeM('moneyModal'); renderMoney(); scheduleSave(); toast('Transaction added! 💰'); }
         function delTransaction(id) { S.transactions = S.transactions.filter(t => t.id !== id); renderMoney(); scheduleSave(); }
-        function renderMoney() { const ms = new Date(); ms.setDate(1); const mss = ms.toISOString().slice(0, 10); const tm = S.transactions.filter(t => t.date >= mss); const inc = tm.filter(t => t.type === 'income').reduce((s, t) => s + t.amt, 0); const exp = tm.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0); const net = inc - exp; document.getElementById('mInc').textContent = '₹' + inc.toLocaleString('en-IN'); document.getElementById('mExp').textContent = '₹' + exp.toLocaleString('en-IN'); const ne = document.getElementById('mNet'); ne.textContent = '₹' + Math.abs(net).toLocaleString('en-IN'); ne.style.color = net >= 0 ? 'var(--green)' : 'var(--red)'; const el = document.getElementById('transList'); if (!S.transactions.length) { el.innerHTML = '<div class="empty">No transactions yet</div>'; return; } const ce = { 'Food': '🍽️', 'Transport': '🚗', 'Entertainment': '🎬', 'Shopping': '🛒', 'Travel': '✈️', 'Health': '💊', 'Date': '🌹', 'Other': '💳' }; el.innerHTML = S.transactions.slice(0, 60).map(t => `<div class="money-row"><div class="money-ic ${t.type === 'income' ? 'inc' : 'exp'}">${ce[t.category] || (t.type === 'income' ? '💰' : '💳')}</div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--white)">${esc(t.desc)}</div><div style="font-size:10px;color:var(--text3)">${esc(t.category)} · ${fmtDateShort(t.date)}</div></div><span class="${t.type === 'income' ? 'inc-amt' : 'exp-amt'}">${t.type === 'income' ? '+' : '-'}₹${t.amt.toLocaleString('en-IN')}</span><button class="del-btn" style="margin-left:5px" onclick="delTransaction(${t.id})">✕</button></div>`).join(''); renderFinanceSplit(); }
+        function renderMoney() {
+          const ms = new Date(); ms.setDate(1); const mss = ms.toISOString().slice(0, 10);
+          const tm = S.transactions.filter(t => t.date >= mss);
+          const inc = tm.filter(t => t.type === 'income').reduce((s, t) => s + t.amt, 0);
+          const exp = tm.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0);
+          const net = inc - exp;
+          document.getElementById('mInc').textContent = '₹' + inc.toLocaleString('en-IN');
+          document.getElementById('mExp').textContent = '₹' + exp.toLocaleString('en-IN');
+          const ne = document.getElementById('mNet'); ne.textContent = '₹' + Math.abs(net).toLocaleString('en-IN'); ne.style.color = net >= 0 ? 'var(--green)' : 'var(--red)';
 
-        // ─── AI LOVE GUIDE ───────────────────────────────────────
+          renderFinHero(inc, exp);
+          renderFinInsight(mss);
+          renderFinDonut(tm);
+          renderFinTrend();
+
+          const el = document.getElementById('transList');
+          if (!S.transactions.length) { PS.empty(el, { icon: 'wallet', title: 'No transactions yet', desc: 'Log your shared spending here to track income, expenses, and savings together.', actionLabel: 'Add First Expense', onAction: () => openM('moneyModal') }); renderFinanceSplit(); return; }
+          const ce = { 'Food': '🍽️', 'Transport': '🚗', 'Entertainment': '🎬', 'Shopping': '🛒', 'Travel': '✈️', 'Health': '💊', 'Date': '🌹', 'Other': '💳' };
+          el.innerHTML = S.transactions.slice(0, 60).map(t => `<div class="money-row"><div class="money-ic ${t.type === 'income' ? 'inc' : 'exp'}">${ce[t.category] || (t.type === 'income' ? '💰' : '💳')}</div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--white)">${esc(t.desc)}</div><div style="font-size:10px;color:var(--text3)">${esc(t.category)} · ${fmtDateShort(t.date)}</div></div><span class="${t.type === 'income' ? 'inc-amt' : 'exp-amt'}">${t.type === 'income' ? '+' : '-'}₹${t.amt.toLocaleString('en-IN')}</span><button class="del-btn" style="margin-left:5px" onclick="delTransaction(${t.id})">✕</button></div>`).join('');
+          renderFinanceSplit();
+        }
+
+        function renderFinHero(inc, exp) {
+          const el = document.getElementById('finHeroCard'); if (!el) return;
+          const rate = inc > 0 ? Math.max(0, Math.min(100, Math.round(((inc - exp) / inc) * 100))) : 0;
+          const r = 46, circ = 2 * Math.PI * r, offset = circ - (rate / 100) * circ;
+          const net = inc - exp;
+          el.innerHTML = `
+            <div class="fin-ring-wrap">
+              <svg viewBox="0 0 100 100" width="110" height="110">
+                <circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--g2)" stroke-width="8"/>
+                <circle cx="50" cy="50" r="${r}" fill="none" stroke="url(#finGrad)" stroke-width="8"
+                  stroke-dasharray="${circ}" stroke-dashoffset="${circ}" stroke-linecap="round"
+                  style="transition:stroke-dashoffset 1.2s cubic-bezier(0.34,1.56,0.64,1)" id="finRingCircle"/>
+                <defs><linearGradient id="finGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="#ff6b6b"/>
+                </linearGradient></defs>
+              </svg>
+              <div class="fin-ring-text"><div class="fin-ring-pct">${rate}%</div><div class="fin-ring-label">Saved</div></div>
+            </div>
+            <div class="fin-hero-stats">
+              <div class="fin-hero-title">This Month's Net</div>
+              <div class="fin-hero-amt" style="color:${net >= 0 ? 'var(--green)' : 'var(--red)'}">${net >= 0 ? '+' : '-'}₹${Math.abs(net).toLocaleString('en-IN')}</div>
+              <div class="fin-hero-sub">₹${inc.toLocaleString('en-IN')} in · ₹${exp.toLocaleString('en-IN')} out</div>
+            </div>`;
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            const c = document.getElementById('finRingCircle');
+            if (c) c.style.strokeDashoffset = offset;
+          }));
+        }
+
+        function renderFinInsight(mss) {
+          const el = document.getElementById('finInsightCard'); if (!el) return;
+          const lastMonthEnd = new Date(mss); lastMonthEnd.setDate(0);
+          const lastMonthStart = new Date(lastMonthEnd); lastMonthStart.setDate(1);
+          const lmss = lastMonthStart.toISOString().slice(0, 10), lmee = lastMonthEnd.toISOString().slice(0, 10);
+          const thisExp = S.transactions.filter(t => t.type === 'expense' && t.date >= mss).reduce((s, t) => s + t.amt, 0);
+          const lastExp = S.transactions.filter(t => t.type === 'expense' && t.date >= lmss && t.date <= lmee).reduce((s, t) => s + t.amt, 0);
+          let text, ico = '💡';
+          if (lastExp === 0 && thisExp === 0) { text = 'Start logging transactions to see spending insights here.'; }
+          else if (lastExp === 0) { text = `You've spent <strong>₹${thisExp.toLocaleString('en-IN')}</strong> so far this month.`; }
+          else {
+            const diff = Math.round(((thisExp - lastExp) / lastExp) * 100);
+            if (diff > 5) { ico = '📈'; text = `Spending is up <strong>${diff}%</strong> vs last month. Keep an eye on it.`; }
+            else if (diff < -5) { ico = '📉'; text = `Nice — spending is down <strong>${Math.abs(diff)}%</strong> vs last month.`; }
+            else { ico = '⚖️'; text = `Spending is steady, close to last month's ₹${lastExp.toLocaleString('en-IN')}.`; }
+          }
+          el.innerHTML = `<div class="fin-insight-ico">${ico}</div><div class="fin-insight-text">${text}</div>`;
+        }
+
+        const FIN_CAT_COLORS = { Food:'#ff6b6b', Transport:'#60a5fa', Entertainment:'#a78bfa', Shopping:'#fbbf24', Travel:'#34d399', Health:'#f472b6', Date:'#ff8fa3', Other:'#94a3b8' };
+        function renderFinDonut(tm) {
+          const el = document.getElementById('finDonutCard'); if (!el) return;
+          const exp = tm.filter(t => t.type === 'expense');
+          if (!exp.length) { el.innerHTML = '<div class="empty" style="padding:20px 0;width:100%">No expenses logged this month yet</div>'; return; }
+          const byCat = {};
+          exp.forEach(t => { byCat[t.category || 'Other'] = (byCat[t.category || 'Other'] || 0) + t.amt; });
+          const total = Object.values(byCat).reduce((a, b) => a + b, 0);
+          const entries = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+          const r = 60, circ = 2 * Math.PI * r;
+          let offsetAcc = 0;
+          const segs = entries.map(([cat, amt]) => {
+            const frac = amt / total;
+            const dash = frac * circ;
+            const seg = `<circle cx="70" cy="70" r="${r}" fill="none" stroke="${FIN_CAT_COLORS[cat] || '#94a3b8'}" stroke-width="16"
+              stroke-dasharray="${dash} ${circ - dash}" stroke-dashoffset="${-offsetAcc}" stroke-linecap="butt"/>`;
+            offsetAcc += dash;
+            return seg;
+          }).join('');
+          const legend = entries.map(([cat, amt]) => `
+            <div class="fin-legend-row">
+              <div class="fin-legend-dot" style="background:${FIN_CAT_COLORS[cat] || '#94a3b8'}"></div>
+              <div class="fin-legend-name">${esc(cat)}</div>
+              <div class="fin-legend-amt">₹${amt.toLocaleString('en-IN')}</div>
+            </div>`).join('');
+          el.innerHTML = `
+            <div class="fin-donut-wrap">
+              <svg viewBox="0 0 140 140" width="140" height="140">${segs}</svg>
+              <div class="fin-donut-center"><div class="fin-donut-total">₹${total.toLocaleString('en-IN')}</div><div class="fin-donut-total-l">Total</div></div>
+            </div>
+            <div class="fin-legend">${legend}</div>`;
+        }
+
+        function renderFinTrend() {
+          const el = document.getElementById('finTrendCard'); if (!el) return;
+          const weeks = [];
+          for (let i = 7; i >= 0; i--) {
+            const end = new Date(); end.setDate(end.getDate() - (i * 7));
+            const start = new Date(end); start.setDate(start.getDate() - 6);
+            const ss = start.toISOString().slice(0, 10), es = end.toISOString().slice(0, 10);
+            const amt = S.transactions.filter(t => t.type === 'expense' && t.date >= ss && t.date <= es).reduce((s, t) => s + t.amt, 0);
+            weeks.push({ amt, label: 'W' + (8 - i) });
+          }
+          const max = Math.max(...weeks.map(w => w.amt), 1);
+          el.innerHTML = weeks.map(w => `
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+              <div class="fin-trend-bar" style="height:${Math.max(3, Math.round((w.amt / max) * 60))}px" title="₹${w.amt.toLocaleString('en-IN')}"></div>
+              <div class="fin-trend-label">${w.label}</div>
+            </div>`).join('');
+        }
+
+        // ─── AI LOVE GUIDE 2.0 ───────────────────────────────────
         let aiStreaming = false;
+        let aiLastQuestion = '';
+
         async function sendAI() {
           if (aiStreaming) return;
           const inp = document.getElementById('aiIn');
@@ -7310,22 +8280,114 @@ async function toggleNotifications() {
           document.getElementById('aiSendBtn')?.classList.remove('is-ready');
           askAI(txt);
         }
+
+        // Lightweight markdown → HTML (headers, bold, italic, lists, code
+        // blocks, inline code, links, blockquotes, tables) — frontend only.
         function renderAiText(raw) {
-          return raw
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-            .replace(/\n/g, '<br>')
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+          if (!raw) return '';
+          const escd = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const codeBlocks = [];
+          let txt = escd.replace(/```(\w*)\n?([\s\S]*?)```/g, (m, lang, code) => {
+            const idx = codeBlocks.length;
+            codeBlocks.push({ lang: lang || 'text', code: code.replace(/\n$/, '') });
+            return `\u0000CODEBLOCK${idx}\u0000`;
+          });
+          txt = txt
+            .replace(/^### (.*)$/gm, '<h3>$1</h3>')
+            .replace(/^## (.*)$/gm, '<h2>$1</h2>')
+            .replace(/^# (.*)$/gm, '<h1>$1</h1>')
+            .replace(/^&gt; (.*)$/gm, '<blockquote>$1</blockquote>')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>')
+            .replace(/`([^`]+)`/g, '<code class="ai-inline-code">$1</code>')
+            .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+          // Lists — group consecutive bullet/numbered lines
+          txt = txt.replace(/(^|\n)((?:[-*] .*(?:\n|$))+)/g, (m, pre, block) => {
+            const items = block.trim().split('\n').map(l => '<li>' + l.replace(/^[-*] /, '') + '</li>').join('');
+            return pre + '<ul>' + items + '</ul>';
+          });
+          txt = txt.replace(/(^|\n)((?:\d+\. .*(?:\n|$))+)/g, (m, pre, block) => {
+            const items = block.trim().split('\n').map(l => '<li>' + l.replace(/^\d+\. /, '') + '</li>').join('');
+            return pre + '<ol>' + items + '</ol>';
+          });
+          txt = txt.split(/\n{2,}/).map(p => {
+            if (/^<(h1|h2|h3|ul|ol|blockquote)/.test(p.trim())) return p;
+            return p.trim() ? '<p>' + p.replace(/\n/g, '<br>') + '</p>' : '';
+          }).join('');
+          txt = txt.replace(/\u0000CODEBLOCK(\d+)\u0000/g, (m, i) => {
+            const cb = codeBlocks[i];
+            const codeEsc = cb.code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const blockId = 'aicode_' + Date.now() + '_' + i;
+            return `<div class="ai-code-block"><div class="ai-code-head"><span>${esc(cb.lang)}</span><button class="ai-code-copy" onclick="copyAiCode(this)" data-code="${encodeURIComponent(cb.code)}">📋 Copy</button></div><pre id="${blockId}"><code>${codeEsc}</code></pre></div>`;
+          });
+          return txt || escd.replace(/\n/g, '<br>');
         }
-        async function askAI(question) {
+
+        function copyAiCode(btn) {
+          const code = decodeURIComponent(btn.dataset.code || '');
+          navigator.clipboard?.writeText(code).then(() => {
+            const orig = btn.textContent; btn.textContent = '✓ Copied';
+            setTimeout(() => btn.textContent = orig, 1500);
+          });
+        }
+        function copyAiMessage(btn, rawText) {
+          navigator.clipboard?.writeText(rawText).then(() => {
+            btn.classList.add('copied'); btn.innerHTML = '✓ Copied';
+            setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = '📋 Copy'; }, 1500);
+          });
+        }
+        function regenerateAi() { if (aiLastQuestion) askAI(aiLastQuestion, true); }
+        function nowTimeShort() { return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+
+        function addAiMsgToolbar(wrapDiv, bubbleEl, rawTextGetter) {
+          const tb = document.createElement('div');
+          tb.className = 'ai-msg-toolbar';
+          tb.innerHTML = `
+            <button class="ai-tb-btn ai-copy-btn">📋 Copy</button>
+            <button class="ai-tb-btn" onclick="regenerateAi()">🔄 Regenerate</button>`;
+          tb.querySelector('.ai-copy-btn').onclick = (e) => copyAiMessage(e.target, rawTextGetter());
+          wrapDiv.appendChild(tb);
+        }
+
+        // Long AI conversations can accumulate many message bubbles over a
+        // session. Since the view always stays scrolled near the bottom,
+        // bubbles far above the fold are never seen again — trimming the
+        // oldest ones once the count gets large keeps memory/DOM size
+        // bounded without ever touching a message still in view.
+        const AI_MAX_DOM_MESSAGES = 120;
+        function trimAiHistoryDom(msgsEl) {
+          const nodes = msgsEl.children;
+          if (nodes.length <= AI_MAX_DOM_MESSAGES) return;
+          const removeCount = nodes.length - AI_MAX_DOM_MESSAGES;
+          for (let i = 0; i < removeCount; i++) {
+            if (msgsEl.firstElementChild) msgsEl.removeChild(msgsEl.firstElementChild);
+          }
+        }
+
+        async function askAI(question, isRegenerate) {
           const msgsEl = document.getElementById('aiMsgs');
           const sendBtn = document.getElementById('aiSendBtn');
-          const ud = document.createElement('div'); ud.className = 'ai-msg me ai-pop-in';
-          ud.innerHTML = `<div class="av av1" style="width:30px;height:30px;font-size:11px">${esc(S.myName[0] || 'U')}</div><div><div class="ai-bubble">${esc(question)}</div></div>`;
-          msgsEl.appendChild(ud);
+          const welcome = document.getElementById('aiWelcome');
+          if (welcome) welcome.remove();
+          aiLastQuestion = question;
+
+          if (!isRegenerate) {
+            const ud = document.createElement('div'); ud.className = 'ai-msg me ai-pop-in';
+            ud.innerHTML = `<div class="av av1" style="width:30px;height:30px;font-size:11px">${esc(S.myName[0] || 'U')}</div><div><div class="ai-bubble">${esc(question)}</div><div class="ai-msg-time">${nowTimeShort()}</div></div>`;
+            msgsEl.appendChild(ud);
+            trimAiHistoryDom(msgsEl);
+          }
+
           const ld = document.createElement('div'); ld.className = 'ai-msg bot ai-pop-in';
-          ld.innerHTML = `<div class="ai-av">🤖</div><div><div class="ai-bubble ai-bubble-loading"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
+          const wrapDiv = document.createElement('div');
+          const bubbleEl = document.createElement('div');
+          bubbleEl.className = 'ai-bubble ai-bubble-loading';
+          bubbleEl.innerHTML = `<span class="ai-thinking-wave"><span></span><span></span><span></span></span><span class="ai-thinking-label">Thinking...</span>`;
+          wrapDiv.appendChild(bubbleEl);
+          const avDiv = document.createElement('div'); avDiv.className = 'ai-av'; avDiv.textContent = '🤖';
+          ld.appendChild(avDiv); ld.appendChild(wrapDiv);
           msgsEl.appendChild(ld);
-          const bubbleEl = ld.querySelector('.ai-bubble');
+          trimAiHistoryDom(msgsEl);
           msgsEl.scrollTop = msgsEl.scrollHeight;
 
           aiStreaming = true;
@@ -7338,6 +8400,30 @@ async function toggleNotifications() {
             const nearBottom = msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight < 140;
             if (nearBottom) msgsEl.scrollTop = msgsEl.scrollHeight;
           };
+
+          // Progressive-reveal fallback (used only if the stream endpoint
+          // isn't available and we fall back to the non-streaming call).
+          function progressiveReveal(text) {
+            return new Promise(resolve => {
+              bubbleEl.classList.remove('ai-bubble-loading');
+              bubbleEl.innerHTML = '<span class="ai-stream-text"></span><span class="ai-caret"></span>';
+              const target = bubbleEl.querySelector('.ai-stream-text');
+              const chunks = text.match(/[\s\S]{1,3}/g) || [];
+              let i = 0;
+              const total = chunks.length;
+              // Adaptive speed: short replies flash in near-instantly, longer
+              // ones reveal continuously without ever feeling padded/slow.
+              const perChunkMs = total < 40 ? 4 : total < 150 ? 9 : 14;
+              const tick = () => {
+                i++;
+                target.innerHTML = renderAiText(chunks.slice(0, i).join(''));
+                autoScrollIfNear();
+                if (i < total) setTimeout(tick, perChunkMs);
+                else resolve();
+              };
+              tick();
+            });
+          }
 
           try {
             const resp = await fetch(API + '/api/ai/chat/stream', {
@@ -7373,18 +8459,30 @@ async function toggleNotifications() {
             }
             if (!gotFirstToken) throw new Error('No response received');
             bubbleEl.innerHTML = renderAiText(full);
+            addAiMsgToolbar(wrapDiv, bubbleEl, () => full);
+            const tsEl = document.createElement('div'); tsEl.className = 'ai-msg-time'; tsEl.textContent = nowTimeShort();
+            wrapDiv.appendChild(tsEl);
             spawnPetals(3);
           } catch (e) {
-            // Fall back to the non-streaming endpoint (e.g. proxy buffers SSE, older browser, etc.)
+            // Fall back to the non-streaming endpoint with a progressive
+            // reveal so it never feels instant/robotic even without SSE.
             try {
               const data = await api('POST', '/api/ai/chat', { message: question, myName: S.myName, partnerName: S.partnerName, anniversary: S.anniversary, recentMood: S.journal[0]?.mood || '' });
-              bubbleEl.classList.remove('ai-bubble-loading');
-              bubbleEl.innerHTML = renderAiText(data.reply);
+              full = data.reply || '';
+              await progressiveReveal(full);
+              bubbleEl.innerHTML = renderAiText(full);
+              addAiMsgToolbar(wrapDiv, bubbleEl, () => full);
+              const tsEl = document.createElement('div'); tsEl.className = 'ai-msg-time'; tsEl.textContent = nowTimeShort();
+              wrapDiv.appendChild(tsEl);
               spawnPetals(3);
             } catch (e2) {
               bubbleEl.classList.remove('ai-bubble-loading');
               bubbleEl.style.background = 'var(--red-bg)'; bubbleEl.style.color = 'var(--red)';
               bubbleEl.innerHTML = esc(e2.message.includes('401') ? 'Invalid API key — check .env file.' : e2.message);
+              const retryBtn = document.createElement('button');
+              retryBtn.className = 'btn btn-glass btn-xs'; retryBtn.style.marginTop = '8px';
+              retryBtn.textContent = '🔄 Retry'; retryBtn.onclick = () => askAI(question, true);
+              wrapDiv.appendChild(retryBtn);
             }
           }
           aiStreaming = false;
@@ -7392,7 +8490,6 @@ async function toggleNotifications() {
           sendBtn?.removeAttribute('disabled');
           msgsEl.scrollTop = msgsEl.scrollHeight;
         }
-
         // ─── DASHBOARD ───────────────────────────────────────────
         function renderDashboard() {
           
@@ -7411,6 +8508,27 @@ async function toggleNotifications() {
           renderFights();
           renderMoodGraph();
           renderCountdowns();
+          renderRelInsight();
+        }
+        function renderRelInsight() {
+          const el = document.getElementById('relInsightCard'); if (!el) return;
+          const days = S.anniversary ? Math.max(0, Math.floor((Date.now() - new Date(S.anniversary).getTime()) / 86400000)) : 0;
+          const hugs = (S.hugStats && S.hugStats.total) || 0;
+          const touches = (S.touchStats && S.touchStats.total) || 0;
+          const openFights = (S.fights || []).filter(f => f.status === 'open').length;
+          const habits = S.habits || [];
+          const today = todayStr();
+          const last7 = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); last7.push(d.toISOString().slice(0, 10)); }
+          const possible = habits.length * 7;
+          const actual = habits.reduce((s, h) => s + last7.filter(d => (h.doneDates || []).includes(d)).length, 0);
+          const consistency = possible > 0 ? Math.round((actual / possible) * 100) : null;
+          let text, ico = '💕';
+          if (openFights > 0) { ico = '💭'; text = `You have <strong>${openFights}</strong> open conflict${openFights === 1 ? '' : 's'} — a reconnect activity could help this week.`; }
+          else if (consistency !== null && consistency >= 70) { ico = '🔥'; text = `Great week — <strong>${consistency}%</strong> habit consistency and no open conflicts.`; }
+          else if (hugs + touches > 0) { ico = '🤗'; text = `You've shared <strong>${hugs + touches}</strong> touch/hug moments together so far.`; }
+          else if (days > 0) { ico = '💍'; text = `<strong>${days}</strong> days together and counting — keep building your story.`; }
+          else { text = 'Add your anniversary date to start tracking your journey together.'; }
+          el.innerHTML = `<div class="rel-insight-ico">${ico}</div><div class="rel-insight-text">${text}</div>`;
         }
         function daysUntilNext(dateStr) {
   if (!dateStr) return null;
@@ -7788,7 +8906,16 @@ function startSyncLoop() {
         function delCapsule(id) { S.capsules = (S.capsules || []).filter(c => c.id !== id); renderCapsules(); scheduleSave(); }
         function renderCapsules() {
           const el = document.getElementById('capsuleList'); if (!el) return;
-          if (!S.capsules || !S.capsules.length) { el.innerHTML = '<div class="empty">No capsules yet</div>'; return; }
+          if (!S.capsules || !S.capsules.length) {
+            PS.empty(el, {
+              icon: 'capsule',
+              title: 'No capsules yet',
+              desc: 'Write a message today, pick a future date, and it stays sealed until then — a little surprise waiting on the calendar.',
+              actionLabel: 'Create Capsule',
+              onAction: () => document.getElementById('capsuleMsg')?.focus()
+            });
+            return;
+          }
           el.innerHTML = S.capsules.map(c => {
             const locked = todayStr() < c.unlock;
             return `<div class="fight-card" style="background:var(--g1);border-color:var(--border)">
@@ -7829,7 +8956,7 @@ function startSyncLoop() {
 function delSurprise(id) { S.surprises = (S.surprises || []).filter(s => s.id !== id); renderSurprises(); scheduleSave(); }
 function renderSurprises() {
   const el = document.getElementById('surpriseList'); if (!el) return;
-  if (!S.surprises || !S.surprises.length) { el.innerHTML = '<div class="empty">No surprises yet</div>'; return; }
+  if (!S.surprises || !S.surprises.length) { PS.empty(el, { icon: 'capsule', title: 'No surprises yet', desc: 'Hide a message, photo, or note for a future date \u2014 they\u2019ll only see it once it unlocks.', actionLabel: 'New Surprise', onAction: () => openM('surpriseModal') }); return; }
   el.innerHTML = S.surprises.map(s => {
     const locked = todayStr() < s.unlock, mine = s.by === S.role;
     if (locked && !mine) return `<div class="fight-card" style="background:var(--g1);border-color:var(--border)"><span class="fight-status fight-open">🔒 Locked</span><div style="font-size:12px;color:var(--text2);margin-top:7px">A surprise is waiting for you! Opens ${fmtDate(s.unlock)} 🎉</div></div>`;
@@ -7839,7 +8966,7 @@ function renderSurprises() {
         <button class="del-btn" onclick="delSurprise(${s.id})">✕</button>
       </div>
       <div style="font-size:13px;font-weight:600;color:var(--white);margin:7px 0 3px">${esc(s.type)} ${esc(s.title)}</div>
-      ${!locked ? `${s.msg ? `<div style="font-size:12px;color:var(--text2);margin-bottom:6px">${esc(s.msg)}</div>` : ''}${s.mediaUrl ? (s.mediaUrl.startsWith('data:video') ? `<video src="${s.mediaUrl}" controls style="width:100%;border-radius:10px"></video>` : s.mediaUrl.startsWith('data:audio') ? `<audio src="${s.mediaUrl}" controls style="width:100%"></audio>` : `<img src="${s.mediaUrl}" style="width:100%;border-radius:10px" onclick="openImgViewer('${s.mediaUrl}')">`) : ''}` : `<div style="font-size:11px;color:var(--text3)">Opens ${fmtDate(s.unlock)}</div>`}
+      ${!locked ? `${s.msg ? `<div style="font-size:12px;color:var(--text2);margin-bottom:6px">${esc(s.msg)}</div>` : ''}${s.mediaUrl ? (s.mediaUrl.startsWith('data:video') ? `<video src="${s.mediaUrl}" controls style="width:100%;border-radius:10px"></video>` : s.mediaUrl.startsWith('data:audio') ? `<audio src="${s.mediaUrl}" controls style="width:100%"></audio>` : `<img src="${s.mediaUrl}" style="width:100%;border-radius:10px" loading="lazy" decoding="async" onclick="openImgViewer('${s.mediaUrl}')">`) : ''}` : `<div style="font-size:11px;color:var(--text3)">Opens ${fmtDate(s.unlock)}</div>`}
     </div>`;
   }).join('');
 }
@@ -7861,6 +8988,9 @@ function renderSurprises() {
           const mySpend = mine.filter(t => t.type === 'expense' && t.date >= mss).reduce((s, t) => s + t.amt, 0);
           const myGoal = (S.finGoals || {})[S.role] || 0;
           const gb1 = document.getElementById('myFinGoalBar'); if (gb1) gb1.style.width = Math.min(100, myGoal ? mySpend / myGoal * 100 : 0) + '%';
+          const pctEl = document.getElementById('finGoalPct'), remEl = document.getElementById('finGoalRemain');
+          if (pctEl) { const pct = myGoal ? Math.min(100, Math.round(mySpend / myGoal * 100)) : 0; pctEl.textContent = pct + '%'; pctEl.style.color = pct >= 100 ? 'var(--red)' : pct >= 80 ? 'var(--yellow)' : 'var(--green)'; }
+          if (remEl) { const daysLeft = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate() - new Date().getDate(); remEl.textContent = myGoal ? `₹${Math.max(0, myGoal - mySpend).toLocaleString('en-IN')} left · ${daysLeft}d` : 'Set a goal'; }
           const gi1 = document.getElementById('myFinGoal'); if (gi1 && document.activeElement !== gi1) gi1.value = myGoal || '';
           const av1 = document.getElementById('finAv1'); if (av1) av1.textContent = (S.myName || 'U')[0];
           const av2 = document.getElementById('finAv2'); if (av2) av2.textContent = (S.partnerName || 'P')[0];
@@ -7889,16 +9019,35 @@ function renderSurprises() {
           const pct = Math.min(100, Math.round((xp - curBase) / (nextBase - curBase) * 100));
           const el = document.getElementById('levelPageContent'); if (!el) return;
           const earned = BADGES.filter(b => xp >= b.xp), locked = BADGES.filter(b => xp < b.xp);
+          const r = 60, circ = 2 * Math.PI * r, offset = circ - (pct / 100) * circ;
+          const nextBadge = locked[0];
+          let insText, insIco = '💡';
+          if (!xp) { insIco = '🌱'; insText = 'Chat, log habits, and complete dreams together to start earning XP.'; }
+          else if (nextBadge) { const remain = nextBadge.xp - xp; insIco = '🎯'; insText = `<strong>${remain} XP</strong> away from unlocking "${nextBadge.name}" ${nextBadge.emoji}`; }
+          else { insIco = '👑'; insText = `You've unlocked every badge — <strong>${xp} XP</strong> and counting!`; }
           el.innerHTML = `
-    <div class="profile-hero" style="text-align:center">
-      <div style="font-size:13px;color:var(--text2)">Couple Level</div>
-      <div style="font-size:42px;font-weight:700;font-family:var(--ff-serif);color:var(--white)">${lvl}</div>
-      <div class="study-progress" style="max-width:320px;margin:10px auto"><div class="study-fill" style="width:${pct}%"></div></div>
-      <div style="font-size:11px;color:var(--text3)">${xp} XP · ${nextBase - xp > 0 ? (nextBase - xp) + ' XP to next level' : 'Max reached'}</div>
+    <div class="card xp-hero">
+      <div class="xp-ring-wrap">
+        <svg viewBox="0 0 140 140" width="140" height="140">
+          <circle cx="70" cy="70" r="${r}" fill="none" stroke="var(--g2)" stroke-width="10"/>
+          <circle cx="70" cy="70" r="${r}" fill="none" stroke="url(#xpGrad)" stroke-width="10"
+            stroke-dasharray="${circ}" stroke-dashoffset="${circ}" stroke-linecap="round"
+            style="transition:stroke-dashoffset 1.2s cubic-bezier(0.34,1.56,0.64,1)" id="xpRingCircle"/>
+          <defs><linearGradient id="xpGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="#ff6b6b"/>
+          </linearGradient></defs>
+        </svg>
+        <div class="xp-ring-text"><div class="xp-ring-lvl">${lvl}</div><div class="xp-ring-label">Couple Level</div></div>
+      </div>
+      <div class="xp-hero-sub">${xp} XP · ${nextBase - xp > 0 ? (nextBase - xp) + ' XP to next level' : 'Max reached'}</div>
     </div>
-    <div class="card"><div class="card-title">🏅 Badges Earned</div><div style="display:flex;gap:10px;flex-wrap:wrap">${earned.length ? earned.map(b => `<div class="stat-item" style="min-width:90px"><div style="font-size:26px">${b.emoji}</div><div class="stat-l">${esc(b.name)}</div></div>`).join('') : '<div class="empty">Earn XP to unlock badges!</div>'}</div></div>
-    <div class="card"><div class="card-title">🔒 Locked Badges</div><div style="display:flex;gap:10px;flex-wrap:wrap">${locked.map(b => `<div class="stat-item" style="min-width:90px;opacity:0.45"><div style="font-size:26px">${b.emoji}</div><div class="stat-l">${esc(b.name)}</div><div style="font-size:9px;color:var(--text3)">${b.xp} XP</div></div>`).join('')}</div></div>
+    <div class="xp-insight-card"><div class="xp-insight-ico">${insIco}</div><div class="xp-insight-text">${insText}</div></div>
+    <div class="card"><div class="card-title">🏅 Badges Earned</div><div class="xp-badge-grid">${earned.length ? earned.map(b => `<div class="xp-badge earned"><div class="xp-badge-emoji">${b.emoji}</div><div class="xp-badge-name">${esc(b.name)}</div></div>`).join('') : '<div class="empty">Earn XP to unlock badges!</div>'}</div></div>
+    <div class="card"><div class="card-title">🔒 Locked Badges</div><div class="xp-badge-grid">${locked.map(b => { const prevXp = [0, ...BADGES.map(x => x.xp)][BADGES.indexOf(b)]; const bpct = Math.min(100, Math.round(((xp - prevXp) / (b.xp - prevXp)) * 100)); return `<div class="xp-badge xp-badge-locked"><div class="xp-badge-emoji">${b.emoji}</div><div class="xp-badge-name">${esc(b.name)}</div><div class="xp-badge-prog-wrap"><div class="xp-badge-prog" style="width:${Math.max(0, bpct)}%"></div></div><div class="xp-badge-prog-txt">${xp}/${b.xp} XP</div></div>`; }).join('')}</div></div>
     <div class="card"><div class="card-title">✨ How to earn XP</div><div style="font-size:12px;color:var(--text2);line-height:2">💬 Chatting +1 · ✅ Habit done +5 · 💧 Wellness logged +2 · 🌟 Dream completed +8 · ⚡ Fight resolved +6 · 🎵 Share a song +5 · 💌 Love capsule +15 · 🎁 Surprise +10</div></div>`;
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            const c = document.getElementById('xpRingCircle'); if (c) c.style.strokeDashoffset = offset;
+          }));
         }
         let dreamCurTab = 'House';
         function dreamTab(cat, el) { dreamCurTab = cat; document.querySelectorAll('#dreamTabs .stab').forEach(t => t.classList.remove('active')); el.classList.add('active'); renderDreamHome(); }
@@ -8470,7 +9619,7 @@ document.addEventListener('visibilitychange', () => {
     el.style.cssText = 'position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px';
     el.innerHTML = `
       <div style="width:100%;max-width:340px;background:linear-gradient(160deg,rgba(30,10,40,.97),rgba(10,10,24,.97));border:1px solid rgba(255,255,255,.15);border-radius:24px;padding:28px 22px;text-align:center">
-        <div style="font-size:40px">❤️</div>
+        <div class="prof-heart-ico" style="font-size:40px">❤️</div>
         <div style="font-family:var(--ff-serif);font-size:17px;color:#fff;margin:12px 0 20px">
           <strong>${esc(S.partnerName || 'Your partner')}</strong> invited you to sing together 🎤
         </div>
@@ -8578,9 +9727,13 @@ if ('serviceWorker' in navigator) {
 <script src="/chat/chat.js"></script>
 <script src="/chat/call.js"></script>
 <script src="/dashboard_chat_patch.js"></script>
-<script src="/ui-icons.js"></script>
-<script src="/premium-motion.js"></script>
 <script src="/app-polish.js"></script>
+
+<!-- Premium Sound System (additive, non-invasive) -->
+<script src="/js/audio/sound-engine.js"></script>
+<script src="/js/audio/sound-library.js"></script>
+<script src="/js/audio/audio-integration.js"></script>
+<script src="/js/audio/audio-settings-ui.js"></script>
 
 </body>
 </html>

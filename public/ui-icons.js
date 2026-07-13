@@ -1,23 +1,32 @@
 /* ═══════════════════════════════════════════════════════════
-   LUCIDE ICON SYSTEM v3 — APPLICATION-WIDE, LIVE CONVERTER
+   LUCIDE ICON SYSTEM v5 — APPLICATION-WIDE, LIVE CONVERTER
    ───────────────────────────────────────────────────────────
-   What changed from v2 → v3:
-   - Added missing emoji to MAP: 💚 ✌️ 👐 🤗 🥺 🏙️ ▶️ ⇄ ↺ 🐾 ☀️
-     and the connection-card / stat-icon selectors that weren't
-     being scanned before (.cc-ico, .cc-stat-ico, .cc-lbl,
-     .metric-n, .connect-btn-ico, .connect-btn-label).
-   - Everything else is identical to v2: same MutationObserver
-     live-scan behavior, same EXCLUDE list (chat, mood, journal,
-     notes, reactions, milestone/miss-you/hug popup copy all
-     stay untouched).
+   What changed from v4 → v5:
+   - Rolled out to every page: music.html, games.html, globe.html,
+     collection.html, lovecounter.html, meetplanner.html,
+     places.html and dreamgoals.html now all include this file
+     (previously only index.html did — this is why those pages
+     were still showing raw emoji everywhere).
+   - Added ~110 new emoji → icon mappings covering everything
+     those pages use (stars, party/celebration, currency, home
+     decor items, weather, media/instrument icons, etc).
+   - Fixed a matching bug: emoji written with vs. without a
+     variation selector (e.g. "🗑️" vs "🗑") used to be treated
+     as different characters and only one form converted. Now
+     both forms always match the same map entry.
+   - SAFE_SELECTORS is now also substring-based (e.g. any class
+     ending in "-btn", or containing "-tab"/"-chip"/"-title"/
+     "-emoji"/etc), so page-specific prefixed classnames like
+     pm-modal-close, dg-save-btn, mp-tab, lc-bday-emoji are all
+     picked up automatically instead of needing to be hardcoded
+     one by one per page.
+   - EXCLUDE_SELECTORS extended with the free-typed content
+     areas on these pages (journal entries, memory/notes fields)
+     so user-typed text is never touched, same as chat/journal/
+     notes already were on the home page.
 
-   REMINDER — iframe pages need this file too:
-   index.html cannot reach inside <iframe src="/music.html"> etc.
-   (browser sandboxing). Add these two lines near the end of
-   <body> in EACH of: music.html, games.html, globe.html,
-   collection.html, lovecounter.html, meetplanner.html,
-   places.html, dreamgoals.html:
-
+   Every page below now needs (and has) these two lines near the
+   end of <body>, after any other scripts:
      <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
      <script src="/ui-icons.js"></script>
    ═══════════════════════════════════════════════════════════ */
@@ -43,7 +52,7 @@
   document.head.appendChild(style);
 
   /* ── 2. Master emoji → Lucide icon map ── */
-  const MAP = {
+  const RAW_MAP = {
     // Navigation
     '🏠': 'layout-dashboard', '💬': 'message-circle', '📷': 'images', '🖼️': 'image',
     '💑': 'user-round', '👤': 'user', '🌟': 'list-todo', '📅': 'calendar-days',
@@ -105,16 +114,76 @@
     '🎤': 'mic',
     '🏝️': 'palmtree',
     '📺': 'tv',
+
+    // ── NEW in v5 — rollout to music/games/globe/collection/lovecounter/meetplanner/places/dreamgoals ──
+    '☆': 'star', '★': 'star', '🎉': 'party-popper', '🎊': 'party-popper',
+    '🪙': 'coins', '💱': 'arrow-left-right', '📜': 'scroll-text',
+    '🏅': 'medal', '🥇': 'medal', '🐚': 'shell', '🥰': 'heart',
+    '😊': 'smile', '🤩': 'sparkles', '😂': 'laugh', '😅': 'smile',
+    '😍': 'heart', '😳': 'meh',
+    '🎛️': 'sliders-horizontal', '🎛': 'sliders-horizontal',
+    '🎸': 'music', '🎹': 'music', '🎺': 'music', '🎻': 'music',
+    '🥁': 'music', '🎼': 'music', '🎧': 'headphones', '🎷': 'music',
+    '🪗': 'music', '♪': 'music', '⚠️': 'alert-triangle', '⚠': 'alert-triangle',
+    '🏖️': 'umbrella', '🏖': 'umbrella', '⛱️': 'umbrella', '⛱': 'umbrella',
+    '🪑': 'armchair', '💺': 'armchair', '🛏️': 'bed', '🛏': 'bed',
+    '🏔️': 'mountain', '🏔': 'mountain', '🌱': 'sprout', '🌳': 'trees',
+    '🪴': 'flower-2', '🌷': 'flower-2', '🌈': 'rainbow',
+    '↩️': 'corner-up-left', '↩': 'corner-up-left', '🚀': 'rocket',
+    '🍿': 'sparkles', '🍹': 'sparkles', '🥂': 'sparkles',
+    '🎶': 'music', '👑': 'crown', '🧩': 'puzzle', '🏊': 'waves',
+    '🌊': 'waves', '🦋': 'sparkles', '🎈': 'party-popper',
+    '💼': 'briefcase', '🔴': 'circle', '🟢': 'circle', '🟡': 'circle',
+    '🔵': 'circle', '🟫': 'square', '⬜': 'square', '⬛': 'square',
+    '💥': 'zap', '😰': 'frown', '😔': 'frown', '😤': 'angry',
+    '😌': 'smile', '🥹': 'smile', '👻': 'ghost', '🧙': 'wand-2',
+    '📽️': 'video', '📽': 'video', '📼': 'video', '🎪': 'tent',
+    '🏗️': 'construction', '🏗': 'construction', '🎡': 'circle-dot',
+    '🤍': 'heart', '🕸️': 'network', '🕸': 'network',
+    '🔎': 'search', '🌙': 'moon', '🌅': 'sunrise', '🌇': 'sunset',
+    '🌃': 'moon', '🌧️': 'cloud-rain', '🌧': 'cloud-rain', '🌡️': 'thermometer',
+    '🌡': 'thermometer', '🔮': 'sparkles', '♾️': 'infinity', '♾': 'infinity',
+    '⛵': 'sailboat', '🏰': 'landmark', '🪔': 'flame', '🧊': 'square',
+    '🪞': 'square', '🗄️': 'archive', '🗄': 'archive', '🍎': 'apple',
+    '🕰️': 'clock', '🕰': 'clock', '⛲': 'droplet', '🎠': 'circle-dot',
+    '🔭': 'telescope', '🛌': 'bed', '🕹️': 'gamepad-2', '🕹': 'gamepad-2',
+    '🤿': 'waves', '🦩': 'sparkles', '🏍️': 'bike', '🏍': 'bike',
+    '🧰': 'wrench', '🚲': 'bike', '🛁': 'bath',
+    '🧽': 'sparkles', '🤔': 'help-circle', '🏚️': 'home', '🏚': 'home',
+    '🧸': 'gift', '📗': 'book-open', '📕': 'book-open', '📘': 'book-open',
+    '📙': 'book-open', '📓': 'book-open', '🕯️': 'flame', '🕯': 'flame',
+    '🖋️': 'pen-line', '🖋': 'pen-line', '🖌️': 'paintbrush', '🖌': 'paintbrush',
+    '🦀': 'shell', '🌴': 'palmtree', '👏': 'sparkles', '♥': 'heart',
+    '♥️': 'heart', '💗': 'heart', '💖': 'heart', '🗿': 'landmark',
+    '🛍️': 'shopping-bag', '🛍': 'shopping-bag', '🏛️': 'landmark',
+    '🏛': 'landmark', '🛕': 'landmark', '🏋️': 'dumbbell', '🏋': 'dumbbell',
+    '🚿': 'droplet', '🏟️': 'landmark', '🏟': 'landmark', '🔁': 'repeat',
+    '🔉': 'volume-1', '👫': 'users', '👨': 'user', '👩': 'user', '👧': 'user',
+    '🗝️': 'key', '🥹': 'smile',
+
+    // ── NEW in v6 — reported still-unconverted spots: period tracker
+    // symptom tags, live map tool buttons, AI Love Guide communication pill ──
+    '🌀': 'wind', '💧': 'droplet', '😴': 'moon', '🤕': 'bandage',
+    '🤢': 'frown', '🤝': 'handshake', '🛣️': 'route', '🛣': 'route',
+    '🗣️': 'megaphone', '🗣': 'megaphone',
   };
 
   function iconHTML(name) {
     return `<i class="ui-ico" data-lucide="${name}"></i>`;
   }
 
-  // Build one regex matching any mapped emoji (longest-first to avoid partial overlaps)
+  // Normalize away variation selectors (U+FE0E/FE0F) so keys written with or
+  // without them (and text using either form) always match the same entry.
+  const MAP = {};
+  Object.keys(RAW_MAP).forEach(k => {
+    MAP[k.replace(/[\uFE0E\uFE0F]/g, '')] = RAW_MAP[k];
+  });
+
+  // Build one regex matching any mapped emoji (longest-first to avoid partial
+  // overlaps), each optionally followed by a variation selector in the source text.
   const EMOJI_KEYS = Object.keys(MAP).sort((a, b) => b.length - a.length);
   const EMOJI_RE = new RegExp(EMOJI_KEYS.map(e =>
-    e.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    e.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\\uFE0E\\uFE0F]?'
   ).join('|'), 'g');
 
   /* ── 3. SAFE zones — interface chrome only. Never touches user content. ── */
@@ -147,7 +216,19 @@
     '#dreamTabs .stab', 'select#msType option', 'select#surType option',
     '.touch-heart-btn', '.sh-heart', '.logo-heart', '.hug-btn .connect-btn-ico',
     '.missyou-btn .connect-btn-ico', '.cb-snap', '.pt-btn',
-    '.storage-cat-ico', '.storage-ring-label'
+    '.storage-cat-ico', '.storage-ring-label',
+
+    // ── NEW in v5 — page-agnostic chrome catch-alls (music/games/globe/
+    // collection/lovecounter/meetplanner/places/dreamgoals all use their own
+    // prefixed class names — e.g. pm-modal-close, dg-save-btn, mp-tab,
+    // lc-bday-emoji — so match by suffix/substring instead of hardcoding
+    // every page's classes one by one) ──
+    '.filter-chip', '.vt-btn', '.view-toggle', '.top-title', '.top-actions',
+    '[class*="-btn"]', '[class$="btn"]', '[class*="-tab"]', '[class*="-chip"]',
+    '[class*="-badge"]', '[class*="-ico"]', '[class*="-close"]',
+    '[class*="-title"]', '[class*="-emoji"]', '[class*="-label"]',
+    '[class*="-tag"]', '[class*="-banner"]', '[class*="stat"]',
+    '[class*="-sub"]', '[class*="section-title"]', '.prof-heart-ico'
   ];
 
   // Explicit EXCLUDE list — never process these even if nested inside a safe zone
@@ -156,7 +237,11 @@
     '.ai-msgs', '.ai-bubble', '.chat-msgs', '.note-card', '#myJournalEntries',
     '#notesGrid', '#partnerJournalEntries', '#milestonesEl', '.ts-label',
     '.love-card-title', '.love-card-sub', '#missYouSub', '#missYouTitle',
-    '#hugReqTitle', '#hugReqSub', '.symptom-tag.sel'
+    '#hugReqTitle', '#hugReqSub', '.symptom-tag.sel',
+
+    // ── NEW in v5 — free-typed user content on the other pages, never convert ──
+    '.journal-entry', '#formNotes', '#formJournal', '.pm-empty-text',
+    '#pmMemText', 'textarea', 'input'
   ];
 
   function isExcluded(el) {
@@ -186,9 +271,10 @@
       const matches = textNode.nodeValue.match(EMOJI_RE) || [];
       parts.forEach((part, i) => {
         if (part) frag.appendChild(document.createTextNode(part));
-        if (matches[i] && MAP[matches[i]]) {
+        const iconName = matches[i] && MAP[matches[i].replace(/[\uFE0E\uFE0F]/g, '')];
+        if (iconName) {
           const span = document.createElement('span');
-          span.innerHTML = iconHTML(MAP[matches[i]]);
+          span.innerHTML = iconHTML(iconName);
           frag.appendChild(span.firstChild);
         }
       });
