@@ -293,9 +293,10 @@
       const couple = await api('GET', '/api/auth/couple/' + coupleId);
       if (couple.paired) {
         stopPolling();
-        const s = getSession() || {};
+        let s = getSession() || {};
         s.paired = true; s.partnerName = couple.user2_name || s.partnerName;
         localStorage.setItem('uwl_v5', JSON.stringify(s));
+        s = await hydrateFromCloud(s);
         goToDashboard();
       }
     } catch (e) { /* offline or transient — keep polling */ }
@@ -327,7 +328,8 @@
       // original app used for partner pairing.
       const data = await api('POST', '/api/auth/pair', { connectCode: code, myName: (session && session.myName) || 'Partner' });
       stopPolling();
-      persistSession(data, 'user2');
+      let s = persistSession(data, 'user2');
+      s = await hydrateFromCloud(s);
       goToDashboard();
     } catch (e) {
       showErr('couplelink', e.message);
@@ -336,8 +338,39 @@
   }
 
   // ─── Sign in / Sign up ───────────────────────────────────────────
-  function routeAfterAuth(data, role) {
-    const session = persistSession(data, role);
+  // Mirrors index.html's loadFromCloud(): fetches the real saved app_state
+  // for this coupleId and merges it into the session BEFORE we ever hand
+  // off to the dashboard, instead of writing a blank/zeroed session and
+  // hoping index.html's own async loadFromCloud() wins the race. This is
+  // the actual restoration step Web relies on — Android now runs it too.
+  async function hydrateFromCloud(session) {
+    if (!session || !session.coupleId) return session;
+    try {
+      const state = await api('GET', '/api/data/state/' + session.coupleId);
+      console.log('[US-AUTH] STEP 3.5 - hydrateFromCloud result:', state ? {
+        journalLen: (state.journal || []).length, photosLen: (state.photos || []).length
+      } : 'null (no saved state row yet — genuinely new account)');
+      if (state) {
+        const protect = ['coupleId', 'connectCode', 'myName', 'partnerName',
+          'role', 'setupDone', 'theme', 'vaultPin', 'paired'];
+        const saved = {};
+        protect.forEach(k => { if (session[k] !== undefined) saved[k] = session[k]; });
+        Object.assign(session, state);
+        Object.assign(session, saved);
+        localStorage.setItem('uwl_v5', JSON.stringify(session));
+      }
+    } catch (e) {
+      console.log('[US-AUTH] STEP 3.5 - hydrateFromCloud FAILED (offline?):', e.message);
+      // Fall through with the blank/local session rather than blocking
+      // login entirely — index.html's own loadFromCloud() gets a second
+      // chance once the network is back.
+    }
+    return session;
+  }
+
+  async function routeAfterAuth(data, role) {
+    let session = persistSession(data, role);
+    session = await hydrateFromCloud(session);
     console.log('[US-AUTH] STEP 4 - Routing decision:', session.paired ? 'DASHBOARD (paired)' : 'COUPLE-LINK (not paired)');
     if (session.paired) { goToDashboard(); }
     else { showCoupleLink(session); }
@@ -354,7 +387,7 @@
       console.log('[US-AUTH] STEP 1 - Calling /api/auth/login for', email);
       const data = await api('POST', '/api/auth/login', { email, password: pass });
       console.log('[US-AUTH] STEP 1 - Login response OK, coupleId:', data.coupleId, 'paired:', data.paired);
-      routeAfterAuth(data, data.role || 'user1');
+      await routeAfterAuth(data, data.role || 'user1');
     } catch (e) {
       console.log('[US-AUTH] STEP 1 - Login FAILED:', e.message);
       showErr('signin', e.message);
@@ -375,7 +408,7 @@
     btn.disabled = true; btn.textContent = 'Creating account…';
     try {
       const data = await api('POST', '/api/auth/register', { email, password: pass, myName });
-      routeAfterAuth(data, 'user1');
+      await routeAfterAuth(data, 'user1');
     } catch (e) {
       showErr('signup', e.message);
       btn.disabled = false; btn.textContent = 'Create Account';
