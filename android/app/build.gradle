@@ -1,5 +1,24 @@
 apply plugin: 'com.android.application'
 
+// ── Release signing (Task 19) ───────────────────────────────────────
+// Reads from android/keystore.properties, which is gitignored and does
+// NOT exist yet — you create it once, locally, and it's never committed.
+// If it's missing, releaseSigningConfig below is simply null and Android
+// Studio's normal "Generate Signed Bundle/APK" wizard (manual keystore
+// picker) keeps working exactly as before — this is purely additive.
+//
+// To use it, create android/keystore.properties with:
+//   storeFile=../my-release-key.keystore
+//   storePassword=your_store_password
+//   keyAlias=your_key_alias
+//   keyPassword=your_key_password
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+def hasKeystoreConfig = keystorePropertiesFile.exists()
+if (hasKeystoreConfig) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "com.usapp.everythingtogether"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,6 +35,16 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (hasKeystoreConfig) {
+            release {
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
             // Release-only: shrinks/obfuscates unused code and strips unused
@@ -25,6 +54,9 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasKeystoreConfig) {
+                signingConfig signingConfigs.release
+            }
         }
         debug {
             minifyEnabled false

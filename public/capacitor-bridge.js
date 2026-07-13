@@ -203,7 +203,70 @@
     });
   }
 
-  /* ── 10. Expose a tiny optional helper other scripts can use, without
+  /* ── 10. Wake-lock (Task 15), scoped ONLY to active voice/video calls.
+     #callOverlay already gets an 'open' class the instant a call starts
+     and loses it the instant the call ends (same class the hardware
+     back-button handler above already watches) — reusing that exact
+     signal means zero new state to track and this can never drift out
+     of sync with whether a call is actually active. Uses the tiny
+     KeepAwakePlugin (native, this batch) rather than a third-party
+     plugin/new npm dependency. */
+  function wireWakeLock() {
+    const KeepAwake = Plugins.KeepAwake;
+    if (!KeepAwake) return;
+    const overlay = document.getElementById('callOverlay');
+    if (!overlay) return;
+    let isAwake = false;
+    const sync = () => {
+      const shouldBeAwake = overlay.classList.contains('open');
+      if (shouldBeAwake === isAwake) return;
+      isAwake = shouldBeAwake;
+      (shouldBeAwake ? KeepAwake.enable() : KeepAwake.disable()).catch(() => {});
+    };
+    new MutationObserver(sync).observe(overlay, { attributes: true, attributeFilter: ['class'] });
+    sync();
+  }
+
+  /* ── 11. Native download handling (Task 8). exportData() (backup JSON)
+     and storageExportPhotos() (bulk photo export) both already work by
+     creating an <a download> pointing at a blob:/data: URL and calling
+     .click() — that's the correct, and ONLY, web-standard way to trigger
+     a download, and is left completely untouched. The problem is purely
+     that Android's WebView (unlike Chrome for Android) does not actually
+     save anything for blob:/data: anchor downloads — the click silently
+     does nothing. This intercepts just those two cases in the capture
+     phase, fetches the same blob the page already built, and writes it
+     with the native Filesystem plugin instead — every other anchor click
+     in the app (including real http(s) links) is completely unaffected. */
+  function wireDownloads() {
+    const Filesystem = Plugins.Filesystem;
+    if (!Filesystem) return;
+    document.addEventListener('click', function (e) {
+      const a = e.target.closest && e.target.closest('a[download]');
+      if (!a || !a.href) return;
+      if (!/^(blob:|data:)/.test(a.href)) return; // real http(s) downloads: leave to the OS/browser as-is
+      e.preventDefault();
+      e.stopPropagation();
+      const filename = a.download || 'download';
+      fetch(a.href)
+        .then((r) => r.blob())
+        .then((blob) => new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(String(reader.result).split(',')[1] || '');
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        }))
+        .then((base64) => Filesystem.writeFile({
+          path: filename,
+          data: base64,
+          directory: 'DOCUMENTS'
+        }))
+        .then(() => { if (typeof window.toast === 'function') window.toast('Saved to Documents: ' + filename); })
+        .catch(() => { if (typeof window.toast === 'function') window.toast('Download failed'); });
+    }, true);
+  }
+
+  /* ── 12. Expose a tiny optional helper other scripts can use, without
      requiring them to — every existing call site above keeps working
      unmodified; this just gives future code an opt-in native haptic/
      share/permission call if it wants one directly. */
@@ -232,6 +295,8 @@
     wireShare();
     wireHaptics();
     wireImagePicker();
+    wireWakeLock();
+    wireDownloads();
   }
 
   document.addEventListener('DOMContentLoaded', wireAll);

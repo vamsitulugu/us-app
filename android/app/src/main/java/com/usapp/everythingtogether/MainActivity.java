@@ -19,6 +19,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        registerPlugin(KeepAwakePlugin.class);
         super.onCreate(savedInstanceState);
 
         // ── Runtime notification permission (Android 13 / API 33+) ─────
