@@ -6538,10 +6538,17 @@ async function removePartner() {
     saveLocal(); applyNames(); updatePairStatus(); renderAll();
     toast('💔 Partner removed. Your data is safe — share your new code to pair again.');
     if (S.role === 'user2') {
-      setTimeout(() => { localStorage.removeItem('uwl_v5'); window.location.href = '/landing.html'; }, 2500);
+      setTimeout(() => { localStorage.removeItem('uwl_v5'); window.location.href = logoutRedirectUrl(); }, 2500);
     }
   } catch (e) { toast('Could not remove partner: ' + e.message); }
 }
+        // ─── LOGOUT DESTINATION (native Android vs web) ─────────
+        // Android has its own auth screen (android-auth.html); the web
+        // deployment keeps using landing.html exactly as before.
+        function logoutRedirectUrl() {
+          const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+          return isNative ? '/android-auth.html' : '/landing.html';
+        }
         // ─── PERSISTENCE (localStorage) ─────────────────────────
         function loadLocal() { try { const r = localStorage.getItem('uwl_v5'); if (r) Object.assign(S, JSON.parse(r)); } catch (e) { } }
         function saveLocal() { try { localStorage.setItem('uwl_v5', JSON.stringify(S)); } catch (e) { } }
@@ -6777,7 +6784,7 @@ if (_unpairStrikes < 4) {
     applyNames(); updatePairStatus();
     toast('💔 The partner connection was removed.', 4000);
     if (S.role === 'user2') {
-      setTimeout(() => { localStorage.removeItem('uwl_v5'); window.location.href = '/landing.html'; }, 2500);
+      setTimeout(() => { localStorage.removeItem('uwl_v5'); window.location.href = logoutRedirectUrl(); }, 2500);
       return;
     }
     S.partnerName = 'Partner'; renderAll();
@@ -8582,7 +8589,7 @@ function renderCountdowns() {
 function logOut() {
   if (!confirm('Log out? You can sign back in anytime. Your data stays safe in the cloud.')) return;
   resetForNewAccount();   // was: localStorage.removeItem('uwl_v5') only
-  window.location.href = '/landing.html';
+  window.location.href = logoutRedirectUrl();
 }   
         function quickMood(el, mood) {
           document.querySelectorAll('#dashMoodRow .mood').forEach(m => m.classList.remove('sel'));
@@ -8625,7 +8632,7 @@ function logOut() {
         if (!S.coupleId) {
           AppLoader.showAuthSkeleton();
           AppLoader.ready('auth');  
-          window.location.href = '/landing.html';
+          window.location.href = logoutRedirectUrl();
           return;
         }
         AppLoader.ready('auth');

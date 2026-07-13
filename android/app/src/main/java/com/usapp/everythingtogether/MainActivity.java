@@ -22,6 +22,18 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(KeepAwakePlugin.class);
         super.onCreate(savedInstanceState);
 
+        // ── Native-only entry point ─────────────────────────────────
+        // The web deployment (landing.html -> index.html) is untouched.
+        // Android instead launches its own dedicated auth screen
+        // (public/android-auth.html), which itself redirects into
+        // index.html's dashboard after a session exists. This is the
+        // only place that decides which file Android boots into.
+        if (getBridge() != null && getBridge().getWebView() != null) {
+            getBridge().getWebView().post(() ->
+                getBridge().getWebView().loadUrl("https://localhost/android-auth.html")
+            );
+        }
+
         // ── Runtime notification permission (Android 13 / API 33+) ─────
         // POST_NOTIFICATIONS became a runtime-requested permission starting
         // API 33; below that it's granted automatically at install time.
