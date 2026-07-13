@@ -45,21 +45,25 @@
     StatusBar.setStyle({ style: 'DARK' }).catch(() => {});
   }
 
-  /* ── 3. Hardware back button: mirror the browser back button behavior
-     the app already relies on (closing overlays/panels via history),
-     and only exit the app when there's truly nowhere left to go back to —
-     this is the one piece of behavior a WebView doesn't get for free. */
+  /* ── 3. Hardware back button + Predictive Back (Android 13+, enabled via
+     android:enableOnBackInvokedCallback in AndroidManifest.xml).
+     Priority, matching what a physical back press already does elsewhere
+     in the app:
+       1) close any open overlay/modal/sheet directly (they toggle a plain
+          .open class via direct DOM calls — index.html/call.js — not via
+          history, so we close them the same way instead of touching history)
+       2) otherwise step back through the app's own page history (goto()/
+          popstate are already wired for this — see index.html's goto()
+          comment: "including via the Android hardware Back button")
+       3) otherwise, there's nowhere left to go — exit the app. */
   function wireBackButton() {
     if (!App) return;
     App.addListener('backButton', ({ canGoBack }) => {
-      // Let any open modal/overlay/panel close first — the existing app
-      // already listens for popstate/back to close its own UI (chat
-      // panels, overlays, sheets), so just replay that same signal.
-      const hasOpenOverlay = document.querySelector(
-        '.call-overlay, .chat-sheet.open, .modal.open, #callOverlay'
+      const openOverlay = document.querySelector(
+        '#callOverlay.open, .modal-bg.open, #imgViewer.open, #searchOverlay.open'
       );
-      if (hasOpenOverlay) {
-        window.dispatchEvent(new PopStateEvent('popstate'));
+      if (openOverlay) {
+        openOverlay.classList.remove('open');
         return;
       }
       if (canGoBack) window.history.back();
