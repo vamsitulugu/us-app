@@ -623,8 +623,9 @@
       backdrop-filter: var(--blur-sm);
       -webkit-backdrop-filter: var(--blur-sm);
       border-bottom: 1px solid var(--border);
-      height: 58px;
+      min-height: 58px;
       padding: 0 22px;
+      padding-top: max(env(safe-area-inset-top), var(--android-inset-top, 0px));
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -2863,7 +2864,7 @@
     @media(max-width:700px) {
   .sidebar { display: none }
   .bot-nav { display: flex }
-  .topbar { height: 52px; padding: 0 14px }
+  .topbar { min-height: 52px; padding: 0 14px; padding-top: max(env(safe-area-inset-top), var(--android-inset-top, 0px)) }
   .content { padding: 12px 12px 100px }
 
   /* Metrics grid */
@@ -2905,7 +2906,7 @@
   .cd { padding: 6px 2px; font-size: 12px }
 
   /* Bottom nav */
-  .bot-nav { padding: 5px 0; padding-bottom: max(5px, env(safe-area-inset-bottom)) }
+  .bot-nav { padding: 5px 0; padding-bottom: max(5px, env(safe-area-inset-bottom), var(--android-inset-bottom, 0px)) }
   .bot-ni { padding: 5px 8px; font-size: 8px; gap: 2px }
   .bot-ni .ico { font-size: 18px }
 
@@ -2969,7 +2970,7 @@
       backdrop-filter: blur(20px);
       border-top: 1px solid var(--border);
       padding: 1px 0;
-      padding-bottom: max(6px, env(safe-area-inset-bottom));
+      padding-bottom: max(6px, env(safe-area-inset-bottom), var(--android-inset-bottom, 0px));
       display: flex;
       justify-content: space-around;
     }
@@ -3608,7 +3609,7 @@
   display: none;
   flex-direction: column;
   padding: 16px;
-  padding-top: max(20px, env(safe-area-inset-top));
+  padding-top: max(20px, env(safe-area-inset-top), var(--android-inset-top, 0px));
 }
 
 .search-overlay.open { display: flex }

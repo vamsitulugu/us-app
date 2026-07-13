@@ -37,11 +37,12 @@
     setTimeout(() => { SplashScreen.hide().catch(() => {}); mo.disconnect(); }, 8000);
   }
 
-  /* ── 2. Status bar to match the app's existing dark/red theme
-     (same colors already declared in manifest.json / capacitor.config). */
+  /* ── 2. Status bar icon style only — MainActivity.java (native) already
+     makes both the status bar and navigation bar transparent and sets
+     light/white icons for edge-to-edge. Setting a background color from
+     here would fight that and reintroduce a solid bar. */
   function wireStatusBar() {
     if (!StatusBar) return;
-    StatusBar.setBackgroundColor({ color: '#1a0010' }).catch(() => {});
     StatusBar.setStyle({ style: 'DARK' }).catch(() => {});
   }
 
