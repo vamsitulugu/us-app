@@ -20,6 +20,24 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Deep links: usapp://open/<page> (always works, no verification
+                 needed) and https App Links for your real domain, handled by
+                 the appUrlOpen listener added in public/capacitor-bridge.js.
+                 Replace "usapp.example.com" with your real deployed domain
+                 when you have Digital Asset Links verification set up for it
+                 — until then the https branch is inert and only the custom
+                 scheme branch will actually fire. -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="usapp" android:host="open" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
 
         <provider
@@ -52,6 +70,14 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+
+    <!-- Location: required for the existing navigator.geolocation calls in
+         livemap.js and index.html's meet-planner/live-map features (browser
+         Geolocation API inside a WebView needs these declared natively or
+         the permission prompt never appears at all). Coarse is included as
+         a fallback the OS may grant instead of fine on some devices/settings. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <!-- Local notifications (reminders: anniversary/birthday/habit/journal) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

@@ -1,8 +1,13 @@
 package com.usapp.everythingtogether;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.webkit.WebView;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -15,6 +20,21 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // ── Runtime notification permission (Android 13 / API 33+) ─────
+        // POST_NOTIFICATIONS became a runtime-requested permission starting
+        // API 33; below that it's granted automatically at install time.
+        // This is required for the app's existing web-push notifications
+        // (see server.js/web-push) to actually be allowed to show on
+        // Android 13+ — no Capacitor plugin covers this permission, so it
+        // needs this small native request.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                    this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1001);
+            }
+        }
 
         // ── Edge-to-edge ────────────────────────────────────────────
         // Android 15 (API 35+) enforces edge-to-edge regardless of this call,

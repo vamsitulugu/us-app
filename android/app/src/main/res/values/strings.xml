@@ -4,4 +4,8 @@
     <string name="title_activity_main">US</string>
     <string name="package_name">com.usapp.everythingtogether</string>
     <string name="custom_url_scheme">com.usapp.everythingtogether</string>
+    <string name="shortcut_chat_short">Chat</string>
+    <string name="shortcut_chat_long">Open Chat</string>
+    <string name="shortcut_map_short">Live Map</string>
+    <string name="shortcut_map_long">Open Live Map</string>
 </resources>

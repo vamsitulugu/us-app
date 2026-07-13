@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="open_chat"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_chat_short"
+        android:shortcutLongLabel="@string/shortcut_chat_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="usapp://open/chat"
+            android:targetPackage="com.usapp.everythingtogether"
+            android:targetClass="com.usapp.everythingtogether.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="open_map"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_map_short"
+        android:shortcutLongLabel="@string/shortcut_map_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="usapp://open/map"
+            android:targetPackage="com.usapp.everythingtogether"
+            android:targetClass="com.usapp.everythingtogether.MainActivity" />
+    </shortcut>
+</shortcuts>
