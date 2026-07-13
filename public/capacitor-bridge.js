@@ -20,6 +20,28 @@
      the native splash → the app's existing skeleton → the real UI,
      with no white flash and no gap, and requires zero edits to the
      skeleton loader's own code. ─────────────────────────────────── */
+  /* ── 0. Disable the PWA service worker's offline cache when running
+     natively. This is a real bugfix, not a style choice: Capacitor
+     already re-bundles the current public/ files straight into the APK
+     on every build, so sw.js's own separate offline cache is redundant
+     inside the native shell — and was the actual cause of old cached
+     HTML/JS (old onboarding cards, stale login state) surviving across
+     rebuilds. The service worker file itself, and every real browser/PWA
+     install of this same app, are completely untouched — this only runs
+     when isNative is true, and only unregisters + clears caches, it
+     doesn't delete or modify sw.js. */
+  function disableStaleServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.getRegistrations().then((regs) => {
+      regs.forEach((reg) => reg.unregister());
+    }).catch(() => {});
+    if (window.caches && caches.keys) {
+      caches.keys().then((names) => {
+        names.forEach((name) => caches.delete(name));
+      }).catch(() => {});
+    }
+  }
+
   function wireSplashHide() {
     if (!SplashScreen) return;
     const overlay = document.getElementById('appLoader');
@@ -286,6 +308,7 @@
   };
 
   function wireAll() {
+    try { disableStaleServiceWorker(); } catch (e) { console.error('[capacitor-bridge] disableStaleServiceWorker failed:', e); }
     const steps = [
       wireSplashHide, wireStatusBar, wireBackButton, wireNetwork,
       wireLifecycle, wireDeepLinks, wireShare, wireHaptics,
