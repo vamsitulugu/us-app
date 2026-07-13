@@ -153,7 +153,13 @@
     if (!Haptics) return;
     const originalVibrate = navigator.vibrate ? navigator.vibrate.bind(navigator) : null;
     navigator.vibrate = function (pattern) {
-      Haptics.impact({ style: 'MEDIUM' }).catch(() => {});
+      // A real array pattern (e.g. [120,60,120,60,200]) IS the intended
+      // feel for that moment — firing a second, short native haptic pulse
+      // on top of it fights the same vibrator hardware and truncates the
+      // pattern down to a brief blip. So: only add the native impact on
+      // top of simple single-number calls, and leave every existing
+      // pattern call exactly as it already behaves, unmodified.
+      if (!Array.isArray(pattern)) Haptics.impact({ style: 'MEDIUM' }).catch(() => {});
       return originalVibrate ? originalVibrate(pattern) : true;
     };
   }
