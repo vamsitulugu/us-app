@@ -286,17 +286,14 @@
   };
 
   function wireAll() {
-    wireSplashHide();
-    wireStatusBar();
-    wireBackButton();
-    wireNetwork();
-    wireLifecycle();
-    wireDeepLinks();
-    wireShare();
-    wireHaptics();
-    wireImagePicker();
-    wireWakeLock();
-    wireDownloads();
+    const steps = [
+      wireSplashHide, wireStatusBar, wireBackButton, wireNetwork,
+      wireLifecycle, wireDeepLinks, wireShare, wireHaptics,
+      wireImagePicker, wireWakeLock, wireDownloads
+    ];
+    steps.forEach((step) => {
+      try { step(); } catch (e) { console.error('[capacitor-bridge] ' + step.name + ' failed:', e); }
+    });
   }
 
   document.addEventListener('DOMContentLoaded', wireAll);
