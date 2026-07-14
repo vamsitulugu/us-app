@@ -7,7 +7,7 @@
          explaining inconsistent gray system bars. Values below match the
          app's actual dark theme (public/index.html body background
          #0B0B0B, splash/manifest theme #1a0010, accent blue used in
-         app-polish.js/CSS :root --accent). -->
+         app-polish.js/CSS root "accent" variable). -->
     <color name="colorPrimary">#0B0B0B</color>
     <color name="colorPrimaryDark">#0B0B0B</color>
     <color name="colorAccent">#2f6feb</color>
