@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- These three were referenced by styles.xml (@color/colorPrimary,
+         colorPrimaryDark, colorAccent) but this file was never committed
+         to the repo, so the theme was building against whatever default
+         values happened to exist on each developer's machine/cache —
+         explaining inconsistent gray system bars. Values below match the
+         app's actual dark theme (public/index.html body background
+         #0B0B0B, splash/manifest theme #1a0010, accent blue used in
+         app-polish.js/CSS :root --accent). -->
+    <color name="colorPrimary">#0B0B0B</color>
+    <color name="colorPrimaryDark">#0B0B0B</color>
+    <color name="colorAccent">#2f6feb</color>
+
+    <!-- Status bar / navigation bar background for API < 35 devices,
+         where the OS does not force edge-to-edge and honors these
+         legacy theme colors directly. -->
+    <color name="statusBarBackground">#0B0B0B</color>
+    <color name="navigationBarBackground">#0B0B0B</color>
+</resources>
