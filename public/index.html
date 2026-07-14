@@ -4869,7 +4869,12 @@ select option { background: #0D0D0D; color: #fff; }
         <textarea class="uc-input" id="chatIn" rows="1" placeholder="Type a message..."
           oninput="Chat.onTypingInput(); this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,120)+'px'; document.getElementById('chatSendBtn').classList.toggle('has-text', this.value.trim().length>0)"
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();Chat.sendText();}"></textarea>
-        <button class="uc-icon-btn" onclick="document.getElementById('chatCameraInputQuick').click()" title="Camera">📷</button>
+        <button class="uc-icon-btn" onclick="document.getElementById('chatCameraInputQuick').click()" title="Camera">
+          <svg class="uc-camera-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 8h3.2l1.4-2h6.8l1.4 2H20a1 1 0 0 1 1 1v9.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/>
+            <circle cx="12" cy="13.2" r="3.4"/>
+          </svg>
+        </button>
         <input type="file" id="chatCameraInputQuick" accept="image/*" capture="environment" style="display:none" onchange="Chat.onImagePick(this)">
       </div>
       <span class="uc-rec-timer" id="chatRecTimer" style="display:none">00:00</span>
