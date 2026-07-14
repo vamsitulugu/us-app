@@ -8606,7 +8606,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
   AppLoader.ready('data');
 });
             startAlarmCheck();
-            if (Notification.permission === 'granted') setTimeout(registerPushSubscription, 2000);
+            if ('Notification' in window && Notification.permission === 'granted') setTimeout(registerPushSubscription, 2000);
             setupNativeNotifications();
             startSyncLoop();
           }
@@ -9477,7 +9477,7 @@ async function registerPushSubscription() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     console.log('[push] not supported on this browser'); return;
   }
-  if (Notification.permission === 'denied') { console.log('[push] notifications blocked in browser settings'); return; }
+  if ('Notification' in window && Notification.permission === 'denied') { console.log('[push] notifications blocked in browser settings'); return; }
   if (!S.coupleId) { console.log('[push] no coupleId yet'); return; }
   try {
     const keyRes = await fetch(API + '/api/auth/push/vapidkey');
