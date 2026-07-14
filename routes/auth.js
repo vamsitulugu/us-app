@@ -281,7 +281,13 @@ async function sendFCMToPartner(coupleId, senderRole, payload) {
   try {
     await fcmMessaging.send({
       token: data.token,
-      notification: { title: payload.title || 'US 💕', body: payload.body || '' }
+      notification: { title: payload.title || 'US 💕', body: payload.body || '' },
+      android: {
+        notification: {
+          icon: 'ic_stat_notify',
+          color: '#1a0010'
+        }
+      }
     });
   } catch (err) {
     if (err.code === 'messaging/registration-token-not-registered') {
