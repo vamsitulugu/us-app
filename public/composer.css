@@ -34,48 +34,90 @@
   background: transparent;
 }
 
-/* ── Text input ── */
+/* ── Text input pill ──
+   The pill itself is the bordered/backgrounded element now (like
+   WhatsApp's message field), so icon buttons (attach, camera, emoji …)
+   can sit inside it, flush with the text, instead of floating outside
+   as separate circles. */
 .uc-input-wrap {
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--g2);
+  padding: 4px 6px;
+  transition: var(--t);
+}
+.uc-input-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 .uc-input {
+  flex: 1;
+  min-width: 0;
   width: 100%;
   resize: none;
   box-sizing: border-box;
   max-height: 120px;
-  min-height: 42px;
-  border: 1px solid var(--border);
-  border-radius: 22px;
-  padding: 11px 16px;
+  min-height: 34px;
+  border: none;
+  border-radius: 0;
+  padding: 8px 8px;
   font-size: 14px;
   font-family: var(--ff-sans);
   line-height: 1.4;
-  background: var(--g2);
+  background: transparent;
   color: var(--white);
   outline: none;
+  box-shadow: none !important;
   /* vertically centers both the caret and the placeholder text for a
      single line of content, growing evenly as it wraps */
   display: flex;
   align-items: center;
 }
-.uc-input:focus {
-  border-color: var(--accent);
-  background: var(--g2);
-  box-shadow: 0 0 0 3px var(--accent-glow);
-}
+.uc-input:focus { border: none; background: transparent; }
 .uc-input::placeholder { color: var(--text3); }
 
+/* First/last real control inside the pill gets the pill's own inset
+   so text doesn't hug an edge when there's no icon button next to it */
+.uc-input-wrap > .uc-input:first-child { padding-left: 14px; }
+.uc-input-wrap > .uc-input:last-child { padding-right: 14px; }
+
 /* Smaller footprint variant for the AI composer */
+.uc-composer--ai .uc-input-wrap { padding: 3px 5px; }
 .uc-composer--ai .uc-input {
-  min-height: 38px;
+  min-height: 32px;
   max-height: 110px;
-  padding: 9px 16px;
+  padding: 7px 8px;
   font-size: 13px;
-  border-radius: 22px;
 }
+.uc-composer--ai .uc-input-wrap > .uc-input:first-child { padding-left: 16px; }
+.uc-composer--ai .uc-input-wrap > .uc-input:last-child { padding-right: 16px; }
+
+/* ── Small borderless icon buttons that live inside the pill
+   (attach "+" on the left, camera on the right — like WhatsApp) ── */
+.uc-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: transparent;
+  color: var(--text2);
+  transition: var(--t), transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+}
+.uc-icon-btn:hover { background: var(--g3); color: var(--white); }
+.uc-icon-btn:active { transform: scale(0.88); }
+.uc-icon-btn .plus-ico { font-size: 19px; font-weight: 300; }
+.uc-icon-btn.is-open .plus-ico { transform: rotate(45deg); display: inline-block; }
 
 /* ── Circular action buttons ── */
 .uc-btn {
@@ -115,6 +157,21 @@
 .uc-btn--plus { transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), background 0.2s; }
 .uc-btn--plus:active { transform: rotate(45deg) scale(0.9); }
 .uc-btn .plus-ico { font-size: 20px; font-weight: 300; }
+
+/* ── Mic ⇄ Send toggle button ──
+   One circular button outside the pill, exactly like WhatsApp: shows
+   the mic icon while the field is empty, morphs to the send icon the
+   moment there's text, and back again once sent. */
+.uc-btn--mic-send { position: relative; opacity: 1; }
+.uc-btn--mic-send .uc-mic-ico,
+.uc-btn--mic-send .uc-send-ico {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.15s ease, transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+}
+.uc-btn--mic-send .uc-send-ico { opacity: 0; transform: scale(0.6) rotate(-20deg); }
+.uc-btn--mic-send .uc-mic-ico { opacity: 1; transform: scale(1) rotate(0); }
+.uc-btn--mic-send.has-text .uc-send-ico { opacity: 1; transform: scale(1) rotate(0); }
+.uc-btn--mic-send.has-text .uc-mic-ico { opacity: 0; transform: scale(0.6) rotate(20deg); }
 
 /* Smaller circular buttons for the AI composer (single send button) */
 .uc-composer--ai .uc-btn {
