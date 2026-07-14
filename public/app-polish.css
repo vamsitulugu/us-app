@@ -191,8 +191,8 @@ body[data-immersive="1"] .content {
    content/inputs sit flush with the screen edge; when not, it
    matches the nav's real height so nothing is hidden behind it. */
 :root {
-  --topbar-h-mobile: 52px;
-  --nav-reserve: 60px;
+  --topbar-h-mobile: calc(52px + env(safe-area-inset-top));
+  --nav-reserve: calc(60px + env(safe-area-inset-bottom));
 }
 body[data-immersive="1"] {
   --nav-reserve: 0px;
