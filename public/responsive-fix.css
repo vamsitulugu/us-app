@@ -104,3 +104,23 @@ html, body {
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
 }
+
+/* 5) Edge-to-edge status bar clearance. Now that Android draws the
+   app behind the (transparent) status bar, the topbar's own dark
+   background needs to extend up through that area while its
+   content (logo/menu/title/actions) stays clear of the status bar
+   icons. box-sizing:border-box (already set globally) means this
+   padding adds to the bar's total height rather than shrinking its
+   content, so nothing gets visually compressed. */
+.topbar {
+  padding-top: max(env(safe-area-inset-top), 0px) !important;
+  height: auto !important;
+  min-height: calc(58px + env(safe-area-inset-top));
+}
+
+@media (max-width: 700px) {
+  .topbar {
+    min-height: calc(52px + env(safe-area-inset-top));
+  }
+}
+
