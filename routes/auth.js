@@ -240,6 +240,55 @@ async function sendPushToPartner(coupleId, senderRole, payload) {
 
 module.exports = router;
 module.exports.sendPushToPartner = sendPushToPartner;
+
+// ── FCM (native Android push) ──────────────────────────
+const admin = require('firebase-admin');
+let fcmReady = false;
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT))
+    });
+    fcmReady = true;
+  } catch (e) {
+    console.error('Firebase init failed:', e.message);
+  }
+}
+
+router.post('/register-fcm-token', async (req, res) => {
+  const { coupleId, role, token } = req.body;
+  if (!coupleId || !role || !token) return res.status(400).json({ error: 'Missing fields' });
+
+  const { error } = await supabase.from('fcm_tokens').upsert({
+    couple_id: coupleId,
+    role,
+    token,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'couple_id,role' });
+
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ ok: true });
+});
+
+async function sendFCMToPartner(coupleId, senderRole, payload) {
+  if (!fcmReady) return;
+  const partnerRole = senderRole === 'user1' ? 'user2' : 'user1';
+  const { data } = await supabase.from('fcm_tokens')
+    .select('token').eq('couple_id', coupleId).eq('role', partnerRole).maybeSingle();
+  if (!data) return;
+  try {
+    await admin.messaging().send({
+      token: data.token,
+      notification: { title: payload.title || 'US 💕', body: payload.body || '' }
+    });
+  } catch (err) {
+    if (err.code === 'messaging/registration-token-not-registered') {
+      await supabase.from('fcm_tokens').delete().eq('couple_id', coupleId).eq('role', partnerRole);
+    }
+  }
+}
+
+module.exports.sendFCMToPartner = sendFCMToPartner;
 // ── POST /api/auth/register ────────────────────────────
 router.post('/register', async (req, res) => {
   const { email, password, myName, partnerName, anniversary } = req.body;

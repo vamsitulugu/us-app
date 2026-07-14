@@ -4,8 +4,15 @@
 const express  = require('express');
 const supabase = require('../middleware/supabase');
 const router   = express.Router();
-let _sendPushToPartner;
+let _sendPushToPartner, _sendFCMToPartner;
 try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch(_) {}
+try { _sendFCMToPartner = require('./auth').sendFCMToPartner; } catch(_) {}
+
+function notifyBoth(coupleId, role, payload) {
+  if (_sendPushToPartner) _sendPushToPartner(coupleId, role, payload).catch(() => {});
+  if (_sendFCMToPartner) _sendFCMToPartner(coupleId, role, payload).catch(() => {});
+}
+
 // ─── FULL STATE (save/load entire app) ─────────────────
 
 router.get('/state/:coupleId', async (req, res) => {
@@ -49,7 +56,7 @@ const ARRAY_WATCHERS = [
 ];
 
 function diffAndNotify(coupleId, senderRole, prevState, nextState, myName) {
-  if (!_sendPushToPartner) return;
+  if (!_sendPushToPartner && !_sendFCMToPartner) return;
   const prev = prevState || {};
   const next = nextState || {};
 
@@ -74,25 +81,25 @@ function diffAndNotify(coupleId, senderRole, prevState, nextState, myName) {
       if (item && item.visibility === 'self') return; // private item, don't leak via notification
       let body;
       try { body = w.pick(item) || 'Check the app for details'; } catch (_) { body = 'Check the app for details'; }
-      _sendPushToPartner(coupleId, senderRole, {
+      notifyBoth(coupleId, senderRole, {
         title: w.title,
         body: (myName || 'Your partner') + ': ' + String(body).slice(0, 120),
         icon: '/icons/icon-192.png',
         tag: w.tag
-      }).catch(() => {});
+      });
     });
   });
 
   // ── Non-array "event" style fields (single-object signals) ──
   const role = senderRole;
   if (next.touch && next.touch.from === role && (!prev.touch || prev.touch.ts !== next.touch.ts)) {
-    _sendPushToPartner(coupleId, role, { title: '💓 Touch', body: (myName || 'Your partner') + ' sent you a touch', icon: '/icons/icon-192.png', tag: 'touch' }).catch(() => {});
+    notifyBoth(coupleId, role, { title: '💓 Touch', body: (myName || 'Your partner') + ' sent you a touch', icon: '/icons/icon-192.png', tag: 'touch' });
   }
   if (next.missYou && next.missYou.from === role && (!prev.missYou || prev.missYou.ts !== next.missYou.ts)) {
-    _sendPushToPartner(coupleId, role, { title: '💔 Miss You', body: (myName || 'Your partner') + ' misses you', icon: '/icons/icon-192.png', tag: 'missyou' }).catch(() => {});
+    notifyBoth(coupleId, role, { title: '💔 Miss You', body: (myName || 'Your partner') + ' misses you', icon: '/icons/icon-192.png', tag: 'missyou' });
   }
   if (next.hug && next.hug.from === role && next.hug.status === 'pending' && (!prev.hug || prev.hug.id !== next.hug.id)) {
-    _sendPushToPartner(coupleId, role, { title: '🤗 Virtual Hug', body: (myName || 'Your partner') + ' sent you a hug!', icon: '/icons/icon-192.png', tag: 'hug' }).catch(() => {});
+    notifyBoth(coupleId, role, { title: '🤗 Virtual Hug', body: (myName || 'Your partner') + ' sent you a hug!', icon: '/icons/icon-192.png', tag: 'hug' });
   }
   ['ck_user1', 'ck_user2'].forEach(key => {
     const nArr = Array.isArray(next[key]) ? next[key] : [];
@@ -100,19 +107,19 @@ function diffAndNotify(coupleId, senderRole, prevState, nextState, myName) {
     if (nArr.length <= pArr.length) return;
     const last = nArr[nArr.length - 1];
     if (last && last.type === 'invite' && last.from === role) {
-      _sendPushToPartner(coupleId, role, {
+      notifyBoth(coupleId, role, {
         title: '🎤 Sing Together',
         body: (myName || 'Your partner') + ' invited you to sing "' + (last.songTitle || 'a song') + '"',
         icon: '/icons/icon-192.png',
         tag: 'ck-invite',
         url: '/#music'
-      }).catch(() => {});
+      });
     }
   });
 
   // ── Profile-level nudge: partner joined / paired info changed, etc. ──
   if (next.paired && !prev.paired) {
-    _sendPushToPartner(coupleId, role, { title: '💕 Connected!', body: 'You are now linked with ' + (myName || 'your partner'), icon: '/icons/icon-192.png', tag: 'paired' }).catch(() => {});
+    notifyBoth(coupleId, role, { title: '💕 Connected!', body: 'You are now linked with ' + (myName || 'your partner'), icon: '/icons/icon-192.png', tag: 'paired' });
   }
 
   // ── Music player (music.html syncs metadata under music_user1/music_user2,
@@ -126,13 +133,13 @@ function diffAndNotify(coupleId, senderRole, prevState, nextState, myName) {
     const added = nextTracks.slice(prevTracks.length);
     added.forEach(t => {
       if (t && t.visibility === 'my') return; // kept private, don't notify
-      _sendPushToPartner(coupleId, role, {
+      notifyBoth(coupleId, role, {
         title: '🎵 New Song Added',
         body: (myName || 'Your partner') + ' added "' + (t.title || 'a song') + '" to their playlist',
         icon: '/icons/icon-192.png',
         tag: 'music-track',
         url: '/?page=music'
-      }).catch(() => {});
+      });
     });
   }
 
@@ -142,13 +149,13 @@ function diffAndNotify(coupleId, senderRole, prevState, nextState, myName) {
   if (nextRecs.length > prevRecs.length) {
     const added = nextRecs.slice(prevRecs.length);
     added.forEach(r => {
-      _sendPushToPartner(coupleId, role, {
+      notifyBoth(coupleId, role, {
         title: '🎙️ New Karaoke Recording',
         body: (myName || 'Your partner') + ' recorded "' + (r.trackTitle || 'a song') + '"',
         icon: '/icons/icon-192.png',
         tag: 'karaoke-rec',
         url: '/?page=music'
-      }).catch(() => {});
+      });
     });
   }
 }
