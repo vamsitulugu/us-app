@@ -4515,6 +4515,17 @@ select option { background: #0D0D0D; color: #fff; }
     </div>
   </div>
 
+  <!-- MISS YOU CONFIRMATION OVERLAY (reply-only, no further action) -->
+  <div class="love-overlay" id="missYouConfirmOverlay" onclick="if(event.target===this)closeMissYouConfirmPopup()">
+    <div class="love-card" style="--missglow:rgba(255,107,157,0.4)">
+      <div class="love-card-ico">❤️</div>
+      <div class="love-card-title" id="missYouConfirmTitle">They miss you too</div>
+      <div class="love-card-actions">
+        <button class="btn btn-accent btn-sm" onclick="closeMissYouConfirmPopup()">💕 Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- HUG REQUEST OVERLAY -->
   <div class="love-overlay" id="hugRequestOverlay">
     <div class="love-card" style="--missglow:hsla(300,85%,65%,0.4)">
@@ -5953,6 +5964,12 @@ select option { background: #0D0D0D; color: #fff; }
           </div>
         </div>
 
+        <!-- SOUND -->
+        <div class="settings-group">
+          <div class="settings-group-header">🔊 Sound</div>
+          <div id="soundSettingsContent" style="padding:4px 18px 14px"></div>
+        </div>
+
         <!-- APPEARANCE -->
         <div class="settings-group">
           <div class="settings-group-header">✨ Appearance</div>
@@ -6747,6 +6764,26 @@ function setJustPairedAt(ts) {
         }
         // ─── TOUCH FEATURE ───────────────────────────────────────
         let lastTouchSeen = parseInt(localStorage.getItem('uwl_lastTouchSeen') || '0');
+
+        // Fires haptic feedback for a received Touch. Prefers the native
+        // Capacitor Haptics plugin (works reliably on Android where the
+        // web Vibration API is frequently ignored inside a WebView),
+        // falling back to navigator.vibrate() on regular mobile browsers,
+        // and no-ops silently wherever neither is available.
+        function vibrateDevice(durationMs) {
+          try {
+            const haptics = window.Capacitor?.Plugins?.Haptics;
+            if (window.Capacitor?.isNativePlatform?.() && haptics && typeof haptics.vibrate === 'function') {
+              haptics.vibrate({ duration: durationMs });
+              return true;
+            }
+          } catch (e) { /* native plugin unavailable — fall through */ }
+          try {
+            if (navigator.vibrate) { navigator.vibrate(durationMs); return true; }
+          } catch (e) { /* vibration not supported — ignore */ }
+          return false;
+        }
+
         function sendTouch() {
           S.touch = { from: S.role, ts: Date.now() };
           lastTouchSeen = S.touch.ts;
@@ -6764,7 +6801,9 @@ function setJustPairedAt(ts) {
           if (S.touch.ts <= lastTouchSeen) return;
           lastTouchSeen = S.touch.ts;
           localStorage.setItem('uwl_lastTouchSeen', String(lastTouchSeen));
-          if (navigator.vibrate) navigator.vibrate([120, 60, 120, 60, 200]);
+          // Guarded above by the lastTouchSeen watermark, so this fires
+          // exactly once per received Touch event — never repeatedly.
+          vibrateDevice(10000); // at least 10 seconds, per spec
           toast((S.partnerName || 'Your partner') + ' sent you a touch 💓', 4000);
           spawnPetals(10);
           const ripple = document.getElementById('touchRipple');
@@ -7116,10 +7155,11 @@ const p = await Notification.requestPermission();
         }
         // ─── MISS YOU FEATURE ──────────────────────────────────────
         let lastMissSeen = parseInt(localStorage.getItem('uwl_lastMissSeen') || '0');
+        let lastMissResultSeen = parseInt(localStorage.getItem('uwl_lastMissResultSeen') || '0');
 
         function sendMissYou() {
           const ts = Date.now();
-          S.missYou = { from: S.role, ts };
+          S.missYou = { id: ts, from: S.role, ts, status: 'sent' };
           if (!S.missCounts) S.missCounts = { user1: 0, user2: 0 };
           S.missCounts[S.role] = (S.missCounts[S.role] || 0) + 1;
           lastMissSeen = ts;
@@ -7131,17 +7171,45 @@ const p = await Notification.requestPermission();
           toast('💔 Sent — ' + (S.partnerName || 'they') + ' will know you miss them');
           spawnPetals(6);
         }
-        function sendMissYouBack() { closeMissYouPopup(); sendMissYou(); }
+
+        // "Miss You Too" reply. This ACKNOWLEDGES the existing S.missYou
+        // event in place — it does not call sendMissYou() and does not
+        // create a new event. That distinction is what stops the flow
+        // from bouncing back and forth forever (see root-cause note).
+        function sendMissYouBack() {
+          closeMissYouPopup();
+          if (!S.missYou || S.missYou.status !== 'sent') return; // already handled / stale — no-op
+          S.missYou.status = 'acknowledged';
+          S.missYou.acknowledgedTs = Date.now();
+          S.missYou.acknowledgedBy = S.role;
+          // I'm the one acknowledging it — I don't need to see my own
+          // confirmation popup, only the original sender does.
+          lastMissResultSeen = S.missYou.acknowledgedTs;
+          localStorage.setItem('uwl_lastMissResultSeen', String(lastMissResultSeen));
+          scheduleSave();
+          renderMissYouStats();
+        }
 
         function checkIncomingMissYou() {
-          if (!S.missYou || S.missYou.from === S.role) return;
-          if (S.missYou.ts <= lastMissSeen) return;
-          lastMissSeen = S.missYou.ts;
-          localStorage.setItem('uwl_lastMissSeen', String(lastMissSeen));
-          if (navigator.vibrate) navigator.vibrate([150, 80, 150, 80, 300]);
-          showMissYouPopup(S.missYou);
-          fireBackgroundNotification('💔 ' + (S.partnerName || 'Someone') + ' misses you', (S.partnerName || 'Your partner') + ' is thinking of you right now 💕');
-          renderMissYouStats();
+          if (!S.missYou) return;
+          // Case 1: a fresh "misses you" ping — shown only to the recipient,
+          // and only once (gated by the id watermark).
+          if (S.missYou.status === 'sent' && S.missYou.from !== S.role && S.missYou.id > lastMissSeen) {
+            lastMissSeen = S.missYou.id;
+            localStorage.setItem('uwl_lastMissSeen', String(lastMissSeen));
+            if (navigator.vibrate) navigator.vibrate([150, 80, 150, 80, 300]);
+            showMissYouPopup(S.missYou);
+            fireBackgroundNotification('💔 ' + (S.partnerName || 'Someone') + ' misses you', (S.partnerName || 'Your partner') + ' is thinking of you right now 💕');
+            renderMissYouStats();
+          }
+          // Case 2: the reply confirmation — shown only to the ORIGINAL
+          // sender, only once, and it's a dead end: no button on this
+          // card sends anything or re-arms the flow, so it can't loop.
+          if (S.missYou.status === 'acknowledged' && S.missYou.from === S.role && S.missYou.acknowledgedTs && S.missYou.acknowledgedTs > lastMissResultSeen) {
+            lastMissResultSeen = S.missYou.acknowledgedTs;
+            localStorage.setItem('uwl_lastMissResultSeen', String(lastMissResultSeen));
+            showMissYouConfirmPopup();
+          }
         }
 
         function showMissYouPopup(data) {
@@ -7155,12 +7223,20 @@ const p = await Notification.requestPermission();
         }
         function closeMissYouPopup() { document.getElementById('missYouOverlay').classList.remove('active'); }
 
+        function showMissYouConfirmPopup() {
+          document.getElementById('missYouConfirmTitle').textContent = (S.partnerName || 'They') + ' misses you too ❤️';
+          document.getElementById('missYouConfirmOverlay').classList.add('active');
+          spawnPetals(8);
+        }
+        function closeMissYouConfirmPopup() { document.getElementById('missYouConfirmOverlay').classList.remove('active'); }
+
         function renderMissYouStats() {
           const mc = S.missCounts || { user1: 0, user2: 0 };
           const partnerRole = S.role === 'user1' ? 'user2' : 'user1';
           const el = document.getElementById('missYouStat');
           if (el) el.innerHTML = '<strong>' + (S.partnerName || 'Partner') + '</strong> missed you ' + (mc[partnerRole] || 0) + 'x<br>You missed them ' + (mc[S.role] || 0) + 'x';
         }
+
 
         // ─── VIRTUAL HUG FEATURE ───────────────────────────────────
         let lastHugSeen = parseInt(localStorage.getItem('uwl_lastHugSeen') || '0');
