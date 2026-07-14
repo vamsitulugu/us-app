@@ -5974,6 +5974,12 @@ select option { background: #0D0D0D; color: #fff; }
             </div>
           </div>
         </div>
+
+        <!-- SOUND -->
+<div class="settings-group">
+  <div class="settings-group-header">🔊 Sound</div>
+  <div id="soundSettingsContent" style="padding:4px 18px 14px"></div>
+</div>
          <!-- STORAGE MANAGEMENT -->
         <div class="settings-group">
           <div class="settings-group-header">📦 Storage & Data</div>
@@ -6963,6 +6969,10 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
         }
         function updateNamesLive() { S.myName = document.getElementById('setMyName').value || 'You'; S.partnerName = document.getElementById('setPtName').value || 'Partner'; applyNames(); }
         function loadSettings() {
+          if (window.SoundSettingsUI) {
+    const soundContainer = document.getElementById('soundSettingsContent');
+    if (soundContainer) SoundSettingsUI.renderInto(soundContainer);
+  }
           document.getElementById('setMyName').value = S.myName || '';
           document.getElementById('setPtName').value = S.partnerName || '';
           document.getElementById('setAnniv').value = S.anniversary || '';
