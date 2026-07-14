@@ -272,12 +272,21 @@ router.post('/register-fcm-token', async (req, res) => {
   return res.json({ ok: true });
 });
 
+// Must match MainActivity.TOUCH_CHANNEL_ID (android/app/src/main/java/com/uswithlove/app/MainActivity.java).
+// That channel is created natively with a locked-in 10-second vibration
+// pattern — Android ignores per-message vibration once a channel exists,
+// so the channel is what actually makes the phone buzz while the app
+// is fully closed. The message-level vibrateTimingsMillis below is only
+// a fallback for the (pre-Android 8) devices that predate channels.
+const TOUCH_CHANNEL_ID = 'touch_channel_v1';
+
 async function sendFCMToPartner(coupleId, senderRole, payload) {
   if (!fcmReady) return;
   const partnerRole = senderRole === 'user1' ? 'user2' : 'user1';
   const { data } = await supabase.from('fcm_tokens')
     .select('token').eq('couple_id', coupleId).eq('role', partnerRole).maybeSingle();
   if (!data) return;
+  const isTouch = payload.tag === 'touch';
   try {
     await fcmMessaging.send({
       token: data.token,
@@ -285,7 +294,12 @@ async function sendFCMToPartner(coupleId, senderRole, payload) {
       android: {
         notification: {
           icon: 'ic_stat_notify',
-          color: '#1a0010'
+          color: '#1a0010',
+          ...(isTouch ? {
+            channelId: TOUCH_CHANNEL_ID,
+            defaultVibrateTimings: false,
+            vibrateTimingsMillis: [0, 10000]
+          } : {})
         }
       }
     });

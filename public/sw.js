@@ -73,13 +73,17 @@ self.addEventListener('fetch', e => {
 self.addEventListener('push', e => {
   let data = { title: 'US 💕', body: '', icon: '/icons/icon-192.png' };
   try { if (e.data) Object.assign(data, e.data.json()); } catch (_) {}
+  // Touch needs a long, unmistakable buzz even with the app fully
+  // closed; every other notification type keeps its original short
+  // pattern exactly as before.
+  const vibratePattern = data.tag === 'touch' ? [10000] : [200, 100, 200, 100, 400];
   e.waitUntil(
     self.registration.showNotification(data.title, {
       body:     data.body,
       icon:     data.icon  || '/icons/icon-192.png',   // large icon (right side, OS-controlled)
       badge:    '/icons/badge-96.png',                  // small monochrome status-bar icon
       image:    data.image || undefined,                // optional big banner like WhatsApp media previews
-      vibrate:  [200, 100, 200, 100, 400],
+      vibrate:  vibratePattern,
       tag:      data.tag   || 'us-app',
       renotify: true,
       requireInteraction: false,
