@@ -21,9 +21,10 @@
   padding-bottom: max(18px, calc(14px + env(safe-area-inset-bottom)));
   padding-left: max(12px, env(safe-area-inset-left));
   padding-right: max(12px, env(safe-area-inset-right));
-  background: transparent;
-  border: none;
+  background: transparent !important;
+  border: none !important;
   border-radius: 0;
+  box-shadow: none !important;
   flex-shrink: 0;
   position: relative;
   z-index: 6;
@@ -31,7 +32,21 @@
 
 /* AI composer: same floating treatment as Chat, no card behind it. */
 .uc-composer--ai {
-  background: transparent;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Belt-and-suspenders: the direct wrapper that hosts the composer
+   (.chat-page-wrap for Chat, any "*-page-wrap" for other composer
+   pages) must never paint its own color behind the bar either —
+   otherwise a colored "panel" reappears even though .uc-composer
+   itself is transparent. This keeps one continuous background from
+   the messages straight down through the composer, matching
+   ChatGPT/WhatsApp. */
+.chat-page-wrap,
+[class$="-page-wrap"] {
+  background: transparent !important;
 }
 
 /* ── Text input pill ──
@@ -48,7 +63,7 @@
   border: 1px solid var(--border);
   border-radius: 26px;
   background: var(--g2);
-  padding: 6px 8px;
+  padding: 5px 7px;
 }
 /* No focus ring / colored border on the pill — WhatsApp doesn't
    highlight its field on focus, so we don't either. */
@@ -63,10 +78,10 @@
   resize: none;
   box-sizing: border-box;
   max-height: 130px;
-  min-height: 44px;
+  min-height: 40px;
   border: none !important;
   border-radius: 0;
-  padding: 11px 8px;
+  padding: 9px 8px;
   font-size: 15px;
   font-family: var(--ff-sans);
   line-height: 1.4;
@@ -92,12 +107,11 @@
 .uc-input-wrap > .uc-input:first-child { padding-left: 14px; }
 .uc-input-wrap > .uc-input:last-child { padding-right: 14px; }
 
-/* Slightly airier variant for the AI composer, still taller than before */
-.uc-composer--ai .uc-input-wrap { padding: 5px 7px; }
+/* AI composer keeps its own max-height ceiling and font-size, but
+   min-height/padding now match Chat's exactly (see .uc-input above)
+   so both composer bars render at the identical height. */
 .uc-composer--ai .uc-input {
-  min-height: 40px;
   max-height: 120px;
-  padding: 9px 8px;
   font-size: 14px;
 }
 .uc-composer--ai .uc-input-wrap > .uc-input:first-child { padding-left: 16px; }
