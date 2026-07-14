@@ -242,19 +242,21 @@ module.exports = router;
 module.exports.sendPushToPartner = sendPushToPartner;
 
 // ── FCM (native Android push) ──────────────────────────
-const admin = require('firebase-admin');
+const { initializeApp: initFirebaseApp, cert: firebaseCert } = require('firebase-admin/app');
+const { getMessaging } = require('firebase-admin/messaging');
 let fcmReady = false;
+let fcmMessaging = null;
 if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   try {
-    admin.initializeApp({
-      credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT))
+    const firebaseApp = initFirebaseApp({
+      credential: firebaseCert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT))
     });
+    fcmMessaging = getMessaging(firebaseApp);
     fcmReady = true;
   } catch (e) {
     console.error('Firebase init failed:', e.message);
   }
 }
-
 router.post('/register-fcm-token', async (req, res) => {
   const { coupleId, role, token } = req.body;
   if (!coupleId || !role || !token) return res.status(400).json({ error: 'Missing fields' });
@@ -277,7 +279,7 @@ async function sendFCMToPartner(coupleId, senderRole, payload) {
     .select('token').eq('couple_id', coupleId).eq('role', partnerRole).maybeSingle();
   if (!data) return;
   try {
-    await admin.messaging().send({
+    await fcmMessaging.send({
       token: data.token,
       notification: { title: payload.title || 'US 💕', body: payload.body || '' }
     });
