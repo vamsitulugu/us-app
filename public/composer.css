@@ -8,29 +8,30 @@
    so it automatically matches Twin Hearts branding wherever it's used.
    ══════════════════════════════════════════════════════════════ */
 
-/* ── Composer bar ── */
+/* ── Composer bar ──
+   No boxed panel/border around the whole bar — the pill input and the
+   circular buttons float directly on the page background, exactly like
+   WhatsApp's and ChatGPT's bottom bars. Only a small, safe-area-aware
+   gap separates it from the gesture nav bar. */
 .uc-composer {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
-  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  padding: 6px 10px;
+  padding-bottom: max(6px, env(safe-area-inset-bottom));
   padding-left: max(10px, env(safe-area-inset-left));
   padding-right: max(10px, env(safe-area-inset-right));
-  background: var(--g1);
-  border: 1px solid var(--border);
-  border-radius: 0 0 var(--r) var(--r);
+  background: transparent;
+  border: none;
+  border-radius: 0;
   flex-shrink: 0;
   position: relative;
   z-index: 6;
 }
 
-/* AI composer sits inside its own card, not the messages panel —
-   slightly airier padding + no bottom radius clash. */
+/* AI composer: same floating treatment as Chat, no card behind it. */
 .uc-composer--ai {
-  border-radius: var(--r);
-  background: rgba(8, 8, 20, 0.5);
-  backdrop-filter: var(--blur-sm);
+  background: transparent;
 }
 
 /* ── Text input ── */
@@ -160,7 +161,6 @@
 
 /* ── Mobile polish ── */
 @media (max-width: 700px) {
-  .uc-composer { border-radius: 0; }
   .uc-chips { padding: 4px 10px 8px; gap: 6px; }
   .uc-chip { font-size: 10.5px; padding: 6px 11px; }
 }
