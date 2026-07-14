@@ -214,6 +214,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <link rel="stylesheet" href="/chat/chat.css">
+  <link rel="stylesheet" href="/composer.css">
   <link rel="stylesheet" href="/chat/call.css">
   <!-- theme-burgundy.css loads after this page's own <style> block so its
        :root redeclaration of --accent/--accent2 wins; premium-states.css
@@ -2253,55 +2254,8 @@
         transform: rotate(12deg)
       }
     }
-.chat-bar {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  padding: 10px 16px;
-  border-top: 1px solid var(--border);
-  background: rgba(8, 8, 20, 0.5);
-  backdrop-filter: var(--blur-sm);
-}
-.chat-in {
-  flex: 1;
-  resize: none;
-  max-height: 120px;
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 10px 14px;
-  font-size: 13px;
-  font-family: var(--ff-sans);
-  background: var(--g1);
-  color: var(--white);
-  outline: none;
-  line-height: 1.5;
-}
-.chat-in:focus {
-  border-color: var(--accent);
-  background: var(--g2);
-  box-shadow: 0 0 0 3px var(--accent-glow);
-}
-
-/* ── AI CHAT INPUT — smaller, elegant, auto-height pill (scoped, doesn't affect other .chat-in usages) ── */
-.ai-bar { padding: 8px 12px; gap: 8px; }
-.ai-in {
-  border-radius: 22px;
-  padding: 9px 16px;
-  max-height: 110px;
-  min-height: 38px;
-  font-size: 13px;
-}
-.ai-send-btn {
-  width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1), opacity 0.2s, background 0.2s;
-  opacity: 0.55;
-}
-.ai-send-btn.is-ready { opacity: 1; transform: scale(1.02); }
-.ai-send-btn:active { transform: scale(0.9); }
-.ai-send-btn.is-sending { opacity: 0.6; pointer-events: none; }
-.ai-send-btn.is-sending .ai-send-ico { animation: aiSendSpin 0.9s linear infinite; display: inline-block; }
-@keyframes aiSendSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+/* Chat + AI composer bars now use the shared .uc-composer component
+   (see /composer.css). Rules kept minimal here to avoid duplication. */
 
 /* ── Message entrance ── */
 .ai-msg.ai-pop-in { animation: aiMsgPopIn 0.3s cubic-bezier(0.22,1,0.36,1); }
@@ -2721,31 +2675,7 @@
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25)
     }
 
-    .pills {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 7px;
-      padding: 4px 16px 10px
-    }
-
-    .pill {
-      padding: 6px 13px;
-      border-radius: 20px;
-      border: 1px solid var(--border);
-      background: var(--g1);
-      font-size: 11px;
-      cursor: pointer;
-      color: var(--text2);
-      transition: var(--t);
-      user-select: none;
-      font-weight: 500
-    }
-
-    .pill:hover {
-      background: var(--g2);
-      color: var(--white);
-      border-color: var(--border2)
-    }
+    /* .pills/.pill superseded by shared .uc-chips/.uc-chip (see /composer.css) */
 
     /* ════ PHOTO GRID ════ */
     .photo-grid {
@@ -2932,8 +2862,6 @@
   #moodGraph { height: 70px }
 
   /* AI page pills */
-  .pills { padding: 4px 10px 8px; gap: 5px }
-  .pill { font-size: 10px; padding: 5px 10px }
 
   /* Topbar adjustments */
   .tb-title { font-size: 15px }
@@ -3994,7 +3922,7 @@
 .ai-bubble th { background: var(--g2); color: var(--white); }
 
 /* Pills — subtle entrance */
-.pills { animation: pillsIn 0.4s ease 0.1s both; }
+.uc-chips { animation: pillsIn 0.4s ease 0.1s both; }
 @keyframes pillsIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
 /* Date separator (for future use) */
@@ -4933,18 +4861,20 @@ select option { background: #0D0D0D; color: #fff; }
 
     <div class="chat-composer-banner" id="chatComposerBanner"></div>
 
-    <div class="chat-composer">
-      <button class="chat-composer-btn plus-btn" id="chatMoreBtn" onclick="Chat.openSheet()" title="Attach">
+    <div class="uc-composer">
+      <button class="uc-btn uc-btn--plus" id="chatMoreBtn" onclick="Chat.openSheet()" title="Attach">
         <span class="plus-ico">＋</span>
       </button>
-      <textarea id="chatIn" rows="1" placeholder="Type a message..."
-        oninput="Chat.onTypingInput(); this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,120)+'px'"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();Chat.sendText();}"></textarea>
-      <span class="chat-rec-timer" id="chatRecTimer" style="display:none">00:00</span>
-      <button class="chat-composer-btn" id="chatCancelRecBtn" style="display:none" onclick="Chat.cancelRecording()" title="Discard">🗑️</button>
-      <button class="chat-composer-btn rec-active" id="chatStopRecBtn" style="display:none" onclick="Chat.toggleRecord()" title="Send voice message">✔</button>
-      <button class="chat-composer-btn" id="chatRecBtn" onclick="Chat.toggleRecord()" title="Voice message">🎙️</button>
-      <button class="chat-composer-btn send" id="chatSendBtn" onclick="Chat.sendText()">➤</button>
+      <div class="uc-input-wrap">
+        <textarea class="uc-input" id="chatIn" rows="1" placeholder="Type a message..."
+          oninput="Chat.onTypingInput(); this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,120)+'px'"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();Chat.sendText();}"></textarea>
+      </div>
+      <span class="uc-rec-timer" id="chatRecTimer" style="display:none">00:00</span>
+      <button class="uc-btn" id="chatCancelRecBtn" style="display:none" onclick="Chat.cancelRecording()" title="Discard">🗑️</button>
+      <button class="uc-btn uc-btn--rec" id="chatStopRecBtn" style="display:none" onclick="Chat.toggleRecord()" title="Send voice message">✔</button>
+      <button class="uc-btn" id="chatRecBtn" onclick="Chat.toggleRecord()" title="Voice message">🎙️</button>
+      <button class="uc-btn uc-btn--send is-ready" id="chatSendBtn" onclick="Chat.sendText()">➤</button>
     </div>
   </div>
 </div>
@@ -5742,29 +5672,31 @@ select option { background: #0D0D0D; color: #fff; }
               </div>
             </div>
           </div>
-          <div class="pills">
-            <div class="pill" onclick="askAI('Give us 5 creative and romantic date night ideas for tonight')">💑 Date
+          <div class="uc-chips">
+            <div class="uc-chip" onclick="askAI('Give us 5 creative and romantic date night ideas for tonight')">💑 Date
               ideas</div>
-            <div class="pill"
+            <div class="uc-chip"
               onclick="askAI('We had a fight. Give us a step-by-step guide to talk it through with love')">💬 We argued
             </div>
-            <div class="pill"
+            <div class="uc-chip"
               onclick="askAI('How can we improve communication as a couple? Be specific and practical')">🗣️
               Communication</div>
-            <div class="pill" onclick="askAI('Plan a romantic surprise — give me 3 detailed and thoughtful options')">🎁
+            <div class="uc-chip" onclick="askAI('Plan a romantic surprise — give me 3 detailed and thoughtful options')">🎁
               Surprise</div>
-            <div class="pill" onclick="askAI('Write a heartfelt, poetic love letter from me to my partner')">💌 Love
+            <div class="uc-chip" onclick="askAI('Write a heartfelt, poetic love letter from me to my partner')">💌 Love
               letter</div>
-            <div class="pill" onclick="askAI('What are 10 fun things couples can do at home to reconnect?')">🏠 Home fun
+            <div class="uc-chip" onclick="askAI('What are 10 fun things couples can do at home to reconnect?')">🏠 Home fun
             </div>
-            <div class="pill" onclick="askAI('Give us 5 deep conversation questions to learn more about each other')">💭
+            <div class="uc-chip" onclick="askAI('Give us 5 deep conversation questions to learn more about each other')">💭
               Deep talk</div>
           </div>
-          <div class="chat-bar ai-bar">
-            <textarea class="chat-in ai-in" id="aiIn" rows="1" placeholder="Ask anything about your relationship..."
-              oninput="this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,110)+'px'; document.getElementById('aiSendBtn').classList.toggle('is-ready', this.value.trim().length>0)"
-              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"></textarea>
-            <button class="ic-btn accent ai-send-btn" id="aiSendBtn" onclick="sendAI()" title="Send">
+          <div class="uc-composer uc-composer--ai">
+            <div class="uc-input-wrap">
+              <textarea class="uc-input" id="aiIn" rows="1" placeholder="Ask anything about your relationship..."
+                oninput="this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,110)+'px'; document.getElementById('aiSendBtn').classList.toggle('is-ready', this.value.trim().length>0)"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"></textarea>
+            </div>
+            <button class="uc-btn uc-btn--send" id="aiSendBtn" onclick="sendAI()" title="Send">
               <span class="ai-send-ico">➤</span>
             </button>
           </div>
