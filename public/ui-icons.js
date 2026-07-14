@@ -34,9 +34,38 @@
 (function () {
   'use strict';
 
-  /* ── 1. Icon sizing (structural only, inherits your existing theme) ── */
+  /* ── 1. Icon sizing (structural only, inherits your existing theme) ──
+     Icon size design tokens — single source of truth. Every component
+     below sets its icon's rendered size by setting font-size on the
+     icon (or an ancestor) to one of these, since .ui-ico is 1em x 1em.
+     Change a tier here and every icon using it updates app-wide. */
   const style = document.createElement('style');
   style.textContent = `
+    :root {
+      --icon-xs: 12px;  /* inline helper icons within small text/labels */
+      --icon-sm: 16px;  /* nav icons, compact action buttons (search/sync) */
+      --icon-md: 18px;  /* default: buttons, list rows, general UI icons */
+      --icon-lg: 22px;  /* card/feature icons */
+      --icon-xl: 32px;  /* hero/illustration icons only */
+    }
+
+    /* ROOT CAUSE FIX: lucide.createIcons() replaces the element that
+       carries the "ui-ico" class with the <svg> itself (element.parentNode
+       .replaceChild(svgElement, element)) — the svg IS .ui-ico, it is not
+       nested inside it. The previous rule here, ".ui-ico svg", was a
+       descendant selector that could never match that structure, so it
+       silently never applied and every icon fell back to Lucide's
+       hardcoded default (width="24" height="24"), ignoring whatever
+       font-size each component intentionally set. Targeting .ui-ico
+       itself (plus keeping the descendant form defensively, in case any
+       icon is ever nested a level deeper) fixes sizing everywhere at once. */
+    .ui-ico,
+    .ui-ico svg {
+      width: 1em;
+      height: 1em;
+      stroke-width: 2px;
+    }
+
     .ui-ico {
       display: inline-flex;
       align-items: center;
@@ -47,7 +76,6 @@
     }
     .ui-ico:last-child { margin-right: 0; margin-left: 0.28em; }
     .ui-ico:only-child { margin: 0; }
-    .ui-ico svg { width: 1em; height: 1em; stroke-width: 2px; }
   `;
   document.head.appendChild(style);
 
