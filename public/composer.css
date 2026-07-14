@@ -23,8 +23,11 @@
   padding-right: max(12px, env(safe-area-inset-right));
   background: transparent !important;
   border: none !important;
+  border-top: none !important;
   border-radius: 0;
   box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   flex-shrink: 0;
   position: relative;
   z-index: 6;
@@ -35,18 +38,27 @@
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* Belt-and-suspenders: the direct wrapper that hosts the composer
-   (.chat-page-wrap for Chat, any "*-page-wrap" for other composer
-   pages) must never paint its own color behind the bar either —
-   otherwise a colored "panel" reappears even though .uc-composer
-   itself is transparent. This keeps one continuous background from
+   (.chat-page-wrap for Chat, .ai-wrap for the AI page — the
+   reference implementation — and any other "*-page-wrap") must
+   never paint its own color, blur, or top border behind the bar
+   either. Pinning both hosts to the exact same rule guarantees they
+   stay identical instead of drifting into two separate
+   implementations again. This keeps one continuous background from
    the messages straight down through the composer, matching
    ChatGPT/WhatsApp. */
 .chat-page-wrap,
+.ai-wrap,
 [class$="-page-wrap"] {
   background: transparent !important;
+  border-top: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* ── Text input pill ──
