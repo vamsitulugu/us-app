@@ -9,8 +9,9 @@ const crypto   = require('crypto');
 const supabase = require('../middleware/supabase');
 const router   = express.Router();
 
-let _sendPushToPartner;
+let _sendPushToPartner, _sendFCMToPartner;
 try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch (_) {}
+try { _sendFCMToPartner = require('./auth').sendFCMToPartner; } catch (_) {}
 
 function otherRole(role) { return role === 'user1' ? 'user2' : 'user1'; }
 
@@ -78,15 +79,15 @@ router.post('/', async (req, res) => {
   }).eq('id', data.id);
 
   // Push notify partner
-  if (_sendPushToPartner) {
-    _sendPushToPartner(coupleId, senderRole, {
-      title: '💬 New message',
-      body: text ? text.slice(0, 80) : (type === 'image' ? '📷 Photo' : type === 'video' ? '🎬 Video' : '🎙️ Voice message'),
-      icon: '/icons/icon-192.png',
-      tag: 'chat-msg',
-      url: '/?page=chat'
-    }).catch(() => {});
-  }
+  const chatPayload = {
+    title: '💬 New message',
+    body: text ? text.slice(0, 80) : (type === 'image' ? '📷 Photo' : type === 'video' ? '🎬 Video' : '🎙️ Voice message'),
+    icon: '/icons/icon-192.png',
+    tag: 'chat-msg',
+    url: '/?page=chat'
+  };
+  if (_sendPushToPartner) _sendPushToPartner(coupleId, senderRole, chatPayload).catch(() => {});
+  if (_sendFCMToPartner) _sendFCMToPartner(coupleId, senderRole, chatPayload).catch(() => {});
 
   return res.json(data);
 });
