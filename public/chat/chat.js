@@ -442,10 +442,27 @@ function reanchorAfterImages() {
       lastMsgId = Math.max(lastMsgId, saved.id);
       render();
     } catch (e) {
+      // The request itself errored (network blip, dropped connection,
+      // etc.) — but the server upsert is idempotent on client_id, so it's
+      // possible the write actually landed before the response was lost.
+      // Check once before showing "failed" so a genuinely successful send
+      // never gets a false failure toast.
+      let confirmed = null;
+      try {
+        const q = lastMsgTs ? '?after=' + encodeURIComponent(lastMsgTs) : '?limit=20';
+        const rows = await api('GET', '/api/chat/' + coupleId() + q);
+        confirmed = (rows || []).find(r => r.client_id === clientId);
+      } catch (e2) {}
       const idx = msgs.findIndex(m => m.client_id === clientId);
-      if (idx > -1) msgs[idx]._failed = true;
-      render();
-      toast('Send failed — tap to retry');
+      if (confirmed) {
+        if (idx > -1) msgs[idx] = confirmed;
+        lastMsgId = Math.max(lastMsgId, confirmed.id);
+        render();
+      } else {
+        if (idx > -1) msgs[idx]._failed = true;
+        render();
+        toast('Send failed — tap to retry');
+      }
     }
   }
 
@@ -1072,12 +1089,48 @@ function menuItemsHtml(m, id) {
     swipeState = null;
   }
 
+  // ─── REALTIME (instant delivery + instant tick updates) ─
+  // Supabase Realtime push replaces the wait for the next poll tick.
+  // The 2.5s poll (startPolling, above) stays on as a fallback safety
+  // net — if the socket ever drops, messages/read-receipts still
+  // arrive within one poll cycle instead of being lost.
+  let realtimeChannel = null;
+  function startRealtime() {
+    if (realtimeChannel) return; // already subscribed
+    if (!window.supabase || !window.supabase.createClient) return; // SDK not loaded — poll-only
+    if (!window.__SUPABASE_URL__ || !window.__SUPABASE_ANON_KEY__) return; // no client creds exposed
+    if (!coupleId()) return;
+    try {
+      const sb = window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__);
+      realtimeChannel = sb.channel('chat-' + coupleId())
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'chat_messages',
+          filter: 'couple_id=eq.' + coupleId()
+        }, (payload) => {
+          const r = payload.new;
+          if (!r) return;
+          const idx = msgs.findIndex(m => m.id === r.id || (r.client_id && m.client_id === r.client_id));
+          if (idx > -1) msgs[idx] = r; else msgs.push(r);
+          if (r.created_at && (!lastMsgTs || r.created_at > lastMsgTs)) lastMsgTs = r.created_at;
+          render();
+          const box = document.getElementById('chatMsgs');
+          const nearBottom = box && (box.scrollHeight - box.scrollTop - box.clientHeight < 150);
+          if (nearBottom || isMine(r)) { scrollToBottom(true); reanchorAfterImages(); }
+          if (!isMine(r) && document.getElementById('page-chat')?.classList.contains('active') && document.hasFocus()) {
+            markRead();
+          }
+        })
+        .subscribe();
+    } catch (e) { realtimeChannel = null; }
+  }
+
   // ─── INIT ────────────────────────────────────────────
   function init() {
     if (!coupleId()) { setTimeout(init, 1000); return; }
     loadMessages();
     startPresence();
     startPolling();
+    startRealtime();
     fetchPresence();
     initSwipeToReply();
     const nameEl = document.getElementById('chatHeaderName');

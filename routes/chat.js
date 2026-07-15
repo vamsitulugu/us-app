@@ -73,10 +73,20 @@ router.post('/', async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message });
 
-  // Mark delivered immediately (partner will mark read when they open chat)
-  await supabase.from('chat_messages').update({
-    delivered: true, delivered_at: new Date().toISOString()
-  }).eq('id', data.id);
+  // Mark delivered immediately (partner will mark read when they open chat).
+  // Fire-and-forget: the client only needs to know the message SAVED, not
+  // that this follow-up flag write finished too. Awaiting it here forced
+  // every send through two sequential DB round-trips (roughly doubling
+  // perceived send latency), and any hiccup in this second write used to
+  // throw before res.json(data) — the client would see "Send failed" even
+  // though the message itself was already safely in the database.
+  const deliveredAt = new Date().toISOString();
+  supabase.from('chat_messages')
+    .update({ delivered: true, delivered_at: deliveredAt })
+    .eq('id', data.id)
+    .then(({ error: dErr }) => { if (dErr) console.error('mark-delivered failed:', dErr.message); });
+  data.delivered = true;
+  data.delivered_at = deliveredAt;
 
   // Push notify partner
   const chatPayload = {
