@@ -3,6 +3,7 @@
 // ═══ CHAT MODULE — presence, fixed layout, emoji/gif, redesigned composer ═══
 const Chat = (function () {
   let msgs = [];
+  let lastMsgId = 0;
   let presence = { user1: null, user2: null };
   let presenceInterval = null;
   let pollInterval = null;
@@ -97,6 +98,12 @@ const Chat = (function () {
     scrollToBottom(false);
     reanchorAfterImages();
     settleScrollBurst();
+    // Any already-loaded partner messages that are still unread need
+    // marking now — previously markRead() only fired reactively when a
+    // *new* message arrived while the chat was already open, so opening
+    // a chat that already had unread messages waiting never flipped
+    // their ticks blue at all.
+    if (msgs.some(m => !isMine(m) && !m.read) && document.hasFocus()) markRead();
   } catch (e) {}
 }
 
@@ -161,9 +168,29 @@ function reanchorAfterImages() {
         markRead();
       }
     }
+    await refreshRecentStatuses();
     fetchPresence();
   } catch (e) {}
 }
+
+  // The 'after' query above only ever returns brand-new rows, so an
+  // UPDATE to a message already in `msgs` (read receipt, delivered
+  // flag, reaction, edit) is invisible to it — that update only reaches
+  // this device via the Realtime push. Re-checking the tail of the
+  // conversation here means tick colors and reactions still refresh
+  // within one poll cycle even if the Realtime socket never connected.
+  async function refreshRecentStatuses() {
+    if (!msgs.length) return;
+    try {
+      const rows = await api('GET', '/api/chat/' + coupleId() + '?limit=30');
+      let changed = false;
+      (rows || []).forEach(r => {
+        const idx = msgs.findIndex(m => m.id === r.id || (r.client_id && m.client_id === r.client_id));
+        if (idx > -1 && _msgSig(msgs[idx]) !== _msgSig(r)) { msgs[idx] = r; changed = true; }
+      });
+      if (changed) render();
+    } catch (e) {}
+  }
 
   function startPolling() {
     if (pollInterval) clearInterval(pollInterval);
@@ -1120,7 +1147,9 @@ function menuItemsHtml(m, id) {
             markRead();
           }
         })
-        .subscribe();
+        .subscribe((status) => {
+          console.log('[Chat realtime]', status);
+        });
     } catch (e) { realtimeChannel = null; }
   }
 
