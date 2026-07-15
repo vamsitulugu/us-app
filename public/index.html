@@ -3809,6 +3809,22 @@
 }
 .ai-wrap { position: relative; z-index: 1; }
 
+/* Chat page: identical ambient background recipe as the AI page
+   above, so both immersive composer pages are built from the exact
+   same single background instead of Chat inheriting a different,
+   more saturated look from its own now-removed header tint/blur. */
+#page-chat { position: relative; }
+#page-chat::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 15% 0%, hsla(var(--h),100%,55%,0.10), transparent 45%),
+    radial-gradient(circle at 90% 10%, rgba(143,0,0,0.14), transparent 45%);
+  pointer-events: none;
+  z-index: 0;
+}
+.chat-page-wrap { position: relative; z-index: 1; }
+
 /* Welcome / empty state */
 .ai-welcome {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
