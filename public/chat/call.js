@@ -803,7 +803,14 @@ let iceQueue = [];
     remoteStream = null;
     iceQueue = [];
     if (timerInt) clearInterval(timerInt);
-    if (pollInterval) clearInterval(pollInterval);
+    // NOTE: the idle signal-poll loop (pollInterval) is intentionally left
+    // running here. startPolling()'s own internal logic already throttles
+    // it down to the idle rate (~2s) once `pc` is null — killing it
+    // entirely on every call end used to mean nothing was left listening
+    // for the *next* incoming offer at all, since the only thing that
+    // would have restarted it was detecting a new offer via... the poll
+    // loop that had just been stopped. Every call after the first one
+    // silently never arrived until a full page reload.
     stopSignalMonitor();
     closeOverlay();
     if (pipEl) { pipEl.remove(); pipEl = null; }
