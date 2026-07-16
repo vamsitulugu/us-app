@@ -1,5 +1,5 @@
-// Service Worker for US 💕 PWA — v4
-const CACHE = 'uwl-v5';
+// Service Worker for US 💕 PWA — v5
+const CACHE = 'uwl-v6';
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
@@ -30,16 +30,21 @@ self.addEventListener('fetch', e => {
 
   if (url.pathname.startsWith('/api/')) return; // never intercept API
 
-  // Static, fingerprint-free assets (scripts/styles/fonts/images/icons)
-  // are safe to serve cache-first with a background revalidation: they
-  // change far less often than the app shell, and if a page pulls in a
-  // stale copy once, the next fetch is already updated in the cache.
-  // Navigation requests (HTML) keep the exact original network-first
-  // behavior below, so the app shell itself is never served stale.
+  // Static, fingerprint-free assets (styles/fonts/images/icons) are safe
+  // to serve cache-first with a background revalidation: they're purely
+  // cosmetic, so a stale copy for one extra load is harmless, and the
+  // next fetch is already updated. Scripts are different — stale JS means
+  // an actual bug fix silently isn't running yet (this bit us: call.js
+  // fixes weren't taking effect until a *second* reload after deploy) —
+  // so scripts go network-first, falling back to cache only when
+  // offline. Navigation requests (HTML) keep the exact original
+  // network-first behavior below, so the app shell itself is never
+  // served stale either.
   const isNavigation = e.request.mode === 'navigate' || e.request.destination === 'document';
-  const isStaticAsset = !isNavigation && ['script', 'style', 'font', 'image'].includes(e.request.destination);
+  const isCosmeticAsset = !isNavigation && ['style', 'font', 'image'].includes(e.request.destination);
+  const isScript = e.request.destination === 'script';
 
-  if (isStaticAsset && e.request.method === 'GET') {
+  if (isCosmeticAsset && e.request.method === 'GET') {
     e.respondWith(
       caches.open(CACHE).then(async (c) => {
         const cached = await c.match(e.request);
@@ -52,6 +57,19 @@ self.addEventListener('fetch', e => {
         // background for next time.
         return cached || (await networkFetch) || caches.match('/index.html');
       })
+    );
+    return;
+  }
+
+  if (isScript && e.request.method === 'GET') {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        if (res && res.status === 200) {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return res;
+      }).catch(() => caches.match(e.request))
     );
     return;
   }
