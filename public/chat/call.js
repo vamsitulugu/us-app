@@ -145,6 +145,19 @@ async function initSignalCursor() {
   }
 
 let iceQueue = [];
+  // Exactly one call_log row per call attempt. Previously both sides could
+  // log independently (caller's no-answer timeout + callee's own timeout +
+  // the 'end' signal handler unconditionally logging 'ended' even when no
+  // call had ever connected), stacking up many duplicate/incorrect entries
+  // in chat for a single call attempt — especially once a shaky connection
+  // caused several retries. This flag makes every logging call a no-op
+  // after the first one for the current call.
+  let callLogged = false;
+  function logCallOnce(status, duration) {
+    if (callLogged) return;
+    callLogged = true;
+    logCall(status, duration);
+  }
 
   async function handleSignal(m) {
     if (m.type === 'offer' && !pc) {
@@ -164,8 +177,14 @@ let iceQueue = [];
         iceQueue.push(m.candidate);
       }
     }
-    else if (m.type === 'end') { endCall(false); }
-    else if (m.type === 'decline') { toast('Call declined'); cleanup(); logCall('declined'); }
+    else if (m.type === 'end') {
+      // Only a call that actually reached setupPeer() (pc exists) counts
+      // as "ended" — if pc was never created, this device was still
+      // ringing/idle and the attempt is already covered by a 'missed'
+      // log from whichever side's timeout fires, via the guard above.
+      if (pc) endCall(false); else cleanup();
+    }
+    else if (m.type === 'decline') { toast('Call declined'); cleanup(); logCallOnce('declined'); }
     else if (m.type === 'video-upgrade-request') { showUpgradeRequestBanner(); }
     else if (m.type === 'video-upgrade-accept') { sendUpgradeOffer(); }
     else if (m.type === 'video-upgrade-decline') { toast('Partner declined video'); videoUpgradePending = false; }
@@ -643,7 +662,7 @@ let iceQueue = [];
     try {
       if (!coupleId()) { toast('Not connected to a partner yet'); return; }
       if (!S.paired) { toast("⚠️ Your partner hasn't joined yet — pair first"); return; }
-      callType = type; isCaller = true;
+      callType = type; isCaller = true; callLogged = false;
       isMuted = false; isCamOff = false; isSpeakerOn = true;
       window.playAppSound?.('call.outgoing');
       renderRinging(type, false);
@@ -661,7 +680,7 @@ let iceQueue = [];
         if (pc && pc.connectionState !== 'connected') {
           toast('No answer');
           pushSignal({ type: 'end' });
-          logCall('missed', 0);
+          logCallOnce('missed', 0);
           cleanup();
         }
       }, 30000);
@@ -677,7 +696,7 @@ let iceQueue = [];
   let pendingOffer = null;
   function showIncoming(m) {
     pendingOffer = m;
-    callType = m.callType || 'voice';
+    callType = m.callType || 'voice'; callLogged = false;
     isCaller = false;
     renderRinging(callType, true);
     startPolling();
@@ -685,7 +704,7 @@ let iceQueue = [];
     ringTimeout = setTimeout(() => {
       if (pendingOffer) {
         toast('Missed call');
-        logCall('missed', 0);
+        logCallOnce('missed', 0);
         cleanup();
       }
     }, 30000);
@@ -721,7 +740,7 @@ let iceQueue = [];
   function declineCall() {
     clearRingTimeout();
     pushSignal({ type: 'decline' });
-    logCall('declined');
+    logCallOnce('declined');
     cleanup();
   }
 
@@ -735,10 +754,35 @@ let iceQueue = [];
       if (document.getElementById('callRemoteAudio')) document.getElementById('callRemoteAudio').srcObject = remoteStream;
     };
     pc.onicecandidate = e => { if (e.candidate) pushSignal({ type: 'ice', candidate: e.candidate }); };
+    let disconnectGrace = null;
     pc.onconnectionstatechange = () => {
-      if (pc.connectionState === 'connected') { clearRingTimeout(); renderActive(); window.playAppSound?.(callType === 'video' ? 'call.video.connected' : 'call.connected'); }
-      if (pc.connectionState === 'failed') { window.playAppSound?.('call.failed'); toast('Call disconnected'); endCall(true); }
-      else if (pc.connectionState === 'disconnected') { window.playAppSound?.('call.network.reconnect'); toast('Connection lost — reconnecting...'); }
+      if (pc.connectionState === 'connected') {
+        if (disconnectGrace) { clearTimeout(disconnectGrace); disconnectGrace = null; }
+        clearRingTimeout(); renderActive();
+        window.playAppSound?.(callType === 'video' ? 'call.video.connected' : 'call.connected');
+      }
+      if (pc.connectionState === 'failed') {
+        if (disconnectGrace) { clearTimeout(disconnectGrace); disconnectGrace = null; }
+        window.playAppSound?.('call.failed'); toast('Call disconnected'); endCall(true);
+      }
+      else if (pc.connectionState === 'disconnected') {
+        window.playAppSound?.('call.network.reconnect');
+        toast('Connection lost — reconnecting...');
+        // 'disconnected' can recover on its own (brief network blip), but
+        // previously nothing ever gave up on it — a call that never came
+        // back just sat on "reconnecting..." indefinitely. Try one ICE
+        // restart, then hang up if it hasn't recovered within 12s.
+        if (disconnectGrace) clearTimeout(disconnectGrace);
+        try { if (typeof pc.restartIce === 'function') pc.restartIce(); } catch (e) {}
+        disconnectGrace = setTimeout(() => {
+          disconnectGrace = null;
+          if (pc && pc.connectionState !== 'connected') {
+            window.playAppSound?.('call.failed');
+            toast('Call disconnected');
+            endCall(true);
+          }
+        }, 12000);
+      }
     };
   }
   function onConnecting() { const lbl = document.querySelector('.call-status-label'); if (lbl) lbl.textContent = 'Connecting...'; }
@@ -746,7 +790,7 @@ let iceQueue = [];
   function endCall(notify = true) {
     window.playAppSound?.('call.ended');
     if (notify) pushSignal({ type: 'end' });
-    logCall('ended', seconds);
+    logCallOnce('ended', seconds);
     cleanup();
   }
   function cleanup() {
