@@ -97,18 +97,15 @@ router.get('/signal/:coupleId', async (req, res) => {
   const { data, error } = await q.order('id', { ascending: true }).limit(50);
   if (error) return res.status(500).json({ error: error.message });
 
-  // Discard anything older than 30s — an offer/answer/ice signal has no business
-  // being acted on if it's been sitting in the table that long.
-  // If created_at is missing/invalid, treat the row as fresh rather than dropping it —
-  // a bad timestamp should never silently swallow every signal.
-  const fresh = (data || []).filter(row => {
-    const ts = row.created_at ? new Date(row.created_at).getTime() : NaN;
-    if (Number.isNaN(ts)) return true;
-    const age = Date.now() - ts;
-    return age < 30000;
-  });
-
-  return res.json(fresh);
+  // NOTE: staleness filtering used to happen here by comparing Date.now()
+  // (Render's server clock) against Supabase's created_at timestamp. Any
+  // clock drift between the two hosts (e.g. after a Render cold start,
+  // before NTP resyncs) makes every row look "too old" and silently
+  // returns an empty array forever — the receiver's poll cursor never
+  // advances even though signals are being inserted successfully. The
+  // client already does its own staleness check in handleSignal() using
+  // a single consistent clock (the caller's), which is enough on its own.
+  return res.json(data || []);
 });
 
 // Add a cleanup endpoint (or a cron/trigger) to delete old rows so the table doesn't grow forever
