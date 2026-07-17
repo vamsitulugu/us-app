@@ -4,8 +4,9 @@ const express = require('express');
 const supabase = require('../middleware/supabase');
 const router = express.Router();
 
-let _sendPushToPartner;
+let _sendPushToPartner, _sendFCMToPartner;
 try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch (_) {}
+try { _sendFCMToPartner = require('./auth').sendFCMToPartner; } catch (_) {}
 
 // GET /api/call/turn-creds — fetch short-lived TURN credentials
 router.get('/turn-creds', async (req, res) => {
@@ -30,16 +31,16 @@ router.get('/turn-creds', async (req, res) => {
 router.post('/notify', async (req, res) => {
   const { coupleId, callerRole, type } = req.body;
   if (!coupleId || !callerRole) return res.status(400).json({ error: 'Missing data' });
-  if (_sendPushToPartner) {
-    _sendPushToPartner(coupleId, callerRole, {
-      title: type === 'video' ? '📹 Incoming video call' : '🎙️ Incoming voice call',
-      body: 'Tap to answer',
-      icon: '/icons/icon-192.png',
-      tag: 'incoming-call',
-      renotify: true,
-      url: '/?page=chat'
-    }).catch(() => {});
-  }
+  const callPayload = {
+    title: type === 'video' ? '📹 Incoming video call' : '🎙️ Incoming voice call',
+    body: 'Tap to answer',
+    icon: '/icons/icon-192.png',
+    tag: 'incoming-call',
+    renotify: true,
+    url: '/?page=chat'
+  };
+  if (_sendPushToPartner) _sendPushToPartner(coupleId, callerRole, callPayload).catch(() => {});
+  if (_sendFCMToPartner) _sendFCMToPartner(coupleId, callerRole, callPayload).catch(() => {});
   return res.json({ ok: true });
 });
 
@@ -66,12 +67,14 @@ router.post('/log', async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message });
 
-  if (status === 'missed' && _sendPushToPartner) {
-    _sendPushToPartner(coupleId, callerRole, {
+  if (status === 'missed' && (_sendPushToPartner || _sendFCMToPartner)) {
+    const missedPayload = {
       title: `${icon} Missed ${type} call`,
       body: 'Tap to call back',
       icon: '/icons/icon-192.png', tag: 'missed-call', url: '/?page=chat'
-    }).catch(() => {});
+    };
+    if (_sendPushToPartner) _sendPushToPartner(coupleId, callerRole, missedPayload).catch(() => {});
+    if (_sendFCMToPartner) _sendFCMToPartner(coupleId, callerRole, missedPayload).catch(() => {});
   }
   return res.json(data);
 });
