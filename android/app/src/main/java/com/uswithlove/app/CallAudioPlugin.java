@@ -2,6 +2,11 @@ package com.uswithlove.app;
 
 import android.content.Context;
 import android.media.AudioManager;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
@@ -18,6 +23,59 @@ public class CallAudioPlugin extends Plugin {
 
   private AudioManager audioManager() {
     return (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+  }
+
+  // Root cause this pair of methods fixes: when the app is open in the
+  // foreground and an incoming call arrives before the user has tapped
+  // anything since launch, the web layer's ringtone (an HTML <audio> /
+  // WebAudio tone in call.js) is silently blocked by the WebView's
+  // autoplay policy — there's no exception for it, unlike the OS-level
+  // notification ringtone that plays when the app is fully closed. Using
+  // Android's own Ringtone API here plays sound through the system layer
+  // directly, completely outside the WebView, so it is never subject to
+  // that autoplay restriction regardless of prior user interaction.
+  private Ringtone activeRingtone = null;
+  private Handler ringtoneLoopHandler = null;
+  private final Runnable ringtoneLoopRunnable = new Runnable() {
+    @Override public void run() {
+      if (activeRingtone != null && !activeRingtone.isPlaying()) {
+        activeRingtone.play();
+      }
+      if (ringtoneLoopHandler != null) ringtoneLoopHandler.postDelayed(this, 500);
+    }
+  };
+
+  @PluginMethod
+  public void playRingtone(PluginCall call) {
+    stopRingtoneInternal();
+    Uri uri = RingtoneManager.getActualDefaultRingtoneUri(getContext(), RingtoneManager.TYPE_RINGTONE);
+    if (uri == null) uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+    activeRingtone = RingtoneManager.getRingtone(getContext(), uri);
+    if (activeRingtone != null) {
+      activeRingtone.play();
+      // Ringtone has no built-in loop flag pre-API 28 in a reliable cross-
+      // device way, so poll and restart it if it stops — cheap and simple.
+      ringtoneLoopHandler = new Handler(Looper.getMainLooper());
+      ringtoneLoopHandler.postDelayed(ringtoneLoopRunnable, 500);
+    }
+    call.resolve();
+  }
+
+  @PluginMethod
+  public void stopRingtone(PluginCall call) {
+    stopRingtoneInternal();
+    call.resolve();
+  }
+
+  private void stopRingtoneInternal() {
+    if (ringtoneLoopHandler != null) {
+      ringtoneLoopHandler.removeCallbacks(ringtoneLoopRunnable);
+      ringtoneLoopHandler = null;
+    }
+    if (activeRingtone != null) {
+      try { activeRingtone.stop(); } catch (Exception e) {}
+      activeRingtone = null;
+    }
   }
 
   // Used while a call is ringing (incoming or outgoing/ringback). Keeps the

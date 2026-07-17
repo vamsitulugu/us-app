@@ -42,7 +42,7 @@ const Call = (function () {
   // so it always works even with no assets in the repo.
   const RINGTONE_FILE = '/sounds/ringtone.mp3';   // incoming call
   const RINGBACK_FILE = '/sounds/ringback.mp3';   // outgoing call ("Calling...")
-  let ringFileEl = null, vibrateTimer = null;
+  let ringFileEl = null, vibrateTimer = null, usingNativeRingtone = false;
   let ringAudioCtx = null, ringGain = null, ringLoopTimer = null;
   function ensureRingCtx() {
     if (!ringAudioCtx) {
@@ -89,6 +89,17 @@ const Call = (function () {
   }
   function startRingtone(kind) {
     stopRingtone();
+    // Incoming calls: prefer the native ringtone when running inside the
+    // app — it plays through Android's own audio layer, outside the
+    // WebView, so it isn't blocked by autoplay policy even on a cold app
+    // open with zero prior taps. Falls through to the web audio path
+    // below too, harmlessly, in case the native call fails for any reason.
+    if (kind === 'incoming' && nativeCallAudio()?.playRingtone) {
+      nativeCallAudio().playRingtone().catch(() => {});
+      usingNativeRingtone = true;
+    } else {
+      usingNativeRingtone = false;
+    }
     const file = kind === 'incoming' ? RINGTONE_FILE : RINGBACK_FILE;
     ringFileEl = new Audio(file);
     ringFileEl.loop = true;
@@ -111,6 +122,7 @@ const Call = (function () {
     }
   }
   function stopRingtone() {
+    if (usingNativeRingtone) { nativeCallAudio()?.stopRingtone().catch(() => {}); usingNativeRingtone = false; }
     if (ringFileEl) { try { ringFileEl.pause(); ringFileEl.currentTime = 0; } catch (e) {} ringFileEl = null; }
     if (ringLoopTimer) { clearInterval(ringLoopTimer); ringLoopTimer = null; }
     if (vibrateTimer) { clearInterval(vibrateTimer); vibrateTimer = null; }
@@ -692,11 +704,24 @@ let iceQueue = [];
                              // setup sequences; the second one's cleanup() could null
                              // localStream while the first was still mid-setup, crashing
                              // on "Cannot read properties of null (reading 'getTracks')".
+  // callToken guards against a DIFFERENT race: cleanup() is also invoked by
+  // the background signal poller (handleSignal 'end'/'decline'), which runs
+  // continuously from page load, independent of any call being set up. If
+  // one of those signals lands while startCall()/acceptCall() is still
+  // awaiting getUserMedia()/setupPeer(), cleanup() nulls out localStream
+  // and closes the overlay right under the in-flight attempt — which is
+  // exactly what made the FIRST call of a session silently fail to open
+  // while retries worked (by then lastSignalId had moved past the signal
+  // that caused it). Each attempt captures the token when it starts; if
+  // cleanup() runs concurrently it bumps the token, and every await point
+  // below checks its own token against the current one before proceeding.
+  let callToken = 0;
   async function startCall(type) {
     if (callStarting) { toast('Already starting a call…'); return; }
     if (pc) { toast('A call is already in progress'); return; }
     callStarting = true;
     clearRingTimeout(); // kill any leftover timer from a previous attempt before it can fire mid-setup
+    const myToken = ++callToken;
     try {
       if (!coupleId()) { toast('Not connected to a partner yet'); return; }
       if (!S.paired) { toast("⚠️ Your partner hasn't joined yet — pair first"); return; }
@@ -705,11 +730,21 @@ let iceQueue = [];
       window.playAppSound?.('call.outgoing');
       renderRinging(type, false);
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
+      if (myToken !== callToken) { // a concurrent cleanup() already tore this attempt down
+        localStream.getTracks().forEach(t => t.stop()); localStream = null;
+        return;
+      }
       await setupPeer();
+      if (myToken !== callToken) {
+        localStream && localStream.getTracks().forEach(t => t.stop()); localStream = null;
+        if (pc) { pc.close(); pc = null; }
+        return;
+      }
       if (!localStream) throw new Error('Microphone/camera stream was lost during setup — please try again');
       localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
+      if (myToken !== callToken) return; // torn down mid-negotiation — don't push a signal for a dead attempt
       await pushSignal({ type: 'offer', sdp: offer, callType: type, ts: Date.now() });
       try { await api('POST', '/api/call/notify', { coupleId: coupleId(), callerRole: myRole(), type }); } catch (e) {}
       startPolling();
@@ -724,8 +759,10 @@ let iceQueue = [];
       }, 30000);
     } catch (e) {
       console.error('startCall failed:', e);
-      toast(e && e.name === 'NotAllowedError' ? 'Camera/mic permission denied' : ('Could not start call' + (e && e.message ? ': ' + e.message : '')));
-      cleanup();
+      if (myToken === callToken) {
+        toast(e && e.name === 'NotAllowedError' ? 'Camera/mic permission denied' : ('Could not start call' + (e && e.message ? ': ' + e.message : '')));
+        cleanup();
+      }
     } finally {
       callStarting = false;
     }
@@ -754,9 +791,19 @@ let iceQueue = [];
     clearRingTimeout();
     isMuted = false; isCamOff = false; isSpeakerOn = false;
     const offer = pendingOffer;
+    const myToken = ++callToken;
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: callType === 'video' });
+      if (myToken !== callToken) {
+        localStream.getTracks().forEach(t => t.stop()); localStream = null;
+        return;
+      }
       await setupPeer();
+      if (myToken !== callToken) {
+        localStream && localStream.getTracks().forEach(t => t.stop()); localStream = null;
+        if (pc) { pc.close(); pc = null; }
+        return;
+      }
       if (!localStream) throw new Error('Microphone/camera stream was lost during setup — please try again');
       localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
       await pc.setRemoteDescription(new RTCSessionDescription(offer.sdp));
@@ -764,13 +811,16 @@ let iceQueue = [];
       iceQueue = [];
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
+      if (myToken !== callToken) return; // torn down mid-negotiation — don't answer for a dead attempt
       await pushSignal({ type: 'answer', sdp: answer });
       onConnecting();
     } catch (e) {
       console.error('acceptCall failed:', e);
-      toast(e && e.name === 'NotAllowedError' ? 'Permission denied' : ('Could not answer call' + (e && e.message ? ': ' + e.message : '')));
-      pushSignal({ type: 'decline' });
-      cleanup();
+      if (myToken === callToken) {
+        toast(e && e.name === 'NotAllowedError' ? 'Permission denied' : ('Could not answer call' + (e && e.message ? ': ' + e.message : '')));
+        pushSignal({ type: 'decline' });
+        cleanup();
+      }
     } finally {
       callStarting = false;
     }
@@ -845,6 +895,7 @@ let iceQueue = [];
   }
   function cleanup() {
     callStarting = false;
+    callToken++; // invalidate any startCall()/acceptCall() still mid-setup
     clearRingTimeout();
     stopRingtone();
     releaseCallAudio();
