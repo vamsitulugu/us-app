@@ -280,6 +280,15 @@ router.post('/register-fcm-token', async (req, res) => {
 // a fallback for the (pre-Android 8) devices that predate channels.
 const TOUCH_CHANNEL_ID = 'touch_channel_v1';
 
+// Must match MainActivity.CALLS_CHANNEL_ID. This channel is created
+// natively with RingtoneManager's default ringtone attached and
+// IMPORTANCE_HIGH, so an incoming call actually loops the device's real
+// ringtone instead of falling into Android's generic default notification
+// channel (which only ever plays a short "ding"). Only the initial
+// incoming-call alert needs this — a missed-call notice arrives after the
+// call is already over, so it stays on the default channel.
+const CALLS_CHANNEL_ID = 'calls_channel_v1';
+
 async function sendFCMToPartner(coupleId, senderRole, payload) {
   if (!fcmReady) return;
   const partnerRole = senderRole === 'user1' ? 'user2' : 'user1';
@@ -287,11 +296,13 @@ async function sendFCMToPartner(coupleId, senderRole, payload) {
     .select('token').eq('couple_id', coupleId).eq('role', partnerRole).maybeSingle();
   if (!data) return;
   const isTouch = payload.tag === 'touch';
+  const isIncomingCall = payload.tag === 'incoming-call';
   try {
     await fcmMessaging.send({
       token: data.token,
       notification: { title: payload.title || 'US 💕', body: payload.body || '' },
       android: {
+        priority: isIncomingCall ? 'high' : undefined,
         notification: {
           icon: 'ic_stat_notify',
           color: '#1a0010',
@@ -299,6 +310,10 @@ async function sendFCMToPartner(coupleId, senderRole, payload) {
             channelId: TOUCH_CHANNEL_ID,
             defaultVibrateTimings: false,
             vibrateTimingsMillis: [0, 10000]
+          } : {}),
+          ...(isIncomingCall ? {
+            channelId: CALLS_CHANNEL_ID,
+            priority: 'max'
           } : {})
         }
       }

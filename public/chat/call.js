@@ -4,7 +4,32 @@ const Call = (function () {
   let pc, localStream, remoteStream, callType, isCaller = false;
   let timerInt, seconds = 0;
   let pollInterval;
-  let isMuted = false, isCamOff = false, isSpeakerOn = true;
+  // Default false (earpiece) — matches how a real phone call starts.
+  // setSinkId() below is kept for browsers where it works, but on Android
+  // WebView it's a documented no-op for OS-level routing; the actual
+  // routing there goes through the native CallAudio plugin (see
+  // nativeCallAudio() below), which is the only thing that can reach
+  // AudioManager.setSpeakerphoneOn().
+  let isMuted = false, isCamOff = false, isSpeakerOn = false;
+
+  // ─── Native audio routing bridge (Capacitor CallAudio plugin) ───
+  // No-ops harmlessly when not running inside the native app (e.g. plain
+  // browser testing), since window.Capacitor won't exist there.
+  function nativeCallAudio() {
+    return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CallAudio;
+  }
+  function setRingingAudio() {
+    nativeCallAudio()?.setRinging().catch(() => {});
+  }
+  function setConnectedAudio() {
+    nativeCallAudio()?.setConnected({ speakerOn: isSpeakerOn }).catch(() => {});
+  }
+  function setSpeakerAudio() {
+    nativeCallAudio()?.setSpeaker({ speakerOn: isSpeakerOn }).catch(() => {});
+  }
+  function releaseCallAudio() {
+    nativeCallAudio()?.release().catch(() => {});
+  }
   let isMinimized = false, pipEl = null, pipDrag = null;
   let signalInterval = null;
   let videoUpgradePending = false;
@@ -282,6 +307,7 @@ let iceQueue = [];
 
   function renderRinging(type, incoming) {
     startRingtone(incoming ? 'incoming' : 'outgoing');
+    setRingingAudio();
     const el = ensureOverlay();
     el.classList.remove('call-active-video');
     const name = window.S.partnerName || 'Partner';
@@ -367,8 +393,8 @@ let iceQueue = [];
           : `<button type="button" class="call-btn call-btn-sm" id="camBtn" onclick="Call.toggleCam()" title="Video">
                <span id="camIcon">📹</span>
              </button>`}
-        <button type="button" class="call-btn call-btn-sm" id="speakerBtn" onclick="Call.toggleSpeaker()" title="Speaker">
-          <span id="speakerIcon">🔊</span>
+        <button type="button" class="call-btn call-btn-sm${isSpeakerOn ? '' : ' call-btn-active'}" id="speakerBtn" onclick="Call.toggleSpeaker()" title="Speaker">
+          <span id="speakerIcon">${isSpeakerOn ? '🔊' : '🔈'}</span>
         </button>
         <button type="button" class="call-btn call-btn-sm" id="muteBtn" onclick="Call.toggleMute()" title="Mute">
           <span id="muteIcon">🎙️</span>
@@ -419,6 +445,7 @@ let iceQueue = [];
     if (audioEl && audioEl.setSinkId) {
       audioEl.setSinkId(isSpeakerOn ? 'default' : 'communications').catch(() => {});
     }
+    setSpeakerAudio();
   }
 
   async function flipCamera() {
@@ -663,7 +690,7 @@ let iceQueue = [];
       if (!coupleId()) { toast('Not connected to a partner yet'); return; }
       if (!S.paired) { toast("⚠️ Your partner hasn't joined yet — pair first"); return; }
       callType = type; isCaller = true; callLogged = false;
-      isMuted = false; isCamOff = false; isSpeakerOn = true;
+      isMuted = false; isCamOff = false; isSpeakerOn = false;
       window.playAppSound?.('call.outgoing');
       renderRinging(type, false);
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
@@ -714,7 +741,7 @@ let iceQueue = [];
     if (!pendingOffer || callStarting) return;
     callStarting = true;
     clearRingTimeout();
-    isMuted = false; isCamOff = false; isSpeakerOn = true;
+    isMuted = false; isCamOff = false; isSpeakerOn = false;
     const offer = pendingOffer;
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: callType === 'video' });
@@ -759,6 +786,7 @@ let iceQueue = [];
       if (pc.connectionState === 'connected') {
         if (disconnectGrace) { clearTimeout(disconnectGrace); disconnectGrace = null; }
         clearRingTimeout(); renderActive();
+        setConnectedAudio();
         window.playAppSound?.(callType === 'video' ? 'call.video.connected' : 'call.connected');
       }
       if (pc.connectionState === 'failed') {
@@ -797,6 +825,7 @@ let iceQueue = [];
     callStarting = false;
     clearRingTimeout();
     stopRingtone();
+    releaseCallAudio();
     stopAutoHide();
     if (pc) { pc.close(); pc = null; }
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }

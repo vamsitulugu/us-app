@@ -3,6 +3,9 @@ package com.uswithlove.app;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.graphics.Color;
+import android.media.AudioAttributes;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Window;
@@ -19,6 +22,13 @@ public class MainActivity extends BridgeActivity {
   // installs with its own (short/no) vibration settings.
   public static final String TOUCH_CHANNEL_ID = "touch_channel_v1";
 
+  // Must match routes/auth.js's CALLS_CHANNEL_ID. Android also locks a
+  // channel's sound the first time it's created, so an incoming call push
+  // that reuses the default channel would only ever play the short default
+  // "ding" — this dedicated channel carries the device's actual ringtone
+  // with high importance so it rings the same way a real phone call does.
+  public static final String CALLS_CHANNEL_ID = "calls_channel_v1";
+
   // App theme's dark background (matches public/index.html body
   // background #0B0B0B). Used so the status/nav bars read as part of
   // the app instead of showing the OS's default gray scrim.
@@ -26,9 +36,11 @@ public class MainActivity extends BridgeActivity {
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
+    registerPlugin(CallAudioPlugin.class);
     super.onCreate(savedInstanceState);
     setupSystemBars();
     createTouchNotificationChannel();
+    createCallsNotificationChannel();
   }
 
   // Root cause this addresses: targetSdk 36 (Android 15+) makes
@@ -85,6 +97,34 @@ public class MainActivity extends BridgeActivity {
     channel.enableVibration(true);
     // A single sustained 10-second buzz: [delay, vibrate].
     channel.setVibrationPattern(new long[]{0, 10000});
+    manager.createNotificationChannel(channel);
+  }
+
+  private void createCallsNotificationChannel() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return; // channels only exist on API 26+
+
+    NotificationManager manager = getSystemService(NotificationManager.class);
+    if (manager == null) return;
+
+    NotificationChannel existing = manager.getNotificationChannel(CALLS_CHANNEL_ID);
+    if (existing != null) return; // already created on a previous launch — leave it as-is
+
+    NotificationChannel channel = new NotificationChannel(
+        CALLS_CHANNEL_ID,
+        "Calls",
+        NotificationManager.IMPORTANCE_HIGH
+    );
+    channel.setDescription("Incoming voice and video calls");
+    channel.enableVibration(true);
+    channel.setVibrationPattern(new long[]{0, 500, 500, 500, 500, 500});
+
+    Uri ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+    AudioAttributes attrs = new AudioAttributes.Builder()
+        .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+        .build();
+    channel.setSound(ringtoneUri, attrs);
+
     manager.createNotificationChannel(channel);
   }
 }
