@@ -149,6 +149,17 @@ const Call = (function () {
     } catch (e) { console.error('Signal push error:', e); toast('⚠️ Network error during call setup'); }
   }
 async function initSignalCursor() {
+    // window.S.coupleId is populated asynchronously after auth completes,
+    // but this used to fire straight off DOMContentLoaded — so on a fresh
+    // load it ran against a null coupleId, silently 404'd, and left
+    // lastSignalId stuck at 0. Every OLD signal row (offers/declines/ends
+    // from long-past test calls) then got treated as "new" once polling
+    // began, which is what produced a phantom instant "Call declined" on
+    // the very first real call. Wait for coupleId to actually exist first.
+    for (let i = 0; i < 40 && !coupleId(); i++) {
+      await new Promise(res => setTimeout(res, 250));
+    }
+    if (!coupleId()) return; // gave up after 10s — pollSignal() will no-op until it appears
     try {
       const r = await fetch(API + '/api/call/signal/' + coupleId() + '?role=' + otherRole(), { cache: 'no-store' });
       if (!r.ok) return;
@@ -785,8 +796,19 @@ let iceQueue = [];
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === 'connected') {
         if (disconnectGrace) { clearTimeout(disconnectGrace); disconnectGrace = null; }
-        clearRingTimeout(); renderActive();
+        clearRingTimeout();
+        // setConnectedAudio() MUST run before renderActive() creates and
+        // starts the <audio autoplay> element, not after. Previously the
+        // audio element started playing immediately under whatever mode
+        // setRingingAudio() had left the OS in (MODE_NORMAL + speakerphone
+        // forced on for the ringback), and only afterward did the native
+        // switch to MODE_IN_COMMUNICATION + the real speaker preference
+        // fire — Android doesn't always fully migrate an already-open
+        // audio stream to the new route when that happens mid-stream, so
+        // the call was audible on both outputs at once. Setting the route
+        // first means the audio element opens directly on the correct one.
         setConnectedAudio();
+        renderActive();
         window.playAppSound?.(callType === 'video' ? 'call.video.connected' : 'call.connected');
       }
       if (pc.connectionState === 'failed') {
@@ -851,6 +873,36 @@ let iceQueue = [];
     if (!coupleId()) return;
     try { await api('POST', '/api/call/log', { coupleId: coupleId(), callerRole: isCaller ? myRole() : otherRole(), type: callType, status, duration: duration || 0 }); } catch (e) {}
   }
+
+  // ─── Audio unlock ──────────────────────────────────────────────
+  // Root cause of "ringtone only plays when the app is fully closed":
+  // when closed, Firebase's system notification plays the ringtone via
+  // the OS itself, bypassing the browser entirely. When the app is open,
+  // the incoming call is caught by pollSignal() instead, which tries to
+  // start audio (Audio.play() / AudioContext) with zero prior user
+  // interaction on that page load — mobile autoplay policy silently
+  // rejects that, so nothing plays even though the app "should" ring.
+  // Fix: prime both audio paths on the very first tap/touch anywhere in
+  // the app (an unrelated tap on the chat screen counts), so by the time
+  // a real incoming call arrives later, the browser already treats audio
+  // as unlocked for this page.
+  let audioUnlocked = false;
+  function unlockAudio() {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    try {
+      const ctx = ensureRingCtx();
+      if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+    } catch (e) {}
+    try {
+      const a = new Audio(RINGTONE_FILE);
+      a.volume = 0; a.muted = true;
+      const p = a.play();
+      if (p && p.then) p.then(() => { a.pause(); a.currentTime = 0; }).catch(() => {});
+    } catch (e) {}
+  }
+  document.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
+  document.addEventListener('click', unlockAudio, { once: true });
 
   document.addEventListener('DOMContentLoaded', async () => {
     await initSignalCursor();
