@@ -257,12 +257,12 @@ router.post('/auto-fetch', async (req, res) => {
 
   try {
     if (songId) {
-      const { data: existing } = await supabase.from('cached_lyrics').select('*').eq('song_id', songId).maybeSingle();
+      const { data: existing } = await supabase.from('cached_lyrics').select('provider, lrc_text, lrc_text_latin, sync_type').eq('song_id', songId).maybeSingle();
       if (existing) {
         supabase.from('cached_lyrics').update({ last_used: new Date().toISOString() }).eq('song_id', songId).then(() => {}).catch(() => {});
         return res.json({ found: true, source: 'cache', provider: existing.provider, lrc: existing.lrc_text, lrcNative: existing.lrc_text, lrcLatin: existing.lrc_text_latin, syncType: existing.sync_type });
       }
-      const { data: missing } = await supabase.from('missing_lyrics').select('*').eq('song_id', songId).maybeSingle();
+      const { data: missing } = await supabase.from('missing_lyrics').select('last_attempt, attempts').eq('song_id', songId).maybeSingle();
       if (missing && (Date.now() - new Date(missing.last_attempt).getTime()) < MISSING_RETRY_COOLDOWN_MS) {
         return res.json({ found: false, cooldown: true, attempts: missing.attempts });
       }
@@ -308,12 +308,12 @@ router.post('/auto-fetch', async (req, res) => {
 ───────────────────────────────────────────── */
 router.get('/status/:songId', async (req, res) => {
   try {
-    const { data: cached } = await supabase.from('cached_lyrics').select('*').eq('song_id', req.params.songId).maybeSingle();
+    const { data: cached } = await supabase.from('cached_lyrics').select('provider, lrc_text, lrc_text_latin, sync_type').eq('song_id', req.params.songId).maybeSingle();
     if (cached) {
       supabase.from('cached_lyrics').update({ last_used: new Date().toISOString() }).eq('song_id', req.params.songId).then(() => {}).catch(() => {});
       return res.json({ state: 'cached', provider: cached.provider, lrc: cached.lrc_text, lrcLatin: cached.lrc_text_latin, syncType: cached.sync_type });
     }
-    const { data: missing } = await supabase.from('missing_lyrics').select('*').eq('song_id', req.params.songId).maybeSingle();
+    const { data: missing } = await supabase.from('missing_lyrics').select('attempts, last_attempt').eq('song_id', req.params.songId).maybeSingle();
     if (missing) return res.json({ state: 'missing', attempts: missing.attempts, lastAttempt: missing.last_attempt });
     return res.json({ state: 'unknown' });
   } catch (e) {
@@ -361,16 +361,7 @@ router.post('/refresh-missing', async (req, res) => {
    GET /api/lyrics/missing/:coupleId — dashboard list
 ───────────────────────────────────────────── */
 router.get('/missing/:coupleId', async (req, res) => {
-  const { data, error } = await supabase.from('missing_lyrics').select('*').eq('couple_id', req.params.coupleId).order('last_attempt', { ascending: false });
-  if (error) return res.status(500).json({ error: error.message });
-  return res.json(data || []);
-});
-
-/* ─────────────────────────────────────────────
-   GET /api/lyrics/cached/:coupleId — dashboard list ("Recently Cached")
-───────────────────────────────────────────── */
-router.get('/cached/:coupleId', async (req, res) => {
-  const { data, error } = await supabase.from('cached_lyrics').select('*').eq('couple_id', req.params.coupleId).order('created_at', { ascending: false }).limit(100);
+  const { data, error } = await supabase.from('missing_lyrics').select('*').eq('couple_id', req.params.coupleId).order('last_attempt', { ascending: false }).limit(100);
   if (error) return res.status(500).json({ error: error.message });
   return res.json(data || []);
 });

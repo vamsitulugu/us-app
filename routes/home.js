@@ -16,7 +16,7 @@ router.get('/furniture/:coupleId', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('home_furniture')
-      .select('*')
+      .select('id, room, obj_type, label, pos_x, pos_y, pos_z, rot_y, scale, color')
       .eq('couple_id', req.params.coupleId)
       .order('created_at', { ascending: true });
     if (error) throw error;
