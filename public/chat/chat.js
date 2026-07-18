@@ -39,10 +39,10 @@ const Chat = (function () {
     });
     window.addEventListener('pagehide', () => sendPresence('offline'));
     window.addEventListener('pagehide', () => {
-      if (realtimeChannel && window.supabase) {
+      if (realtimeChannel) {
         try {
-          const sb = window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__);
-          sb.removeChannel(realtimeChannel);
+          const sb = _getChatSupabase();
+          if (sb) sb.removeChannel(realtimeChannel);
         } catch (e) {}
         realtimeChannel = null;
       }
@@ -1145,13 +1145,22 @@ function menuItemsHtml(m, id) {
   // net — if the socket ever drops, messages/read-receipts still
   // arrive within one poll cycle instead of being lost.
   let realtimeChannel = null;
+  let _chatSb = null;
+  function _getChatSupabase() {
+    if (_chatSb) return _chatSb;
+    if (window.__SHARED_SB__) { _chatSb = window.__SHARED_SB__; return _chatSb; }
+    if (!window.supabase || !window.supabase.createClient) return null;
+    if (!window.__SUPABASE_URL__ || !window.__SUPABASE_ANON_KEY__) return null;
+    try { _chatSb = window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__); }
+    catch (e) { console.warn('Chat Supabase init failed', e); }
+    return _chatSb;
+  }
   function startRealtime() {
     if (realtimeChannel) return; // already subscribed
-    if (!window.supabase || !window.supabase.createClient) return; // SDK not loaded — poll-only
-    if (!window.__SUPABASE_URL__ || !window.__SUPABASE_ANON_KEY__) return; // no client creds exposed
     if (!coupleId()) return;
+    const sb = _getChatSupabase();
+    if (!sb) return; // SDK not loaded / no client creds exposed — poll-only
     try {
-      const sb = window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__);
       realtimeChannel = sb.channel('chat-' + coupleId())
         .on('postgres_changes', {
           event: '*', schema: 'public', table: 'chat_messages',

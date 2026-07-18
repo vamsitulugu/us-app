@@ -175,6 +175,7 @@ const Call = (function () {
   function _getCallSupabase() {
     if (_callSb) return _callSb;
     try {
+      if (window.__SHARED_SB__) { _callSb = window.__SHARED_SB__; return _callSb; }
       if (window.supabase && window.supabase.createClient && window.__SUPABASE_URL__ && window.__SUPABASE_ANON_KEY__) {
         _callSb = window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__);
       }

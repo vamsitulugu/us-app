@@ -6345,6 +6345,18 @@ select option { background: #0D0D0D; color: #fff; }
 <script>
   window.__SUPABASE_URL__ = 'https://jxqszgehgmkpzhkpfxnc.supabase.co';
   window.__SUPABASE_ANON_KEY__ = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cXN6Z2VoZ21rcHpoa3BmeG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMTkxMjEsImV4cCI6MjA5Nzg5NTEyMX0.ESpovcyunUnRVnGdFSGK-a_WI1ZTctuYZxXnYBSIA60';
+  // Single shared Supabase client for this page's window context. chat.js,
+  // call.js, and livemap.js each used to call createClient() independently,
+  // which spins up a separate GoTrueClient (auth/session manager) per module
+  // all racing over the same localStorage session key — the browser's own
+  // "Multiple GoTrueClient instances" warning. They now check for and reuse
+  // this one instead, falling back to their own createClient() only if it's
+  // somehow unavailable, so nothing breaks if load order ever changes.
+  try {
+    if (window.supabase && window.supabase.createClient) {
+      window.__SHARED_SB__ = window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__);
+    }
+  } catch (e) { console.warn('[shared supabase client] init failed:', e.message); }
 </script>
       <!-- ════════════════════════════════════════════
      JAVASCRIPT

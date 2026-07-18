@@ -25,6 +25,7 @@ const LiveMap = (() => {
   function _getLmSupabase() {
     if (_lmSb) return _lmSb;
     try {
+      if (window.__SHARED_SB__) { _lmSb = window.__SHARED_SB__; return _lmSb; }
       if (window.supabase && window.supabase.createClient && window.__SUPABASE_URL__ && window.__SUPABASE_ANON_KEY__) {
         _lmSb = window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__);
       }
