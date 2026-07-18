@@ -423,6 +423,10 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <!-- TOAST -->
 <div id="dgToast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(12px);background:rgba(15,15,15,0.9);backdrop-filter:blur(16px);color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;z-index:9999;opacity:0;transition:all 0.3s;pointer-events:none;white-space:nowrap;box-shadow:0 6px 24px rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);font-family:var(--ff-sans);font-weight:500"></div>
 
+<!-- premium-states.js is self-contained (no DOM/script dependency, see its own
+     header comment) and is called synchronously by renderAll() below on first
+     load, so it must be loaded before that inline script, not after it. -->
+<script src="/premium-states.js"></script>
 <script>
 // ══ STATE ══
 let dgState = {
@@ -877,7 +881,6 @@ loadDGState();
 renderAll();
 </script>
 <script src="/premium-motion.js"></script>
-<script src="/premium-states.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <script src="/ui-icons.js"></script>
 <!-- Premium Sound System (additive, non-invasive) -->
