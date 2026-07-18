@@ -1,0 +1,212 @@
+/* ============================================================
+   app-polish.css — global mobile/PWA polish layer
+   Loaded AFTER all existing stylesheets so its rules win on the
+   specific properties it touches, without altering component
+   markup or existing selectors elsewhere in the app.
+   ============================================================ */
+
+/* ---- 1. Safe-area + viewport plumbing ------------------------ */
+html {
+  height: 100%;
+  /* Use dynamic viewport height so mobile browser chrome
+     (address bar show/hide) never creates a phantom scroll gap. */
+  height: -webkit-fill-available;
+}
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  overflow-x: hidden;          /* kill sideways scroll from any
+                                   slightly-oversized child */
+}
+.main, .content {
+  overflow-x: hidden;
+}
+
+/* Only show a scrollbar while the user is actually scrolling —
+   avoids the "permanent scrollbar" look on desktop-webview builds. */
+* { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+*:hover { scrollbar-color: rgba(255,255,255,0.18) transparent; }
+*::-webkit-scrollbar { width: 6px; height: 6px; }
+*::-webkit-scrollbar-thumb { background: transparent; border-radius: 8px; }
+*:hover::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); }
+
+/* Remove the empty bottom gap some pages had from a fixed
+   min-height that ignored env(safe-area-inset-bottom). */
+.content {
+  padding-bottom: max(90px, calc(72px + env(safe-area-inset-bottom))) !important;
+}
+
+/* ---- 2. Bottom nav: smooth auto-hide on immersive pages ------ */
+.bot-nav {
+  transition: transform 260ms cubic-bezier(0.4,0,0.2,1),
+              opacity 200ms ease;
+  transform: translateY(0);
+  opacity: 1;
+  will-change: transform;
+}
+/* Toggled by app-polish.js via body[data-immersive="1"] whenever
+   an immersive page (chat, call, fullscreen media, live map,
+   camera, image viewer, profile edit, AI fullscreen) is active. */
+body[data-immersive="1"] .bot-nav {
+  transform: translateY(110%);
+  opacity: 0;
+  pointer-events: none;
+}
+/* When hidden, let content reclaim the space instead of leaving
+   a blank strip. */
+body[data-immersive="1"] .content {
+  padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+}
+
+/* ---- 3 & 4. Topbar row: root-cause fix for both the mobile
+   header redesign (Issue 3) and the search/sync alignment
+   (Issue 2).
+
+   The two issues shared one root cause: the row that holds the
+   hamburger/title/actions was a plain shrink-wrapped <div> with no
+   width of its own, so `margin-left:auto` on the actions group had
+   no real right edge to push against — it only reached the edge of
+   that shrunken box, which sat wherever its content happened to
+   end (near the middle of the screen, not the true right edge).
+
+   Fix: .tb-row now stretches to the topbar's full width (flex:1),
+   giving .tb-actions an actual edge to align against. This is
+   structural, not a visual nudge — it holds at any screen width,
+   any title length, and any number of action buttons. */
+.tb-row {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: 10px;
+}
+.tb-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+.tb-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.tb-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Desktop keeps its current logo (in the sidebar) — the mobile-only
+   large logo added to the topbar stays hidden above the mobile
+   breakpoint, per Issue 3 ("DO NOT modify desktop"). */
+.tb-logo-mobile {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .tb-logo-mobile {
+    display: block;
+    height: 30px;
+    width: auto;
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 6px rgba(150,100,220,0.45));
+  }
+  /* Order on mobile only: logo -> sidebar toggle -> title. Desktop
+     keeps DOM order (logo lives in the sidebar there, so this rule
+     is inert above the breakpoint). */
+  .tb-logo-mobile { order: 1; }
+  .hamburger { order: 2; }
+  .tb-title { order: 3; }
+  #lastSaved, .hb-topbar-pill { order: 4; }
+}
+
+/* ---- Premium animated sidebar toggle (mobile), replacing the
+   plain "☰" glyph. Same #hamburger element/onclick — only the
+   inner markup and visuals changed, so drawer behavior (via
+   toggleMobSidebar/closeMobSidebar) is untouched. */
+.hamburger {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+}
+.hamburger span {
+  display: block;
+  width: 16px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--white, #fff);
+  transition: transform 260ms cubic-bezier(0.4,0,0.2,1),
+              opacity 200ms ease,
+              width 200ms ease;
+}
+.hamburger.active span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+.hamburger.active span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.active span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+/* ---- 5. Prevent theme-flash on route/page change --------------- */
+.page { animation: none; }
+.page.active { animation: al-fadein 180ms ease both; }
+
+/* ---- 6. Touch targets / accessibility --------------------------- */
+.ic-btn, .btn-sm, .bot-ni, .ni { min-height: 40px; }
+.bot-ni { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+/* ---- 8. Root-cause fix for Issue 1: bottom empty space on
+   chat / AI / Memory Globe / Virtual Home on mobile.
+
+   .bot-nav is position:fixed, so it never occupies layout space —
+   every page that sits "above" it has to manually reserve room via
+   height:calc(100dvh - <topbar> - <nav>) so the fixed nav doesn't
+   cover the last bit of content. Two independent bugs broke that:
+
+   1. .ai-wrap used a single hardcoded `100dvh - 118px` on ALL
+      screen sizes — that constant was tuned for desktop and was
+      never correct on mobile (topbar 52px + nav ~60px = ~112px,
+      not 118px), so the AI page always had a small stray gap.
+
+   2. .chat-page-wrap / .iframe-page-wrap (globe, virtual home) DID
+      correctly reserve `100dvh - 52px - 60px` for the nav — but
+      only for when the nav is visible. Once the nav auto-hides on
+      these exact pages (see body[data-immersive]), that 60px is no
+      longer occupied by anything, leaving a dead gap the same
+      height as the now-hidden nav.
+
+   Fix: a single source of truth, --nav-reserve, mirrors the nav's
+   real visibility (driven by the same data-immersive attribute
+   that hides it), and every wrap references it instead of a
+   hardcoded guess. When immersive, the reserve collapses to 0 and
+   content/inputs sit flush with the screen edge; when not, it
+   matches the nav's real height so nothing is hidden behind it. */
+:root {
+  --topbar-h-mobile: calc(52px + env(safe-area-inset-top));
+  --nav-reserve: calc(60px + env(safe-area-inset-bottom));
+}
+body[data-immersive="1"] {
+  --nav-reserve: 0px;
+}
+
+@media (max-width: 700px) {
+  .ai-wrap,
+  .chat-page-wrap,
+  .iframe-page-wrap {
+    height: calc(100dvh - var(--topbar-h-mobile) - var(--nav-reserve)) !important;
+  }
+}
+
+/* ---- 9. Respect safe areas on the top bar too ------------------- */
+.topbar {
+  padding-top: max(0px, env(safe-area-inset-top));
+}
