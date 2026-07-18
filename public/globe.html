@@ -2804,6 +2804,41 @@ let liveMarkers = { me: null, partner: null };
 let liveTrail = { me: null, partner: null };
 let lastPing = { lat: null, lng: null, t: 0 };
 let lastHoverLat = null, lastHoverLng = null;
+
+// ── Realtime "changed" ping ──────────────────────────────────────────
+// Purely additive: triggers an immediate pollLiveLocations() the moment the
+// partner pings, instead of waiting up to 10s. The existing 10s poll below
+// stays fully intact as the safety net — this never replaces it.
+let _globeLocSb = null, _globeLocChannel = null;
+function _getGlobeLocSupabase() {
+  if (_globeLocSb) return _globeLocSb;
+  try {
+    const parentWin = window.parent;
+    if (parentWin && parentWin.supabase && parentWin.supabase.createClient &&
+        parentWin.__SUPABASE_URL__ && parentWin.__SUPABASE_ANON_KEY__) {
+      _globeLocSb = parentWin.supabase.createClient(parentWin.__SUPABASE_URL__, parentWin.__SUPABASE_ANON_KEY__);
+    }
+  } catch (e) { console.warn('Globe location Supabase init failed', e); }
+  return _globeLocSb;
+}
+function _setupGlobeLocRealtime() {
+  if (_globeLocChannel || !coupleId) return;
+  const sb = _getGlobeLocSupabase();
+  if (!sb) return;
+  try {
+    _globeLocChannel = sb.channel('location:' + coupleId, { config: { broadcast: { self: false } } })
+      .on('broadcast', { event: 'location_ping' }, () => { pollLiveLocations(); })
+      .subscribe();
+  } catch (e) { console.warn('Globe location realtime channel failed', e); _globeLocChannel = null; }
+}
+function _teardownGlobeLocRealtime() {
+  if (_globeLocChannel && _globeLocSb) {
+    try { _globeLocSb.removeChannel(_globeLocChannel); } catch (e) {}
+  }
+  _globeLocChannel = null;
+}
+window.addEventListener('pagehide', _teardownGlobeLocRealtime);
+
 function toggleLiveLocation() {
   liveEnabled ? stopLiveLocation() : startLiveLocation();
 }
@@ -2830,6 +2865,7 @@ function startLiveLocation() {
 
   pollLiveLocations();
   livePollTimer = setInterval(pollLiveLocations, 10000);
+  _setupGlobeLocRealtime();
 }
 
 function stopLiveLocation() {
@@ -2838,6 +2874,7 @@ function stopLiveLocation() {
   document.getElementById('liveHud').classList.remove('show');
   if (liveWatchId != null) navigator.geolocation.clearWatch(liveWatchId);
   if (livePollTimer) clearInterval(livePollTimer);
+  _teardownGlobeLocRealtime();
   liveWatchId = null; livePollTimer = null;
 
   fetch(`${API}/api/location/stop`, {
@@ -2858,6 +2895,9 @@ async function sendLocationPing(lat, lng, accuracy, heading, speed) {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ coupleId, role: getRole(), lat, lng, accuracy, heading, speed, moving: (speed || 0) > 0.5 })
     });
+    if (_globeLocChannel) {
+      try { _globeLocChannel.send({ type: 'broadcast', event: 'location_ping', payload: {} }); } catch (e) {}
+    }
   } catch (e) { console.warn('ping failed:', e.message); }
 }
 

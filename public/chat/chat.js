@@ -1079,11 +1079,6 @@ function menuItemsHtml(m, id) {
       } catch (e) { el.innerHTML = '<div class="empty">GIF search failed — check connection</div>'; }
     }, 400);
   }
-  function closePanels() {
-    document.getElementById('chatEmojiPanel')?.classList.remove('open');
-    document.getElementById('chatGifPanel')?.classList.remove('open');
-  }
-
   // ─── SWIPE TO REPLY (WhatsApp-style) ──────────────────
   let swipeState = null;
   const SWIPE_TRIGGER = 64, SWIPE_MAX = 84;

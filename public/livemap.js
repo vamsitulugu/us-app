@@ -13,8 +13,45 @@ const LiveMap = (() => {
 
   const PING_MIN_INTERVAL_MS = 8000;   // never ping more than once per 8s
   const PING_MIN_DISTANCE_M  = 15;     // or unless moved >15m
-  const POLL_INTERVAL_MS     = 8000;   // partner-location poll cadence
+  const POLL_INTERVAL_MS     = 8000;   // partner-location poll cadence (unchanged — safety net)
   const ONLINE_WINDOW_MS     = 60000;
+
+  // ── Realtime "changed" ping ──────────────────────────────────────────
+  // This is purely additive: it triggers an immediate _pollOnce() the moment
+  // the partner pings, instead of waiting up to 8s for the next tick. The
+  // existing 8s poll above is left fully intact as the safety net for this
+  // geofencing/safe-arrival feature — realtime never replaces it here.
+  let _lmSb = null, _lmChannel = null;
+  function _getLmSupabase() {
+    if (_lmSb) return _lmSb;
+    try {
+      if (window.supabase && window.supabase.createClient && window.__SUPABASE_URL__ && window.__SUPABASE_ANON_KEY__) {
+        _lmSb = window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__);
+      }
+    } catch (e) { console.warn('LiveMap Supabase init failed', e); }
+    return _lmSb;
+  }
+  function _setupLmRealtime() {
+    if (_lmChannel || !S.coupleId) return;
+    const sb = _getLmSupabase();
+    if (!sb) return;
+    try {
+      _lmChannel = sb.channel('location:' + S.coupleId, { config: { broadcast: { self: false } } })
+        .on('broadcast', { event: 'location_ping' }, () => { _pollOnce(); })
+        .subscribe();
+    } catch (e) { console.warn('LiveMap realtime channel failed', e); _lmChannel = null; }
+  }
+  function _teardownLmRealtime() {
+    if (_lmChannel && _lmSb) {
+      try { _lmSb.removeChannel(_lmChannel); } catch (e) {}
+    }
+    _lmChannel = null;
+  }
+  function _pingLmChanged() {
+    if (!_lmChannel) return;
+    try { _lmChannel.send({ type: 'broadcast', event: 'location_ping', payload: {} }); } catch (e) {}
+  }
+  window.addEventListener('pagehide', _teardownLmRealtime);
 
   const CATS = {
     Home:       { ico: '🏠' },
@@ -220,7 +257,8 @@ const LiveMap = (() => {
           accuracy: accuracy || null, heading: heading || null,
           speed: speed || null, moving: (speed || 0) > 1,
           localDate: _localDateStr()
-        }).catch(() => { /* offline or transient — next tick will retry */ });
+        }).then(() => { _pingLmChanged(); })
+          .catch(() => { /* offline or transient — next tick will retry */ });
       }
     }
   }
@@ -240,8 +278,9 @@ const LiveMap = (() => {
     _stopPolling();
     _pollOnce();
     st.pollTimer = setInterval(_pollOnce, POLL_INTERVAL_MS);
+    _setupLmRealtime();
   }
-  function _stopPolling() { if (st.pollTimer) { clearInterval(st.pollTimer); st.pollTimer = null; } }
+  function _stopPolling() { if (st.pollTimer) { clearInterval(st.pollTimer); st.pollTimer = null; } _teardownLmRealtime(); }
 
   async function _pollOnce() {
     const offlineEl = document.getElementById('lmOfflineBanner');

@@ -301,6 +301,13 @@ const HomeEnvironmentSync = (() => {
           // When partner joins, broadcast our full state so they sync up
           _scheduleBroadcast(_buildStateSnapshot());
           _emitLocal('home:partnerJoined', { presences: newPresences });
+          _emitLocal('home:partnerPresenceUpdate', { presence: getPartnerPresence() });
+        })
+        .on('presence', { event: 'leave' }, () => {
+          _emitLocal('home:partnerPresenceUpdate', { presence: null });
+        })
+        .on('presence', { event: 'sync' }, () => {
+          _emitLocal('home:partnerPresenceUpdate', { presence: getPartnerPresence() });
         })
         .subscribe(status => {
           if (status === 'SUBSCRIBED') {
@@ -344,6 +351,30 @@ const HomeEnvironmentSync = (() => {
 
   function isReady() { return _ready; }
 
+  // Re-track presence with an updated room (called on room switch)
+  function updateRoom(room) {
+    if (_disposed || !_channel || !_ready) return;
+    try {
+      _channel.track({ role: _myRole, room, joinedAt: Date.now() }).catch(() => {});
+    } catch (_) {}
+  }
+
+  // Read the partner's current tracked presence (role/room/joinedAt) without polling.
+  // Returns null if the channel isn't ready or the partner hasn't joined.
+  function getPartnerPresence() {
+    if (!_channel || !_ready) return null;
+    try {
+      const state = _channel.presenceState();
+      for (const key in state) {
+        const presences = state[key];
+        for (const p of presences) {
+          if (p.role && p.role !== _myRole) return p;
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
   // ─────────────────────────────────────────────
   // INIT / UPDATE / DISPOSE
   // ─────────────────────────────────────────────
@@ -378,7 +409,9 @@ const HomeEnvironmentSync = (() => {
     broadcastEnvChange,
     broadcastSkyTime,
     broadcastFullState,
-    isReady
+    isReady,
+    updateRoom,
+    getPartnerPresence
   };
 })();
 

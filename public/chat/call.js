@@ -157,9 +157,46 @@ const Call = (function () {
         const err = await r.json().catch(() => ({}));
         console.error('Signal push failed:', err);
         toast('⚠️ Call signal failed: ' + (err.error || r.status));
+      } else if (_callSignalChannel) {
+        try { _callSignalChannel.send({ type: 'broadcast', event: 'signal_ping', payload: {} }); } catch (e) {}
       }
     } catch (e) { console.error('Signal push error:', e); toast('⚠️ Network error during call setup'); }
   }
+
+  // ── Realtime wake-trigger for signaling ──────────────────────────────
+  // Purely additive: on a broadcast ping it fires pollSignal() immediately,
+  // which still goes through the existing after=lastSignalId DB cursor —
+  // so delivery order/dedup is completely unchanged, it just arrives sooner
+  // than the next 500ms/2s poll tick. startPolling() below is left fully
+  // intact as the safety net; this channel is opened once and kept alive
+  // for the same reason the idle poll loop is never killed (see cleanup()) —
+  // it's what catches the *next* incoming call.
+  let _callSb = null, _callSignalChannel = null;
+  function _getCallSupabase() {
+    if (_callSb) return _callSb;
+    try {
+      if (window.supabase && window.supabase.createClient && window.__SUPABASE_URL__ && window.__SUPABASE_ANON_KEY__) {
+        _callSb = window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__);
+      }
+    } catch (e) { console.warn('Call Supabase init failed', e); }
+    return _callSb;
+  }
+  function setupCallSignalRealtime() {
+    if (_callSignalChannel || !coupleId()) return;
+    const sb = _getCallSupabase();
+    if (!sb) return;
+    try {
+      _callSignalChannel = sb.channel('call_signal:' + coupleId(), { config: { broadcast: { self: false } } })
+        .on('broadcast', { event: 'signal_ping' }, () => { pollSignal(); })
+        .subscribe();
+    } catch (e) { console.warn('Call signal realtime channel failed', e); _callSignalChannel = null; }
+  }
+  window.addEventListener('pagehide', () => {
+    if (_callSignalChannel && _callSb) {
+      try { _callSb.removeChannel(_callSignalChannel); } catch (e) {}
+    }
+    _callSignalChannel = null;
+  });
 async function initSignalCursor() {
     // window.S.coupleId is populated asynchronously after auth completes,
     // but this used to fire straight off DOMContentLoaded — so on a fresh
@@ -192,7 +229,7 @@ async function initSignalCursor() {
     } catch (e) {}
   }
 
-let iceQueue = [];
+  let iceQueue = [];
   // Exactly one call_log row per call attempt. Previously both sides could
   // log independently (caller's no-answer timeout + callee's own timeout +
   // the 'end' signal handler unconditionally logging 'ended' even when no
@@ -958,6 +995,7 @@ let iceQueue = [];
   document.addEventListener('DOMContentLoaded', async () => {
     await initSignalCursor();
     setTimeout(startPolling, 1500);
+    setTimeout(setupCallSignalRealtime, 1500);
   });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') pollSignal();

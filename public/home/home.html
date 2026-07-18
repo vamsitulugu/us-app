@@ -781,39 +781,69 @@
   }
 
   // ── Presence heartbeat ────────────────────────
+  // Pushed via Supabase Realtime presence (HomeEnvironmentSync's channel) instead
+  // of separate HTTP polling loops. This replaces the old sendPresence (20s) +
+  // pollPresence (25s) timers with the same channel/presence that
+  // home/realtime_living.js and environment_sync.js already maintain — one
+  // presence system instead of two. Falls back to the old HTTP polling only if
+  // the realtime channel never comes up (matches environment_sync's own
+  // polling fallback behavior).
   function startPresenceHeartbeat() {
     const cid  = HomeUtils.getCoupleId();
     const role = HomeUtils.getMyRole();
     if (!cid) return;
 
-    function sendPresence() {
-      const room = HomeScene.state.currentRoom;
-      HomeAPI.presence.update({ coupleId: cid, userRole: role, room }).catch(() => {});
+    function renderPresence(partner) {
+      if (partner) {
+        const room  = ROOMS[partner.room]?.label || partner.room;
+        const pName = HomeUtils.getPartnerName();
+        document.getElementById('partnerPresenceText').textContent =
+          `${pName} is in the ${room}`;
+        document.getElementById('partnerPresence').classList.add('show');
+      } else {
+        document.getElementById('partnerPresence').classList.remove('show');
+      }
     }
-    sendPresence();
-    setInterval(sendPresence, 20000);
 
-    // Poll partner presence
-    async function pollPresence() {
-      try {
-        const all = await HomeAPI.presence.get(cid);
-        const partner = all.find(p => p.user_role !== role);
-        if (partner) {
-          const since = Date.now() - new Date(partner.last_seen).getTime();
-          if (since < 35000) {           // seen in last 35 s
-            const room  = ROOMS[partner.room]?.label || partner.room;
-            const pName = HomeUtils.getPartnerName();
-            document.getElementById('partnerPresenceText').textContent =
-              `${pName} is in the ${room}`;
-            document.getElementById('partnerPresence').classList.add('show');
-          } else {
-            document.getElementById('partnerPresence').classList.remove('show');
-          }
-        }
-      } catch(e) {}
+    let usingRealtime = false;
+
+    window.addEventListener('home:partnerPresenceUpdate', (e) => {
+      usingRealtime = true;
+      renderPresence(e.detail?.presence || null);
+    });
+
+    // If HomeEnvironmentSync is already connected by the time we get here,
+    // paint the current state immediately rather than waiting for the next change.
+    if (window.HomeEnvironmentSync && HomeEnvironmentSync.isReady()) {
+      usingRealtime = true;
+      renderPresence(HomeEnvironmentSync.getPartnerPresence());
     }
-    pollPresence();
-    setInterval(pollPresence, 25000);
+
+    // Fallback: only kicks in if realtime never becomes ready (channel error/offline),
+    // same condition environment_sync.js itself falls back to polling under.
+    setTimeout(() => {
+      if (usingRealtime) return;
+
+      function sendPresence() {
+        const room = HomeScene.state.currentRoom;
+        HomeAPI.presence.update({ coupleId: cid, userRole: role, room }).catch(() => {});
+      }
+      sendPresence();
+      setInterval(sendPresence, 20000);
+
+      async function pollPresence() {
+        try {
+          const all = await HomeAPI.presence.get(cid);
+          const partner = all.find(p => p.user_role !== role);
+          if (partner) {
+            const since = Date.now() - new Date(partner.last_seen).getTime();
+            renderPresence(since < 35000 ? partner : null);
+          }
+        } catch(e) {}
+      }
+      pollPresence();
+      setInterval(pollPresence, 25000);
+    }, 4000);
   }
 
   // ── Toast override to use DOM element ────────

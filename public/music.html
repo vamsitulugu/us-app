@@ -910,6 +910,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 </div>
 
 <div id="mmToast"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/music-player.js"></script>
 <script src="/music-player-karaoke-patch.js"></script>
 <script src="/couple-karaoke.js"></script>
@@ -1223,6 +1224,41 @@ async function musicApi(method, path, body) {
   } catch(e) { throw e; }
 }
 
+// ── Realtime "changed" ping, same anon key/URL pattern as games.html ──
+// This channel carries no track data — it's just a signal to fetch, so
+// loadPartnerMusicFromCloud() stays the single source of truth for the
+// actual payload and merge logic below is untouched.
+const MUSIC_SUPABASE_URL = 'https://jxqszgehgmkpzhkpfxnc.supabase.co';
+const MUSIC_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cXN6Z2VoZ21rcHpoa3BmeG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMTkxMjEsImV4cCI6MjA5Nzg5NTEyMX0.ESpovcyunUnRVnGdFSGK-a_WI1ZTctuYZxXnYBSIA60';
+let _musicSb = null;
+let _musicChannel = null;
+function _getMusicSupabase() {
+  if (_musicSb) return _musicSb;
+  try { _musicSb = window.supabase.createClient(MUSIC_SUPABASE_URL, MUSIC_SUPABASE_KEY); }
+  catch(e) { console.warn('Music Supabase init failed', e); _musicSb = null; }
+  return _musicSb;
+}
+function setupMusicRealtime(ctx) {
+  if (_musicChannel) return; // already set up this session
+  const sb = _getMusicSupabase();
+  if (!sb) return;
+  try {
+    _musicChannel = sb.channel('music_sync:' + ctx.coupleId, { config: { broadcast: { self: false } } })
+      .on('broadcast', { event: 'music_changed' }, () => { loadPartnerMusicFromCloud(); })
+      .subscribe();
+  } catch(e) { console.warn('Music realtime channel failed', e); _musicChannel = null; }
+}
+function pingMusicChanged() {
+  if (!_musicChannel) return;
+  try { _musicChannel.send({ type: 'broadcast', event: 'music_changed', payload: {} }); } catch(e) {}
+}
+window.addEventListener('pagehide', () => {
+  if (_musicChannel) {
+    try { _musicSb.removeChannel(_musicChannel); } catch(e) {}
+    _musicChannel = null;
+  }
+});
+
 // Read coupleId + role from parent index.html S object, or localStorage fallback
 function getMusicCoupleCtx() {
   try {
@@ -1274,6 +1310,7 @@ async function syncMusicToCloud() {
       coupleId: ctx.coupleId,
       state: payload
     });
+    pingMusicChanged();
   } catch(e) { console.warn('Music cloud sync failed:', e.message); }
 }
 
@@ -1310,7 +1347,10 @@ async function onMySongAdded() {
   await syncMusicToCloud();
 }
 
-// Poll for partner music every 8 seconds (matches index.html's 5s poll rhythm)
+// Sync partner music via realtime push instead of polling every 8s.
+// A slow 60s fallback poll stays as a safety net (mirrors the pattern used
+// in home/environment_sync.js) in case the channel drops or a broadcast
+// is missed while the tab is backgrounded.
 let _musicSyncInterval = null;
 function startMusicSync() {
   if (_musicSyncInterval) return;
@@ -1319,7 +1359,8 @@ function startMusicSync() {
   musicState._role = ctx.role;
   // Load once immediately
   loadPartnerMusicFromCloud();
-  _musicSyncInterval = setInterval(loadPartnerMusicFromCloud, 8000);
+  setupMusicRealtime(ctx);
+  _musicSyncInterval = setInterval(loadPartnerMusicFromCloud, 60000);
 }
 
 // ══════════════════════════════════════

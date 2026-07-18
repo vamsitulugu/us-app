@@ -119,6 +119,7 @@ const HomeScene = (() => {
 
     if (window.HomeRooms) HomeRooms.showRoom(roomName);
     if (window.HomeUI)    HomeUI.onRoomChange(roomName);
+    if (window.HomeEnvironmentSync) HomeEnvironmentSync.updateRoom(roomName);
 
     // Persist setting
     if (state.coupleId) {

@@ -163,17 +163,6 @@ window.AdaptiveGlobe = (function () {
     } catch (e) { console.warn('AdaptiveGlobe: NE110m load failed', e); loadedLo = false; }
   }
 
-  async function loadCountriesHi() {
-    if (loadedHi) return;
-    loadedHi = true;
-    try {
-      const res = await fetch(NE_50M);
-      const gj = await res.json();
-      bordersHi = buildBorderGroup(gj, 1.007, 0);
-      globeRef.add(bordersHi);
-    } catch (e) { console.warn('AdaptiveGlobe: NE50m load failed', e); loadedHi = false; }
-  }
-
   // ── Ocean labels (static, zoom level 3) ──
   const OCEANS = [
     ['Pacific Ocean', 0, -160], ['Atlantic Ocean', 10, -40],
