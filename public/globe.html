@@ -2178,14 +2178,34 @@ async function fetchWeatherForLocation(lat, lng) {
 }
 
 // ── Media staging ──
+// Uploads to Supabase Storage (existing /api/media/upload endpoint)
+// instead of embedding files as base64 — the rendering code already
+// prefers media.url over media.data_url everywhere, so this just
+// finishes a migration that was already half-done.
+async function uploadGlobeMedia(fileOrBlob, filename) {
+  const form = new FormData();
+  form.append('file', fileOrBlob, filename || 'upload');
+  form.append('coupleId', coupleId);
+  const r = await fetch(`${API}/api/media/upload`, { method: 'POST', body: form });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || 'Upload failed');
+  return data.url;
+}
+
 function stageMedia(input, type) {
-  Array.from(input.files).forEach(f => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      newMediaFiles.push({ type, dataUrl: e.target.result, name: f.name });
-      renderPreviewStrip();
-    };
-    reader.readAsDataURL(f);
+  Array.from(input.files).forEach(async (f) => {
+    const staged = { type, url: null, name: f.name, uploading: true };
+    newMediaFiles.push(staged);
+    renderPreviewStrip();
+    try {
+      staged.url = await uploadGlobeMedia(f, f.name);
+    } catch (e) {
+      toast('Upload failed for ' + f.name);
+      const idx = newMediaFiles.indexOf(staged);
+      if (idx > -1) newMediaFiles.splice(idx, 1);
+    }
+    staged.uploading = false;
+    renderPreviewStrip();
   });
 }
 
@@ -2193,8 +2213,9 @@ function renderPreviewStrip() {
   const el = document.getElementById('previewStrip');
   if (!el) return;
   el.innerHTML = newMediaFiles.map((f, i) => {
-    if (f.type === 'photo') return `<img src="${esc(f.dataUrl)}" class="preview-item">`;
-    if (f.type === 'video') return `<video src="${esc(f.dataUrl)}" class="preview-item" muted></video>`;
+    if (f.uploading) return `<div class="preview-item" style="background:var(--g2);display:flex;align-items:center;justify-content:center;font-size:20px">⏳</div>`;
+    if (f.type === 'photo') return `<img src="${esc(f.url)}" class="preview-item">`;
+    if (f.type === 'video') return `<video src="${esc(f.url)}" class="preview-item" muted></video>`;
     return `<div class="preview-item" style="background:var(--g2);display:flex;align-items:center;justify-content:center;font-size:20px">🎙️</div>`;
   }).join('');
   if (newVoiceData) {
@@ -2211,17 +2232,24 @@ async function toggleVoiceRecord() {
       audioChunks = [];
       mediaRecorder = new MediaRecorder(stream);
       mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         const blob = new Blob(audioChunks, { type: 'audio/webm' });
-        const reader = new FileReader();
-        reader.onload = e2 => {
-          newVoiceData = e2.target.result;
-          newMediaFiles.push({ type: 'voice', dataUrl: e2.target.result, duration: '—' });
-          renderPreviewStrip();
-          toast('Voice note recorded! 🎙️');
-        };
-        reader.readAsDataURL(blob);
         stream.getTracks().forEach(t => t.stop());
+        const staged = { type: 'voice', url: null, duration: '—', uploading: true };
+        newMediaFiles.push(staged);
+        renderPreviewStrip();
+        try {
+          const url = await uploadGlobeMedia(blob, 'voice.webm');
+          staged.url = url;
+          newVoiceData = url;
+          toast('Voice note recorded! 🎙️');
+        } catch (e) {
+          toast('Voice upload failed');
+          const idx = newMediaFiles.indexOf(staged);
+          if (idx > -1) newMediaFiles.splice(idx, 1);
+        }
+        staged.uploading = false;
+        renderPreviewStrip();
       };
       mediaRecorder.start();
       isRecording = true;
@@ -2290,11 +2318,12 @@ async function saveMemory() {
 
     // Upload staged media
     for (const f of newMediaFiles) {
+      if (!f.url) continue; // upload failed or still in flight — skip rather than send nothing
       await fetch(`${API}/api/globe/${savedMemory.id}/media`, {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({
           coupleId, media: {
-            type: f.type, data_url: f.dataUrl, duration: f.duration || null
+            type: f.type, url: f.url, duration: f.duration || null
           }
         })
       });
@@ -2321,19 +2350,16 @@ async function saveMemory() {
 // ═══════════════════════════════════════════
 async function addMediaToMemory(input, memoryId, type) {
   if (!input.files[0]) return;
-  const reader = new FileReader();
-  reader.onload = async e => {
-    try {
-      await fetch(`${API}/api/globe/${memoryId}/media`, {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ coupleId, media: { type, data_url: e.target.result } })
-      });
-      toast('Added! 📸');
-      await loadMemories();
-      openMemoryDetail(memoryId);
-    } catch(err) { toast('Upload failed'); }
-  };
-  reader.readAsDataURL(input.files[0]);
+  try {
+    const url = await uploadGlobeMedia(input.files[0], input.files[0].name);
+    await fetch(`${API}/api/globe/${memoryId}/media`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ coupleId, media: { type, url } })
+    });
+    toast('Added! 📸');
+    await loadMemories();
+    openMemoryDetail(memoryId);
+  } catch(err) { toast('Upload failed'); }
 }
 
 async function recordVoiceForMemory(memoryId) {
@@ -2344,18 +2370,17 @@ async function recordVoiceForMemory(memoryId) {
     mr.ondataavailable = e => chunks.push(e.data);
     mr.onstop = async () => {
       const blob = new Blob(chunks, {type:'audio/webm'});
-      const reader = new FileReader();
-      reader.onload = async e2 => {
+      stream.getTracks().forEach(t=>t.stop());
+      try {
+        const url = await uploadGlobeMedia(blob, 'voice.webm');
         await fetch(`${API}/api/globe/${memoryId}/media`, {
           method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ coupleId, media: { type:'voice', data_url: e2.target.result, duration:'—' } })
+          body: JSON.stringify({ coupleId, media: { type:'voice', url, duration:'—' } })
         });
         toast('Voice note saved! 🎙️');
         await loadMemories();
         openMemoryDetail(memoryId);
-      };
-      reader.readAsDataURL(blob);
-      stream.getTracks().forEach(t=>t.stop());
+      } catch (e) { toast('Voice upload failed'); }
     };
     mr.start();
     toast('🎙 Recording... tap record again to stop');

@@ -7335,14 +7335,53 @@ const p = await Notification.requestPermission();
         }
         function stopCamera() { if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; } document.getElementById('camPh').style.display = 'flex'; document.getElementById('camOverlay').style.display = 'none'; }
         function switchCamera() { camFacing = camFacing === 'environment' ? 'user' : 'environment'; startCamera(); }
-        function snapPhoto() {
+        // Uploads a File/Blob to Supabase Storage via the existing (previously
+        // unused) /api/media/upload endpoint and returns the hosted URL.
+        // This replaces storing photos/videos as base64 text directly inside
+        // the app_state JSON blob — base64 in state meant every single
+        // scheduleSave() anywhere in the app (adding a journal entry, ticking
+        // a habit, editing a bio — anything) re-transmitted every photo and
+        // video ever added, both ways, on every save.
+        async function uploadMediaFile(fileOrBlob, filename, mediaType) {
+          const form = new FormData();
+          form.append('file', fileOrBlob, filename || 'upload');
+          form.append('coupleId', S.coupleId);
+          const r = await fetch(API + '/api/media/upload', { method: 'POST', body: form });
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(data.error || 'Upload failed');
+          return data.url;
+        }
+        async function snapPhoto() {
           const vid = document.getElementById('camVid'); if (!camStream) { toast('Start camera first!'); return; }
           const c = document.createElement('canvas'); c.width = vid.videoWidth || 640; c.height = vid.videoHeight || 480;
           c.getContext('2d').drawImage(vid, 0, 0);
-          savePhoto(c.toDataURL('image/jpeg', 0.85), 'camera', 'image'); toast('Captured! 📸'); spawnPetals(6);
+          toast('Uploading photo… 📸');
+          c.toBlob(async (blob) => {
+            try {
+              const url = await uploadMediaFile(blob, 'camera.jpg', 'image');
+              savePhoto(url, 'camera', 'image'); toast('Captured! 📸'); spawnPetals(6);
+            } catch (e) { toast('Upload failed — please try again'); }
+          }, 'image/jpeg', 0.85);
         }
-        function uploadPhotos(input) { Array.from(input.files).forEach(file => { const r = new FileReader(); r.onload = e => savePhoto(e.target.result, file.name, file.type.startsWith('video') ? 'video' : 'image'); r.readAsDataURL(file); }); }
-        function uploadVideo(input) { if (!input.files[0]) return; const r = new FileReader(); r.onload = e => savePhoto(e.target.result, input.files[0].name, 'video'); r.readAsDataURL(input.files[0]); }
+        function uploadPhotos(input) {
+          Array.from(input.files).forEach(async (file) => {
+            const type = file.type.startsWith('video') ? 'video' : 'image';
+            toast('Uploading ' + (type === 'video' ? 'video' : 'photo') + '… 📤');
+            try {
+              const url = await uploadMediaFile(file, file.name, type);
+              savePhoto(url, file.name, type);
+            } catch (e) { toast('Upload failed for ' + file.name); }
+          });
+        }
+        async function uploadVideo(input) {
+          if (!input.files[0]) return;
+          const file = input.files[0];
+          toast('Uploading video… 📤');
+          try {
+            const url = await uploadMediaFile(file, file.name, 'video');
+            savePhoto(url, file.name, 'video');
+          } catch (e) { toast('Upload failed for ' + file.name); }
+        }
         function savePhoto(url, name, type) { S.photos.push({ id: Date.now(), url, name, type: type || 'image', date: todayStr() }); renderPhotos(); scheduleSave(); }
         function renderPhotos() {
           const grid = document.getElementById('photoGrid');
@@ -7906,7 +7945,24 @@ const p = await Notification.requestPermission();
         function showPinError() { document.getElementById('pinErr').style.display = 'block'; document.querySelectorAll('.pd').forEach(d => { d.style.background = 'var(--red)'; d.style.borderColor = 'var(--red)'; }); setTimeout(() => { document.getElementById('pinErr').style.display = 'none'; pinEntry = []; updatePinDots(); }, 1500); }
         function unlockVault() { pinEntry = []; updatePinDots(); document.getElementById('vaultLocked').style.display = 'none'; document.getElementById('vaultOpen').style.display = 'block'; renderVault(); toast('Vault unlocked! 🔓'); spawnPetals(4); }
         function lockVault() { document.getElementById('vaultLocked').style.display = 'block'; document.getElementById('vaultOpen').style.display = 'none'; }
-        function addVaultMedia(input, type) { Array.from(input.files).forEach(file => { const r = new FileReader(); r.onload = e => { S.vault.push({ id: Date.now(), url: e.target.result, type, date: todayStr() }); renderVault(); scheduleSave(); }; r.readAsDataURL(file); }); toast(type === 'video' ? 'Video added 🎬' : 'Photo added 📷'); }
+        async function addVaultMedia(input, type) {
+          const files = Array.from(input.files);
+          toast('Uploading to vault…');
+          for (const file of files) {
+            try {
+              const form = new FormData();
+              form.append('file', file, file.name || 'vault-upload');
+              form.append('coupleId', S.coupleId);
+              form.append('type', 'vault');
+              const r = await fetch(API + '/api/media/upload', { method: 'POST', body: form });
+              const data = await r.json().catch(() => ({}));
+              if (!r.ok) throw new Error(data.error || 'Upload failed');
+              S.vault.push({ id: Date.now(), url: data.url, path: data.path, type, date: todayStr() });
+              renderVault(); scheduleSave();
+            } catch (e) { toast('Vault upload failed for ' + (file.name || 'a file')); }
+          }
+          toast(type === 'video' ? 'Video added 🎬' : 'Photo added 📷');
+        }
         function renderVault() { const g = document.getElementById('vaultGrid'), empty = document.getElementById('vaultEmpty'); if (!S.vault.length) { g.innerHTML = ''; empty.style.display = 'block'; return; } empty.style.display = 'none'; g.innerHTML = S.vault.map((v, i) => `<div class="vt">${v.type === 'video' ? `<video src="${v.url}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>` : `<img src="${v.url}" alt="vault" loading="lazy" onclick="openImgViewer('${v.url}')">`}<button class="vt-del" onclick="delVault(${i})">🗑️</button></div>`).join(''); }
         function delVault(i) { S.vault.splice(i, 1); renderVault(); scheduleSave(); }
         async function changePin() {
@@ -9674,28 +9730,27 @@ document.addEventListener('visibilitychange', () => {
 
 applyRebranding();
 init();
-        // Register PWA service worker
+        // Register PWA service worker (single registration — this used to be
+        // two separate navigator.serviceWorker.register('/sw.js') calls;
+        // merged so there's only one registration flow doing both jobs).
         if ('serviceWorker' in navigator) {
           window.addEventListener('load', () => {
             navigator.serviceWorker.register('/sw.js')
-              .then(reg => console.log('SW registered:', reg.scope))
+              .then(reg => {
+                console.log('SW registered:', reg.scope);
+                reg.addEventListener('updatefound', () => {
+                  const newWorker = reg.installing;
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      // New SW available — force reload once so it takes control
+                      window.location.reload();
+                    }
+                  });
+                });
+              })
               .catch(err => console.log('SW failed:', err));
           });
         }
-        // Add this near your existing SW registration in index.html
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').then(reg => {
-    reg.addEventListener('updatefound', () => {
-      const newWorker = reg.installing;
-      newWorker.addEventListener('statechange', () => {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          // New SW available — force reload once so it takes control
-          window.location.reload();
-        }
-      });
-    });
-  });
-}
       </script>
 <script>
 // ══════════════════════════════════════════

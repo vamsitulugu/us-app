@@ -37,8 +37,12 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     if (error) return res.status(500).json({ error: error.message });
 
     if (bucket === 'vault-media') {
+        // Vault items get linked from a couple's saved state indefinitely,
+        // not just for a single session — a short-lived signed URL would
+        // silently break old vault entries once it expired. Sign for a
+        // very long window (10 years) instead of the previous 7 days.
         const { data: signed, error: signError } =
-            await supabase.storage.from(bucket).createSignedUrl(name, 60 * 60 * 24 * 7);
+            await supabase.storage.from(bucket).createSignedUrl(name, 60 * 60 * 24 * 365 * 10);
         if (signError) return res.status(500).json({ error: signError.message });
         return res.json({ url: signed.signedUrl, path: name });
     }

@@ -566,15 +566,27 @@ function mpPickMood(el, mood) {
   document.getElementById('mpCompleteMood').value = mood;
 }
 function mpLoadCompletePhotos(input) {
-  Array.from(input.files).forEach(file => {
-    const r = new FileReader();
-    r.onload = e => { _completePhotos.push(e.target.result); _renderCompleteThumbs(); };
-    r.readAsDataURL(file);
+  Array.from(input.files).forEach(async (file) => {
+    const idx = _completePhotos.push({ url: null, uploading: true }) - 1;
+    _renderCompleteThumbs();
+    try {
+      const form = new FormData();
+      form.append('file', file, file.name);
+      form.append('coupleId', coupleId);
+      const r = await fetch(API + '/api/media/upload', { method: 'POST', body: form });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || 'Upload failed');
+      _completePhotos[idx] = { url: data.url, uploading: false };
+    } catch (e) {
+      toast('Photo upload failed for ' + file.name);
+      _completePhotos.splice(idx, 1);
+    }
+    _renderCompleteThumbs();
   });
 }
 function _renderCompleteThumbs() {
   document.getElementById('mpCompletePhotoThumbs').innerHTML = _completePhotos.map((p, i) => `
-    <div class="mp-photo-thumb"><img src="${p}" loading="lazy" decoding="async"><button onclick="mpRemoveCompletePhoto(${i})">✕</button></div>`).join('');
+    <div class="mp-photo-thumb">${p.uploading ? '⏳' : `<img src="${p.url}" loading="lazy" decoding="async">`}<button onclick="mpRemoveCompletePhoto(${i})">✕</button></div>`).join('');
 }
 function mpRemoveCompletePhoto(i) { _completePhotos.splice(i, 1); _renderCompleteThumbs(); }
 async function mpConfirmComplete() {
@@ -583,7 +595,7 @@ async function mpConfirmComplete() {
     await api('POST', '/api/meetplanner/' + id + '/complete', {
       coupleId,
       mood: document.getElementById('mpCompleteMood').value || null,
-      photos: _completePhotos,
+      photos: _completePhotos.filter(p => p.url).map(p => p.url),
       extraNotes: document.getElementById('mpCompleteNotes').value.trim() || null
     });
     mpCloseModal('mpCompleteModal');

@@ -38,6 +38,15 @@ const Chat = (function () {
       sendPresence(document.visibilityState === 'visible' ? 'online' : 'away');
     });
     window.addEventListener('pagehide', () => sendPresence('offline'));
+    window.addEventListener('pagehide', () => {
+      if (realtimeChannel && window.supabase) {
+        try {
+          const sb = window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__);
+          sb.removeChannel(realtimeChannel);
+        } catch (e) {}
+        realtimeChannel = null;
+      }
+    });
     window.addEventListener('beforeunload', () => {
       if (coupleId()) navigator.sendBeacon(API + '/api/chat/' + coupleId() + '/presence',
         new Blob([JSON.stringify({ role: myRole(), status: 'offline' })], { type: 'application/json' }));
@@ -505,23 +514,41 @@ function reanchorAfterImages() {
 
   function onTypingInput() {}
 
-  function onImagePick(input) {
+  // Uploads a File/Blob to Supabase Storage instead of embedding it as
+  // base64 text in the chat message — base64 media meant every chat
+  // history load re-downloaded every image/audio/voice message ever sent,
+  // full size, every time. mediaUrl is now a normal hosted URL.
+  async function uploadChatMedia(fileOrBlob, filename) {
+    const form = new FormData();
+    form.append('file', fileOrBlob, filename || 'upload');
+    form.append('coupleId', coupleId());
+    const r = await fetch(API + '/api/media/upload', { method: 'POST', body: form });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || 'Upload failed');
+    return data.url;
+  }
+
+  async function onImagePick(input) {
     if (!input.files[0]) return;
     const file = input.files[0];
-    const reader = new FileReader();
-    reader.onload = e => { sendMessage({ type: 'image', mediaUrl: e.target.result }); input.value = ''; };
-    reader.readAsDataURL(file);
+    input.value = '';
+    try {
+      const url = await uploadChatMedia(file, file.name);
+      sendMessage({ type: 'image', mediaUrl: url });
+    } catch (e) { toast('Image upload failed — please try again'); }
   }
 
  function sendGif(url) { sendMessage({ type: 'gif', mediaUrl: url }); closeSheet(); }
 
-  function onAudioPick(input) {
+  async function onAudioPick(input) {
     if (!input.files[0]) return;
     const file = input.files[0];
-    const reader = new FileReader();
-    reader.onload = e => { sendMessage({ type: 'audio', mediaUrl: e.target.result, mediaMeta: { name: file.name } }); input.value = ''; };
-    reader.readAsDataURL(file);
+    input.value = '';
     closeSheet();
+    try {
+      const url = await uploadChatMedia(file, file.name);
+      sendMessage({ type: 'audio', mediaUrl: url, mediaMeta: { name: file.name } });
+    } catch (e) { toast('Audio upload failed — please try again'); }
   }
 
   function sendLocation() {
@@ -579,9 +606,10 @@ function reanchorAfterImages() {
         if (recCancelled) { recCancelled = false; return; }
         const blob = new Blob(recChunks, { type: 'audio/webm' });
         const dur = Math.round((Date.now() - recStart) / 1000);
-        const reader = new FileReader();
-        reader.onload = e => sendMessage({ type: 'voice', mediaUrl: e.target.result, mediaMeta: { duration: dur } });
-        reader.readAsDataURL(blob);
+        try {
+          const url = await uploadChatMedia(blob, 'voice.webm');
+          sendMessage({ type: 'voice', mediaUrl: url, mediaMeta: { duration: dur } });
+        } catch (e) { toast('Voice message upload failed — please try again'); }
       };
       mediaRecorder.start();
       recording = true; recStart = Date.now();

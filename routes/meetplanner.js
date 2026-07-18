@@ -224,7 +224,7 @@ router.post('/:id/complete', async (req, res) => {
       memory_id:  globeMemory.id,
       couple_id:  coupleId,
       type:       'photo',
-      data_url:   p
+      url:        p
     }));
     await supabase.from('globe_memory_media').insert(mediaRows);
   }

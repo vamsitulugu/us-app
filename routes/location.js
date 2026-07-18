@@ -69,7 +69,7 @@ router.post('/ping', async (req, res) => {
 router.get('/:coupleId', async (req, res) => {
   const { data, error } = await supabase
     .from('live_locations')
-    .select('*')
+    .select('role, lat, lng, accuracy, heading, speed, moving, updated_at')
     .eq('couple_id', req.params.coupleId);
 
   if (error) return res.status(500).json({ error: error.message });

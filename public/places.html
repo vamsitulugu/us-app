@@ -271,6 +271,27 @@ let pmDetailMap = null;
 let pmPendingBanner = '', pmPendingPhotos = [];
 let pmLightboxIdx = -1;
 let pmNames = { my: 'You', partner: 'Partner' };
+const API = 'https://us-app-av6d.onrender.com';
+let pmCoupleId = null;
+try {
+  const raw = localStorage.getItem('uwl_v5');
+  if (raw) pmCoupleId = JSON.parse(raw).coupleId;
+} catch(e) {}
+
+// Uploads to Supabase Storage instead of embedding the file as base64 —
+// this data gets folded into the parent app's global saved state on
+// every change, so base64 here meant every banner/photo got re-sent on
+// every unrelated save anywhere in the app, exactly like the photos/vault
+// issue this was modeled after.
+async function uploadPmMedia(fileOrBlob, filename) {
+  const form = new FormData();
+  form.append('file', fileOrBlob, filename || 'upload');
+  form.append('coupleId', pmCoupleId);
+  const r = await fetch(API + '/api/media/upload', { method: 'POST', body: form });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || 'Upload failed');
+  return data.url;
+}
 
 function pmId(){ return 'p' + Date.now() + Math.floor(Math.random()*1000); }
 function escHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -371,23 +392,34 @@ function openEditPlace(id){
 function closePmModal(){ document.getElementById('pmModal').classList.remove('open'); }
 function loadBannerFile(input){
   if(!input.files[0]) return;
-  const r=new FileReader();
-  r.onload=e=>{ pmPendingBanner=e.target.result; renderBannerPreview(); };
-  r.readAsDataURL(input.files[0]);
+  const file = input.files[0];
+  pmPendingBanner = 'uploading';
+  renderBannerPreview();
+  uploadPmMedia(file, file.name).then(url => {
+    pmPendingBanner = url; renderBannerPreview();
+  }).catch(() => {
+    pmPendingBanner = ''; renderBannerPreview(); showPmToast('Banner upload failed');
+  });
 }
 function renderBannerPreview(){
-  document.getElementById('pmBannerPreview').innerHTML = pmPendingBanner ? `<img src="${pmPendingBanner}">` : 'No banner yet';
+  document.getElementById('pmBannerPreview').innerHTML = pmPendingBanner === 'uploading'
+    ? '⏳ Uploading…'
+    : (pmPendingBanner ? `<img src="${pmPendingBanner}">` : 'No banner yet');
 }
 function loadPmPhotos(input){
-  Array.from(input.files).forEach(file=>{
-    const r=new FileReader();
-    r.onload=e=>{ pmPendingPhotos.push(e.target.result); renderPmPhotoThumbs(); };
-    r.readAsDataURL(file);
+  Array.from(input.files).forEach(file => {
+    const idx = pmPendingPhotos.push('uploading') - 1;
+    renderPmPhotoThumbs();
+    uploadPmMedia(file, file.name).then(url => {
+      pmPendingPhotos[idx] = url; renderPmPhotoThumbs();
+    }).catch(() => {
+      pmPendingPhotos.splice(idx, 1); renderPmPhotoThumbs(); showPmToast('Photo upload failed');
+    });
   });
 }
 function renderPmPhotoThumbs(){
   document.getElementById('pmPhotoThumbs').innerHTML = pmPendingPhotos.map((p,i)=>`
-    <div class="pm-photo-thumb"><img src="${p}"><button onclick="pmPendingPhotos.splice(${i},1);renderPmPhotoThumbs()">✕</button></div>
+    <div class="pm-photo-thumb">${p === 'uploading' ? '⏳' : `<img src="${p}">`}<button onclick="pmPendingPhotos.splice(${i},1);renderPmPhotoThumbs()">✕</button></div>
   `).join('');
 }
 function usePmCurrentLocation(){
@@ -410,8 +442,8 @@ function savePlace(){
     location: document.getElementById('pmLocation').value.trim(),
     visitDate: document.getElementById('pmDate').value,
     description: document.getElementById('pmDesc').value.trim(),
-    banner: pmPendingBanner,
-    photos: pmPendingPhotos.slice(),
+    banner: pmPendingBanner === 'uploading' ? '' : pmPendingBanner,
+    photos: pmPendingPhotos.filter(p => p !== 'uploading'),
     lat: lat!==''?parseFloat(lat):null,
     lng: lng!==''?parseFloat(lng):null,
     favorite: document.getElementById('pmFavToggle').classList.contains('on'),

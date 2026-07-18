@@ -255,7 +255,7 @@ router.put('/presence', async (req, res) => {
 router.get('/presence/:coupleId', async (req, res) => {
   try {
     const { data, error } = await supabase
-      .from('home_presence').select('*').eq('couple_id', req.params.coupleId);
+      .from('home_presence').select('user_role, room, last_seen').eq('couple_id', req.params.coupleId);
     if (error) throw error;
     res.json(data || []);
   } catch (e) { res.status(500).json({ error: e.message }); }

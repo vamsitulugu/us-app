@@ -1110,14 +1110,17 @@ const HomeMemories = (() => {
           _recorder.ondataavailable = e => _audioChunks.push(e.data);
           _recorder.onstop = () => {
             const blob = new Blob(_audioChunks, { type: 'audio/webm' });
-            const reader = new FileReader();
-            reader.onload = e2 => {
-              _recordedData = e2.target.result;
-              const st = document.getElementById('hmRecordStatus');
-              if (st) { st.style.display = 'block'; st.textContent = '✅ Voice note ready!'; }
-            };
-            reader.readAsDataURL(blob);
             stream.getTracks().forEach(t => t.stop());
+            const st = document.getElementById('hmRecordStatus');
+            if (st) { st.style.display = 'block'; st.textContent = '⏳ Uploading voice note…'; }
+            uploadHomeMedia(blob, 'voice.webm').then(url => {
+              _recordedData = url;
+              if (st) st.textContent = '✅ Voice note ready!';
+            }).catch(() => {
+              _recordedData = null;
+              if (st) st.textContent = '⚠️ Upload failed — try again';
+              HomeUtils.toast('Voice note upload failed');
+            });
           };
           _recorder.start();
           _isRecording = true;
@@ -1182,8 +1185,12 @@ const HomeMemories = (() => {
     // Handle photo
     let thumbnail = null;
     if (photoIn && photoIn.files[0]) {
-      thumbnail = await fileToDataUrl(photoIn.files[0]);
-      meta.thumbnail = thumbnail;
+      try {
+        thumbnail = await uploadHomeMedia(photoIn.files[0], photoIn.files[0].name);
+        meta.thumbnail = thumbnail;
+      } catch (e) {
+        HomeUtils.toast('Photo upload failed'); return;
+      }
     }
 
     // Assign color defaults by type
@@ -1227,13 +1234,15 @@ const HomeMemories = (() => {
     }
   }
 
-  function fileToDataUrl(file) {
-    return new Promise((res, rej) => {
-      const reader = new FileReader();
-      reader.onload  = e => res(e.target.result);
-      reader.onerror = () => rej(new Error('File read failed'));
-      reader.readAsDataURL(file);
-    });
+  function uploadHomeMedia(fileOrBlob, filename) {
+    const form = new FormData();
+    form.append('file', fileOrBlob, filename || 'upload');
+    form.append('coupleId', coupleId);
+    return fetch('/api/media/upload', { method: 'POST', body: form })
+      .then(r => r.json().then(data => {
+        if (!r.ok) throw new Error(data.error || 'Upload failed');
+        return data.url;
+      }));
   }
 
   // ════════════════════════════════════════════════

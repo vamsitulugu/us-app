@@ -67,7 +67,29 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // ── Static files ───────────────────────────────────────
-app.use(express.static(path.join(__dirname, 'public')));
+// NOTE: express.static's own `etag`/`maxAge` options are independent of
+// app.disable('etag') above (which only turns off auto-ETag on dynamic
+// res.json()/res.send() responses from routes/*.js — that stays exactly
+// as-is so the call/chat/presence polling endpoints keep behaving the
+// way they were already fixed to behave). Static files get their own
+// explicit etag + a short max-age, so a repeat visit within a day can
+// skip re-downloading unchanged JS/CSS/images entirely, and after that
+// the etag still forces a fresh copy the moment a file actually changes
+// — nothing here can ever serve genuinely stale content.
+app.use(express.static(path.join(__dirname, 'public'), {
+  etag: true,
+  lastModified: true,
+  maxAge: '1d',
+  setHeaders: (res, filePath) => {
+    // The service worker script controls PWA update rollout itself
+    // (see sw.js's own versioned CACHE + skipWaiting/clients.claim
+    // logic) — it must always be revalidated so a new deploy is picked
+    // up immediately instead of waiting out a cache window.
+    if (filePath.endsWith('sw.js')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  }
+}));
 
 // ── API Routes ─────────────────────────────────────────
 app.use('/api/auth',  authRoutes);

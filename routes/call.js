@@ -91,7 +91,7 @@ router.post('/signal', async (req, res) => {
 router.get('/signal/:coupleId', async (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   const { role, after } = req.query;
-  let q = supabase.from('call_signals').select('*')
+  let q = supabase.from('call_signals').select('id, payload')
     .eq('couple_id', req.params.coupleId).eq('role', role);
   if (after) q = q.gt('id', parseInt(after));
   const { data, error } = await q.order('id', { ascending: true }).limit(50);
