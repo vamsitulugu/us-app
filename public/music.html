@@ -1228,8 +1228,8 @@ async function musicApi(method, path, body) {
 // This channel carries no track data — it's just a signal to fetch, so
 // loadPartnerMusicFromCloud() stays the single source of truth for the
 // actual payload and merge logic below is untouched.
-const MUSIC_SUPABASE_URL = 'https://jxqszgehgmkpzhkpfxnc.supabase.co';
-const MUSIC_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cXN6Z2VoZ21rcHpoa3BmeG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMTkxMjEsImV4cCI6MjA5Nzg5NTEyMX0.ESpovcyunUnRVnGdFSGK-a_WI1ZTctuYZxXnYBSIA60';
+const MUSIC_SUPABASE_URL = 'https://jmhsyhpmuszyphwjfcuk.supabase.co';
+const MUSIC_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptaHN5aHBtdXN6eXBod2pmY3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5NzAzODIsImV4cCI6MjA5OTU0NjM4Mn0.hXmVIoESJ5SkbhIaN-UyWLbJ4XdvZD_dd7U2WzFfvNI';
 let _musicSb = null;
 let _musicChannel = null;
 function _getMusicSupabase() {
