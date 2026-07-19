@@ -1003,7 +1003,7 @@ function initGlobe() {
   clouds = new THREE.Mesh(cloudGeo, cloudMat);
   scene.add(clouds);
   loader.load(
-    'https://unpkg.com/three-globe@2.31.0/example/img/earth-clouds.png',
+    '/textures/earth-clouds.png',
     tex => { cloudMat.map = tex; cloudMat.alphaMap = tex; cloudMat.needsUpdate = true; },
     undefined, () => {}
   );

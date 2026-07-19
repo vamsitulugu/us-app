@@ -18,6 +18,42 @@ const Call = (function () {
   function nativeCallAudio() {
     return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CallAudio;
   }
+  // ─── Native vibration bridge (Capacitor Haptics plugin) ───
+  // navigator.vibrate() on the web is blocked by the browser until the
+  // user has tapped the page/frame at least once — which an incoming call
+  // alert, by definition, fires before any tap has happened. That's a
+  // browser policy, not a bug, and it can't be "fixed" from the web API
+  // side. Haptics.vibrate() is native code and isn't subject to that
+  // restriction, so we use it when running inside the app and only fall
+  // back to navigator.vibrate() (which may or may not be blocked) on web.
+  function nativeVibrate(durationMs) {
+    const h = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics;
+    if (h && h.vibrate) { h.vibrate({ duration: durationMs }).catch(() => {}); return true; }
+    return false;
+  }
+  let _ringVibrateTimeouts = [];
+  function ringVibrate() {
+    // Reproduces the buzz/pause/buzz/pause/buzz pattern natively when
+    // possible; on native, Haptics.vibrate() takes one duration per call,
+    // so the pattern is replayed as timed calls instead of a single array.
+    const pattern = [300, 150, 300, 150, 500]; // vibrate, pause, vibrate, pause, vibrate
+    if (nativeVibrate(pattern[0])) {
+      let t = pattern[0];
+      for (let i = 1; i < pattern.length; i += 2) {
+        t += pattern[i];
+        const dur = pattern[i + 1];
+        if (dur == null) break;
+        _ringVibrateTimeouts.push(setTimeout(() => nativeVibrate(dur), t));
+        t += dur;
+      }
+    } else if (navigator.vibrate) {
+      navigator.vibrate(pattern);
+    }
+  }
+  function stopRingVibrate() {
+    _ringVibrateTimeouts.forEach(clearTimeout);
+    _ringVibrateTimeouts = [];
+  }
   function setRingingAudio() {
     nativeCallAudio()?.setRinging().catch(() => {});
   }
@@ -116,9 +152,9 @@ const Call = (function () {
       if (ringFileEl) { ringFileEl = null; }
       startSynthTone(kind); // guarded internally — won't double-start if the .catch() above already did
     }, { once: true });
-    if (kind === 'incoming' && navigator.vibrate) {
-      navigator.vibrate([300, 150, 300, 150, 500]);
-      vibrateTimer = setInterval(() => navigator.vibrate([300, 150, 300, 150, 500]), 2000);
+    if (kind === 'incoming') {
+      ringVibrate();
+      vibrateTimer = setInterval(ringVibrate, 2000);
     }
   }
   function stopRingtone() {
@@ -126,6 +162,7 @@ const Call = (function () {
     if (ringFileEl) { try { ringFileEl.pause(); ringFileEl.currentTime = 0; } catch (e) {} ringFileEl = null; }
     if (ringLoopTimer) { clearInterval(ringLoopTimer); ringLoopTimer = null; }
     if (vibrateTimer) { clearInterval(vibrateTimer); vibrateTimer = null; }
+    stopRingVibrate();
     if (navigator.vibrate) navigator.vibrate(0);
     if (ringGain) {
       try { ringGain.gain.linearRampToValueAtTime(0, (ringAudioCtx?.currentTime || 0) + 0.15); } catch (e) {}
