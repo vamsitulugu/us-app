@@ -110,13 +110,14 @@
  
   .al-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
   .al-topbar {
-    height: 58px;
+    height: calc(58px + env(safe-area-inset-top));
     border-bottom: 1px solid rgba(255,255,255,0.08);
     display: flex;
     align-items: center;
-    padding: 0 20px;
+    padding: env(safe-area-inset-top) 20px 0;
     gap: 12px;
     flex-shrink: 0;
+    box-sizing: border-box;
   }
   .al-topbar .al-sk:first-child { width: 120px; height: 20px; }
   .al-topbar .al-sk.al-circle { margin-left: auto; }
@@ -6897,6 +6898,33 @@ function setJustPairedAt(ts) {
           console.error('Unhandled promise rejection:', e.reason);
           try { toast('⚠️ ' + (e.reason && e.reason.message ? e.reason.message : 'Something went wrong'), 4000); } catch (_) {}
         });
+        // ─── Android hardware back button ───────────────────────
+        // Without this, Capacitor's default behavior is: if the WebView
+        // has native navigation history, call webView.goBack() — which,
+        // once our own in-app pushState stack (handled by the popstate
+        // listener above) is exhausted, pops out of index.html entirely
+        // back to the real page-load that got us here (landing.html).
+        // Registering any 'backButton' listener disables that default
+        // entirely and puts navigation fully under our control instead.
+        if (window.Capacitor?.isNativePlatform?.()) {
+          const CapApp = window.Capacitor.Plugins?.App;
+          if (CapApp && typeof CapApp.addListener === 'function') {
+            CapApp.addListener('backButton', () => {
+              // 1) An open modal takes priority — just close it.
+              const openModal = document.querySelector('.modal-bg.open');
+              if (openModal) { openModal.classList.remove('open'); return; }
+              // 2) Not on the dashboard — go there (uses the existing
+              //    router so page teardown/render logic still runs).
+              const onDashboard = document.getElementById('page-dashboard')?.classList.contains('active');
+              if (!onDashboard) { goto('dashboard'); return; }
+              // 3) Already at the dashboard (top level) — minimize
+              //    instead of exiting or falling through to landing.html.
+              CapApp.minimizeApp?.();
+            });
+          }
+        }
+        function openM(id) { document.getElementById(id).classList.add('open'); }
+
         function openM(id) { document.getElementById(id).classList.add('open'); }
         function closeM(id) { document.getElementById(id).classList.remove('open'); }
         function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
