@@ -351,6 +351,69 @@ const LiveMap = (() => {
     }
   }
 
+  /* ── WEATHER OVERLAY (lightweight, no API key — Open-Meteo) ─── */
+  const WEATHER_ICONS = {
+    0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌫️', 48: '🌫️',
+    51: '🌦️', 53: '🌦️', 55: '🌦️', 61: '🌧️', 63: '🌧️', 65: '🌧️',
+    71: '🌨️', 73: '🌨️', 75: '❄️', 80: '🌦️', 81: '🌧️', 82: '⛈️',
+    95: '⛈️', 96: '⛈️', 99: '⛈️'
+  };
+  let _weatherCache = null; // { key, at, data }
+  async function getWeather() {
+    const panel = document.getElementById('lmWeatherPanel');
+    if (!panel) return;
+    const loc = S.myLoc || (st.myLast ? { lat: st.myLast.lat, lng: st.myLast.lng } : null);
+    if (!loc || loc.lat == null) {
+      panel.style.display = 'block';
+      panel.innerHTML = 'Waiting for your location to fetch weather…';
+      return;
+    }
+    // Toggle off if already open and fresh
+    if (panel.style.display === 'block' && _weatherCache && Date.now() - _weatherCache.at < 600000) {
+      panel.style.display = 'none';
+      return;
+    }
+    panel.style.display = 'block';
+    panel.innerHTML = 'Loading weather…';
+    const key = loc.lat.toFixed(2) + ',' + loc.lng.toFixed(2);
+    if (_weatherCache && _weatherCache.key === key && Date.now() - _weatherCache.at < 600000) {
+      _renderWeather(_weatherCache.data);
+      return;
+    }
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lng}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,precipitation&daily=sunrise,sunset&timezone=auto`;
+      const resp = await fetch(url);
+      const data = await resp.json();
+      _weatherCache = { key, at: Date.now(), data };
+      _renderWeather(data);
+    } catch (e) {
+      panel.innerHTML = 'Couldn\'t load weather right now.';
+    }
+  }
+  function _renderWeather(data) {
+    const panel = document.getElementById('lmWeatherPanel');
+    if (!panel || !data || !data.current) { if (panel) panel.innerHTML = 'Weather unavailable.'; return; }
+    const c = data.current;
+    const icon = WEATHER_ICONS[c.weather_code] || '🌡️';
+    const sunrise = data.daily?.sunrise?.[0] ? new Date(data.daily.sunrise[0]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
+    const sunset = data.daily?.sunset?.[0] ? new Date(data.daily.sunset[0]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
+    panel.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div style="font-size:28px">${icon}</div>
+        <div>
+          <div style="font-size:16px;font-weight:700;color:var(--white)">${Math.round(c.temperature_2m)}°C</div>
+          <div style="font-size:10px">Feels like your location right now</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;font-size:10px">
+        <div>💧 Humidity: ${c.relative_humidity_2m}%</div>
+        <div>💨 Wind: ${Math.round(c.wind_speed_10m)} km/h</div>
+        <div>🌧️ Rain: ${c.precipitation ?? 0} mm</div>
+        <div>🌅 Sunrise: ${sunrise}</div>
+        <div>🌇 Sunset: ${sunset}</div>
+      </div>`;
+  }
+
   /* ── SMOOTH MARKER ANIMATION ─────────────────────────────── */
   function _animateMarker(who, lat, lng, accuracy, heading) {
     if (!st.map || !window.L) return;
@@ -807,6 +870,9 @@ const LiveMap = (() => {
     }).join('');
   }
   async function loadRouteDay(date) {
+    if (st.playbackTimer) { clearInterval(st.playbackTimer); st.playbackTimer = null; }
+    if (st.playbackMarker && st.map) { st.map.removeLayer(st.playbackMarker); st.playbackMarker = null; }
+    st.playbackIdx = 0;
     st.routeSelectedDate = date;
     _renderRouteDatePicker();
     const body = document.getElementById('lmRouteBody');
@@ -846,7 +912,26 @@ const LiveMap = (() => {
         <div class="pstat"><div class="pstat-n">${data.stops.length}</div><div class="pstat-l">Stops</div></div>
       </div>
       <div id="lmJourneySummary"></div>
-      <button class="btn btn-glass btn-sm" onclick="LiveMap.playbackRoute()">▶ Play Journey</button>
+      <div class="lm-playback-bar" style="display:flex;align-items:center;gap:8px;margin:8px 0;flex-wrap:wrap">
+        <button class="btn btn-glass btn-sm" id="lmPlaybackPlayBtn" onclick="LiveMap.playbackRoute()">▶ Play Journey</button>
+        <button class="btn btn-glass btn-sm" id="lmPlaybackPauseBtn" style="display:none" onclick="LiveMap.pausePlayback()">⏸ Pause</button>
+        <select id="lmPlaybackSpeed" class="lm-speed-select" onchange="LiveMap.setPlaybackSpeed(this.value)" style="background:var(--g1);border:1px solid var(--border);border-radius:8px;color:var(--white);font-size:11px;padding:4px 6px">
+          <option value="0.5">0.5×</option>
+          <option value="1" selected>1×</option>
+          <option value="2">2×</option>
+          <option value="4">4×</option>
+        </select>
+      </div>
+      <div id="lmPlaybackProgress" style="display:none;font-size:10px;color:var(--text3);margin-bottom:8px">
+        <div style="height:4px;border-radius:2px;background:rgba(255,255,255,0.08);overflow:hidden;margin-bottom:4px">
+          <div id="lmPlaybackBar" style="height:100%;width:0%;background:var(--accent);transition:width .15s linear"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <span id="lmPlaybackTime">00:00</span>
+          <span id="lmPlaybackDist">0.0 km</span>
+          <span id="lmPlaybackSpeedNow">— km/h</span>
+        </div>
+      </div>
       <div id="lmStopsList" style="margin-top:10px"></div>`;
   }
   function _drawRouteOnMap(points) {
@@ -881,21 +966,78 @@ const LiveMap = (() => {
       st.routeStopMarkers.push(m);
     });
   }
+  function _fmtClock(sec) {
+    sec = Math.max(0, Math.round(sec));
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+  function _setPlaybackButtons(playing) {
+    const playBtn = document.getElementById('lmPlaybackPlayBtn');
+    const pauseBtn = document.getElementById('lmPlaybackPauseBtn');
+    if (playBtn) playBtn.style.display = playing ? 'none' : '';
+    if (pauseBtn) pauseBtn.style.display = playing ? '' : 'none';
+    if (playBtn) playBtn.textContent = (st.playbackIdx > 0 && !playing) ? '▶ Resume' : '▶ Play Journey';
+  }
+  function _tickPlayback() {
+    const points = st.routeData?.points;
+    if (!points || !st.playbackMarker) return;
+    st.playbackIdx++;
+    if (st.playbackIdx >= points.length) {
+      clearInterval(st.playbackTimer); st.playbackTimer = null;
+      _setPlaybackButtons(false);
+      const playBtn = document.getElementById('lmPlaybackPlayBtn');
+      if (playBtn) playBtn.textContent = '▶ Replay Journey';
+      st.playbackIdx = 0;
+      return;
+    }
+    const p = points[st.playbackIdx];
+    st.playbackMarker.setLatLng([p.lat, p.lng]);
+
+    // Live progress: elapsed time, distance so far, instantaneous speed
+    let distM = 0;
+    for (let i = 1; i <= st.playbackIdx; i++) distM += haversine(points[i - 1], points[i]) * 1000;
+    const elapsedSec = (new Date(p.created_at) - new Date(points[0].created_at)) / 1000;
+    const prev = points[st.playbackIdx - 1];
+    const dtSec = Math.max(1, (new Date(p.created_at) - new Date(prev.created_at)) / 1000);
+    const segM = haversine(prev, p) * 1000;
+    const kmh = (segM / dtSec) * 3.6;
+
+    const bar = document.getElementById('lmPlaybackBar');
+    if (bar) bar.style.width = Math.round((st.playbackIdx / (points.length - 1)) * 100) + '%';
+    const t = document.getElementById('lmPlaybackTime'); if (t) t.textContent = _fmtClock(elapsedSec);
+    const d = document.getElementById('lmPlaybackDist'); if (d) d.textContent = (distM / 1000).toFixed(2) + ' km';
+    const s = document.getElementById('lmPlaybackSpeedNow'); if (s) s.textContent = Math.round(kmh) + ' km/h';
+  }
+  function _playbackIntervalMs() {
+    const points = st.routeData?.points || [];
+    const base = Math.max(20, Math.floor(4000 / Math.max(1, points.length)));
+    return Math.max(15, Math.round(base / (st.playbackSpeed || 1)));
+  }
   function playbackRoute() {
     const points = st.routeData?.points;
     if (!points || points.length < 2) { toast('Nothing to play back'); return; }
     if (st.playbackTimer) { clearInterval(st.playbackTimer); st.playbackTimer = null; }
-    st.playbackIdx = 0;
-    if (st.playbackMarker) { st.map.removeLayer(st.playbackMarker); }
-    const icon = L.divIcon({ html: `<div style="width:22px;height:22px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.5)"></div>`, className: '', iconSize: [22, 22] });
-    st.playbackMarker = L.marker([points[0].lat, points[0].lng], { icon, zIndexOffset: 600 }).addTo(st.map);
-    const speedMs = Math.max(20, Math.floor(4000 / points.length)); // finish in ~4s regardless of point count
-    st.playbackTimer = setInterval(() => {
-      st.playbackIdx++;
-      if (st.playbackIdx >= points.length) { clearInterval(st.playbackTimer); st.playbackTimer = null; return; }
-      const p = points[st.playbackIdx];
-      st.playbackMarker.setLatLng([p.lat, p.lng]);
-    }, speedMs);
+    // Resume from where we paused, unless we already finished (idx reset to 0)
+    if (st.playbackIdx === 0 || !st.playbackMarker) {
+      if (st.playbackMarker) { st.map.removeLayer(st.playbackMarker); }
+      const icon = L.divIcon({ html: `<div style="width:22px;height:22px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.5)"></div>`, className: '', iconSize: [22, 22] });
+      st.playbackMarker = L.marker([points[0].lat, points[0].lng], { icon, zIndexOffset: 600 }).addTo(st.map);
+      st.playbackIdx = 0;
+    }
+    const prog = document.getElementById('lmPlaybackProgress'); if (prog) prog.style.display = 'block';
+    _setPlaybackButtons(true);
+    st.playbackTimer = setInterval(_tickPlayback, _playbackIntervalMs());
+  }
+  function pausePlayback() {
+    if (st.playbackTimer) { clearInterval(st.playbackTimer); st.playbackTimer = null; }
+    _setPlaybackButtons(false);
+  }
+  function setPlaybackSpeed(v) {
+    st.playbackSpeed = parseFloat(v) || 1;
+    if (st.playbackTimer) { // live-apply while playing
+      clearInterval(st.playbackTimer);
+      st.playbackTimer = setInterval(_tickPlayback, _playbackIntervalMs());
+    }
   }
 
   /* ── PAGE LIFECYCLE ──────────────────────────────────────── */
@@ -935,7 +1077,8 @@ const LiveMap = (() => {
     // Phase 2
     setMapStyle, locateMe, locatePartner, showMeetingPoint,
     openStreetView, _svFallback,
-    openRouteHistory, loadRouteDay, playbackRoute, switchRouteRole,
+    openRouteHistory, loadRouteDay, playbackRoute, pausePlayback, setPlaybackSpeed, switchRouteRole,
+    getWeather,
     _debug: st
   };
 })();

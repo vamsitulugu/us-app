@@ -5582,8 +5582,8 @@ select option { background: #0D0D0D; color: #fff; }
       </div>
     </div>
 
-    <div id="mapView" style="width:100%;height:340px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border)"></div>
-
+   <div id="mapView" style="width:100%;height:340px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border)"></div>
+ 
     <!-- PHASE 2: map style switcher + quick actions -->
     <div class="lm-toolbar">
       <div class="lm-style-seg">
@@ -5596,9 +5596,12 @@ select option { background: #0D0D0D; color: #fff; }
         <div class="lm-tool-btn" onclick="LiveMap.locatePartner()"><span class="lm-tool-ico">💜</span>Locate Partner</div>
         <div class="lm-tool-btn" onclick="LiveMap.showMeetingPoint()"><span class="lm-tool-ico">🤝</span>Meeting Point</div>
         <div class="lm-tool-btn" onclick="LiveMap.openRouteHistory()"><span class="lm-tool-ico">🛣️</span>Daily Route</div>
+        <div class="lm-tool-btn" id="lmWeatherBtn" onclick="LiveMap.getWeather()"><span class="lm-tool-ico">⛅</span>Weather</div>
       </div>
     </div>
-
+ 
+    <div id="lmWeatherPanel" style="display:none;margin-top:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--text3)"></div>
+ 
     <div class="period-stats" style="margin-top:14px">
       <div class="pstat"><div class="pstat-n" id="mapDistance">—</div><div class="pstat-l">Distance</div></div>
       <div class="pstat"><div class="pstat-n" id="mapETA">—</div><div class="pstat-l">ETA (drive)</div></div>
