@@ -136,6 +136,7 @@ const LiveMap = (() => {
 
   /* ── PERMISSION / TRACKING LIFECYCLE ─────────────────────── */
   function startTracking() {
+    _clearPauseTimer();
     if (!navigator.geolocation) {
       st.permState = 'unsupported';
       _showPermBanner('📍 Your browser/device doesn\'t support GPS location. You can still add places manually.');
@@ -173,6 +174,50 @@ const LiveMap = (() => {
     if (explicit && S.coupleId) {
       api('POST', '/api/location/stop', { coupleId: S.coupleId, role: S.role }).catch(() => {});
     }
+  }
+
+  let _pauseTimer = null, _pauseUntil = null;
+  function _clearPauseTimer() { if (_pauseTimer) { clearTimeout(_pauseTimer); _pauseTimer = null; } _pauseUntil = null; }
+
+  function pauseSharing(minutes) {
+    _clearPauseTimer();
+    stopTracking(true);
+    if (minutes) { // null/0 = "until manually resumed"
+      _pauseUntil = Date.now() + minutes * 60000;
+      _pauseTimer = setTimeout(() => { startTracking(); toast('Live tracking auto-resumed 📡'); _renderPrivacyPanel(); }, minutes * 60000);
+      toast(`Location sharing paused for ${minutes >= 60 ? (minutes / 60) + 'h' : minutes + 'm'} ⏸`);
+    } else {
+      toast('Location sharing paused until you resume it ⏸');
+    }
+    _renderPrivacyPanel();
+  }
+  function resumeSharing() {
+    _clearPauseTimer();
+    startTracking();
+    toast('Live tracking resumed 📡');
+    _renderPrivacyPanel();
+  }
+  function togglePrivacyPanel() {
+    const panel = document.getElementById('lmPrivacyPanel');
+    if (!panel) return;
+    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    if (panel.style.display === 'block') _renderPrivacyPanel();
+  }
+  function _renderPrivacyPanel() {
+    const panel = document.getElementById('lmPrivacyPanel');
+    if (!panel || panel.style.display !== 'block') return;
+    const statusLine = !st.tracking
+      ? (_pauseUntil ? `⏸ Paused — auto-resumes ${new Date(_pauseUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : '⏸ Paused until you resume it')
+      : '🟢 Sharing your live location';
+    panel.innerHTML = `
+      <div style="font-size:11px;color:var(--white);font-weight:600;margin-bottom:8px">${statusLine}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-glass btn-xs" onclick="LiveMap.pauseSharing(15)">Pause 15m</button>
+        <button class="btn btn-glass btn-xs" onclick="LiveMap.pauseSharing(60)">Pause 1h</button>
+        <button class="btn btn-glass btn-xs" onclick="LiveMap.pauseSharing(0)">Pause manually</button>
+        <button class="btn btn-accent btn-xs" onclick="LiveMap.resumeSharing()">Resume now</button>
+      </div>
+      <div style="font-size:9px;color:var(--text3);margin-top:8px">Your partner sees "last seen" instead of your live position while paused — they aren't told which pause option you chose.</div>`;
   }
 
   function toggleTracking() {
@@ -314,12 +359,36 @@ const LiveMap = (() => {
   }
 
   /* ── STATUS UI ────────────────────────────────────────────── */
+  /** Classify movement from speed (m/s): stationary / walking / running / cycling / driving. */
+  function _activityFromSpeed(speedMps) {
+    if (speedMps == null) return null;
+    const kmh = speedMps * 3.6;
+    if (kmh < 1) return null; // stationary — handled separately
+    if (kmh < 7) return { label: 'Walking', icon: '🚶' };
+    if (kmh < 15) return { label: 'Running', icon: '🏃' };
+    if (kmh < 35) return { label: 'Cycling', icon: '🚴' };
+    return { label: 'Driving', icon: '🚗' };
+  }
+  function _statusLine(loc, moving, placeLat, placeLng) {
+    const place = (placeLat != null) ? _nearestPlaceName(placeLat, placeLng) : null;
+    if (moving) {
+      const act = _activityFromSpeed(loc && loc.speed) || { label: 'Moving', icon: '🚗' };
+      return `${act.icon} ${act.label}`;
+    }
+    if (place) return `📍 At ${place}`;
+    return 'Online';
+  }
+
   function _updateMyStatusUI() {
     const st1 = document.getElementById('lmMyStatus'), dot1 = document.getElementById('lmMyDot');
     if (!st1) return;
     if (st.permState === 'denied') { st1.textContent = 'Location blocked'; if (dot1) dot1.style.background = 'var(--red)'; return; }
     if (st.permState === 'unsupported') { st1.textContent = 'Not supported'; if (dot1) dot1.style.background = 'var(--text3)'; return; }
-    if (st.myLast) { st1.textContent = (S.myLoc?.moving ? '🚗 Moving · ' : '') + 'Online'; if (dot1) dot1.style.background = 'var(--green)'; }
+    if (!st.tracking) { st1.textContent = '⏸ Sharing paused'; if (dot1) dot1.style.background = 'var(--yellow)'; return; }
+    if (st.myLast) {
+      st1.textContent = _statusLine(S.myLoc, S.myLoc?.moving, S.myLoc?.lat, S.myLoc?.lng);
+      if (dot1) dot1.style.background = 'var(--green)';
+    }
     else { st1.textContent = 'Locating…'; if (dot1) dot1.style.background = 'var(--yellow)'; }
   }
   function _updatePtStatusUI() {
@@ -327,7 +396,7 @@ const LiveMap = (() => {
     if (!st2) return;
     if (!S.paired) { st2.textContent = 'Not paired yet'; if (dot2) dot2.style.background = 'var(--text3)'; return; }
     if (st.ptLast && st.ptLast.online) {
-      st2.textContent = (st.ptLast.moving ? '🚗 Moving · ' : '') + 'Online';
+      st2.textContent = _statusLine(st.ptLast, st.ptLast.moving, st.ptLast.lat, st.ptLast.lng);
       if (dot2) dot2.style.background = 'var(--green)';
     } else if (st.ptLast) {
       st2.textContent = 'Last seen ' + fmtAgo(st.ptLast.updatedAt);
@@ -1079,6 +1148,7 @@ const LiveMap = (() => {
     openStreetView, _svFallback,
     openRouteHistory, loadRouteDay, playbackRoute, pausePlayback, setPlaybackSpeed, switchRouteRole,
     getWeather,
+    pauseSharing, resumeSharing, togglePrivacyPanel,
     _debug: st
   };
 })();

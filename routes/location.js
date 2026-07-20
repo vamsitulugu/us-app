@@ -8,6 +8,31 @@ const supabase = require('../middleware/supabase');
 const router   = express.Router();
 
 const ONLINE_WINDOW_MS = 60 * 1000; // last ping within 60s = "online"
+const ROUTE_DEDUPE_MIN_METERS = 8;   // skip storing a route point if it barely moved from the last stored one
+const ROUTE_DEDUPE_MAX_AGE_MS = 5 * 60 * 1000; // still store a point if this much time passed, even if stationary
+
+function haversineM(a, b) {
+  const R = 6371000, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180;
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
+// In-memory cache of the last stored route_point per couple/role, so we can
+// skip inserting near-duplicate points (device stationary, GPS jitter) without
+// an extra DB read on every ping. Best-effort only — resets on server restart,
+// which just means we store one extra point after a redeploy. Fine.
+const _lastRoutePoint = new Map(); // key: `${coupleId}:${role}` -> { lat, lng, at, date }
+function _shouldStoreRoutePoint(coupleId, role, lat, lng, localDate) {
+  const key = coupleId + ':' + role;
+  const prev = _lastRoutePoint.get(key);
+  const now = Date.now();
+  if (!prev || prev.date !== localDate) { _lastRoutePoint.set(key, { lat, lng, at: now, date: localDate }); return true; }
+  const movedM = haversineM(prev, { lat, lng });
+  const ageMs = now - prev.at;
+  if (movedM < ROUTE_DEDUPE_MIN_METERS && ageMs < ROUTE_DEDUPE_MAX_AGE_MS) return false;
+  _lastRoutePoint.set(key, { lat, lng, at: now, date: localDate });
+  return true;
+}
 
 // ── POST /api/location/ping ─────────────────────────────
 // Called every ~8-10s (or on >15m movement) while the Live Map
@@ -53,13 +78,16 @@ router.post('/ping', async (req, res) => {
 
   // Phase 2 — daily route history (separate table, not trimmed to 60,
   // grouped by calendar day for the Daily Route feature). Best-effort,
-  // never blocks or fails the ping response.
+  // never blocks or fails the ping response. Skips near-duplicate points
+  // (stationary device / GPS jitter) to keep storage and reads lean.
   const localDate = req.body.localDate || new Date().toISOString().slice(0, 10);
-  supabase.from('route_points').insert({
-    couple_id: coupleId, role, lat, lng,
-    accuracy: accuracy ?? null, speed: speed ?? null,
-    local_date: localDate
-  }).then(() => {}).catch(() => {});
+  if (_shouldStoreRoutePoint(coupleId, role, lat, lng, localDate)) {
+    supabase.from('route_points').insert({
+      couple_id: coupleId, role, lat, lng,
+      accuracy: accuracy ?? null, speed: speed ?? null,
+      local_date: localDate
+    }).then(() => {}).catch(() => {});
+  }
 
   return res.json({ ok: true });
 });
