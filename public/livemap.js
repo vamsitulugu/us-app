@@ -1007,6 +1007,142 @@ const LiveMap = (() => {
   function _clearNavRoute() {
     if (st.navLine) { st.map.removeLayer(st.navLine); st.navLine = null; }
     if (st.navAltLines) { st.navAltLines.forEach(l => st.map.removeLayer(l)); st.navAltLines = []; }
+    (st.routePoiMarkers || []).forEach(m => st.map.removeLayer(m));
+    st.routePoiMarkers = [];
+    st.navRouteCoords = null;
+    _routePoiActive = null;
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     SEARCH ALONG ROUTE — find ATMs/food/fuel/etc along the
+     currently-drawn nav route (or the straight-line fallback for
+     walk/bike). Uses the same free Overpass endpoint as Meeting
+     Point, but corridor-filters results to points actually near
+     the route polyline (not just near the destination).
+     ══════════════════════════════════════════════════════════ */
+  const ROUTE_POI_TYPES = {
+    atm:      { tag: '"amenity"="atm"',                          icon: '🏧', label: 'ATM' },
+    food:     { tag: '"amenity"~"restaurant|fast_food"',         icon: '🍽️', label: 'Food' },
+    fuel:     { tag: '"amenity"="fuel"',                         icon: '⛽', label: 'Fuel' },
+    pharmacy: { tag: '"amenity"="pharmacy"',                     icon: '💊', label: 'Pharmacy' },
+    hospital: { tag: '"amenity"="hospital"',                     icon: '🏥', label: 'Hospital' },
+    ev:       { tag: '"amenity"="charging_station"',             icon: '🔌', label: 'EV Charging' },
+    parking:  { tag: '"amenity"="parking"',                      icon: '🅿️', label: 'Parking' },
+    coffee:   { tag: '"amenity"="cafe"',                         icon: '☕', label: 'Coffee' }
+  };
+  let _routePoiActive = null;
+
+  function _navPoiSectionHtml() {
+    return `<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:6px">Search along route</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${Object.keys(ROUTE_POI_TYPES).map(k => {
+          const t = ROUTE_POI_TYPES[k];
+          return `<div class="lm-poi-chip${k === _routePoiActive ? ' active' : ''}" data-poi="${k}" onclick="LiveMap.searchAlongRoute('${k}')">${t.icon} ${t.label}</div>`;
+        }).join('')}
+      </div>
+      <div id="lmRoutePoiResults" style="margin-top:8px;display:none"></div>
+    </div>`;
+  }
+
+  // Perpendicular distance (meters) from point p to segment a-b, via a small
+  // equirectangular projection around `a` — accurate enough at route scale.
+  function _pointToSegDistM(p, a, b) {
+    const R = 6371000;
+    const toXY = (pt) => ({
+      x: (pt.lng - a.lng) * Math.PI / 180 * Math.cos(a.lat * Math.PI / 180) * R,
+      y: (pt.lat - a.lat) * Math.PI / 180 * R
+    });
+    const A = { x: 0, y: 0 }, B = toXY(b), P = toXY(p);
+    const dx = B.x - A.x, dy = B.y - A.y;
+    const len2 = dx * dx + dy * dy;
+    let t = len2 ? ((P.x - A.x) * dx + (P.y - A.y) * dy) / len2 : 0;
+    t = Math.max(0, Math.min(1, t));
+    const cx = A.x + t * dx, cy = A.y + t * dy;
+    return Math.hypot(P.x - cx, P.y - cy);
+  }
+  function _minDistToRouteM(p, coords) {
+    let min = Infinity;
+    for (let i = 1; i < coords.length; i++) {
+      const d = _pointToSegDistM(p, { lat: coords[i - 1][0], lng: coords[i - 1][1] }, { lat: coords[i][0], lng: coords[i][1] });
+      if (d < min) min = d;
+    }
+    return min;
+  }
+  // Approx distance-along-route (km-scale), used only for sorting results
+  // into the order you'd actually encounter them while driving.
+  function _distAlongRouteKm(p, coords) {
+    let best = Infinity, bestCum = 0, cum = 0;
+    for (let i = 0; i < coords.length; i++) {
+      const v = { lat: coords[i][0], lng: coords[i][1] };
+      const d = haversine(p, v);
+      if (d < best) { best = d; bestCum = cum; }
+      if (i < coords.length - 1) cum += haversine(v, { lat: coords[i + 1][0], lng: coords[i + 1][1] });
+    }
+    return bestCum;
+  }
+  function _sampleRouteCoords(coords, n) {
+    if (!coords || coords.length <= n) return coords || [];
+    const out = [];
+    for (let i = 0; i < n; i++) out.push(coords[Math.round(i * (coords.length - 1) / (n - 1))]);
+    return out;
+  }
+
+  async function searchAlongRoute(key) {
+    const coords = st.navRouteCoords;
+    const t = ROUTE_POI_TYPES[key];
+    if (!coords || coords.length < 2 || !t) { toast('Start navigation first'); return; }
+    _routePoiActive = key;
+    document.querySelectorAll('.lm-poi-chip').forEach(c => c.classList.toggle('active', c.dataset.poi === key));
+    const resultsEl = document.getElementById('lmRoutePoiResults');
+    if (!resultsEl) return;
+    resultsEl.style.display = 'block';
+    resultsEl.innerHTML = `<div class="empty">Searching ${t.label.toLowerCase()} along the route…</div>`;
+    (st.routePoiMarkers || []).forEach(m => st.map.removeLayer(m));
+    st.routePoiMarkers = [];
+
+    const radius = 700; // corridor half-width, meters
+    const samples = _sampleRouteCoords(coords, 8);
+    const filters = samples.map(c => `node[${t.tag}](around:${radius},${c[0]},${c[1]});`).join('');
+    const query = `[out:json][timeout:15];(${filters});out center 40;`;
+    try {
+      const resp = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(query) });
+      if (!resp.ok) throw new Error('overpass error');
+      const data = await resp.json();
+      const seen = new Set();
+      let places = (data.elements || []).filter(e => {
+        if (e.lat == null || e.lon == null || seen.has(e.id)) return false;
+        seen.add(e.id);
+        return true;
+      });
+      // Corridor filter: an "around" hit near a sample point can still be off
+      // to the side of the actual road — drop anything not genuinely close
+      // to the route line itself.
+      places = places.filter(p => _minDistToRouteM({ lat: p.lat, lng: p.lon }, coords) <= radius);
+      places.forEach(p => { p._prog = _distAlongRouteKm({ lat: p.lat, lng: p.lon }, coords); });
+      places.sort((a, b) => a._prog - b._prog);
+      places = places.slice(0, 15);
+      if (!places.length) { resultsEl.innerHTML = `<div class="empty">No ${t.label.toLowerCase()} found along this route.</div>`; return; }
+      resultsEl.innerHTML = places.map(p => {
+        const name = p.tags?.name || t.label;
+        return `<div class="money-row">
+          <div class="money-ic inc">${t.icon}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:500;color:var(--white)">${esc(name)}</div>
+            <div style="font-size:10px;color:var(--text3)">${p._prog.toFixed(1)} km into the route</div>
+          </div>
+          <button class="btn btn-glass btn-xs" onclick="LiveMap.flyTo(${p.lat},${p.lon})">View</button>
+          <button class="btn btn-accent btn-xs" onclick="LiveMap.navigateToPoint(${p.lat},${p.lon},'${esc(name).replace(/'/g, "\\'")}')">🧭</button>
+        </div>`;
+      }).join('');
+      places.forEach(p => {
+        const mIcon = L.divIcon({ html: `<div style="width:20px;height:20px;border-radius:50%;background:#2a2a2a;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px">${t.icon}</div>`, className: '', iconSize: [20, 20] });
+        const m = L.marker([p.lat, p.lon], { icon: mIcon }).addTo(st.map).bindPopup(esc(p.tags?.name || t.label));
+        st.routePoiMarkers.push(m);
+      });
+    } catch (e) {
+      resultsEl.innerHTML = '<div class="empty">Couldn\'t search along the route right now — try again.</div>';
+    }
   }
   async function navigateToPartner(mode) {
     _navMode = mode || _navMode;
@@ -1040,11 +1176,12 @@ const LiveMap = (() => {
     const mins = Math.round((km / prof.kmh) * 60);
     st.navLine = L.polyline([[S.myLoc.lat, S.myLoc.lng], [dest.lat, dest.lng]], { color: '#5b9bff', weight: 4, opacity: 0.6, dashArray: '8,8' }).addTo(st.map);
     st.map.fitBounds(st.navLine.getBounds(), { padding: [50, 50] });
+    st.navRouteCoords = [[S.myLoc.lat, S.myLoc.lng], [dest.lat, dest.lng]];
     panel.innerHTML = _navModeButtons() + `
       <div style="margin-top:8px;font-size:11px">
         <div style="font-weight:700;color:var(--white)">${prof.icon} To ${esc(dest.label)} — ~${km.toFixed(1)} km · ~${mins} min</div>
         <div style="color:var(--text3);margin-top:2px">Straight-line estimate — turn-by-turn ${prof.osrm ? "routing failed, showing a fallback" : "isn't available for this mode"}.</div>
-      </div>`;
+      </div>` + _navPoiSectionHtml();
   }
   function _navModeButtons() {
     return `<div style="display:flex;gap:6px">${Object.keys(NAV_PROFILES).map(k => {
@@ -1073,6 +1210,12 @@ const LiveMap = (() => {
     const coords = active.geometry.coordinates.map(c => [c[1], c[0]]);
     st.navLine = L.polyline(coords, { color: '#5b9bff', weight: 5, opacity: 0.9 }).addTo(st.map);
     st.map.fitBounds(coords, { padding: [50, 50] });
+    st.navRouteCoords = coords;
+    // Switching/re-picking a route invalidates any in-progress POI search
+    // against the old line — clear it so results can't silently go stale.
+    (st.routePoiMarkers || []).forEach(m => st.map.removeLayer(m));
+    st.routePoiMarkers = [];
+    _routePoiActive = null;
 
     const km = (active.distance / 1000).toFixed(1);
     const mins = Math.round(active.duration / 60);
@@ -1089,7 +1232,7 @@ const LiveMap = (() => {
       <div style="margin-top:8px;font-size:11px">
         <div style="font-weight:700;color:var(--white)">${prof.icon} To ${esc(dest.label)} — ${km} km · ${mins} min</div>
         <div style="color:var(--text3);margin-top:2px">Estimated arrival ${eta}${routes.length > 1 ? ` · ${routes.length} routes found` : ''}</div>
-      </div>${altPicker}`;
+      </div>${altPicker}${_navPoiSectionHtml()}`;
   }
   function selectNavRoute(idx) {
     if (!_navRoutesCache) return;
@@ -1561,7 +1704,7 @@ const LiveMap = (() => {
     getWeather,
     pauseSharing, resumeSharing, togglePrivacyPanel,
     toggleApproxLocation, toggleInvisibleMode, emergencyShare, dismissEmergencyBanner,
-    toggleNavPanel, navigateToPartner, navigateToPoint, selectNavRoute,
+    toggleNavPanel, navigateToPartner, navigateToPoint, selectNavRoute, searchAlongRoute,
     _debug: st
   };
 })();
