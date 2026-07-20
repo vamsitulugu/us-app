@@ -1288,8 +1288,15 @@ const LiveMap = (() => {
      navigating. Purely derived from GPS fixes we already receive — no
      extra network calls, no polling timers (battery-friendly). */
   function _startNavProgress({ totalKm, totalMins, steps, dest }) {
-    st.navProgress = { totalKm, totalMins, steps, dest, startTs: Date.now(), lastProgKm: 0, lastTs: Date.now(), curSpeedKmh: 0 };
+    st.navProgress = {
+      totalKm, totalMins, steps, dest, startTs: Date.now(), lastProgKm: 0, lastTs: Date.now(), curSpeedKmh: 0,
+      // trip-summary accumulators (item 16) — filled in as GPS fixes arrive, purely local
+      movingSec: 0, stoppedSec: 0, maxSpeedKmh: 0, stopStartTs: null, stops: [], arrived: false
+    };
   }
+  const STOP_SPEED_KMH = 1.5;  // below this we count the interval as "stopped", not crawling traffic
+  const MIN_STOP_MIN    = 0.5; // ignore sub-30s pauses (red lights, GPS jitter) as real "stops"
+  const ARRIVAL_KM      = 0.03; // ~30m from destination counts as arrived
   function _maneuverText(man, roadName) {
     const name = roadName ? esc(roadName) : '';
     if (!man) return name || 'Continue';
@@ -1312,6 +1319,7 @@ const LiveMap = (() => {
     const np = st.navProgress;
     const el = document.getElementById('lmNavProgress');
     if (!np || !el || !st.navRouteCoords) return;
+    if (np.arrived) return; // trip summary already shown — frozen until nav panel is reopened
     const coords = st.navRouteCoords;
     const rawProg = S.myLoc ? _distAlongRouteKm(S.myLoc, coords) : 0;
     const progKm = Math.min(Math.max(rawProg, 0), np.totalKm);
@@ -1320,15 +1328,43 @@ const LiveMap = (() => {
 
     // Current speed: distance covered along the route since the last render
     // tick, over elapsed time — only recompute once enough time has passed
-    // so a single GPS jitter doesn't spike the reading.
+    // so a single GPS jitter doesn't spike the reading. Same tick also feeds
+    // the trip-summary accumulators (moving/stopped time, max speed, stops)
+    // — all purely local, no extra network calls.
     const now = Date.now();
     const dtSec = (now - np.lastTs) / 1000;
     if (dtSec >= 2) {
       const dKm = progKm - np.lastProgKm;
       if (dKm >= 0) np.curSpeedKmh = Math.max(0, (dKm / dtSec) * 3600);
+      if (np.curSpeedKmh > np.maxSpeedKmh) np.maxSpeedKmh = np.curSpeedKmh;
+      if (np.curSpeedKmh < STOP_SPEED_KMH) {
+        np.stoppedSec += dtSec;
+        if (np.stopStartTs == null) np.stopStartTs = np.lastTs;
+      } else {
+        np.movingSec += dtSec;
+        if (np.stopStartTs != null) {
+          const stopMins = (np.lastTs - np.stopStartTs) / 60000;
+          if (stopMins >= MIN_STOP_MIN) np.stops.push({ mins: stopMins });
+          np.stopStartTs = null;
+        }
+      }
       np.lastProgKm = progKm;
       np.lastTs = now;
     }
+
+    // ── Arrival → freeze tracking and show the trip summary instead ──
+    if (np.totalKm > 0.05 && remainKm <= ARRIVAL_KM) {
+      np.arrived = true;
+      if (np.stopStartTs != null) { // close out a trailing stop right at arrival
+        const stopMins = (now - np.stopStartTs) / 60000;
+        if (stopMins >= MIN_STOP_MIN) np.stops.push({ mins: stopMins });
+        np.stopStartTs = null;
+      }
+      toast(`🎉 Arrived at ${np.dest?.label || 'destination'}!`);
+      _renderTripSummary(np);
+      return;
+    }
+
     const elapsedHrs = Math.max((now - np.startTs) / 3600000, 1 / 3600);
     const avgSpeedKmh = progKm / elapsedHrs;
     const remainMins = avgSpeedKmh > 1
@@ -1352,6 +1388,48 @@ const LiveMap = (() => {
           <div>📊 ${avgSpeedKmh.toFixed(0)} km/h avg</div>
         </div>
         <div style="margin-top:6px;font-size:11px;color:var(--white);font-weight:500">↪ ${nextWaypoint}</div>
+      </div>`;
+  }
+
+  /* ── TRIP SUMMARY (item 16) ────────────────────────────────────
+     Shown once in place of the live progress panel when navigation
+     detects arrival (~30m from destination). Everything here is
+     derived from accumulators fed by _renderNavProgressUI on every
+     GPS fix during the trip — no extra network calls, no polling.
+     Reuses the existing .period-stats/.pstat classes from Daily
+     Route history so the look matches the rest of the app exactly.
+     "Replay Journey" hands off to that same Daily Route feature,
+     since today's just-finished trip is already part of today's
+     saved route/points on the server. */
+  function _renderTripSummary(np) {
+    const el = document.getElementById('lmNavProgress');
+    if (!el) return;
+    const totalSec = Math.max(1, (Date.now() - np.startTs) / 1000);
+    const travelMin = Math.max(1, Math.round(totalSec / 60));
+    const movingMin = Math.round(np.movingSec / 60);
+    const stoppedMin = Math.max(0, travelMin - movingMin);
+    const avgKmh = np.totalKm / (totalSec / 3600);
+    const longestStop = np.stops.reduce((a, b) => (b.mins > (a ? a.mins : 0) ? b : a), null);
+
+    el.innerHTML = `
+      <div style="margin-top:10px;padding:12px;background:var(--g1);border-radius:var(--rs);border:1px solid var(--border)">
+        <div style="font-weight:700;color:var(--white);font-size:13px;margin-bottom:10px">🎉 Arrived at ${esc(np.dest?.label || 'destination')}!</div>
+        <div class="period-stats" style="margin-bottom:8px">
+          <div class="pstat"><div class="pstat-n">${np.totalKm.toFixed(1)} km</div><div class="pstat-l">Distance</div></div>
+          <div class="pstat"><div class="pstat-n">${travelMin} min</div><div class="pstat-l">Travel Time</div></div>
+          <div class="pstat"><div class="pstat-n">${np.stops.length}</div><div class="pstat-l">Stops</div></div>
+        </div>
+        <div class="period-stats" style="margin-bottom:8px">
+          <div class="pstat"><div class="pstat-n">${movingMin} min</div><div class="pstat-l">Moving Time</div></div>
+          <div class="pstat"><div class="pstat-n">${stoppedMin} min</div><div class="pstat-l">Stopped Time</div></div>
+          <div class="pstat"><div class="pstat-n">${avgKmh.toFixed(0)} km/h</div><div class="pstat-l">Avg Speed</div></div>
+          <div class="pstat"><div class="pstat-n">${np.maxSpeedKmh.toFixed(0)} km/h</div><div class="pstat-l">Max Speed</div></div>
+        </div>
+        ${longestStop ? `<div style="font-size:10px;color:var(--text3);margin-bottom:10px">⏱️ Longest stop: <b style="color:var(--white)">${Math.round(longestStop.mins)} min</b></div>` : ''}
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-glass btn-xs" onclick="LiveMap.openRouteHistory()">📼 Replay Journey</button>
+          <button class="btn btn-accent btn-xs" onclick="LiveMap.toggleNavPanel()">Done</button>
+        </div>
       </div>`;
   }
 
