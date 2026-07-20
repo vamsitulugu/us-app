@@ -355,6 +355,8 @@ const LiveMap = (() => {
     _animateMarker('my', outLat, outLng, accuracy, heading);
     _updateMyStatusUI();
     _checkGeofences(outLat, outLng);
+    _renderRoutePoiList(); // no-op unless a route-POI search is active; purely local, no network
+    _renderNavProgressUI(); // no-op unless navigation is active; purely local, no network
 
     // Throttle server pings — time-based OR distance-based trigger
     const moved = st.lastPingPos ? haversine(st.lastPingPos, { lat: outLat, lng: outLng }) * 1000 : Infinity;
@@ -1011,6 +1013,8 @@ const LiveMap = (() => {
     st.routePoiMarkers = [];
     st.navRouteCoords = null;
     _routePoiActive = null;
+    st.routePoiCache = null;
+    st.navProgress = null;
   }
 
   /* ══════════════════════════════════════════════════════════
@@ -1122,27 +1126,55 @@ const LiveMap = (() => {
       places.forEach(p => { p._prog = _distAlongRouteKm({ lat: p.lat, lng: p.lon }, coords); });
       places.sort((a, b) => a._prog - b._prog);
       places = places.slice(0, 15);
-      if (!places.length) { resultsEl.innerHTML = `<div class="empty">No ${t.label.toLowerCase()} found along this route.</div>`; return; }
-      resultsEl.innerHTML = places.map(p => {
-        const name = p.tags?.name || t.label;
-        return `<div class="money-row">
-          <div class="money-ic inc">${t.icon}</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:12px;font-weight:500;color:var(--white)">${esc(name)}</div>
-            <div style="font-size:10px;color:var(--text3)">${p._prog.toFixed(1)} km into the route</div>
-          </div>
-          <button class="btn btn-glass btn-xs" onclick="LiveMap.flyTo(${p.lat},${p.lon})">View</button>
-          <button class="btn btn-accent btn-xs" onclick="LiveMap.navigateToPoint(${p.lat},${p.lon},'${esc(name).replace(/'/g, "\\'")}')">🧭</button>
-        </div>`;
-      }).join('');
-      places.forEach(p => {
-        const mIcon = L.divIcon({ html: `<div style="width:20px;height:20px;border-radius:50%;background:#2a2a2a;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px">${t.icon}</div>`, className: '', iconSize: [20, 20] });
-        const m = L.marker([p.lat, p.lon], { icon: mIcon }).addTo(st.map).bindPopup(esc(p.tags?.name || t.label));
-        st.routePoiMarkers.push(m);
-      });
+      // Cache the full result set (with route-progress already computed) so
+      // live GPS updates can re-filter/re-sort locally with zero extra network calls.
+      st.routePoiCache = { key, t, coords, places };
+      _renderRoutePoiList();
     } catch (e) {
       resultsEl.innerHTML = '<div class="empty">Couldn\'t search along the route right now — try again.</div>';
     }
+  }
+
+  // Re-renders the active route-POI list/markers from the cached result set,
+  // dropping anything already behind the current position and showing
+  // "X km ahead" instead of absolute route km. No network calls — pure local
+  // re-filter, called on every accepted GPS fix while a search is active.
+  function _renderRoutePoiList() {
+    const cache = st.routePoiCache;
+    if (!cache || !_routePoiActive || cache.key !== _routePoiActive) return;
+    const { t, coords, places: all } = cache;
+    const resultsEl = document.getElementById('lmRoutePoiResults');
+    if (!resultsEl) return;
+
+    const myProg = S.myLoc ? _distAlongRouteKm(S.myLoc, coords) : 0;
+    const BEHIND_BUFFER_KM = 0.15; // small grace so we don't drop a POI we're still passing
+    const ahead = all.filter(p => p._prog >= myProg - BEHIND_BUFFER_KM);
+
+    (st.routePoiMarkers || []).forEach(m => st.map.removeLayer(m));
+    st.routePoiMarkers = [];
+
+    if (!ahead.length) {
+      resultsEl.innerHTML = `<div class="empty">No more ${t.label.toLowerCase()} ahead on this route.</div>`;
+      return;
+    }
+    resultsEl.innerHTML = ahead.map(p => {
+      const name = p.tags?.name || t.label;
+      const remainKm = Math.max(0, p._prog - myProg);
+      return `<div class="money-row">
+        <div class="money-ic inc">${t.icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:500;color:var(--white)">${esc(name)}</div>
+          <div style="font-size:10px;color:var(--text3)">${remainKm.toFixed(1)} km ahead</div>
+        </div>
+        <button class="btn btn-glass btn-xs" onclick="LiveMap.flyTo(${p.lat},${p.lon})">View</button>
+        <button class="btn btn-accent btn-xs" onclick="LiveMap.navigateToPoint(${p.lat},${p.lon},'${esc(name).replace(/'/g, "\\'")}')">🧭</button>
+      </div>`;
+    }).join('');
+    ahead.forEach(p => {
+      const mIcon = L.divIcon({ html: `<div style="width:20px;height:20px;border-radius:50%;background:#2a2a2a;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px">${t.icon}</div>`, className: '', iconSize: [20, 20] });
+      const m = L.marker([p.lat, p.lon], { icon: mIcon }).addTo(st.map).bindPopup(esc(p.tags?.name || t.label));
+      st.routePoiMarkers.push(m);
+    });
   }
   async function navigateToPartner(mode) {
     _navMode = mode || _navMode;
@@ -1160,7 +1192,7 @@ const LiveMap = (() => {
 
     if (prof.osrm) {
       try {
-        const url = `https://router.project-osrm.org/route/v1/${prof.osrm}/${S.myLoc.lng},${S.myLoc.lat};${dest.lng},${dest.lat}?overview=full&geometries=geojson&alternatives=true`;
+        const url = `https://router.project-osrm.org/route/v1/${prof.osrm}/${S.myLoc.lng},${S.myLoc.lat};${dest.lng},${dest.lat}?overview=full&geometries=geojson&alternatives=true&steps=true`;
         const resp = await fetch(url);
         const data = await resp.json();
         const routes = (data.routes || []).slice(0, 3);
@@ -1177,11 +1209,13 @@ const LiveMap = (() => {
     st.navLine = L.polyline([[S.myLoc.lat, S.myLoc.lng], [dest.lat, dest.lng]], { color: '#5b9bff', weight: 4, opacity: 0.6, dashArray: '8,8' }).addTo(st.map);
     st.map.fitBounds(st.navLine.getBounds(), { padding: [50, 50] });
     st.navRouteCoords = [[S.myLoc.lat, S.myLoc.lng], [dest.lat, dest.lng]];
+    _startNavProgress({ totalKm: km, totalMins: mins, steps: null, dest });
     panel.innerHTML = _navModeButtons() + `
       <div style="margin-top:8px;font-size:11px">
         <div style="font-weight:700;color:var(--white)">${prof.icon} To ${esc(dest.label)} — ~${km.toFixed(1)} km · ~${mins} min</div>
         <div style="color:var(--text3);margin-top:2px">Straight-line estimate — turn-by-turn ${prof.osrm ? "routing failed, showing a fallback" : "isn't available for this mode"}.</div>
-      </div>` + _navPoiSectionHtml();
+      </div><div id="lmNavProgress"></div>` + _navPoiSectionHtml();
+    _renderNavProgressUI();
   }
   function _navModeButtons() {
     return `<div style="display:flex;gap:6px">${Object.keys(NAV_PROFILES).map(k => {
@@ -1228,15 +1262,97 @@ const LiveMap = (() => {
           Route ${i + 1} · ${(r.distance / 1000).toFixed(1)} km · ${Math.round(r.duration / 60)} min
         </button>`).join('')}
       </div>` : '';
+    // Flatten OSRM steps (across all legs, there's normally just one leg for a
+    // 2-point route) into a single cumulative-distance list for progress lookup.
+    const steps = [];
+    let cum = 0;
+    (active.legs || []).forEach(leg => (leg.steps || []).forEach(s => {
+      cum += s.distance;
+      steps.push({ cumKm: cum / 1000, name: s.name || '', maneuver: s.maneuver });
+    }));
+    _startNavProgress({ totalKm: parseFloat(km), totalMins: mins, steps: steps.length ? steps : null, dest });
     panel.innerHTML = _navModeButtons() + `
       <div style="margin-top:8px;font-size:11px">
         <div style="font-weight:700;color:var(--white)">${prof.icon} To ${esc(dest.label)} — ${km} km · ${mins} min</div>
         <div style="color:var(--text3);margin-top:2px">Estimated arrival ${eta}${routes.length > 1 ? ` · ${routes.length} routes found` : ''}</div>
-      </div>${altPicker}${_navPoiSectionHtml()}`;
+      </div><div id="lmNavProgress"></div>${altPicker}${_navPoiSectionHtml()}`;
+    _renderNavProgressUI();
   }
   function selectNavRoute(idx) {
     if (!_navRoutesCache) return;
     _renderNavRoutes(_navRoutesCache.routes, _navRoutesCache.dest, _navRoutesCache.prof, idx);
+  }
+
+  /* ── LIVE ROUTE PROGRESS ──────────────────────────────────────
+     Drives the progress bar / speed / next-waypoint panel shown while
+     navigating. Purely derived from GPS fixes we already receive — no
+     extra network calls, no polling timers (battery-friendly). */
+  function _startNavProgress({ totalKm, totalMins, steps, dest }) {
+    st.navProgress = { totalKm, totalMins, steps, dest, startTs: Date.now(), lastProgKm: 0, lastTs: Date.now(), curSpeedKmh: 0 };
+  }
+  function _maneuverText(man, roadName) {
+    const name = roadName ? esc(roadName) : '';
+    if (!man) return name || 'Continue';
+    const dir = man.modifier ? man.modifier.replace(/_/g, ' ') : '';
+    let action;
+    switch (man.type) {
+      case 'depart': action = 'Head out'; break;
+      case 'arrive': return 'Arrive at destination';
+      case 'turn': action = dir ? `Turn ${dir}` : 'Turn'; break;
+      case 'merge': action = dir ? `Merge ${dir}` : 'Merge'; break;
+      case 'roundabout': case 'rotary': action = 'Enter the roundabout'; break;
+      case 'fork': action = dir ? `Keep ${dir}` : 'Keep straight'; break;
+      case 'end of road': action = dir ? `Turn ${dir}` : 'Continue'; break;
+      case 'continue': action = dir === 'straight' ? 'Continue straight' : (dir ? `Continue ${dir}` : 'Continue'); break;
+      default: action = 'Continue';
+    }
+    return name ? `${action} onto ${name}` : action;
+  }
+  function _renderNavProgressUI() {
+    const np = st.navProgress;
+    const el = document.getElementById('lmNavProgress');
+    if (!np || !el || !st.navRouteCoords) return;
+    const coords = st.navRouteCoords;
+    const rawProg = S.myLoc ? _distAlongRouteKm(S.myLoc, coords) : 0;
+    const progKm = Math.min(Math.max(rawProg, 0), np.totalKm);
+    const pct = np.totalKm > 0 ? (progKm / np.totalKm) * 100 : 0;
+    const remainKm = Math.max(0, np.totalKm - progKm);
+
+    // Current speed: distance covered along the route since the last render
+    // tick, over elapsed time — only recompute once enough time has passed
+    // so a single GPS jitter doesn't spike the reading.
+    const now = Date.now();
+    const dtSec = (now - np.lastTs) / 1000;
+    if (dtSec >= 2) {
+      const dKm = progKm - np.lastProgKm;
+      if (dKm >= 0) np.curSpeedKmh = Math.max(0, (dKm / dtSec) * 3600);
+      np.lastProgKm = progKm;
+      np.lastTs = now;
+    }
+    const elapsedHrs = Math.max((now - np.startTs) / 3600000, 1 / 3600);
+    const avgSpeedKmh = progKm / elapsedHrs;
+    const remainMins = avgSpeedKmh > 1
+      ? Math.round((remainKm / avgSpeedKmh) * 60)
+      : Math.round(np.totalMins * (remainKm / Math.max(np.totalKm, 0.001)));
+
+    let nextWaypoint = `Continue toward ${esc(np.dest?.label || 'destination')}`;
+    if (np.steps && np.steps.length) {
+      const next = np.steps.find(s => s.cumKm > progKm + 0.02);
+      nextWaypoint = next ? _maneuverText(next.maneuver, next.name) : `Arriving at ${esc(np.dest?.label || 'destination')}`;
+    }
+
+    el.innerHTML = `
+      <div style="margin-top:10px;padding:10px;background:var(--g1);border-radius:var(--rs);border:1px solid var(--border)">
+        <div class="study-progress"><div class="study-fill" style="width:${pct.toFixed(0)}%"></div></div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:var(--text3)">
+          <span>${progKm.toFixed(1)} km done</span><span>${remainKm.toFixed(1)} km left · ~${remainMins} min</span>
+        </div>
+        <div style="display:flex;gap:14px;margin-top:8px;font-size:10px;color:var(--text3)">
+          <div>⚡ ${np.curSpeedKmh.toFixed(0)} km/h now</div>
+          <div>📊 ${avgSpeedKmh.toFixed(0)} km/h avg</div>
+        </div>
+        <div style="margin-top:6px;font-size:11px;color:var(--white);font-weight:500">↪ ${nextWaypoint}</div>
+      </div>`;
   }
 
   const MEETING_PLACE_TYPES = {
