@@ -179,14 +179,20 @@ const LiveMap = (() => {
   let _pauseTimer = null, _pauseUntil = null;
   function _clearPauseTimer() { if (_pauseTimer) { clearTimeout(_pauseTimer); _pauseTimer = null; } _pauseUntil = null; }
 
+  function _pushStatus(status, untilMinutes) {
+    if (!S.coupleId) return;
+    api('POST', '/api/location/status', { coupleId: S.coupleId, role: S.role, status, untilMinutes: untilMinutes || null }).catch(() => {});
+  }
   function pauseSharing(minutes) {
     _clearPauseTimer();
-    stopTracking(true);
+    stopTracking(true); // stopTracking(true) already hits /api/location/stop, which sets status:'paused' server-side
     if (minutes) { // null/0 = "until manually resumed"
       _pauseUntil = Date.now() + minutes * 60000;
       _pauseTimer = setTimeout(() => { startTracking(); toast('Live tracking auto-resumed 📡'); _renderPrivacyPanel(); }, minutes * 60000);
+      _pushStatus('paused', minutes);
       toast(`Location sharing paused for ${minutes >= 60 ? (minutes / 60) + 'h' : minutes + 'm'} ⏸`);
     } else {
+      _pushStatus('paused', null);
       toast('Location sharing paused until you resume it ⏸');
     }
     _renderPrivacyPanel();
@@ -194,6 +200,7 @@ const LiveMap = (() => {
   function resumeSharing() {
     _clearPauseTimer();
     startTracking();
+    _pushStatus('active', null);
     toast('Live tracking resumed 📡');
     _renderPrivacyPanel();
   }
@@ -463,7 +470,11 @@ const LiveMap = (() => {
     const st2 = document.getElementById('lmPtStatus'), dot2 = document.getElementById('lmPtDot');
     if (!st2) return;
     if (!S.paired) { st2.textContent = 'Not paired yet'; if (dot2) dot2.style.background = 'var(--text3)'; return; }
-    if (st.ptLast && st.ptLast.online) {
+    if (st.ptLast && st.ptLast.status === 'paused') {
+      const until = st.ptLast.statusUntil ? new Date(st.ptLast.statusUntil) : null;
+      st2.textContent = until ? `⏸ Paused — resumes ${until.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : '⏸ Sharing paused';
+      if (dot2) dot2.style.background = 'var(--yellow)';
+    } else if (st.ptLast && st.ptLast.online) {
       st2.textContent = _statusLine(st.ptLast, st.ptLast.moving, st.ptLast.lat, st.ptLast.lng);
       if (dot2) dot2.style.background = 'var(--green)';
     } else if (st.ptLast) {
@@ -473,6 +484,23 @@ const LiveMap = (() => {
       st2.textContent = 'No location shared yet';
       if (dot2) dot2.style.background = 'var(--text3)';
     }
+    _updateEmergencyBanner();
+  }
+  let _emergencyDismissed = false;
+  function _updateEmergencyBanner() {
+    const el = document.getElementById('lmEmergencyBanner');
+    if (!el) return;
+    if (st.ptLast && st.ptLast.emergency && !_emergencyDismissed) {
+      el.style.display = 'flex';
+      el.querySelector('.lm-emg-text').textContent = `🚨 ${S.partnerName || 'Partner'} sent an emergency location share`;
+    } else {
+      el.style.display = 'none';
+      if (!(st.ptLast && st.ptLast.emergency)) _emergencyDismissed = false; // reset once the alert itself clears server-side
+    }
+  }
+  function dismissEmergencyBanner() {
+    _emergencyDismissed = true;
+    _updateEmergencyBanner();
   }
   function _updateStatsUI() {
     const dist = haversine(S.myLoc, S.ptLoc);
@@ -518,7 +546,7 @@ const LiveMap = (() => {
       return;
     }
     try {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lng}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,precipitation&daily=sunrise,sunset&timezone=auto`;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lng}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,precipitation&daily=sunrise,sunset,uv_index_max&timezone=auto`;
       const resp = await fetch(url);
       const data = await resp.json();
       _weatherCache = { key, at: Date.now(), data };
@@ -534,6 +562,8 @@ const LiveMap = (() => {
     const icon = WEATHER_ICONS[c.weather_code] || '🌡️';
     const sunrise = data.daily?.sunrise?.[0] ? new Date(data.daily.sunrise[0]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
     const sunset = data.daily?.sunset?.[0] ? new Date(data.daily.sunset[0]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
+    const uv = data.daily?.uv_index_max?.[0];
+    const uvLabel = uv == null ? '—' : uv < 3 ? 'Low' : uv < 6 ? 'Moderate' : uv < 8 ? 'High' : uv < 11 ? 'Very High' : 'Extreme';
     panel.innerHTML = `
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
         <div style="font-size:28px">${icon}</div>
@@ -546,6 +576,7 @@ const LiveMap = (() => {
         <div>💧 Humidity: ${c.relative_humidity_2m}%</div>
         <div>💨 Wind: ${Math.round(c.wind_speed_10m)} km/h</div>
         <div>🌧️ Rain: ${c.precipitation ?? 0} mm</div>
+        <div>☀️ UV Index: ${uv != null ? uv.toFixed(1) : '—'} (${uvLabel})</div>
         <div>🌅 Sunrise: ${sunrise}</div>
         <div>🌇 Sunset: ${sunset}</div>
       </div>`;
@@ -975,6 +1006,7 @@ const LiveMap = (() => {
   }
   function _clearNavRoute() {
     if (st.navLine) { st.map.removeLayer(st.navLine); st.navLine = null; }
+    if (st.navAltLines) { st.navAltLines.forEach(l => st.map.removeLayer(l)); st.navAltLines = []; }
   }
   async function navigateToPartner(mode) {
     _navMode = mode || _navMode;
@@ -992,22 +1024,12 @@ const LiveMap = (() => {
 
     if (prof.osrm) {
       try {
-        const url = `https://router.project-osrm.org/route/v1/${prof.osrm}/${S.myLoc.lng},${S.myLoc.lat};${dest.lng},${dest.lat}?overview=full&geometries=geojson`;
+        const url = `https://router.project-osrm.org/route/v1/${prof.osrm}/${S.myLoc.lng},${S.myLoc.lat};${dest.lng},${dest.lat}?overview=full&geometries=geojson&alternatives=true`;
         const resp = await fetch(url);
         const data = await resp.json();
-        const route = data.routes && data.routes[0];
-        if (!route) throw new Error('no route');
-        const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
-        st.navLine = L.polyline(coords, { color: '#5b9bff', weight: 5, opacity: 0.85 }).addTo(st.map);
-        st.map.fitBounds(coords, { padding: [50, 50] });
-        const km = (route.distance / 1000).toFixed(1);
-        const mins = Math.round(route.duration / 60);
-        const eta = new Date(Date.now() + route.duration * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        panel.innerHTML = _navModeButtons() + `
-          <div style="margin-top:8px;font-size:11px">
-            <div style="font-weight:700;color:var(--white)">${prof.icon} To ${esc(dest.label)} — ${km} km · ${mins} min</div>
-            <div style="color:var(--text3);margin-top:2px">Estimated arrival ${eta}</div>
-          </div>`;
+        const routes = (data.routes || []).slice(0, 3);
+        if (!routes.length) throw new Error('no route');
+        _renderNavRoutes(routes, dest, prof, 0);
         return;
       } catch (e) {
         // Fall through to straight-line estimate below — graceful, not silent.
@@ -1029,6 +1051,49 @@ const LiveMap = (() => {
       const p = NAV_PROFILES[k];
       return `<button class="btn ${k === _navMode ? 'btn-accent' : 'btn-glass'} btn-xs" onclick="LiveMap.navigateToPartner('${k}')">${p.icon} ${p.label}</button>`;
     }).join('')}</div>`;
+  }
+
+  let _navRoutesCache = null; // { routes, dest, prof }
+  function _renderNavRoutes(routes, dest, prof, activeIdx) {
+    _navRoutesCache = { routes, dest, prof };
+    _clearNavRoute();
+    st.navAltLines = st.navAltLines || [];
+    st.navAltLines.forEach(l => st.map.removeLayer(l));
+    st.navAltLines = [];
+
+    // Draw alternates first (thin, dim) so the active route paints on top.
+    routes.forEach((route, i) => {
+      if (i === activeIdx) return;
+      const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+      const line = L.polyline(coords, { color: '#8a8a8a', weight: 4, opacity: 0.45 })
+        .addTo(st.map).on('click', () => _renderNavRoutes(routes, dest, prof, i));
+      st.navAltLines.push(line);
+    });
+    const active = routes[activeIdx];
+    const coords = active.geometry.coordinates.map(c => [c[1], c[0]]);
+    st.navLine = L.polyline(coords, { color: '#5b9bff', weight: 5, opacity: 0.9 }).addTo(st.map);
+    st.map.fitBounds(coords, { padding: [50, 50] });
+
+    const km = (active.distance / 1000).toFixed(1);
+    const mins = Math.round(active.duration / 60);
+    const eta = new Date(Date.now() + active.duration * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const panel = document.getElementById('lmNavPanel');
+    if (!panel) return;
+    const altPicker = routes.length > 1 ? `
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+        ${routes.map((r, i) => `<button class="btn ${i === activeIdx ? 'btn-accent' : 'btn-glass'} btn-xs" onclick="LiveMap.selectNavRoute(${i})">
+          Route ${i + 1} · ${(r.distance / 1000).toFixed(1)} km · ${Math.round(r.duration / 60)} min
+        </button>`).join('')}
+      </div>` : '';
+    panel.innerHTML = _navModeButtons() + `
+      <div style="margin-top:8px;font-size:11px">
+        <div style="font-weight:700;color:var(--white)">${prof.icon} To ${esc(dest.label)} — ${km} km · ${mins} min</div>
+        <div style="color:var(--text3);margin-top:2px">Estimated arrival ${eta}${routes.length > 1 ? ` · ${routes.length} routes found` : ''}</div>
+      </div>${altPicker}`;
+  }
+  function selectNavRoute(idx) {
+    if (!_navRoutesCache) return;
+    _renderNavRoutes(_navRoutesCache.routes, _navRoutesCache.dest, _navRoutesCache.prof, idx);
   }
 
   const MEETING_PLACE_TYPES = {
@@ -1451,15 +1516,36 @@ const LiveMap = (() => {
   _fitBoth();
   startTracking();
   _startPolling();
-  window.addEventListener('online', _pollOnce);
-  window.addEventListener('offline', () => { const el = document.getElementById('lmOfflineBanner'); if (el) el.style.display = 'flex'; });
+  const offlineEl = document.getElementById('lmOfflineBanner');
+  if (offlineEl) offlineEl.style.display = navigator.onLine ? 'none' : 'flex'; // reflect current state immediately, don't wait for an event
 }
   function onLeavePage() {
     st.pageActive = false;
     _stopPolling();
-    // Keep GPS watch running in background so tracking is continuous
-    // even off the map page (per requirement: "location updates continuously").
+    // GPS watch (startTracking) keeps running in background so tracking is
+    // continuous even off the map page (per requirement: "location updates
+    // continuously"). But UI-only timers tied to this page's DOM should stop —
+    // leaving them running was a memory/battery leak across page navigations.
+    if (st.playbackTimer) { clearInterval(st.playbackTimer); st.playbackTimer = null; }
+    if (_autoStyleTimer) { clearInterval(_autoStyleTimer); _autoStyleTimer = null; }
+    // Note: the pause-sharing timer (_pauseTimer) is intentionally left running —
+    // it's a user-initiated commitment ("resume in 15m") that should honor
+    // itself regardless of which page the user is currently on.
   }
+
+  // One-time listeners for the whole module lifetime — NOT inside onEnterPage,
+  // which used to re-register these on every visit to the map page and stack
+  // duplicate handlers (each stacked 'online' handler fired an extra _pollOnce,
+  // compounding network calls the longer the app was used).
+  window.addEventListener('online', () => {
+    const el = document.getElementById('lmOfflineBanner');
+    if (el) el.style.display = 'none';
+    if (st.pageActive) { _pollOnce(); _teardownLmRealtime(); _setupLmRealtime(); }
+  });
+  window.addEventListener('offline', () => {
+    const el = document.getElementById('lmOfflineBanner');
+    if (el && st.pageActive) el.style.display = 'flex';
+  });
 
   /* ── PUBLIC API ── */
   return {
@@ -1474,8 +1560,8 @@ const LiveMap = (() => {
     openRouteHistory, loadRouteDay, playbackRoute, pausePlayback, setPlaybackSpeed, switchRouteRole,
     getWeather,
     pauseSharing, resumeSharing, togglePrivacyPanel,
-    toggleApproxLocation, toggleInvisibleMode, emergencyShare,
-    toggleNavPanel, navigateToPartner, navigateToPoint,
+    toggleApproxLocation, toggleInvisibleMode, emergencyShare, dismissEmergencyBanner,
+    toggleNavPanel, navigateToPartner, navigateToPoint, selectNavRoute,
     _debug: st
   };
 })();

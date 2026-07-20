@@ -5553,6 +5553,10 @@ select option { background: #0D0D0D; color: #fff; }
   <!-- Permission / offline banners -->
   <div id="lmPermBanner" class="info-banner" style="display:none;border-color:rgba(248,113,113,0.3);background:rgba(248,113,113,0.08);color:var(--red)"></div>
   <div id="lmOfflineBanner" class="info-banner" style="display:none;border-color:rgba(251,191,36,0.3);background:rgba(251,191,36,0.08);color:var(--yellow)">📡 You're offline — showing last known positions</div>
+  <div id="lmEmergencyBanner" class="info-banner" style="display:none;border-color:rgba(239,68,68,0.4);background:rgba(239,68,68,0.1);color:#ff6b6b;align-items:center;justify-content:space-between;gap:8px">
+    <span class="lm-emg-text">🚨 Emergency location share</span>
+    <button class="btn btn-glass btn-xs" onclick="LiveMap.dismissEmergencyBanner()">Dismiss</button>
+  </div>
 
   <div class="card">
     <div class="card-title">

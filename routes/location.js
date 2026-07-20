@@ -39,12 +39,12 @@ function _shouldStoreRoutePoint(coupleId, role, lat, lng, localDate) {
 // page is open, and via background geolocation.watchPosition.
 // Tiny payload — does NOT touch app_state / chat / photos.
 router.post('/ping', async (req, res) => {
-  const { coupleId, role, lat, lng, accuracy, heading, speed, moving } = req.body;
+  const { coupleId, role, lat, lng, accuracy, heading, speed, moving, emergency } = req.body;
   if (!coupleId || !role || lat == null || lng == null) {
     return res.status(400).json({ error: 'Missing coupleId/role/lat/lng' });
   }
 
-  const { error } = await supabase.from('live_locations').upsert({
+  const upsertRow = {
     couple_id: coupleId,
     role,
     lat, lng,
@@ -52,8 +52,12 @@ router.post('/ping', async (req, res) => {
     heading:  heading ?? null,
     speed:    speed ?? null,
     moving:   !!moving,
-    updated_at: new Date().toISOString()
-  }, { onConflict: 'couple_id,role' });
+    updated_at: new Date().toISOString(),
+    status: 'active' // a normal ping always implies active sharing (pauses go through /status instead)
+  };
+  if (emergency) { upsertRow.emergency = true; upsertRow.emergency_at = new Date().toISOString(); }
+
+  const { error } = await supabase.from('live_locations').upsert(upsertRow, { onConflict: 'couple_id,role' });
 
   if (error) return res.status(500).json({ error: error.message });
 
@@ -97,25 +101,48 @@ router.post('/ping', async (req, res) => {
 router.get('/:coupleId', async (req, res) => {
   const { data, error } = await supabase
     .from('live_locations')
-    .select('role, lat, lng, accuracy, heading, speed, moving, updated_at')
+    .select('role, lat, lng, accuracy, heading, speed, moving, updated_at, status, status_until, emergency, emergency_at')
     .eq('couple_id', req.params.coupleId);
 
   if (error) return res.status(500).json({ error: error.message });
 
+  const EMERGENCY_ALERT_WINDOW_MS = 10 * 60 * 1000; // show the 🚨 banner for 10 min after an emergency share
   const now = Date.now();
   const out = { user1: null, user2: null };
   (data || []).forEach(row => {
     const age = now - new Date(row.updated_at).getTime();
+    const emergencyAge = row.emergency_at ? now - new Date(row.emergency_at).getTime() : Infinity;
     out[row.role] = {
       lat: row.lat, lng: row.lng,
       accuracy: row.accuracy, heading: row.heading, speed: row.speed,
       moving: row.moving,
       updatedAt: row.updated_at,
       online: age < ONLINE_WINDOW_MS,
-      ageMs: age
+      ageMs: age,
+      status: row.status || 'active',
+      statusUntil: row.status_until,
+      emergency: !!row.emergency && emergencyAge < EMERGENCY_ALERT_WINDOW_MS
     };
   });
   return res.json(out);
+});
+
+// ── POST /api/location/status ────────────────────────────
+// Sets a partner-visible sharing status without needing a GPS fix —
+// used by Pause 15m / Pause 1h / Pause manually / Resume. (Invisible
+// Mode deliberately does NOT call this — it must stay undetectable,
+// so the client just stops pinging instead.)
+router.post('/status', async (req, res) => {
+  const { coupleId, role, status, untilMinutes } = req.body;
+  if (!coupleId || !role || !['active', 'paused'].includes(status)) {
+    return res.status(400).json({ error: 'Missing/invalid coupleId/role/status' });
+  }
+  const statusUntil = (status === 'paused' && untilMinutes) ? new Date(Date.now() + untilMinutes * 60000).toISOString() : null;
+  const { error } = await supabase.from('live_locations')
+    .update({ status, status_until: statusUntil })
+    .eq('couple_id', coupleId).eq('role', role);
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ ok: true });
 });
 
 // ── GET /api/location/:coupleId/trail/:role ─────────────
@@ -139,9 +166,10 @@ router.get('/:coupleId/trail/:role', async (req, res) => {
 router.post('/stop', async (req, res) => {
   const { coupleId, role } = req.body;
   if (!coupleId || !role) return res.status(400).json({ error: 'Missing data' });
-  // Push updated_at far into the past so it reads as offline immediately.
+  // Push updated_at far into the past so it reads as offline immediately,
+  // and mark status paused (manual) for the partner-visible pause UI.
   await supabase.from('live_locations')
-    .update({ updated_at: new Date(0).toISOString() })
+    .update({ updated_at: new Date(0).toISOString(), status: 'paused', status_until: null })
     .eq('couple_id', coupleId).eq('role', role);
   return res.json({ ok: true });
 });
