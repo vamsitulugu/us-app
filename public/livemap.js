@@ -345,10 +345,15 @@ const LiveMap = (() => {
         if (mine) st.myLast = mine;
         if (theirs) {
   const changed = !st.ptLast || st.ptLast.lat !== theirs.lat || st.ptLast.lng !== theirs.lng;
+  const wasOnline = st.ptLast ? st.ptLast.online : null;
   st.ptLast = theirs;
   if (changed && theirs.lat != null && theirs.lng != null) {
     S.ptLoc = { lat: theirs.lat, lng: theirs.lng, ts: Date.parse(theirs.updatedAt), moving: theirs.moving, accuracy: theirs.accuracy, heading: theirs.heading };
-    _animateMarker('pt', theirs.lat, theirs.lng, theirs.accuracy, theirs.heading);
+    _animateMarker('pt', theirs.lat, theirs.lng, theirs.accuracy, theirs.heading, !theirs.online);
+  } else if (wasOnline !== theirs.online && st.ptMarker) {
+    // Online/offline flipped with no position change (e.g. partner just went stale) — repaint marker in place.
+    const p = st.ptMarker.getLatLng();
+    _ensureMarker('pt', p.lat, p.lng, theirs.accuracy, theirs.heading, !theirs.online);
   }
 }
       }
@@ -484,13 +489,13 @@ const LiveMap = (() => {
   }
 
   /* ── SMOOTH MARKER ANIMATION ─────────────────────────────── */
-  function _animateMarker(who, lat, lng, accuracy, heading) {
+  function _animateMarker(who, lat, lng, accuracy, heading, offline) {
     if (!st.map || !window.L) return;
     const fromMarker = who === 'my' ? st.myMarker : st.ptMarker;
     const from = fromMarker ? fromMarker.getLatLng() : { lat, lng };
     if (who === 'my') { st.myAnimFrom = from; st.myAnimTarget = { lat, lng }; st.myAnimStart = performance.now(); }
     else { st.ptAnimFrom = from; st.ptAnimTarget = { lat, lng }; st.ptAnimStart = performance.now(); }
-    _ensureMarker(who, lat, lng, accuracy, heading);
+    _ensureMarker(who, lat, lng, accuracy, heading, offline);
     _tickAnim();
   }
 
@@ -509,7 +514,7 @@ const LiveMap = (() => {
     }
   }
 
-  function _ensureMarker(who, lat, lng, accuracy, heading) {
+  function _ensureMarker(who, lat, lng, accuracy, heading, offline) {
   if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) {
     console.warn('LiveMap: ignoring invalid coords for', who, lat, lng);
     return;
@@ -519,13 +524,16 @@ const LiveMap = (() => {
   const avatar = who === 'my' ? S.myAvatar : S.partnerAvatar;
   const size = who === 'my' ? 30 : 38;
   const inner = avatar
-    ? `<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0">`
+    ? `<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0;${offline ? 'filter:grayscale(1)' : ''}">`
     : esc(name[0] || (who === 'my' ? 'U' : 'P'));
-  const color = who === 'my' ? 'var(--accent)' : 'var(--accent2)';
-  const arrow = (heading != null && !isNaN(heading))
+  const color = offline ? '#7a7a7a' : (who === 'my' ? 'var(--accent)' : 'var(--accent2)');
+  const arrow = (!offline && heading != null && !isNaN(heading))
     ? `<div style="position:absolute;top:-9px;left:50%;transform:translateX(-50%) rotate(${heading}deg);transform-origin:50% ${size/2+9}px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid ${who==='my'?'#5b9bff':'#ff6baf'}"></div>`
     : '';
-  const html = `<div style="position:relative;width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;color:#fff;font-size:${size*0.4}px;font-weight:700;border:3px solid #fff;box-shadow:0 0 0 4px ${who==='my'?'rgba(91,155,255,0.35)':'rgba(255,107,175,0.35)'},0 4px 14px rgba(0,0,0,0.4)">${arrow}${inner}</div>`;
+  const offlineBadge = offline
+    ? `<div style="position:absolute;bottom:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:#555;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:8px">💤</div>`
+    : '';
+  const html = `<div style="position:relative;width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;color:#fff;font-size:${size*0.4}px;font-weight:700;border:3px solid #fff;opacity:${offline ? 0.55 : 1};box-shadow:0 0 0 4px ${offline ? 'rgba(120,120,120,0.25)' : (who==='my'?'rgba(91,155,255,0.35)':'rgba(255,107,175,0.35)')},0 4px 14px rgba(0,0,0,0.4)">${arrow}${inner}${offlineBadge}</div>`;
   const icon = L.divIcon({ html, className: '', iconSize: [size, size] });
   if (who === 'my') {
     if (!st.myMarker) st.myMarker = L.marker([lat, lng], { icon, zIndexOffset: 400 }).addTo(st.map);
@@ -533,6 +541,10 @@ const LiveMap = (() => {
   } else {
     if (!st.ptMarker) st.ptMarker = L.marker([lat, lng], { icon, zIndexOffset: 500 }).addTo(st.map);
     else st.ptMarker.setIcon(icon);
+    const popupText = offline
+      ? `<b>${esc(S.partnerName || 'Partner')}</b><br>💤 Offline — last known location<br>${fmtAgo(st.ptLast ? st.ptLast.updatedAt : null)}`
+      : `<b>${esc(S.partnerName || 'Partner')}</b>`;
+    st.ptMarker.bindPopup(popupText);
   }
 }
 
@@ -796,11 +808,60 @@ const LiveMap = (() => {
     dark:      { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attribution: '© OpenStreetMap, © CARTO' },
     satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attribution: 'Tiles © Esri' }
   };
-  function setMapStyle(style) {
+
+  // ── Sunrise/sunset (no API — standard NOAA approximation) ──────────
+  // Good to within a couple minutes almost everywhere, which is plenty
+  // for deciding "is it light or dark out" for the map theme.
+  function _sunTimesUTCMinutes(lat, lng, date) {
+    const rad = Math.PI / 180;
+    const start = Date.UTC(date.getUTCFullYear(), 0, 1);
+    const dayOfYear = Math.floor((Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) - start) / 86400000) + 1;
+    const gamma = 2 * Math.PI / 365 * (dayOfYear - 1);
+    const eqTime = 229.18 * (0.000075 + 0.001868 * Math.cos(gamma) - 0.032077 * Math.sin(gamma)
+      - 0.014615 * Math.cos(2 * gamma) - 0.040849 * Math.sin(2 * gamma));
+    const decl = 0.006918 - 0.399912 * Math.cos(gamma) + 0.070257 * Math.sin(gamma)
+      - 0.006758 * Math.cos(2 * gamma) + 0.000907 * Math.sin(2 * gamma)
+      - 0.002697 * Math.cos(3 * gamma) + 0.00148 * Math.sin(3 * gamma);
+    const zenith = 90.833 * rad;
+    const cosH = (Math.cos(zenith) - Math.sin(lat * rad) * Math.sin(decl)) / (Math.cos(lat * rad) * Math.cos(decl));
+    if (cosH > 1 || cosH < -1) return null; // polar day/night
+    const haDeg = Math.acos(cosH) / rad;
+    const sunriseMin = 720 - 4 * (lng + haDeg) - eqTime;
+    const sunsetMin = 720 - 4 * (lng - haDeg) - eqTime;
+    return { sunriseMin, sunsetMin };
+  }
+  function _isDaytime(lat, lng) {
+    const now = new Date();
+    const t = _sunTimesUTCMinutes(lat, lng, now);
+    if (!t) return true; // polar edge case — default to day theme
+    const nowMin = now.getUTCHours() * 60 + now.getUTCMinutes();
+    return nowMin >= t.sunriseMin && nowMin <= t.sunsetMin;
+  }
+  let _autoStyleTimer = null;
+  function _applyAutoStyle() {
+    const loc = S.myLoc || (st.myLast ? st.myLast : null);
+    const style = (loc && loc.lat != null) ? (_isDaytime(loc.lat, loc.lng) ? 'street' : 'dark') : 'street';
+    _setTileLayer(style);
+    document.querySelectorAll('.lm-style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === 'auto'));
+  }
+  function _setTileLayer(style) {
     if (!st.map || !TILE_LAYERS[style]) return;
     if (st.tileLayer) st.map.removeLayer(st.tileLayer);
     const cfg = TILE_LAYERS[style];
     st.tileLayer = L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: 19 }).addTo(st.map);
+  }
+  function setMapStyle(style) {
+    if (!st.map) return;
+    if (_autoStyleTimer) { clearInterval(_autoStyleTimer); _autoStyleTimer = null; }
+    if (style === 'auto') {
+      st.mapStyle = 'auto';
+      _applyAutoStyle();
+      _autoStyleTimer = setInterval(_applyAutoStyle, 15 * 60 * 1000); // re-check every 15 min
+      document.querySelectorAll('.lm-style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === 'auto'));
+      return;
+    }
+    if (!TILE_LAYERS[style]) return;
+    _setTileLayer(style);
     st.mapStyle = style;
     document.querySelectorAll('.lm-style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === style));
   }
@@ -820,6 +881,84 @@ const LiveMap = (() => {
   /* ══════════════════════════════════════════════════════════
      PHASE 2 — MEETING POINT (simple geographic midpoint)
      ══════════════════════════════════════════════════════════ */
+  /* ══════════════════════════════════════════════════════════
+     NAVIGATE TO PARTNER
+     Real routing via the free public OSRM demo server (no API key)
+     for the "drive" profile, which is the only profile that public
+     instance hosts. Walk/bike modes, and any routing failure, fall
+     back gracefully to a straight-line distance/ETA estimate that's
+     clearly labeled as approximate — never a silent wrong number.
+     ══════════════════════════════════════════════════════════ */
+  const NAV_PROFILES = {
+    drive: { osrm: 'driving', label: 'Driving', icon: '🚗', kmh: 40 },
+    walk:  { osrm: null,      label: 'Walking',  icon: '🚶', kmh: 5 },
+    bike:  { osrm: null,      label: 'Cycling',  icon: '🚴', kmh: 15 }
+  };
+  let _navMode = 'drive';
+  function toggleNavPanel() {
+    const panel = document.getElementById('lmNavPanel');
+    if (!panel) return;
+    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    if (panel.style.display === 'block') navigateToPartner(_navMode);
+    else _clearNavRoute();
+  }
+  function _clearNavRoute() {
+    if (st.navLine) { st.map.removeLayer(st.navLine); st.navLine = null; }
+  }
+  async function navigateToPartner(mode) {
+    _navMode = mode || _navMode;
+    const panel = document.getElementById('lmNavPanel');
+    if (!panel) return;
+    panel.style.display = 'block';
+    if (!S.myLoc || !S.ptLoc) {
+      panel.innerHTML = _navModeButtons() + '<div style="margin-top:8px">Both of you need to share location first.</div>';
+      return;
+    }
+    panel.innerHTML = _navModeButtons() + '<div style="margin-top:8px">Finding route…</div>';
+    const prof = NAV_PROFILES[_navMode];
+    _clearNavRoute();
+
+    if (prof.osrm) {
+      try {
+        const url = `https://router.project-osrm.org/route/v1/${prof.osrm}/${S.myLoc.lng},${S.myLoc.lat};${S.ptLoc.lng},${S.ptLoc.lat}?overview=full&geometries=geojson`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        const route = data.routes && data.routes[0];
+        if (!route) throw new Error('no route');
+        const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+        st.navLine = L.polyline(coords, { color: '#5b9bff', weight: 5, opacity: 0.85 }).addTo(st.map);
+        st.map.fitBounds(coords, { padding: [50, 50] });
+        const km = (route.distance / 1000).toFixed(1);
+        const mins = Math.round(route.duration / 60);
+        const eta = new Date(Date.now() + route.duration * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        panel.innerHTML = _navModeButtons() + `
+          <div style="margin-top:8px;font-size:11px">
+            <div style="font-weight:700;color:var(--white)">${prof.icon} ${km} km · ${mins} min</div>
+            <div style="color:var(--text3);margin-top:2px">Estimated arrival ${eta}</div>
+          </div>`;
+        return;
+      } catch (e) {
+        // Fall through to straight-line estimate below — graceful, not silent.
+      }
+    }
+    // Straight-line fallback (walk/bike modes, or driving route lookup failed)
+    const km = haversine(S.myLoc, S.ptLoc);
+    const mins = Math.round((km / prof.kmh) * 60);
+    st.navLine = L.polyline([[S.myLoc.lat, S.myLoc.lng], [S.ptLoc.lat, S.ptLoc.lng]], { color: '#5b9bff', weight: 4, opacity: 0.6, dashArray: '8,8' }).addTo(st.map);
+    st.map.fitBounds(st.navLine.getBounds(), { padding: [50, 50] });
+    panel.innerHTML = _navModeButtons() + `
+      <div style="margin-top:8px;font-size:11px">
+        <div style="font-weight:700;color:var(--white)">${prof.icon} ~${km.toFixed(1)} km · ~${mins} min</div>
+        <div style="color:var(--text3);margin-top:2px">Straight-line estimate — turn-by-turn ${prof.osrm ? "routing failed, showing a fallback" : "isn't available for this mode"}.</div>
+      </div>`;
+  }
+  function _navModeButtons() {
+    return `<div style="display:flex;gap:6px">${Object.keys(NAV_PROFILES).map(k => {
+      const p = NAV_PROFILES[k];
+      return `<button class="btn ${k === _navMode ? 'btn-accent' : 'btn-glass'} btn-xs" onclick="LiveMap.navigateToPartner('${k}')">${p.icon} ${p.label}</button>`;
+    }).join('')}</div>`;
+  }
+
   function showMeetingPoint() {
     if (!S.myLoc || !S.ptLoc) { toast('Both of you need to share location first'); return; }
     const mid = { lat: (S.myLoc.lat + S.ptLoc.lat) / 2, lng: (S.myLoc.lng + S.ptLoc.lng) / 2 };
@@ -1149,6 +1288,7 @@ const LiveMap = (() => {
     openRouteHistory, loadRouteDay, playbackRoute, pausePlayback, setPlaybackSpeed, switchRouteRole,
     getWeather,
     pauseSharing, resumeSharing, togglePrivacyPanel,
+    toggleNavPanel, navigateToPartner,
     _debug: st
   };
 })();
