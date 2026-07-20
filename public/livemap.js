@@ -203,21 +203,79 @@ const LiveMap = (() => {
     panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
     if (panel.style.display === 'block') _renderPrivacyPanel();
   }
+  function toggleApproxLocation() {
+    st.approxLocation = !st.approxLocation;
+    st.lastPingPos = null; // force an immediate re-send at the new precision
+    toast(st.approxLocation ? '📍 Switched to approximate location (~1km)' : '📍 Switched to exact location');
+    _renderPrivacyPanel();
+  }
+  function toggleInvisibleMode() {
+    st.invisible = !st.invisible;
+    if (st.invisible) {
+      toast('🕶️ Invisible mode on — your partner won\'t see new updates');
+    } else {
+      st.lastPingPos = null; // force an immediate re-send now that we're visible again
+      toast('👀 Invisible mode off — sharing resumed');
+    }
+    _renderPrivacyPanel();
+  }
+  function emergencyShare() {
+    if (!navigator.geolocation) { toast('GPS not available on this device'); return; }
+    toast('🚨 Sending your exact location now…');
+    navigator.geolocation.getCurrentPosition(pos => {
+      const { latitude: lat, longitude: lng, accuracy, heading, speed } = pos.coords;
+      if (!S.coupleId) return;
+      api('POST', '/api/location/ping', {
+        coupleId: S.coupleId, role: S.role, lat, lng,
+        accuracy: accuracy || null, heading: heading || null, speed: speed || null,
+        moving: (speed || 0) > 1, localDate: _localDateStr(), emergency: true
+      }).then(() => {
+        _pingLmChanged();
+        toast('🚨 Emergency location sent to ' + (S.partnerName || 'your partner'));
+      }).catch(() => toast('Couldn\'t send right now — check your connection'));
+    }, () => toast('Couldn\'t get a GPS fix for emergency share'), { enableHighAccuracy: true, timeout: 10000 });
+  }
+  async function _batteryNetworkLine() {
+    let batteryTxt = '', netTxt = '';
+    try {
+      if (navigator.getBattery) {
+        const b = await navigator.getBattery();
+        batteryTxt = `🔋 ${Math.round(b.level * 100)}%${b.charging ? ' (charging)' : ''}`;
+      }
+    } catch (e) {}
+    try {
+      const c = navigator.connection || navigator.webkitConnection || navigator.mozConnection;
+      if (c) netTxt = `📶 ${(c.effectiveType || 'unknown').toUpperCase()}`;
+    } catch (e) {}
+    return [batteryTxt, netTxt].filter(Boolean).join(' · ') || null;
+  }
   function _renderPrivacyPanel() {
     const panel = document.getElementById('lmPrivacyPanel');
     if (!panel || panel.style.display !== 'block') return;
-    const statusLine = !st.tracking
+    const statusLine = st.invisible
+      ? '🕶️ Invisible mode — partner sees no live updates'
+      : !st.tracking
       ? (_pauseUntil ? `⏸ Paused — auto-resumes ${new Date(_pauseUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : '⏸ Paused until you resume it')
       : '🟢 Sharing your live location';
     panel.innerHTML = `
       <div style="font-size:11px;color:var(--white);font-weight:600;margin-bottom:8px">${statusLine}</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
         <button class="btn btn-glass btn-xs" onclick="LiveMap.pauseSharing(15)">Pause 15m</button>
         <button class="btn btn-glass btn-xs" onclick="LiveMap.pauseSharing(60)">Pause 1h</button>
         <button class="btn btn-glass btn-xs" onclick="LiveMap.pauseSharing(0)">Pause manually</button>
         <button class="btn btn-accent btn-xs" onclick="LiveMap.resumeSharing()">Resume now</button>
       </div>
-      <div style="font-size:9px;color:var(--text3);margin-top:8px">Your partner sees "last seen" instead of your live position while paused — they aren't told which pause option you chose.</div>`;
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        <button class="btn ${st.approxLocation ? 'btn-accent' : 'btn-glass'} btn-xs" onclick="LiveMap.toggleApproxLocation()">${st.approxLocation ? '📍 Approximate (~1km)' : '🎯 Exact location'}</button>
+        <button class="btn ${st.invisible ? 'btn-accent' : 'btn-glass'} btn-xs" onclick="LiveMap.toggleInvisibleMode()">🕶️ Invisible mode</button>
+      </div>
+      <button class="btn btn-sm" style="background:var(--red);width:100%;margin-bottom:8px" onclick="LiveMap.emergencyShare()">🚨 Emergency Share (send exact location now)</button>
+      <div id="lmBatteryNetLine" style="font-size:10px;color:var(--text3)">Checking device status…</div>
+      <div style="font-size:9px;color:var(--text3);margin-top:8px">While paused or invisible, your partner sees "last seen" instead of your live position.</div>`;
+    _batteryNetworkLine().then(line => {
+      const el = document.getElementById('lmBatteryNetLine');
+      if (el) el.textContent = line || 'Battery/network status not available on this device';
+    });
   }
 
   function toggleTracking() {
@@ -294,13 +352,18 @@ const LiveMap = (() => {
     // Throttle server pings — time-based OR distance-based trigger
     const moved = st.lastPingPos ? haversine(st.lastPingPos, { lat: outLat, lng: outLng }) * 1000 : Infinity;
     const dueTime = now - st.lastPingAt >= PING_MIN_INTERVAL_MS;
-    if ((dueTime && moved > 2) || moved > PING_MIN_DISTANCE_M || !st.lastPingPos) {
+    if (!st.invisible && ((dueTime && moved > 2) || moved > PING_MIN_DISTANCE_M || !st.lastPingPos)) {
       st.lastPingAt = now;
       st.lastPingPos = { lat: outLat, lng: outLng };
       if (navigator.onLine && S.coupleId) {
+        // Approximate mode: partner (and route history) only ever see a coordinate
+        // rounded to ~1km precision. Your own marker/map always use the exact fix.
+        const sendLat = st.approxLocation ? +outLat.toFixed(2) : outLat;
+        const sendLng = st.approxLocation ? +outLng.toFixed(2) : outLng;
         api('POST', '/api/location/ping', {
-          coupleId: S.coupleId, role: S.role, lat: outLat, lng: outLng,
-          accuracy: accuracy || null, heading: heading || null,
+          coupleId: S.coupleId, role: S.role, lat: sendLat, lng: sendLng,
+          accuracy: st.approxLocation ? Math.max(accuracy || 0, 1000) : (accuracy || null),
+          heading: st.approxLocation ? null : (heading || null),
           speed: speed || null, moving: (speed || 0) > 1,
           localDate: _localDateStr()
         }).then(() => { _pingLmChanged(); })
@@ -895,12 +958,20 @@ const LiveMap = (() => {
     bike:  { osrm: null,      label: 'Cycling',  icon: '🚴', kmh: 15 }
   };
   let _navMode = 'drive';
+  let _navTarget = null; // null = navigate to partner; else { lat, lng, label }
   function toggleNavPanel() {
     const panel = document.getElementById('lmNavPanel');
     if (!panel) return;
-    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-    if (panel.style.display === 'block') navigateToPartner(_navMode);
-    else _clearNavRoute();
+    const opening = panel.style.display !== 'block';
+    panel.style.display = opening ? 'block' : 'none';
+    if (opening) { _navTarget = null; navigateToPartner(_navMode); }
+    else { _clearNavRoute(); _navTarget = null; }
+  }
+  function navigateToPoint(lat, lng, label) {
+    _navTarget = { lat, lng, label: label || 'destination' };
+    const panel = document.getElementById('lmNavPanel');
+    if (panel) panel.style.display = 'block';
+    navigateToPartner(_navMode);
   }
   function _clearNavRoute() {
     if (st.navLine) { st.map.removeLayer(st.navLine); st.navLine = null; }
@@ -910,17 +981,18 @@ const LiveMap = (() => {
     const panel = document.getElementById('lmNavPanel');
     if (!panel) return;
     panel.style.display = 'block';
-    if (!S.myLoc || !S.ptLoc) {
+    const dest = _navTarget || (S.ptLoc ? { lat: S.ptLoc.lat, lng: S.ptLoc.lng, label: S.partnerName || 'Partner' } : null);
+    if (!S.myLoc || !dest) {
       panel.innerHTML = _navModeButtons() + '<div style="margin-top:8px">Both of you need to share location first.</div>';
       return;
     }
-    panel.innerHTML = _navModeButtons() + '<div style="margin-top:8px">Finding route…</div>';
+    panel.innerHTML = _navModeButtons() + `<div style="margin-top:8px">Finding route to ${esc(dest.label)}…</div>`;
     const prof = NAV_PROFILES[_navMode];
     _clearNavRoute();
 
     if (prof.osrm) {
       try {
-        const url = `https://router.project-osrm.org/route/v1/${prof.osrm}/${S.myLoc.lng},${S.myLoc.lat};${S.ptLoc.lng},${S.ptLoc.lat}?overview=full&geometries=geojson`;
+        const url = `https://router.project-osrm.org/route/v1/${prof.osrm}/${S.myLoc.lng},${S.myLoc.lat};${dest.lng},${dest.lat}?overview=full&geometries=geojson`;
         const resp = await fetch(url);
         const data = await resp.json();
         const route = data.routes && data.routes[0];
@@ -933,7 +1005,7 @@ const LiveMap = (() => {
         const eta = new Date(Date.now() + route.duration * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         panel.innerHTML = _navModeButtons() + `
           <div style="margin-top:8px;font-size:11px">
-            <div style="font-weight:700;color:var(--white)">${prof.icon} ${km} km · ${mins} min</div>
+            <div style="font-weight:700;color:var(--white)">${prof.icon} To ${esc(dest.label)} — ${km} km · ${mins} min</div>
             <div style="color:var(--text3);margin-top:2px">Estimated arrival ${eta}</div>
           </div>`;
         return;
@@ -942,13 +1014,13 @@ const LiveMap = (() => {
       }
     }
     // Straight-line fallback (walk/bike modes, or driving route lookup failed)
-    const km = haversine(S.myLoc, S.ptLoc);
+    const km = haversine(S.myLoc, dest);
     const mins = Math.round((km / prof.kmh) * 60);
-    st.navLine = L.polyline([[S.myLoc.lat, S.myLoc.lng], [S.ptLoc.lat, S.ptLoc.lng]], { color: '#5b9bff', weight: 4, opacity: 0.6, dashArray: '8,8' }).addTo(st.map);
+    st.navLine = L.polyline([[S.myLoc.lat, S.myLoc.lng], [dest.lat, dest.lng]], { color: '#5b9bff', weight: 4, opacity: 0.6, dashArray: '8,8' }).addTo(st.map);
     st.map.fitBounds(st.navLine.getBounds(), { padding: [50, 50] });
     panel.innerHTML = _navModeButtons() + `
       <div style="margin-top:8px;font-size:11px">
-        <div style="font-weight:700;color:var(--white)">${prof.icon} ~${km.toFixed(1)} km · ~${mins} min</div>
+        <div style="font-weight:700;color:var(--white)">${prof.icon} To ${esc(dest.label)} — ~${km.toFixed(1)} km · ~${mins} min</div>
         <div style="color:var(--text3);margin-top:2px">Straight-line estimate — turn-by-turn ${prof.osrm ? "routing failed, showing a fallback" : "isn't available for this mode"}.</div>
       </div>`;
   }
@@ -959,7 +1031,16 @@ const LiveMap = (() => {
     }).join('')}</div>`;
   }
 
-  function showMeetingPoint() {
+  const MEETING_PLACE_TYPES = {
+    cafe:        { tag: '"amenity"="cafe"',                icon: '☕', label: 'Cafe' },
+    restaurant:  { tag: '"amenity"="restaurant"',           icon: '🍽️', label: 'Restaurant' },
+    mall:        { tag: '"shop"="mall"',                    icon: '🛍️', label: 'Mall' },
+    park:        { tag: '"leisure"="park"',                 icon: '🌳', label: 'Park' },
+    cinema:      { tag: '"amenity"="cinema"',                icon: '🎬', label: 'Cinema' },
+    temple:      { tag: '"amenity"="place_of_worship"',      icon: '🛕', label: 'Temple' },
+    fuel:        { tag: '"amenity"="fuel"',                  icon: '⛽', label: 'Petrol Station' }
+  };
+  async function showMeetingPoint() {
     if (!S.myLoc || !S.ptLoc) { toast('Both of you need to share location first'); return; }
     const mid = { lat: (S.myLoc.lat + S.ptLoc.lat) / 2, lng: (S.myLoc.lng + S.ptLoc.lng) / 2 };
     if (st.meetingMarker) st.map.removeLayer(st.meetingMarker);
@@ -969,11 +1050,64 @@ const LiveMap = (() => {
     });
     st.meetingMarker = L.marker([mid.lat, mid.lng], { icon }).addTo(st.map)
       .bindPopup('<b>Meeting point</b><br>Roughly halfway between you two').openPopup();
-    st.map.setView([mid.lat, mid.lng], 13);
+    st.map.setView([mid.lat, mid.lng], 14);
     const distEach = haversine(S.myLoc, mid);
     toast(`🤝 Meeting point set — about ${distEach.toFixed(1)} km from each of you`);
+    _findMeetingPlaceSuggestions(mid);
   }
+  st.meetingPlaceMarkers = st.meetingPlaceMarkers || [];
+  async function _findMeetingPlaceSuggestions(mid) {
+    const panel = document.getElementById('lmMeetingSuggestions');
+    if (!panel) return;
+    panel.style.display = 'block';
+    panel.innerHTML = '<div class="empty">Finding nearby cafes, restaurants & more…</div>';
+    (st.meetingPlaceMarkers || []).forEach(m => st.map.removeLayer(m));
+    st.meetingPlaceMarkers = [];
 
+    const radius = 1500; // meters
+    const filters = Object.values(MEETING_PLACE_TYPES).map(t => `node[${t.tag}](around:${radius},${mid.lat},${mid.lng});`).join('');
+    const query = `[out:json][timeout:12];(${filters});out center 24;`;
+    try {
+      const resp = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(query) });
+      if (!resp.ok) throw new Error('overpass error');
+      const data = await resp.json();
+      const places = (data.elements || []).filter(e => e.lat != null && e.lon != null).slice(0, 8);
+      if (!places.length) { panel.innerHTML = '<div class="empty">No nearby places found within 1.5 km — try a different area.</div>'; return; }
+      panel.innerHTML = places.map(p => {
+        const name = p.tags?.name || 'Unnamed place';
+        const typeKey = Object.keys(MEETING_PLACE_TYPES).find(k => {
+          const t = MEETING_PLACE_TYPES[k];
+          const [key, val] = t.tag.replace(/"/g, '').split('=');
+          return p.tags?.[key] === val;
+        });
+        const meta = MEETING_PLACE_TYPES[typeKey] || { icon: '📍', label: 'Place' };
+        const myD = haversine(S.myLoc, { lat: p.lat, lng: p.lon });
+        const ptD = haversine(S.ptLoc, { lat: p.lat, lng: p.lon });
+        return `<div class="money-row">
+          <div class="money-ic inc">${meta.icon}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:500;color:var(--white)">${esc(name)} <span style="color:var(--text3);font-weight:400">· ${meta.label}</span></div>
+            <div style="font-size:10px;color:var(--text3)">You: ${myD.toFixed(1)} km (~${Math.round(myD/40*60)} min) · ${esc(S.partnerName || 'Partner')}: ${ptD.toFixed(1)} km (~${Math.round(ptD/40*60)} min)</div>
+          </div>
+          <button class="btn btn-glass btn-xs" onclick="LiveMap.flyTo(${p.lat},${p.lon})">View</button>
+          <button class="btn btn-accent btn-xs" onclick="LiveMap.navigateToPoint(${p.lat},${p.lon},'${esc(name).replace(/'/g, "\\'")}')">🧭</button>
+        </div>`;
+      }).join('');
+      places.forEach(p => {
+        const typeKey = Object.keys(MEETING_PLACE_TYPES).find(k => {
+          const t = MEETING_PLACE_TYPES[k];
+          const [key, val] = t.tag.replace(/"/g, '').split('=');
+          return p.tags?.[key] === val;
+        });
+        const meta = MEETING_PLACE_TYPES[typeKey] || { icon: '📍' };
+        const mIcon = L.divIcon({ html: `<div style="width:22px;height:22px;border-radius:50%;background:#2a2a2a;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px">${meta.icon}</div>`, className: '', iconSize: [22, 22] });
+        const m = L.marker([p.lat, p.lon], { icon: mIcon }).addTo(st.map).bindPopup(esc(p.tags?.name || meta.label));
+        st.meetingPlaceMarkers.push(m);
+      });
+    } catch (e) {
+      panel.innerHTML = '<div class="empty">Couldn\'t reach the places lookup right now — showing just the midpoint above.</div>';
+    }
+  }
   /* ══════════════════════════════════════════════════════════
      PHASE 2 — STREET VIEW (Mapillary iframe, graceful fallback)
      No API key required for the public Mapillary embed viewer.
@@ -1097,7 +1231,7 @@ const LiveMap = (() => {
       body.innerHTML = '<div class="empty">No route data for this day yet</div>';
     }
   }
-  /** "Home → College → Shopping → Home" style summary line, using saved place names. */
+  /** "Home → College → Shopping → Home" style summary line, using saved place names, plus longest-stop / most-visited-place callouts. */
   function _renderJourneySummary(stops) {
     const el = document.getElementById('lmJourneySummary');
     if (!el) return;
@@ -1105,19 +1239,71 @@ const LiveMap = (() => {
     const names = stops.map(s => _nearestPlaceName(s.lat, s.lng) || 'Unknown stop');
     // Collapse consecutive duplicates (e.g. two clusters at the same place back-to-back)
     const collapsed = names.filter((n, i) => n !== names[i - 1]);
-    el.innerHTML = `<div class="lm-journey-line">${collapsed.map(esc).join(' <span class="lm-journey-arrow">→</span> ')}</div>`;
+    let html = `<div class="lm-journey-line">${collapsed.map(esc).join(' <span class="lm-journey-arrow">→</span> ')}</div>`;
+
+    const longest = stops.reduce((a, b) => (b.minutes > (a?.minutes || 0) ? b : a), null);
+    const counts = {};
+    names.forEach(n => { counts[n] = (counts[n] || 0) + 1; });
+    const mostVisited = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+    html += `<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-size:10px;color:var(--text3)">
+      ${longest ? `<span>⏱️ Longest stop: <b style="color:var(--white)">${esc(_nearestPlaceName(longest.lat, longest.lng) || 'a stop')}</b> · ${longest.minutes} min</span>` : ''}
+      ${mostVisited ? `<span>📌 Most visited: <b style="color:var(--white)">${esc(mostVisited)}</b> ${counts[mostVisited] > 1 ? '×' + counts[mostVisited] : ''}</span>` : ''}
+    </div>`;
+    el.innerHTML = html;
   }
+  /** Client-side extended stats from raw points — moving/stopped time, speed, mode-split distance, accuracy. */
+  function _computeExtendedStats(points, totalDurationMin) {
+    const out = { movingMin: 0, stoppedMin: 0, avgKmh: 0, maxKmh: 0, walkKm: 0, driveKm: 0, cycleKm: 0, avgAccuracy: null };
+    if (!points || points.length < 2) return out;
+    let movingSec = 0, speedSumKmh = 0, speedSamples = 0, maxKmh = 0, accSum = 0, accN = 0;
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1], b = points[i];
+      const dtSec = Math.max(0.5, (new Date(b.created_at) - new Date(a.created_at)) / 1000);
+      const segKm = haversine(a, b);
+      const kmh = (segKm * 1000 / dtSec) * 3.6;
+      if (kmh > 1) {
+        movingSec += dtSec;
+        speedSumKmh += kmh; speedSamples++;
+        if (kmh > maxKmh) maxKmh = kmh;
+        if (kmh < 7) out.walkKm += segKm;
+        else if (kmh < 35) out.cycleKm += segKm;
+        else out.driveKm += segKm;
+      }
+      if (a.accuracy != null) { accSum += a.accuracy; accN++; }
+    }
+    out.movingMin = Math.round(movingSec / 60);
+    out.stoppedMin = Math.max(0, Math.round((totalDurationMin || 0) - out.movingMin));
+    out.avgKmh = speedSamples ? +(speedSumKmh / speedSamples).toFixed(1) : 0;
+    out.maxKmh = +maxKmh.toFixed(1);
+    out.walkKm = +out.walkKm.toFixed(2); out.driveKm = +out.driveKm.toFixed(2); out.cycleKm = +out.cycleKm.toFixed(2);
+    out.avgAccuracy = accN ? Math.round(accSum / accN) : null;
+    return out;
+  }
+
   function _renderRouteStats(data) {
     const body = document.getElementById('lmRouteBody');
     if (!data.points || !data.points.length) {
       body.innerHTML = '<div class="empty">No movement recorded for this day</div>';
       return;
     }
+    const ext = _computeExtendedStats(data.points, data.stats.durationMin);
     body.innerHTML = `
-      <div class="period-stats" style="margin-bottom:10px">
+      <div class="period-stats" style="margin-bottom:8px">
         <div class="pstat"><div class="pstat-n">${data.stats.distanceKm} km</div><div class="pstat-l">Distance</div></div>
         <div class="pstat"><div class="pstat-n">${data.stats.durationMin} min</div><div class="pstat-l">Duration</div></div>
         <div class="pstat"><div class="pstat-n">${data.stops.length}</div><div class="pstat-l">Stops</div></div>
+      </div>
+      <div class="period-stats" style="margin-bottom:10px">
+        <div class="pstat"><div class="pstat-n">${ext.movingMin} min</div><div class="pstat-l">Moving Time</div></div>
+        <div class="pstat"><div class="pstat-n">${ext.stoppedMin} min</div><div class="pstat-l">Stopped Time</div></div>
+        <div class="pstat"><div class="pstat-n">${ext.avgKmh} km/h</div><div class="pstat-l">Avg Speed</div></div>
+        <div class="pstat"><div class="pstat-n">${ext.maxKmh} km/h</div><div class="pstat-l">Max Speed</div></div>
+      </div>
+      <div class="period-stats" style="margin-bottom:10px">
+        <div class="pstat"><div class="pstat-n">${ext.walkKm} km</div><div class="pstat-l">🚶 Walking</div></div>
+        <div class="pstat"><div class="pstat-n">${ext.cycleKm} km</div><div class="pstat-l">🚴 Cycling</div></div>
+        <div class="pstat"><div class="pstat-n">${ext.driveKm} km</div><div class="pstat-l">🚗 Driving</div></div>
+        <div class="pstat"><div class="pstat-n">${ext.avgAccuracy != null ? ext.avgAccuracy + ' m' : '—'}</div><div class="pstat-l">GPS Accuracy</div></div>
       </div>
       <div id="lmJourneySummary"></div>
       <div class="lm-playback-bar" style="display:flex;align-items:center;gap:8px;margin:8px 0;flex-wrap:wrap">
@@ -1288,7 +1474,8 @@ const LiveMap = (() => {
     openRouteHistory, loadRouteDay, playbackRoute, pausePlayback, setPlaybackSpeed, switchRouteRole,
     getWeather,
     pauseSharing, resumeSharing, togglePrivacyPanel,
-    toggleNavPanel, navigateToPartner,
+    toggleApproxLocation, toggleInvisibleMode, emergencyShare,
+    toggleNavPanel, navigateToPartner, navigateToPoint,
     _debug: st
   };
 })();
