@@ -216,6 +216,15 @@
 @media (max-width:700px){
   .lm2-map-wrap #mapView{height:65vh!important}
 }
+/* Issue 1 fix: on phones held upright, 65vh is too tall — it pushes
+   the partner cards / search bar off-screen and forces an extra,
+   janky scroll before the map is even reached. Cap the map to a
+   sane fixed height in portrait; once the phone is rotated (or on a
+   laptop, where max-width:700px never even matches) the taller
+   65vh/560px sizing above still applies untouched. */
+@media (max-width:700px) and (orientation:portrait){
+  .lm2-map-wrap #mapView{height:42vh!important;max-height:380px!important;min-height:260px!important}
+}
 .lm2-map-shimmer{
   position:absolute;inset:0;z-index:5;
   background:linear-gradient(100deg,#141414 30%,#1c1c1c 50%,#141414 70%);
@@ -361,7 +370,13 @@
 }
 .lm2-dock-pane{ position:relative; overflow:hidden; min-height:0; min-width:0; }
 .lm2-dock-map{ flex:0 0 calc(100% * var(--lm2-split-ratio)); }
-.lm2-dock-call{ flex:1 1 auto; background:#0b0410; }
+/* Issue 2 fix: the call pane can be dragged very short (the map pane
+   takes the rest). Below that the avatar/name block used to eat all
+   the vertical space, leaving the mute/speaker/end-call row pushed
+   out of the visible pane. Give the call pane a floor so the control
+   bar (which is pinned to its bottom via .call-controls-active) is
+   never squeezed out of the visible area. */
+.lm2-dock-call{ flex:1 1 auto; min-height:150px; background:#0b0410; }
 @media (min-width:701px){
   .lm2-dock-map{ flex-basis:calc(100% * var(--lm2-split-ratio)); }
 }
@@ -379,6 +394,21 @@
   pointer-events:auto!important;
   border-radius:0!important;
 }
+/* Issue 2 fix (cont.): when docked, the call UI is squeezed into a
+   small pane rather than the full screen it was designed for. Scale
+   the avatar/name block down and tighten the top/bottom padding so
+   there's always headroom left for the .call-controls-active bar,
+   which stays pinned to the pane's own bottom edge. */
+.call-overlay.lm2-docked .call-content{ padding:16px 12px 8px; }
+.call-overlay.lm2-docked .call-avatar-ring{ width:72px; height:72px; }
+.call-overlay.lm2-docked .call-avatar{ font-size:24px; }
+.call-overlay.lm2-docked .call-partner-name{ font-size:16px; margin-top:8px; }
+.call-overlay.lm2-docked .call-status-label{ margin-bottom:8px; }
+.call-overlay.lm2-docked .call-controls-active{ padding:10px 10px max(14px, env(safe-area-inset-bottom)); gap:10px; }
+.call-overlay.lm2-docked .call-btn-sm{ width:40px; height:40px; font-size:16px; }
+.call-overlay.lm2-docked .call-btn-end{ width:46px; height:46px; font-size:18px; }
+.call-overlay.lm2-docked .call-local-video{ width:64px; height:92px; top:8px; right:8px; }
+.call-overlay.lm2-docked .call-topbar-full{ padding:8px 10px; }
 
 .lm2-dock-resizer{
   position:absolute;

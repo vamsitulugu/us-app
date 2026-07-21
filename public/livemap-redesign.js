@@ -465,7 +465,12 @@
       const rect = dock.getBoundingClientRect();
       const row = dockMQ.matches;
       const raw = row ? (clientX - rect.left) / rect.width : (clientY - rect.top) / rect.height;
-      const ratio = Math.min(0.82, Math.max(0.18, raw));
+      // Issue 2 fix: in column layout (mobile) the call pane sits below
+      // the map and holds the mute/speaker/end-call bar. Cap how far the
+      // map side can be dragged so the call pane never shrinks under the
+      // ~150px floor its controls need (matches .lm2-dock-call min-height).
+      const maxRatio = row ? 0.82 : Math.min(0.82, 1 - (150 / rect.height));
+      const ratio = Math.min(maxRatio, Math.max(0.18, raw));
       dock.style.setProperty('--lm2-split-ratio', ratio.toFixed(4));
       invalidateMap();
     };

@@ -366,6 +366,9 @@ async function initSignalCursor() {
           <div class="call-topbar-name">${esc(window.S.partnerName || 'Partner')}</div>
           <div class="call-topbar-sub">🔒 <span id="callTopSub">End-to-end encrypted</span></div>
         </div>
+        ${callType === 'video' && !document.getElementById('page-map')?.classList.contains('active')
+          ? `<button type="button" class="call-topbar-btn" onclick="Call.openMap()" title="Open Live Map">🗺️</button>`
+          : ''}
         <button type="button" class="call-topbar-btn" title="Signal quality">${signalBarsHtml(3)}</button>
       </div>`;
   }
@@ -613,6 +616,19 @@ async function initSignalCursor() {
     toggleMoreMenu();
     minimize();
     // chat UI is already the underlying screen in this app, so nothing else to route
+  }
+
+  // ─── Issue 3 fix: let either side of a video call jump to Live Map ───
+  // Previously only whoever happened to already be on the map page got
+  // the docked map+call split view (livemap-redesign.js docks the call
+  // automatically whenever the map page is active during a call). The
+  // other party had no way to get there. This just calls the app's normal
+  // page navigation, which triggers that same auto-dock behavior for them
+  // too, then re-renders the topbar so the button hides once it's not needed.
+  function openMap() {
+    if (typeof window.goto === 'function') window.goto('map');
+    const topbar = document.querySelector('#callOverlay .call-topbar-full');
+    if (topbar) topbar.outerHTML = topbarHtml();
   }
 
   // ─── Minimize to PiP bubble ───
@@ -1040,6 +1056,6 @@ async function initSignalCursor() {
   });
   window.addEventListener('focus', () => pollSignal());
   window.addEventListener('pageshow', () => pollSignal());
-  return { startCall, acceptCall, declineCall, endCall, toggleMute, toggleCam, toggleSpeaker, flipCamera, minimize, restore, toggleMoreMenu, openChatDuringCall, acceptVideoUpgrade, declineVideoUpgrade };
+  return { startCall, acceptCall, declineCall, endCall, toggleMute, toggleCam, toggleSpeaker, flipCamera, minimize, restore, toggleMoreMenu, openChatDuringCall, acceptVideoUpgrade, declineVideoUpgrade, openMap };
 })();
 window.Call = Call;
