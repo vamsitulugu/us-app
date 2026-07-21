@@ -129,7 +129,8 @@ nav.scrolled{background:rgba(5,3,3,.86);border-color:var(--border)}
 .install-shell{max-width:920px;margin:0 auto;background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(255,255,255,.015));backdrop-filter:var(--blur);border:1px solid var(--border2);border-radius:var(--rl);padding:8px;box-shadow:0 40px 100px rgba(0,0,0,.55);position:relative;overflow:hidden}
 .install-shell::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 0%,rgba(207,50,71,.16),transparent 55%);pointer-events:none}
 .install-card{position:relative;background:rgba(8,5,5,.55);border-radius:calc(var(--rl) - 8px);padding:38px 34px;display:flex;align-items:center;gap:30px;flex-wrap:wrap}
-.install-app-icon{width:88px;height:88px;border-radius:22px;flex-shrink:0;box-shadow:0 16px 40px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.08);position:relative;background:linear-gradient(150deg,rgba(255,255,255,.09),rgba(255,255,255,.02));display:flex;align-items:center;justify-content:center;font-size:34px}
+.install-app-icon{width:88px;height:88px;border-radius:22px;flex-shrink:0;box-shadow:0 16px 40px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.08);position:relative}
+.install-app-icon img{width:100%;height:100%;border-radius:22px;display:block}
 .install-app-icon .platform-chip{position:absolute;bottom:-8px;right:-8px;width:32px;height:32px;border-radius:50%;background:#141010;border:2px solid #050303;display:flex;align-items:center;justify-content:center;font-size:15px}
 .install-info{flex:1;min-width:220px}
 .install-eyebrow{font-size:10.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
@@ -235,6 +236,7 @@ footer p{font-size:11px;color:var(--text3)}
 .modal-close{position:absolute;top:16px;right:18px;background:var(--g1);border:1px solid var(--border);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:16px;transition:all .2s}
 .modal-close:hover{background:var(--g2);color:var(--white)}
 .auth-logo-row{display:flex;flex-direction:column;align-items:center;margin-bottom:22px}
+.auth-logo-row img{height:52px;filter:drop-shadow(0 0 14px rgba(207,50,71,.65));margin-bottom:9px}
 .auth-logo-row .brand-name{font-family:var(--ff-serif);font-size:23px;color:var(--white)}
 .auth-logo-row .brand-tag{font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-top:3px}
 .modal-headline{font-size:14px;color:var(--text2);text-align:center;margin-bottom:22px;line-height:1.6}
@@ -270,6 +272,7 @@ footer p{font-size:11px;color:var(--text3)}
 <!-- ═══ Nav ═══ -->
 <nav id="mainNav">
   <a href="#" class="nav-logo">
+    <img src="/icons/icon-512.png" alt="Twin Hearts">
     <div class="nav-logo-text"><b>Twin Hearts</b><span>Everything Together</span></div>
   </a>
   <div class="nav-links">
@@ -408,6 +411,7 @@ footer p{font-size:11px;color:var(--text3)}
   <div class="mcard">
     <button class="modal-close" onclick="closeAuth()">✕</button>
     <div class="auth-logo-row">
+      <img src="/icons/icon-512.png" alt="Twin Hearts">
       <span class="brand-name">Twin Hearts</span>
       <span class="brand-tag">Everything Together.</span>
     </div>
@@ -702,7 +706,7 @@ async function renderInstallCard(){
 
   if (installed){
     card.innerHTML = `
-      <div class="install-app-icon">💕<span class="platform-chip">✅</span></div>
+      <div class="install-app-icon"><img src="/icons/icon-512.png" alt="Twin Hearts"><span class="platform-chip">✅</span></div>
       <div class="install-info">
         <div class="install-eyebrow">You're all set</div>
         <div class="install-title">Twin Hearts is ready to open</div>
@@ -720,7 +724,7 @@ async function renderInstallCard(){
     const buildTxt = appMeta.build || '—';
     const updTxt = appMeta.updated || '—';
     card.innerHTML = `
-      <div class="install-app-icon">💕<span class="platform-chip">${meta.chip}</span></div>
+      <div class="install-app-icon"><img src="/icons/icon-512.png" alt="Twin Hearts"><span class="platform-chip">${meta.chip}</span></div>
       <div class="install-info">
         <div class="install-eyebrow">Android</div>
         <div class="install-title">Twin Hearts APK</div>
@@ -741,7 +745,7 @@ async function renderInstallCard(){
 
   if (platform === 'ios' || platform === 'ipados'){
     card.innerHTML = `
-      <div class="install-app-icon">💕<span class="platform-chip">🍎</span></div>
+      <div class="install-app-icon"><img src="/icons/icon-512.png" alt="Twin Hearts"><span class="platform-chip">🍎</span></div>
       <div class="install-info">
         <div class="install-eyebrow">${meta.label}</div>
         <div class="install-title">Add to Home Screen</div>
@@ -760,7 +764,7 @@ async function renderInstallCard(){
       ? `<button class="btn-primary ripple-surface" onclick="triggerNativeInstall()">⬇️ Install App</button>`
       : `<button class="btn-primary ripple-surface" onclick="openComingSoon('${meta.label}')">🖥️ Coming Soon</button>`;
     card.innerHTML = `
-      <div class="install-app-icon">💕<span class="platform-chip">${meta.chip}</span></div>
+      <div class="install-app-icon"><img src="/icons/icon-512.png" alt="Twin Hearts"><span class="platform-chip">${meta.chip}</span></div>
       <div class="install-info">
         <div class="install-eyebrow">${meta.label}</div>
         <div class="install-title">Desktop App</div>
@@ -775,7 +779,7 @@ async function renderInstallCard(){
 
   // unknown
   card.innerHTML = `
-    <div class="install-app-icon">💕<span class="platform-chip">💻</span></div>
+    <div class="install-app-icon"><img src="/icons/icon-512.png" alt="Twin Hearts"><span class="platform-chip">💻</span></div>
     <div class="install-info">
       <div class="install-eyebrow">Web</div>
       <div class="install-title">Continue in your browser</div>
