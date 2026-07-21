@@ -1,0 +1,24 @@
+diff --git a/public/index.html b/public/index.html
+index 3a570b1..e9598b6 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -225,6 +225,9 @@
+   <link rel="stylesheet" href="/premium-motion.css">
+   <link rel="stylesheet" href="/premium-states.css">
+   <link rel="stylesheet" href="/app-polish.css">
++  <!-- Live Map redesign layer: purely visual, loads last so it wins on
++       #page-map without touching livemap.js logic or any other page. -->
++  <link rel="stylesheet" href="/livemap-redesign.css">
+   <style>
+     /* ════════════════════════════════════════════
+    RESET & ROOT VARIABLES
+@@ -9897,5 +9900,8 @@ init();
+ <script src="/js/audio/audio-integration.js"></script>
+ <script src="/js/audio/audio-settings-ui.js"></script>
+ 
++<!-- Live Map redesign layer (additive UI only — see livemap-redesign.css) -->
++<script src="/livemap-redesign.js"></script>
++
+ </body>
+ </html>
+\ No newline at end of file

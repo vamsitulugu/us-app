@@ -225,6 +225,9 @@
   <link rel="stylesheet" href="/premium-motion.css">
   <link rel="stylesheet" href="/premium-states.css">
   <link rel="stylesheet" href="/app-polish.css">
+  <!-- Live Map redesign layer: purely visual, loads last so it wins on
+       #page-map without touching livemap.js logic or any other page. -->
+  <link rel="stylesheet" href="/livemap-redesign.css">
   <style>
     /* ════════════════════════════════════════════
    RESET & ROOT VARIABLES
@@ -9896,6 +9899,9 @@ init();
 <script src="/js/audio/sound-library.js"></script>
 <script src="/js/audio/audio-integration.js"></script>
 <script src="/js/audio/audio-settings-ui.js"></script>
+
+<!-- Live Map redesign layer (additive UI only — see livemap-redesign.css) -->
+<script src="/livemap-redesign.js"></script>
 
 </body>
 </html>
