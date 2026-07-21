@@ -200,6 +200,18 @@
   height:min(65vh,560px)!important;
   border-radius:0!important;
   border:none!important;
+  /* Issue 1 fix: let Leaflet's own JS touch handlers (pan + pinch-zoom)
+     fully own touch gestures on the map, instead of the browser also
+     trying to scroll/zoom the page from the same touch. Without this,
+     the page and the map both react to the same touch and the page
+     scroll wins. touch-action:none hands the whole gesture to Leaflet's
+     JS listeners (which already preventDefault correctly), so drag pans
+     only the map and pinch zooms only the map. */
+  touch-action:none!important;
+}
+.lm2-map-wrap{
+  touch-action:none;
+  overscroll-behavior:contain;
 }
 @media (max-width:700px){
   .lm2-map-wrap #mapView{height:65vh!important}
@@ -326,44 +338,67 @@
   .lm2-search-wrap{position:sticky;top:6px;z-index:40}
 }
 
-/* ── 4. Video call split-screen over the map ─────────────────────── */
-.call-overlay.lm2-split-mode{
-  position:fixed!important;
-  inset:auto 0 auto 0!important;
-  top:calc(env(safe-area-inset-top) + 8px)!important;
-  height:var(--lm2-split-h,260px);
-  border-radius:20px;
+/* ── 4. Video call docked split-view (map + call share the page) ───
+   #lm2CallDock holds two panes — the real #mapView and the real
+   #callOverlay, moved in place (not cloned) — plus a draggable
+   divider. Mobile: column (map on top, call on bottom). Desktop:
+   row (map on left, call on right). Ratio is controlled by
+   --lm2-split-ratio (0..1, share of the dock given to the map pane). */
+.lm2-call-dock{
+  --lm2-split-ratio:0.55;
+  display:flex;
+  flex-direction:column;
+  border-radius:var(--lm2-card-radius);
   overflow:hidden;
-  margin:0 12px;
-  width:auto!important;
-  box-shadow:0 20px 50px rgba(0,0,0,.55);
-  transition:height var(--lm2-anim);
-  z-index:600!important;
+  border:1px solid var(--lm2-border);
+  box-shadow:var(--lm2-card-shadow);
+  margin-bottom:12px;
+  height:min(75vh,640px);
+  position:relative;
 }
-@media (max-width:700px){
-  .call-overlay.lm2-split-mode{height:28vh!important;margin:0 8px}
+@media (min-width:701px){
+  .lm2-call-dock{ flex-direction:row; height:min(70vh,600px); }
 }
-.call-overlay.lm2-split-mode .call-content{padding-top:14px}
-.call-overlay.lm2-split-mode .call-local-video{width:64px;height:92px;top:10px;right:10px}
-.call-overlay.lm2-split-mode .call-controls-active{
-  padding:8px 10px max(8px,env(safe-area-inset-bottom));
-  gap:10px;
+.lm2-dock-pane{ position:relative; overflow:hidden; min-height:0; min-width:0; }
+.lm2-dock-map{ flex:0 0 calc(100% * var(--lm2-split-ratio)); }
+.lm2-dock-call{ flex:1 1 auto; background:#0b0410; }
+@media (min-width:701px){
+  .lm2-dock-map{ flex-basis:calc(100% * var(--lm2-split-ratio)); }
 }
-.call-overlay.lm2-split-mode .call-btn{transform:scale(.82)}
-.call-overlay.lm2-split-mode .call-partner-name{font-size:16px;margin-top:6px}
-.call-overlay.lm2-split-mode .call-status-label{margin-bottom:6px;font-size:11px}
-.lm2-split-resize{
-  position:absolute;left:0;right:0;bottom:0;height:10px;cursor:ns-resize;
-  z-index:5;display:flex;align-items:center;justify-content:center;
+/* the moved map wrap/mapView just fills its pane */
+.lm2-dock-map .lm2-map-wrap{ margin:0; height:100%; border:none; border-radius:0; box-shadow:none; }
+.lm2-dock-map .lm2-map-wrap #mapView{ height:100%!important; }
+
+/* the moved call overlay drops its fixed-fullscreen positioning and
+   just fills its pane instead */
+.call-overlay.lm2-docked{
+  position:absolute!important;
+  inset:0!important;
+  z-index:1!important;
+  opacity:1!important;
+  pointer-events:auto!important;
+  border-radius:0!important;
 }
-.lm2-split-resize::before{
-  content:'';width:36px;height:4px;border-radius:4px;background:rgba(255,255,255,.35);
+
+.lm2-dock-resizer{
+  position:absolute;
+  z-index:20;
+  background:rgba(255,255,255,.06);
+  display:flex;align-items:center;justify-content:center;
+  touch-action:none;
 }
-.lm2-split-toggle{
-  width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.12);
-  display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:14px;
+.lm2-dock-resizer::before{
+  content:'';border-radius:4px;background:rgba(255,255,255,.4);
 }
-body.lm2-call-split-active #page-map .lm2-map-wrap{margin-top:calc(260px + 18px)}
-@media (max-width:700px){
-  body.lm2-call-split-active #page-map .lm2-map-wrap{margin-top:calc(28vh + 14px)}
+/* column layout (mobile / narrow): horizontal bar between top(map)/bottom(call) */
+.lm2-call-dock:not(.lm2-dock-row) .lm2-dock-resizer{
+  left:0;right:0;top:calc(100% * var(--lm2-split-ratio));
+  height:16px;margin-top:-8px;cursor:ns-resize;
 }
+.lm2-call-dock:not(.lm2-dock-row) .lm2-dock-resizer::before{ width:40px;height:4px; }
+/* row layout (desktop / wide): vertical bar between left(map)/right(call) */
+.lm2-call-dock.lm2-dock-row .lm2-dock-resizer{
+  top:0;bottom:0;left:calc(100% * var(--lm2-split-ratio));
+  width:16px;margin-left:-8px;cursor:ew-resize;
+}
+.lm2-call-dock.lm2-dock-row .lm2-dock-resizer::before{ width:4px;height:40px; }
