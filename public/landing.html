@@ -289,8 +289,8 @@ footer p{font-size:11px;color:var(--text3)}
 .auth-divider{text-align:center;font-size:11px;color:var(--text3);margin:15px 0}
 .auth-btn-alt{width:100%;padding:12px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;background:var(--g2);color:var(--white);border:1px solid var(--border2);font-family:var(--ff-sans);transition:all .2s}
 .auth-btn-alt:hover{background:var(--g3)}
-#loginView,#setupView,#pairView{display:none}
-#loginView.active,#setupView.active,#pairView.active{display:block;animation:fadeSlide .25s ease}
+#loginView,#registerView,#setupView,#pairView{display:none}
+#loginView.active,#registerView.active,#setupView.active,#pairView.active{display:block;animation:fadeSlide .25s ease}
 @keyframes fadeSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
@@ -628,7 +628,7 @@ document.addEventListener('click', e=>{
 /* ═══════════════════════════════════════════════════════════════
    Auth modal + existing account flows (functionality unchanged)
    ═══════════════════════════════════════════════════════════════ */
-const API = window.location.origin;
+const API = 'https://us-app-av6d.onrender.com';
 let _authUser = null;
 
 function openAuth(view){
