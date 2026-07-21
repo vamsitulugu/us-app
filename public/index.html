@@ -5593,6 +5593,26 @@ select option { background: #0D0D0D; color: #fff; }
       </div>
     </div>
 
+   <!-- GOOGLE MAPS–STYLE SEARCH: separate from the "Add Place" search below —
+        this is the primary Live Map search bar. Autocomplete via the same
+        free SearchService; picking a result drops a destination marker and
+        opens the place-details card (distance from me/partner, Directions,
+        Save, Share, Meet Here, Favorite). Recent searches + favorites are
+        persisted in S like everything else, so they sync via scheduleSave(). -->
+   <div style="position:relative;margin-bottom:10px">
+     <div style="display:flex;align-items:center;gap:6px;background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px">
+       <span style="opacity:.55;font-size:13px">🔍</span>
+       <input type="text" id="lmGmSearchInput" placeholder="Search Bengaluru, Vijayawada, restaurants, hospitals…"
+         oninput="LiveMap.gmSearchInput(this.value)" onfocus="LiveMap.gmSearchFocus()"
+         style="flex:1;min-width:0;background:transparent;border:none;outline:none;color:var(--white);font-size:12px">
+       <span id="lmGmSearchClear" style="display:none;cursor:pointer;opacity:.55;font-size:13px" onclick="LiveMap.gmSearchClear()">✕</span>
+     </div>
+     <div id="lmGmSearchResults" class="lm-search-results" style="position:absolute;left:0;right:0;top:100%;z-index:500"></div>
+   </div>
+
+   <div id="lmPlaceDetailsCard" style="display:none;margin-bottom:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px"></div>
+   <div id="lmDirectionsPanel" style="display:none;margin-bottom:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px;font-size:11px;color:var(--text3)"></div>
+
    <div id="mapView" style="width:100%;height:340px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border)"></div>
  
     <!-- PHASE 2: map style switcher + quick actions -->
@@ -5607,6 +5627,7 @@ select option { background: #0D0D0D; color: #fff; }
         <div class="lm-tool-btn" onclick="LiveMap.locateMe()"><span class="lm-tool-ico">📍</span>Locate Me</div>
         <div class="lm-tool-btn" onclick="LiveMap.locatePartner()"><span class="lm-tool-ico">💜</span>Locate Partner</div>
         <div class="lm-tool-btn" onclick="LiveMap.showMeetingPoint()"><span class="lm-tool-ico">🤝</span>Meeting Point</div>
+        <div class="lm-tool-btn" id="lmFavBtn" onclick="LiveMap.toggleFavoritesPanel()"><span class="lm-tool-ico">⭐</span>Favorites</div>
         <div class="lm-tool-btn" onclick="LiveMap.openRouteHistory()"><span class="lm-tool-ico">🛣️</span>Daily Route</div>
         <div class="lm-tool-btn" id="lmWeatherBtn" onclick="LiveMap.getWeather()"><span class="lm-tool-ico">⛅</span>Weather</div>
         <div class="lm-tool-btn" id="lmPrivacyBtn" onclick="LiveMap.togglePrivacyPanel()"><span class="lm-tool-ico">🔒</span>Privacy</div>
@@ -5617,6 +5638,7 @@ select option { background: #0D0D0D; color: #fff; }
     <div id="lmWeatherPanel" style="display:none;margin-top:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--text3)"></div>
     <div id="lmPrivacyPanel" style="display:none;margin-top:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--text3)"></div>
     <div id="lmNavPanel" style="display:none;margin-top:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--text3)"></div>
+    <div id="lmFavoritesPanel" style="display:none;margin-top:10px"></div>
     <div id="lmMeetingSuggestions" style="display:none;margin-top:10px"></div>
  
     <div class="period-stats" style="margin-top:14px">
@@ -5625,6 +5647,12 @@ select option { background: #0D0D0D; color: #fff; }
       <div class="pstat"><div class="pstat-n" id="mapUpdated">—</div><div class="pstat-l">Last Updated</div></div>
     </div>
     <div id="mapTravelNote" class="info-banner" style="margin-top:12px;display:none"></div>
+    <div id="lmTogetherBanner" style="display:none;margin-top:12px;text-align:center;background:linear-gradient(135deg,rgba(255,60,90,.18),rgba(255,180,60,.12));border:1px solid var(--border);border-radius:var(--rs);padding:10px;font-size:12px;font-weight:700;color:var(--white)">💕 You're together right now!</div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn btn-accent btn-sm" style="flex:1;min-width:120px" onclick="LiveMap.startVideoCallFromMap()">📹 Video Call</button>
+      <button class="btn btn-glass btn-sm" style="flex:1;min-width:120px" onclick="LiveMap.openLoveNoteComposer()">💌 Leave a Love Note</button>
+    </div>
+    <div id="lmLoveNotesPanel" style="display:none;margin-top:10px"></div>
   </div>
 
   <!-- MY IMPORTANT PLACES -->

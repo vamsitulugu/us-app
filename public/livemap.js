@@ -516,6 +516,30 @@ const LiveMap = (() => {
       else if (!st.ptLast) { noteEl.style.display = 'block'; noteEl.textContent = '💡 Partner hasn\'t shared their location yet.'; }
       else noteEl.style.display = 'none';
     }
+    _updateTogetherBanner(dist);
+  }
+  /** "Together" celebration — a small, real delight: when you're both
+      physically close (≤80m) a banner + petal burst celebrates it, once
+      per "session" of being close. Hysteresis (enter at 0.08km, only
+      reset once you drift past 0.2km) stops GPS jitter right at the
+      threshold from re-triggering it over and over. Pure client-side math
+      on data already being polled — no extra requests. */
+  let _togetherActive = false;
+  function _updateTogetherBanner(dist) {
+    const banner = document.getElementById('lmTogetherBanner');
+    if (!banner) return;
+    if (dist == null) { banner.style.display = 'none'; return; }
+    if (!_togetherActive && dist <= 0.08) {
+      _togetherActive = true;
+      banner.style.display = 'block';
+      toast('💕 You\'re together right now!');
+      if (typeof spawnPetals === 'function') spawnPetals(12);
+    } else if (_togetherActive && dist > 0.2) {
+      _togetherActive = false;
+      banner.style.display = 'none';
+    } else if (_togetherActive) {
+      banner.style.display = 'block';
+    }
   }
 
   /* ── WEATHER OVERLAY (lightweight, no API key — Open-Meteo) ─── */
@@ -836,6 +860,486 @@ const LiveMap = (() => {
     toast('📍 ' + r.name + ' selected — review & save');
   }
 
+  /* ══════════════════════════════════════════════════════════
+     GOOGLE MAPS–STYLE TOP SEARCH + DIRECTIONS
+     Independent of the Add-Place search above. Autocomplete via
+     the same free SearchService (Nominatim+Photon). Picking a
+     result drops a destination marker, opens a place-details
+     card, and remembers it in recent searches — all persisted in
+     S so it syncs like the rest of the app. Directions hands off
+     to the existing OSRM route-alternatives + live-nav-progress
+     engine (progress bar, ETA, current speed, search-along-route,
+     arrival + trip summary) so none of that is duplicated.
+     ══════════════════════════════════════════════════════════ */
+  let _gmSearchTimer = null;
+  let _gmResults = [];
+  let _gmActivePlace = null;   // place currently shown in the details card
+  let _gmPickingOrigin = false; // true while the search bar is picking a custom "From" point
+
+  function _gmKey(p) { return p.lat.toFixed(5) + ',' + p.lng.toFixed(5); }
+  function _gmRecent() { return (S.recentSearches || []).slice(0, 8); }
+  function _gmIsFav(p) { return (S.favorites || []).some(f => _gmKey(f) === _gmKey(p)); }
+
+  function gmSearchFocus() {
+    const q = document.getElementById('lmGmSearchInput').value;
+    if (!q || q.trim().length < 2) _renderGmRecent();
+  }
+  function _renderGmRecent() {
+    const el = document.getElementById('lmGmSearchResults');
+    const recent = _gmRecent();
+    if (!recent.length) { el.classList.remove('show'); el.innerHTML = ''; return; }
+    el.className = 'lm-search-results show';
+    el.innerHTML = `<div class="lm-sr-empty" style="text-align:left;padding:8px 12px 2px;opacity:.6">Recent searches</div>` + recent.map((r, i) => `
+      <div class="lm-sr-item" onclick="LiveMap.gmPickRecent(${i})">
+        <div class="lm-sr-ico">🕑</div>
+        <div class="lm-sr-body"><div class="lm-sr-name">${esc(r.name)}</div><div class="lm-sr-meta">${esc((r.address || '').slice(0, 50))}</div></div>
+      </div>`).join('');
+  }
+  function gmSearchClear() {
+    document.getElementById('lmGmSearchInput').value = '';
+    document.getElementById('lmGmSearchClear').style.display = 'none';
+    document.getElementById('lmGmSearchResults').classList.remove('show');
+  }
+  function gmSearchInput(q) {
+    clearTimeout(_gmSearchTimer);
+    document.getElementById('lmGmSearchClear').style.display = q ? 'inline' : 'none';
+    const el = document.getElementById('lmGmSearchResults');
+    if (!q || q.trim().length < 2) { _renderGmRecent(); return; }
+    el.className = 'lm-search-results show';
+    el.innerHTML = '<div class="lm-sr-empty">Searching…</div>';
+    _gmSearchTimer = setTimeout(async () => {
+      if (!window.SearchService) { el.innerHTML = '<div class="lm-sr-empty">Search engine still loading — try again in a moment</div>'; return; }
+      try {
+        const results = await window.SearchService.searchText(q.trim(), { near: _searchOrigin(), limit: 10 });
+        _gmResults = results;
+        el.className = 'lm-search-results show';
+        if (!results.length) { el.innerHTML = '<div class="lm-sr-empty">No results — try a different search</div>'; return; }
+        el.innerHTML = results.map((r, i) => `
+          <div class="lm-sr-item" onclick="LiveMap.gmPickResult(${i})">
+            <div class="lm-sr-ico">${r.icon || '📍'}</div>
+            <div class="lm-sr-body"><div class="lm-sr-name">${esc(r.name)}</div>
+            <div class="lm-sr-meta">${r.distKm != null ? r.distKm.toFixed(1) + ' km · ' : ''}${esc((r.address || '').slice(0, 50))}</div></div>
+          </div>`).join('');
+      } catch (e) {
+        el.innerHTML = '<div class="lm-sr-empty">Search failed — try again</div>';
+      }
+    }, 300);
+  }
+  function gmPickRecent(i) {
+    const r = _gmRecent()[i];
+    if (!r) return;
+    _gmOnPicked(r);
+  }
+  function gmPickResult(i) {
+    const r = _gmResults[i];
+    if (!r) return;
+    _gmOnPicked(r);
+  }
+  /** Shared landing spot for a picked result — either sets it as the custom
+      "From" point (when the Directions panel armed the search bar for that),
+      or opens it as a normal destination + place-details card. */
+  function _gmOnPicked(r) {
+    document.getElementById('lmGmSearchResults').classList.remove('show');
+    if (_gmPickingOrigin) {
+      _gmPickingOrigin = false;
+      document.getElementById('lmGmSearchInput').value = '';
+      document.getElementById('lmGmSearchInput').placeholder = 'Search Bengaluru, Vijayawada, restaurants, hospitals…';
+      _dirOrigin = { lat: r.lat, lng: r.lng, label: r.name };
+      _runDirections();
+      return;
+    }
+    document.getElementById('lmGmSearchInput').value = r.name;
+    _openPlaceDetails(r);
+  }
+  function _rememberRecentSearch(p) {
+    S.recentSearches = (S.recentSearches || []).filter(r => _gmKey(r) !== _gmKey(p));
+    S.recentSearches.unshift({ name: p.name, address: p.address || '', lat: p.lat, lng: p.lng, category: p.category });
+    S.recentSearches = S.recentSearches.slice(0, 12);
+    scheduleSave();
+  }
+  function _openPlaceDetails(p) {
+    _gmActivePlace = p;
+    _rememberRecentSearch(p);
+    if (st.destMarker) { st.map.removeLayer(st.destMarker); st.destMarker = null; }
+    const icon = L.divIcon({
+      html: `<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#ff4757;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.4)"><span style="transform:rotate(45deg);font-size:13px">📍</span></div>`,
+      className: '', iconSize: [28, 28], iconAnchor: [14, 28]
+    });
+    st.destMarker = L.marker([p.lat, p.lng], { icon }).addTo(st.map);
+    st.map.setView([p.lat, p.lng], 15);
+    document.getElementById('lmDirectionsPanel').style.display = 'none';
+    _renderPlaceDetailsCard();
+  }
+  function closePlaceDetails() {
+    document.getElementById('lmPlaceDetailsCard').style.display = 'none';
+    document.getElementById('lmDirectionsPanel').style.display = 'none';
+    if (st.destMarker) { st.map.removeLayer(st.destMarker); st.destMarker = null; }
+    if (st.dirLine) { st.map.removeLayer(st.dirLine); st.dirLine = null; }
+    (st.dirAltLines || []).forEach(l => st.map.removeLayer(l)); st.dirAltLines = [];
+    _gmActivePlace = null; _dirOrigin = null; _dirRoutesCache = null;
+  }
+  function _renderPlaceDetailsCard() {
+    const p = _gmActivePlace;
+    const el = document.getElementById('lmPlaceDetailsCard');
+    if (!el || !p) return;
+    el.style.display = 'block';
+    const distMe = S.myLoc ? haversine(S.myLoc, p) : null;
+    const distPt = S.ptLoc ? haversine(S.ptLoc, p) : null;
+    const fav = _gmIsFav(p);
+    el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="min-width:0">
+          <div style="font-weight:700;color:var(--white);font-size:13px">${esc(p.name)}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">${esc((p.address || '').slice(0, 90))}</div>
+        </div>
+        <span style="cursor:pointer;font-size:19px;flex-shrink:0;line-height:1" onclick="LiveMap.toggleFavoritePlace()">${fav ? '⭐' : '☆'}</span>
+      </div>
+      <div style="display:flex;gap:14px;margin-top:8px;font-size:10px;color:var(--text3)">
+        ${distMe != null ? `<div>🧍 ${distMe.toFixed(1)} km from me</div>` : ''}
+        ${distPt != null ? `<div>💜 ${distPt.toFixed(1)} km from partner</div>` : ''}
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+        <button class="btn btn-accent btn-xs" onclick="LiveMap.openDirections()">🧭 Directions</button>
+        <button class="btn btn-glass btn-xs" onclick="LiveMap.saveGmPlace()">📌 Save</button>
+        <button class="btn btn-glass btn-xs" onclick="LiveMap.shareGmPlace()">📤 Share</button>
+        <button class="btn btn-glass btn-xs" onclick="LiveMap.meetHereGmPlace()">🤝 Meet Here</button>
+        <button class="btn btn-glass btn-xs" onclick="LiveMap.closePlaceDetails()">✕ Close</button>
+      </div>`;
+  }
+  function toggleFavoritePlace() {
+    if (!_gmActivePlace) return;
+    const p = _gmActivePlace;
+    S.favorites = S.favorites || [];
+    const idx = S.favorites.findIndex(f => _gmKey(f) === _gmKey(p));
+    if (idx >= 0) { S.favorites.splice(idx, 1); toast('Removed from favorites'); }
+    else { S.favorites.unshift({ name: p.name, address: p.address || '', lat: p.lat, lng: p.lng }); toast('⭐ Added to favorites'); }
+    scheduleSave();
+    _renderPlaceDetailsCard();
+    _renderFavoritesPanel(); // no-op if panel is closed — cheap to call unconditionally
+  }
+
+  /* ── FAVORITES PANEL — list of saved favorite places with quick actions ── */
+  function toggleFavoritesPanel() {
+    const panel = document.getElementById('lmFavoritesPanel');
+    if (!panel) return;
+    const opening = panel.style.display !== 'block';
+    panel.style.display = opening ? 'block' : 'none';
+    document.getElementById('lmFavBtn')?.classList.toggle('active', opening);
+    if (opening) _renderFavoritesPanel();
+  }
+  function _renderFavoritesPanel() {
+    const panel = document.getElementById('lmFavoritesPanel');
+    if (!panel || panel.style.display !== 'block') return;
+    const favs = S.favorites || [];
+    if (!favs.length) {
+      panel.innerHTML = `<div class="empty">No favorites yet — tap ☆ on any place's details card to save it here.</div>`;
+      return;
+    }
+    panel.innerHTML = favs.map((f, i) => {
+      const distMe = S.myLoc ? haversine(S.myLoc, f) : null;
+      return `
+      <div class="money-row">
+        <div class="money-ic inc">⭐</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:500;color:var(--white)">${esc(f.name)} <span style="cursor:pointer;opacity:.5;font-size:10px" onclick="LiveMap.renameFavorite(${i})">✎</span></div>
+          <div style="font-size:10px;color:var(--text3)">${distMe != null ? distMe.toFixed(1) + ' km away · ' : ''}${esc((f.address || '').slice(0, 40))}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1px">
+          <span style="cursor:${i === 0 ? 'default' : 'pointer'};opacity:${i === 0 ? 0.25 : 0.7};font-size:11px;line-height:1" onclick="${i === 0 ? '' : `LiveMap.moveFavorite(${i},-1)`}">▲</span>
+          <span style="cursor:${i === favs.length - 1 ? 'default' : 'pointer'};opacity:${i === favs.length - 1 ? 0.25 : 0.7};font-size:11px;line-height:1" onclick="${i === favs.length - 1 ? '' : `LiveMap.moveFavorite(${i},1)`}">▼</span>
+        </div>
+        <button class="btn btn-glass btn-xs" onclick="LiveMap.openFavorite(${i})">Open</button>
+        <button class="del-btn" onclick="LiveMap.removeFavorite(${i})">✕</button>
+      </div>`;
+    }).join('');
+  }
+  /** Reorders a favorite by swapping it with its neighbor (dir: -1 up, +1
+      down). Buttons rather than drag-and-drop keep this reliable on touch
+      without a drag library, and persist via the same scheduleSave() path. */
+  function moveFavorite(i, dir) {
+    const favs = S.favorites || [];
+    const j = i + dir;
+    if (j < 0 || j >= favs.length) return;
+    [favs[i], favs[j]] = [favs[j], favs[i]];
+    scheduleSave();
+    _renderFavoritesPanel();
+  }
+  function renameFavorite(i) {
+    const favs = S.favorites || [];
+    const f = favs[i];
+    if (!f) return;
+    const name = prompt('Rename favorite', f.name);
+    if (name == null) return; // cancelled
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    f.name = trimmed;
+    scheduleSave();
+    _renderFavoritesPanel();
+    if (_gmActivePlace && _gmKey(_gmActivePlace) === _gmKey(f)) { _gmActivePlace.name = trimmed; _renderPlaceDetailsCard(); }
+  }
+  /** Opens a saved favorite exactly like picking it fresh from search —
+      drops the destination marker and opens the full place-details card
+      (Directions/Save/Share/Meet Here all work the same from here). */
+  function openFavorite(i) {
+    const f = (S.favorites || [])[i];
+    if (!f) return;
+    document.getElementById('lmFavoritesPanel').style.display = 'none';
+    document.getElementById('lmFavBtn')?.classList.remove('active');
+    _openPlaceDetails(f);
+  }
+  function removeFavorite(i) {
+    if (!S.favorites) return;
+    S.favorites.splice(i, 1);
+    scheduleSave();
+    _renderFavoritesPanel();
+    if (_gmActivePlace) _renderPlaceDetailsCard(); // refresh star state if that place is also open
+  }
+  function saveGmPlace() {
+    if (!_gmActivePlace) return;
+    const p = _gmActivePlace;
+    if (!Array.isArray(S.placesList)) S.placesList = [];
+    S.placesList.push({ id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), owner: S.role, cat: 'Custom', name: p.name, lat: p.lat, lng: p.lng, address: p.address || '', ts: Date.now() });
+    _renderPlacesLists(); scheduleSave(); toast('Place saved 📌');
+  }
+  function shareGmPlace() {
+    if (!_gmActivePlace) return;
+    const p = _gmActivePlace;
+    const text = `📍 ${p.name}\n${p.address || ''}\nhttps://www.openstreetmap.org/?mlat=${p.lat}&mlon=${p.lng}#map=17/${p.lat}/${p.lng}`;
+    if (navigator.share) navigator.share({ title: p.name, text }).catch(() => {});
+    else if (navigator.clipboard) { navigator.clipboard.writeText(text); toast('📋 Copied to clipboard'); }
+    else toast(text);
+  }
+  /* ── VIDEO CALL FROM MAP ──────────────────────────────────────
+     The app already has a full WebRTC call system (public/chat/call.js,
+     loaded globally as window.Call) used elsewhere for chat calls. This
+     just gives the Live Map its own entry point into that same real
+     system — so partners can jump straight into a video call while
+     looking at where each other are, without leaving the map. Nothing
+     new is built here; this only wires an existing, working feature in. */
+  function startVideoCallFromMap() {
+    if (!window.Call || typeof window.Call.startCall !== 'function') {
+      toast('Video calling isn\'t available on this page yet'); return;
+    }
+    window.Call.startCall('video');
+  }
+
+  /* ── LOVE NOTES — a heart pin with a message, left for your partner to
+     find on the map. Persisted in S.loveNotes (synced like everything
+     else via scheduleSave), rendered as heart markers; opening one you
+     didn't write and tapping "Found it" celebrates with petals + a toast,
+     then removes the pin so it doesn't linger stale forever. ────────── */
+  st.loveNoteMarkers = st.loveNoteMarkers || [];
+  function openLoveNoteComposer() {
+    const panel = document.getElementById('lmLoveNotesPanel');
+    if (!panel) return;
+    const opening = panel.style.display !== 'block';
+    panel.style.display = opening ? 'block' : 'none';
+    if (!opening) return;
+    if (!S.myLoc) { panel.innerHTML = `<div class="empty">Enable your location first so we know where to drop the pin.</div>`; return; }
+    panel.innerHTML = `
+      <div style="background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">💌 Leave a little note for ${esc(S.partnerName || 'your partner')} right where you are now</div>
+        <textarea id="lmLoveNoteText" rows="2" maxlength="200" placeholder="Thinking of you… ❤️"
+          style="width:100%;background:var(--g2);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--white);font-size:12px;resize:none;box-sizing:border-box"></textarea>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button class="btn btn-accent btn-xs" onclick="LiveMap.sendLoveNote()">Drop Pin Here 📍</button>
+          <button class="btn btn-glass btn-xs" onclick="LiveMap.openLoveNoteComposer()">Cancel</button>
+        </div>
+      </div>`;
+  }
+  function sendLoveNote() {
+    const ta = document.getElementById('lmLoveNoteText');
+    const msg = ta ? ta.value.trim() : '';
+    if (!msg) { toast('Write something sweet first 💕'); return; }
+    if (!S.myLoc) { toast('Enable your location first'); return; }
+    S.loveNotes = S.loveNotes || [];
+    S.loveNotes.push({ id: 'ln_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), from: S.role, message: msg, lat: S.myLoc.lat, lng: S.myLoc.lng, ts: Date.now() });
+    scheduleSave();
+    document.getElementById('lmLoveNotesPanel').style.display = 'none';
+    _renderLoveNoteMarkers();
+    toast('💌 Love note dropped — they\'ll find it on the map');
+  }
+  function _renderLoveNoteMarkers() {
+    if (!st.map) return;
+    (st.loveNoteMarkers || []).forEach(m => st.map.removeLayer(m));
+    st.loveNoteMarkers = [];
+    (S.loveNotes || []).forEach(n => {
+      const mine = n.from === S.role;
+      const icon = L.divIcon({
+        html: `<div style="width:26px;height:26px;border-radius:50%;background:${mine ? '#8a8a8a' : '#ff6b81'};display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.35)">💌</div>`,
+        className: '', iconSize: [26, 26]
+      });
+      const marker = L.marker([n.lat, n.lng], { icon }).addTo(st.map);
+      const popupHtml = mine
+        ? `<b>Your note</b><br>${esc(n.message)}<br><span style="opacity:.6;font-size:11px">Waiting for ${esc(S.partnerName || 'partner')} to find it</span>`
+        : `<b>💌 From ${esc(S.myName && n.from !== S.role ? (S.partnerName || 'them') : (S.partnerName || 'them'))}</b><br>${esc(n.message)}<br>
+           <button class="btn btn-accent btn-xs" style="margin-top:6px" onclick="LiveMap.foundLoveNote('${n.id}')">🎉 Found it!</button>`;
+      marker.bindPopup(popupHtml);
+      st.loveNoteMarkers.push(marker);
+    });
+  }
+  function foundLoveNote(id) {
+    const note = (S.loveNotes || []).find(n => n.id === id);
+    if (!note) return;
+    S.loveNotes = (S.loveNotes || []).filter(n => n.id !== id);
+    scheduleSave();
+    _renderLoveNoteMarkers();
+    toast('💕 What a sweet surprise!');
+    if (typeof spawnPetals === 'function') spawnPetals(14);
+  }
+
+  function meetHereGmPlace() {
+    if (!_gmActivePlace) return;
+    const icon = L.divIcon({
+      html: `<div style="width:30px;height:30px;border-radius:50%;background:#ffd166;display:flex;align-items:center;justify-content:center;font-size:16px;border:3px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,0.4)">🤝</div>`,
+      className: '', iconSize: [30, 30]
+    });
+    const distMe = S.myLoc ? haversine(S.myLoc, p) : null;
+    const distPt = S.ptLoc ? haversine(S.ptLoc, p) : null;
+    st.meetingMarker = L.marker([p.lat, p.lng], { icon }).addTo(st.map)
+      .bindPopup(`<b>${esc(p.name)}</b><br>${distMe != null ? distMe.toFixed(1) + ' km from you' : ''}${distMe != null && distPt != null ? ' · ' : ''}${distPt != null ? distPt.toFixed(1) + ' km from partner' : ''}
+        <br><button class="btn btn-accent btn-xs" style="margin-top:6px" onclick="LiveMap.navigateToPoint(${p.lat},${p.lng},'${esc(p.name).replace(/'/g, "\\'")}')">🧭 Navigate Here</button>`)
+      .openPopup();
+    st.map.setView([p.lat, p.lng], 14);
+    const distTxt = [distMe != null ? `${distMe.toFixed(1)} km from you` : null, distPt != null ? `${distPt.toFixed(1)} km from partner` : null].filter(Boolean).join(' · ');
+    toast(`🤝 Meeting point set at ${p.name}${distTxt ? ' — ' + distTxt : ''}`);
+    document.getElementById('lmMeetingSuggestions').style.display = 'block';
+    _findMeetingPlaceSuggestions({ lat: p.lat, lng: p.lng });
+  }
+
+  /* ── DIRECTIONS / ROUTE PLANNER (From/To, alternatives, Route A/B/C) ── */
+  let _dirMode = 'drive';
+  let _dirOrigin = null;     // null = current location; else { lat, lng, label }
+  let _dirRoutesCache = null; // { routes, dest, origin, prof }
+  let _dirActiveIdx = 0;
+
+  function openDirections() {
+    if (!_gmActivePlace) return;
+    if (!S.myLoc && !_dirOrigin) toast('Enable location, or set a custom starting point');
+    document.getElementById('lmDirectionsPanel').style.display = 'block';
+    _renderDirectionsPanel(null);
+    _runDirections();
+  }
+  function pickCustomOrigin() {
+    _gmPickingOrigin = true;
+    const input = document.getElementById('lmGmSearchInput');
+    input.placeholder = 'Search a starting point…';
+    input.focus();
+    toast('Search for your starting point above');
+  }
+  function resetOriginToCurrent() { _dirOrigin = null; _runDirections(); }
+  function setDirMode(mode) { _dirMode = mode; _runDirections(); }
+
+  function _renderDirectionsPanel(routes) {
+    const el = document.getElementById('lmDirectionsPanel');
+    if (!el || !_gmActivePlace) return;
+    const fromLine = _dirOrigin
+      ? `📍 ${esc(_dirOrigin.label)} <span style="cursor:pointer;color:var(--accent)" onclick="LiveMap.resetOriginToCurrent()">✕ use current</span>`
+      : `📍 Current Location <span style="cursor:pointer;color:var(--accent)" onclick="LiveMap.pickCustomOrigin()">✎ change</span>`;
+    el.innerHTML = `
+      <div style="font-size:10px;color:var(--text3)">From</div>
+      <div style="font-size:12px;color:var(--white);font-weight:600;margin-bottom:6px">${fromLine}</div>
+      <div style="font-size:10px;color:var(--text3)">To</div>
+      <div style="font-size:12px;color:var(--white);font-weight:600;margin-bottom:8px">📍 ${esc(_gmActivePlace.name)}</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        ${Object.keys(NAV_PROFILES).map(k => `<button class="btn ${k === _dirMode ? 'btn-accent' : 'btn-glass'} btn-xs" onclick="LiveMap.setDirMode('${k}')">${NAV_PROFILES[k].icon} ${NAV_PROFILES[k].label}</button>`).join('')}
+      </div>
+      <div id="lmDirRoutes">${routes ? '' : '<div class="lm-sr-empty">Calculating routes…</div>'}</div>`;
+    if (routes) _renderDirRoutes(routes);
+  }
+  async function _runDirections() {
+    if (!_gmActivePlace) return;
+    _dirActiveIdx = 0;
+    _renderDirectionsPanel(null);
+    const origin = _dirOrigin || (S.myLoc ? { lat: S.myLoc.lat, lng: S.myLoc.lng } : (st.map ? st.map.getCenter() : null));
+    if (!origin) { toast('No starting location available'); return; }
+    const dest = _gmActivePlace;
+    const prof = NAV_PROFILES[_dirMode];
+    if (prof.osrm) {
+      try {
+        const url = `https://router.project-osrm.org/route/v1/${prof.osrm}/${origin.lng},${origin.lat};${dest.lng},${dest.lat}?overview=full&geometries=geojson&alternatives=true&steps=true`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        const routes = (data.routes || []).slice(0, 3);
+        if (!routes.length) throw new Error('no route');
+        _dirRoutesCache = { routes, dest, origin, prof };
+        _renderDirectionsPanel(routes);
+        _drawDirRoute(routes, 0);
+        return;
+      } catch (e) { /* fall through to straight-line estimate below */ }
+    }
+    const km = haversine(origin, dest);
+    const mins = Math.round((km / prof.kmh) * 60);
+    const straight = [{ distance: km * 1000, duration: mins * 60, geometry: { coordinates: [[origin.lng, origin.lat], [dest.lng, dest.lat]] }, legs: [] }];
+    _dirRoutesCache = { routes: straight, dest, origin, prof, straight: true };
+    _renderDirectionsPanel(straight);
+    _drawDirRoute(straight, 0);
+  }
+  function _routeLabel(routes, i) {
+    if (routes.length === 1) return _dirRoutesCache?.straight ? 'Straight-line estimate' : 'Only route';
+    const fastestIdx = routes.reduce((b, r, idx) => r.duration < routes[b].duration ? idx : b, 0);
+    const shortestIdx = routes.reduce((b, r, idx) => r.distance < routes[b].distance ? idx : b, 0);
+    if (i === fastestIdx) return 'Fastest';
+    if (i === shortestIdx) return 'Shortest';
+    return 'Alternative';
+  }
+  function _renderDirRoutes(routes) {
+    const el = document.getElementById('lmDirRoutes');
+    if (!el) return;
+    el.innerHTML = routes.map((r, i) => {
+      const km = (r.distance / 1000).toFixed(1);
+      const mins = Math.round(r.duration / 60);
+      const h = Math.floor(mins / 60), m = mins % 60;
+      const timeStr = h > 0 ? `${h} hr ${m} min` : `${m} min`;
+      const active = i === _dirActiveIdx;
+      return `<div class="lm-sr-item" style="cursor:pointer;${active ? 'background:rgba(255,60,90,0.14)' : ''}" onclick="LiveMap.selectDirRoute(${i})">
+        <div class="lm-sr-ico">${active ? '✅' : '🛣️'}</div>
+        <div class="lm-sr-body">
+          <div class="lm-sr-name">Route ${String.fromCharCode(65 + i)} · ${km} km · ${timeStr}</div>
+          <div class="lm-sr-meta">${_routeLabel(routes, i)}</div>
+        </div>
+      </div>`;
+    }).join('') + `<button class="btn btn-accent btn-sm" style="margin-top:8px;width:100%" onclick="LiveMap.startDirNavigation()">🧭 Start Navigation</button>`;
+  }
+  function selectDirRoute(i) {
+    if (!_dirRoutesCache) return;
+    _dirActiveIdx = i;
+    _drawDirRoute(_dirRoutesCache.routes, i);
+    _renderDirRoutes(_dirRoutesCache.routes);
+  }
+  function _drawDirRoute(routes, idx) {
+    if (st.dirLine) { st.map.removeLayer(st.dirLine); st.dirLine = null; }
+    (st.dirAltLines || []).forEach(l => st.map.removeLayer(l)); st.dirAltLines = [];
+    routes.forEach((r, i) => {
+      const coords = r.geometry.coordinates.map(c => [c[1], c[0]]);
+      if (i === idx) {
+        st.dirLine = L.polyline(coords, { color: '#5b9bff', weight: 5, opacity: 0.9, dashArray: routes.length === 1 && _dirRoutesCache?.straight ? '8,8' : null }).addTo(st.map);
+        st.map.fitBounds(coords, { padding: [50, 50] });
+      } else {
+        const l = L.polyline(coords, { color: '#8a8a8a', weight: 4, opacity: 0.4 }).addTo(st.map).on('click', () => selectDirRoute(i));
+        st.dirAltLines.push(l);
+      }
+    });
+  }
+  /** Hands off to the existing live-navigation engine (progress bar, ETA,
+      current speed, search-along-route, arrival + trip summary) — this is
+      the same machinery Navigate-to-Partner uses, just pointed at whatever
+      destination the Directions planner picked. Note: like every turn-by-
+      turn nav app, live navigation always starts from your current live
+      position (not the custom "From" point, which is for route preview only). */
+  function startDirNavigation() {
+    if (!_dirRoutesCache) return;
+    _navTarget = { lat: _dirRoutesCache.dest.lat, lng: _dirRoutesCache.dest.lng, label: _dirRoutesCache.dest.name };
+    _navMode = _dirMode;
+    document.getElementById('lmDirectionsPanel').style.display = 'none';
+    document.getElementById('lmPlaceDetailsCard').style.display = 'none';
+    document.getElementById('lmNavPanel').style.display = 'block';
+    if (st.dirLine) { st.map.removeLayer(st.dirLine); st.dirLine = null; }
+    (st.dirAltLines || []).forEach(l => st.map.removeLayer(l)); st.dirAltLines = [];
+    navigateToPartner(_navMode);
+    toast('🧭 Navigation started');
+  }
+
   /* ── ADD / DELETE PLACE ──────────────────────────────────── */
   function openPlaceModal() {
     document.getElementById('lmPlaceCat').value = 'Home';
@@ -992,6 +1496,24 @@ const LiveMap = (() => {
   };
   let _navMode = 'drive';
   let _navTarget = null; // null = navigate to partner; else { lat, lng, label }
+  /** All-modes-at-a-glance strip (Driving/Walking/Cycling), like the master
+      prompt's example. Cheap haversine-based estimate — no extra OSRM/
+      Overpass calls — shown alongside the detailed active-mode route. */
+  function _quickModeSummary(distKm) {
+    return `<div style="display:flex;gap:10px;margin-top:8px">${Object.keys(NAV_PROFILES).map(k => {
+      const p = NAV_PROFILES[k];
+      const mins = (distKm / p.kmh) * 60;
+      let txt;
+      if (mins < 60) txt = Math.round(mins) + ' min';
+      else if (mins < 1440) txt = (mins / 60).toFixed(1) + ' hr';
+      else { const d = Math.round(mins / 1440); txt = d + ' day' + (d === 1 ? '' : 's'); }
+      return `<div style="text-align:center;flex:1;background:var(--g2);border-radius:8px;padding:6px 4px">
+        <div style="font-size:13px">${p.icon}</div>
+        <div style="font-size:10px;color:var(--white);font-weight:700">${txt}</div>
+        <div style="font-size:8px;color:var(--text3)">${p.label}</div>
+      </div>`;
+    }).join('')}</div>`;
+  }
   function toggleNavPanel() {
     const panel = document.getElementById('lmNavPanel');
     if (!panel) return;
@@ -1214,7 +1736,7 @@ const LiveMap = (() => {
       <div style="margin-top:8px;font-size:11px">
         <div style="font-weight:700;color:var(--white)">${prof.icon} To ${esc(dest.label)} — ~${km.toFixed(1)} km · ~${mins} min</div>
         <div style="color:var(--text3);margin-top:2px">Straight-line estimate — turn-by-turn ${prof.osrm ? "routing failed, showing a fallback" : "isn't available for this mode"}.</div>
-      </div><div id="lmNavProgress"></div>` + _navPoiSectionHtml();
+      </div>${_quickModeSummary(km)}<div id="lmNavProgress"></div>` + _navPoiSectionHtml();
     _renderNavProgressUI();
   }
   function _navModeButtons() {
@@ -1275,7 +1797,7 @@ const LiveMap = (() => {
       <div style="margin-top:8px;font-size:11px">
         <div style="font-weight:700;color:var(--white)">${prof.icon} To ${esc(dest.label)} — ${km} km · ${mins} min</div>
         <div style="color:var(--text3);margin-top:2px">Estimated arrival ${eta}${routes.length > 1 ? ` · ${routes.length} routes found` : ''}</div>
-      </div><div id="lmNavProgress"></div>${altPicker}${_navPoiSectionHtml()}`;
+      </div>${_quickModeSummary(parseFloat(km))}<div id="lmNavProgress"></div>${altPicker}${_navPoiSectionHtml()}`;
     _renderNavProgressUI();
   }
   function selectNavRoute(idx) {
@@ -1451,7 +1973,9 @@ const LiveMap = (() => {
       className: '', iconSize: [30, 30]
     });
     st.meetingMarker = L.marker([mid.lat, mid.lng], { icon }).addTo(st.map)
-      .bindPopup('<b>Meeting point</b><br>Roughly halfway between you two').openPopup();
+      .bindPopup(`<b>Meeting point</b><br>Roughly halfway between you two
+        <br><button class="btn btn-accent btn-xs" style="margin-top:6px" onclick="LiveMap.navigateToPoint(${mid.lat},${mid.lng},'Meeting point')">🧭 Navigate Here</button>`)
+      .openPopup();
     st.map.setView([mid.lat, mid.lng], 14);
     const distEach = haversine(S.myLoc, mid);
     toast(`🤝 Meeting point set — about ${distEach.toFixed(1)} km from each of you`);
@@ -1850,6 +2374,7 @@ const LiveMap = (() => {
   if (S.myLoc && S.myLoc.lat != null && S.myLoc.lng != null) _animateMarker('my', S.myLoc.lat, S.myLoc.lng);
   if (S.ptLoc && S.ptLoc.lat != null && S.ptLoc.lng != null) _animateMarker('pt', S.ptLoc.lat, S.ptLoc.lng);
   _renderPlacesLists();
+  _renderLoveNoteMarkers();
   _fitBoth();
   startTracking();
   _startPolling();
@@ -1890,6 +2415,11 @@ const LiveMap = (() => {
     toggleTracking, startTracking, stopTracking,
     openPlaceModal, onCatChange, useCurrentLocForPlace, savePlace, deletePlace,
     onSearchInput, searchByChip, pickSearchResult,
+    gmSearchInput, gmSearchFocus, gmSearchClear, gmPickResult, gmPickRecent,
+    closePlaceDetails, toggleFavoritePlace, saveGmPlace, shareGmPlace, meetHereGmPlace,
+    openDirections, pickCustomOrigin, resetOriginToCurrent, setDirMode, selectDirRoute, startDirNavigation,
+    toggleFavoritesPanel, openFavorite, removeFavorite, moveFavorite, renameFavorite,
+    startVideoCallFromMap, openLoveNoteComposer, sendLoveNote, foundLoveNote,
     flyTo,
     // Phase 2
     setMapStyle, locateMe, locatePartner, showMeetingPoint,
