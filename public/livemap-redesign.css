@@ -46,9 +46,8 @@
   box-shadow:var(--lm2-shadow)!important;
   backdrop-filter:none!important;
   -webkit-backdrop-filter:none!important;
-  overflow:hidden;
-  max-height:60vh;
   overflow-y:auto;
+  max-height:380px;
 }
 #page-map .lm-search-results,
 #page-map .lm-search-results *{
@@ -257,8 +256,11 @@
 }
 .lm2-sheet-tab.active{color:var(--lm2-text-main);background:var(--lm2-secondary-bg)}
 .lm2-sheet-body{padding:16px}
-.lm2-sheet-section{display:none;animation:lm2-fade var(--lm2-anim) both}
-.lm2-sheet-section.active{display:block}
+/* All sections stay part of the single page scroll now — tabs act as
+   "jump to" shortcuts (scrollIntoView) rather than show/hide switches,
+   so everything is reachable by scrolling alone. */
+.lm2-sheet-section{display:block;margin-bottom:22px;animation:lm2-fade var(--lm2-anim) both}
+.lm2-sheet-section:last-child{margin-bottom:0}
 .lm2-sheet-section-title{font-size:11px;font-weight:700;color:var(--lm2-text-hint);text-transform:uppercase;letter-spacing:.04em;margin:14px 0 8px}
 .lm2-sheet-section-title:first-child{margin-top:0}
 
@@ -342,10 +344,10 @@
 @media (min-width:701px) and (max-width:1100px){
   .lm2-partner-row{flex-wrap:wrap}
 }
-@media (max-width:700px){
-  .lm2-sheet{position:sticky;bottom:0}
-  .lm2-search-wrap{position:sticky;top:6px;z-index:40}
-}
+/* Issue: the bottom sheet used to be pinned to the viewport bottom and the
+   search bar pinned to the top — both created "fixed content" the user
+   explicitly asked to remove. The Live Map page is now one continuous
+   scroll, so nothing below the map should stay fixed in place. */
 
 /* ── 4. Video call docked split-view (map + call share the page) ───
    #lm2CallDock holds two panes — the real #mapView and the real

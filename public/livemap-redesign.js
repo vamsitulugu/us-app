@@ -126,10 +126,14 @@
       </div>`;
     page.appendChild(sheet);
 
+    // Tabs no longer hide/show sections — every section stays visible and
+    // part of the single page scroll. Tapping a tab just jumps to (and
+    // highlights) that section, like an in-page anchor link.
     sheet.querySelectorAll('.lm2-sheet-tab').forEach(tab => {
       tab.onclick = () => {
         sheet.querySelectorAll('.lm2-sheet-tab').forEach(t => t.classList.toggle('active', t === tab));
-        sheet.querySelectorAll('.lm2-sheet-section').forEach(s => s.classList.toggle('active', s.dataset.section === tab.dataset.tab));
+        const target = sheet.querySelector(`.lm2-sheet-section[data-section="${tab.dataset.tab}"]`);
+        target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       };
     });
 
@@ -201,6 +205,19 @@
 
     buildNearbyChips();
   }
+
+  /* Close the floating search-results dropdown when the user taps
+     anywhere outside it or the search input. Selecting a result or
+     clearing the search already close it (handled in livemap.js); this
+     only adds the "tap outside" case, without touching any search/GPS
+     logic. */
+  document.addEventListener('click', (e) => {
+    const results = $('lmGmSearchResults');
+    const input = $('lmGmSearchInput');
+    if (!results || !results.classList.contains('show')) return;
+    if (results.contains(e.target) || input?.contains(e.target)) return;
+    results.classList.remove('show');
+  }, true);
 
   /* ════════════════════════════════════════════════════════════════
      B/C. NEARBY SEARCH — route → destination → current-location
