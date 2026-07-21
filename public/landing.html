@@ -739,6 +739,22 @@ function isStandalone(){
   return window.matchMedia('(display-mode: standalone)').matches ||
          window.navigator.standalone === true; // iOS Safari
 }
+function isInsideNativeApp(){
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+// Real "is the APK actually installed on this phone" check — works in
+// Chrome for Android via the OS package manager, matched against the
+// applicationId declared in manifest.json's related_applications. Other
+// browsers (Safari, Firefox, older Chrome) just don't support the API,
+// so this always resolves to false there and the normal install card
+// still shows — it's a bonus signal, not the only one.
+async function isApkInstalled(){
+  try{
+    if(!('getInstalledRelatedApps' in navigator)) return false;
+    const apps = await navigator.getInstalledRelatedApps();
+    return apps.some(a => a.id === 'com.uswithlove.app');
+  }catch(e){ return false; }
+}
 function alreadySignedIn(){
   try{ const s=JSON.parse(localStorage.getItem('uwl_v5')||'{}'); return !!(s.setupDone && s.coupleId); }catch(e){ return false; }
 }
@@ -773,18 +789,19 @@ async function fetchAppMeta(){
 
 function scrollToInstall(){ document.getElementById('install').scrollIntoView({behavior:'smooth',block:'start'}); }
 
-function renderInstallCard(){
+async function renderInstallCard(){
   const platform = detectPlatform();
   const meta = platformMeta[platform];
   const card = document.getElementById('installCard');
+  const installed = isInsideNativeApp() || isStandalone() || alreadySignedIn() || await isApkInstalled();
 
-  if (alreadySignedIn() || isStandalone()){
+  if (installed){
     card.innerHTML = `
       <div class="install-app-icon"><img src="/icons/icon-512.png" alt="Twin Hearts"><span class="platform-chip">✅</span></div>
       <div class="install-info">
         <div class="install-eyebrow">You're all set</div>
         <div class="install-title">Twin Hearts is ready to open</div>
-        <div class="install-meta"><span>${isStandalone() ? 'Running as an installed app' : 'Signed in on this device'}</span></div>
+        <div class="install-meta"><span>${isInsideNativeApp() ? 'Running in the app' : isStandalone() ? 'Running as an installed app' : 'Already installed on this device'}</span></div>
         <div class="install-actions">
           <button class="btn-primary ripple-surface" onclick="goToApp()">💕 Open App</button>
         </div>

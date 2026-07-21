@@ -1,6 +1,6 @@
 {
-  "name": "US",
-  "short_name": "US",
+  "name": "Twin Hearts",
+  "short_name": "Twin Hearts",
   "description": "Your private couple space — chat, memories, habits & more",
   "start_url": "/",
   "display": "standalone",
@@ -22,5 +22,12 @@
     }
   ],
   "categories": ["lifestyle", "social"],
-  "screenshots": []
+  "screenshots": [],
+  "related_applications": [
+    {
+      "platform": "play",
+      "id": "com.uswithlove.app"
+    }
+  ],
+  "prefer_related_applications": false
 }
