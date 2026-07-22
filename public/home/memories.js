@@ -381,15 +381,60 @@ const HomeMemories = (() => {
   }
 
   // ════════════════════════════════════════════════
-  //  10. Decorative ambient floating particle sprites removed
-  //      (was: 18 hearts/sparkles/roses drifting & orbiting in
-  //      the room). Kept as no-ops so call sites remain valid.
+  //  10. PARTICLE SYSTEM — floating memory particles
   // ════════════════════════════════════════════════
-  function initParticles() {}
+  const PARTICLE_EMOJIS = ['💕', '✨', '💫', '🌹', '⭐', '💖'];
+  let _particleSprites = [];
+  let _particleT = 0;
 
-  function updateParticles() {}
+  function initParticles() {
+    if (!scene) return;
+    _particleSprites = [];
+    for (let i = 0; i < 18; i++) {
+      const sprite = makeEmojiSprite(PARTICLE_EMOJIS[i % PARTICLE_EMOJIS.length], 0.22);
+      sprite.position.set(
+        (Math.random() - 0.5) * 8,
+        0.5 + Math.random() * 3.5,
+        (Math.random() - 0.5) * 8
+      );
+      sprite.userData.baseY  = sprite.position.y;
+      sprite.userData.phase  = Math.random() * Math.PI * 2;
+      sprite.userData.speed  = 0.3 + Math.random() * 0.5;
+      sprite.userData.orbit  = 0.4 + Math.random() * 1.0;
+      scene.add(sprite);
+      _particleSprites.push(sprite);
+    }
+  }
 
-  function disposeParticles() {}
+  function makeEmojiSprite(emoji, size = 0.18) {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.font = '44px serif';
+    ctx.textAlign = ctx.textBaseline = 'middle';
+    ctx.fillText(emoji, 32, 36);
+    const tex = new THREE.CanvasTexture(canvas);
+    const mat2 = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+    const sprite = new THREE.Sprite(mat2);
+    sprite.scale.set(size, size, 1);
+    return sprite;
+  }
+
+  function updateParticles(dt) {
+    _particleT += dt;
+    _particleSprites.forEach(s => {
+      s.position.y = s.userData.baseY + Math.sin(_particleT * s.userData.speed + s.userData.phase) * 0.18;
+      s.position.x += Math.sin(_particleT * 0.4 + s.userData.phase) * dt * 0.05;
+      s.material.opacity = 0.25 + 0.18 * Math.sin(_particleT * 0.7 + s.userData.phase);
+      // Drift slowly
+      if (Math.abs(s.position.x) > 4.5) s.position.x *= -0.95;
+    });
+  }
+
+  function disposeParticles() {
+    _particleSprites.forEach(s => { if (s.parent) s.parent.remove(s); });
+    _particleSprites = [];
+  }
 
   // ════════════════════════════════════════════════
   //  PLACEMENT — place objects in scene
@@ -902,10 +947,41 @@ const HomeMemories = (() => {
   }
 
   // ════════════════════════════════════════════════
-  //  Decorative celebration emoji burst removed (was: hearts/sparkles
-  //  exploding outward on gift reveal / memory placement). No-op kept.
+  //  BURST EFFECT — emoji particles explode outward
   // ════════════════════════════════════════════════
-  function spawnBurst() {}
+  function spawnBurst(worldPos, emojis = ['✨', '💕'], count = 8) {
+    // Convert 3D world pos to screen coords
+    if (!window.HomeScene) return;
+    const cam = HomeScene.getCamera();
+    const ren = HomeRenderer.get();
+    if (!cam || !ren) return;
+
+    const v = worldPos.clone().project(cam);
+    const x = (v.x + 1) / 2 * window.innerWidth;
+    const y = (-v.y + 1) / 2 * window.innerHeight;
+
+    for (let i = 0; i < count; i++) {
+      const p = document.createElement('div');
+      p.textContent = emojis[i % emojis.length];
+      const angle  = (i / count) * Math.PI * 2;
+      const dist   = 40 + Math.random() * 60;
+      const tx     = Math.cos(angle) * dist;
+      const ty     = Math.sin(angle) * dist;
+      const dur    = 0.7 + Math.random() * 0.5;
+      p.style.cssText = `
+        position:fixed;pointer-events:none;z-index:9999;
+        font-size:${18 + Math.random() * 14}px;
+        left:${x}px;top:${y}px;
+        animation:hmBurst${i} ${dur}s ease-out forwards;
+        --tx:${tx}px;--ty:${ty}px;
+      `;
+      const ks = document.createElement('style');
+      ks.textContent = `@keyframes hmBurst${i}{0%{transform:translate(0,0) scale(1);opacity:1;}100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0;}}`;
+      document.head.appendChild(ks);
+      document.body.appendChild(p);
+      setTimeout(() => { p.remove(); ks.remove(); }, dur * 1000 + 100);
+    }
+  }
 
   // ════════════════════════════════════════════════
   //  ADD MEMORY UI — drawer for placing new objects

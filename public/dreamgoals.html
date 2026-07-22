@@ -805,7 +805,20 @@ function showCelebration(dream) {
     <div class="celeb-title">Dream Achieved! 🎉</div>
     <div class="celeb-sub">"${escHtml(dream.title)}"<br>You did it! 💚</div>
   </div>`;
+  spawnPetals();
   setTimeout(()=>{overlay.style.display='none';overlay.innerHTML='';},4000);
+}
+function spawnPetals() {
+  const particles=['💕','❤️','✨','💫','🌟','🎉','🏆'];
+  for(let i=0;i<14;i++) setTimeout(()=>{
+    const p=document.createElement('div');
+    const em=particles[Math.floor(Math.random()*particles.length)];
+    const x=10+Math.random()*80;const dur=1.8+Math.random()*1.5;
+    p.style.cssText=`position:fixed;pointer-events:none;z-index:10000;font-size:${14+Math.random()*12}px;left:${x}vw;bottom:10%;animation:riseUp ${dur}s cubic-bezier(0.16,1,0.3,1) forwards;--rot:${Math.random()>0.5?'360deg':'-360deg'}`;
+    p.textContent=em;
+    if(!document.getElementById('riseStyle')){const s=document.createElement('style');s.id='riseStyle';s.textContent=`@keyframes riseUp{0%{transform:translateY(0) rotate(0) scale(1);opacity:1}100%{transform:translateY(-100vh) rotate(var(--rot)) scale(0.3);opacity:0}}`;document.head.appendChild(s);}
+    document.body.appendChild(p);setTimeout(()=>p.remove(),(dur+0.2)*1000);
+  },i*100);
 }
 
 // ══ COMPLETED TOGGLE ══

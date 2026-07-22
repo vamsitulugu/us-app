@@ -1,0 +1,55 @@
+Step 1: Figure out what kind of change you made
+
+This matters a lot, because of how your app is built (Capacitor WebView pointed at your live server URL).
+
+A) Web/content changes — chat features, UI, colors, new pages, bug fixes in public/*.js/html/css, backend routes, database changes:
+→ No APK rebuild needed at all. Just deploy to Render/Vercel like normal. Every user's app reloads that same live URL, so they instantly see the change next time they open the app. This covers probably 95% of what you'll do.
+
+B) Native-level changes — anything in android/, capacitor.config.json (permissions, plugins, app icon, splash screen, app name, new native plugin like camera/push):
+→ Requires a real new APK build + version bump + redistribution, because that code is baked into the installed app itself, not fetched from your server.
+
+Step 2: If it's a native change — the version bump rules
+
+In android/app/build.gradle:
+
+gradle
+versionCode 2        // MUST increase by at least 1 every single release, no exceptions
+versionName "1.1"    // human label, bump however you like (1.1, 1.2, 2.0...)
+
+versionCode is what Android actually compares to decide "is this newer." If you forget to bump it, Android will refuse to let a device "update" — it'll just look like the same version.
+
+Step 3: The repeatable release routine
+
+Same steps every time, using what you've already got set up:
+
+powershell
+# 1. Bump versionCode + versionName in android/app/build.gradle
+
+# 2. Build → Generate Signed Bundle/APK → APK → Next → Choose existing (your saved .jks) → release → Finish
+
+# 3. Publish it (auto-writes real version/size/date)
+node scripts/publish-apk.js "C:\path\to\app-release.apk"
+
+# 4. Update the changelog card on your landing page (see below)
+
+# 5. Commit + push + deploy
+git add public/downloads/twin-hearts.apk public/downloads/app-meta.json public/landing.html
+git commit -m "Release v1.1"
+git push origin main
+Step 4: Keep the "What's New" section honest and current
+
+In landing.html, there's a small array you edit each release:
+
+js
+const releaseNotes = [
+  { ver:'1.1', tag:'new', tagLabel:'New', title:'Live location sharing', desc:'See your partner\'s location in real time on the map.' },
+  { ver:'1.0', tag:'new', tagLabel:'Launch', title:'Twin Hearts is here 💕', desc:'Chat, calls, journal, live map, memory globe, games and more.' }
+];
+
+Add a new entry to the top each release. That's your whole changelog workflow — no separate CMS needed.
+
+Step 5: The part people usually miss — existing users won't auto-update
+
+Since there's no Play Store, an already-installed user's app never checks for a new APK on its own. If you ship a native change, someone who installed v1.0 stays on v1.0 forever unless they manually come back to your site and re-download.
+
+The fix is to build a tiny in-app version check yourself. Since you already have @capacitor/app installed, you can compare the running app's real version against your live app-meta.json and show a banner if they're out of date:
