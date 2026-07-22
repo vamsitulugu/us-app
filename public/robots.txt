@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
-Sitemap: https://useverythingtogether.vercel.app/sitemap.xml
+Sitemap: https://twinhearts.vercel.app/sitemap.xml
