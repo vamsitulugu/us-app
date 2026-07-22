@@ -61,19 +61,6 @@
 .cc-btn.cc-hug.cc-active{ background:linear-gradient(135deg,var(--accent2),var(--accent2-d)); border-color:transparent; box-shadow:0 6px 18px var(--accent2-glow); }
 .cc-btn.cc-miss.cc-active{ background:linear-gradient(135deg,#ff6b9d,#c2185b); border-color:transparent; box-shadow:0 6px 18px rgba(255,107,157,0.4); }
 
-.cc-burst-layer{
-  position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:2;
-}
-.cc-burst-emoji{
-  position:absolute; font-size:20px; opacity:0;
-  animation:ccBurstUp 1.3s ease-out forwards;
-}
-@keyframes ccBurstUp{
-  0%{ opacity:0; transform:translateY(0) scale(0.5); }
-  15%{ opacity:1; transform:translateY(-6px) scale(1.1); }
-  100%{ opacity:0; transform:translateY(-70px) scale(0.8); }
-}
-
 .cc-stats{
   display:grid; grid-template-columns:repeat(4,1fr); gap:8px;
   border-top:1px solid var(--border); padding-top:14px; position:relative; z-index:1;
@@ -114,26 +101,9 @@ const ConnCard = (() => {
 
   function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
-  function burst(btnId, emojis) {
-    const layer = document.getElementById('ccBurstLayer');
-    const btn = document.getElementById(btnId);
-    if (!layer || !btn) return;
-    const cardRect = layer.getBoundingClientRect();
-    const btnRect = btn.getBoundingClientRect();
-    const cx = btnRect.left - cardRect.left + btnRect.width / 2;
-    const cy = btnRect.top - cardRect.top;
-    for (let i = 0; i < 6; i++) {
-      setTimeout(() => {
-        const el = document.createElement('div');
-        el.className = 'cc-burst-emoji';
-        el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-        el.style.left = (cx + (Math.random() - 0.5) * 40) + 'px';
-        el.style.top = cy + 'px';
-        layer.appendChild(el);
-        setTimeout(() => el.remove(), 1400);
-      }, i * 90);
-    }
-  }
+  // Decorative emoji burst removed (was: hearts/emoji rising near the
+  // touch/hug/miss-you buttons). No-op kept so call sites remain valid.
+  function burst() {}
 
   function markMine(type) {
     if (!window.S) return;

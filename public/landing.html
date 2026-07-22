@@ -36,9 +36,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;overflow-x:hi
 #bg{position:fixed;inset:0;z-index:-3;background:radial-gradient(ellipse at 20% 20%,#0d0808 0%,#030101 100%)}
 #bg::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 15% 15%,hsla(350,75%,32%,.20),transparent 50%),radial-gradient(circle at 85% 8%,hsla(355,65%,26%,.16),transparent 50%),radial-gradient(circle at 50% 95%,hsla(0,0%,10%,.4),transparent 55%);pointer-events:none}
 #bg-grain{position:fixed;inset:0;z-index:-2;opacity:.035;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
-#heart-field{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
-.fheart{position:absolute;bottom:-40px;font-size:16px;opacity:0;animation:riseHeart linear infinite;filter:drop-shadow(0 0 6px rgba(207,50,71,.5))}
-@keyframes riseHeart{0%{transform:translateY(0) translateX(0) rotate(0);opacity:0}8%{opacity:.4}92%{opacity:.25}100%{transform:translateY(-110vh) translateX(var(--drift,30px)) rotate(25deg);opacity:0}}
+
 
 /* ── Reveal animation utility ─────────────────────────────────── */
 .reveal{opacity:0;transform:translateY(30px);transition:opacity .9s var(--ease),transform .9s var(--ease)}
@@ -267,7 +265,6 @@ footer p{font-size:11px;color:var(--text3)}
 
 <div id="bg"></div>
 <div id="bg-grain"></div>
-<div id="heart-field"></div>
 
 <!-- ═══ Nav ═══ -->
 <nav id="mainNav">
@@ -852,21 +849,7 @@ document.querySelectorAll('.reveal,.reveal-l,.reveal-r,.reveal-scale').forEach((
 const navEl = document.getElementById('mainNav');
 window.addEventListener('scroll', ()=>{ navEl.classList.toggle('scrolled', window.scrollY>30); });
 
-/* ═══════════════════════════════════════════════════════════════
-   Floating hearts (ambient)
-   ═══════════════════════════════════════════════════════════════ */
-const heartField=document.getElementById('heart-field');
-const heartEmojis=['💕','💖','💗','🩷','❤️'];
-for(let i=0;i<18;i++){
-  const h=document.createElement('span'); h.className='fheart';
-  h.textContent=heartEmojis[Math.floor(Math.random()*heartEmojis.length)];
-  h.style.left=Math.random()*100+'%';
-  h.style.setProperty('--drift',(Math.random()*80-40)+'px');
-  h.style.fontSize=(12+Math.random()*14)+'px';
-  h.style.animationDuration=(10+Math.random()*10)+'s';
-  h.style.animationDelay=(Math.random()*14)+'s';
-  heartField.appendChild(h);
-}
+
 
 /* ═══════════════════════════════════════════════════════════════
    Boot

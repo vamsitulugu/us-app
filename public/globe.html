@@ -2611,23 +2611,8 @@ function getRole() {
   try { const s = JSON.parse(localStorage.getItem('uwl_v5')||'{}'); return s.role || 'user1'; } catch(e) { return 'user1'; }
 }
 
-// Hearts celebration
-function spawnHearts() {
-  for (let i = 0; i < 10; i++) {
-    setTimeout(() => {
-      const p = document.createElement('div');
-      p.style.cssText = `position:fixed;pointer-events:none;z-index:9999;font-size:${20+Math.random()*20}px;left:${20+Math.random()*60}vw;bottom:${30+Math.random()*20}px;animation:riseUp ${1.5+Math.random()*1.5}s cubic-bezier(0.16,1,0.3,1) forwards;--rot:${Math.random()>0.5?'360deg':'-360deg'}`;
-      p.textContent = ['❤️','💕','🌍','✨','💫'][Math.floor(Math.random()*5)];
-      if (!document.getElementById('riseUpStyle')) {
-        const s = document.createElement('style'); s.id='riseUpStyle';
-        s.textContent = `@keyframes riseUp{0%{transform:translateY(0) rotate(0) scale(1);opacity:1}100%{transform:translateY(-80vh) rotate(var(--rot)) scale(0.3);opacity:0}}`;
-        document.head.appendChild(s);
-      }
-      document.body.appendChild(p);
-      setTimeout(() => p.remove(), 3500);
-    }, i * 120);
-  }
-}
+// Decorative floating hearts celebration removed. No-op kept for call site.
+function spawnHearts() {}
 
 // ═══════════════════════════════════════════
 // KEYBOARD SHORTCUTS

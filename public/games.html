@@ -141,7 +141,6 @@ button{font-family:inherit;cursor:pointer}
 .reward-title{font-family:var(--ff-serif);font-size:22px;color:#fff;margin-top:12px}
 .reward-items{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}
 .reward-item{background:var(--g2);border:1px solid var(--border);border-radius:14px;padding:10px 16px;font-size:14px;font-weight:800}
-#confettiCanvas{position:fixed;inset:0;z-index:9997;pointer-events:none;display:none}
 
 /* achievements strip */
 .ach-strip{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px}
@@ -288,7 +287,6 @@ button{font-family:inherit;cursor:pointer}
 </head>
 <body>
 
-<canvas id="confettiCanvas"></canvas>
 <div class="gtoast" id="gToast"></div>
 <div class="reward-pop" id="rewardPop"><div class="reward-card">
   <div class="reward-ico" id="rewardIco">🏆</div>
@@ -373,28 +371,9 @@ const Snd = (function(){
   };
 })();
 
-/* confetti */
-function confetti(n){
-  n = n||70;
-  const cvs = document.getElementById('confettiCanvas');
-  cvs.style.display='block'; cvs.width=innerWidth; cvs.height=innerHeight;
-  const ctx = cvs.getContext('2d');
-  const colors=['#ff6b9d','#5B9BFF','#ffc94a','#7ee8ff','#34d399','#a78bfa'];
-  const parts = Array.from({length:n},()=>({x:Math.random()*cvs.width,y:-20-Math.random()*200,r:4+Math.random()*5,c:rand(colors),vy:2+Math.random()*3,vx:(Math.random()-.5)*3,rot:Math.random()*360,vr:(Math.random()-.5)*10}));
-  let t=0;
-  function frame(){
-    t++; ctx.clearRect(0,0,cvs.width,cvs.height);
-    let alive=false;
-    parts.forEach(p=>{
-      p.y+=p.vy; p.x+=p.vx; p.rot+=p.vr;
-      if(p.y<cvs.height+20) alive=true;
-      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
-      ctx.fillStyle=p.c; ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.6); ctx.restore();
-    });
-    if(alive && t<260) requestAnimationFrame(frame); else cvs.style.display='none';
-  }
-  frame();
-}
+/* Decorative confetti canvas removed. Kept as a no-op so existing
+   reward/level-up call sites throughout the games module remain valid. */
+function confetti(){}
 function toast(msg,dur){ const t=document.getElementById('gToast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),dur||2600); }
 function showReward(ico,title,items){
   document.getElementById('rewardIco').textContent=ico;

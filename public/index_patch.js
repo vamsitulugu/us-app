@@ -499,89 +499,12 @@ const HeartbeatManager = (() => {
   }
 
   /* ══════════════════════════════════════════════════════════════
-     PARTICLE ENGINE (Canvas)
+     Decorative floating emoji particle engine removed (used to draw
+     random hearts/sparkles/roses drifting up the heartbeat canvas).
+     Functions kept as no-ops so existing call sites remain valid.
   ══════════════════════════════════════════════════════════════ */
-  let _particles = [];
-  let _particleRaf;
-
-  function _startParticleEngine() {
-    const canvas = document.getElementById('hbCanvas');
-    if (!canvas) return;
-    const parent = canvas.parentElement;
-    canvas.width  = parent.offsetWidth  || 300;
-    canvas.height = parent.offsetHeight || 180;
-
-    _particles = [];
-    cancelAnimationFrame(_particleRaf);
-
-    function loop() {
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      /* Spawn particles when both online */
-      if (_state.bothOnline && Math.random() < 0.12) {
-        _spawnParticle(canvas);
-      }
-
-      /* Update & draw */
-      _particles = _particles.filter(p => p.life > 0);
-      _particles.forEach(p => {
-        p.x   += p.vx;
-        p.y   += p.vy;
-        p.vy  -= 0.04;
-        p.life -= 1;
-        p.scale = Math.max(0, p.life / p.maxLife);
-        ctx.save();
-        ctx.globalAlpha = p.scale * 0.8;
-        ctx.font = `${p.size * p.scale}px serif`;
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.rot);
-        ctx.fillText(p.emoji, 0, 0);
-        ctx.restore();
-      });
-
-      _particleRaf = requestAnimationFrame(loop);
-    }
-    loop();
-  }
-
-  function _spawnParticle(canvas) {
-    const emojis = ['💕','❤️','✨','💫','🌹'];
-    _particles.push({
-      x:      canvas.width  / 2 + (Math.random() - 0.5) * 80,
-      y:      canvas.height / 2 + (Math.random() - 0.5) * 40,
-      vx:     (Math.random() - 0.5) * 1.5,
-      vy:     -(0.8 + Math.random() * 1.2),
-      size:   14 + Math.random() * 10,
-      emoji:  emojis[Math.floor(Math.random() * emojis.length)],
-      maxLife:60 + Math.random() * 40,
-      life:   60 + Math.random() * 40,
-      scale:  1,
-      rot:    (Math.random() - 0.5) * 0.5,
-    });
-  }
-
-  /* Burst on message send */
-  function burstParticles(x, y, count) {
-    const canvas = document.getElementById('hbCanvas');
-    if (!canvas || !_state.bothOnline) return;
-    const emojis = ['💕','❤️','✨','💫'];
-    for (let i = 0; i < (count || 8); i++) {
-      _particles.push({
-        x:      x || canvas.width  / 2,
-        y:      y || canvas.height / 2,
-        vx:     (Math.random() - 0.5) * 3,
-        vy:     -(1 + Math.random() * 2.5),
-        size:   16 + Math.random() * 10,
-        emoji:  emojis[Math.floor(Math.random() * emojis.length)],
-        maxLife:50,
-        life:   50,
-        scale:  1,
-        rot:    (Math.random() - 0.5) * 0.8,
-      });
-    }
-  }
+  function _startParticleEngine() {}
+  function burstParticles() {}
 
   /* ══════════════════════════════════════════════════════════════
      PULSE ANIMATION (heartbeat rate changes with activity)
