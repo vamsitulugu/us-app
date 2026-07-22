@@ -6991,38 +6991,8 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
     goto(el.dataset.page);
   });
 });
-        // Modern celebration — hearts & sparkles, no flowers/stars
-        function spawnPetals(n = 8) {
-          if ((S.settings || {}).celebAnimations === false) return; // respect user setting
-          if ((S.settings || {}).reducedMotion) return;
-          const particles = ['💕', '❤️', '✨', '💫', '🌹', '💖'];
-          for (let i = 0; i < n; i++)setTimeout(() => {
-            const p = document.createElement('div');
-            const em = particles[Math.floor(Math.random() * particles.length)];
-            const x = 20 + Math.random() * 60; // keep within 20-80% width
-            const rot = Math.random() > 0.5 ? '360deg' : '-360deg';
-            const dur = 1.8 + Math.random() * 1.5;
-            p.style.cssText = `
-      position:fixed;pointer-events:none;z-index:9999;
-      font-size:${14 + Math.random() * 12}px;
-      left:${x}vw;bottom:${30 + Math.random() * 20}px;
-      animation:riseUp ${dur}s cubic-bezier(0.16,1,0.3,1) forwards;
-      --rot:${rot};
-    `;
-            p.textContent = em;
-            if (!document.getElementById('riseUpStyle')) {
-              const s = document.createElement('style'); s.id = 'riseUpStyle';
-              s.textContent = `@keyframes riseUp{
-        0%{transform:translateY(0) rotate(0) scale(1);opacity:1}
-        60%{opacity:0.9;transform:translateY(-50vh) rotate(calc(var(--rot)*0.6)) scale(1.1)}
-        100%{transform:translateY(-100vh) rotate(var(--rot)) scale(0.3);opacity:0}
-      }`;
-              document.head.appendChild(s);
-            }
-            document.body.appendChild(p);
-            setTimeout(() => p.remove(), (dur + 0.2) * 1000);
-          }, i * 120);
-        }
+        // no-op: decorative floating emoji celebration removed (call sites kept safe)
+        function spawnPetals() { }
 
         // ─── IMAGE VIEWER ────────────────────────────────────────
         function openImgViewer(url) { document.getElementById('imgViewerImg').src = url; document.getElementById('imgViewer').classList.add('open'); }
