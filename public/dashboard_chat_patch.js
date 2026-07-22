@@ -114,26 +114,9 @@ const ConnCard = (() => {
 
   function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
-  function burst(btnId, emojis) {
-    const layer = document.getElementById('ccBurstLayer');
-    const btn = document.getElementById(btnId);
-    if (!layer || !btn) return;
-    const cardRect = layer.getBoundingClientRect();
-    const btnRect = btn.getBoundingClientRect();
-    const cx = btnRect.left - cardRect.left + btnRect.width / 2;
-    const cy = btnRect.top - cardRect.top;
-    for (let i = 0; i < 6; i++) {
-      setTimeout(() => {
-        const el = document.createElement('div');
-        el.className = 'cc-burst-emoji';
-        el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-        el.style.left = (cx + (Math.random() - 0.5) * 40) + 'px';
-        el.style.top = cy + 'px';
-        layer.appendChild(el);
-        setTimeout(() => el.remove(), 1400);
-      }, i * 90);
-    }
-  }
+  // Decorative floating-emoji burst removed; button press feedback
+  // (the .cc-sent class toggled at each call site) is kept.
+  function burst() { /* no-op: decorative floating emoji removed */ }
 
   function markMine(type) {
     if (!window.S) return;

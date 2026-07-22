@@ -308,16 +308,6 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 /* ── EMPTY STATE ── */
 .lc-empty { text-align: center; padding: 24px; color: var(--text3); font-size: 12px; }
 
-/* ── HEARTS FLOAT ── */
-.lc-float-hearts { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-.lc-heart { position: absolute; font-size: 18px; animation: floatHeart linear infinite; opacity: 0; }
-@keyframes floatHeart {
-  0% { opacity: 0; transform: translateY(0) scale(0.5) rotate(0deg); }
-  10% { opacity: 0.7; }
-  90% { opacity: 0.4; }
-  100% { opacity: 0; transform: translateY(-100vh) scale(1.2) rotate(360deg); }
-}
-
 /* ── NO DATE OVERLAY ── */
 .lc-no-date {
   text-align: center;
@@ -349,7 +339,6 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <body>
 
 <!-- Floating ambient hearts -->
-<div class="lc-float-hearts" id="floatHearts"></div>
 
 <div id="lcMain"></div>
 
@@ -677,24 +666,6 @@ function updateLive() {
   set('lcSecs', cd.totalSecs);
 }
 
-// ── AMBIENT HEARTS ──
-function spawnHeart() {
-  const wrap = document.getElementById('floatHearts');
-  if (!wrap) return;
-  const hearts = ['💕','❤️','💗','💖','✨'];
-  const h = document.createElement('div');
-  h.className = 'lc-heart';
-  h.textContent = hearts[Math.floor(Math.random() * hearts.length)];
-  h.style.left = (Math.random() * 100) + 'vw';
-  h.style.bottom = '-30px';
-  h.style.fontSize = (12 + Math.random() * 12) + 'px';
-  const dur = 8 + Math.random() * 6;
-  h.style.animationDuration = dur + 's';
-  h.style.animationDelay = (Math.random() * 2) + 's';
-  wrap.appendChild(h);
-  setTimeout(() => h.remove(), (dur + 2) * 1000);
-}
-
 // ── THEME FROM PARENT ──
 window.addEventListener('message', e => {
   if (e.data?.type === 'theme') {
@@ -710,8 +681,6 @@ window.addEventListener('message', e => {
 // ── INIT ──
 render();
 setInterval(updateLive, 1000);
-setInterval(spawnHeart, 3000);
-spawnHeart(); spawnHeart();
 </script>
 <script src="/premium-motion.js"></script>
 <script src="/premium-states.js"></script>
