@@ -43,7 +43,7 @@ const apiLimiter = rateLimit({
 
 // ── CORS ──────────────────────────────────────────────
 const allowedOrigins = [
-  'https://useverythingtogether.vercel.app',
+  'https://twinhearts.vercel.app',
   process.env.APP_URL || 'https://us-app-av6d.onrender.com',
   // The Android APK (Capacitor, androidScheme:'https') serves its bundled
   // web assets from this origin — without it, every fetch() call made
