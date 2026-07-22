@@ -1,7 +1,7 @@
 
 
 /**
- * US APP — index.html PATCH SCRIPT
+ * TWIN HEARTS APP — index.html PATCH SCRIPT
  * ============================================================
  * This file contains ALL the JavaScript additions needed in index.html.
  * Paste these functions into your existing <script> block,
@@ -100,7 +100,7 @@ window.addEventListener('message', function(e) {
 //   (S.bucket || []).length + (S.dreamGoals || []).length;
 
 /* ═══════════════════════════════════════════════════════════════
-   HEARTBEAT CONNECTION — Global Feature for US ❤️ App
+   HEARTBEAT CONNECTION — Global Feature for Twin Hearts ❤️ App
    File: public/index_patch.js
    Load AFTER the main <script> block in index.html
    ═══════════════════════════════════════════════════════════════ */

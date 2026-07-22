@@ -623,7 +623,7 @@ window.closeFullPlayer = function () {
   function pushMediaSession(s) {
     if (!('mediaSession' in navigator)) return;
     try {
-      navigator.mediaSession.metadata = new MediaMetadata({ title: s.title, artist: s.artist || 'Unknown Artist', album: 'Us With Love 💕', artwork: s.cover_url ? [{ src: s.cover_url, sizes: '512x512', type: 'image/png' }] : [] });
+      navigator.mediaSession.metadata = new MediaMetadata({ title: s.title, artist: s.artist || 'Unknown Artist', album: 'Twin Hearts 💕', artwork: s.cover_url ? [{ src: s.cover_url, sizes: '512x512', type: 'image/png' }] : [] });
       navigator.mediaSession.setActionHandler('play', () => AudioService.togglePlay());
       navigator.mediaSession.setActionHandler('pause', () => AudioService.togglePlay());
       navigator.mediaSession.setActionHandler('previoustrack', () => AudioService.prev());

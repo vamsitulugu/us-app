@@ -1,8 +1,8 @@
-# US ❤️
+# Twin Hearts ❤️
 
 ## Project Overview
 
-US ❤️ is a premium long-distance relationship application designed to help couples stay emotionally connected through shared memories, interactive experiences, planning tools, entertainment, and a persistent virtual world.
+Twin Hearts ❤️ is a premium long-distance relationship application designed to help couples stay emotionally connected through shared memories, interactive experiences, planning tools, entertainment, and a persistent virtual world.
 
 The application uses:
 

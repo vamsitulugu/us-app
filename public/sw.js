@@ -1,4 +1,4 @@
-// Service Worker for US 💕 PWA — v5
+// Service Worker for Twin Hearts 💕 PWA — v5
 const CACHE = 'uwl-v6';
 const OFFLINE_ASSETS = [
   '/',
@@ -89,7 +89,7 @@ self.addEventListener('fetch', e => {
 
 // ── PUSH: fires even when app is fully closed ──────────
 self.addEventListener('push', e => {
-  let data = { title: 'US 💕', body: '', icon: '/icons/icon-192.png' };
+  let data = { title: 'Twin Hearts 💕', body: '', icon: '/icons/icon-192.png' };
   try { if (e.data) Object.assign(data, e.data.json()); } catch (_) {}
   // Touch needs a long, unmistakable buzz even with the app fully
   // closed; every other notification type keeps its original short

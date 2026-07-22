@@ -1,6 +1,6 @@
 {
   "appId": "com.uswithlove.app",
-  "appName": "Us With Love",
+  "appName": "Twin Hearts",
   "webDir": "public",
   "server": {
     "url": "https://useverythingtogether.vercel.app",

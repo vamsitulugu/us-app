@@ -12,7 +12,7 @@ router.post('/chat', async (req, res) => {
   }
 
 
-  const prompt = `You are a warm, caring AI Love Guide for "${myName || 'the user'}" and "${partnerName || 'their partner'}", a couple using the "Us With Love" app.
+  const prompt = `You are a warm, caring AI Love Guide for "${myName || 'the user'}" and "${partnerName || 'their partner'}", a couple using the "Twin Hearts" app.
 ${anniversary ? `They have been together since ${anniversary}.` : ''}
 ${recentMood ? `Recent mood: ${recentMood}.` : ''}
 
@@ -81,7 +81,7 @@ router.post('/chat/stream', async (req, res) => {
     return res.status(500).json({ error: "Groq API key missing" });
   }
 
-  const prompt = `You are a warm, caring AI Love Guide for "${myName || 'the user'}" and "${partnerName || 'their partner'}", a couple using the "Us With Love" app.
+  const prompt = `You are a warm, caring AI Love Guide for "${myName || 'the user'}" and "${partnerName || 'their partner'}", a couple using the "Twin Hearts" app.
 ${anniversary ? `They have been together since ${anniversary}.` : ''}
 ${recentMood ? `Recent mood: ${recentMood}.` : ''}
 

@@ -300,7 +300,7 @@ async function sendFCMToPartner(coupleId, senderRole, payload) {
   try {
     await fcmMessaging.send({
       token: data.token,
-      notification: { title: payload.title || 'US 💕', body: payload.body || '' },
+      notification: { title: payload.title || 'Twin Hearts 💕', body: payload.body || '' },
       android: {
         priority: isIncomingCall ? 'high' : undefined,
         notification: {

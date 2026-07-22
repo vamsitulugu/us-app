@@ -121,7 +121,7 @@ app.use((err, req, res, next) => {
 });
 // ── Start ──────────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`\n💕 Us With Love server running!`);
+  console.log(`\n💕 Twin Hearts server running!`);
   console.log(`   Local:   http://localhost:${PORT}`);
   console.log(`   Health:  http://localhost:${PORT}/api/health`);
   console.log(`   Press Ctrl+C to stop\n`);
