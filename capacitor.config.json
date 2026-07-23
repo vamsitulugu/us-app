@@ -3,7 +3,7 @@
   "appName": "Twin Hearts",
   "webDir": "public",
   "server": {
-    "url": "https://useverythingtogether.vercel.app",
+    "url": "https://twinhearts.vercel.app",
     "androidScheme": "https",
     "allowNavigation": [
       "useverythingtogether.vercel.app",
