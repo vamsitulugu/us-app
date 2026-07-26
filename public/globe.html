@@ -760,14 +760,28 @@ async function initGlobe() {
     duration: 0
   });
 
-  // Some Android/Capacitor WebViews report a stale (too-small or zero)
-  // container size to Cesium during the very first init tick — resizing
-  // one frame later and re-centering fixes globes that render tiny / low
-  // on screen until the user manually zooms out.
-  requestAnimationFrame(() => {
+  // ROOT CAUSE of the tiny/off-center globe: this whole page lives in
+  // <div class="page" id="page-globe"> in index.html, which is display:none
+  // until the user actually taps the Globe tab. Cesium's Viewer was
+  // constructed while that container had zero (or a stale) size, so its
+  // very first camera/frustum math was computed against a degenerate
+  // viewport — no amount of correct altitude/pitch fixes it after the fact.
+  // A ResizeObserver on the real canvas container catches the exact moment
+  // the box goes from zero/hidden to its true rendered size (tab switch,
+  // dvh recalculating, rotation — whatever causes it) and re-centers then,
+  // instead of guessing with a timeout.
+  let lastKnownSize = { w: 0, h: 0 };
+  const cesiumResizeObserver = new ResizeObserver(entries => {
     if (!viewer) return;
+    const { width, height } = entries[0].contentRect;
+    if (width < 10 || height < 10) return; // still hidden — nothing to fix yet
+    const wasHiddenOrZero = lastKnownSize.w < 10 || lastKnownSize.h < 10;
+    lastKnownSize = { w: width, h: height };
     viewer.resize();
-    if (!coupleId || !memories.length) {
+    // Only snap back to center if the user hasn't already interacted with
+    // the camera (autoRotate flips to false on their first drag/pinch) —
+    // otherwise this would yank their view back mid-exploration.
+    if (wasHiddenOrZero && autoRotate) {
       viewer.camera.flyTo({
         destination: Cesium.Cartesian3.fromDegrees(0, 0, DEFAULT_ALTITUDE_M),
         orientation: { heading: 0, pitch: Cesium.Math.toRadians(-90), roll: 0 },
@@ -775,6 +789,7 @@ async function initGlobe() {
       });
     }
   });
+  cesiumResizeObserver.observe(document.getElementById('cesiumContainer'));
   window.addEventListener('resize', () => { if (viewer) viewer.resize(); });
 
   document.getElementById('loadingOverlay').style.display = 'none';
