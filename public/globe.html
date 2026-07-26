@@ -610,7 +610,7 @@ let viewer = null;
 let pinDataSource = null;
 let selectedCityKey = null;
 let autoRotate = true;
-const MIN_ALTITUDE_M = 300, PIN_ALTITUDE_M = 8000, DEFAULT_ALTITUDE_M = 18000000;
+const MIN_ALTITUDE_M = 300, PIN_ALTITUDE_M = 8000, DEFAULT_ALTITUDE_M = 26000000;
 
 async function initGlobe() {
   if (!CESIUM_ION_TOKEN || CESIUM_ION_TOKEN === 'PASTE_YOUR_CESIUM_ION_TOKEN_HERE') {
@@ -755,10 +755,27 @@ async function initGlobe() {
   }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
 
   viewer.camera.flyTo({
-    destination: Cesium.Cartesian3.fromDegrees(0, 20, DEFAULT_ALTITUDE_M),
-    orientation: { heading: 0, pitch: Cesium.Math.toRadians(-35), roll: 0 },
+    destination: Cesium.Cartesian3.fromDegrees(0, 0, DEFAULT_ALTITUDE_M),
+    orientation: { heading: 0, pitch: Cesium.Math.toRadians(-90), roll: 0 },
     duration: 0
   });
+
+  // Some Android/Capacitor WebViews report a stale (too-small or zero)
+  // container size to Cesium during the very first init tick — resizing
+  // one frame later and re-centering fixes globes that render tiny / low
+  // on screen until the user manually zooms out.
+  requestAnimationFrame(() => {
+    if (!viewer) return;
+    viewer.resize();
+    if (!coupleId || !memories.length) {
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(0, 0, DEFAULT_ALTITUDE_M),
+        orientation: { heading: 0, pitch: Cesium.Math.toRadians(-90), roll: 0 },
+        duration: 0
+      });
+    }
+  });
+  window.addEventListener('resize', () => { if (viewer) viewer.resize(); });
 
   document.getElementById('loadingOverlay').style.display = 'none';
 }
@@ -782,8 +799,8 @@ function resetView() {
   selectedCityKey = null;
   autoRotate = true;
   viewer.camera.flyTo({
-    destination: Cesium.Cartesian3.fromDegrees(0, 20, DEFAULT_ALTITUDE_M),
-    orientation: { heading: 0, pitch: Cesium.Math.toRadians(-35), roll: 0 },
+    destination: Cesium.Cartesian3.fromDegrees(0, 0, DEFAULT_ALTITUDE_M),
+    orientation: { heading: 0, pitch: Cesium.Math.toRadians(-90), roll: 0 },
     duration: 1.2,
     easingFunction: Cesium.EasingFunction.QUADRATIC_IN_OUT,
   });
