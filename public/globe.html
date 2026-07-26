@@ -666,10 +666,10 @@ async function initGlobe() {
   // blues, dark green forests, and visible terrain relief, so every country
   // reads clearly at a glance instead of looking pale.
   const baseImageryLayer = viewer.imageryLayers.get(0);
-  baseImageryLayer.brightness = 1.05;
-  baseImageryLayer.contrast = 1.35;
-  baseImageryLayer.saturation = 1.5;
-  baseImageryLayer.gamma = 0.92;
+  baseImageryLayer.brightness = 1.0;
+  baseImageryLayer.contrast = 1.15;
+  baseImageryLayer.saturation = 1.25;
+  baseImageryLayer.gamma = 1.0;
   // Was flatly set to 4 (blurry at every zoom level, incl. close-up).
   // Dynamic SSE keeps distant tiles cheap for perf but relaxes back to sharp
   // detail near the camera — this is the "texture looks bad" fix.
@@ -698,11 +698,19 @@ async function initGlobe() {
     photoTileset.dynamicScreenSpaceError = true;
     photoTileset.dynamicScreenSpaceErrorDensity = 0.00278;
     photoTileset.dynamicScreenSpaceErrorFactor = 4.0;
+    // THE FIX for the huge blown-out blob at whole-earth zoom: without a
+    // distance limit, the tileset's coarse root tile tries to render even
+    // when the camera is 26,000km up, which is exactly that giant glare
+    // artifact. Now it only draws within ~15km of the ground — plenty for
+    // buildings to appear as soon as you zoom toward a city, invisible from
+    // orbit.
+    photoTileset.distanceDisplayCondition = new Cesium.DistanceDisplayCondition(0, 15000);
     viewer.scene.primitives.add(photoTileset);
   } catch (e) {
     console.warn('Google Photorealistic 3D Tiles failed, falling back to OSM Buildings:', e.message);
     try {
       const buildingTileset = await Cesium.createOsmBuildingsAsync();
+      buildingTileset.distanceDisplayCondition = new Cesium.DistanceDisplayCondition(0, 15000);
       buildingTileset.maximumScreenSpaceError = 8;
       buildingTileset.dynamicScreenSpaceError = true;
       buildingTileset.dynamicScreenSpaceErrorDensity = 0.00278;

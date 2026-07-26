@@ -5626,7 +5626,15 @@ select option { background: #0D0D0D; color: #fff; }
    <div id="lmPlaceDetailsCard" style="display:none;margin-bottom:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px"></div>
    <div id="lmDirectionsPanel" style="display:none;margin-bottom:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px;font-size:11px;color:var(--text3)"></div>
 
-   <div id="mapView" style="width:100%;height:340px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border)"></div>
+   <!-- 3D LIVE MAP — Cesium-powered (real 3D buildings, street-level 3D view,
+        live partner location, search, nearby search, turn-by-turn nav).
+        Same iframe pattern as the Globe tab (src="/globe.html"), so it shares
+        session/auth via localStorage automatically with no extra wiring. -->
+   <div style="width:100%;height:420px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border)">
+     <iframe id="liveMap3DFrame" src="/livemap-3d.html" title="Live 3D Map" loading="lazy"
+       style="width:100%;height:100%;border:none;display:block"></iframe>
+   </div>
+   <div id="mapView" style="display:none"></div>
  
     <!-- PHASE 2: map style switcher + quick actions -->
     <div class="lm-toolbar">

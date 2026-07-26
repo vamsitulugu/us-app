@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Live 3D Map</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  :root{
+    --accent:#5b9bff; --accent2:#ff6baf;
+    --g1:rgba(255,255,255,0.06); --g2:rgba(255,255,255,0.10);
+    --border:rgba(255,255,255,0.12);
+    --white:#fff; --text2:rgba(255,255,255,0.65); --text3:rgba(255,255,255,0.4);
+    --r:16px; --rs:12px;
+  }
+  html,body{height:100%;overflow:hidden;background:#05050a;font-family:system-ui,-apple-system,'Inter',sans-serif;color:var(--white)}
+  #cesiumContainer{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+  .cesium-viewer-bottom, .cesium-viewer-toolbar, .cesium-viewer-animationContainer,
+  .cesium-viewer-timelineContainer, .cesium-viewer-fullscreenContainer,
+  .cesium-viewer-geocoderContainer, .cesium-baseLayerPicker-dropDown { display:none !important; }
+  #loadingOverlay{position:absolute;inset:0;z-index:99;background:#05050a;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+  .spin{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,0.15);border-top-color:var(--accent);animation:sp .8s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  .top-bar{position:absolute;top:10px;left:10px;right:10px;z-index:40;display:flex;gap:8px;align-items:center}
+  .search-wrap{flex:1;position:relative}
+  .search-box{display:flex;align-items:center;gap:6px;background:rgba(10,10,16,0.85);backdrop-filter:blur(14px);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px}
+  .search-box input{flex:1;min-width:0;background:transparent;border:none;outline:none;color:var(--white);font-size:13px}
+  .icon-btn{width:38px;height:38px;flex-shrink:0;border-radius:50%;background:rgba(10,10,16,0.85);backdrop-filter:blur(14px);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer}
+  #searchResults{position:absolute;left:0;right:0;top:100%;margin-top:6px;background:rgba(10,10,16,0.95);border:1px solid var(--border);border-radius:var(--rs);overflow:hidden;display:none;max-height:240px;overflow-y:auto}
+  #searchResults .sr-item{padding:10px 12px;font-size:12.5px;border-bottom:1px solid var(--border);cursor:pointer}
+  #searchResults .sr-item:last-child{border-bottom:none}
+  #searchResults .sr-item:active{background:var(--g2)}
+
+  .chip-row{position:absolute;top:64px;left:10px;right:10px;z-index:35;display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+  .chip{flex-shrink:0;display:flex;align-items:center;gap:5px;background:rgba(10,10,16,0.8);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:20px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+  .chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  .bottom-controls{position:absolute;bottom:14px;right:10px;z-index:35;display:flex;flex-direction:column;gap:8px}
+  .fab{width:44px;height:44px;border-radius:50%;background:rgba(10,10,16,0.85);backdrop-filter:blur(14px);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer}
+  .fab.on{background:var(--accent);border-color:var(--accent)}
+
+  #nearbyResults{position:absolute;left:10px;right:10px;bottom:14px;z-index:35;max-height:38vh;overflow-y:auto;display:none}
+  .nb-card{background:rgba(10,10,16,0.92);backdrop-filter:blur(14px);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+  .nb-card .nb-name{font-size:12.5px;font-weight:600}
+  .nb-card .nb-meta{font-size:10.5px;color:var(--text3)}
+  .nb-card .nb-go{margin-left:auto;background:var(--accent);border:none;color:#fff;border-radius:20px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer}
+  .nb-close{position:absolute;top:-30px;right:0;background:rgba(10,10,16,0.85);border:1px solid var(--border);border-radius:50%;width:28px;height:28px;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+
+  #navPanel{position:absolute;left:10px;right:10px;bottom:14px;z-index:36;background:rgba(10,10,16,0.92);backdrop-filter:blur(14px);border:1px solid var(--border);border-radius:var(--rs);padding:12px;display:none}
+  #navPanel .nav-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  #navPanel .nav-stat{font-size:11px;color:var(--text2)}
+  #navPanel .nav-stat b{color:var(--white);font-size:14px}
+  #navPanel .nav-step{font-size:12.5px;font-weight:600;margin-top:6px}
+  #navPanel .nav-end{background:rgba(248,113,113,0.15);color:#f87171;border:1px solid rgba(248,113,113,0.3);border-radius:20px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer}
+  .profile-seg{display:flex;gap:6px}
+  .profile-seg .pchip{padding:5px 10px;border-radius:14px;font-size:11px;background:var(--g1);border:1px solid var(--border);cursor:pointer}
+  .profile-seg .pchip.active{background:var(--accent2);border-color:var(--accent2)}
+</style>
+</head>
+<body>
+<div id="cesiumContainer"></div>
+<div id="loadingOverlay"><div class="spin"></div><div style="font-size:12px;color:var(--text2)">Loading 3D map…</div></div>
+
+<div class="top-bar">
+  <div class="search-wrap">
+    <div class="search-box">
+      <span style="opacity:.6">🔍</span>
+      <input id="searchInput" placeholder="Search places, address…" oninput="onSearchInput(this.value)">
+    </div>
+    <div id="searchResults"></div>
+  </div>
+  <div class="icon-btn" onclick="locateMe(true)" title="My location">📍</div>
+  <div class="icon-btn" onclick="locatePartner()" title="Partner location">💜</div>
+</div>
+
+<div class="chip-row" id="chipRow"></div>
+
+<div id="nearbyResults"></div>
+
+<div class="bottom-controls">
+  <div class="fab" id="navFab" onclick="toggleNavToPartner()" title="Navigate to partner">🧭</div>
+  <div class="fab" id="buildFab" onclick="jumpToStreetLevel()" title="Street-level 3D view">🏙️</div>
+</div>
+
+<div id="navPanel">
+  <div class="nav-row">
+    <div class="profile-seg" id="profileSeg"></div>
+    <div class="nav-end" onclick="endNav()">End</div>
+  </div>
+  <div class="nav-row">
+    <div class="nav-stat"><b id="navDist">—</b> km left</div>
+    <div class="nav-stat"><b id="navEta">—</b> min ETA</div>
+  </div>
+  <div class="nav-step" id="navStep">Finding route…</div>
+</div>
+
+<script src="https://cesium.com/downloads/cesiumjs/releases/1.121/Build/Cesium/Cesium.js"></script>
+<link href="https://cesium.com/downloads/cesiumjs/releases/1.121/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+<script>
+const API = 'https://us-app-av6d.onrender.com';
+const CESIUM_ION_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5MDZjMGViOS0wM2FhLTQwNzktOGE3ZC03Yjc5MTY4YWU2ZjciLCJpZCI6NDYwNjU3LCJpc3MiOiJodHRwczovL2FwaS5jZXNpdW0uY29tIiwiYXVkIjoidW5kZWZpbmVkX2RlZmF1bHQiLCJpYXQiOjE3ODUwNjYxMDF9.yUlzti6uqXY9hcZCIZO4fFkw0S75O779_pRrGhTrrVc';
+
+// ── Auth / couple context — same localStorage key the rest of the app uses,
+// so this page (loaded in an iframe just like the Globe tab) shares session
+// state automatically without any postMessage plumbing. ──
+let coupleId = null, role = 'user1', myName = 'You', partnerName = 'Partner';
+(function loadAuth(){
+  try {
+    const s = JSON.parse(localStorage.getItem('uwl_v5') || '{}');
+    coupleId = s.coupleId || null;
+    role = s.role || 'user1';
+    myName = s.myName || 'You';
+    partnerName = s.partnerName || 'Partner';
+  } catch(e) {}
+})();
+
+let viewer, myEntity, partnerEntity, navPolyline, nearbyEntities = [];
+let myLoc = null, partnerLoc = null;
+let navActive = false, navTarget = null, navProfile = 'driving', navSteps = [], navStepIdx = 0;
+
+const NEARBY_CATS = [
+  { key:'atm',        icon:'🏧', label:'ATM',        tag:'"amenity"="atm"' },
+  { key:'food',       icon:'🍽️', label:'Food',       tag:'"amenity"~"restaurant|fast_food"' },
+  { key:'cafe',       icon:'☕', label:'Cafe',       tag:'"amenity"="cafe"' },
+  { key:'hospital',   icon:'🏥', label:'Hospital',   tag:'"amenity"~"hospital|clinic"' },
+  { key:'fuel',       icon:'⛽', label:'Fuel',       tag:'"amenity"="fuel"' },
+  { key:'grocery',    icon:'🛒', label:'Grocery',    tag:'"shop"~"supermarket|convenience"' },
+];
+const NAV_PROFILES = { driving:{osrm:'driving',kmh:35,icon:'🚗'}, walking:{osrm:'foot',kmh:5,icon:'🚶'}, cycling:{osrm:'bike',kmh:15,icon:'🚴'} };
+
+async function init(){
+  Cesium.Ion.defaultAccessToken = CESIUM_ION_TOKEN;
+
+  viewer = new Cesium.Viewer('cesiumContainer', {
+    terrain: Cesium.Terrain.fromWorldTerrain({ requestVertexNormals: true }),
+    baseLayer: Cesium.ImageryLayer.fromProviderAsync(Cesium.IonImageryProvider.fromAssetId(3)),
+    baseLayerPicker:false, geocoder:false, homeButton:false, sceneModePicker:false,
+    navigationHelpButton:false, animation:false, timeline:false, fullscreenButton:false,
+    infoBox:false, selectionIndicator:false,
+  });
+  viewer.resolutionScale = Math.min(window.devicePixelRatio||1, 1.5);
+  viewer.scene.postProcessStages.fxaa.enabled = true;
+  viewer.scene.globe.enableLighting = false;
+  viewer.scene.globe.showGroundAtmosphere = true;
+  viewer.scene.skyAtmosphere.show = true;
+  viewer.scene.fog.enabled = true;
+  const base = viewer.imageryLayers.get(0);
+  base.contrast = 1.15; base.saturation = 1.25;
+  viewer.scene.globe.maximumScreenSpaceError = 2;
+  viewer.scene.globe.dynamicScreenSpaceError = true;
+  viewer.scene.screenSpaceCameraController.minimumZoomDistance = 2;
+
+  // Real 3D buildings — distance-limited so it's invisible from far away and
+  // only draws once you're at street level, exactly like the Globe tab.
+  try {
+    const bld = await Cesium.createGooglePhotorealistic3DTilesetAsync({ onlyUsingWithGoogleGeocoder:false });
+    bld.distanceDisplayCondition = new Cesium.DistanceDisplayCondition(0, 15000);
+    viewer.scene.primitives.add(bld);
+  } catch(e) {
+    try {
+      const bld = await Cesium.createOsmBuildingsAsync();
+      bld.distanceDisplayCondition = new Cesium.DistanceDisplayCondition(0, 15000);
+      viewer.scene.primitives.add(bld);
+    } catch(e2) { console.warn('No 3D buildings available', e2.message); }
+  }
+
+  buildChips();
+  buildProfileSeg();
+  locateMe(false);
+  pollPartner();
+  setInterval(pollPartner, 8000);
+
+  document.getElementById('loadingOverlay').style.display = 'none';
+}
+
+// ── Marker rendering — canvas-drawn circular avatar/pin, used as a Cesium
+// billboard image (Cesium billboards only take images, not raw HTML). ──
+function drawPinCanvas(emojiOrInitial, bg){
+  const c = document.createElement('canvas'); c.width=64; c.height=64;
+  const ctx = c.getContext('2d');
+  ctx.beginPath(); ctx.arc(32,32,28,0,Math.PI*2);
+  ctx.fillStyle = bg; ctx.fill();
+  ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.stroke();
+  ctx.font = '28px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle = '#fff'; ctx.fillText(emojiOrInitial, 32, 34);
+  return c;
+}
+
+function upsertPersonEntity(which, lat, lng){
+  const isMe = which === 'me';
+  const pos = Cesium.Cartesian3.fromDegrees(lng, lat, 2);
+  if (isMe) {
+    if (!myEntity) myEntity = viewer.entities.add({ position: pos, billboard: { image: drawPinCanvas(myName[0]||'U', '#5b9bff'), width:34, height:34, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND } });
+    else myEntity.position = pos;
+  } else {
+    if (!partnerEntity) partnerEntity = viewer.entities.add({ position: pos, billboard: { image: drawPinCanvas(partnerName[0]||'P', '#ff6baf'), width:34, height:34, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND } });
+    else partnerEntity.position = pos;
+  }
+}
+
+function locateMe(fly){
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(pos => {
+    myLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    upsertPersonEntity('me', myLoc.lat, myLoc.lng);
+    if (fly) flyTo(myLoc.lat, myLoc.lng, 1200);
+    if (coupleId) fetch(`${API}/api/location/ping`, { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ coupleId, role, lat: myLoc.lat, lng: myLoc.lng, accuracy: pos.coords.accuracy, heading: pos.coords.heading }) }).catch(()=>{});
+  }, err => console.warn('geolocation failed', err.message), { enableHighAccuracy:true, maximumAge:5000 });
+
+  navigator.geolocation.watchPosition(pos => {
+    myLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    upsertPersonEntity('me', myLoc.lat, myLoc.lng);
+    if (navActive) stepNavForward();
+  }, ()=>{}, { enableHighAccuracy:true, maximumAge:5000 });
+}
+
+async function pollPartner(){
+  if (!coupleId) return;
+  try {
+    const res = await fetch(`${API}/api/location/${coupleId}`);
+    const data = await res.json();
+    const theirs = data[role === 'user1' ? 'user2' : 'user1'];
+    if (theirs && theirs.lat != null) {
+      partnerLoc = { lat: theirs.lat, lng: theirs.lng };
+      upsertPersonEntity('partner', partnerLoc.lat, partnerLoc.lng);
+    }
+  } catch(e) {}
+}
+
+function locatePartner(){ if (partnerLoc) flyTo(partnerLoc.lat, partnerLoc.lng, 1200); }
+
+function flyTo(lat, lng, height){
+  viewer.camera.flyTo({ destination: Cesium.Cartesian3.fromDegrees(lng, lat, height||2000),
+    orientation:{ heading:0, pitch: Cesium.Math.toRadians(-55), roll:0 }, duration:1.4 });
+}
+
+function jumpToStreetLevel(){
+  const t = myLoc || partnerLoc; if (!t) return;
+  viewer.camera.flyTo({ destination: Cesium.Cartesian3.fromDegrees(t.lng, t.lat, 250),
+    orientation:{ heading:0, pitch: Cesium.Math.toRadians(-15), roll:0 }, duration:1.6 });
+}
+
+// ── Place search (Nominatim, same free service the rest of the app uses) ──
+let searchTimer = null;
+function onSearchInput(q){
+  clearTimeout(searchTimer);
+  const box = document.getElementById('searchResults');
+  if (!q || q.length < 2) { box.style.display='none'; return; }
+  searchTimer = setTimeout(async () => {
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6`, { headers:{'Accept-Language':'en'} });
+      const list = await r.json();
+      box.innerHTML = list.map(p => `<div class="sr-item" onclick='pickSearchResult(${p.lat},${p.lon},"${(p.display_name||'').replace(/"/g,'')}")'>${p.display_name}</div>`).join('') || `<div class="sr-item">No results</div>`;
+      box.style.display = 'block';
+    } catch(e) { box.style.display='none'; }
+  }, 350);
+}
+function pickSearchResult(lat, lng, label){
+  document.getElementById('searchResults').style.display='none';
+  document.getElementById('searchInput').value = label;
+  flyTo(parseFloat(lat), parseFloat(lng), 1500);
+}
+
+// ── Nearby search — same Overpass approach as the existing 2D map, so ATM /
+// restaurant / etc. results are consistent app-wide. ──
+function buildChips(){
+  const row = document.getElementById('chipRow');
+  row.innerHTML = NEARBY_CATS.map(c => `<div class="chip" data-key="${c.key}" onclick="runNearby('${c.key}')">${c.icon} ${c.label}</div>`).join('');
+}
+async function runNearby(key){
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.key === key));
+  const cat = NEARBY_CATS.find(c => c.key === key); if (!cat) return;
+  const center = myLoc || partnerLoc; 
+  const resultsEl = document.getElementById('nearbyResults');
+  if (!center) { resultsEl.style.display='block'; resultsEl.innerHTML = `<div class="nb-card">Turn on location to search nearby.</div>`; return; }
+  resultsEl.style.display = 'block';
+  resultsEl.innerHTML = `<div class="nb-card">Searching ${cat.label.toLowerCase()}…</div>`;
+  try {
+    const radius = 1500;
+    const q = `[out:json][timeout:15];(node[${cat.tag}](around:${radius},${center.lat},${center.lng});way[${cat.tag}](around:${radius},${center.lat},${center.lng}););out center 20;`;
+    const resp = await fetch('https://overpass-api.de/api/interpreter', { method:'POST', body:'data=' + encodeURIComponent(q) });
+    const data = await resp.json();
+    const places = (data.elements||[]).map(el => ({
+      lat: el.lat || el.center?.lat, lng: el.lon || el.center?.lon,
+      name: el.tags?.name || cat.label
+    })).filter(p => p.lat && p.lng);
+    places.forEach(p => p._distKm = haversine(center, p));
+    places.sort((a,b) => a._distKm - b._distKm);
+    renderNearby(places.slice(0,15), cat);
+  } catch(e) {
+    resultsEl.innerHTML = `<div class="nb-card">Couldn't load results — try again.</div>`;
+  }
+}
+function renderNearby(places, cat){
+  clearNearbyEntities();
+  const resultsEl = document.getElementById('nearbyResults');
+  if (!places.length) { resultsEl.innerHTML = `<div class="nb-card">No ${cat.label.toLowerCase()} found nearby.</div>`; return; }
+  resultsEl.innerHTML = `<div class="nb-close" onclick="closeNearby()">✕</div>` + places.map((p,i) =>
+    `<div class="nb-card"><div>${cat.icon}</div><div><div class="nb-name">${escHtml(p.name)}</div><div class="nb-meta">${p._distKm.toFixed(1)} km away</div></div>
+     <button class="nb-go" onclick="startNavTo(${p.lat},${p.lng},'${escHtml(p.name).replace(/'/g,"")}')">Go</button></div>`).join('');
+  places.forEach(p => {
+    nearbyEntities.push(viewer.entities.add({ position: Cesium.Cartesian3.fromDegrees(p.lng, p.lat, 2),
+      billboard: { image: drawPinCanvas(cat.icon, '#2a2a2a'), width:28, height:28, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND } }));
+  });
+}
+function clearNearbyEntities(){ nearbyEntities.forEach(e => viewer.entities.remove(e)); nearbyEntities = []; }
+function closeNearby(){ document.getElementById('nearbyResults').style.display='none'; clearNearbyEntities(); document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active')); }
+function escHtml(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function haversine(a,b){ const R=6371,dLat=(b.lat-a.lat)*Math.PI/180,dLng=(b.lng-a.lng)*Math.PI/180;
+  const x = Math.sin(dLat/2)**2 + Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x)); }
+
+// ── Turn-by-turn navigation — OSRM routing (same free public router the 2D
+// map already uses) drawn as a 3D ground-clamped line, with a chase camera
+// that follows your live position and heading while navigating. ──
+function buildProfileSeg(){
+  const seg = document.getElementById('profileSeg');
+  seg.innerHTML = Object.entries(NAV_PROFILES).map(([k,p]) =>
+    `<div class="pchip ${k===navProfile?'active':''}" data-p="${k}" onclick="setProfile('${k}')">${p.icon}</div>`).join('');
+}
+function setProfile(p){ navProfile = p; document.querySelectorAll('.pchip').forEach(c=>c.classList.toggle('active', c.dataset.p===p)); if (navActive && navTarget) startNavTo(navTarget.lat, navTarget.lng, navTarget.label); }
+
+function toggleNavToPartner(){
+  if (navActive) { endNav(); return; }
+  if (!partnerLoc) { document.getElementById('navStep').textContent = "Partner location not available."; return; }
+  startNavTo(partnerLoc.lat, partnerLoc.lng, partnerName);
+}
+
+async function startNavTo(lat, lng, label){
+  if (!myLoc) { locateMe(false); }
+  navTarget = { lat, lng, label };
+  navActive = true;
+  document.getElementById('navFab').classList.add('on');
+  document.getElementById('navPanel').style.display = 'block';
+  document.getElementById('navStep').textContent = 'Finding route…';
+  const prof = NAV_PROFILES[navProfile];
+  try {
+    const url = `https://router.project-osrm.org/route/v1/${prof.osrm}/${myLoc.lng},${myLoc.lat};${lng},${lat}?overview=full&geometries=geojson&steps=true`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    const route = (data.routes||[])[0];
+    if (!route) throw new Error('no route');
+    drawRoute(route.geometry.coordinates);
+    navSteps = (route.legs[0].steps||[]).map(s => s.maneuver?.instruction || s.name || 'Continue');
+    navStepIdx = 0;
+    updateNavStats(route.distance/1000, route.duration/60);
+    document.getElementById('navStep').textContent = navSteps[0] || 'Head to destination';
+    fitRouteCamera(route.geometry.coordinates);
+  } catch(e) {
+    const km = haversine(myLoc, {lat,lng});
+    drawRoute([[myLoc.lng,myLoc.lat],[lng,lat]]);
+    updateNavStats(km, (km/prof.kmh)*60);
+    document.getElementById('navStep').textContent = 'Straight-line estimate (live routing unavailable)';
+    fitRouteCamera([[myLoc.lng,myLoc.lat],[lng,lat]]);
+  }
+}
+function drawRoute(coords){
+  if (navPolyline) viewer.entities.remove(navPolyline);
+  const positions = coords.map(c => Cesium.Cartesian3.fromDegrees(c[0], c[1]));
+  navPolyline = viewer.entities.add({ polyline: { positions, width: 6, material: Cesium.Color.fromCssColorString('#5b9bff').withAlpha(0.85), clampToGround: true } });
+}
+function fitRouteCamera(coords){
+  const positions = coords.map(c => Cesium.Cartesian3.fromDegrees(c[0], c[1]));
+  const sphere = Cesium.BoundingSphere.fromPoints(positions);
+  viewer.camera.flyToBoundingSphere(sphere, { duration: 1.2, offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-45), sphere.radius*2.2) });
+}
+function updateNavStats(km, mins){
+  document.getElementById('navDist').textContent = km.toFixed(1);
+  document.getElementById('navEta').textContent = Math.max(1, Math.round(mins));
+}
+function stepNavForward(){
+  if (!navActive || !navTarget || !myLoc) return;
+  const remainingKm = haversine(myLoc, navTarget);
+  document.getElementById('navDist').textContent = remainingKm.toFixed(1);
+  // Chase camera: stay close behind current position, oriented toward destination.
+  const heading = Cesium.Math.toRadians(bearing(myLoc, navTarget));
+  viewer.camera.setView({ destination: Cesium.Cartesian3.fromDegrees(myLoc.lng, myLoc.lat, 180),
+    orientation: { heading, pitch: Cesium.Math.toRadians(-25), roll: 0 } });
+  if (remainingKm < 0.05) { document.getElementById('navStep').textContent = "You've arrived!"; endNav(); }
+}
+function bearing(a,b){
+  const y = Math.sin((b.lng-a.lng)*Math.PI/180)*Math.cos(b.lat*Math.PI/180);
+  const x = Math.cos(a.lat*Math.PI/180)*Math.sin(b.lat*Math.PI/180) - Math.sin(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.cos((b.lng-a.lng)*Math.PI/180);
+  return (Math.atan2(y,x)*180/Math.PI + 360) % 360;
+}
+function endNav(){
+  navActive = false; navTarget = null;
+  document.getElementById('navFab').classList.remove('on');
+  document.getElementById('navPanel').style.display = 'none';
+  if (navPolyline) { viewer.entities.remove(navPolyline); navPolyline = null; }
+}
+
+init();
+</script>
+</body>
+</html>
