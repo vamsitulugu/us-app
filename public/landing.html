@@ -240,6 +240,11 @@ footer p{font-size:11px;color:var(--text3)}
 /* ── Modals (auth + install guides + coming soon) ─────────────── */
 .modal-bg{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(10px);background:rgba(0,0,0,.8)}
 .modal-bg.open{display:flex}
+/* Native app, no session yet: show only the sign-in/sign-up card —
+   the marketing hero/install page is for the browser, not the app. */
+body.native-auth-only > *:not(#authModal){display:none!important}
+body.native-auth-only #authModal{position:fixed;background:var(--bg,#0B0B0B)}
+body.native-auth-only #authModal .modal-close{display:none}
 .mcard{background:rgba(9,6,6,.96);backdrop-filter:blur(30px);border:1px solid var(--border2);border-radius:26px;padding:36px 32px;width:100%;max-width:460px;color:var(--white);box-shadow:0 30px 90px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.06);animation:popIn .35s cubic-bezier(.34,1.56,.64,1);position:relative;max-height:88vh;overflow-y:auto}
 @keyframes popIn{from{opacity:0;transform:scale(.88) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
 .modal-close{position:absolute;top:16px;right:18px;background:var(--g1);border:1px solid var(--border);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:16px;transition:all .2s}
@@ -660,6 +665,18 @@ function isStandalone(){
 function isInsideNativeApp(){
   return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 }
+// Fires ASAP: if we're inside the installed APK and there's no signed-in
+// session yet, skip the landing page entirely and show only the
+// sign-in/sign-up card — like a real app's login screen, not a website.
+(function enterNativeAuthModeIfNeeded(){
+  if (!isInsideNativeApp() || alreadySignedIn()) return;
+  const start = () => {
+    document.body.classList.add('native-auth-only');
+    openAuth('login');
+  };
+  if (document.body) start();
+  else document.addEventListener('DOMContentLoaded', start);
+})();
 // Real "is the APK actually installed on this phone" check — works in
 // Chrome for Android via the OS package manager, matched against the
 // applicationId declared in manifest.json's related_applications. Other
