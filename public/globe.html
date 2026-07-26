@@ -52,7 +52,8 @@
     /* ══════ CESIUM GLOBE CONTAINER ══════
        Replaces #globeCanvas + #starsCanvas. Cesium renders its own stars,
        atmosphere, and lighting natively — no separate canvas needed. */
-    #cesiumContainer { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; }
+    #cesiumContainer { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; touch-action: none; }
+    #cesiumContainer canvas { touch-action: none; }
     /* Hide Cesium's own default widgets we don't want — we use our own top bar,
        filter bar, and panels instead. Geocoder + BaseLayerPicker stay because
        they're genuinely useful (geocoder = free upgrade over typing coords,
@@ -621,6 +622,12 @@ async function initGlobe() {
 
   viewer = new Cesium.Viewer('cesiumContainer', {
     terrain: Cesium.Terrain.fromWorldTerrain({ requestVertexNormals: true }),
+    // Asset 3 = "Bing Maps Aerial with Labels" — same free ion tier, but
+    // bakes in real country/city/town/road names across the whole globe
+    // instead of plain unlabeled satellite imagery (asset 2, the default).
+    baseLayer: Cesium.ImageryLayer.fromProviderAsync(
+      Cesium.IonImageryProvider.fromAssetId(3)
+    ),
     baseLayerPicker: true,
     geocoder: true,
     homeButton: false,          // we use our own resetView() button
@@ -645,21 +652,46 @@ async function initGlobe() {
   viewer.scene.fog.enabled = true;
   viewer.scene.globe.showGroundAtmosphere = true;
   viewer.scene.skyBox.show = true;
-  viewer.scene.globe.maximumScreenSpaceError = 4; // relaxed from Cesium's default 2 — mobile-friendly
+  // Was flatly set to 4 (blurry at every zoom level, incl. close-up).
+  // Dynamic SSE keeps distant tiles cheap for perf but relaxes back to sharp
+  // detail near the camera — this is the "texture looks bad" fix.
+  viewer.scene.globe.maximumScreenSpaceError = 2;
+  viewer.scene.globe.dynamicScreenSpaceError = true;
+  viewer.scene.globe.dynamicScreenSpaceErrorDensity = 0.00278;
+  viewer.scene.globe.dynamicScreenSpaceErrorFactor = 12; // stronger falloff so it stays free perf-wise
 
   viewer.scene.screenSpaceCameraController.minimumZoomDistance = MIN_ALTITUDE_M;
+  viewer.scene.screenSpaceCameraController.enableTilt = true;
+  viewer.scene.screenSpaceCameraController.enableLook = true;
+  viewer.scene.screenSpaceCameraController.enableRotate = true;
   viewer.camera.percentageChanged = 0.1;
 
   // Cesium OSM Buildings — real 3D building footprints, replaces nothing
   // you had before (this is new capability from the CesiumJS upgrade requirements)
+  // Real textured/colored buildings — OSM Buildings has NO facade textures
+  // (that's why it looked like plain white extrusions). Google Photorealistic
+  // 3D Tiles gives actual imagery-textured geometry and is free on the same
+  // ion Community tier, no extra signup step.
   try {
-    const buildingTileset = await Cesium.createOsmBuildingsAsync();
-    buildingTileset.maximumScreenSpaceError = 8;
-    buildingTileset.dynamicScreenSpaceError = true;
-    buildingTileset.dynamicScreenSpaceErrorDensity = 0.00278;
-    buildingTileset.dynamicScreenSpaceErrorFactor = 4.0;
-    viewer.scene.primitives.add(buildingTileset);
-  } catch (e) { console.warn('OSM Buildings failed to load:', e.message); }
+    const photoTileset = await Cesium.createGooglePhotorealistic3DTilesetAsync({
+      onlyUsingWithGoogleGeocoder: false,
+    });
+    photoTileset.maximumScreenSpaceError = 8;
+    photoTileset.dynamicScreenSpaceError = true;
+    photoTileset.dynamicScreenSpaceErrorDensity = 0.00278;
+    photoTileset.dynamicScreenSpaceErrorFactor = 4.0;
+    viewer.scene.primitives.add(photoTileset);
+  } catch (e) {
+    console.warn('Google Photorealistic 3D Tiles failed, falling back to OSM Buildings:', e.message);
+    try {
+      const buildingTileset = await Cesium.createOsmBuildingsAsync();
+      buildingTileset.maximumScreenSpaceError = 8;
+      buildingTileset.dynamicScreenSpaceError = true;
+      buildingTileset.dynamicScreenSpaceErrorDensity = 0.00278;
+      buildingTileset.dynamicScreenSpaceErrorFactor = 4.0;
+      viewer.scene.primitives.add(buildingTileset);
+    } catch (e2) { console.warn('OSM Buildings fallback also failed:', e2.message); }
+  }
 
   // Gentle idle auto-rotation, same feel as your Three.js targetRotY drift
   viewer.camera.moveStart.addEventListener(() => { autoRotate = false; });
@@ -724,6 +756,7 @@ async function initGlobe() {
 
   viewer.camera.flyTo({
     destination: Cesium.Cartesian3.fromDegrees(0, 20, DEFAULT_ALTITUDE_M),
+    orientation: { heading: 0, pitch: Cesium.Math.toRadians(-35), roll: 0 },
     duration: 0
   });
 
@@ -738,7 +771,9 @@ function hideTip() {
 function flyToCity(c, onDone) {
   viewer.camera.flyTo({
     destination: Cesium.Cartesian3.fromDegrees(c.lng, c.lat, PIN_ALTITUDE_M),
-    duration: 1.4,
+    orientation: { heading: 0, pitch: Cesium.Math.toRadians(-45), roll: 0 },
+    duration: 1.6,
+    easingFunction: Cesium.EasingFunction.QUADRATIC_IN_OUT,
     complete: onDone
   });
 }
@@ -748,7 +783,9 @@ function resetView() {
   autoRotate = true;
   viewer.camera.flyTo({
     destination: Cesium.Cartesian3.fromDegrees(0, 20, DEFAULT_ALTITUDE_M),
-    duration: 1.2
+    orientation: { heading: 0, pitch: Cesium.Math.toRadians(-35), roll: 0 },
+    duration: 1.2,
+    easingFunction: Cesium.EasingFunction.QUADRATIC_IN_OUT,
   });
   toast('View reset 🎯');
 }
@@ -757,34 +794,71 @@ function resetView() {
 //    original createHeartMarker()/createClusterMarker(), now used as Cesium
 //    billboard images instead of THREE.Sprite textures ──
 function heartMarkerCanvas(mood, count, selected) {
-  const size = 64;
+  // Real teardrop pin geometry (not just an emoji floating on a glow disc):
+  // soft ground shadow, gradient teardrop body, white outline, heart glyph
+  // punched into the head, small badge for multi-memory cities.
+  const size = 96;
+  const cx = size / 2, tipY = size - 8, headR = 24, headCY = tipY - headR * 1.55;
   const c = document.createElement('canvas');
   c.width = size; c.height = size;
   const ctx = c.getContext('2d');
-  const glowR = selected ? size/1.7 : size/2;
-  const glow = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, glowR);
+
+  // Ground contact shadow — sells the pin as sitting ON the surface
+  ctx.save();
+  ctx.translate(cx, tipY + 2);
+  ctx.scale(1, 0.28);
+  const shadow = ctx.createRadialGradient(0, 0, 0, 0, 0, headR * 0.9);
+  shadow.addColorStop(0, 'rgba(0,0,0,0.45)');
+  shadow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = shadow;
+  ctx.beginPath(); ctx.arc(0, 0, headR * 0.9, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+
+  // Ambient glow (selected = cool blue, normal = warm rose)
+  const glowR = headR * (selected ? 2.0 : 1.6);
+  const glow = ctx.createRadialGradient(cx, headCY, 0, cx, headCY, glowR);
   if (selected) {
-    glow.addColorStop(0, 'rgba(120,190,255,0.9)');
-    glow.addColorStop(0.5, 'rgba(120,190,255,0.35)');
+    glow.addColorStop(0, 'rgba(120,190,255,0.55)');
     glow.addColorStop(1, 'rgba(120,190,255,0)');
   } else {
-    glow.addColorStop(0, 'rgba(255,100,180,0.6)');
-    glow.addColorStop(1, 'rgba(255,100,180,0)');
+    glow.addColorStop(0, 'rgba(255,80,120,0.4)');
+    glow.addColorStop(1, 'rgba(255,80,120,0)');
   }
   ctx.fillStyle = glow;
-  ctx.beginPath(); ctx.arc(size/2, size/2, glowR, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, headCY, glowR, 0, Math.PI * 2); ctx.fill();
 
-  ctx.font = `${26 + Math.min(count * 2, 10)}px serif`;
+  // Teardrop pin body
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, headCY, headR, Math.PI * 1.05, Math.PI * 1.95);
+  ctx.quadraticCurveTo(cx + headR * 0.95, headCY + headR * 0.75, cx, tipY);
+  ctx.quadraticCurveTo(cx - headR * 0.95, headCY + headR * 0.75, cx - headR * Math.cos(Math.PI * 0.05), headCY - headR * Math.sin(Math.PI * 0.05));
+  ctx.closePath();
+  const body = ctx.createLinearGradient(cx, headCY - headR, cx, tipY);
+  if (selected) { body.addColorStop(0, '#8fd3ff'); body.addColorStop(1, '#3d7fe0'); }
+  else { body.addColorStop(0, '#ff8fae'); body.addColorStop(1, '#e0264f'); }
+  ctx.fillStyle = body;
+  ctx.fill();
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.stroke();
+  ctx.restore();
+
+  // Heart glyph on the pin head
+  ctx.font = `${Math.round(headR * 1.05)}px serif`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText((mood||'').split(' ')[0] || '❤️', size/2, size/2 + 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText((mood || '').split(' ')[0] || '❤', cx, headCY + 1);
 
+  // Multi-memory count badge
   if (count > 1) {
-    ctx.fillStyle = 'rgba(255,255,255,0.95)';
-    ctx.beginPath(); ctx.arc(size-10, 8, 9, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#e00060';
-    ctx.font = 'bold 9px Inter, sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(String(count), size-10, 9);
+    const bx = cx + headR * 0.78, by = headCY - headR * 0.85;
+    ctx.fillStyle = 'rgba(255,255,255,0.97)';
+    ctx.beginPath(); ctx.arc(bx, by, 12, 0, Math.PI * 2); ctx.fill();
+    ctx.lineWidth = 1.5; ctx.strokeStyle = selected ? '#3d7fe0' : '#e0264f'; ctx.stroke();
+    ctx.fillStyle = selected ? '#3d7fe0' : '#e0264f';
+    ctx.font = 'bold 13px Inter, sans-serif';
+    ctx.fillText(String(count), bx, by + 1);
   }
   return c.toDataURL();
 }
@@ -830,6 +904,7 @@ async function renderCesiumPins() {
         image: heartMarkerCanvas(c.mood, mems.length, selected),
         scale: selected ? 1.15 : 0.85,
         verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
       },
       label: {
@@ -841,6 +916,7 @@ async function renderCesiumPins() {
         style: Cesium.LabelStyle.FILL_AND_OUTLINE,
         verticalOrigin: Cesium.VerticalOrigin.TOP,
         pixelOffset: new Cesium.Cartesian2(0, 4),
+        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
         showBackground: false,
         distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 2000000),
       }
@@ -864,12 +940,39 @@ async function renderCesiumPins() {
   renderCountryGlows();
 }
 
-// ── Flight arcs — replaces buildFlightArcs()/animateFlightArcs(). Cesium's
-//    geodesic polyline + glow material gives the same "connects memories
-//    chronologically" look, following the real curved path over the globe. ──
+// ── Trip routes — replaces buildFlightArcs()/animateFlightArcs(). Fetches
+//    a REAL road route (actual highways/streets, not a straight line) from
+//    the same free OSRM server your livemap.js / meetplanner.js already use,
+//    draped on the terrain. Legs that can't be driven (overseas, different
+//    continents, or if OSRM fails) fall back to a glowing geodesic arc so
+//    there's still a visible connection. Routes are cached by endpoint pair
+//    so re-pinning a memory doesn't re-fetch legs you've already resolved. ──
 const ARC_COLORS = ['#4fa8ff','#ff6b9d','#34d399','#fbbf24','#a78bfa','#fb923c','#22d3ee','#f472b6'];
+const MAX_DRIVE_KM = 1200; // beyond this, assume flight/ferry — don't bother asking OSRM
 let arcEntities = [];
+let arcRenderToken = 0;
+const routeGeomCache = new Map();
+
+async function fetchRoadRoute(a, b) {
+  const key = `${a.lat.toFixed(4)},${a.lng.toFixed(4)}|${b.lat.toFixed(4)},${b.lng.toFixed(4)}`;
+  if (routeGeomCache.has(key)) return routeGeomCache.get(key);
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${a.lng},${a.lat};${b.lng},${b.lat}?overview=full&geometries=geojson`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const coords = data?.routes?.[0]?.geometry?.coordinates;
+    if (!coords || coords.length < 2) { routeGeomCache.set(key, null); return null; }
+    routeGeomCache.set(key, coords); // [ [lng,lat], ... ]
+    return coords;
+  } catch (e) {
+    console.warn('OSRM route fetch failed, falling back to arc:', e.message);
+    routeGeomCache.set(key, null);
+    return null;
+  }
+}
+
 function renderFlightArcs() {
+  const myToken = ++arcRenderToken; // guards against stale async results from a fast re-pin
   arcEntities.forEach(e => viewer.entities.remove(e));
   arcEntities = [];
 
@@ -882,15 +985,51 @@ function renderFlightArcs() {
     const a = sorted[i], b = sorted[i + 1];
     if (a.city === b.city && a.country === b.country) continue;
     const color = Cesium.Color.fromCssColorString(ARC_COLORS[i % ARC_COLORS.length]);
-    const entity = viewer.entities.add({
-      polyline: {
-        positions: Cesium.Cartesian3.fromDegreesArray([a.lng, a.lat, b.lng, b.lat]),
-        arcType: Cesium.ArcType.GEODESIC,
-        width: 3,
-        material: new Cesium.PolylineGlowMaterialProperty({ glowPower: 0.25, taperPower: 0.5, color }),
-      }
-    });
-    arcEntities.push(entity);
+    const distKm = haversine(a.lat, a.lng, b.lat, b.lng);
+
+    if (distKm <= MAX_DRIVE_KM) {
+      // Draw the geodesic arc immediately so something is visible right
+      // away, then swap it for the real road route the moment it arrives.
+      const placeholder = viewer.entities.add({
+        polyline: {
+          positions: Cesium.Cartesian3.fromDegreesArray([a.lng, a.lat, b.lng, b.lat]),
+          arcType: Cesium.ArcType.GEODESIC,
+          width: 3,
+          material: new Cesium.PolylineGlowMaterialProperty({ glowPower: 0.2, taperPower: 0.5, color }),
+        }
+      });
+      arcEntities.push(placeholder);
+
+      fetchRoadRoute(a, b).then(coords => {
+        if (myToken !== arcRenderToken || !viewer) return; // superseded by a newer render
+        if (!coords) return; // no drivable route — keep the geodesic placeholder
+        viewer.entities.remove(placeholder);
+        const idx = arcEntities.indexOf(placeholder);
+        if (idx >= 0) arcEntities.splice(idx, 1);
+        const flat = [];
+        coords.forEach(([lng, lat]) => flat.push(lng, lat));
+        const routeEntity = viewer.entities.add({
+          polyline: {
+            positions: Cesium.Cartesian3.fromDegreesArray(flat),
+            clampToGround: true, // follows real terrain along the actual road
+            width: 5,
+            material: new Cesium.PolylineGlowMaterialProperty({ glowPower: 0.25, taperPower: 0.5, color }),
+          }
+        });
+        arcEntities.push(routeEntity);
+      });
+    } else {
+      // Too far to drive (overseas / different continent) — glowing flight-style arc
+      const entity = viewer.entities.add({
+        polyline: {
+          positions: Cesium.Cartesian3.fromDegreesArray([a.lng, a.lat, b.lng, b.lat]),
+          arcType: Cesium.ArcType.GEODESIC,
+          width: 3,
+          material: new Cesium.PolylineGlowMaterialProperty({ glowPower: 0.25, taperPower: 0.5, color }),
+        }
+      });
+      arcEntities.push(entity);
+    }
   }
 }
 
@@ -1887,7 +2026,7 @@ function goToGlobalResult(lat, lng, label) {
   document.getElementById('globalSearchResults').classList.remove('show');
   document.getElementById('globalSearchBar').style.display = 'none';
   autoRotate = false;
-  viewer.camera.flyTo({ destination: Cesium.Cartesian3.fromDegrees(+lng, +lat, PIN_ALTITUDE_M), duration: 1.4 });
+  viewer.camera.flyTo({ destination: Cesium.Cartesian3.fromDegrees(+lng, +lat, PIN_ALTITUDE_M), orientation: { heading: 0, pitch: Cesium.Math.toRadians(-45), roll: 0 }, duration: 1.4, easingFunction: Cesium.EasingFunction.QUADRATIC_IN_OUT });
   toast(`📍 ${label}`);
 }
 
