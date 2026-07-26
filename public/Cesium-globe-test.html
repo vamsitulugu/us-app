@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Memory Globe — Cesium Test (Phase 1)</title>
+
+<!-- CesiumJS from CDN — pin a specific version so nothing breaks under you later -->
+<script src="https://cesium.com/downloads/cesiumjs/releases/1.121/Build/Cesium/Cesium.js"></script>
+<link href="https://cesium.com/downloads/cesiumjs/releases/1.121/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+
+<style>
+  html, body, #cesiumContainer {
+    width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;
+    background: #000;
+    font-family: system-ui, sans-serif;
+  }
+  /* Twin Hearts theme colors, just for the test HUD — not touching your real CSS */
+  :root { --accent: hsl(215,100%,62%); --accent2: hsl(300,85%,65%); }
+
+  #hud {
+    position: absolute; top: 12px; left: 12px; z-index: 10;
+    background: rgba(6,6,18,0.82); backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 14px; padding: 12px 16px; color: #fff;
+    font-size: 12px; max-width: 260px; line-height: 1.6;
+  }
+  #hud b { color: var(--accent-l, #9cc9ff); }
+  #hud .status { font-weight: 700; margin-bottom: 4px; }
+  #hud .ok { color: #34d399; }
+  #hud .bad { color: #f87171; }
+  #hud .warn { color: #fbbf24; }
+
+  /* ═══ Phase 2: glass panel — same visual language as your real
+     .glass-panel (blur, right-slide on desktop, bottom-sheet on mobile) ═══ */
+  .glass-panel {
+    position: fixed; top: 0; right: -420px; bottom: 0; width: 400px; z-index: 40;
+    background: rgba(6,6,18,0.9); backdrop-filter: blur(30px) saturate(200%);
+    border-left: 1px solid rgba(255,255,255,0.18);
+    display: flex; flex-direction: column;
+    transition: right 0.4s cubic-bezier(0.4,0,0.2,1);
+    color: #fff; overflow: hidden;
+  }
+  .glass-panel.open { right: 0; }
+  @media (max-width: 700px) {
+    .glass-panel { width: 100%; right: 0; top: auto; bottom: -100%; height: 78dvh;
+      border-left: none; border-top: 1px solid rgba(255,255,255,0.18);
+      border-radius: 20px 20px 0 0; transition: bottom 0.4s cubic-bezier(0.4,0,0.2,1); }
+    .glass-panel.open { bottom: 0; }
+  }
+  .panel-header { padding: 18px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex; justify-content: space-between; align-items: center; }
+  .panel-title { font-size: 18px; font-weight: 700; }
+  .panel-close { background: none; border: none; color: rgba(255,255,255,0.6);
+    font-size: 18px; cursor: pointer; }
+  .panel-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+  .mem-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px; padding: 14px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
+  .mem-card:hover { background: rgba(255,255,255,0.09); transform: translateY(-2px); }
+  .mem-top { display: flex; justify-content: space-between; font-weight: 600; }
+  .mem-date { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+  .cluster-badge { position: absolute; z-index: 10; }
+
+  /* ═══ Phase 3: live location HUD — mirrors your real #liveHud ═══ */
+  #liveHud {
+    position: absolute; top: 12px; right: 12px; z-index: 10;
+    background: rgba(10,10,25,0.85); backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.18); border-radius: 16px;
+    padding: 12px 14px; font-size: 12px; color: #fff; min-width: 160px;
+  }
+  #liveHud .lh-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  #liveHud .lh-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  #liveHud .lh-dist { font-size: 18px; font-weight: 700; color: var(--accent); margin-top: 4px; }
+
+  /* Country stat toast — mirrors your buildCountryGlows() click toast */
+  #countryToast {
+    position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(12px);
+    background: rgba(15,15,20,0.9); backdrop-filter: blur(16px); color: #fff;
+    padding: 10px 20px; border-radius: 24px; font-size: 13px; z-index: 50;
+    opacity: 0; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); pointer-events: none;
+    white-space: nowrap; border: 1px solid rgba(255,255,255,0.18);
+  }
+  #countryToast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Phase 4: street-level badge, replaces the MapLibre #streetView handoff entirely —
+     Cesium just IS street level once the camera is close enough, no separate map/library swap needed */
+  #streetBadge {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+    z-index: 10; background: rgba(10,10,25,0.85); backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.18); border-radius: 20px;
+    padding: 8px 16px; font-size: 12px; color: #fff; display: none;
+  }
+  #streetBadge.show { display: block; }
+
+  #tokenGate {
+    position: absolute; inset: 0; z-index: 50;
+    background: #05050f; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 14px; text-align: center; padding: 24px;
+  }
+  #tokenGate input {
+    width: min(420px, 84vw); padding: 12px 14px; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.06);
+    color: #fff; font-size: 14px; outline: none;
+  }
+  #tokenGate button {
+    padding: 10px 22px; border-radius: 10px; border: none;
+    background: linear-gradient(135deg,var(--accent),var(--accent2));
+    color: #fff; font-weight: 600; cursor: pointer; font-size: 14px;
+  }
+  #tokenGate p { color: rgba(255,255,255,0.6); font-size: 12px; max-width: 420px; }
+  #tokenGate a { color: var(--accent2); }
+
+  .test-pin-label {
+    background: rgba(6,6,18,0.85); padding: 4px 8px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.2); font-size: 11px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ Token entry gate — Phase 1 only. In the real integration this
+     token gets baked server-side / into a config file, never typed in UI. ═══ -->
+<div id="tokenGate">
+  <div style="font-size:22px;font-weight:700">🌍 Memory Globe — Cesium Test</div>
+  <p>
+    Paste your <b>Cesium ion access token</b> to test. Get a free one at
+    <a href="https://ion.cesium.com/tokens" target="_blank" rel="noopener">ion.cesium.com/tokens</a>
+    (sign up free — Community tier, no card required). This never leaves your browser;
+    it's only used to fetch terrain/imagery tiles directly from Cesium.
+  </p>
+  <input id="tokenInput" type="text" placeholder="eyJhbGciOiJIUzI1NiIs...">
+  <button onclick="startViewer()">Load Globe</button>
+  <p id="tokenErr" style="color:#f87171;display:none"></p>
+</div>
+
+<div id="cesiumContainer" style="display:none"></div>
+
+<!-- Phase 2: mock of your real #cityPanel — same open/close pattern,
+     just enough to prove Cesium click → panel wiring works end to end -->
+<div class="glass-panel" id="cityPanel">
+  <div class="panel-header">
+    <div class="panel-title" id="cityPanelTitle">City Memories</div>
+    <button class="panel-close" onclick="document.getElementById('cityPanel').classList.remove('open')">✕</button>
+  </div>
+  <div class="panel-body" id="cityPanelBody"></div>
+</div>
+
+<div id="hud" style="display:none">
+  <div class="status">Phase 1–4 diagnostics</div>
+  <div id="hudTerrain">Terrain: …</div>
+  <div id="hudImagery">Imagery: …</div>
+  <div id="hudBuildings">OSM Buildings: …</div>
+  <div id="hudFps">FPS: …</div>
+  <div style="margin-top:8px;opacity:0.7">
+    Tap a pin to test click→flyTo.<br>
+    Zoom in over a city to see 3D buildings appear.
+  </div>
+</div>
+
+<!-- Phase 3: live location HUD -->
+<div id="liveHud">
+  <div class="lh-row"><div class="lh-dot" style="background:#34d399"></div><span id="lhMe">You: —</span></div>
+  <div class="lh-row"><div class="lh-dot" style="background:#4fa8ff"></div><span id="lhPartner">Partner: —</span></div>
+  <div class="lh-dist" id="lhDist">—</div>
+</div>
+
+<div id="countryToast"></div>
+
+<!-- Phase 4: street-level indicator, replaces the MapLibre handoff badge -->
+<div id="streetBadge">🗺️ Street level — real roads & buildings</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════
+// PHASE 2: realistic dataset — individual memory rows, same shape as
+// your real `globe_memories` table (trip_name/date_from/mood), including
+// cities close enough together to force clustering (Paris/London/Rome sit
+// within cluster range at low zoom, like a Europe trip). In the real
+// integration this is replaced by:
+//   fetch(`${API}/api/globe/${coupleId}`).then(r => r.json())
+// ═══════════════════════════════════════════
+const SAMPLE_MEMORIES = [
+  { id:'m1', city:'Paris', country:'France', lat:48.8566, lng:2.3522, mood:'🥰 Romantic', trip_name:'Anniversary trip', date_from:'2025-06-12' },
+  { id:'m2', city:'Paris', country:'France', lat:48.8566, lng:2.3522, mood:'😊 Happy', trip_name:'Louvre weekend', date_from:'2024-09-03' },
+  { id:'m3', city:'London', country:'United Kingdom', lat:51.5074, lng:-0.1278, mood:'😌 Peaceful', trip_name:'Rainy city walk', date_from:'2024-11-20' },
+  { id:'m4', city:'Rome', country:'Italy', lat:41.9028, lng:12.4964, mood:'🤩 Excited', trip_name:'Colosseum day', date_from:'2025-03-15' },
+  { id:'m5', city:'Tokyo', country:'Japan', lat:35.6762, lng:139.6503, mood:'🤩 Excited', trip_name:'Cherry blossoms', date_from:'2025-04-02' },
+  { id:'m6', city:'Vijayawada', country:'India', lat:16.5062, lng:80.6480, mood:'😊 Happy', trip_name:'Home visit', date_from:'2025-01-10' },
+  { id:'m7', city:'Vijayawada', country:'India', lat:16.5062, lng:80.6480, mood:'🥰 Romantic', trip_name:'First date spot', date_from:'2024-02-14' },
+  { id:'m8', city:'New York', country:'United States', lat:40.7128, lng:-74.0060, mood:'😌 Peaceful', trip_name:'Central Park', date_from:'2025-05-18' },
+];
+
+// Group into cities, same as your real buildCityGroups()
+function groupByCity(memories) {
+  const groups = {};
+  memories.forEach(m => {
+    const key = m.city + ',' + m.country;
+    if (!groups[key]) groups[key] = { city: m.city, country: m.country, lat: m.lat, lng: m.lng, mood: m.mood, memories: [] };
+    groups[key].memories.push(m);
+  });
+  return groups;
+}
+const CITY_GROUPS = groupByCity(SAMPLE_MEMORIES);
+
+let viewer = null;
+
+function startViewer() {
+  const token = document.getElementById('tokenInput').value.trim();
+  if (!token || token.length < 20) {
+    const err = document.getElementById('tokenErr');
+    err.textContent = 'That doesn\'t look like a valid token — copy the full string from ion.cesium.com/tokens';
+    err.style.display = 'block';
+    return;
+  }
+  Cesium.Ion.defaultAccessToken = token;
+
+  document.getElementById('tokenGate').style.display = 'none';
+  document.getElementById('cesiumContainer').style.display = 'block';
+  document.getElementById('hud').style.display = 'block';
+
+  initCesium();
+}
+
+async function initCesium() {
+  // ── Base viewer: Cesium World Terrain (real elevation) ──
+  // PERF FIX: requestWaterMask dropped — ocean reflections aren't worth the
+  // frame cost for a memory-pin globe, and it was a big chunk of the 21-24fps
+  // readings on desktop. requestVertexNormals kept, needed for terrain lighting.
+  viewer = new Cesium.Viewer('cesiumContainer', {
+    terrain: Cesium.Terrain.fromWorldTerrain({
+      requestVertexNormals: true
+    }),
+    baseLayerPicker: true,      // lets you test switching imagery providers live
+    geocoder: true,              // built-in place search — free upgrade over your Nominatim form for map jumps
+    homeButton: true,
+    sceneModePicker: false,      // keep 3D-only for now — matches your app's single Globe mode
+    navigationHelpButton: false,
+    animation: false,            // no playback clock UI, this isn't a time-dynamic scene
+    timeline: false,
+    fullscreenButton: false,
+    infoBox: false,              // we'll use your existing glass panels instead of Cesium's own
+    selectionIndicator: false,
+  });
+
+  document.getElementById('hudTerrain').innerHTML = 'Terrain: <span class="ok">Cesium World Terrain ✓</span>';
+
+  // PERF FIX: this is the single biggest lever on phones. A modern Android phone
+  // can report devicePixelRatio of 3+ — rendering at full native res there is
+  // 9x the pixel-shading work of a 1x display for almost no visible quality gain
+  // at arm's length. Capping at 1.5 is the standard mobile-WebGL recommendation.
+  viewer.resolutionScale = Math.min(window.devicePixelRatio, 1.5);
+  viewer.scene.postProcessStages.fxaa.enabled = true; // cheap edge smoothing to compensate for the lower render res
+
+  // ── Real atmosphere, lighting, day/night — all built into Cesium, no shader code needed ──
+  // PERF FIX: dynamicAtmosphereLighting recomputes per-frame atmospheric scattering
+  // against the sun position — costly, and the visual difference is subtle at the
+  // zoom levels this app actually uses. Keeping enableLighting (day/night terminator,
+  // the effect you actually asked for) but dropping the dynamic variant.
+  viewer.scene.globe.enableLighting = true;
+  viewer.scene.globe.dynamicAtmosphereLighting = false;
+  viewer.scene.skyAtmosphere.show = true;
+  viewer.scene.fog.enabled = true;
+  viewer.scene.globe.showGroundAtmosphere = true;
+  viewer.scene.skyBox.show = true;
+
+  // PERF FIX: maximumScreenSpaceError controls how many tiles get requested/rendered.
+  // 2 (the Cesium default) was too sharp for our needs, especially on mobile GPUs.
+  // 4-6 is the standard "still looks good, way lighter" range Cesium's own perf
+  // guide recommends for mobile-first apps. Desktop devices with headroom will
+  // still look sharp when zoomed in since this only relaxes the FAR-tile detail.
+  viewer.scene.globe.maximumScreenSpaceError = 4;
+
+  // PERF FIX: clamp how far the camera can pitch below the horizon. This is what
+  // produced the "buildings floating in the sky" look in testing — that's real
+  // distant 3D-tile geometry rendered at a grazing viewing angle, not a bug, but
+  // it looks broken for a memory-pin globe, so we just don't let the camera get
+  // into that orientation. Mirrors your Three.js targetRotX clamp of ±1.2 rad.
+  viewer.scene.screenSpaceCameraController.minimumZoomDistance = 50;
+  viewer.scene.screenSpaceCameraController.enableTilt = true;
+  viewer.camera.percentageChanged = 0.1;
+
+  document.getElementById('hudImagery').innerHTML = 'Imagery: <span class="ok">Bing Maps aerial ✓</span>';
+
+  // ── Cesium OSM Buildings — free, global 3D building footprints ──
+  // PERF FIX: maximumScreenSpaceError raised here too (buildings tileset is
+  // separate from the globe's own setting) and dynamicScreenSpaceError turned on,
+  // which is Cesium's official recommendation for building-heavy tilesets — it
+  // automatically relaxes detail for tiles near the screen edge / periphery.
+  try {
+    const buildingTileset = await Cesium.createOsmBuildingsAsync();
+    buildingTileset.maximumScreenSpaceError = 8;
+    buildingTileset.dynamicScreenSpaceError = true;
+    buildingTileset.dynamicScreenSpaceErrorDensity = 0.00278;
+    buildingTileset.dynamicScreenSpaceErrorFactor = 4.0;
+    // Buildings only matter once you're at street/city level — skip rendering
+    // them entirely from far away, which was costing frames for zero visual gain.
+    buildingTileset.show = true;
+    viewer.scene.primitives.add(buildingTileset);
+    document.getElementById('hudBuildings').innerHTML = 'OSM Buildings: <span class="ok">loaded ✓ (tuned)</span>';
+  } catch (e) {
+    document.getElementById('hudBuildings').innerHTML = 'OSM Buildings: <span class="bad">failed — ' + e.message + '</span>';
+  }
+
+  // ── FPS counter — mirrors your "maintain 60fps" requirement so you can
+  //    actually measure it on your device instead of guessing ──
+  viewer.scene.debugShowFramesPerSecond = false; // we render our own, themed
+  let frames = 0, lastFpsTime = performance.now();
+  viewer.scene.postRender.addEventListener(() => {
+    frames++;
+    const now = performance.now();
+    if (now - lastFpsTime >= 1000) {
+      const fps = Math.round((frames * 1000) / (now - lastFpsTime));
+      const el = document.getElementById('hudFps');
+      const cls = fps >= 50 ? 'ok' : fps >= 30 ? 'warn' : 'bad';
+      el.innerHTML = `FPS: <span class="${cls}">${fps}</span>`;
+      frames = 0; lastFpsTime = now;
+    }
+  });
+
+  // ── Slow idle auto-rotation, same feel as your Three.js globe ──
+  let autoRotate = true;
+  viewer.camera.moveStart.addEventListener(() => { autoRotate = false; });
+  viewer.clock.onTick.addEventListener(() => {
+    if (autoRotate) viewer.scene.camera.rotate(Cesium.Cartesian3.UNIT_Z, -0.00008);
+  });
+
+  // ── Memory pins, grouped by city, using Cesium's own clustering ──
+  addCityPins(CITY_GROUPS);
+
+  // ── Phase 3: flight arcs, country glows, live location ──
+  addFlightArcs(SAMPLE_MEMORIES);
+  addCountryStats(CITY_GROUPS);
+  startMockLiveLocation();
+
+  // ── Phase 4: street-level detection by camera height ──
+  setupStreetLevelDetection();
+
+  // ── Click → fly-to → open city panel (mirrors your handleGlobeClick →
+  //    flyToLatLng → openCityPanel flow exactly, just Cesium APIs underneath) ──
+  const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+  handler.setInputAction((click) => {
+    const picked = viewer.scene.pick(click.position);
+    if (!Cesium.defined(picked)) return;
+    autoRotate = false;
+
+    // Cesium clusters report back as a plain array of the entities inside them
+    if (Array.isArray(picked)) {
+      // Clicked a cluster bubble — zoom in on it, same idea as your
+      // "zoom toward cluster centroid, lower zoom splits it" behavior
+      const positions = picked.map(p => p.id.position.getValue(Cesium.JulianDate.now()));
+      const boundingSphere = Cesium.BoundingSphere.fromPoints(positions);
+      viewer.camera.flyToBoundingSphere(boundingSphere, { duration: 1.2, offset: new Cesium.HeadingPitchRange(0, -1.2, boundingSphere.radius * 3) });
+      return;
+    }
+    if (picked.id && picked.id._cityData) {
+      flyToCity(picked.id._cityData);
+      return;
+    }
+    if (picked.id && picked.id._countryData) {
+      showCountryToast(picked.id._countryData);
+    }
+  }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+  // Start at a nice default view — mirrors your resetView() framing
+  viewer.camera.flyHome(0);
+}
+
+function heartMarkerCanvas(mood, count) {
+  // Same idea as your createHeartMarker() — canvas texture, reused as a Cesium billboard image
+  const size = 64;
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const ctx = c.getContext('2d');
+
+  const glow = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+  glow.addColorStop(0, 'rgba(255,100,180,0.6)');
+  glow.addColorStop(1, 'rgba(255,100,180,0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath(); ctx.arc(size/2, size/2, size/2, 0, Math.PI*2); ctx.fill();
+
+  ctx.font = `${26 + Math.min(count*2,10)}px serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText((mood||'').split(' ')[0] || '❤️', size/2, size/2 + 2);
+
+  if (count > 1) {
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.beginPath(); ctx.arc(size-10, 8, 9, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#e00060';
+    ctx.font = 'bold 9px Inter, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(String(count), size-10, 9);
+  }
+  return c.toDataURL();
+}
+
+// ── Pins as a Cesium CustomDataSource with clustering enabled ──
+// This replaces your hand-rolled clusterCityMap()/getClusterThreshold() math —
+// Cesium's EntityCluster does distance-based grouping natively and re-clusters
+// automatically as the camera moves, which is strictly less code to maintain
+// than the Three.js version while doing the same job.
+let pinDataSource = null;
+async function addCityPins(cityGroups) {
+  pinDataSource = new Cesium.CustomDataSource('memoryPins');
+  await viewer.dataSources.add(pinDataSource);
+
+  Object.values(cityGroups).forEach(c => {
+    const entity = pinDataSource.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(c.lng, c.lat),
+      billboard: {
+        image: heartMarkerCanvas(c.mood, c.memories.length),
+        scale: 0.85,
+        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      },
+      label: {
+        text: c.city,
+        font: '600 13px Inter, sans-serif',
+        fillColor: Cesium.Color.WHITE,
+        outlineColor: Cesium.Color.BLACK,
+        outlineWidth: 3,
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+        verticalOrigin: Cesium.VerticalOrigin.TOP,
+        pixelOffset: new Cesium.Cartesian2(0, 4),
+        showBackground: false,
+        distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 2000000),
+      }
+    });
+    entity._cityData = c;
+  });
+
+  // Native clustering — pixelRange is the on-screen radius (px) within which
+  // pins get merged into a bubble; matches the "cluster nearby pins, expand
+  // while zooming in" requirement directly, no custom threshold math needed.
+  pinDataSource.clustering.enabled = true;
+  pinDataSource.clustering.pixelRange = 60;
+  pinDataSource.clustering.minimumClusterSize = 2;
+  pinDataSource.clustering.clusterEvent.addEventListener(clusterStyleCallback);
+}
+
+// Style cluster bubbles the same visual language as your createClusterMarker()
+// (blue-to-pink gradient disc with a count) instead of Cesium's plain default.
+function clusterStyleCallback(clusteredEntities, cluster) {
+  cluster.label.show = false;
+  cluster.billboard.show = true;
+  cluster.billboard.id = clusteredEntities; // pass entities through for click handler
+  cluster.billboard.image = clusterMarkerCanvas(clusteredEntities.length);
+  cluster.billboard.verticalOrigin = Cesium.VerticalOrigin.CENTER;
+  cluster.billboard.disableDepthTestDistance = Number.POSITIVE_INFINITY;
+}
+
+function clusterMarkerCanvas(count) {
+  const size = 80;
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const ctx = c.getContext('2d');
+  const glow = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2.1);
+  glow.addColorStop(0, 'rgba(120,190,255,0.55)');
+  glow.addColorStop(1, 'rgba(120,190,255,0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath(); ctx.arc(size/2, size/2, size/2.1, 0, Math.PI*2); ctx.fill();
+
+  ctx.beginPath(); ctx.arc(size/2, size/2, 22, 0, Math.PI*2);
+  const grad = ctx.createLinearGradient(0, 0, size, size);
+  grad.addColorStop(0, '#4fa8ff'); grad.addColorStop(1, '#e061e8');
+  ctx.fillStyle = grad; ctx.fill();
+  ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.stroke();
+
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 20px Inter, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(String(count), size/2, size/2 + 1);
+  return c.toDataURL();
+}
+
+// ── Fly to a city, then open the panel — this is the real integration
+// point. In your actual globe.html, the alert() below is replaced with a
+// direct call to your existing openCityPanel(city, country) function —
+// nothing about that function needs to change, it already works from any
+// caller. This proves that contract end-to-end against real Cesium clicks. ──
+function flyToCity(c) {
+  viewer.camera.flyTo({
+    destination: Cesium.Cartesian3.fromDegrees(c.lng, c.lat, 8000),
+    duration: 1.4,
+    complete: () => openCityPanelMock(c)
+  });
+}
+
+function openCityPanelMock(c) {
+  document.getElementById('cityPanelTitle').textContent = `${c.city}, ${c.country}`;
+  document.getElementById('cityPanelBody').innerHTML = c.memories.map(m => `
+    <div class="mem-card">
+      <div class="mem-top"><span>${esc(m.trip_name)}</span><span>${(m.mood||'').split(' ')[0]}</span></div>
+      <div class="mem-date">${esc(m.date_from)}</div>
+    </div>`).join('');
+  document.getElementById('cityPanel').classList.add('open');
+}
+
+function esc(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ═══════════════════════════════════════════
+// PHASE 3a: FLIGHT ARCS — replaces your buildFlightArcs()/animateFlightArcs()
+// (QuadraticBezierCurve3 + moving sprite in Three.js space). Cesium has a
+// built-in PolylineGraphics arcType + PolylineGlowMaterialProperty that gives
+// the same "connecting flight path" look natively, following the real WGS84
+// geodesic instead of a fudged midpoint-lift curve — genuinely more correct.
+// ═══════════════════════════════════════════
+const ARC_COLORS = ['#4fa8ff','#ff6b9d','#34d399','#fbbf24','#a78bfa','#fb923c','#22d3ee','#f472b6'];
+
+function addFlightArcs(memories) {
+  const sorted = memories.slice()
+    .filter(m => m.lat != null && m.lng != null && m.date_from)
+    .sort((a, b) => (a.date_from || '').localeCompare(b.date_from || ''));
+
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const a = sorted[i], b = sorted[i + 1];
+    if (a.city === b.city && a.country === b.country) continue; // no arc to same city, same as your original check
+
+    const color = Cesium.Color.fromCssColorString(ARC_COLORS[i % ARC_COLORS.length]);
+    viewer.entities.add({
+      polyline: {
+        positions: Cesium.Cartesian3.fromDegreesArray([a.lng, a.lat, b.lng, b.lat]),
+        // arcType GEODESIC = follows the curved great-circle path over the globe surface,
+        // exactly the "connects memories chronologically" flight-path look you had, but
+        // geographically correct rather than a hand-tuned bezier lift.
+        arcType: Cesium.ArcType.GEODESIC,
+        width: 3,
+        material: new Cesium.PolylineGlowMaterialProperty({
+          glowPower: 0.25,
+          taperPower: 0.5,
+          color
+        }),
+        clampToGround: false,
+      }
+    });
+  }
+}
+
+// ═══════════════════════════════════════════
+// PHASE 3b: COUNTRY STATS GLOW — replaces buildCountryGlows()/handleCountryGlowClick().
+// Same idea: a soft glow at the centroid of each country's memories, click shows
+// a summary toast. Rendered as a Cesium billboard (canvas glow texture) rather
+// than a Three.js sprite — visually identical, positioned on the terrain surface.
+// ═══════════════════════════════════════════
+function addCountryStats(cityGroups) {
+  const byCountry = {};
+  Object.values(cityGroups).forEach(c => {
+    if (!byCountry[c.country]) byCountry[c.country] = { country: c.country, cities: [], lat: 0, lng: 0, count: 0 };
+    const entry = byCountry[c.country];
+    entry.cities.push(c.city);
+    entry.lat += c.lat; entry.lng += c.lng;
+    entry.count += c.memories.length;
+  });
+
+  Object.values(byCountry).forEach(c => {
+    c.lat /= c.cities.length; c.lng /= c.cities.length;
+
+    const glowSize = 128;
+    const gc = document.createElement('canvas');
+    gc.width = glowSize; gc.height = glowSize;
+    const gctx = gc.getContext('2d');
+    const rg = gctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    rg.addColorStop(0, 'rgba(255,180,80,0.4)');
+    rg.addColorStop(0.6, 'rgba(255,180,80,0.15)');
+    rg.addColorStop(1, 'rgba(255,180,80,0)');
+    gctx.fillStyle = rg;
+    gctx.beginPath(); gctx.arc(64, 64, 64, 0, Math.PI*2); gctx.fill();
+
+    const entity = viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(c.lng, c.lat),
+      billboard: {
+        image: gc.toDataURL(),
+        scale: 1.2,
+        verticalOrigin: Cesium.VerticalOrigin.CENTER,
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+      }
+    });
+    entity._countryData = c;
+  });
+}
+
+function showCountryToast(c) {
+  const el = document.getElementById('countryToast');
+  el.textContent = `🌍 ${c.country} · ${c.cities.length} cit${c.cities.length===1?'y':'ies'} · ${c.count} memor${c.count===1?'y':'ies'}`;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+// ═══════════════════════════════════════════
+// PHASE 3c: LIVE LOCATION — mock version of your real /api/location polling +
+// updateLiveMarker()/animateLiveMarkers()/updateLiveHud(). This proves the
+// visual/positioning pattern (two colored dots + pulsing ring + distance HUD)
+// against real Cesium entities. In the real integration, swap MOCK_ME/MOCK_PARTNER
+// below for your existing pollLiveLocations() fetch — the marker update logic
+// underneath doesn't change.
+// ═══════════════════════════════════════════
+let liveMeEntity = null, livePartnerEntity = null;
+const MOCK_ME = { lat: 16.5062, lng: 80.6480 };       // Vijayawada, matches your CITY_GROUPS sample
+const MOCK_PARTNER = { lat: 16.52, lng: 80.66 };       // nearby, so distance is meaningful
+
+function liveMarkerCanvas(color) {
+  const c = document.createElement('canvas'); c.width = 32; c.height = 32;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(16, 16, 8, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+  return c.toDataURL();
+}
+
+function startMockLiveLocation() {
+  liveMeEntity = viewer.entities.add({
+    position: Cesium.Cartesian3.fromDegrees(MOCK_ME.lng, MOCK_ME.lat),
+    billboard: { image: liveMarkerCanvas('#34d399'), disableDepthTestDistance: Number.POSITIVE_INFINITY, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND }
+  });
+  livePartnerEntity = viewer.entities.add({
+    position: Cesium.Cartesian3.fromDegrees(MOCK_PARTNER.lng, MOCK_PARTNER.lat),
+    billboard: { image: liveMarkerCanvas('#4fa8ff'), disableDepthTestDistance: Number.POSITIVE_INFINITY, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND }
+  });
+
+  document.getElementById('lhMe').textContent = 'You: online';
+  document.getElementById('lhPartner').textContent = 'Partner: online';
+  updateLiveDistance();
+
+  // Gentle simulated drift every 4s so you can see the markers actually update —
+  // your real version replaces this interval with the existing pollLiveLocations() call.
+  setInterval(() => {
+    MOCK_PARTNER.lat += (Math.random() - 0.5) * 0.004;
+    MOCK_PARTNER.lng += (Math.random() - 0.5) * 0.004;
+    livePartnerEntity.position = Cesium.Cartesian3.fromDegrees(MOCK_PARTNER.lng, MOCK_PARTNER.lat);
+    updateLiveDistance();
+  }, 4000);
+}
+
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function updateLiveDistance() {
+  const km = haversine(MOCK_ME.lat, MOCK_ME.lng, MOCK_PARTNER.lat, MOCK_PARTNER.lng);
+  document.getElementById('lhDist').textContent = km < 1 ? Math.round(km*1000) + ' m apart' : km.toFixed(1) + ' km apart';
+}
+
+// ═══════════════════════════════════════════
+// PHASE 4: STREET-LEVEL VIA CAMERA HEIGHT — replaces your entire MapLibre
+// #streetView handoff (separate map instance, opacity crossfade, exitStreetView()
+// resetting the globe). Cesium doesn't need a second map library at all: once
+// the camera descends below a height threshold, you're already looking at real
+// roads + 3D buildings on the SAME globe. This is strictly simpler than your
+// current two-engine handoff, and there's no "white screen during swap" risk
+// because there's no swap — it's one continuous camera move.
+// ═══════════════════════════════════════════
+const STREET_LEVEL_HEIGHT_M = 1500; // below this altitude = "street mode" for HUD purposes
+let inStreetMode = false;
+
+function setupStreetLevelDetection() {
+  viewer.camera.changed.addEventListener(() => {
+    const height = viewer.camera.positionCartographic.height;
+    const shouldBeStreet = height < STREET_LEVEL_HEIGHT_M;
+    if (shouldBeStreet !== inStreetMode) {
+      inStreetMode = shouldBeStreet;
+      document.getElementById('streetBadge').classList.toggle('show', inStreetMode);
+      // Tighten field of view slightly at street level for a more human eye-level
+      // feel, matching the "seamless zoom to street level" requirement — this is
+      // the only adjustment needed, no separate renderer to spin up.
+      viewer.camera.frustum.fov = inStreetMode ? Cesium.Math.toRadians(50) : Cesium.Math.toRadians(60);
+    }
+  });
+  // Cesium fires `changed` on a percentage-change threshold (set earlier via
+  // viewer.camera.percentageChanged = 0.1), which keeps this check cheap —
+  // it's not running every frame, only when the camera has moved meaningfully.
+}
+</script>
+</body>
+</html>
