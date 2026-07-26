@@ -654,9 +654,13 @@ async function initGlobe() {
   // bright and readable no matter what time it is in the real world.
   viewer.scene.globe.enableLighting = false;
   viewer.scene.globe.dynamicAtmosphereLighting = false; // costly, subtle at our zoom levels
-  viewer.scene.skyAtmosphere.show = true;
-  viewer.scene.fog.enabled = true;
-  viewer.scene.globe.showGroundAtmosphere = true;
+  viewer.scene.skyAtmosphere.show = true;   // keep the thin blue space-side rim
+  viewer.scene.fog.enabled = false;         // was adding a hazy overlay at this zoom
+  // OFF: showGroundAtmosphere still simulates a real sun-glare halo on the
+  // surface even with enableLighting=false — that's the washed-out golden
+  // blob covering half the globe. This flag is separate from enableLighting
+  // and has to be turned off too for a clean, evenly-lit sphere.
+  viewer.scene.globe.showGroundAtmosphere = false;
   viewer.scene.skyBox.show = true;
 
   // Color correction on the base imagery layer itself — this is the actual
@@ -666,10 +670,10 @@ async function initGlobe() {
   // blues, dark green forests, and visible terrain relief, so every country
   // reads clearly at a glance instead of looking pale.
   const baseImageryLayer = viewer.imageryLayers.get(0);
-  baseImageryLayer.brightness = 1.05;
-  baseImageryLayer.contrast = 1.35;
-  baseImageryLayer.saturation = 1.5;
-  baseImageryLayer.gamma = 0.92;
+  baseImageryLayer.brightness = 1.0;
+  baseImageryLayer.contrast = 1.1;
+  baseImageryLayer.saturation = 1.15;
+  baseImageryLayer.gamma = 1.0;
   // Was flatly set to 4 (blurry at every zoom level, incl. close-up).
   // Dynamic SSE keeps distant tiles cheap for perf but relaxes back to sharp
   // detail near the camera — this is the "texture looks bad" fix.
@@ -719,11 +723,23 @@ async function initGlobe() {
   // was silently killing auto-rotate a moment after it turned back on, so it
   // looked "stuck" instead of continuously turning.
   const rotationCanvas = viewer.scene.canvas;
-  const stopAutoRotate = () => { autoRotate = false; };
+  let resumeRotateTimer = null;
+  const stopAutoRotate = () => {
+    autoRotate = false;
+    if (resumeRotateTimer) clearTimeout(resumeRotateTimer);
+  };
+  const scheduleResumeRotate = () => {
+    // Small delay so we don't fight the camera's own release-inertia
+    // (flick momentum) — resumes the slow drift once that settles.
+    if (resumeRotateTimer) clearTimeout(resumeRotateTimer);
+    resumeRotateTimer = setTimeout(() => { autoRotate = true; }, 1200);
+  };
   rotationCanvas.addEventListener('pointerdown', stopAutoRotate, { passive: true });
+  rotationCanvas.addEventListener('pointerup', scheduleResumeRotate, { passive: true });
+  rotationCanvas.addEventListener('pointercancel', scheduleResumeRotate, { passive: true });
   rotationCanvas.addEventListener('wheel', stopAutoRotate, { passive: true });
   viewer.clock.onTick.addEventListener(() => {
-    if (autoRotate) viewer.scene.camera.rotate(Cesium.Cartesian3.UNIT_Z, -0.0012);
+    if (autoRotate) viewer.scene.camera.rotate(Cesium.Cartesian3.UNIT_Z, -0.0025);
   });
 
   // Street-level detection by camera altitude — replaces your entire MapLibre
