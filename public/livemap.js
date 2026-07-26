@@ -2113,6 +2113,7 @@ const LiveMap = (() => {
     openM('lmRouteModal');
     document.getElementById('lmRouteBody').innerHTML = '<div class="empty">Loading dates…</div>';
     _renderRouteRoleToggle();
+    _loadRouteSettings(); // Phase 4: reflect current opt-in state each time the modal opens
     try {
       const { dates } = await api('GET', `/api/route/${S.coupleId}/${st.routeViewRole}/dates`);
       st.routeDates = dates || [];
@@ -2123,6 +2124,63 @@ const LiveMap = (() => {
     } catch (e) {
       document.getElementById('lmRouteBody').innerHTML = '<div class="empty">Couldn\'t load route history — try again</div>';
     }
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     PHASE 4 — ROUTE HISTORY PRIVACY (opt-in toggle, retention, delete)
+     Always reflects MY OWN setting only — a person can never see or
+     change their partner's recording preference from here.
+     ══════════════════════════════════════════════════════════ */
+  function toggleRouteSettingsPanel() {
+    const el = document.getElementById('lmRouteSettingsPanel');
+    if (!el) return;
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
+  async function _loadRouteSettings() {
+    try {
+      const s = await api('GET', `/api/route/${S.coupleId}/${S.role}/settings`);
+      st.routeHistorySettings = s;
+      const toggle = document.getElementById('lmRouteHistoryToggle');
+      if (toggle) toggle.checked = !!s.enabled;
+      const retRow = document.getElementById('lmRouteRetentionRow');
+      if (retRow) retRow.style.display = s.enabled ? 'block' : 'none';
+      document.querySelectorAll('#lmRouteRetentionRow .lm-chip').forEach(chip => {
+        const val = chip.dataset.retention === 'forever' ? null : Number(chip.dataset.retention);
+        chip.classList.toggle('active', val === (s.retentionDays ?? null));
+      });
+    } catch (e) { /* leave defaults (off) on failure — fail closed, never assume on */ }
+  }
+  async function setRouteHistoryEnabled(enabled) {
+    const retRow = document.getElementById('lmRouteRetentionRow');
+    if (retRow) retRow.style.display = enabled ? 'block' : 'none';
+    try {
+      const current = st.routeHistorySettings || {};
+      const retentionDays = enabled ? (current.retentionDays !== undefined ? current.retentionDays : 30) : current.retentionDays;
+      const s = await api('POST', '/api/route/settings', { coupleId: S.coupleId, role: S.role, enabled, retentionDays });
+      st.routeHistorySettings = s;
+      toast(enabled ? '✅ Route history is now on — only for your own account' : '⏸️ Route history recording turned off');
+      _loadRouteSettings();
+    } catch (e) {
+      toast('❌ Could not save that — try again');
+      const toggle = document.getElementById('lmRouteHistoryToggle');
+      if (toggle) toggle.checked = !enabled; // revert the switch visually on failure
+    }
+  }
+  async function setRouteRetention(days) {
+    try {
+      const s = await api('POST', '/api/route/settings', { coupleId: S.coupleId, role: S.role, enabled: true, retentionDays: days });
+      st.routeHistorySettings = s;
+      _loadRouteSettings();
+      toast(days ? `Keeping route history for ${days} days` : 'Keeping route history forever');
+    } catch (e) { toast('❌ Could not save that — try again'); }
+  }
+  async function deleteMyRouteHistory() {
+    if (!confirm('Delete all of your recorded route history? This cannot be undone.')) return;
+    try {
+      const r = await api('DELETE', `/api/route/${S.coupleId}/${S.role}/history`);
+      toast(`🗑️ Deleted ${r.deleted ?? 'your'} recorded location${r.deleted === 1 ? '' : 's'}`);
+      if (st.routeViewRole === S.role) loadRouteDay(st.routeSelectedDate || _localDateStr());
+    } catch (e) { toast('❌ Could not delete — try again'); }
   }
   function switchRouteRole(role) {
     if (role === st.routeViewRole) return;
@@ -2444,6 +2502,7 @@ const LiveMap = (() => {
     setMapStyle, locateMe, locatePartner, showMeetingPoint,
     openStreetView, _svFallback,
     openRouteHistory, loadRouteDay, playbackRoute, pausePlayback, setPlaybackSpeed, switchRouteRole,
+    toggleRouteSettingsPanel, setRouteHistoryEnabled, setRouteRetention, deleteMyRouteHistory,
     getWeather,
     pauseSharing, resumeSharing, togglePrivacyPanel,
     toggleApproxLocation, toggleInvisibleMode, emergencyShare, dismissEmergencyBanner,

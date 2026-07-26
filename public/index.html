@@ -5732,7 +5732,34 @@ select option { background: #0D0D0D; color: #fff; }
 <!-- PHASE 2: DAILY ROUTE / TIMELINE / PLAYBACK MODAL -->
 <div class="modal-bg" id="lmRouteModal">
   <div class="modal">
-    <div class="modal-title">🛣️ Daily Route<button class="modal-close" onclick="closeM('lmRouteModal')">✕</button></div>
+    <div class="modal-title">🛣️ Daily Route
+      <button class="modal-close" style="right:44px" title="Route History privacy settings" onclick="LiveMap.toggleRouteSettingsPanel()">⚙️</button>
+      <button class="modal-close" onclick="closeM('lmRouteModal')">✕</button>
+    </div>
+
+    <!-- Phase 4: privacy — off by default, each person controls only their own recording -->
+    <div id="lmRouteSettingsPanel" style="display:none;background:var(--g1);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div>
+          <div style="font-weight:600;font-size:13px">Record my route history</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">Off by default. Only your own movement is recorded, and only when this is on.</div>
+        </div>
+        <label class="lm-switch">
+          <input type="checkbox" id="lmRouteHistoryToggle" onchange="LiveMap.setRouteHistoryEnabled(this.checked)">
+          <span class="lm-switch-slider"></span>
+        </label>
+      </div>
+      <div id="lmRouteRetentionRow" style="margin-top:12px;display:none">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:6px">Keep my route history for</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <div class="lm-chip" data-retention="7" onclick="LiveMap.setRouteRetention(7)">7 days</div>
+          <div class="lm-chip" data-retention="30" onclick="LiveMap.setRouteRetention(30)">30 days</div>
+          <div class="lm-chip" data-retention="forever" onclick="LiveMap.setRouteRetention(null)">Forever</div>
+        </div>
+      </div>
+      <button class="btn btn-glass btn-sm" style="margin-top:12px;color:#ff6b6b" onclick="LiveMap.deleteMyRouteHistory()">🗑️ Delete my route history</button>
+    </div>
+
     <div id="lmRouteRoleToggle" class="lm-action-row" style="margin-bottom:10px"></div>
     <div id="lmRouteDatePicker" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
     <div id="lmRouteBody"><div class="empty">Loading…</div></div>

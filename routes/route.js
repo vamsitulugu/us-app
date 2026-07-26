@@ -101,19 +101,77 @@ router.get('/:coupleId/:role/:date', async (req, res) => {
   });
 });
 
-// ── POST /api/route/prune ────────────────────────────────────────
-// Housekeeping — deletes route_points older than N days. Call this
-// from a scheduled job (Supabase cron / external cron hitting this
-// endpoint), NOT automatically on every request.
-router.post('/prune', async (req, res) => {
-  const days = Math.max(7, parseInt(req.body?.days, 10) || 30);
-  const cutoff = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+// ── GET /api/route/:coupleId/:role/settings ──────────────────────
+// Route History toggle + retention preference for one person.
+router.get('/:coupleId/:role/settings', async (req, res) => {
+  const { coupleId, role } = req.params;
+  const { data, error } = await supabase
+    .from('route_history_prefs')
+    .select('enabled, retention_days')
+    .eq('couple_id', coupleId).eq('role', role)
+    .maybeSingle();
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({
+    enabled: !!data?.enabled,
+    retentionDays: data ? data.retention_days : null // null = forever (only meaningful once enabled)
+  });
+});
+
+// ── POST /api/route/settings ──────────────────────────────────────
+// Body: { coupleId, role, enabled, retentionDays }  retentionDays:
+// 7 | 30 | null (forever). Each person controls only their own row —
+// there is no way for one partner to turn on recording for the other.
+router.post('/settings', async (req, res) => {
+  const { coupleId, role, enabled, retentionDays } = req.body;
+  if (!coupleId || !role || !['user1', 'user2'].includes(role) || typeof enabled !== 'boolean') {
+    return res.status(400).json({ error: 'Missing/invalid coupleId/role/enabled' });
+  }
+  const retention = (retentionDays === 7 || retentionDays === 30) ? retentionDays : null;
+  const { error } = await supabase
+    .from('route_history_prefs')
+    .upsert({ couple_id: coupleId, role, enabled, retention_days: retention, updated_at: new Date().toISOString() },
+      { onConflict: 'couple_id,role' });
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ ok: true, enabled, retentionDays: retention });
+});
+
+// ── DELETE /api/route/:coupleId/:role/history ─────────────────────
+// Self-serve wipe of one person's own recorded route history. Either
+// partner can delete their own — never the other partner's — history.
+router.delete('/:coupleId/:role/history', async (req, res) => {
+  const { coupleId, role } = req.params;
   const { error, count } = await supabase
     .from('route_points')
     .delete({ count: 'exact' })
-    .lt('local_date', cutoff);
+    .eq('couple_id', coupleId).eq('role', role);
   if (error) return res.status(500).json({ error: error.message });
-  return res.json({ ok: true, deleted: count ?? null, cutoff });
+  return res.json({ ok: true, deleted: count ?? null });
+});
+
+// ── POST /api/route/prune ────────────────────────────────────────
+// Housekeeping — deletes route_points past each person's own retention
+// setting (7d / 30d). Rows with retention_days = null ("Forever") are
+// never auto-deleted. Call this from a scheduled job (Supabase cron /
+// external cron hitting this endpoint), NOT automatically per-request.
+router.post('/prune', async (req, res) => {
+  const { data: prefs, error: prefsErr } = await supabase
+    .from('route_history_prefs')
+    .select('couple_id, role, retention_days')
+    .not('retention_days', 'is', null); // "Forever" rows are skipped entirely
+  if (prefsErr) return res.status(500).json({ error: prefsErr.message });
+
+  let totalDeleted = 0;
+  for (const pref of (prefs || [])) {
+    const days = Math.max(1, pref.retention_days);
+    const cutoff = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+    const { error, count } = await supabase
+      .from('route_points')
+      .delete({ count: 'exact' })
+      .eq('couple_id', pref.couple_id).eq('role', pref.role)
+      .lt('local_date', cutoff);
+    if (!error) totalDeleted += (count || 0);
+  }
+  return res.json({ ok: true, deleted: totalDeleted, prefsChecked: (prefs || []).length });
 });
 
 module.exports = router;

@@ -11,6 +11,35 @@ const ONLINE_WINDOW_MS = 60 * 1000; // last ping within 60s = "online"
 const ROUTE_DEDUPE_MIN_METERS = 8;   // skip storing a route point if it barely moved from the last stored one
 const ROUTE_DEDUPE_MAX_AGE_MS = 5 * 60 * 1000; // still store a point if this much time passed, even if stationary
 
+// ── Route history opt-in gate ────────────────────────────────────
+// Route recording is OFF by default. A row only allows recording once
+// the person has explicitly turned it on via POST /api/route/settings
+// (see routes/route.js). Cached in memory for ~2 min per couple/role
+// so a normal ~8-10s ping cadence doesn't cost a DB read every time;
+// FAILS CLOSED — if the pref row is missing or the lookup errors, we
+// do NOT record, since privacy-sensitive behavior should never fail
+// open just because of a transient DB hiccup.
+const _routePrefsCache = new Map(); // key -> { enabled, at }
+const ROUTE_PREFS_CACHE_MS = 2 * 60 * 1000;
+async function _isRouteHistoryEnabled(coupleId, role) {
+  const key = coupleId + ':' + role;
+  const cached = _routePrefsCache.get(key);
+  if (cached && Date.now() - cached.at < ROUTE_PREFS_CACHE_MS) return cached.enabled;
+  try {
+    const { data, error } = await supabase
+      .from('route_history_prefs')
+      .select('enabled')
+      .eq('couple_id', coupleId).eq('role', role)
+      .maybeSingle();
+    const enabled = !error && !!data?.enabled;
+    _routePrefsCache.set(key, { enabled, at: Date.now() });
+    return enabled;
+  } catch (e) {
+    _routePrefsCache.set(key, { enabled: false, at: Date.now() });
+    return false;
+  }
+}
+
 function haversineM(a, b) {
   const R = 6371000, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180;
   const x = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
@@ -80,18 +109,23 @@ router.post('/ping', async (req, res) => {
       });
   });
 
-  // Phase 2 — daily route history (separate table, not trimmed to 60,
+  // Phase 4 — daily route history (separate table, not trimmed to 60,
   // grouped by calendar day for the Daily Route feature). Best-effort,
   // never blocks or fails the ping response. Skips near-duplicate points
   // (stationary device / GPS jitter) to keep storage and reads lean.
+  // PRIVACY: only recorded if this person has explicitly opted in via
+  // the Route History toggle — see routes/route.js /settings.
   const localDate = req.body.localDate || new Date().toISOString().slice(0, 10);
-  if (_shouldStoreRoutePoint(coupleId, role, lat, lng, localDate)) {
-    supabase.from('route_points').insert({
-      couple_id: coupleId, role, lat, lng,
-      accuracy: accuracy ?? null, speed: speed ?? null,
-      local_date: localDate
-    }).then(() => {}).catch(() => {});
-  }
+  _isRouteHistoryEnabled(coupleId, role).then(enabled => {
+    if (!enabled) return;
+    if (_shouldStoreRoutePoint(coupleId, role, lat, lng, localDate)) {
+      supabase.from('route_points').insert({
+        couple_id: coupleId, role, lat, lng,
+        accuracy: accuracy ?? null, speed: speed ?? null,
+        local_date: localDate
+      }).then(() => {}).catch(() => {});
+    }
+  }).catch(() => {});
 
   return res.json({ ok: true });
 });
