@@ -541,7 +541,7 @@
 // Get a free token (Community tier, non-commercial) at ion.cesium.com/tokens.
 // Paste it here once — this is the only manual setup step for the whole upgrade.
 // ═══════════════════════════════════════════
-const CESIUM_ION_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5MDZjMGViOS0wM2FhLTQwNzktOGE3ZC03Yjc5MTY4YWU2ZjciLCJpZCI6NDYwNjU3LCJpc3MiOiJodHRwczovL2FwaS5jZXNpdW0uY29tIiwiYXVkIjoidW5kZWZpbmVkX2RlZmF1bHQiLCJpYXQiOjE3ODUwNjYxMDF9.yUlzti6uqXY9hcZCIZO4fFkw0S75O779_pRrGhTrrVc';
+const CESIUM_ION_TOKEN = 'PASTE_YOUR_CESIUM_ION_TOKEN_HERE';
 
 // ═══════════════════════════════════════════
 // STATE (unchanged from your original)
@@ -622,11 +622,12 @@ async function initGlobe() {
 
   viewer = new Cesium.Viewer('cesiumContainer', {
     terrain: Cesium.Terrain.fromWorldTerrain({ requestVertexNormals: true }),
-    // Asset 3 = "Bing Maps Aerial with Labels" — same free ion tier, but
-    // bakes in real country/city/town/road names across the whole globe
-    // instead of plain unlabeled satellite imagery (asset 2, the default).
+    // Reverted from asset 3 ("Bing Aerial with Labels") back to asset 2
+    // ("Bing Aerial", Cesium's default) — asset 3's labels came at the cost
+    // of noticeably flatter, less saturated color. This is the richer
+    // imagery from the old version.
     baseLayer: Cesium.ImageryLayer.fromProviderAsync(
-      Cesium.IonImageryProvider.fromAssetId(3)
+      Cesium.IonImageryProvider.fromAssetId(2)
     ),
     baseLayerPicker: true,
     geocoder: true,
@@ -696,7 +697,7 @@ async function initGlobe() {
   // Gentle idle auto-rotation, same feel as your Three.js targetRotY drift
   viewer.camera.moveStart.addEventListener(() => { autoRotate = false; });
   viewer.clock.onTick.addEventListener(() => {
-    if (autoRotate) viewer.scene.camera.rotate(Cesium.Cartesian3.UNIT_Z, -0.00008);
+    if (autoRotate) viewer.scene.camera.rotate(Cesium.Cartesian3.UNIT_Z, -0.0012);
   });
 
   // Street-level detection by camera altitude — replaces your entire MapLibre
