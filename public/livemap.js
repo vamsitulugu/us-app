@@ -10,6 +10,12 @@
 'use strict';
 
 const LiveMap = (() => {
+  // Phase 1 (3D upgrade): use the MapLibre-backed shim if it loaded,
+  // so this whole module gets 3D terrain/buildings/tilt/rotate for
+  // free without changing any of the L.* / st.map.* calls below.
+  // Falls back to real Leaflet automatically if the shim/MapLibre GL
+  // failed to load (e.g. offline), so nothing breaks either way.
+  const L = window.MapLibreLeafletShim || window.L;
 
   const PING_MIN_INTERVAL_MS = 8000;   // never ping more than once per 8s
   const PING_MIN_DISTANCE_M  = 15;     // or unless moved >15m
@@ -610,7 +616,7 @@ const LiveMap = (() => {
 
   /* ── SMOOTH MARKER ANIMATION ─────────────────────────────── */
   function _animateMarker(who, lat, lng, accuracy, heading, offline) {
-    if (!st.map || !window.L) return;
+    if (!st.map || !L) return;
     const fromMarker = who === 'my' ? st.myMarker : st.ptMarker;
     const from = fromMarker ? fromMarker.getLatLng() : { lat, lng };
     if (who === 'my') { st.myAnimFrom = from; st.myAnimTarget = { lat, lng }; st.myAnimStart = performance.now(); }
@@ -650,10 +656,20 @@ const LiveMap = (() => {
   const arrow = (!offline && heading != null && !isNaN(heading))
     ? `<div style="position:absolute;top:-9px;left:50%;transform:translateX(-50%) rotate(${heading}deg);transform-origin:50% ${size/2+9}px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid ${who==='my'?'#5b9bff':'#ff6baf'}"></div>`
     : '';
+  // Driving/cycling puck: a wider nav-style chevron that rotates with the
+  // whole marker, closer to Uber/Google Maps moving-vehicle style, shown
+  // instead of the thin arrow once actual GPS-derived speed says "vehicle".
+  const kmh = (who === 'my' ? S.myLoc?.speed : S.ptLoc?.speed);
+  const isVehicle = kmh != null && kmh * 3.6 >= 15; // matches _activityFromSpeed cycling/driving threshold
+  const navChevron = (!offline && isVehicle && heading != null && !isNaN(heading))
+    ? `<div style="position:absolute;inset:-6px;transform:rotate(${heading}deg);transform-origin:50% 50%;pointer-events:none">
+         <svg viewBox="0 0 24 24" width="${size+12}" height="${size+12}"><path d="M12 1l6 15-6-3-6 3z" fill="${who==='my'?'#5b9bff':'#ff6baf'}" stroke="#fff" stroke-width="1"/></svg>
+       </div>`
+    : '';
   const offlineBadge = offline
     ? `<div style="position:absolute;bottom:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:#555;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:8px">💤</div>`
     : '';
-  const html = `<div style="position:relative;width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;color:#fff;font-size:${size*0.4}px;font-weight:700;border:3px solid #fff;opacity:${offline ? 0.55 : 1};box-shadow:0 0 0 4px ${offline ? 'rgba(120,120,120,0.25)' : (who==='my'?'rgba(91,155,255,0.35)':'rgba(255,107,175,0.35)')},0 4px 14px rgba(0,0,0,0.4)">${arrow}${inner}${offlineBadge}</div>`;
+  const html = `<div style="position:relative;width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;color:#fff;font-size:${size*0.4}px;font-weight:700;border:3px solid #fff;opacity:${offline ? 0.55 : 1};box-shadow:0 0 0 4px ${offline ? 'rgba(120,120,120,0.25)' : (who==='my'?'rgba(91,155,255,0.35)':'rgba(255,107,175,0.35)')},0 4px 14px rgba(0,0,0,0.4)">${navChevron || arrow}${inner}${offlineBadge}</div>`;
   const icon = L.divIcon({ html, className: '', iconSize: [size, size] });
   if (who === 'my') {
     if (!st.myMarker) st.myMarker = L.marker([lat, lng], { icon, zIndexOffset: 400 }).addTo(st.map);
@@ -697,7 +713,7 @@ const LiveMap = (() => {
 
   /* ── MAP INIT & PLACES RENDERING ──────────────────────────── */
   function _initMap() {
-    if (st.map || !window.L) return;
+    if (st.map || !L) return;
     const mapDiv = document.getElementById('mapView');
     if (!mapDiv) return;
     try {
@@ -1406,7 +1422,10 @@ const LiveMap = (() => {
   const TILE_LAYERS = {
     street:    { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '© OpenStreetMap' },
     dark:      { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attribution: '© OpenStreetMap, © CARTO' },
-    satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attribution: 'Tiles © Esri' }
+    satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attribution: 'Tiles © Esri' },
+    // Phase 1 (3D upgrade): new theme, recognised by the MapLibre shim
+    // (falls back to plain satellite, no labels, on real Leaflet).
+    hybrid:    { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}#hybrid', attribution: 'Tiles © Esri' }
   };
 
   // ── Sunrise/sunset (no API — standard NOAA approximation) ──────────

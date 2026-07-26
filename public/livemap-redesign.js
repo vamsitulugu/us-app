@@ -249,6 +249,9 @@
       // behavior as Google Maps / Uber's "recenter" arrow.
       st.map.on('dragstart', onFollowInterrupt);
       st.map.on('zoomstart', onFollowInterrupt);
+      // 3D upgrade: tilt into a chase-cam angle while following, like
+      // Google Maps/Uber navigation mode. No-op on plain Leaflet.
+      if (typeof st.map.set3D === 'function') st.map.set3D(true);
     }
     followTimer = setInterval(() => {
       if (!followOn || followUserInteracted) return;
@@ -270,7 +273,11 @@
   function stopFollowLoop() {
     if (followTimer) { clearInterval(followTimer); followTimer = null; }
     const st = window.LiveMap?._debug;
-    if (st?.map) { st.map.off('dragstart', onFollowInterrupt); st.map.off('zoomstart', onFollowInterrupt); }
+    if (st?.map) {
+      st.map.off('dragstart', onFollowInterrupt);
+      st.map.off('zoomstart', onFollowInterrupt);
+      if (typeof st.map.set3D === 'function') st.map.set3D(false);
+    }
   }
 
 
@@ -355,11 +362,17 @@
     return out;
   }
 
+  // FIX (Phase 3): these two used to POST straight to a single hardcoded
+  // 'overpass-api.de' endpoint with no timeout and no fallback — that
+  // exact server has been overloaded/shedding load, so any nearby search
+  // would just hang or fail outright when it was slow/down. They now go
+  // through window.OverpassService, which already races 7 independent
+  // mirrors + a backend proxy + an offline cache (see overpass-service.js).
+  // Same input/output shape as before, so nothing downstream changes.
   async function overpassNear(tag, center, radius) {
-    const q = `[out:json][timeout:15];(node[${tag}](around:${radius},${center.lat},${center.lng});way[${tag}](around:${radius},${center.lat},${center.lng}););out center 30;`;
-    const resp = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q) });
-    if (!resp.ok) throw new Error('overpass');
-    const data = await resp.json();
+    if (!window.OverpassService) throw new Error('search engine not loaded');
+    const query = `[out:json][timeout:20];(node[${tag}](around:${radius},${center.lat},${center.lng});way[${tag}](around:${radius},${center.lat},${center.lng}));out center 30;`;
+    const data = await window.OverpassService.runQuery(query);
     return (data.elements || []).map(e => ({
       id: e.id, name: e.tags?.name, lat: e.lat ?? e.center?.lat, lon: e.lon ?? e.center?.lon,
       openingHours: e.tags?.opening_hours
@@ -367,12 +380,11 @@
   }
 
   async function overpassAlongRoute(tag, coords, radius) {
+    if (!window.OverpassService) throw new Error('search engine not loaded');
     const samples = sampleRoute(coords, 8);
     const filters = samples.map(c => `node[${tag}](around:${radius},${c[0]},${c[1]});`).join('');
-    const q = `[out:json][timeout:15];(${filters});out center 40;`;
-    const resp = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q) });
-    if (!resp.ok) throw new Error('overpass');
-    const data = await resp.json();
+    const query = `[out:json][timeout:20];(${filters});out center 40;`;
+    const data = await window.OverpassService.runQuery(query);
     const seen = new Set();
     return (data.elements || []).filter(e => e.lat != null && e.lon != null && !seen.has(e.id) && seen.add(e.id))
       .map(e => ({ id: e.id, name: e.tags?.name, lat: e.lat, lon: e.lon, openingHours: e.tags?.opening_hours }));
