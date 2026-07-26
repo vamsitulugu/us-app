@@ -645,7 +645,7 @@ const LiveMap = (() => {
   const size = who === 'my' ? 30 : 38;
   const inner = avatar
     ? `<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0;${offline ? 'filter:grayscale(1)' : ''}">`
-    : esc(name[0] || (who === 'my' ? 'U' : 'P'));
+    : `<svg viewBox="0 0 24 24" width="${size*0.56}" height="${size*0.56}" fill="#fff" style="position:relative"><path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5z"/></svg>`;
   const color = offline ? '#7a7a7a' : (who === 'my' ? 'var(--accent)' : 'var(--accent2)');
   const arrow = (!offline && heading != null && !isNaN(heading))
     ? `<div style="position:absolute;top:-9px;left:50%;transform:translateX(-50%) rotate(${heading}deg);transform-origin:50% ${size/2+9}px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid ${who==='my'?'#5b9bff':'#ff6baf'}"></div>`

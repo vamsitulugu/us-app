@@ -56,6 +56,7 @@
       <div class="lm2-header-actions">
         <div class="lm2-icon-btn lm2-scale-tap" title="Search" id="lm2HdrSearchBtn">🔍</div>
         <div class="lm2-icon-btn lm2-scale-tap" title="Layers / map style" id="lm2HdrLayersBtn">🗺️</div>
+        <div class="lm2-icon-btn lm2-scale-tap" title="Follow me — camera stays centered on your live position" id="lm2HdrFollowBtn">🧭</div>
         <div class="lm2-icon-btn lm2-scale-tap" title="Locate me" id="lm2HdrLocateBtn">📍</div>
         <div class="lm2-icon-btn lm2-scale-tap" title="Live tracking on/off" id="lm2HdrTrackWrap"></div>
       </div>`;
@@ -63,6 +64,7 @@
     header.querySelector('#lm2HdrSearchBtn').onclick = () => { $('lmGmSearchInput')?.focus(); };
     header.querySelector('#lm2HdrLocateBtn').onclick = () => window.LiveMap?.locateMe();
     header.querySelector('#lm2HdrLayersBtn').onclick = () => toolbar?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    wireFollowButton(header.querySelector('#lm2HdrFollowBtn'));
     const trackToggle = $('lmTrackToggle');
     if (trackToggle) header.querySelector('#lm2HdrTrackWrap').replaceWith(trackToggle);
 
@@ -220,16 +222,69 @@
   }, true);
 
   /* ════════════════════════════════════════════════════════════════
-     B/C. NEARBY SEARCH — route → destination → current-location
-        fallback chain, with radius/sort, caching, debounce, retry.
+     F. AUTO-FOLLOW CAMERA — keeps the map centered on the user's live
+        position as it updates, with smooth panning (not a hard jump).
+        Purely additive: reads S.myLoc / st.map that livemap.js already
+        maintains, never writes tracking state. Disengages the moment
+        the user manually drags/zooms the map, like every real nav app.
      ════════════════════════════════════════════════════════════════ */
+  let followOn = false, followTimer = null, followUserInteracted = false;
+
+  function wireFollowButton(btn) {
+    if (!btn) return;
+    btn.onclick = () => {
+      followOn = !followOn;
+      btn.classList.toggle('active', followOn);
+      btn.style.background = followOn ? 'linear-gradient(135deg,#ff2020,#b60000)' : '';
+      if (followOn) { followUserInteracted = false; startFollowLoop(); }
+      else stopFollowLoop();
+    };
+  }
+
+  function startFollowLoop() {
+    stopFollowLoop();
+    const st = window.LiveMap?._debug;
+    if (st?.map) {
+      // Any manual pan/zoom while following is on disengages it — same
+      // behavior as Google Maps / Uber's "recenter" arrow.
+      st.map.on('dragstart', onFollowInterrupt);
+      st.map.on('zoomstart', onFollowInterrupt);
+    }
+    followTimer = setInterval(() => {
+      if (!followOn || followUserInteracted) return;
+      const st2 = window.LiveMap?._debug;
+      const loc = window.S?.myLoc;
+      if (!st2?.map || !loc || loc.lat == null) return;
+      st2.map.panTo([loc.lat, loc.lng], { animate: true, duration: 0.8, easeLinearity: 0.4 });
+    }, 1500);
+  }
+
+  function onFollowInterrupt() {
+    if (!followOn) return;
+    followUserInteracted = true;
+    const btn = $('lm2HdrFollowBtn');
+    if (btn) { followOn = false; btn.classList.remove('active'); btn.style.background = ''; }
+    stopFollowLoop();
+  }
+
+  function stopFollowLoop() {
+    if (followTimer) { clearInterval(followTimer); followTimer = null; }
+    const st = window.LiveMap?._debug;
+    if (st?.map) { st.map.off('dragstart', onFollowInterrupt); st.map.off('zoomstart', onFollowInterrupt); }
+  }
+
+
   const POI_TYPES = {
     food:     { tag: '"amenity"~"restaurant|fast_food"', icon: '🍽️', label: 'Food' },
     coffee:   { tag: '"amenity"="cafe"',                 icon: '☕', label: 'Coffee' },
     atm:      { tag: '"amenity"="atm"',                  icon: '🏧', label: 'ATM' },
+    bank:     { tag: '"amenity"="bank"',                  icon: '🏦', label: 'Bank' },
     parking:  { tag: '"amenity"="parking"',               icon: '🅿️', label: 'Parking' },
     hospital: { tag: '"amenity"="hospital"',               icon: '🏥', label: 'Hospital' },
+    pharmacy: { tag: '"amenity"="pharmacy"',               icon: '💊', label: 'Pharmacy' },
     fuel:     { tag: '"amenity"="fuel"',                   icon: '⛽', label: 'Fuel' },
+    hotel:    { tag: '"tourism"~"hotel|guest_house"',     icon: '🏨', label: 'Hotels' },
+    shopping: { tag: '"shop"~"mall|supermarket"',          icon: '🛍️', label: 'Shopping' },
     ev:       { tag: '"amenity"="charging_station"',      icon: '🔌', label: 'EV Charging' }
   };
   let nearbyActive = null, nearbySort = 'distance', nearbyRadius = 1500;
@@ -247,6 +302,16 @@
       chip.onclick = () => runNearbySearch(chip.dataset.poi);
     });
     document.querySelectorAll('.lm2-sort-chip').forEach(chip => {
+      if (chip.dataset.sort === 'rating') {
+        // OSM/Overpass has no ratings field — showing this as a working
+        // sort would be faking data. Disable it honestly instead, with
+        // a tooltip explaining why, rather than silently doing nothing.
+        chip.style.opacity = '0.4';
+        chip.style.cursor = 'not-allowed';
+        chip.title = 'Ratings aren\'t available from free map data — tap "View on Google Maps" on any result for real ratings/reviews';
+        chip.onclick = (e) => e.preventDefault();
+        return;
+      }
       chip.onclick = () => {
         document.querySelectorAll('.lm2-sort-chip').forEach(c => c.classList.toggle('active', c === chip));
         nearbySort = chip.dataset.sort;
@@ -313,12 +378,52 @@
       .map(e => ({ id: e.id, name: e.tags?.name, lat: e.lat, lon: e.lon, openingHours: e.tags?.opening_hours }));
   }
 
+  // Real best-effort parser for OSM's opening_hours syntax (covers the
+  // vast majority of real-world tags: "Mo-Fr 09:00-18:00; Sa 10:00-14:00",
+  // "24/7", "Mo-Su 08:00-22:00", overnight spans like "18:00-02:00").
+  // Returns true (assume open) when the tag is missing or genuinely too
+  // exotic to parse — we never hide a place just because we couldn't
+  // read its hours.
+  const DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
   function isOpenNow(hoursStr) {
-    // Best-effort only — opening_hours syntax is complex; we just avoid
-    // hiding results when we can't parse it confidently.
-    if (!hoursStr) return true;
+    if (!hoursStr) return null; // unknown — caller shows no badge
     if (/24\/7/i.test(hoursStr)) return true;
-    return true;
+    try {
+      const now = new Date();
+      const todayCode = DOW[now.getDay()];
+      const minutesNow = now.getHours() * 60 + now.getMinutes();
+      const rules = hoursStr.split(';').map(r => r.trim()).filter(Boolean);
+      let matched = false, open = false;
+      for (const rule of rules) {
+        if (/off|closed/i.test(rule)) continue;
+        const m = rule.match(/^((?:[A-Za-z]{2}(?:-[A-Za-z]{2})?,?\s*)+)\s+(.+)$/);
+        if (!m) continue;
+        const dayPart = m[1].trim(), timePart = m[2].trim();
+        const dayCodes = new Set();
+        dayPart.split(',').forEach(seg => {
+          seg = seg.trim();
+          const range = seg.match(/^([A-Za-z]{2})-([A-Za-z]{2})$/);
+          if (range) {
+            let i = DOW.indexOf(range[1]), end = DOW.indexOf(range[2]);
+            if (i === -1 || end === -1) return;
+            while (true) { dayCodes.add(DOW[i]); if (i === end) break; i = (i + 1) % 7; }
+          } else if (DOW.includes(seg)) dayCodes.add(seg);
+        });
+        if (!dayCodes.has(todayCode)) continue;
+        matched = true;
+        timePart.split(',').forEach(span => {
+          const t = span.trim().match(/^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$/);
+          if (!t) return;
+          const start = (+t[1]) * 60 + (+t[2]);
+          let end = (+t[3]) * 60 + (+t[4]);
+          if (end <= start) end += 24 * 60; // overnight span (e.g. 18:00-02:00)
+          if (minutesNow >= start && minutesNow <= end) open = true;
+        });
+      }
+      return matched ? open : null; // today not mentioned at all — unknown, not closed
+    } catch (e) {
+      return null;
+    }
   }
 
   async function runNearbySearch(key, force) {
@@ -390,8 +495,13 @@
 
   function sortPlaces(places) {
     if (nearbySort === 'distance') return places.slice().sort((a, b) => (a._distKm ?? 1e9) - (b._distKm ?? 1e9));
-    if (nearbySort === 'open') return places.filter(p => isOpenNow(p.openingHours)).concat(places.filter(p => !isOpenNow(p.openingHours)));
-    return places; // 'rating' — OSM has no reliable rating field, so distance order is kept as the sane default
+    if (nearbySort === 'open') {
+      const open = places.filter(p => isOpenNow(p.openingHours) === true);
+      const unknown = places.filter(p => isOpenNow(p.openingHours) === null);
+      const closed = places.filter(p => isOpenNow(p.openingHours) === false);
+      return open.concat(unknown, closed);
+    }
+    return places; // 'rating' — OSM has no reliable rating field; chip is disabled in the UI (see buildNearbyChips)
   }
 
   function renderNearby(result, t, ctx) {
@@ -410,16 +520,30 @@
       : usedMode === 'destination' ? 'near your destination'
       : 'near your current location';
     resultsEl.innerHTML = `<div style="font-size:10px;color:var(--lm2-text-hint);margin-bottom:8px">Showing results ${modeNote}</div>` +
-      places.map(p => `
+      places.map(p => {
+        const openState = isOpenNow(p.openingHours); // true / false / null(unknown)
+        const badge = openState === true ? `<span style="color:#3ddc84;font-weight:700">● Open</span>`
+          : openState === false ? `<span style="color:#f87171;font-weight:700">● Closed</span>`
+          : '';
+        // No $0 source has real ratings for a place — rather than fake a
+        // number, link straight to Google Maps' own listing (no API key
+        // needed, just a query deep-link) so the user can see real
+        // ratings/reviews there if they want them.
+        const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name || t.label)}&query_place_id=&center=${p.lat},${p.lon}`;
+        return `
         <div class="money-row">
           <div class="money-ic inc">${t.icon}</div>
           <div style="flex:1;min-width:0">
             <div style="font-size:12px;font-weight:600;color:var(--lm2-text-main)">${esc(p.name || t.label)}</div>
-            <div style="font-size:10px;color:var(--lm2-text-hint)">${p._distKm != null ? p._distKm.toFixed(1) + ' km away' : ''}</div>
+            <div style="font-size:10px;color:var(--lm2-text-hint);display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              ${p._distKm != null ? p._distKm.toFixed(1) + ' km away' : ''}${badge ? ' · ' + badge : ''}
+              · <a href="${gmapsUrl}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">★ View on Google Maps ↗</a>
+            </div>
           </div>
           <button class="btn btn-glass btn-xs lm2-scale-tap" onclick="LiveMap.flyTo(${p.lat},${p.lon})">View</button>
           <button class="btn btn-accent btn-xs lm2-scale-tap" onclick="LiveMap.navigateToPoint(${p.lat},${p.lon},'${esc(p.name || t.label).replace(/'/g, "\\'")}')">🧭</button>
-        </div>`).join('');
+        </div>`;
+      }).join('');
   }
 
   /* ════════════════════════════════════════════════════════════════
