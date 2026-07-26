@@ -622,12 +622,12 @@ async function initGlobe() {
 
   viewer = new Cesium.Viewer('cesiumContainer', {
     terrain: Cesium.Terrain.fromWorldTerrain({ requestVertexNormals: true }),
-    // Reverted from asset 3 ("Bing Aerial with Labels") back to asset 2
-    // ("Bing Aerial", Cesium's default) — asset 3's labels came at the cost
-    // of noticeably flatter, less saturated color. This is the richer
-    // imagery from the old version.
+    // Asset 3 ("Bing Aerial with Labels") — country/city/place-name labels
+    // baked into the basemap. Its flatness vs. asset 2 is corrected below via
+    // brightness/contrast/saturation/gamma on the layer itself, so you get
+    // both the labels AND rich, punchy color — no more either/or tradeoff.
     baseLayer: Cesium.ImageryLayer.fromProviderAsync(
-      Cesium.IonImageryProvider.fromAssetId(2)
+      Cesium.IonImageryProvider.fromAssetId(3)
     ),
     baseLayerPicker: true,
     geocoder: true,
@@ -647,12 +647,29 @@ async function initGlobe() {
   viewer.resolutionScale = Math.min(window.devicePixelRatio || 1, 1.5);
   viewer.scene.postProcessStages.fxaa.enabled = true;
 
-  viewer.scene.globe.enableLighting = true;   // real sun-based day/night terminator
+  // OFF, not on: enableLighting=true was lighting the globe from the real,
+  // current UTC sun position — whatever longitude happens to be in night
+  // right now renders dim/dark, which is exactly the "sometimes dark"
+  // texture bug. Turning it off gives a globe that's evenly, consistently
+  // bright and readable no matter what time it is in the real world.
+  viewer.scene.globe.enableLighting = false;
   viewer.scene.globe.dynamicAtmosphereLighting = false; // costly, subtle at our zoom levels
   viewer.scene.skyAtmosphere.show = true;
   viewer.scene.fog.enabled = true;
   viewer.scene.globe.showGroundAtmosphere = true;
   viewer.scene.skyBox.show = true;
+
+  // Color correction on the base imagery layer itself — this is the actual
+  // fix for "washed out / light colour" texture. Asset 3 ships flatter than
+  // asset 2 because its place-name labels are baked into a lower-contrast
+  // basemap; cranking contrast + saturation here brings back deep ocean
+  // blues, dark green forests, and visible terrain relief, so every country
+  // reads clearly at a glance instead of looking pale.
+  const baseImageryLayer = viewer.imageryLayers.get(0);
+  baseImageryLayer.brightness = 1.05;
+  baseImageryLayer.contrast = 1.35;
+  baseImageryLayer.saturation = 1.5;
+  baseImageryLayer.gamma = 0.92;
   // Was flatly set to 4 (blurry at every zoom level, incl. close-up).
   // Dynamic SSE keeps distant tiles cheap for perf but relaxes back to sharp
   // detail near the camera — this is the "texture looks bad" fix.
@@ -694,8 +711,17 @@ async function initGlobe() {
     } catch (e2) { console.warn('OSM Buildings fallback also failed:', e2.message); }
   }
 
-  // Gentle idle auto-rotation, same feel as your Three.js targetRotY drift
-  viewer.camera.moveStart.addEventListener(() => { autoRotate = false; });
+  // Gentle idle auto-rotation, same feel as your Three.js targetRotY drift.
+  // IMPORTANT: this only stops on *real* user input (pointer/touch/wheel on
+  // the canvas) — NOT on viewer.camera.moveStart, which also fires for
+  // programmatic camera.flyTo() calls (the initial view, resetView(),
+  // flyToCity(), cluster zoom-ins). That was the actual bug: every flyTo()
+  // was silently killing auto-rotate a moment after it turned back on, so it
+  // looked "stuck" instead of continuously turning.
+  const rotationCanvas = viewer.scene.canvas;
+  const stopAutoRotate = () => { autoRotate = false; };
+  rotationCanvas.addEventListener('pointerdown', stopAutoRotate, { passive: true });
+  rotationCanvas.addEventListener('wheel', stopAutoRotate, { passive: true });
   viewer.clock.onTick.addEventListener(() => {
     if (autoRotate) viewer.scene.camera.rotate(Cesium.Cartesian3.UNIT_Z, -0.0012);
   });
