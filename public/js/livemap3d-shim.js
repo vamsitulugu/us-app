@@ -173,6 +173,33 @@
       this.gl.easeTo({ pitch: on ? 55 : 0, duration: 600 });
       this.setTerrainEnabled(on);
     }
+    // Phase 5 — camera mode presets. 'top' = classic flat map, 'tilt' =
+    // angled 3D overview (buildings readable, still map-like), 'eye' =
+    // a straight, human-eye-level street view: high pitch + close zoom,
+    // looking forward along the direction of travel instead of down at
+    // the ground from above, like walking/driving through the 3D scene.
+    setCameraMode(mode, opts) {
+      opts = opts || {};
+      const presets = {
+        top:  { pitch: 0,  zoom: opts.zoom || Math.min(this.gl.getZoom(), 16) },
+        tilt: { pitch: 55, zoom: opts.zoom || Math.max(this.gl.getZoom(), 16) },
+        eye:  { pitch: 82, zoom: opts.zoom || 19 }
+      };
+      const p = presets[mode] || presets.top;
+      this.setTerrainEnabled(mode !== 'top');
+      this.gl.easeTo(Object.assign({ pitch: p.pitch, zoom: p.zoom, duration: 700, easing: (t) => t * (2 - t) }, opts.center ? { center: [opts.center.lng, opts.center.lat] } : {}, opts.bearing != null ? { bearing: opts.bearing } : {}));
+      this._cameraMode = mode;
+    }
+    getCameraMode() { return this._cameraMode || 'top'; }
+    // Smoothly turns the camera to face `bearing` degrees — used to keep
+    // eye-level mode looking the way the person is actually walking/driving,
+    // and generally for nicer, less jumpy camera-angle changes than jumpTo.
+    setBearing(bearing, durationMs) {
+      this.gl.easeTo({ bearing, duration: durationMs != null ? durationMs : 500 });
+    }
+    setCenterSmooth(latlng, durationMs) {
+      this.gl.easeTo({ center: [latlng.lng, latlng.lat], duration: durationMs != null ? durationMs : 500, essential: true });
+    }
 
     // switch base style while preserving camera position + our overlays
     setTheme(theme) {

@@ -443,3 +443,7 @@
 .lm-switch input:checked + .lm-switch-slider{background:var(--accent,#ff2020)}
 .lm-switch input:checked + .lm-switch-slider::before{transform:translateX(18px)}
 #lmRouteRetentionRow .lm-chip.active{box-shadow:0 0 0 1px rgba(255,32,32,.5) inset;background:rgba(255,32,32,.12)}
+
+/* Phase 5: voice-nav toggle + camera-mode button active states */
+.lm-voice-nav-btn.active{background:rgba(91,155,255,.25);border-color:#5b9bff}
+#lmCameraModeBtn.active{box-shadow:0 0 0 1px rgba(255,32,32,.5) inset}

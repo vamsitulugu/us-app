@@ -40,6 +40,29 @@ async function _isRouteHistoryEnabled(coupleId, role) {
   }
 }
 
+// ── Real-time sync fix ────────────────────────────────────────────
+// The frontend (livemap.js) already subscribes to a Supabase Realtime
+// broadcast channel `location:<coupleId>` / event `location_ping` and
+// triggers an instant refresh when it fires — but nothing was ever
+// actually sending that broadcast, so the partner's screen only ever
+// updated on the 8s polling fallback. This uses Supabase's stateless
+// Broadcast-over-HTTP endpoint (no server-side websocket to maintain)
+// to actually push it. Best-effort/fire-and-forget: if it fails, the
+// 8s poll still covers it, so a ping response is never blocked on this.
+async function _broadcastLocationPing(coupleId) {
+  try {
+    await fetch(`${process.env.SUPABASE_URL}/realtime/v1/api/broadcast`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: process.env.SUPABASE_SERVICE_KEY,
+        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}`
+      },
+      body: JSON.stringify({ messages: [{ topic: `location:${coupleId}`, event: 'location_ping', payload: {} }] })
+    });
+  } catch (e) { /* fire-and-forget — polling fallback covers this */ }
+}
+
 function haversineM(a, b) {
   const R = 6371000, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180;
   const x = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
@@ -89,6 +112,10 @@ router.post('/ping', async (req, res) => {
   const { error } = await supabase.from('live_locations').upsert(upsertRow, { onConflict: 'couple_id,role' });
 
   if (error) return res.status(500).json({ error: error.message });
+
+  // Push the instant partner-side refresh (fire-and-forget, doesn't
+  // block this response) — see _broadcastLocationPing above for why.
+  _broadcastLocationPing(coupleId);
 
   // Breadcrumb trail (best-effort, non-blocking for the response)
   supabase.from('live_location_history').insert({

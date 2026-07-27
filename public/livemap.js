@@ -363,6 +363,8 @@ const LiveMap = (() => {
     _checkGeofences(outLat, outLng);
     _renderRoutePoiList(); // no-op unless a route-POI search is active; purely local, no network
     _renderNavProgressUI(); // no-op unless navigation is active; purely local, no network
+    _checkRerouteNeeded(outLat, outLng); // Phase 5: real-time rerouting if off the drawn route
+    _updateEyeLevelBearing(outLat, outLng, heading); // Phase 5: keep eye-level camera facing travel direction
 
     // Throttle server pings — time-based OR distance-based trigger
     const moved = st.lastPingPos ? haversine(st.lastPingPos, { lat: outLat, lng: outLng }) * 1000 : Infinity;
@@ -615,6 +617,37 @@ const LiveMap = (() => {
   }
 
   /* ── SMOOTH MARKER ANIMATION ─────────────────────────────── */
+  // Realistic avatar figures (Phase 5) — a walking human silhouette when on
+  // foot, a car silhouette when driving, a bike silhouette when cycling.
+  // Both rotate to face the actual GPS heading, like Google Maps'/Uber's
+  // moving-person and moving-vehicle pucks — not just an abstract dot.
+  function _personSvg(color) {
+    return `<svg viewBox="0 0 36 48" width="100%" height="100%">
+      <ellipse cx="18" cy="44" rx="8" ry="3" fill="rgba(0,0,0,.25)"/>
+      <circle cx="18" cy="10" r="7" fill="${color}" stroke="#fff" stroke-width="2"/>
+      <path d="M18 19c-7 0-12 5-12 13v6h24v-6c0-8-5-13-12-13z" fill="${color}" stroke="#fff" stroke-width="2"/>
+      <path d="M18 19v18" stroke="#fff" stroke-width="1.5" opacity=".5"/>
+    </svg>`;
+  }
+  function _carSvg(color) {
+    return `<svg viewBox="0 0 32 48" width="100%" height="100%">
+      <ellipse cx="16" cy="44" rx="9" ry="3" fill="rgba(0,0,0,.25)"/>
+      <rect x="6" y="10" width="20" height="30" rx="7" fill="${color}" stroke="#fff" stroke-width="2"/>
+      <rect x="9" y="14" width="14" height="9" rx="2.5" fill="#bfe3ff" opacity=".9"/>
+      <circle cx="10" cy="32" r="2.4" fill="#222"/><circle cx="22" cy="32" r="2.4" fill="#222"/>
+      <path d="M16 8l4 6h-8z" fill="#fff"/>
+    </svg>`;
+  }
+  function _bikeSvg(color) {
+    return `<svg viewBox="0 0 36 48" width="100%" height="100%">
+      <ellipse cx="18" cy="44" rx="8" ry="3" fill="rgba(0,0,0,.25)"/>
+      <circle cx="18" cy="9" r="6" fill="${color}" stroke="#fff" stroke-width="2"/>
+      <path d="M18 16c-6 0-10 4-10 11v11h20V27c0-7-4-11-10-11z" fill="${color}" stroke="#fff" stroke-width="2"/>
+      <circle cx="9" cy="40" r="4" fill="none" stroke="#fff" stroke-width="2"/>
+      <circle cx="27" cy="40" r="4" fill="none" stroke="#fff" stroke-width="2"/>
+    </svg>`;
+  }
+
   function _animateMarker(who, lat, lng, accuracy, heading, offline) {
     if (!st.map || !L) return;
     const fromMarker = who === 'my' ? st.myMarker : st.ptMarker;
@@ -646,31 +679,31 @@ const LiveMap = (() => {
     return;
   }
   _ensureAccuracyCircle(who, lat, lng, accuracy);
-  const name = who === 'my' ? (S.myName || 'U') : (S.partnerName || 'P');
   const avatar = who === 'my' ? S.myAvatar : S.partnerAvatar;
-  const size = who === 'my' ? 30 : 38;
-  const inner = avatar
-    ? `<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0;${offline ? 'filter:grayscale(1)' : ''}">`
-    : `<svg viewBox="0 0 24 24" width="${size*0.56}" height="${size*0.56}" fill="#fff" style="position:relative"><path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5z"/></svg>`;
-  const color = offline ? '#7a7a7a' : (who === 'my' ? 'var(--accent)' : 'var(--accent2)');
-  const arrow = (!offline && heading != null && !isNaN(heading))
-    ? `<div style="position:absolute;top:-9px;left:50%;transform:translateX(-50%) rotate(${heading}deg);transform-origin:50% ${size/2+9}px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid ${who==='my'?'#5b9bff':'#ff6baf'}"></div>`
-    : '';
-  // Driving/cycling puck: a wider nav-style chevron that rotates with the
-  // whole marker, closer to Uber/Google Maps moving-vehicle style, shown
-  // instead of the thin arrow once actual GPS-derived speed says "vehicle".
-  const kmh = (who === 'my' ? S.myLoc?.speed : S.ptLoc?.speed);
-  const isVehicle = kmh != null && kmh * 3.6 >= 15; // matches _activityFromSpeed cycling/driving threshold
-  const navChevron = (!offline && isVehicle && heading != null && !isNaN(heading))
-    ? `<div style="position:absolute;inset:-6px;transform:rotate(${heading}deg);transform-origin:50% 50%;pointer-events:none">
-         <svg viewBox="0 0 24 24" width="${size+12}" height="${size+12}"><path d="M12 1l6 15-6-3-6 3z" fill="${who==='my'?'#5b9bff':'#ff6baf'}" stroke="#fff" stroke-width="1"/></svg>
-       </div>`
-    : '';
+  const size = who === 'my' ? 34 : 42;
+  const color = offline ? '#7a7a7a' : (who === 'my' ? '#5b9bff' : '#ff6baf');
+  const kmh = ((who === 'my' ? S.myLoc?.speed : S.ptLoc?.speed) || 0) * 3.6;
+  // Which realistic figure to show, based on actual GPS-derived speed —
+  // never guessed/animated, just reflects real movement like the rest
+  // of the activity classification already in this file.
+  const mode = kmh >= 35 ? 'car' : kmh >= 12 ? 'bike' : 'person';
+  const figureSvg = mode === 'car' ? _carSvg(color) : mode === 'bike' ? _bikeSvg(color) : _personSvg(color);
+  const hasHeading = !offline && heading != null && !isNaN(heading);
+  const rotation = hasHeading ? `transform:rotate(${heading}deg);transform-origin:50% 50%` : '';
+  const figure = `<div style="position:absolute;inset:0;${rotation};transition:transform .35s ease;filter:drop-shadow(0 3px 6px rgba(0,0,0,.45));opacity:${offline ? 0.55 : 1}">${figureSvg}</div>`;
+  // Small circular photo/initial badge for identity, pinned bottom-right
+  // of the figure — keeps personalization without losing "this is a
+  // real moving person/vehicle, not an abstract dot" readability.
+  const name = who === 'my' ? (S.myName || 'U') : (S.partnerName || 'P');
+  const badgeInner = avatar
+    ? `<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${offline ? 'filter:grayscale(1)' : ''}">`
+    : `<span style="font-size:9px;font-weight:700;color:#fff">${esc(name.slice(0, 1).toUpperCase())}</span>`;
+  const badge = `<div style="position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);width:16px;height:16px;border-radius:50%;background:${color};border:2px solid #fff;display:flex;align-items:center;justify-content:center;overflow:hidden">${badgeInner}</div>`;
   const offlineBadge = offline
-    ? `<div style="position:absolute;bottom:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:#555;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:8px">💤</div>`
+    ? `<div style="position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:#555;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:8px">💤</div>`
     : '';
-  const html = `<div style="position:relative;width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;color:#fff;font-size:${size*0.4}px;font-weight:700;border:3px solid #fff;opacity:${offline ? 0.55 : 1};box-shadow:0 0 0 4px ${offline ? 'rgba(120,120,120,0.25)' : (who==='my'?'rgba(91,155,255,0.35)':'rgba(255,107,175,0.35)')},0 4px 14px rgba(0,0,0,0.4)">${navChevron || arrow}${inner}${offlineBadge}</div>`;
-  const icon = L.divIcon({ html, className: '', iconSize: [size, size] });
+  const html = `<div style="position:relative;width:${size}px;height:${size*1.35}px">${figure}${badge}${offlineBadge}</div>`;
+  const icon = L.divIcon({ html, className: '', iconSize: [size, size * 1.35] });
   if (who === 'my') {
     if (!st.myMarker) st.myMarker = L.marker([lat, lng], { icon, zIndexOffset: 400 }).addTo(st.map);
     else st.myMarker.setIcon(icon);
@@ -1469,6 +1502,44 @@ const LiveMap = (() => {
     const cfg = TILE_LAYERS[style];
     st.tileLayer = L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: 19 }).addTo(st.map);
   }
+  /* ══════════════════════════════════════════════════════════
+     PHASE 5 — CAMERA ANGLE MODES (top-down / 3D tilt / human eye-level)
+     'eye' gives a straight, close, human-height street view of the 3D
+     buildings/roads instead of looking down at the map from above —
+     and keeps turning to face the way the person is actually moving.
+     No-ops safely if MapLibre's setCameraMode isn't available (plain
+     Leaflet fallback), so this never breaks the map on unsupported
+     browsers/devices.
+     ══════════════════════════════════════════════════════════ */
+  const CAMERA_MODES = ['top', 'tilt', 'eye'];
+  const CAMERA_LABELS = { top: 'Top', tilt: '3D', eye: 'Eye level' };
+  const CAMERA_ICONS  = { top: '🗺️', tilt: '🏙️', eye: '👁️' };
+  function cycleCameraMode() {
+    if (!st.map || typeof st.map.setCameraMode !== 'function') { toast('3D camera needs a browser that supports WebGL'); return; }
+    const cur = st.map.getCameraMode ? st.map.getCameraMode() : 'top';
+    const next = CAMERA_MODES[(CAMERA_MODES.indexOf(cur) + 1) % CAMERA_MODES.length];
+    _applyCameraMode(next);
+  }
+  function _applyCameraMode(mode) {
+    if (!st.map || typeof st.map.setCameraMode !== 'function') return;
+    st.cameraMode = mode;
+    const center = S.myLoc ? { lat: S.myLoc.lat, lng: S.myLoc.lng } : null;
+    const bearing = mode === 'eye' && S.myLoc && S.myLoc.heading != null ? S.myLoc.heading : undefined;
+    st.map.setCameraMode(mode, { center, bearing });
+    const btn = document.getElementById('lmCameraModeLabel');
+    if (btn) btn.textContent = CAMERA_LABELS[mode] || 'Top';
+    const ico = document.querySelector('#lmCameraModeBtn .lm-tool-ico');
+    if (ico) ico.textContent = CAMERA_ICONS[mode] || '🗺️';
+  }
+  // Called whenever a fresh "my" GPS fix comes in (hooked below in the
+  // main location handler) so eye-level mode keeps facing the direction
+  // of actual travel instead of freezing at whatever bearing it started at.
+  function _updateEyeLevelBearing(lat, lng, heading) {
+    if (st.cameraMode !== 'eye' || !st.map || typeof st.map.setBearing !== 'function') return;
+    if (heading != null && !isNaN(heading)) st.map.setBearing(heading, 500);
+    if (typeof st.map.setCenterSmooth === 'function') st.map.setCenterSmooth({ lat, lng }, 500);
+  }
+
   function setMapStyle(style) {
     if (!st.map) return;
     if (_autoStyleTimer) { clearInterval(_autoStyleTimer); _autoStyleTimer = null; }
@@ -1758,11 +1829,65 @@ const LiveMap = (() => {
       </div>${_quickModeSummary(km)}<div id="lmNavProgress"></div>` + _navPoiSectionHtml();
     _renderNavProgressUI();
   }
+  /* ══════════════════════════════════════════════════════════
+     PHASE 5 — REAL-TIME REROUTING
+     While actively navigating, every fresh GPS fix is checked against
+     the currently-drawn route line. If the person has genuinely left
+     the route (not just GPS jitter) by more than REROUTE_DEVIATION_M,
+     a new route is recomputed from their current position to the same
+     destination — same OSRM call navigateToPartner already uses for
+     the initial route, so alternates/steps/ETA all recompute for free.
+     A cooldown stops this from firing repeatedly while off-route.
+     ══════════════════════════════════════════════════════════ */
+  const REROUTE_DEVIATION_M = 60;
+  const REROUTE_COOLDOWN_MS = 20000;
+  let _lastRerouteAt = 0;
+  function _checkRerouteNeeded(lat, lng) {
+    if (!st.navRouteCoords || st.navRouteCoords.length < 2 || !st.navProgress || st.navProgress.arrived) return;
+    const dist = _minDistToRouteM({ lat, lng }, st.navRouteCoords);
+    if (dist <= REROUTE_DEVIATION_M) return;
+    if (Date.now() - _lastRerouteAt < REROUTE_COOLDOWN_MS) return;
+    _lastRerouteAt = Date.now();
+    const dest = st.navProgress.dest;
+    if (!dest) return;
+    _navTarget = dest;
+    toast('📍 Off route — recalculating…');
+    navigateToPartner(_navMode);
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     PHASE 5 — VOICE NAVIGATION
+     Uses the browser's built-in SpeechSynthesis (no API key, no
+     network call) to speak upcoming turns, like Google Maps voice
+     guidance. Off by default — a person has to turn it on themselves.
+     ══════════════════════════════════════════════════════════ */
+  let _voiceNavOn = false, _lastAnnouncedStepKey = null;
+  function toggleVoiceNav() {
+    if (!window.speechSynthesis) { toast('Voice guidance isn\'t supported in this browser'); return; }
+    _voiceNavOn = !_voiceNavOn;
+    document.querySelectorAll('.lm-voice-nav-btn').forEach(b => b.classList.toggle('active', _voiceNavOn));
+    toast(_voiceNavOn ? '🔊 Voice guidance on' : '🔇 Voice guidance off');
+    if (_voiceNavOn) _speakNav('Voice guidance on');
+    else window.speechSynthesis.cancel();
+  }
+  function _speakNav(text) {
+    if (!_voiceNavOn || !window.speechSynthesis || !text) return;
+    try {
+      window.speechSynthesis.cancel(); // don't queue a stale instruction behind a fresher one
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 1.0; u.pitch = 1.0;
+      window.speechSynthesis.speak(u);
+    } catch (e) { /* speech synthesis not available on this device — just skip it */ }
+  }
+  function _voiceNavBtnHtml() {
+    return `<button class="btn btn-glass btn-xs lm-voice-nav-btn${_voiceNavOn ? ' active' : ''}" onclick="LiveMap.toggleVoiceNav()" title="Voice guidance">${_voiceNavOn ? '🔊' : '🔇'}</button>`;
+  }
+
   function _navModeButtons() {
-    return `<div style="display:flex;gap:6px">${Object.keys(NAV_PROFILES).map(k => {
+    return `<div style="display:flex;gap:6px;align-items:center">${Object.keys(NAV_PROFILES).map(k => {
       const p = NAV_PROFILES[k];
       return `<button class="btn ${k === _navMode ? 'btn-accent' : 'btn-glass'} btn-xs" onclick="LiveMap.navigateToPartner('${k}')">${p.icon} ${p.label}</button>`;
-    }).join('')}</div>`;
+    }).join('')}${_voiceNavBtnHtml()}</div>`;
   }
 
   let _navRoutesCache = null; // { routes, dest, prof }
@@ -1834,6 +1959,8 @@ const LiveMap = (() => {
       // trip-summary accumulators (item 16) — filled in as GPS fixes arrive, purely local
       movingSec: 0, stoppedSec: 0, maxSpeedKmh: 0, stopStartTs: null, stops: [], arrived: false
     };
+    _lastAnnouncedStepKey = null; // fresh route — allow re-announcing turns from the start
+    _speakNav(`Starting navigation to ${dest?.label || 'your destination'}, ${totalKm.toFixed(1)} kilometers, about ${totalMins} minutes`);
   }
   const STOP_SPEED_KMH = 1.5;  // below this we count the interval as "stopped", not crawling traffic
   const MIN_STOP_MIN    = 0.5; // ignore sub-30s pauses (red lights, GPS jitter) as real "stops"
@@ -1902,6 +2029,7 @@ const LiveMap = (() => {
         np.stopStartTs = null;
       }
       toast(`🎉 Arrived at ${np.dest?.label || 'destination'}!`);
+      _speakNav(`You have arrived at ${np.dest?.label || 'your destination'}`);
       _renderTripSummary(np);
       return;
     }
@@ -1915,7 +2043,20 @@ const LiveMap = (() => {
     let nextWaypoint = `Continue toward ${esc(np.dest?.label || 'destination')}`;
     if (np.steps && np.steps.length) {
       const next = np.steps.find(s => s.cumKm > progKm + 0.02);
-      nextWaypoint = next ? _maneuverText(next.maneuver, next.name) : `Arriving at ${esc(np.dest?.label || 'destination')}`;
+      if (next) {
+        nextWaypoint = _maneuverText(next.maneuver, next.name);
+        // Voice guidance: announce this turn once, when it's getting close
+        // (~400m out) — not every render tick, and never for a turn we
+        // already announced (tracked by a key so re-renders don't repeat it).
+        const distToManeuverKm = next.cumKm - progKm;
+        const stepKey = next.cumKm.toFixed(2) + '|' + (next.name || '');
+        if (distToManeuverKm <= 0.4 && _lastAnnouncedStepKey !== stepKey) {
+          _lastAnnouncedStepKey = stepKey;
+          _speakNav(nextWaypoint);
+        }
+      } else {
+        nextWaypoint = `Arriving at ${esc(np.dest?.label || 'destination')}`;
+      }
     }
 
     el.innerHTML = `
@@ -2507,6 +2648,7 @@ const LiveMap = (() => {
     pauseSharing, resumeSharing, togglePrivacyPanel,
     toggleApproxLocation, toggleInvisibleMode, emergencyShare, dismissEmergencyBanner,
     toggleNavPanel, navigateToPartner, navigateToPoint, selectNavRoute, searchAlongRoute,
+    cycleCameraMode, toggleVoiceNav,
     _debug: st
   };
 })();

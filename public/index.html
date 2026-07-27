@@ -5641,6 +5641,7 @@ select option { background: #0D0D0D; color: #fff; }
         <div class="lm-tool-btn lm-style-btn" data-style="satellite" onclick="LiveMap.setMapStyle('satellite')"><span class="lm-tool-ico">🛰️</span>Satellite</div>
         <div class="lm-tool-btn lm-style-btn" data-style="hybrid" onclick="LiveMap.setMapStyle('hybrid')"><span class="lm-tool-ico">🛰️</span>Hybrid</div>
         <div class="lm-tool-btn lm-style-btn" data-style="auto" onclick="LiveMap.setMapStyle('auto')"><span class="lm-tool-ico">🌗</span>Auto</div>
+        <div class="lm-tool-btn" id="lmCameraModeBtn" title="Cycle camera angle: top-down → 3D → eye-level" onclick="LiveMap.cycleCameraMode()"><span class="lm-tool-ico">🗺️</span><span id="lmCameraModeLabel">Top</span></div>
       </div>
       <div class="lm-action-row">
         <div class="lm-tool-btn" onclick="LiveMap.locateMe()"><span class="lm-tool-ico">📍</span>Locate Me</div>
