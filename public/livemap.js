@@ -429,6 +429,7 @@ const LiveMap = (() => {
   st.ptLast = theirs;
   if (changed && theirs.lat != null && theirs.lng != null) {
     S.ptLoc = { lat: theirs.lat, lng: theirs.lng, ts: Date.parse(theirs.updatedAt), moving: theirs.moving, accuracy: theirs.accuracy, heading: theirs.heading };
+    if (theirs.vehicleType) S.ptVehicleType = theirs.vehicleType;
     _animateMarker('pt', theirs.lat, theirs.lng, theirs.accuracy, theirs.heading, !theirs.online);
   } else if (wasOnline !== theirs.online && st.ptMarker) {
     // Online/offline flipped with no position change (e.g. partner just went stale) — repaint marker in place.
@@ -687,10 +688,23 @@ const LiveMap = (() => {
   // never guessed/animated, just reflects real movement like the rest
   // of the activity classification already in this file.
   const mode = kmh >= 35 ? 'car' : kmh >= 12 ? 'bike' : 'person';
-  const figureSvg = mode === 'car' ? _carSvg(color) : mode === 'bike' ? _bikeSvg(color) : _personSvg(color);
   const hasHeading = !offline && heading != null && !isNaN(heading);
+  // Real 3D avatar (Three.js) if it's up and running; the flat SVG below
+  // stays as the fallback shown only until Avatar3D finishes loading, or
+  // if WebGL isn't available on this device.
+  const use3D = window.Avatar3D && Avatar3D.isReady();
+  if (use3D) {
+    Avatar3D.update(who, -999, -999, false, {
+      mode: _avatar3dMode(who, kmh),
+      color: _vehicleColorHex(who),
+      heading: hasHeading ? heading : 0,
+      speedKmh: kmh,
+      offline
+    });
+  }
+  const figureSvg = mode === 'car' ? _carSvg(color) : mode === 'bike' ? _bikeSvg(color) : _personSvg(color);
   const rotation = hasHeading ? `transform:rotate(${heading}deg);transform-origin:50% 50%` : '';
-  const figure = `<div style="position:absolute;inset:0;${rotation};transition:transform .35s ease;filter:drop-shadow(0 3px 6px rgba(0,0,0,.45));opacity:${offline ? 0.55 : 1}">${figureSvg}</div>`;
+  const figure = use3D ? '' : `<div style="position:absolute;inset:0;${rotation};transition:transform .35s ease;filter:drop-shadow(0 3px 6px rgba(0,0,0,.45));opacity:${offline ? 0.55 : 1}">${figureSvg}</div>`;
   // Small circular photo/initial badge for identity, pinned bottom-right
   // of the figure — keeps personalization without losing "this is a
   // real moving person/vehicle, not an abstract dot" readability.
@@ -731,6 +745,7 @@ const LiveMap = (() => {
         st.myMarker.setLatLng([lat, lng]);
         if (p < 1) stillGoing = true;
       }
+      _tickAvatar3D();
       if (st.ptMarker && st.ptAnimTarget) {
         const p = Math.min(1, (t - st.ptAnimStart) / DUR);
         const lat = st.ptAnimFrom.lat + (st.ptAnimTarget.lat - st.ptAnimFrom.lat) * p;
@@ -761,6 +776,51 @@ const LiveMap = (() => {
     }
     setMapStyle(st.mapStyle || 'street');
     setTimeout(() => st.map.invalidateSize(), 100);
+    // Real 3D avatars (Three.js) — persistent overlay canvases positioned
+    // via the map's own projection every render tick, so they stay glued
+    // to each person's marker through pan/zoom/rotate.
+    if (window.Avatar3D) {
+      Avatar3D.init(mapDiv);
+      st.map.on('render', _tickAvatar3D);
+    }
+  }
+
+  function _vehicleColorHex(who) {
+    return who === 'my' ? 0x5b9bff : 0xff6baf;
+  }
+  // Maps our existing speed-derived mode + explicit vehicle_type override
+  // to an Avatar3D model name.
+  function _avatar3dMode(who, kmh) {
+    const pref = who === 'my' ? S.myVehicleType : S.ptVehicleType;
+    if (pref && pref !== 'auto') return pref === 'bike' ? 'bike' : pref === 'bus' ? 'bus' : pref === 'car' ? 'car' : 'walking';
+    return kmh >= 45 ? 'bus' : kmh >= 35 ? 'car' : kmh >= 12 ? 'bike' : 'walking';
+  }
+  function _tickAvatar3D() {
+    if (!window.Avatar3D || !Avatar3D.isReady() || !st.map) return;
+    ['my', 'pt'].forEach((who) => {
+      const marker = who === 'my' ? st.myMarker : st.ptMarker;
+      if (!marker) { Avatar3D.hide(who); return; }
+      const ll = marker.getLatLng();
+      const pt = st.map.latLngToContainerPoint(ll);
+      Avatar3D.update(who, pt.x, pt.y, true);
+    });
+  }
+  // Lets a person declare how they're actually travelling (walking isn't
+  // guessable the way a booked car/bus is) — synced to the partner via
+  // the existing ping payload / vehicle_type column.
+  function setVehicleType(type) {
+    const allowed = ['auto', 'walking', 'bike', 'car', 'bus'];
+    if (!allowed.includes(type)) return;
+    S.myVehicleType = type;
+    st.lastPingPos = null; // force an immediate re-ping so the change propagates now
+    if (S.coupleId && S.myLoc && S.myLoc.lat != null && S.myLoc.lng != null) {
+      api('POST', '/api/location/ping', {
+        coupleId: S.coupleId, role: S.role, lat: S.myLoc.lat, lng: S.myLoc.lng,
+        accuracy: S.myLoc.accuracy || null, heading: S.myLoc.heading || null,
+        moving: !!S.myLoc.moving, localDate: _localDateStr(), vehicleType: type
+      }).catch(() => {});
+    }
+    toast('🚦 Travel mode set: ' + type);
   }
 
  function _fitBoth() {
@@ -2648,7 +2708,7 @@ const LiveMap = (() => {
     pauseSharing, resumeSharing, togglePrivacyPanel,
     toggleApproxLocation, toggleInvisibleMode, emergencyShare, dismissEmergencyBanner,
     toggleNavPanel, navigateToPartner, navigateToPoint, selectNavRoute, searchAlongRoute,
-    cycleCameraMode, toggleVoiceNav,
+    cycleCameraMode, toggleVoiceNav, setVehicleType,
     _debug: st
   };
 })();

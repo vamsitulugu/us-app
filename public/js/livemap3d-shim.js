@@ -125,6 +125,12 @@
       return this;
     }
     getCenter() { const c = this.gl.getCenter(); return { lat: c.lat, lng: c.lng }; }
+    // Leaflet-style pixel projection, used by Avatar3D to place the live
+    // WebGL avatar canvases at the correct screen position every frame.
+    latLngToContainerPoint(latlng) {
+      const p = this.gl.project([latlng.lng != null ? latlng.lng : latlng[1], latlng.lat != null ? latlng.lat : latlng[0]]);
+      return { x: p.x, y: p.y };
+    }
     fitBounds(pts, opts) {
       opts = opts || {};
       const b = new maplibregl.LngLatBounds();

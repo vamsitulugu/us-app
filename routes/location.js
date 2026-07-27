@@ -91,11 +91,17 @@ function _shouldStoreRoutePoint(coupleId, role, lat, lng, localDate) {
 // page is open, and via background geolocation.watchPosition.
 // Tiny payload — does NOT touch app_state / chat / photos.
 router.post('/ping', async (req, res) => {
-  const { coupleId, role, lat, lng, accuracy, heading, speed, moving, emergency } = req.body;
+  const { coupleId, role, lat, lng, accuracy, heading, speed, moving, emergency, vehicleType } = req.body;
   if (!coupleId || !role || lat == null || lng == null) {
     return res.status(400).json({ error: 'Missing coupleId/role/lat/lng' });
   }
 
+  // Self-declared travel mode (walking/bike/car/bus). GPS speed alone can't
+  // tell a car from a bus — that's assigned by booking in Uber/Intercity/ABHI
+  // Bus, not inferred — so this comes from an explicit selector the person
+  // sets themselves. Only written when provided, so it doesn't clobber the
+  // last known value on pings that don't include it.
+  const ALLOWED_VEHICLE_TYPES = ['walking', 'bike', 'car', 'bus'];
   const upsertRow = {
     couple_id: coupleId,
     role,
@@ -107,6 +113,9 @@ router.post('/ping', async (req, res) => {
     updated_at: new Date().toISOString(),
     status: 'active' // a normal ping always implies active sharing (pauses go through /status instead)
   };
+  if (vehicleType && ALLOWED_VEHICLE_TYPES.includes(vehicleType)) {
+    upsertRow.vehicle_type = vehicleType;
+  }
   if (emergency) { upsertRow.emergency = true; upsertRow.emergency_at = new Date().toISOString(); }
 
   const { error } = await supabase.from('live_locations').upsert(upsertRow, { onConflict: 'couple_id,role' });
@@ -162,7 +171,7 @@ router.post('/ping', async (req, res) => {
 router.get('/:coupleId', async (req, res) => {
   const { data, error } = await supabase
     .from('live_locations')
-    .select('role, lat, lng, accuracy, heading, speed, moving, updated_at, status, status_until, emergency, emergency_at')
+    .select('role, lat, lng, accuracy, heading, speed, moving, updated_at, status, status_until, emergency, emergency_at, vehicle_type')
     .eq('couple_id', req.params.coupleId);
 
   if (error) return res.status(500).json({ error: error.message });
@@ -182,7 +191,8 @@ router.get('/:coupleId', async (req, res) => {
       ageMs: age,
       status: row.status || 'active',
       statusUntil: row.status_until,
-      emergency: !!row.emergency && emergencyAge < EMERGENCY_ALERT_WINDOW_MS
+      emergency: !!row.emergency && emergencyAge < EMERGENCY_ALERT_WINDOW_MS,
+      vehicleType: row.vehicle_type || 'walking'
     };
   });
   return res.json(out);
