@@ -168,17 +168,12 @@
       </div>
       <div id="lm2NearbyResults"></div>`;
 
-    // Partner: meeting point / weather buttons already in the toolbar are
-    // shared, so this tab mirrors the partner-focused actions + presence.
-    partnerSection.innerHTML = `<div class="lm2-sheet-section-title">Stay close</div>`;
-    const partnerBtns = document.createElement('div');
-    partnerBtns.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap';
-    partnerBtns.innerHTML = `
-      <button class="lm2-btn-primary lm2-scale-tap" style="flex:1;min-width:140px;border-radius:14px" onclick="LiveMap.startVideoCallFromMap()">📹 Video Call</button>
-      <button class="lm2-btn-secondary lm2-scale-tap" style="flex:1;min-width:140px;border-radius:14px" onclick="LiveMap.showMeetingPoint()">🤝 Meeting Point</button>
-      <button class="lm2-btn-secondary lm2-scale-tap" style="flex:1;min-width:140px;border-radius:14px" onclick="LiveMap.openLoveNoteComposer()">💌 Love Note</button>
-      <button class="lm2-btn-secondary lm2-scale-tap" style="flex:1;min-width:140px;border-radius:14px" onclick="LiveMap.locatePartner()">💜 Locate Partner</button>`;
-    partnerSection.appendChild(partnerBtns);
+    // Partner: presence/status only — the actual actions (Video Call,
+    // Meeting Point, Love Note, Locate Partner) already live in the
+    // Navigation tab's toolbar+actions row above; repeating them here
+    // was pure visual duplication, not a second feature.
+    partnerSection.innerHTML = `<div class="lm2-sheet-section-title">Stay close</div>
+      <div style="font-size:11px;color:var(--lm2-text-hint);margin-bottom:8px">Quick actions are in the Navigation tab above ⬆️</div>`;
 
     // Saved: favorites panel + important-places cards
     savedSection.innerHTML = `<div class="lm2-sheet-section-title">Favorites</div>`;
@@ -449,8 +444,26 @@
 
     debounceTimer = setTimeout(async () => {
       const t = POI_TYPES[key];
-      const ctx = resolveSearchContext();
-      if (!ctx) { resultsEl.innerHTML = `<div class="empty">Turn on location to search nearby.</div>`; return; }
+      let ctx = resolveSearchContext();
+      if (!ctx) {
+        // Background tracker just hasn't produced a fix yet (or the
+        // person opened Nearby before location permission settled) —
+        // ask the browser for a one-off fix right now instead of just
+        // giving up and blaming "location is off".
+        ctx = await new Promise((resolve) => {
+          if (!navigator.geolocation) return resolve(null);
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              const fix = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+              if (window.S) window.S.myLoc = window.S.myLoc || fix;
+              resolve({ mode: 'current', center: fix });
+            },
+            () => resolve(null),
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+          );
+        });
+      }
+      if (!ctx) { resultsEl.innerHTML = `<div class="empty">Couldn't get your location — check the browser's location permission for this site.</div>`; return; }
 
       const centerKey = ctx.mode === 'route'
         ? 'route:' + ctx.coords.length

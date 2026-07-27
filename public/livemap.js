@@ -1782,9 +1782,8 @@ const LiveMap = (() => {
     const filters = samples.map(c => `node[${t.tag}](around:${radius},${c[0]},${c[1]});`).join('');
     const query = `[out:json][timeout:15];(${filters});out center 40;`;
     try {
-      const resp = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(query) });
-      if (!resp.ok) throw new Error('overpass error');
-      const data = await resp.json();
+      if (!window.OverpassService) throw new Error('search engine not loaded');
+      const data = await window.OverpassService.runQuery(query);
       const seen = new Set();
       let places = (data.elements || []).filter(e => {
         if (e.lat == null || e.lon == null || seen.has(e.id)) return false;
@@ -2214,9 +2213,8 @@ const LiveMap = (() => {
     const filters = Object.values(MEETING_PLACE_TYPES).map(t => `node[${t.tag}](around:${radius},${mid.lat},${mid.lng});`).join('');
     const query = `[out:json][timeout:12];(${filters});out center 24;`;
     try {
-      const resp = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(query) });
-      if (!resp.ok) throw new Error('overpass error');
-      const data = await resp.json();
+      if (!window.OverpassService) throw new Error('search engine not loaded');
+      const data = await window.OverpassService.runQuery(query);
       const places = (data.elements || []).filter(e => e.lat != null && e.lon != null).slice(0, 8);
       if (!places.length) { panel.innerHTML = '<div class="empty">No nearby places found within 1.5 km — try a different area.</div>'; return; }
       panel.innerHTML = places.map(p => {
