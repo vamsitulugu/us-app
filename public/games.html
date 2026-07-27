@@ -10,7 +10,7 @@
 :root{
   --h:215; --accent:hsl(var(--h),100%,62%); --accent-d:hsl(var(--h),95%,50%); --accent-l:hsl(var(--h),100%,78%); --accent-glow:hsla(var(--h),100%,62%,.35);
   --accent2:hsl(300,85%,65%); --accent2-d:hsl(300,80%,52%); --accent2-glow:hsla(300,85%,65%,.35);
-  --gold:#ffc94a; --gold-glow:rgba(255,201,74,.4); --dia:#7ee8ff; --dia-glow:rgba(126,232,255,.4);
+  --gold:#ffc94a; --gold-glow:rgba(255,201,74,.4);
   --g1:rgba(255,255,255,.045); --g2:rgba(255,255,255,.09); --g3:rgba(255,255,255,.15);
   --blur:blur(26px) saturate(180%); --blur-sm:blur(12px) saturate(150%);
   --ff-serif:'DM Serif Display',Georgia,serif; --ff-sans:'Inter',system-ui,sans-serif;
@@ -32,7 +32,6 @@ button{font-family:inherit;cursor:pointer}
 .hub-title{font-family:var(--ff-serif);font-size:26px;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px}
 .hub-sub{font-size:12px;color:var(--text2);margin-top:4px}
 
-/* rank cards */
 .rank-row{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:stretch;margin-bottom:14px}
 .rank-card{border-radius:20px;padding:14px;position:relative;overflow:hidden;border:1px solid var(--border2);backdrop-filter:var(--blur)}
 .rank-card.me{background:linear-gradient(155deg,hsla(var(--h),100%,55%,.18),rgba(255,255,255,.03))}
@@ -57,27 +56,9 @@ button{font-family:inherit;cursor:pointer}
 .rank-playing .dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:blk 1.4s infinite}
 @keyframes blk{0%,100%{opacity:1}50%{opacity:.3}}
 
-/* daily / continue */
-.banner-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-@media(max-width:640px){.banner-row{grid-template-columns:1fr}}
-.banner{border-radius:18px;padding:15px;position:relative;overflow:hidden;cursor:pointer;transition:var(--ts);border:1px solid var(--border2)}
-.banner:hover{transform:translateY(-3px)}
-.banner.daily{background:linear-gradient(135deg,rgba(255,201,74,.15),rgba(255,107,157,.08))}
-.banner.cont{background:linear-gradient(135deg,rgba(126,232,255,.12),hsla(var(--h),100%,55%,.10))}
-.banner-tag{font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:5px}
-.banner.cont .banner-tag{color:var(--dia)}
-.banner-title{font-family:var(--ff-serif);font-size:16px;color:#fff}
-.banner-sub{font-size:11px;color:var(--text2);margin-top:3px}
-.banner-prog{height:5px;border-radius:3px;background:rgba(255,255,255,.08);margin-top:9px;overflow:hidden}
-.banner-prog-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--gold),#ff9ec7)}
-.banner.cont .banner-prog-fill{background:linear-gradient(90deg,var(--dia),var(--accent))}
-.banner-ico{position:absolute;right:10px;top:10px;font-size:34px;opacity:.5}
-
-/* section labels */
 .hub-sec-title{font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3);margin:18px 4px 10px;display:flex;align-items:center;gap:8px}
 .hub-sec-title .line{flex:1;height:1px;background:var(--border)}
 
-/* game grid */
 .games-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
 .gcard{border-radius:22px;overflow:hidden;position:relative;cursor:pointer;border:1px solid var(--border2);background:var(--g1);backdrop-filter:var(--blur);transition:var(--ts)}
 .gcard:hover{transform:translateY(-6px) scale(1.008);box-shadow:0 22px 50px rgba(0,0,0,.45)}
@@ -90,6 +71,7 @@ button{font-family:inherit;cursor:pointer}
 .gbadge{font-size:9px;font-weight:800;letter-spacing:.4px;padding:3px 8px;border-radius:20px;text-transform:uppercase}
 .gbadge.new{background:var(--accent2);color:#fff}
 .gbadge.trend{background:var(--gold);color:#3a2600}
+.gbadge.live{background:rgba(52,211,153,.9);color:#04241a}
 .gfav{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.35);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:14px;z-index:2;transition:var(--t)}
 .gfav.on{background:rgba(255,80,80,.3)}
 .gcard-live{position:absolute;bottom:9px;left:9px;font-size:9px;font-weight:700;background:rgba(52,211,153,.25);color:#7cffcf;border:1px solid rgba(52,211,153,.4);padding:3px 8px;border-radius:20px;display:flex;align-items:center;gap:4px;z-index:2}
@@ -101,22 +83,38 @@ button{font-family:inherit;cursor:pointer}
 .gplay-btn{width:100%;padding:11px;border-radius:13px;border:none;font-size:13px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;gap:7px;transition:var(--ts)}
 .gplay-btn:hover{filter:brightness(1.12);transform:translateY(-1px)}
 .gplay-btn:active{transform:scale(.95)}
-.gprog-mini{height:4px;background:rgba(255,255,255,.09);border-radius:3px;margin-bottom:9px;overflow:hidden}
-.gprog-mini-fill{height:100%;border-radius:3px}
 
-/* ══ FULLSCREEN GAME OVERLAY ══ */
+/* ══ FULLSCREEN GAME OVERLAY (split: game top / video bottom) ══ */
 .goverlay{position:fixed;inset:0;z-index:3000;display:none;flex-direction:column;background:rgba(4,4,10,.55);backdrop-filter:blur(2px)}
 .goverlay.open{display:flex}
-.goverlay-inner{flex:1;display:flex;flex-direction:column;background:rgba(9,9,20,.86);backdrop-filter:blur(30px) saturate(190%);margin:0;overflow:hidden;animation:gopop .35s cubic-bezier(.34,1.56,.64,1)}
+.goverlay-inner{flex:1;display:flex;flex-direction:column;background:rgba(9,9,20,.9);backdrop-filter:blur(30px) saturate(190%);overflow:hidden;animation:gopop .35s cubic-bezier(.34,1.56,.64,1)}
 @keyframes gopop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
-.gohead{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0;background:rgba(255,255,255,.02)}
-.gohead-title{font-family:var(--ff-serif);font-size:16px;color:#fff;flex:1;display:flex;align-items:center;gap:8px}
-.gohead-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--g2);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-.gobody{flex:1;overflow-y:auto;padding:14px;position:relative}
-.gobody.nopad{padding:0}
-.gohead-chip{font-size:10px;padding:3px 9px;border-radius:20px;background:var(--g2);border:1px solid var(--border);color:var(--text2);font-weight:700;display:flex;align-items:center;gap:4px}
+.gohead{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);flex-shrink:0;background:rgba(255,255,255,.02)}
+.gohead-title{font-family:var(--ff-serif);font-size:15px;color:#fff;flex:1;display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gohead-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--g2);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.gohead-vidbtn{width:32px;height:32px;border-radius:50%;border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.15);color:#7cffcf;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:var(--t)}
+.gohead-vidbtn.on{background:linear-gradient(135deg,var(--accent2),var(--accent2-d));color:#fff;border-color:transparent;box-shadow:0 0 0 3px var(--accent2-glow)}
+.gohead-chip{font-size:9.5px;padding:3px 8px;border-radius:20px;background:var(--g2);border:1px solid var(--border);color:var(--text2);font-weight:700;display:flex;align-items:center;gap:4px;flex-shrink:0}
 
-/* generic ui atoms reused across games */
+/* the split body: game area (top) + video strip (bottom, collapsible) */
+.gosplit{flex:1;display:flex;flex-direction:column;min-height:0}
+.gobody{flex:1;overflow-y:auto;padding:14px;position:relative;min-height:0}
+.gobody.nopad{padding:0}
+
+.govideo{flex-shrink:0;height:0;overflow:hidden;transition:height .32s cubic-bezier(.4,0,.2,1);background:#05050c;border-top:1px solid var(--border);position:relative}
+.govideo.on{height:34vh;min-height:190px}
+.gv-grid{display:flex;height:100%;gap:2px}
+.gv-cell{flex:1;position:relative;background:#0a0a14;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.gv-cell video{width:100%;height:100%;object-fit:cover}
+.gv-cell .gv-label{position:absolute;bottom:6px;left:8px;font-size:10px;font-weight:700;color:#fff;background:rgba(0,0,0,.5);padding:2px 8px;border-radius:20px;z-index:2}
+.gv-cell .gv-placeholder{font-size:30px;opacity:.3}
+.gv-controls{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:5}
+.gv-ctrl-btn{width:36px;height:36px;border-radius:50%;background:rgba(20,20,30,.75);backdrop-filter:blur(8px);border:1px solid var(--border2);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px}
+.gv-ctrl-btn.off{background:rgba(248,113,113,.85)}
+.gv-ctrl-btn.end{background:var(--red)}
+.gv-status{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;color:#fff;background:rgba(0,0,0,.5);padding:4px 12px;border-radius:20px;z-index:5}
+
+/* generic ui atoms */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:13px;font-size:13px;border:none;font-weight:700;color:#fff;transition:var(--ts)}
 .btn:active{transform:scale(.95)}
 .btn-accent{background:linear-gradient(135deg,var(--accent),var(--accent-d));box-shadow:0 4px 16px var(--accent-glow)}
@@ -125,12 +123,10 @@ button{font-family:inherit;cursor:pointer}
 .btn-glass{background:var(--g2);color:#fff;border:1px solid var(--border2)}
 .btn-sm{padding:7px 12px;font-size:11.5px}
 .btn:disabled{opacity:.4;pointer-events:none}
-.coin-chip,.dia-chip,.xp-chip{font-size:11px;font-weight:800;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px}
+.coin-chip,.xp-chip{font-size:11px;font-weight:800;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px}
 .coin-chip{background:rgba(255,201,74,.15);color:var(--gold);border:1px solid rgba(255,201,74,.3)}
-.dia-chip{background:rgba(126,232,255,.15);color:var(--dia);border:1px solid rgba(126,232,255,.3)}
 .xp-chip{background:hsla(var(--h),100%,62%,.15);color:var(--accent-l);border:1px solid hsla(var(--h),100%,62%,.3)}
 
-/* toast/reward */
 .gtoast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(14px);background:rgba(14,14,14,.88);backdrop-filter:blur(16px);color:#fff;padding:11px 20px;border-radius:24px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:.3s cubic-bezier(.4,0,.2,1);pointer-events:none;box-shadow:0 8px 26px rgba(0,0,0,.45);border:1px solid var(--border2)}
 .gtoast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .reward-pop{position:fixed;inset:0;z-index:9998;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(8px)}
@@ -142,154 +138,79 @@ button{font-family:inherit;cursor:pointer}
 .reward-items{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}
 .reward-item{background:var(--g2);border:1px solid var(--border);border-radius:14px;padding:10px 16px;font-size:14px;font-weight:800}
 
-/* achievements strip */
-.ach-strip{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px}
-.ach-strip::-webkit-scrollbar{height:0}
-.ach-pill{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;width:64px;text-align:center;opacity:.4}
-.ach-pill.unlocked{opacity:1}
-.ach-ico{width:46px;height:46px;border-radius:14px;background:var(--g2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px}
-.ach-pill.unlocked .ach-ico{background:linear-gradient(135deg,var(--gold),#e08a00);box-shadow:0 3px 12px var(--gold-glow)}
-.ach-lbl{font-size:8.5px;color:var(--text3);font-weight:700;line-height:1.2}
+/* ═══ TURN BAR (shared across games) ═══ */
+.turn-bar{display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 14px;border-radius:14px;background:var(--g1);border:1px solid var(--border);margin-bottom:12px;font-size:12.5px;font-weight:700}
+.turn-bar.mine{background:linear-gradient(135deg,hsla(var(--h),100%,55%,.16),rgba(255,255,255,.02));border-color:hsla(var(--h),100%,62%,.3);color:var(--accent-l)}
+.score-bar{display:flex;justify-content:space-between;gap:10px;margin-bottom:12px}
+.score-pill{flex:1;text-align:center;padding:9px;border-radius:13px;background:var(--g1);border:1px solid var(--border)}
+.score-pill.mine{border-color:var(--accent);background:hsla(var(--h),100%,55%,.1)}
+.score-pill .sp-name{font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase}
+.score-pill .sp-val{font-size:20px;font-family:var(--ff-serif);color:#fff;margin-top:2px}
 
-/* ═══ PLAY ANALYTICS ═══ */
-.pa-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.1),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.2);border-radius:14px;margin-bottom:14px}
-.pa-insight-ico{font-size:20px;flex-shrink:0}
-.pa-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
-.pa-insight-text strong{color:#fff}
-.pa-explore-row{display:flex;align-items:center;gap:16px;margin-bottom:14px;background:var(--g1);border:1px solid var(--border);border-radius:14px;padding:14px 16px}
-.pa-explore-ring-wrap{position:relative;width:64px;height:64px;flex-shrink:0}
-.pa-explore-ring-wrap svg{transform:rotate(-90deg)}
-.pa-explore-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff}
-.pa-explore-label{font-size:11px;color:var(--text3)}
-.pa-explore-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:2px}
-.pa-ach-prog-wrap{height:5px;background:var(--g2);border-radius:3px;margin-top:6px;overflow:hidden;max-width:200px}
-.pa-ach-prog{height:100%;background:linear-gradient(90deg,var(--gold),#e08a00);border-radius:3px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+/* ═══ TIC TAC TOE ═══ */
+.ttt-board{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:320px;margin:0 auto}
+.ttt-cell{aspect-ratio:1;border-radius:16px;background:var(--g1);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:44px;font-family:var(--ff-serif);transition:var(--t)}
+.ttt-cell.playable:hover{background:var(--g2);border-color:var(--accent)}
+.ttt-cell.x{color:var(--accent-l)}
+.ttt-cell.o{color:#ff9ec7}
+.ttt-cell.win{background:linear-gradient(135deg,rgba(52,211,153,.25),rgba(52,211,153,.05));border-color:var(--green)}
 
-/* ═══ LOVE ADVENTURE ═══ */
-.la-scene{border-radius:20px;overflow:hidden;position:relative;min-height:230px;display:flex;flex-direction:column;justify-content:flex-end;margin-bottom:14px;border:1px solid var(--border2)}
-.la-scene-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:90px;opacity:.28;filter:blur(1px)}
-.la-scene-grad{position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(6,6,16,.9))}
-.la-scene-content{position:relative;padding:18px;animation:laFade .5s ease}
-@keyframes laFade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-.la-chap-tag{font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--accent-l)}
-.la-title{font-family:var(--ff-serif);font-size:19px;color:#fff;margin:5px 0 8px}
-.la-text{font-size:13px;color:var(--text2);line-height:1.75}
-.la-choices{display:flex;flex-direction:column;gap:8px;margin-top:14px}
-.la-choice{padding:12px 15px;border-radius:14px;background:var(--g1);border:1px solid var(--border);color:#fff;font-size:12.5px;text-align:left;transition:var(--t);display:flex;align-items:center;gap:8px}
-.la-choice:hover{background:var(--g2);border-color:var(--accent);transform:translateX(3px)}
-.la-mission-card{background:linear-gradient(135deg,rgba(255,107,157,.12),hsla(var(--h),100%,55%,.08));border:1px solid rgba(255,107,157,.25);border-radius:16px;padding:16px;margin-bottom:14px}
-.la-map{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px;margin-top:6px}
-.la-node{aspect-ratio:1;border-radius:14px;background:var(--g1);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;position:relative;cursor:pointer}
-.la-node.done{background:linear-gradient(135deg,var(--green),#0d8f60)}
-.la-node.locked{opacity:.3;pointer-events:none}
-.la-node.cur{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+/* ═══ TRUTH OR DARE ═══ */
+.tod-cat-row{display:flex;gap:8px;overflow-x:auto;margin-bottom:14px;padding-bottom:2px}
+.tod-cat-row::-webkit-scrollbar{height:0}
+.tod-cat{flex-shrink:0;padding:8px 14px;border-radius:20px;background:var(--g1);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text2)}
+.tod-cat.sel{background:linear-gradient(135deg,var(--accent2),var(--accent2-d));color:#fff;border-color:transparent}
+.tod-wheel-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;padding:24px 0}
+.tod-spin-btn{width:140px;height:140px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent2-d));border:4px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;box-shadow:0 12px 40px var(--accent2-glow)}
+.tod-spin-btn.spinning{animation:spin828 .9s linear infinite}
+@keyframes spin828{to{transform:rotate(360deg)}}
+.tod-card{background:linear-gradient(155deg,rgba(255,255,255,.09),rgba(255,255,255,.02));border:1px solid var(--border2);border-radius:22px;padding:26px 20px;text-align:center;position:relative}
+.tod-card-type{font-size:10px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--accent2);margin-bottom:10px}
+.tod-card-text{font-family:var(--ff-serif);font-size:19px;color:#fff;line-height:1.5}
+.tod-reactions{display:flex;gap:6px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+.tod-react-btn{width:36px;height:36px;border-radius:50%;background:var(--g2);border:1px solid var(--border);font-size:16px}
+.tod-float-emoji{position:fixed;font-size:34px;z-index:9997;animation:todfloat 2s ease forwards;pointer-events:none}
+@keyframes todfloat{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-160px) scale(1.6)}}
 
-/* ═══ ISLAND ═══ */
-.isl-wrap{display:flex;flex-direction:column;height:100%}
-.isl-topbar{display:flex;gap:8px;padding:10px 14px;overflow-x:auto;border-bottom:1px solid var(--border);flex-shrink:0}
-.isl-topbar::-webkit-scrollbar{height:0}
-.isl-item{flex-shrink:0;width:64px;text-align:center;padding:7px 5px;border-radius:13px;background:var(--g1);border:1px solid var(--border);cursor:pointer;transition:var(--t)}
-.isl-item.sel{border-color:var(--accent);background:var(--g2);box-shadow:0 0 0 2px var(--accent-glow)}
-.isl-item.locked{opacity:.35}
-.isl-item-emoji{font-size:22px}
-.isl-item-name{font-size:8px;color:var(--text3);font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.isl-item-cost{font-size:8.5px;color:var(--gold);font-weight:800;margin-top:1px}
-.isl-canvas-wrap{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:20px}
-.isl-grid{display:grid;gap:3px;background:linear-gradient(160deg,#0a2a3a,#0e3a2e);border-radius:22px;padding:14px;border:2px solid rgba(255,255,255,.12);box-shadow:0 20px 60px rgba(0,0,0,.4)}
-.isl-tile{width:46px;height:46px;border-radius:9px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;transition:var(--t);position:relative;border:1px solid rgba(255,255,255,.06)}
-.isl-tile:hover{background:rgba(255,255,255,.12);transform:scale(1.08)}
-.isl-tile.filled{animation:islPlace .4s cubic-bezier(.34,1.56,.64,1)}
-@keyframes islPlace{from{transform:scale(0)}to{transform:scale(1)}}
-.isl-tile .anim{display:inline-block;animation:islBob 2.4s ease-in-out infinite}
-@keyframes islBob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-4px) rotate(4deg)}}
+/* ═══ LUDO ═══ */
+.ludo-wrap{display:flex;flex-direction:column;align-items:center;gap:12px}
+.ludo-board{position:relative;width:min(88vw,340px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.04),rgba(0,0,0,.15));border:1px solid var(--border2)}
+.ludo-home-hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:26%;height:26%;border-radius:50%;background:linear-gradient(135deg,var(--gold),#e08a00);display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 30px var(--gold-glow)}
+.ludo-cell{position:absolute;width:6.5%;height:6.5%;border-radius:50%;background:var(--g2);border:1px solid var(--border);transform:translate(-50%,-50%)}
+.ludo-cell.safe{background:rgba(255,201,74,.25);border-color:rgba(255,201,74,.5)}
+.ludo-token{position:absolute;width:8%;height:8%;border-radius:50%;border:2px solid rgba(255,255,255,.7);transform:translate(-50%,-50%);z-index:3;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;box-shadow:0 3px 8px rgba(0,0,0,.5);transition:left .4s cubic-bezier(.4,0,.2,1),top .4s cubic-bezier(.4,0,.2,1)}
+.ludo-base-row{display:flex;gap:18px}
+.ludo-base{display:flex;gap:8px;padding:10px 14px;border-radius:16px;background:var(--g1);border:1px solid var(--border)}
+.ludo-base-token{width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff}
+.ludo-dice{width:64px;height:64px;border-radius:16px;background:#fff;color:#111;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;box-shadow:0 8px 24px rgba(0,0,0,.4);transition:var(--t)}
+.ludo-dice.rolling{animation:dshake .5s ease}
+@keyframes dshake{0%,100%{transform:rotate(0)}25%{transform:rotate(-14deg)}75%{transform:rotate(14deg)}}
 
-
-/* ═══ DRAW ═══ */
+/* ═══ DRAW & GUESS ═══ */
 .dw-wrap{display:flex;flex-direction:column;height:100%}
 .dw-toolbar{display:flex;gap:8px;padding:9px 12px;align-items:center;border-bottom:1px solid var(--border);flex-wrap:wrap;flex-shrink:0}
 .dw-color{width:24px;height:24px;border-radius:50%;border:2px solid rgba(255,255,255,.3);cursor:pointer;flex-shrink:0;transition:var(--t)}
 .dw-color.sel{border-color:#fff;transform:scale(1.2)}
-.dw-canvas-wrap{flex:1;position:relative;overflow:hidden;background:#fff}
+.dw-canvas-wrap{flex:1;position:relative;overflow:hidden;background:#fff;min-height:220px}
 #dwCanvas{width:100%;height:100%;touch-action:none;cursor:crosshair}
 .dw-tool-btn{width:32px;height:32px;border-radius:9px;background:var(--g2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;flex-shrink:0}
-.dw-tool-btn.sel{background:var(--accent);border-color:var(--accent)}
 .dw-guess-banner{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;padding:8px 18px;border-radius:20px;font-size:12px;font-weight:700;backdrop-filter:blur(8px);z-index:5}
+.dw-guess-row{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);flex-shrink:0}
+.dw-guess-in{flex:1;padding:11px 14px;border-radius:13px;background:var(--g2);border:1px solid var(--border2);color:#fff;font-size:13px}
+.dw-word-reveal{font-size:11px;color:var(--gold);font-weight:800;padding:6px 12px}
 
-/* ═══ ESCAPE ROOM ═══ */
-.er-room-bg{border-radius:20px;min-height:200px;position:relative;overflow:hidden;margin-bottom:14px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border2)}
-.er-room-emoji{font-size:80px;opacity:.8;filter:drop-shadow(0 8px 20px rgba(0,0,0,.4))}
-.er-timer{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.55);color:#fff;padding:6px 13px;border-radius:20px;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;backdrop-filter:blur(6px)}
-.er-timer.low{color:var(--red);animation:blk .6s infinite}
-.er-puzzle-card{background:var(--g1);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px}
-.er-obj-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
-.er-obj{aspect-ratio:1;border-radius:12px;background:var(--g1);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer}
-.er-obj.found{background:var(--green-bg);border-color:var(--green);opacity:.4}
-.er-code-input{display:flex;gap:8px;justify-content:center;margin:12px 0}
-.er-code-digit{width:44px;height:52px;border-radius:12px;background:var(--g1);border:1px solid var(--border);text-align:center;font-size:22px;font-weight:800;color:#fff;font-family:var(--ff-sans)}
-.er-code-digit:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-glow)}
-
-/* ═══ TRUTH OR DARE DELUXE ═══ */
-.tod-cats{display:flex;gap:7px;overflow-x:auto;padding:2px 0 10px}
-.tod-cats::-webkit-scrollbar{height:0}
-.tod-cat{flex-shrink:0;padding:8px 15px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--g1);color:var(--text2);transition:var(--t)}
-.tod-cat.sel{color:#fff;border-color:transparent}
-.tod-wheel-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;padding:6px 0 16px}
-.tod-wheel{width:210px;height:210px;position:relative}
-.tod-wheel svg{transition:transform 3.2s cubic-bezier(.15,.85,.28,1.02)}
-.tod-wheel-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:34px;pointer-events:none}
-.tod-card{min-height:190px;border-radius:20px;padding:26px 22px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;overflow:hidden;border:1px solid var(--border2);margin-bottom:14px;animation:laFade .35s cubic-bezier(.34,1.56,.64,1)}
-.tod-card.truth{background:linear-gradient(150deg,hsla(var(--h),100%,55%,.22),rgba(255,255,255,.03))}
-.tod-card.dare{background:linear-gradient(150deg,hsla(300,85%,60%,.22),rgba(255,255,255,.03))}
-.tod-card-type{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;opacity:.8;margin-bottom:8px}
-.tod-card-text{font-size:16px;font-weight:600;color:#fff;line-height:1.5}
-.tod-card-diff{position:absolute;top:10px;right:12px;font-size:9px;padding:3px 8px;border-radius:20px;background:rgba(0,0,0,.3);font-weight:700}
-.tod-turn{text-align:center;font-size:12px;color:var(--text2);margin-bottom:10px;font-weight:600}
-.tod-turn strong{color:#fff}
-.tod-timer-ring{width:52px;height:52px;position:relative;margin:0 auto 4px}
-.tod-timer-ring svg{transform:rotate(-90deg)}
-.tod-reactions{display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap}
-.tod-react-btn{width:38px;height:38px;border-radius:50%;background:var(--g1);border:1px solid var(--border);font-size:17px;display:flex;align-items:center;justify-content:center;transition:var(--ts)}
-.tod-react-btn:active{transform:scale(1.3)}
-.tod-float-emoji{position:fixed;font-size:26px;pointer-events:none;z-index:9996;animation:todFloat 2s ease-out forwards}
-@keyframes todFloat{0%{transform:translateY(0) scale(.5);opacity:0}15%{opacity:1;transform:scale(1.1)}100%{transform:translateY(-220px) scale(1);opacity:0}}
-.tod-streak{display:inline-flex;align-items:center;gap:4px;background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(251,191,36,.3);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:800}
-.tod-custom-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}
-.tod-custom-item{display:flex;gap:8px;align-items:center;background:var(--g1);border:1px solid var(--border);border-radius:11px;padding:9px 12px;font-size:12px}
-
-
-.dh-wrap{display:flex;flex-direction:column;height:100%}
-.dh-roomtabs{display:flex;gap:8px;padding:10px 14px;overflow-x:auto;border-bottom:1px solid var(--border);flex-shrink:0}
-.dh-roomtabs::-webkit-scrollbar{height:0}
-.dh-roomtab{flex-shrink:0;padding:8px 14px;border-radius:14px;background:var(--g1);border:1px solid var(--border);cursor:pointer;font-size:12px;font-weight:700;color:var(--text2);display:flex;align-items:center;gap:6px;transition:var(--t)}
-.dh-roomtab.sel{color:#fff;border-color:var(--accent);background:var(--g2);box-shadow:0 0 0 2px var(--accent-glow)}
-.dh-roomtab.locked{opacity:.4}
-.dh-shoptray{display:flex;gap:8px;padding:10px 14px;overflow-x:auto;border-bottom:1px solid var(--border);flex-shrink:0;background:rgba(255,255,255,.02)}
-.dh-shoptray::-webkit-scrollbar{height:0}
-.dh-item{flex-shrink:0;width:62px;text-align:center;padding:7px 5px;border-radius:13px;background:var(--g1);border:1px solid var(--border);cursor:pointer;transition:var(--t)}
-.dh-item.sel{border-color:var(--accent);background:var(--g2);box-shadow:0 0 0 2px var(--accent-glow)}
-.dh-item.locked{opacity:.35}
-.dh-item-emoji{font-size:21px}
-.dh-item-name{font-size:7.5px;color:var(--text3);font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dh-item-cost{font-size:8px;color:var(--gold);font-weight:800;margin-top:1px}
-.dh-canvas-wrap{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:20px}
-.dh-room{display:grid;gap:3px;border-radius:22px;padding:14px;border:2px solid rgba(255,255,255,.12);box-shadow:0 20px 60px rgba(0,0,0,.4);transition:background 1.2s ease}
-.dh-tile{width:46px;height:46px;border-radius:9px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:23px;cursor:pointer;transition:var(--t);position:relative;border:1px solid rgba(255,255,255,.06)}
-.dh-tile:hover{background:rgba(255,255,255,.14);transform:scale(1.08)}
-.dh-tile.filled{animation:islPlace .4s cubic-bezier(.34,1.56,.64,1)}
-.dh-tile .anim{display:inline-block;animation:islBob 2.4s ease-in-out infinite}
-.dh-home-score{display:flex;gap:10px;padding:8px 14px;flex-wrap:wrap;border-top:1px solid var(--border);flex-shrink:0}
-.dh-score-chip{font-size:10.5px;font-weight:800;padding:5px 11px;border-radius:20px;background:var(--g1);border:1px solid var(--border);color:var(--text2);display:flex;align-items:center;gap:5px}
+/* ═══ MEMORY MATCH ═══ */
+.mm-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:340px;margin:0 auto}
+.mm-card{aspect-ratio:1;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent-d));display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;transition:transform .4s cubic-bezier(.4,0,.2,1);position:relative;transform-style:preserve-3d}
+.mm-card.flipped{background:var(--g1);border:1px solid var(--border2)}
+.mm-card.matched{background:rgba(52,211,153,.2);border:1px solid var(--green);opacity:.7;cursor:default}
 </style>
-<link rel="stylesheet" href="/theme-burgundy.css">
-<link rel="stylesheet" href="/premium-motion.css">
-<link rel="stylesheet" href="/premium-states.css">
-  <link rel="stylesheet" href="/responsive-fix.css">
 </head>
 <body>
 
 <div class="gtoast" id="gToast"></div>
 <div class="reward-pop" id="rewardPop"><div class="reward-card">
-  <div class="reward-ico" id="rewardIco">🏆</div>
+  <div class="reward-ico" id="rewardIco">🎉</div>
   <div class="reward-title" id="rewardTitle">Nice!</div>
   <div class="reward-items" id="rewardItems"></div>
   <button class="btn btn-accent" style="margin-top:18px" onclick="closeReward()">Continue ✨</button>
@@ -305,19 +226,33 @@ button{font-family:inherit;cursor:pointer}
       <button class="gohead-btn" onclick="Hub.exitGame()">←</button>
       <div class="gohead-title" id="goTitle"><span id="goEmoji">🎮</span><span id="goText">Game</span></div>
       <div class="gohead-chip" id="goXpChip">✨ 0 XP</div>
-      <div class="gohead-chip" id="goCoinChip">🪙 0</div>
+      <button class="gohead-vidbtn" id="goVidBtn" onclick="GameVideo.toggle()" title="Face to face video">📹</button>
     </div>
-    <div class="gobody" id="goBody"></div>
+    <div class="gosplit">
+      <div class="gobody" id="goBody"></div>
+      <div class="govideo" id="goVideo">
+        <div class="gv-status" id="gvStatus" style="display:none">Connecting…</div>
+        <div class="gv-grid">
+          <div class="gv-cell"><video id="gvRemote" autoplay playsinline></video><div class="gv-placeholder" id="gvRemotePh">🙂</div><div class="gv-label" id="gvRemoteLabel">Partner</div></div>
+          <div class="gv-cell"><video id="gvLocal" autoplay playsinline muted></video><div class="gv-label">You</div></div>
+        </div>
+        <div class="gv-controls">
+          <button class="gv-ctrl-btn" id="gvMuteBtn" onclick="GameVideo.toggleMute()">🎤</button>
+          <button class="gv-ctrl-btn" id="gvCamBtn" onclick="GameVideo.toggleCam()">📷</button>
+          <button class="gv-ctrl-btn end" onclick="GameVideo.stop()">✕</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
 /* ═══════════════════════════════════════════════════════
-   IDENTITY + SUPABASE
+   IDENTITY + SUPABASE + API
 ═══════════════════════════════════════════════════════ */
 const SUPABASE_URL = 'https://jmhsyhpmuszyphwjfcuk.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptaHN5aHBtdXN6eXBod2pmY3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5NzAzODIsImV4cCI6MjA5OTU0NjM4Mn0.hXmVIoESJ5SkbhIaN-UyWLbJ4XdvZD_dd7U2WzFfvNI';
-const AI_API = 'https://us-app-av6d.onrender.com';
+const API = 'https://us-app-av6d.onrender.com';
 let sb = null;
 try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e){ console.warn('Supabase init failed', e); }
 
@@ -340,9 +275,10 @@ const ID = (function(){
 })();
 const myKey = ID.role === 'user1' ? 'u1' : 'u2';
 const ptKey = ID.role === 'user1' ? 'u2' : 'u1';
+const otherRole = ID.role === 'user1' ? 'user2' : 'user1';
 
 /* ═══════════════════════════════════════════════════════
-   SOUND ENGINE — pure WebAudio, no files needed
+   SOUND ENGINE
 ═══════════════════════════════════════════════════════ */
 const Snd = (function(){
   let ctx = null;
@@ -364,10 +300,8 @@ const Snd = (function(){
     fail(){ beep(220,0,.14,'sawtooth',.18); beep(160,.1,.18,'sawtooth',.16); },
     coin(){ beep(988,0,.08,'square',.14); beep(1318,.06,.1,'square',.14); },
     levelup(){ [523,659,784,1046,1318].forEach((f,i)=>beep(f,i*.08,.16,'sine',.2)); },
-    whoosh(){ beep(200,0,.2,'sine',.1); },
     place(){ beep(400,0,.08,'triangle',.2); beep(600,.05,.08,'triangle',.16); },
-    spin(){ beep(300,0,.4,'sawtooth',.06); },
-    unlock(){ beep(660,0,.1,'sine',.2); beep(880,.1,.14,'sine',.22); }
+    dice(){ beep(300,0,.1,'square',.12); }
   };
 })();
 
@@ -382,26 +316,12 @@ function showReward(ico,title,items){
 function closeReward(){ document.getElementById('rewardPop').classList.remove('show'); }
 
 /* ═══════════════════════════════════════════════════════
-   GAME CORE — XP / Coins / Diamonds / Achievements / Level
+   GAME CORE — light XP/coins profile (kept for continuity)
 ═══════════════════════════════════════════════════════ */
-const LOCAL_KEY = 'us_games_profiles_v1';
-const ACHIEVEMENTS = [
-  {id:'first_play',ico:'🎮',name:'First Play',desc:'Play any game once'},
-  {id:'love_ch3',ico:'📖',name:'Story Lover',desc:'Reach chapter 3 in Love Adventure'},
-  {id:'island_5',ico:'🏝️',name:'Island Builder',desc:'Place 5 buildings'},
-  {id:'island_all',ico:'👑',name:'Island Master',desc:'Unlock every building'},
-  {id:'draw_10',ico:'🎨',name:'Artist',desc:'Save 10 drawings'},
-  {id:'escape_1',ico:'🔓',name:'Escape Artist',desc:'Clear an escape room'},
-  {id:'escape_all',ico:'🗝️',name:'Master Escapist',desc:'Clear all rooms'},
-  {id:'tod_25',ico:'🔥',name:'Bold & Brave',desc:'Complete 25 truths/dares'},
-  {id:'tod_streak10',ico:'⚡',name:'On Fire',desc:'Hit a 10 streak in Truth or Dare'},
-  {id:'level5',ico:'⭐',name:'Rising Star',desc:'Reach couple level 5'},
-  {id:'level10',ico:'💫',name:'Power Couple',desc:'Reach couple level 10'},
-  {id:'daily_7',ico:'📅',name:'Weekly Devotion',desc:'7-day play streak'},
-];
-function defaultProfile(){ return { xp:0, coins:120, diamonds:5, achievements:[], favorites:[], history:{}, lastPlayDate:'', streakDays:0, todCount:0, todStreak:0, todBestStreak:0, islandBuildings:0, drawSaves:0, escapesCleared:0, laChapter:0 }; }
+const LOCAL_KEY = 'us_games_profiles_v2';
+function defaultProfile(){ return { xp:0, coins:120, favorites:[], history:{}, lastPlayDate:'', streakDays:0 }; }
 const GameCore = {
-  profiles:{u1:defaultProfile(),u2:defaultProfile()}, loaded:false,
+  profiles:{u1:defaultProfile(),u2:defaultProfile()},
   loadLocal(){ try{ const raw=localStorage.getItem(LOCAL_KEY+'_'+ID.coupleId); if(raw) Object.assign(this.profiles, JSON.parse(raw)); }catch(e){} },
   saveLocal(){ try{ localStorage.setItem(LOCAL_KEY+'_'+ID.coupleId, JSON.stringify(this.profiles)); }catch(e){} },
   async loadCloud(){
@@ -409,7 +329,7 @@ const GameCore = {
     try{
       const {data,error} = await sb.from('games_profiles').select('*').eq('couple_id',ID.coupleId).maybeSingle();
       if(!error && data){ if(data.u1) this.profiles.u1={...defaultProfile(),...data.u1}; if(data.u2) this.profiles.u2={...defaultProfile(),...data.u2}; }
-    }catch(e){ console.warn('games_profiles load failed (table may not exist yet):', e.message); }
+    }catch(e){ console.warn('games_profiles load failed:', e.message); }
   },
   saveTimer:null,
   saveCloud(){
@@ -428,24 +348,17 @@ const GameCore = {
   addXP(n){
     const p=this.me(); const before=this.level(p.xp); p.xp+=n; const after=this.level(p.xp);
     this.touchStreak(); this.saveCloud(); Hub.refreshRankCards();
-    if(after>before){ setTimeout(()=>showReward('🏆','Level Up!',['Level '+after]),400); if(after>=5) this.unlock('level5'); if(after>=10) this.unlock('level10'); }
+    if(document.getElementById('goXpChip')) document.getElementById('goXpChip').textContent='✨ '+p.xp+' XP';
+    if(after>before){ setTimeout(()=>showReward('🏆','Level Up!',['Level '+after]),400); }
     return after>before;
   },
   addCoins(n){ this.me().coins=Math.max(0,this.me().coins+n); this.saveCloud(); Hub.refreshRankCards(); Snd.coin(); },
-  addDiamonds(n){ this.me().diamonds=Math.max(0,this.me().diamonds+n); this.saveCloud(); Hub.refreshRankCards(); },
   touchStreak(){
     const p=this.me(); const t=todayStr();
     if(p.lastPlayDate===t) return;
     const y=new Date(Date.now()-86400000).toISOString().slice(0,10);
     p.streakDays = (p.lastPlayDate===y) ? (p.streakDays||0)+1 : 1;
     p.lastPlayDate=t;
-    if(p.streakDays>=7) this.unlock('daily_7');
-  },
-  unlock(id){
-    const p=this.me(); if(p.achievements.includes(id)) return;
-    p.achievements.push(id); this.saveCloud();
-    const a=ACHIEVEMENTS.find(x=>x.id===id);
-    if(a){ setTimeout(()=>{ toast('🏅 Achievement unlocked: '+a.name,3200); Snd.unlock(); },300); }
   },
   toggleFav(gid){
     const p=this.me(); const i=p.favorites.indexOf(gid);
@@ -457,9 +370,8 @@ const GameCore = {
 
 /* ═══════════════════════════════════════════════════════
    REALTIME SYNC LAYER — Supabase channel (broadcast) + table persistence
-   Falls back gracefully to localStorage cross-tab if table/RLS unavailable.
-   Requires table `games_shared` (couple_id text, game text, data jsonb, updated_at timestamptz,
-   primary key (couple_id, game)) — see closing notes.
+   Table: games_shared (couple_id text, game text, data jsonb, updated_at timestamptz,
+   primary key (couple_id, game)) — same table used previously, kept as-is.
 ═══════════════════════════════════════════════════════ */
 class GameChannel {
   constructor(gameKey){
@@ -507,7 +419,6 @@ function initPresence(){
   presenceChan = sb.channel('presence_'+ID.coupleId, {config:{presence:{key:ID.role}}});
   presenceChan.on('presence',{event:'sync'},()=>{
     const st = presenceChan.presenceState();
-    const other = st[ptKey==='u1'?'user1':'user2'] || st[ptKey];
     let found=null;
     Object.keys(st).forEach(k=>{ if(k!==ID.role && st[k] && st[k][0]) found=st[k][0]; });
     partnerPresence = found ? {game:found.game||null,online:true} : {game:null,online:false};
@@ -518,44 +429,170 @@ function initPresence(){
 function setPresenceGame(gid){ if(presenceChan) presenceChan.track({game:gid,ts:Date.now()}).catch(()=>{}); }
 
 /* ═══════════════════════════════════════════════════════
-   GAME DEFINITIONS (for hub cards)
+   FACE-TO-FACE VIDEO — reuses existing /api/call/turn-creds
+   and /api/call/signal endpoints (same tables/infra as chat
+   calls), tagged with a gameCtx so it never collides with a
+   real chat call happening at the same time.
+═══════════════════════════════════════════════════════ */
+const GameVideo = {
+  pc:null, localStream:null, active:false, gameId:null,
+  lastSignalId:0, pollTimer:null, muted:false, camOff:false, connected:false,
+
+  async toggle(){
+    if(this.active){ this.stop(); return; }
+    this.gameId = Hub.activeGameId;
+    if(!this.gameId) return;
+    document.getElementById('goVidBtn').classList.add('on');
+    document.getElementById('goVideo').classList.add('on');
+    document.getElementById('gvStatus').style.display='block';
+    document.getElementById('gvStatus').textContent='Requesting camera…';
+    this.active = true;
+    try{
+      this.localStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:true});
+      document.getElementById('gvLocal').srcObject = this.localStream;
+    }catch(e){
+      toast('⚠️ Camera/mic permission needed for video');
+      this.stop(); return;
+    }
+    document.getElementById('gvStatus').textContent = 'Connecting…';
+    await this._initCursor();
+    await this._setupPeer();
+    this._pollLoop();
+    // user1 always initiates the offer; user2 always waits — avoids glare
+    if(ID.role==='user1') this._makeOffer();
+  },
+
+  async _iceServers(){
+    try{
+      const r = await fetch(API+'/api/call/turn-creds');
+      const d = await r.json();
+      return (d.iceServers && d.iceServers.length) ? d.iceServers : [{urls:'stun:stun.l.google.com:19302'}];
+    }catch(e){ return [{urls:'stun:stun.l.google.com:19302'}]; }
+  },
+
+  async _setupPeer(){
+    const iceServers = await this._iceServers();
+    this.pc = new RTCPeerConnection({iceServers});
+    this.localStream.getTracks().forEach(t=>this.pc.addTrack(t,this.localStream));
+    this.pc.ontrack = (e)=>{
+      const remoteVid = document.getElementById('gvRemote');
+      if(remoteVid.srcObject !== e.streams[0]) remoteVid.srcObject = e.streams[0];
+      document.getElementById('gvRemotePh').style.display='none';
+      document.getElementById('gvStatus').style.display='none';
+      this.connected = true;
+    };
+    this.pc.onicecandidate = (e)=>{ if(e.candidate) this._send({type:'ice',candidate:e.candidate}); };
+    this.pc.onconnectionstatechange = ()=>{
+      if(['failed','disconnected','closed'].includes(this.pc.connectionState) && this.active){
+        document.getElementById('gvStatus').style.display='block';
+        document.getElementById('gvStatus').textContent='Reconnecting…';
+      }
+    };
+  },
+
+  async _makeOffer(){
+    const offer = await this.pc.createOffer();
+    await this.pc.setLocalDescription(offer);
+    this._send({type:'offer',sdp:offer});
+  },
+
+  async _send(msg){
+    try{
+      await fetch(API+'/api/call/signal',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({coupleId:ID.coupleId, role:ID.role, payload:{...msg, gameCtx:this.gameId}})
+      });
+    }catch(e){ /* signaling hiccup — the poll loop below will retry the flow */ }
+  },
+
+  async _initCursor(){
+    try{
+      const r = await fetch(API+'/api/call/signal/'+ID.coupleId+'?role='+otherRole, {cache:'no-store'});
+      if(r.ok){ const rows = await r.json(); if(rows.length) this.lastSignalId = Math.max(...rows.map(x=>x.id)); }
+    }catch(e){}
+  },
+
+  _pollLoop(){
+    clearInterval(this.pollTimer);
+    this.pollTimer = setInterval(async ()=>{
+      if(!this.active) return;
+      try{
+        const r = await fetch(API+'/api/call/signal/'+ID.coupleId+'?role='+otherRole+'&after='+this.lastSignalId, {cache:'no-store'});
+        if(!r.ok) return;
+        const rows = await r.json();
+        for(const row of rows){
+          this.lastSignalId = Math.max(this.lastSignalId, row.id);
+          const msg = row.payload;
+          if(!msg || msg.gameCtx !== this.gameId) continue;
+          if(msg.type==='offer' && this.pc){
+            await this.pc.setRemoteDescription(msg.sdp);
+            const answer = await this.pc.createAnswer();
+            await this.pc.setLocalDescription(answer);
+            this._send({type:'answer',sdp:answer});
+          } else if(msg.type==='answer' && this.pc){
+            if(!this.pc.currentRemoteDescription) await this.pc.setRemoteDescription(msg.sdp);
+          } else if(msg.type==='ice' && this.pc){
+            try{ await this.pc.addIceCandidate(msg.candidate); }catch(e){}
+          } else if(msg.type==='end'){
+            toast(ID.partnerName+' ended the video'); this.stop();
+          }
+        }
+      }catch(e){}
+    }, 900);
+  },
+
+  toggleMute(){
+    if(!this.localStream) return;
+    this.muted = !this.muted;
+    this.localStream.getAudioTracks().forEach(t=>t.enabled=!this.muted);
+    document.getElementById('gvMuteBtn').classList.toggle('off',this.muted);
+    document.getElementById('gvMuteBtn').textContent = this.muted?'🔇':'🎤';
+  },
+  toggleCam(){
+    if(!this.localStream) return;
+    this.camOff = !this.camOff;
+    this.localStream.getVideoTracks().forEach(t=>t.enabled=!this.camOff);
+    document.getElementById('gvCamBtn').classList.toggle('off',this.camOff);
+    document.getElementById('gvCamBtn').textContent = this.camOff?'📷':'📷';
+  },
+  stop(silent){
+    if(this.active && !silent) this._send({type:'end'});
+    this.active=false; this.connected=false;
+    clearInterval(this.pollTimer); this.pollTimer=null;
+    if(this.pc){ try{ this.pc.close(); }catch(e){} this.pc=null; }
+    if(this.localStream){ this.localStream.getTracks().forEach(t=>t.stop()); this.localStream=null; }
+    const rv=document.getElementById('gvRemote'), lv=document.getElementById('gvLocal');
+    if(rv) rv.srcObject=null; if(lv) lv.srcObject=null;
+    const ph=document.getElementById('gvRemotePh'); if(ph) ph.style.display='flex';
+    const btn=document.getElementById('goVidBtn'); if(btn) btn.classList.remove('on');
+    const panel=document.getElementById('goVideo'); if(panel) panel.classList.remove('on');
+  }
+};
+
+/* ═══════════════════════════════════════════════════════
+   GAME DEFINITIONS (hub cards) — 5 real, fully-synced games
 ═══════════════════════════════════════════════════════ */
 const GAMES = [
-  {id:'love', title:'Love Adventure', emoji:'❤️', badge:'trend', grad:'linear-gradient(135deg,#3a0d24,#7a0d3d)',
-    desc:'A branching romantic story — your choices shape every chapter. Daily missions included.',
-    tags:['📖 Story','⏱ 10-15m','✨ 40 XP']},
-  {id:'island', title:'Build Our Dream Island', emoji:'🏝️', badge:'new', grad:'linear-gradient(135deg,#0d2a2e,#0d5c4a)',
-    desc:'Grow one shared island together — houses, pools, pets, a villa & more, synced live.',
-    tags:['🏗 Builder','⏱ Ongoing','✨ 15 XP/build']},
-  {id:'draw', title:'Draw Together', emoji:'🎨', badge:'', grad:'linear-gradient(135deg,#1a0d2e,#4a0d5c)',
-    desc:'One shared canvas, real-time strokes. Guess mode, stickers, save to memories.',
-    tags:['🖌 Creative','⏱ 5-20m','✨ 20 XP']},
-  {id:'escape', title:'Couple Escape Room', emoji:'🧩', badge:'', grad:'linear-gradient(135deg,#1a1a0d,#5c4a0d)',
-    desc:'Crack codes, find hidden objects and solve riddles together against the clock.',
-    tags:['🔐 Puzzle','⏱ 15-25m','✨ 60 XP']},
-  {id:'tod', title:'Truth or Dare Deluxe', emoji:'🔥', badge:'trend', grad:'linear-gradient(135deg,#2a0d0d,#6b0d1a)',
-    desc:'350+ prompts across 6 moods, a spin wheel, streaks, voice reading & live reactions.',
+  {id:'tod', title:'Truth or Dare', emoji:'🔥', badge:'trend', grad:'linear-gradient(135deg,#2a0d0d,#6b0d1a)',
+    desc:'Spin the wheel — real-time synced truths & dares, streaks, reactions & voice reading.',
     tags:['🎡 Party','⏱ 10m+','✨ 10 XP/round']},
-  {id:'dreamhome', title:'Dream Home Builder', emoji:'🏠', badge:'new', grad:'linear-gradient(135deg,#2a1a3a,#0d2a2e)',
-    desc:'Decorate one shared dream home together — 9 rooms, luxury furniture, synced live.',
-    tags:['🏗 Builder','⏱ Ongoing','✨ 12 XP/item']},
+  {id:'ludo', title:'Real Ludo', emoji:'🎲', badge:'new', grad:'linear-gradient(135deg,#0d1a2a,#0d3a5c)',
+    desc:'Classic 2-player Ludo — real dice, safe cells, capturing & home stretch, synced live.',
+    tags:['🎲 Board','⏱ 15-25m','✨ 15 XP/win']},
+  {id:'ttt', title:'Tic Tac Toe', emoji:'❌⭕', badge:'', grad:'linear-gradient(135deg,#1a1a2e,#3a2e5c)',
+    desc:'Quick classic — perfectly synced moves, best-of streak scoring.',
+    tags:['⚡ Quick','⏱ 2-5m','✨ 8 XP/win']},
+  {id:'draw', title:'Draw & Guess', emoji:'🎨', badge:'', grad:'linear-gradient(135deg,#1a0d2e,#4a0d5c)',
+    desc:'One of you draws a secret word, the other guesses in real time — swap roles each round.',
+    tags:['🖌 Creative','⏱ 5-20m','✨ 20 XP/round']},
+  {id:'memory', title:'Memory Match', emoji:'🧠', badge:'', grad:'linear-gradient(135deg,#0d2a1a,#0d5c3a)',
+    desc:'Flip cards together to find matching pairs — turns sync instantly between you two.',
+    tags:['🧩 Classic','⏱ 5-10m','✨ 6 XP/pair']},
 ];
 
 /* ═══════════════════════════════════════════════════════
    HUB
 ═══════════════════════════════════════════════════════ */
-const DAILY_CHALLENGES = [
-  {ico:'❤️',title:'Play 1 Love Adventure chapter',reward:30,game:'love'},
-  {ico:'🏝️',title:'Place a building on your island',reward:25,game:'island'},
-  {ico:'🎨',title:'Draw something together',reward:20,game:'draw'},
-  {ico:'🧩',title:'Solve 2 escape puzzles',reward:35,game:'escape'},
-  {ico:'🔥',title:'Complete 5 truths or dares',reward:25,game:'tod'},
-];
-function todayChallenge(){ const d=new Date(); const idx=(d.getFullYear()*400+d.getMonth()*31+d.getDate())%DAILY_CHALLENGES.length; return DAILY_CHALLENGES[idx]; }
-function dailyDoneKey(){ return 'us_daily_'+ID.coupleId+'_'+todayStr(); }
-function isDailyDone(){ return localStorage.getItem(dailyDoneKey())==='1'; }
-function markDailyDone(){ localStorage.setItem(dailyDoneKey(),'1'); }
-
 const Hub = {
   activeGameId:null,
   async init(){
@@ -567,104 +604,22 @@ const Hub = {
   },
   render(){
     const el=document.getElementById('hub');
-    const dc = todayChallenge(); const done = isDailyDone();
-    const cont = Object.entries(GameCore.me().history).sort((a,b)=>b[1].ts-a[1].ts)[0];
-    const contGame = cont ? GAMES.find(g=>g.id===cont[0]) : null;
-
     el.innerHTML = `
       <div class="hub-hero">
         <div class="hub-title">🎮 Couple Games</div>
-        <div class="hub-sub">Play together, grow closer, level up as one 💕</div>
+        <div class="hub-sub">Play together, face to face, in real time 💕</div>
       </div>
-
       <div class="rank-row" id="rankRow"></div>
-
-      <div class="pa-insight-card" id="paInsightCard"></div>
-      <div class="pa-explore-row" id="paExploreRow"></div>
-
-      <div class="banner-row">
-        <div class="banner daily" onclick="${done?'':`Hub.playDaily()`}">
-          <div class="banner-ico">${dc.ico}</div>
-          <div class="banner-tag">${done?'✅ Completed':'Daily Challenge'}</div>
-          <div class="banner-title">${esc(dc.title)}</div>
-          <div class="banner-sub">Reward: 🪙 ${dc.reward} coins ${done?'· come back tomorrow':''}</div>
-          <div class="banner-prog"><div class="banner-prog-fill" style="width:${done?100:0}%"></div></div>
-        </div>
-        <div class="banner cont" style="${contGame?'':'opacity:.5;pointer-events:none'}" onclick="${contGame?`Hub.openGame('${contGame.id}')`:''}">
-          <div class="banner-ico">${contGame?contGame.emoji:'🎮'}</div>
-          <div class="banner-tag">Continue Playing</div>
-          <div class="banner-title">${contGame?esc(contGame.title):'No games played yet'}</div>
-          <div class="banner-sub">${contGame?'Pick up right where you left off':'Start any game below to begin'}</div>
-        </div>
-      </div>
-
-      <div class="hub-sec-title"><span>🏅 Achievements</span><div class="line"></div><span style="color:var(--text2)">${GameCore.me().achievements.length}/${ACHIEVEMENTS.length}</span></div>
-      <div class="pa-ach-prog-wrap"><div class="pa-ach-prog" style="width:${Math.round((GameCore.me().achievements.length/ACHIEVEMENTS.length)*100)}%"></div></div>
-      <div class="ach-strip" style="margin-top:10px">${ACHIEVEMENTS.map(a=>`<div class="ach-pill ${GameCore.me().achievements.includes(a.id)?'unlocked':''}" title="${esc(a.desc)}"><div class="ach-ico">${a.ico}</div><div class="ach-lbl">${esc(a.name)}</div></div>`).join('')}</div>
-
       <div class="hub-sec-title"><span>🎮 Games</span><div class="line"></div></div>
       <div class="games-grid" id="gamesGrid"></div>
-
-      <div class="hub-sec-title"><span>📆 Weekly Event</span><div class="line"></div></div>
-      <div class="banner daily" style="cursor:default">
-        <div class="banner-ico">🎉</div>
-        <div class="banner-tag">This Week</div>
-        <div class="banner-title">Double XP Weekend</div>
-        <div class="banner-sub">Play any game Sat–Sun for bonus rewards on level-ups 💫</div>
-      </div>
     `;
     this.renderGameCards();
-    this.renderPlayAnalytics();
-  },
-  renderPlayAnalytics(){
-    const insEl=document.getElementById('paInsightCard'), expEl=document.getElementById('paExploreRow');
-    if(!insEl && !expEl) return;
-    const me=GameCore.me(), pt=GameCore.pt();
-    const meHistCount=Object.keys(me.history||{}).length;
-    const exploredPct=Math.round((meHistCount/GAMES.length)*100);
-    const gamesTitles=Object.keys(me.history||{}).map(id=>(GAMES.find(g=>g.id===id)||{}).title).filter(Boolean);
-
-    if(insEl){
-      let text, ico='💡';
-      if(!meHistCount){ text='Play your first game together to start building couple stats.'; }
-      else if(me.xp>pt.xp){ const gap=me.xp-pt.xp; ico='🏆'; text=`You're ahead by <strong>${gap} XP</strong> this season — ${esc(ID.partnerName)} might be catching up soon!`; }
-      else if(pt.xp>me.xp){ const gap=pt.xp-me.xp; ico='🔥'; text=`${esc(ID.partnerName)} is ahead by <strong>${gap} XP</strong> — time for a comeback round?`; }
-      else { ico='🤝'; text=`You and ${esc(ID.partnerName)} are perfectly tied at <strong>${me.xp} XP</strong>.`; }
-      insEl.innerHTML=`<div class="pa-insight-ico">${ico}</div><div class="pa-insight-text">${text}</div>`;
-    }
-
-    if(expEl){
-      const r=26, circ=2*Math.PI*r, offset=circ-(exploredPct/100)*circ;
-      expEl.innerHTML=`
-        <div class="pa-explore-ring-wrap">
-          <svg viewBox="0 0 64 64" width="64" height="64">
-            <circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--g2)" stroke-width="6"/>
-            <circle cx="32" cy="32" r="${r}" fill="none" stroke="url(#paGrad)" stroke-width="6"
-              stroke-dasharray="${circ}" stroke-dashoffset="${circ}" stroke-linecap="round"
-              style="transition:stroke-dashoffset 1.1s cubic-bezier(0.34,1.56,0.64,1)" id="paExploreCircle"/>
-            <defs><linearGradient id="paGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="var(--gold)"/>
-            </linearGradient></defs>
-          </svg>
-          <div class="pa-explore-text">${exploredPct}%</div>
-        </div>
-        <div>
-          <div class="pa-explore-title">Games Explored</div>
-          <div class="pa-explore-label">${meHistCount}/${GAMES.length} tried${gamesTitles.length?' · '+esc(gamesTitles.slice(0,2).join(', '))+(gamesTitles.length>2?'…':''):''}</div>
-        </div>`;
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        const c=document.getElementById('paExploreCircle'); if(c) c.style.strokeDashoffset=offset;
-      }));
-    }
   },
   renderGameCards(){
     const grid=document.getElementById('gamesGrid'); if(!grid) return;
     const favs=GameCore.me().favorites;
     grid.innerHTML = GAMES.map(g=>{
       const hist=GameCore.me().history[g.id];
-      const prog = g.id==='love' ? Math.min(100,(GameCore.me().laChapter/8)*100) :
-                   g.id==='island' ? Math.min(100,(GameCore.me().islandBuildings/9)*100) :
-                   g.id==='escape' ? Math.min(100,(GameCore.me().escapesCleared/3)*100) : 0;
       const isFav = favs.includes(g.id);
       const live = partnerPresence.online && partnerPresence.game===g.id;
       return `<div class="gcard" onclick="Hub.openGame('${g.id}')">
@@ -677,7 +632,6 @@ const Hub = {
         <div class="gcard-body">
           <div class="gcard-title">${g.title}</div>
           <div class="gcard-desc">${g.desc}</div>
-          ${prog>0?`<div class="gprog-mini"><div class="gprog-mini-fill" style="width:${prog}%;background:linear-gradient(90deg,var(--accent),var(--accent2))"></div></div>`:''}
           <div class="gcard-meta">${g.tags.map(t=>`<span class="gtag">${t}</span>`).join('')}</div>
           <button class="gplay-btn" style="background:${g.grad}">${hist?'▶ Continue':'▶ Play Now'}</button>
         </div>
@@ -693,7 +647,7 @@ const Hub = {
     const ptBase=GameCore.xpForLevel(ptLv), ptNext=GameCore.xpForLevel(ptLv+1);
     const mePct=Math.min(100,Math.round((me.xp-meBase)/(meNext-meBase)*100));
     const ptPct=Math.min(100,Math.round((pt.xp-ptBase)/(ptNext-ptBase)*100));
-    const avHtml=(av,name,role)=> av?`<img src="${av}" alt="${esc(name)}">`:esc((name||'?')[0]||'?');
+    const avHtml=(av,name)=> av?`<img src="${av}" alt="${esc(name)}">`:esc((name||'?')[0]||'?');
     row.innerHTML = `
       <div class="rank-card me">
         <div class="rank-top">
@@ -701,11 +655,7 @@ const Hub = {
           <div><div class="rank-name">${esc(ID.myName)} (You)</div><div class="rank-lvl">Level ${meLv} · ${me.xp} XP</div></div>
         </div>
         <div class="rank-xpbar"><div class="rank-xpfill" style="width:${mePct}%"></div></div>
-        <div class="rank-stats">
-          <div class="rank-stat">🪙 ${me.coins}</div>
-          <div class="rank-stat">💎 ${me.diamonds}</div>
-          <div class="rank-stat">🔥 ${me.streakDays||0}d streak</div>
-        </div>
+        <div class="rank-stats"><div class="rank-stat">🪙 ${me.coins}</div><div class="rank-stat">🔥 ${me.streakDays||0}d streak</div></div>
       </div>
       <div class="rank-vs">VS<span style="font-size:11px;color:var(--text3);font-family:var(--ff-sans)">💕</span></div>
       <div class="rank-card pt">
@@ -714,797 +664,274 @@ const Hub = {
           <div><div class="rank-name">${esc(ID.partnerName)}</div><div class="rank-lvl">Level ${ptLv} · ${pt.xp} XP</div></div>
         </div>
         <div class="rank-xpbar"><div class="rank-xpfill" style="width:${ptPct}%"></div></div>
-        <div class="rank-stats">
-          <div class="rank-stat">🪙 ${pt.coins}</div>
-          <div class="rank-stat">💎 ${pt.diamonds}</div>
-          <div class="rank-stat">🔥 ${pt.streakDays||0}d streak</div>
-        </div>
+        <div class="rank-stats"><div class="rank-stat">🪙 ${pt.coins}</div><div class="rank-stat">🔥 ${pt.streakDays||0}d streak</div></div>
         ${partnerPresence.online && partnerPresence.game ? `<div class="rank-playing"><span class="dot"></span>Playing ${(GAMES.find(g=>g.id===partnerPresence.game)||{}).title||'a game'}</div>` : ''}
       </div>`;
-    if(document.getElementById('paInsightCard')) this.renderPlayAnalytics();
   },
-  playDaily(){
-    const dc=todayChallenge();
-    this.openGame(dc.game);
-    this._dailyPending = dc;
-  },
-  completeDailyIfPending(gid){
-    if(this._dailyPending && this._dailyPending.game===gid && !isDailyDone()){
-      markDailyDone(); GameCore.addCoins(this._dailyPending.reward); Snd.success();
-      toast('🎉 Daily challenge complete! +'+this._dailyPending.reward+' coins',3000);
-      this._dailyPending=null; this.render();
-    }
-  },
-  openGame(id){
-    Snd.click(); GameCore.unlock('first_play'); GameCore.touchStreak();
-    this.activeGameId=id; setPresenceGame(id);
-    const g=GAMES.find(x=>x.id===id);
-    document.getElementById('goEmoji').textContent=g.emoji;
-    document.getElementById('goText').textContent=g.title;
+  openGame(gid){
+    const g = GAMES.find(x=>x.id===gid); if(!g) return;
+    this.activeGameId = gid;
+    setPresenceGame(gid);
+    GameCore.setLastGame(gid);
+    document.getElementById('goEmoji').textContent = g.emoji;
+    document.getElementById('goText').textContent = g.title;
+    document.getElementById('goXpChip').textContent = '✨ '+GameCore.me().xp+' XP';
     document.getElementById('goverlay').classList.add('open');
-    this.updateHeadChips();
-    const body=document.getElementById('goBody');
-    body.className='gobody'; body.innerHTML='<div style="text-align:center;padding:60px 0;color:var(--text3)">Loading…</div>';
-    setTimeout(()=>{
-      if(id==='love') LoveAdventure.open(body);
-      else if(id==='island') Island.open(body);
-      else if(id==='draw') Draw.open(body);
-      else if(id==='escape') Escape.open(body);
-      else if(id==='tod') TOD.open(body);
-      else if(id==='dreamhome') DreamHome.open(body);
-      else if(id==='atw') AroundWorld.open(body);
-      else if(id==='space') SpaceDate.open(body);
-    },120);
-  },
-  updateHeadChips(){
-    document.getElementById('goXpChip').textContent='✨ '+GameCore.me().xp+' XP';
-    document.getElementById('goCoinChip').textContent='🪙 '+GameCore.me().coins;
+    const body = document.getElementById('goBody');
+    body.className='gobody'; body.innerHTML='';
+    Snd.click();
+    ({tod:TOD, ludo:Ludo, ttt:TTT, draw:Draw, memory:Memory})[gid].open(body);
   },
   exitGame(){
-    Snd.tap();
-    ['LoveAdventure','Island','Draw','Escape','TOD','DreamHome','AroundWorld','SpaceDate'].forEach(n=>{ try{ window[n].close && window[n].close(); }catch(e){} });
+    const gid=this.activeGameId;
+    GameVideo.stop(true);
+    ({tod:TOD, ludo:Ludo, ttt:TTT, draw:Draw, memory:Memory})[gid]?.close?.();
     document.getElementById('goverlay').classList.remove('open');
-    
-    setPresenceGame(null); this.activeGameId=null;
-    this.render(); this.refreshRankCards();
+    this.activeGameId=null;
+    setPresenceGame(null);
+    this.renderGameCards();
   }
 };
+
+/* theme sync from parent shell */
 window.addEventListener('message', e=>{ if(e.data?.type==='theme'){ const r=document.documentElement; Object.entries(e.data.vars||{}).forEach(([k,v])=>{ if(v) r.style.setProperty(k,v); }); } });
 
 /* ═══════════════════════════════════════════════════════
-   GAME 1 — LOVE ADVENTURE
+   GAME 1 — TIC TAC TOE
 ═══════════════════════════════════════════════════════ */
-const LA_CHAPTERS = [
-  {id:0,tag:'Prologue',emoji:'🌅',title:'Where It Began',
-    text:'Every love story starts somewhere. Think back to the moment you two first connected — that spark is the beginning of this adventure.',
-    choices:[{t:'Begin our story 💕',next:1,xp:10}]},
-  {id:1,tag:'Chapter 1',emoji:'☕',title:'The First Spark',
-    text:'You\'re sitting across from each other, and there\'s a comfortable silence. What do you do?',
-    choices:[
-      {t:'Reach for their hand',next:2,xp:15,flag:'gentle'},
-      {t:'Make them laugh with a joke',next:2,xp:15,flag:'playful'},
-      {t:'Tell them something true',next:2,xp:15,flag:'honest'}]},
-  {id:2,tag:'Chapter 2',emoji:'🌃',title:'A Night to Remember',
-    text:'The city lights are glowing. This feels like a memory you\'ll both keep forever.',
-    mission:{type:'photo',title:'Capture This Moment',desc:'Take a photo together (or of something that reminds you of tonight) to unlock the next chapter.'},
-    choices:[{t:'Continue the story',next:3,xp:20}]},
-  {id:3,tag:'Chapter 3',emoji:'💌',title:'Words Unspoken',
-    text:'Some feelings are easier to write than say out loud.',
-    mission:{type:'voice',title:'Record a Voice Note',desc:'Record a short voice message telling your partner something you love about them.'},
-    choices:[{t:'Send it with love',next:4,xp:25}]},
-  {id:4,tag:'Chapter 4',emoji:'🌧️',title:'Weathering It Together',
-    text:'Not every day is sunshine. A small disagreement tests you both. How do you handle it?',
-    choices:[
-      {t:'Talk it through calmly',next:5,xp:20,flag:'communicator'},
-      {t:'Give each other space, then reconnect',next:5,xp:20,flag:'patient'},
-      {t:'Write down how you feel first',next:5,xp:20,flag:'thoughtful'}]},
-  {id:5,tag:'Chapter 5',emoji:'🎊',title:'Celebrating Us',
-    text:'You made it through. Time to celebrate what you\'ve built together.',
-    mission:{type:'text',title:'Write a Toast',desc:'Write a short toast to your relationship — what are you most proud of?'},
-    choices:[{t:'Raise a glass 🥂',next:6,xp:25}]},
-  {id:6,tag:'Chapter 6',emoji:'🔮',title:'Looking Forward',
-    text:'What does your future together look like? Picture it clearly.',
-    choices:[
-      {t:'A cozy home full of laughter',next:7,xp:20,flag:'home'},
-      {t:'Traveling the world side by side',next:7,xp:20,flag:'travel'},
-      {t:'Building something meaningful together',next:7,xp:20,flag:'ambition'}]},
-  {id:7,tag:'Finale',emoji:'💍',title:'Everything Together',
-    text:'This chapter of your story is complete — but your real story keeps going, every single day.',
-    secret:true,
-    choices:[{t:'Complete the story ✨',next:8,xp:50}]},
-  {id:8,tag:'The End',emoji:'♾️',title:'To Be Continued…',
-    text:'You\'ve completed Love Adventure Season 1! New chapters unlock as you keep playing together. Replay anytime to explore different choices.',
-    choices:[{t:'Replay from the start',next:0,xp:0,restart:true}]},
-];
-const LoveAdventure = {
+const TTT_LINES=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+const TTT = {
   chan:null, state:null,
   async open(body){
-    this.chan = new GameChannel('love');
+    this.chan = new GameChannel('ttt');
     let st = await this.chan.load();
-    if(!st) st = { current:0, flags:{}, missionsDone:{}, unlockedMax:0 };
+    if(!st) st = {board:Array(9).fill(null), turn:'user1', winner:null, line:null, scores:{user1:0,user2:0}};
     this.state = st;
-    this.chan.listen(payload=>{ if(payload.type==='sync'){ this.state=payload.state; this.render(); } });
+    this.chan.listen(p=>{ if(p.type==='sync'){ this.state=p.state; this.render(); } });
     this.render();
   },
   close(){ if(this.chan) this.chan.close(); },
   sync(){ this.chan.send({type:'sync',state:this.state}); this.chan.persist(this.state); },
-  goTo(idx,xp,restart){
-    if(restart) this.state={current:0,flags:{},missionsDone:{},unlockedMax:0};
-    else {
-      this.state.current=idx;
-      this.state.unlockedMax=Math.max(this.state.unlockedMax,idx);
-      GameCore.me().laChapter=Math.max(GameCore.me().laChapter,idx);
-      if(idx>=3) GameCore.unlock('love_ch3');
-      if(xp) GameCore.addXP(xp);
-    }
-    Hub.completeDailyIfPending('love');
-    this.sync(); this.render(); Snd.success();
-  },
-  completeMission(){
-    const ch=LA_CHAPTERS[this.state.current];
-    this.state.missionsDone[ch.id]=true;
-    GameCore.addCoins(10); Snd.coin(); toast('Mission complete! +10 coins 🪙');
-    this.sync(); this.render();
-  },
-  render(){
-    const body=document.getElementById('goBody'); if(!body) return;
-    const ch = LA_CHAPTERS[this.state.current];
-    const missionPending = ch.mission && !this.state.missionsDone[ch.id];
-    body.innerHTML = `
-      <div class="la-scene">
-        <div class="la-scene-bg">${ch.emoji}</div><div class="la-scene-grad"></div>
-        <div class="la-scene-content">
-          <div class="la-chap-tag">${esc(ch.tag)}</div>
-          <div class="la-title">${ch.emoji} ${esc(ch.title)}</div>
-          <div class="la-text">${esc(ch.text)}</div>
-        </div>
-      </div>
-      ${ch.mission ? `<div class="la-mission-card">
-        <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#ff9ec7;margin-bottom:6px">💫 Daily Mission ${this.state.missionsDone[ch.id]?'· ✅ Done':''}</div>
-        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px">${esc(ch.mission.title)}</div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:10px">${esc(ch.mission.desc)}</div>
-        ${this.state.missionsDone[ch.id] ? '' : `<button class="btn btn-pink btn-sm" onclick="LoveAdventure.doMission('${ch.mission.type}')">${ch.mission.type==='photo'?'📷 Capture':ch.mission.type==='voice'?'🎙️ Record':'✍️ Write'}</button>`}
-      </div>` : ''}
-      <div class="la-choices">
-        ${ch.choices.map(c=>`<button class="la-choice" ${missionPending?'disabled style="opacity:.4;pointer-events:none"':''} onclick="LoveAdventure.goTo(${c.next},${c.xp||0},${!!c.restart})">${esc(c.t)} ${c.xp?`<span style="margin-left:auto;color:var(--accent-l);font-size:11px;font-weight:800">+${c.xp} XP</span>`:''}</button>`).join('')}
-      </div>
-      <div class="hub-sec-title" style="margin-top:18px"><span>🗺️ Story Map</span><div class="line"></div></div>
-      <div class="la-map">
-        ${LA_CHAPTERS.map((c,i)=>`<div class="la-node ${i<=this.state.unlockedMax?'done':(i===this.state.unlockedMax+1?'cur':'locked')}" onclick="${i<=this.state.unlockedMax?`LoveAdventure.goTo(${i},0,false)`:''}" title="${esc(c.title)}">${c.emoji}</div>`).join('')}
-      </div>
-    `;
-  },
-  doMission(type){
-    if(type==='photo'){
-      const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.capture='environment';
-      inp.onchange=()=>{ if(inp.files[0]) this.completeMission(); };
-      inp.click();
-    } else if(type==='voice'){
-      if(!navigator.mediaDevices){ toast('Mic not supported on this device — marking complete anyway 💕'); this.completeMission(); return; }
-      navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
-        toast('🎙️ Recording… speak now (3s)');
-        const rec=new MediaRecorder(stream);
-        rec.start();
-        setTimeout(()=>{ rec.stop(); stream.getTracks().forEach(t=>t.stop()); this.completeMission(); },3000);
-      }).catch(()=>{ toast('Mic permission denied — try the write option next time'); this.completeMission(); });
+  mySymbol(){ return ID.role==='user1' ? 'X' : 'O'; },
+  play(i){
+    if(this.state.winner || this.state.board[i] || this.state.turn!==ID.role) return;
+    this.state.board[i]=this.mySymbol();
+    const win=this.checkWin();
+    if(win){
+      this.state.winner=ID.role; this.state.line=win;
+      this.state.scores[ID.role]=(this.state.scores[ID.role]||0)+1;
+      GameCore.addXP(8); GameCore.addCoins(5); Snd.success();
+      setTimeout(()=>showReward('🏆','You won this round!',['+8 XP','+5 🪙']),300);
+    } else if(this.state.board.every(c=>c)){
+      this.state.winner='draw'; Snd.tap();
     } else {
-      const msg=prompt('Write your toast / message:');
-      if(msg!==null) this.completeMission();
+      this.state.turn = this.state.turn==='user1'?'user2':'user1';
+      Snd.tap();
     }
-  }
-};
-
-/* ═══════════════════════════════════════════════════════
-   GAME 2 — BUILD OUR DREAM ISLAND
-═══════════════════════════════════════════════════════ */
-const ISL_BUILDINGS = [
-  {id:'house',emoji:'🏠',name:'House',cost:0,lvl:1},
-  {id:'garden',emoji:'🌷',name:'Garden',cost:20,lvl:1},
-  {id:'beach',emoji:'🏖️',name:'Beach',cost:35,lvl:1},
-  {id:'pool',emoji:'🏊',name:'Pool',cost:60,lvl:2},
-  {id:'restaurant',emoji:'🍽️',name:'Restaurant',cost:90,lvl:2},
-  {id:'pets',emoji:'🐶',name:'Pets',cost:50,lvl:2,anim:true},
-  {id:'boat',emoji:'⛵',name:'Boat',cost:110,lvl:3,anim:true},
-  {id:'villa',emoji:'🏰',name:'Luxury Villa',cost:200,lvl:4},
-  {id:'cinema',emoji:'🎬',name:'Cinema',cost:150,lvl:3},
-];
-const ISL_SIZE = 6;
-const Island = {
-  chan:null, state:null, selected:'house',
-  async open(body){
-    this.chan = new GameChannel('island');
-    let st = await this.chan.load();
-    if(!st) st = { grid:{} };
-    this.state = st;
-    this.chan.listen(payload=>{ if(payload.type==='place'){ this.state.grid[payload.key]=payload.b; this.renderGrid(); } });
-    this.render(body);
-  },
-  close(){ if(this.chan) this.chan.close(); },
-  render(body){
-    const coupleLevel = GameCore.level(GameCore.me().xp+GameCore.pt().xp);
-    body.className='gobody nopad';
-    body.innerHTML = `<div class="isl-wrap">
-      <div class="isl-topbar" id="islTopbar"></div>
-      <div class="isl-canvas-wrap"><div class="isl-grid" id="islGrid" style="grid-template-columns:repeat(${ISL_SIZE},46px)"></div></div>
-    </div>`;
-    const tb=document.getElementById('islTopbar');
-    tb.innerHTML = ISL_BUILDINGS.map(b=>{
-      const locked = coupleLevel<b.lvl;
-      return `<div class="isl-item ${this.selected===b.id?'sel':''} ${locked?'locked':''}" onclick="${locked?'':`Island.select('${b.id}')`}" title="${locked?'Unlocks at couple level '+b.lvl:b.name}">
-        <div class="isl-item-emoji">${locked?'🔒':b.emoji}</div>
-        <div class="isl-item-name">${b.name}</div>
-        <div class="isl-item-cost">${locked?'Lv.'+b.lvl:(b.cost?'🪙'+b.cost:'Free')}</div>
-      </div>`;
-    }).join('');
-    this.renderGrid();
-  },
-  select(id){ this.selected=id; Snd.tap(); this.render(document.getElementById('goBody')); },
-  renderGrid(){
-    const grid=document.getElementById('islGrid'); if(!grid) return;
-    let html='';
-    for(let y=0;y<ISL_SIZE;y++) for(let x=0;x<ISL_SIZE;x++){
-      const key=x+'_'+y; const bid=this.state.grid[key];
-      const b = bid ? ISL_BUILDINGS.find(x2=>x2.id===bid) : null;
-      html += `<div class="isl-tile ${b?'filled':''}" onclick="Island.place('${key}')">${b?`<span class="${b.anim?'anim':''}">${b.emoji}</span>`:''}</div>`;
-    }
-    grid.innerHTML=html;
-  },
-  place(key){
-    const b = ISL_BUILDINGS.find(x=>x.id===this.selected);
-    if(!b) return;
-    const coupleLevel = GameCore.level(GameCore.me().xp+GameCore.pt().xp);
-    if(coupleLevel<b.lvl){ toast('🔒 Unlocks at couple level '+b.lvl); return; }
-    if(GameCore.me().coins<b.cost){ toast('Not enough coins 🪙 — earn more by playing!'); return; }
-    if(b.cost>0) GameCore.addCoins(-b.cost);
-    this.state.grid[key]=b.id;
-    GameCore.me().islandBuildings=Object.keys(this.state.grid).length;
-    if(GameCore.me().islandBuildings>=5) GameCore.unlock('island_5');
-    const placedTypes = new Set(Object.values(this.state.grid));
-    if(ISL_BUILDINGS.every(bd=>placedTypes.has(bd.id))) GameCore.unlock('island_all');
-    GameCore.addXP(15);
-    Hub.completeDailyIfPending('island');
-    Snd.place();
-    this.chan.send({type:'place',key,b:b.id}); this.chan.persist(this.state);
-    this.renderGrid();
-  }
-};
-const DH_ROOMS = [
-  {id:'bedroom',  name:'Bedroom',       emoji:'🛏️', lvl:1, size:5},
-  {id:'kitchen',  name:'Kitchen',       emoji:'🍳', lvl:1, size:5},
-  {id:'living',   name:'Living Room',   emoji:'🛋️', lvl:1, size:6},
-  {id:'garden',   name:'Garden',        emoji:'🌷', lvl:2, size:6},
-  {id:'balcony',  name:'Balcony',       emoji:'🌇', lvl:2, size:4},
-  {id:'gaming',   name:'Gaming Room',   emoji:'🎮', lvl:3, size:5},
-  {id:'theater',  name:'Home Theater',  emoji:'🎬', lvl:3, size:5},
-  {id:'pool',     name:'Swimming Pool', emoji:'🏊', lvl:4, size:6},
-  {id:'garage',   name:'Garage',        emoji:'🚗', lvl:4, size:5},
-];
- 
-// Items available per room. cost in coins, lvl = couple-level gate, anim = gentle bob animation.
-const DH_ITEMS = {
-  bedroom:  [{id:'bed',emoji:'🛏️',name:'Bed',cost:0,lvl:1},{id:'wardrobe',emoji:'🚪',name:'Wardrobe',cost:25,lvl:1},
-             {id:'lamp',emoji:'🪔',name:'Lamp',cost:15,lvl:1,anim:true},{id:'rug',emoji:'🟫',name:'Rug',cost:10,lvl:1},
-             {id:'mirror',emoji:'🪞',name:'Mirror',cost:20,lvl:2},{id:'plant',emoji:'🪴',name:'Plant',cost:15,lvl:1,anim:true}],
-  kitchen:  [{id:'stove',emoji:'🍳',name:'Stove',cost:0,lvl:1},{id:'fridge',emoji:'🧊',name:'Fridge',cost:30,lvl:1},
-             {id:'table',emoji:'🪑',name:'Dining Set',cost:35,lvl:1},{id:'cupboard',emoji:'🗄️',name:'Cupboard',cost:20,lvl:1},
-             {id:'coffee',emoji:'☕',name:'Coffee Bar',cost:25,lvl:2},{id:'fruit',emoji:'🍎',name:'Fruit Bowl',cost:8,lvl:1}],
-  living:   [{id:'sofa',emoji:'🛋️',name:'Sofa',cost:0,lvl:1},{id:'tv',emoji:'📺',name:'TV',cost:45,lvl:1},
-             {id:'bookshelf',emoji:'📚',name:'Bookshelf',cost:25,lvl:1},{id:'fireplace',emoji:'🔥',name:'Fireplace',cost:60,lvl:2,anim:true},
-             {id:'art',emoji:'🖼️',name:'Wall Art',cost:20,lvl:1},{id:'clock',emoji:'🕰️',name:'Clock',cost:12,lvl:1}],
-  garden:   [{id:'flowers',emoji:'🌷',name:'Flowerbed',cost:0,lvl:2},{id:'tree',emoji:'🌳',name:'Tree',cost:30,lvl:2},
-             {id:'bench',emoji:'🪑',name:'Garden Bench',cost:20,lvl:2},{id:'fountain',emoji:'⛲',name:'Fountain',cost:70,lvl:3,anim:true},
-             {id:'swing',emoji:'🎠',name:'Swing',cost:40,lvl:2,anim:true},{id:'butterfly',emoji:'🦋',name:'Butterflies',cost:15,lvl:2,anim:true}],
-  balcony:  [{id:'chair',emoji:'🪑',name:'Lounge Chair',cost:0,lvl:2},{id:'string',emoji:'✨',name:'Fairy Lights',cost:20,lvl:2,anim:true},
-             {id:'plantb',emoji:'🪴',name:'Potted Plant',cost:12,lvl:2},{id:'telescope',emoji:'🔭',name:'Telescope',cost:35,lvl:3},
-             {id:'hammock',emoji:'🛌',name:'Hammock',cost:30,lvl:3}],
-  gaming:   [{id:'console',emoji:'🎮',name:'Console',cost:0,lvl:3},{id:'chairg',emoji:'💺',name:'Gaming Chair',cost:40,lvl:3},
-             {id:'arcade',emoji:'🕹️',name:'Arcade Machine',cost:80,lvl:4},{id:'neon',emoji:'💡',name:'Neon Sign',cost:25,lvl:3,anim:true},
-             {id:'shelf2',emoji:'🎯',name:'Trophy Shelf',cost:30,lvl:3}],
-  theater:  [{id:'screen',emoji:'🎬',name:'Big Screen',cost:0,lvl:3},{id:'recliner',emoji:'💺',name:'Recliners',cost:50,lvl:3},
-             {id:'popcorn',emoji:'🍿',name:'Popcorn Bar',cost:20,lvl:3},{id:'speaker',emoji:'🔊',name:'Sound System',cost:45,lvl:4}],
-  pool:     [{id:'water',emoji:'🏊',name:'Pool',cost:0,lvl:4},{id:'lounger',emoji:'🏖️',name:'Loungers',cost:30,lvl:4},
-             {id:'umbrella',emoji:'⛱️',name:'Umbrella',cost:20,lvl:4},{id:'diving',emoji:'🤿',name:'Diving Board',cost:40,lvl:4,anim:true},
-             {id:'flamingo',emoji:'🦩',name:'Pool Float',cost:15,lvl:4,anim:true}],
-  garage:   [{id:'car',emoji:'🚗',name:'Car',cost:0,lvl:4},{id:'bike',emoji:'🏍️',name:'Motorbike',cost:60,lvl:4},
-             {id:'tools',emoji:'🧰',name:'Tool Rack',cost:20,lvl:4},{id:'bike2',emoji:'🚲',name:'Bicycles',cost:25,lvl:4}],
-};
-// Ultra-premium "Luxury Furniture" pool — unlockable in ANY room once couple level 6+
-const DH_LUXURY = [
-  {id:'chandelier',emoji:'💎',name:'Chandelier',cost:150,lvl:6,anim:true},
-  {id:'goldstatue',emoji:'🏆',name:'Gold Statue',cost:120,lvl:6},
-  {id:'jacuzzi',emoji:'🛁',name:'Jacuzzi',cost:180,lvl:7,anim:true},
-  {id:'grandpiano',emoji:'🎹',name:'Grand Piano',cost:160,lvl:7},
-];
- 
-const DH_ACHIEVEMENTS_EXTRA = [
-  {id:'dh_first',ico:'🏠',name:'Homeowner',desc:'Place your first item'},
-  {id:'dh_room_done',ico:'🎉',name:'Room Complete',desc:'Fill every tile in one room'},
-  {id:'dh_allrooms',ico:'👑',name:'Dream House',desc:'Unlock all 9 rooms'},
-  {id:'dh_luxury',ico:'💎',name:'Luxury Life',desc:'Place a luxury furniture item'},
-];
-// Merge into main ACHIEVEMENTS array if not already present (safe no-op if run twice)
-DH_ACHIEVEMENTS_EXTRA.forEach(a=>{ if(!ACHIEVEMENTS.find(x=>x.id===a.id)) ACHIEVEMENTS.push(a); });
- 
-const DreamHome = {
-  chan:null, state:null, curRoom:'bedroom', selected:null,
-  async open(body){
-    this.chan = new GameChannel('dreamhome');
-    let st = await this.chan.load();
-    if(!st) st = { rooms:{} }; // rooms[roomId] = { "x_y": itemId }
-    DH_ROOMS.forEach(r=>{ if(!st.rooms[r.id]) st.rooms[r.id]={}; });
-    this.state = st;
-    this.chan.listen(payload=>{ if(payload.type==='place'){ this.state.rooms[payload.room][payload.key]=payload.item; if(this.curRoom===payload.room) this.renderGrid(); this.renderScore(); } });
-    this.render(body);
-  },
-  close(){ if(this.chan) this.chan.close(); },
-  coupleLevel(){ return GameCore.level(GameCore.me().xp + GameCore.pt().xp); },
-  render(body){
-    body.className='gobody nopad';
-    body.innerHTML = `<div class="dh-wrap">
-      <div class="dh-roomtabs" id="dhRoomTabs"></div>
-      <div class="dh-shoptray" id="dhShopTray"></div>
-      <div class="dh-canvas-wrap"><div class="dh-room" id="dhRoomGrid"></div></div>
-      <div class="dh-home-score" id="dhScoreRow"></div>
-    </div>`;
-    this.renderTabs(); this.renderShop(); this.renderGrid(); this.renderScore();
-  },
-  renderTabs(){
-    const el=document.getElementById('dhRoomTabs'); if(!el) return;
-    const cl=this.coupleLevel();
-    el.innerHTML = DH_ROOMS.map(r=>{
-      const locked = cl<r.lvl;
-      return `<div class="dh-roomtab ${this.curRoom===r.id?'sel':''} ${locked?'locked':''}" onclick="${locked?'':`DreamHome.switchRoom('${r.id}')`}" title="${locked?'Unlocks at couple level '+r.lvl:r.name}">
-        ${locked?'🔒':r.emoji} ${r.name}
-      </div>`;
-    }).join('');
-  },
-  switchRoom(id){ this.curRoom=id; this.selected=null; Snd.tap(); this.renderTabs(); this.renderShop(); this.renderGrid(); },
-  renderShop(){
-    const el=document.getElementById('dhShopTray'); if(!el) return;
-    const cl=this.coupleLevel();
-    const pool = (DH_ITEMS[this.curRoom]||[]).concat(cl>=6?DH_LUXURY:[]);
-    el.innerHTML = pool.map(it=>{
-      const locked = cl<it.lvl;
-      return `<div class="dh-item ${this.selected===it.id?'sel':''} ${locked?'locked':''}" onclick="${locked?'':`DreamHome.select('${it.id}')`}" title="${locked?'Unlocks at couple level '+it.lvl:it.name}">
-        <div class="dh-item-emoji">${locked?'🔒':it.emoji}</div>
-        <div class="dh-item-name">${it.name}</div>
-        <div class="dh-item-cost">${locked?'Lv.'+it.lvl:(it.cost?'🪙'+it.cost:'Free')}</div>
-      </div>`;
-    }).join('');
-  },
-  select(id){ this.selected=id; Snd.tap(); this.renderShop(); },
-  findItem(id){
-    return (DH_ITEMS[this.curRoom]||[]).find(x=>x.id===id) || DH_LUXURY.find(x=>x.id===id);
-  },
-  renderGrid(){
-    const grid=document.getElementById('dhRoomGrid'); if(!grid) return;
-    const room = DH_ROOMS.find(r=>r.id===this.curRoom);
-    const size = room.size;
-    grid.style.gridTemplateColumns = `repeat(${size},46px)`;
-    grid.style.background = this.roomGradient(room.id);
-    const placed = this.state.rooms[room.id] || {};
-    let html='';
-    for(let y=0;y<size;y++) for(let x=0;x<size;x++){
-      const key=x+'_'+y; const itemId=placed[key];
-      const it = itemId ? this.findItem(itemId) : null;
-      html += `<div class="dh-tile ${it?'filled':''}" onclick="DreamHome.place('${key}')">${it?`<span class="${it.anim?'anim':''}">${it.emoji}</span>`:''}</div>`;
-    }
-    grid.innerHTML = html;
-  },
-  roomGradient(id){
-    const g = {
-      bedroom:'linear-gradient(160deg,#2a1a3a,#1a0e2e)', kitchen:'linear-gradient(160deg,#3a2a1a,#2e1e0e)',
-      living:'linear-gradient(160deg,#1a2a3a,#0e1e2e)', garden:'linear-gradient(160deg,#0a2a3a,#0e3a2e)',
-      balcony:'linear-gradient(160deg,#3a1a2a,#2e0e1e)', gaming:'linear-gradient(160deg,#1a0a3a,#2e0e4a)',
-      theater:'linear-gradient(160deg,#0a0a1a,#1a0a2a)', pool:'linear-gradient(160deg,#0a2a3a,#0e4a5c)',
-      garage:'linear-gradient(160deg,#2a2a2a,#1a1a1a)'
-    };
-    return g[id] || 'linear-gradient(160deg,#0a2a3a,#0e3a2e)';
-  },
-  place(key){
-    if(!this.selected){ toast('Pick an item from the tray first 🛋️'); return; }
-    const it = this.findItem(this.selected);
-    if(!it) return;
-    const cl = this.coupleLevel();
-    if(cl<it.lvl){ toast('🔒 Unlocks at couple level '+it.lvl); return; }
-    if(GameCore.me().coins<it.cost){ toast('Not enough coins 🪙'); return; }
-    if(it.cost>0) GameCore.addCoins(-it.cost);
-    this.state.rooms[this.curRoom][key]=it.id;
-    GameCore.addXP(12);
-    Hub.completeDailyIfPending && Hub.completeDailyIfPending('dreamhome');
-    Snd.place();
-    GameCore.unlock('dh_first');
-    if(DH_LUXURY.find(l=>l.id===it.id)) GameCore.unlock('dh_luxury');
-    // room complete?
-    const room = DH_ROOMS.find(r=>r.id===this.curRoom);
-    const filled = Object.keys(this.state.rooms[this.curRoom]).length;
-    if(filled>=room.size*room.size) GameCore.unlock('dh_room_done');
-    // all rooms unlocked?
-    if(DH_ROOMS.every(r=>this.coupleLevel()>=r.lvl)) GameCore.unlock('dh_allrooms');
-    this.chan.send({type:'place',room:this.curRoom,key,item:it.id}); this.chan.persist(this.state);
-    this.renderGrid(); this.renderScore();
-  },
-  renderScore(){
-    const el=document.getElementById('dhScoreRow'); if(!el) return;
-    let total=0, done=0;
-    DH_ROOMS.forEach(r=>{ const f=Object.keys(this.state.rooms[r.id]||{}).length; total+=f; if(f>=r.size*r.size) done++; });
-    el.innerHTML = `
-      <div class="dh-score-chip">🛋️ ${total} items placed</div>
-      <div class="dh-score-chip">🏠 ${done}/${DH_ROOMS.length} rooms complete</div>
-      <div class="dh-score-chip">⭐ Couple Lv.${this.coupleLevel()}</div>
-    `;
-  }
-};
-/* ═══════════════════════════════════════════════════════
-   GAME 3 — DRAW TOGETHER
-═══════════════════════════════════════════════════════ */
-const DRAW_COLORS = ['#111111','#f87171','#fb923c','#fbbf24','#34d399','#38bdf8','#818cf8','#e879f9','#ffffff'];
-const GUESS_WORDS = ['Heart','Sunset','Beach','Coffee','Rainbow','Cake','Star','Flower','Guitar','Mountain','Cat','Dog','Rocket','Rainbow','Moon','Pizza','Umbrella','Fireworks'];
-const Draw = {
-  chan:null, canvas:null, ctx:null, drawing:false, color:'#111111', size:5, tool:'pen',
-  strokes:[], myStrokeStack:[], guessMode:false, guessWord:'', guessTimer:null, guessSecs:0,
-  async open(body){
-    this.chan = new GameChannel('draw');
-    body.className='gobody nopad';
-    body.innerHTML = `<div class="dw-wrap">
-      <div class="dw-toolbar" id="dwToolbar"></div>
-      <div class="dw-canvas-wrap"><canvas id="dwCanvas"></canvas><div class="dw-guess-banner" id="dwGuessBanner" style="display:none"></div></div>
-    </div>`;
-    this.buildToolbar();
-    this.canvas = document.getElementById('dwCanvas'); this.ctx = this.canvas.getContext('2d');
-    const wrap = this.canvas.parentElement;
-    this.canvas.width = wrap.clientWidth; this.canvas.height = wrap.clientHeight;
-    this.ctx.fillStyle='#fff'; this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height);
-    this.attachEvents();
-    const saved = await this.chan.load();
-    if(saved && saved.img){ const img=new Image(); img.onload=()=>this.ctx.drawImage(img,0,0,this.canvas.width,this.canvas.height); img.src=saved.img; }
-    this.chan.listen(payload=>{
-      if(payload.type==='stroke') this.drawRemoteStroke(payload);
-      if(payload.type==='clear'){ this.ctx.fillStyle='#fff'; this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height); }
-      if(payload.type==='guessStart'){ this.guessWord=payload.word; this.startGuessUI(payload.by); }
-    });
-  },
-  close(){ if(this.chan) this.chan.close(); clearInterval(this.guessTimer); },
-  buildToolbar(){
-    const tb=document.getElementById('dwToolbar');
-    tb.innerHTML = `
-      ${DRAW_COLORS.map(c=>`<div class="dw-color ${this.color===c?'sel':''}" style="background:${c}" onclick="Draw.setColor('${c}')"></div>`).join('')}
-      <input type="range" min="2" max="24" value="${this.size}" oninput="Draw.setSize(this.value)" style="width:60px">
-      <button class="dw-tool-btn ${this.tool==='pen'?'sel':''}" onclick="Draw.setTool('pen')">✏️</button>
-      <button class="dw-tool-btn ${this.tool==='eraser'?'sel':''}" onclick="Draw.setTool('eraser')">🧽</button>
-      <button class="dw-tool-btn ${this.tool==='rect'?'sel':''}" onclick="Draw.setTool('rect')">▭</button>
-      <button class="dw-tool-btn ${this.tool==='circle'?'sel':''}" onclick="Draw.setTool('circle')">◯</button>
-      <button class="dw-tool-btn" onclick="Draw.stamp()">✨</button>
-      <button class="dw-tool-btn" onclick="Draw.undo()">↩️</button>
-      <button class="dw-tool-btn" onclick="Draw.clearAll()">🗑️</button>
-      <button class="btn btn-glass btn-sm" onclick="Draw.toggleGuess()">🎯 Guess</button>
-      <button class="btn btn-accent btn-sm" onclick="Draw.save()">💾 Save</button>
-    `;
-  },
-  setColor(c){ this.color=c; this.buildToolbar(); },
-  setSize(v){ this.size=+v; },
-  setTool(t){ this.tool=t; this.buildToolbar(); },
-  pos(e){ const r=this.canvas.getBoundingClientRect(); const p=e.touches?e.touches[0]:e; return {x:(p.clientX-r.left)*(this.canvas.width/r.width), y:(p.clientY-r.top)*(this.canvas.height/r.height)}; },
-  attachEvents(){
-    let last=null, shapeStart=null, snapshot=null, buffer=[];
-    const start=(e)=>{
-      e.preventDefault(); this.drawing=true; const p=this.pos(e); last=p; shapeStart=p; buffer=[p];
-      if(this.tool==='rect'||this.tool==='circle') snapshot=this.ctx.getImageData(0,0,this.canvas.width,this.canvas.height);
-      this.myStrokeStack.push(this.ctx.getImageData(0,0,this.canvas.width,this.canvas.height));
-      if(this.myStrokeStack.length>25) this.myStrokeStack.shift();
-    };
-    const move=(e)=>{
-      if(!this.drawing) return; e.preventDefault(); const p=this.pos(e);
-      if(this.tool==='pen'||this.tool==='eraser'){
-        this.line(last,p,this.tool==='eraser'?'#ffffff':this.color,this.tool==='eraser'?this.size*2.4:this.size);
-        this.chan.send({type:'stroke',x1:last.x,y1:last.y,x2:p.x,y2:p.y,color:this.tool==='eraser'?'#ffffff':this.color,size:this.tool==='eraser'?this.size*2.4:this.size});
-        last=p; buffer.push(p);
-      } else if(shapeStart){ this.ctx.putImageData(snapshot,0,0); this.drawShape(shapeStart,p); }
-    };
-    const end=()=>{
-      if(!this.drawing) return; this.drawing=false;
-      if((this.tool==='rect'||this.tool==='circle') && shapeStart){ this.chan.send({type:'stroke',shape:this.tool,x1:shapeStart.x,y1:shapeStart.y,x2:last===shapeStart?shapeStart.x+40:last.x,y2:last===shapeStart?shapeStart.y+40:last.y,color:this.color,size:this.size}); }
-      this.debouncedPersist();
-    };
-    this.canvas.addEventListener('mousedown',start); this.canvas.addEventListener('mousemove',move); window.addEventListener('mouseup',end);
-    this.canvas.addEventListener('touchstart',start,{passive:false}); this.canvas.addEventListener('touchmove',move,{passive:false}); window.addEventListener('touchend',end);
-  },
-  line(a,b,color,size){ const c=this.ctx; c.strokeStyle=color; c.lineWidth=size; c.lineCap='round'; c.lineJoin='round'; c.beginPath(); c.moveTo(a.x,a.y); c.lineTo(b.x,b.y); c.stroke(); },
-  drawShape(a,b,color,size){ const c=this.ctx; c.strokeStyle=color||this.color; c.lineWidth=size||this.size; if(this.tool==='rect'||arguments[4]==='rect'){ c.strokeRect(Math.min(a.x,b.x),Math.min(a.y,b.y),Math.abs(b.x-a.x),Math.abs(b.y-a.y)); } else { c.beginPath(); const rx=Math.abs(b.x-a.x)/2, ry=Math.abs(b.y-a.y)/2; c.ellipse((a.x+b.x)/2,(a.y+b.y)/2,rx,ry,0,0,7); c.stroke(); } },
-  drawRemoteStroke(p){
-    if(p.shape){ this.ctx.strokeStyle=p.color; this.ctx.lineWidth=p.size; if(p.shape==='rect') this.ctx.strokeRect(Math.min(p.x1,p.x2),Math.min(p.y1,p.y2),Math.abs(p.x2-p.x1),Math.abs(p.y2-p.y1)); else { this.ctx.beginPath(); this.ctx.ellipse((p.x1+p.x2)/2,(p.y1+p.y2)/2,Math.abs(p.x2-p.x1)/2,Math.abs(p.y2-p.y1)/2,0,0,7); this.ctx.stroke(); } }
-    else this.line({x:p.x1,y:p.y1},{x:p.x2,y:p.y2},p.color,p.size);
-  },
-  stamp(){
-    const em=rand(['✨','💕','⭐','🌸','🎈','🦋','🌈']);
-    this.ctx.font='42px sans-serif'; this.ctx.fillText(em, this.canvas.width/2-20, this.canvas.height/2);
-    this.debouncedPersist(); Snd.tap();
-  },
-  undo(){ if(!this.myStrokeStack.length){ toast('Nothing to undo'); return; } const d=this.myStrokeStack.pop(); this.ctx.putImageData(d,0,0); this.debouncedPersist(); },
-  clearAll(){ this.ctx.fillStyle='#fff'; this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height); this.chan.send({type:'clear'}); this.debouncedPersist(); Snd.whoosh(); },
-  _pt:null,
-  debouncedPersist(){ clearTimeout(this._pt); this._pt=setTimeout(()=>{ this.chan.persist({img:this.canvas.toDataURL('image/jpeg',0.6)}); },700); },
-  save(){
-    const a=document.createElement('a'); a.href=this.canvas.toDataURL('image/png'); a.download='us-drawing-'+Date.now()+'.png'; a.click();
-    GameCore.me().drawSaves=(GameCore.me().drawSaves||0)+1; if(GameCore.me().drawSaves>=10) GameCore.unlock('draw_10');
-    GameCore.addXP(20); Hub.completeDailyIfPending('draw'); Snd.success(); toast('Saved to your downloads 💾');
-  },
-  toggleGuess(){
-    if(this.guessMode){ this.guessMode=false; document.getElementById('dwGuessBanner').style.display='none'; clearInterval(this.guessTimer); return; }
-    const word=rand(GUESS_WORDS);
-    this.chan.send({type:'guessStart',word,by:ID.role});
-    this.startGuessUI(ID.role, word);
-  },
-  startGuessUI(by, wordIfMine){
-    this.guessMode=true; this.guessSecs=60;
-    const banner=document.getElementById('dwGuessBanner'); banner.style.display='block';
-    const iAmDrawer = by===ID.role;
-    if(iAmDrawer) this.guessWord = wordIfMine;
-    clearInterval(this.guessTimer);
-    this.guessTimer=setInterval(()=>{
-      this.guessSecs--;
-      banner.textContent = iAmDrawer ? `🎯 Draw: ${this.guessWord} — ${this.guessSecs}s` : `🤔 Guess what's being drawn! — ${this.guessSecs}s`;
-      if(this.guessSecs<=0){ clearInterval(this.guessTimer); banner.textContent = iAmDrawer ? `Time's up! It was: ${this.guessWord}` : `Time's up!`; if(iAmDrawer) GameCore.addXP(10); setTimeout(()=>{ this.guessMode=false; banner.style.display='none'; },2500); }
-    },1000);
-  }
-};
-
-/* ═══════════════════════════════════════════════════════
-   GAME 4 — COUPLE ESCAPE ROOM
-═══════════════════════════════════════════════════════ */
-const ER_ROOMS = [
-  {id:'attic',name:'The Cozy Attic',emoji:'🏚️',diff:'Easy',time:300,
-    puzzles:[
-      {type:'objects',prompt:'Find 4 hidden love letters in the attic:',objs:['📜','📜','📜','📜','📦','🕸️','🪑','🧸'],need:4},
-      {type:'code',prompt:'An old chest is locked. Riddle: "I show up once in a minute, twice in a moment, but never in a thousand years." What has 5 letters?',answer:'12321',hint:'Not a word — try the digits that read the same forwards & backwards, 5 of them.'},
-      {type:'riddle',prompt:'What can you keep after giving it to someone?',answer:'your word',hint:'Think about promises...'}
-    ]},
-  {id:'library',name:'Midnight Library',emoji:'📚',diff:'Medium',time:360,
-    puzzles:[
-      {type:'objects',prompt:'Find 5 glowing books hidden on the shelves:',objs:['📗','📕','📘','📙','📓','🕯️','🖋️','☕'],need:5},
-      {type:'code',prompt:'The librarian left a note: "The year our story truly began, minus 1900." Enter the last 2 digits + your anniversary month + day digits... just enter: 2024',answer:'2024',hint:'Any 4 digits work here — it\'s about the memory, not the exact number!'},
-      {type:'riddle',prompt:'The more you take, the more you leave behind. What am I?',answer:'footsteps',hint:'Think about walking...'}
-    ]},
-  {id:'beach',name:'Beach Bungalow',emoji:'🏖️',diff:'Hard',time:420,
-    puzzles:[
-      {type:'objects',prompt:'Find 6 seashells hidden around the bungalow:',objs:['🐚','🐚','🐚','🐚','🐚','🐚','🦀','🌴','🍹','⛱️'],need:6},
-      {type:'code',prompt:'The safe needs a 4-digit code. Clue: "Sunrise hour + Sunset hour" (use 06 and 18 combined)',answer:'0618',hint:'Combine the two numbers mentioned in the clue directly.'},
-      {type:'riddle',prompt:'What has a bed but never sleeps, a mouth but never eats?',answer:'a river',hint:'Think of nature, something that flows...'}
-    ]}
-];
-const Escape = {
-  chan:null, state:null, timerInt:null,
-  async open(body){
-    this.chan = new GameChannel('escape');
-    let st = await this.chan.load();
-    if(!st) st = { roomIdx:0, puzzleIdx:0, foundObjs:{}, timeLeft:ER_ROOMS[0].time, cleared:[] };
-    this.state = st;
-    this.chan.listen(payload=>{ if(payload.type==='sync'){ this.state=payload.state; this.render(); } });
-    this.render();
-    this.startTimer();
-  },
-  close(){ clearInterval(this.timerInt); if(this.chan) this.chan.close(); },
-  sync(){ this.chan.send({type:'sync',state:this.state}); this.chan.persist(this.state); },
-  startTimer(){
-    clearInterval(this.timerInt);
-    this.timerInt=setInterval(()=>{
-      if(this.state.timeLeft>0){ this.state.timeLeft--; const t=document.getElementById('erTimer'); if(t){ t.textContent=this.fmt(this.state.timeLeft); t.classList.toggle('low',this.state.timeLeft<30); } }
-    },1000);
-  },
-  fmt(s){ return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); },
-  pickRoom(i){
-    this.state = { roomIdx:i, puzzleIdx:0, foundObjs:{}, timeLeft:ER_ROOMS[i].time, cleared:this.state.cleared };
-    this.sync(); this.render(); Snd.whoosh();
-  },
-  render(){
-    const body=document.getElementById('goBody'); if(!body) return;
-    const room = ER_ROOMS[this.state.roomIdx];
-    if(!room){
-      body.innerHTML = `<div class="hub-sec-title"><span>🧩 Choose a Room</span><div class="line"></div></div>` +
-        ER_ROOMS.map((r,i)=>`<div class="er-puzzle-card" style="cursor:pointer" onclick="Escape.pickRoom(${i})">
-          <div style="display:flex;align-items:center;gap:12px">
-            <div style="font-size:40px">${r.emoji}</div>
-            <div style="flex:1"><div style="font-weight:700;color:#fff">${r.name} ${this.state.cleared.includes(r.id)?'✅':''}</div><div style="font-size:11px;color:var(--text3)">${r.diff} · ${this.fmt(r.time)}</div></div>
-            <div style="font-size:18px">→</div>
-          </div></div>`).join('');
-      return;
-    }
-    const puz = room.puzzles[this.state.puzzleIdx];
-    if(!puz){
-      body.innerHTML = `<div style="text-align:center;padding:40px 10px">
-        <div style="font-size:70px">🎉</div>
-        <div style="font-family:var(--ff-serif);font-size:22px;color:#fff;margin-top:10px">Room Cleared!</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:6px">You solved every puzzle in ${room.name} together.</div>
-        <button class="btn btn-accent" style="margin-top:18px" onclick="Escape.backToRooms()">Choose Another Room</button>
-      </div>`;
-      if(!this.state.cleared.includes(room.id)){
-        this.state.cleared.push(room.id);
-        GameCore.addXP(60); GameCore.addCoins(30); GameCore.unlock('escape_1');
-        GameCore.me().escapesCleared=this.state.cleared.length;
-        if(this.state.cleared.length>=ER_ROOMS.length) GameCore.unlock('escape_all');
-        Hub.completeDailyIfPending('escape'); this.sync();
-        setTimeout(()=>showReward('🔓','Room Cleared!',['✨ 60 XP','🪙 30 Coins']),300);
-      }
-      return;
-    }
-    body.innerHTML = `
-      <div class="er-room-bg" style="background:linear-gradient(150deg,rgba(255,255,255,.05),rgba(0,0,0,.2))">
-        <div class="er-timer" id="erTimer">${this.fmt(this.state.timeLeft)}</div>
-        <div class="er-room-emoji">${room.emoji}</div>
-      </div>
-      <div style="text-align:center;font-size:11px;color:var(--text3);margin-bottom:10px">Puzzle ${this.state.puzzleIdx+1} of ${room.puzzles.length} · ${room.name}</div>
-      <div class="er-puzzle-card">${this.renderPuzzle(puz)}</div>
-    `;
-  },
-  renderPuzzle(puz){
-    if(puz.type==='objects'){
-      const found = this.state.foundObjs[this.state.puzzleIdx]||[];
-      return `<div style="font-size:13px;color:#fff;margin-bottom:6px">${esc(puz.prompt)} (${found.length}/${puz.need})</div>
-        <div class="er-obj-grid">${puz.objs.map((o,i)=>`<div class="er-obj ${found.includes(i)?'found':''}" onclick="Escape.findObj(${i},${puz.need})">${found.includes(i)?'✅':o}</div>`).join('')}</div>`;
-    }
-    if(puz.type==='code'){
-      return `<div style="font-size:13px;color:#fff;margin-bottom:10px">${esc(puz.prompt)}</div>
-        <div class="er-code-input">${Array.from({length:4}).map((_,i)=>`<input class="er-code-digit" maxlength="1" inputmode="numeric" id="erDigit${i}" oninput="Escape.codeInput(${i},this)">`).join('')}</div>
-        <div style="text-align:center"><button class="btn-ghost" style="background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer" onclick="toast('${esc(puz.hint)}',4000)">💡 Need a hint?</button></div>`;
-    }
-    return `<div style="font-size:13px;color:#fff;margin-bottom:10px">🧠 ${esc(puz.prompt)}</div>
-      <input type="text" id="erRiddleIn" placeholder="Type your answer..." style="width:100%;padding:11px 14px;border-radius:12px;background:var(--g1);border:1px solid var(--border);color:#fff;font-size:13px;margin-bottom:10px">
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-accent btn-sm" onclick="Escape.checkRiddle('${esc(puz.answer)}')">Submit</button>
-        <button class="btn btn-glass btn-sm" onclick="toast('${esc(puz.hint)}',4000)">💡 Hint</button>
-      </div>`;
-  },
-  findObj(i,need){
-    const idx=this.state.puzzleIdx;
-    if(!this.state.foundObjs[idx]) this.state.foundObjs[idx]=[];
-    if(this.state.foundObjs[idx].includes(i)) return;
-    this.state.foundObjs[idx].push(i); Snd.tap();
-    if(this.state.foundObjs[idx].length>=need){ this.state.puzzleIdx++; GameCore.addXP(15); Snd.success(); }
     this.sync(); this.render();
   },
-  codeInput(i,el){
-    if(el.value && i<3) document.getElementById('erDigit'+(i+1)).focus();
-    const vals=[0,1,2,3].map(k=>document.getElementById('erDigit'+k).value).join('');
-    if(vals.length===4){
-      const room=ER_ROOMS[this.state.roomIdx]; const puz=room.puzzles[this.state.puzzleIdx];
-      if(vals===puz.answer){ this.state.puzzleIdx++; GameCore.addXP(15); Snd.success(); this.sync(); this.render(); }
-      else if(!/^\d{4}$/.test(vals)===false){ /* wrong but keep trying */ }
-    }
+  checkWin(){
+    const b=this.state.board;
+    for(const line of TTT_LINES){ const [a,c,d]=line; if(b[a] && b[a]===b[c] && b[a]===b[d]) return line; }
+    return null;
   },
-  checkRiddle(answer){
-    const val=(document.getElementById('erRiddleIn').value||'').trim().toLowerCase();
-    if(val && (val===answer.toLowerCase() || answer.toLowerCase().includes(val))){
-      this.state.puzzleIdx++; GameCore.addXP(15); Snd.success(); this.sync(); this.render();
-    } else { Snd.fail(); toast('Not quite — try the hint 💡'); }
-  },
-  backToRooms(){ this.state.roomIdx=-1; this.state.roomIdx=undefined; this.state.roomIdx=null; this.state={roomIdx:-1,puzzleIdx:0,foundObjs:{},timeLeft:0,cleared:this.state.cleared}; this.state.roomIdx=-1; this.render(); }
+  restart(){ this.state.board=Array(9).fill(null); this.state.turn='user1'; this.state.winner=null; this.state.line=null; this.sync(); this.render(); Snd.tap(); },
+  render(){
+    const body=document.getElementById('goBody'); if(!body) return;
+    const s=this.state, mySym=this.mySymbol(), myTurn = s.turn===ID.role && !s.winner;
+    body.innerHTML = `
+      <div class="score-bar">
+        <div class="score-pill ${ID.role==='user1'?'mine':''}"><div class="sp-name">${esc(ID.myName)} (${mySym})</div><div class="sp-val">${s.scores.user1||0}</div></div>
+        <div class="score-pill ${ID.role==='user2'?'mine':''}"><div class="sp-name">${esc(ID.partnerName)} (${ID.role==='user1'?'O':'X'})</div><div class="sp-val">${s.scores.user2||0}</div></div>
+      </div>
+      <div class="turn-bar ${myTurn?'mine':''}">${s.winner ? (s.winner==='draw'?'🤝 It is a draw!' : (s.winner===ID.role?'🎉 You won!':esc(ID.partnerName)+' won this round')) : (myTurn?'✨ Your turn':esc(ID.partnerName)+' is turn…')}</div>
+      <div class="ttt-board">
+        ${s.board.map((c,i)=>`<div class="ttt-cell ${c?c.toLowerCase():''} ${!c&&myTurn?'playable':''} ${s.line&&s.line.includes(i)?'win':''}" onclick="TTT.play(${i})">${c||''}</div>`).join('')}
+      </div>
+      <div style="text-align:center;margin-top:16px">${s.winner?'<button class="btn btn-accent" onclick="TTT.restart()">🔄 Play Again</button>':''}</div>
+    `;
+  }
 };
-/* fix: renderer checks ER_ROOMS[this.state.roomIdx] — make -1 fall through to picker cleanly */
-Object.defineProperty(Escape,'_noop',{value:0});
 
 /* ═══════════════════════════════════════════════════════
-   GAME 5 — TRUTH OR DARE DELUXE
+   GAME 2 — REAL LUDO (2-player, real dice, safe cells,
+   capturing, home stretch — simplified circular board)
 ═══════════════════════════════════════════════════════ */
-const TOD_CATS = [
-  {id:'romantic',name:'Romantic',emoji:'💕',color:'linear-gradient(135deg,#ff6b9d,#c2185b)'},
-  {id:'cute',name:'Cute',emoji:'🥰',color:'linear-gradient(135deg,#ffb3d9,#ff6ea8)'},
-  {id:'funny',name:'Funny',emoji:'😂',color:'linear-gradient(135deg,#ffd166,#f77f00)'},
-  {id:'deep',name:'Deep',emoji:'💭',color:'linear-gradient(135deg,#7c83fd,#5b21b6)'},
-  {id:'hot',name:'Hot',emoji:'🔥',color:'linear-gradient(135deg,#ff416c,#a8071a)'},
-  {id:'adventure',name:'Adventure',emoji:'🏔️',color:'linear-gradient(135deg,#38ef7d,#11998e)'},
-];
-const TOD_BANK = {
-  romantic:{ truth:["What made you realize you were falling for me?","What's your favorite memory of us so far?","What small thing do I do that makes you feel loved?","When did you know I was 'the one'?","What's a moment with me you replay in your head?","What's your favorite physical feature of mine?","What song reminds you of us?","What's one thing you want us to do before we're old?","What do you love most about how we communicate?","What's the most romantic thing I've ever done for you?","How do you picture our 10-year anniversary?","What made our first date special for you?","What's your favorite nickname for me and why?","What do you think our love story would be called?","What's something you never get tired of about me?"],
-    dare:["Write a 3-line poem about me right now.","Give me a 20-second hug without letting go.","Whisper the sweetest thing you can think of in my ear.","Slow dance with me for one full song.","Recreate our first kiss.","Text me something romantic right now, even though I'm right here.","Stare into my eyes for 30 seconds without laughing.","Plan our next date night out loud, in detail.","Give me 3 compliments I've never heard before.","Draw a heart on my hand and sign it.","Serenade me with 15 seconds of any love song.","Tell me your favorite thing about our relationship, on one knee."]},
-  cute:{ truth:["What's your favorite thing we do together on lazy days?","What's a silly habit of mine you secretly love?","What nickname would you give me if we started over?","What's the cutest thing I've ever done without realizing it?","What childhood cartoon reminds you of us?","What's your favorite way to cuddle?","What's a tiny thing that makes your whole day better?","If we were animals, what would we be and why?","What's your favorite 'us' inside joke?","What's the softest, sweetest memory you have of me?"],
-    dare:["Do your best impression of me for 30 seconds.","Give me a piggyback ride around the room.","Make up a silly nickname for me and use it for the rest of the game.","Boop my nose and say something sweet.","Do a tiny happy dance because you're with me.","Draw my face with your eyes closed.","Send my mom (or a friend) a cute message about me right now.","Make the cutest face you can for 10 seconds.","Give me a forehead kiss and say why you love me.","Try to make me laugh without touching me."]},
-  funny:{ truth:["What's the most embarrassing thing you've done in front of me?","What's a weird food combo you secretly enjoy?","What's the silliest fight we've ever had?","What's your most irrational fear?","What's a lie you told as a kid that you still remember?","What's the worst joke you know?","What's a habit of mine that secretly annoys you (lovingly)?","What's the most ridiculous thing you've Googled?","If you were a meme, which one would you be?","What's your most embarrassing childhood nickname?"],
-    dare:["Talk in an accent for the next 3 rounds.","Do your best chicken impression.","Let me draw a mustache on you (washable marker or finger only).","Text a random emoji combo to a friend and don't explain it.","Do 10 jumping jacks while singing the alphabet.","Try to lick your elbow.","Speak only in rhymes for 2 minutes.","Do your worst dance move on purpose.","Let me pick your profile picture for the next hour.","Make up a rap about your partner."]},
-  deep:{ truth:["What's something you're proud of that you rarely talk about?","What does 'home' mean to you?","What's a fear you've never told me?","What's something you wish you understood better about yourself?","What's the hardest thing you've overcome?","What do you need most from me when you're struggling?","What's a belief you held as a kid that you no longer believe?","What does true happiness look like to you?","What's something you want to change about yourself?","What's a moment that shaped who you are today?","What does trust mean to you in our relationship?","What's something you've never told anyone?"],
-    dare:["Share one insecurity you rarely talk about.","Tell me about a time you felt truly proud of yourself.","Describe your ideal future in detail, out loud.","Share a memory that still affects you today.","Tell me the kindest thing anyone has ever done for you.","Describe what unconditional love means to you.","Talk about a moment you felt truly understood.","Share a goal you've been afraid to say out loud."]},
-  hot:{ truth:["What first attracted you to me physically?","What's something you find irresistible about me?","What's a compliment about your body you rarely get but wish you did?","What's your idea of the perfect romantic evening?","What's something you find confident and attractive in a partner?","What's a small gesture that makes you feel desired?"],
-    dare:["Give me a slow, lingering hug.","Whisper something flirty in my ear.","Give me your best 'come here' look.","Slow dance close together for 1 minute, no talking.","Give me a compliment while looking me dead in the eyes.","Trace a heart on my arm slowly."]},
-  adventure:{ truth:["What's a bucket list adventure you want us to do together?","What's the most adventurous thing you've ever done?","What's a place you'd move to with me in a heartbeat?","What's a spontaneous thing you wish we did more?","What's a fear you'd love to conquer together?","What's your dream trip with me?"],
-    dare:["Plan a surprise mini-adventure for this weekend, out loud, right now.","Do 15 seconds of a workout move of my choice.","Try to guess 3 things on my travel bucket list.","Describe a spontaneous trip you'd take with just an hour's notice.","Pick a random place on a map — describe what we'd do there for a full day."]}
+const LUDO_COLORS = {user1:'#ef4444', user2:'#22c55e'};
+const LUDO_NAMES  = {user1:'Red', user2:'Green'};
+const LUDO_START = {user1:0, user2:26};
+const LUDO_SAFE = [0,8,13,21,26,34,39,47];
+const Ludo = {
+  chan:null, state:null, rolling:false,
+  async open(body){
+    this.chan = new GameChannel('ludo');
+    let st = await this.chan.load();
+    if(!st) st = this.fresh();
+    this.state = st;
+    this.chan.listen(p=>{ if(p.type==='sync'){ this.state=p.state; this.render(); } });
+    this.render();
+  },
+  close(){ if(this.chan) this.chan.close(); },
+  sync(){ this.chan.send({type:'sync',state:this.state}); this.chan.persist(this.state); },
+  fresh(){ return { tokens:{user1:[-1,-1,-1,-1],user2:[-1,-1,-1,-1]}, turn:'user1', dice:null, winner:null }; },
+  restart(){ this.state=this.fresh(); this.sync(); this.render(); },
+  movable(role,d){
+    const out=[];
+    this.state.tokens[role].forEach((pos,i)=>{
+      if(pos===57) return;
+      if(pos===-1){ if(d===6) out.push(i); return; }
+      if(pos+d<=57) out.push(i);
+    });
+    return out;
+  },
+  roll(){
+    if(this.state.winner || this.state.turn!==ID.role || this.state.dice!=null) return;
+    this.rolling=true; this.render();
+    Snd.dice();
+    setTimeout(()=>{
+      const d = 1+Math.floor(Math.random()*6);
+      this.state.dice = d;
+      this.rolling=false;
+      const mv = this.movable(ID.role,d);
+      this.sync(); this.render();
+      if(!mv.length){
+        toast(d===6?'Rolled a 6 but no legal move':'No legal move — turn passes');
+        setTimeout(()=>{ this.state.dice=null; this.state.turn = d===6?ID.role:otherRole; this.sync(); this.render(); },1000);
+      }
+    },550);
+  },
+  moveToken(i){
+    if(this.state.winner || this.state.turn!==ID.role || this.state.dice==null) return;
+    const d=this.state.dice, role=ID.role;
+    const mv=this.movable(role,d); if(!mv.includes(i)) return;
+    const tokens=this.state.tokens[role];
+    const pos=tokens[i];
+    const newPos = pos===-1 ? 0 : pos+d;
+    tokens[i]=newPos;
+    Snd.place();
+    // capture check on global ring (not home stretch)
+    if(newPos>=0 && newPos<=50){
+      const globalIdx=(LUDO_START[role]+newPos)%52;
+      if(!LUDO_SAFE.includes(globalIdx)){
+        const opp = role==='user1'?'user2':'user1';
+        this.state.tokens[opp].forEach((op,oi)=>{
+          if(op>=0 && op<=50 && (LUDO_START[opp]+op)%52===globalIdx){
+            this.state.tokens[opp][oi]=-1;
+            toast('🎯 Captured '+ID.partnerName+'\'s token!'); GameCore.addCoins(5);
+          }
+        });
+      }
+    }
+    if(newPos===57) toast('🏠 A token made it home!');
+    const allHome = tokens.every(t=>t===57);
+    if(allHome){
+      this.state.winner=role;
+      GameCore.addXP(15); GameCore.addCoins(10); Snd.success();
+      setTimeout(()=>showReward('👑','Ludo Champion!',['+15 XP','+10 🪙']),300);
+    } else {
+      this.state.turn = d===6 ? role : (role==='user1'?'user2':'user1');
+    }
+    this.state.dice=null;
+    this.sync(); this.render();
+  },
+  // map global ring index (0..51) -> {x,y} percent on circular board
+  ringXY(gi,R){ const ang=(gi/52)*2*Math.PI - Math.PI/2; return {x:50+R*Math.cos(ang), y:50+R*Math.sin(ang)}; },
+  render(){
+    const body=document.getElementById('goBody'); if(!body) return;
+    const s=this.state, myTurn=s.turn===ID.role && !s.winner;
+    const mv = s.dice!=null ? this.movable(ID.role,s.dice) : [];
+    let cellsHtml='', tokensHtml='';
+    for(let gi=0; gi<52; gi++){
+      const {x,y}=this.ringXY(gi,42);
+      cellsHtml += `<div class="ludo-cell ${LUDO_SAFE.includes(gi)?'safe':''}" style="left:${x}%;top:${y}%"></div>`;
+    }
+    ['user1','user2'].forEach(role=>{
+      const entryGlobal=(LUDO_START[role]+50)%52; // last ring cell before turning home
+      const entryAng=(LUDO_START[role]/52)*2*Math.PI - Math.PI/2;
+      for(let h=0;h<6;h++){
+        const R=42-(h+1)*6.2;
+        const x=50+R*Math.cos(entryAng), y=50+R*Math.sin(entryAng);
+        cellsHtml += `<div class="ludo-cell" style="left:${x}%;top:${y}%;background:${LUDO_COLORS[role]}55"></div>`;
+      }
+      s.tokens[role].forEach((pos,i)=>{
+        let x,y;
+        if(pos===-1) return; // shown in base row, not on board
+        else if(pos<=50){ const gi=(LUDO_START[role]+pos)%52; ({x,y}=this.ringXY(gi,42)); }
+        else if(pos<=56){ const h=pos-51; const R=42-(h+1)*6.2; x=50+R*Math.cos(entryAng); y=50+R*Math.sin(entryAng); }
+        else { x=50; y=50; }
+        const canMove = role===ID.role && mv.includes(i);
+        tokensHtml += `<div class="ludo-token ${canMove?'playable':''}" style="left:${x}%;top:${y}%;background:${LUDO_COLORS[role]};${canMove?'box-shadow:0 0 0 4px rgba(255,255,255,.5)':''}" onclick="${canMove?`Ludo.moveToken(${i})`:''}">${i+1}</div>`;
+      });
+    });
+    const baseRow=(role)=> s.tokens[role].map((pos,i)=>{
+      if(pos!==-1) return '';
+      const canExit = role===ID.role && mv.includes(i);
+      return `<div class="ludo-base-token" style="background:${LUDO_COLORS[role]};${canExit?'box-shadow:0 0 0 3px #fff;cursor:pointer':''}" onclick="${canExit?`Ludo.moveToken(${i})`:''}">${i+1}</div>`;
+    }).join('');
+    body.innerHTML = `
+      <div class="turn-bar ${myTurn?'mine':''}">${s.winner? (s.winner===ID.role?'👑 You won!':esc(ID.partnerName)+' won this game') : (myTurn?'✨ Your turn — roll the dice':esc(ID.partnerName)+' is playing…')}</div>
+      <div class="ludo-wrap">
+        <div class="ludo-board" id="ludoBoard">
+          ${cellsHtml}
+          <div class="ludo-home-hub">🏠</div>
+          ${tokensHtml}
+        </div>
+        <div class="ludo-dice ${this.rolling?'rolling':''}" onclick="Ludo.roll()" style="${myTurn && s.dice==null && !this.rolling ? 'cursor:pointer;box-shadow:0 0 0 4px var(--accent-glow)':''}">${this.rolling?'🎲':(s.dice||'🎲')}</div>
+        <div class="ludo-base-row">
+          <div class="ludo-base">${baseRow('user1')}</div>
+          <div class="ludo-base">${baseRow('user2')}</div>
+        </div>
+        <div style="font-size:11px;color:var(--text2);text-align:center">🔴 ${esc(ID.role==='user1'?ID.myName:ID.partnerName)} · 🟢 ${esc(ID.role==='user2'?ID.myName:ID.partnerName)} — roll a 6 to leave base, land exactly on 57 to get home</div>
+        ${s.winner?'<button class="btn btn-accent" onclick="Ludo.restart()">🔄 New Game</button>':''}
+      </div>
+    `;
+  }
 };
-const TOD_PENALTIES = ['Give your partner a 20-second massage','Do 10 push-ups','Sing the chorus of any song out loud','Compliment your partner 3 times in a row','Let your partner pick your next outfit choice for tomorrow','Do your best dance for 15 seconds'];
+
+/* ═══════════════════════════════════════════════════════
+   GAME 3 — TRUTH OR DARE
+═══════════════════════════════════════════════════════ */
+const TOD_DATA = {
+  romantic:{truths:['What made you fall for me?','What\'s your favorite memory of us?','When did you know I was the one?'],dares:['Give a 20-second compliment','Send a voice note saying why you love me','Recreate our first date moment']},
+  cute:{truths:['What\'s my most adorable habit?','What nickname would you give me?','What\'s a tiny thing I do that makes you smile?'],dares:['Do your best impression of me','Send the last selfie you took','Draw me in 30 seconds']},
+  funny:{truths:['Weirdest dream you\'ve had about me?','Funniest thing that happened on a date?','What\'s my most annoying habit?'],dares:['Talk in an accent for 2 minutes','Do 10 jumping jacks right now','Sing our song badly on purpose']},
+  deep:{truths:['What\'s a fear you haven\'t told me?','What do you want us to work on together?','What does forever look like to you?'],dares:['Share a goal you\'ve been scared to say out loud','Write down one thing you appreciate about me','Talk about a memory that shaped you']},
+  hot:{truths:['What\'s something you find attractive about me?','What outfit of mine do you love most?','What\'s a compliment you love hearing?'],dares:['Send a flirty message','Give a slow wink on camera','Whisper something sweet']},
+  adventure:{truths:['Dream trip we should take together?','Craziest thing you\'d do with me?','A bucket-list thing for us?'],dares:['Plan a mini adventure for next weekend','Suggest a new food to try together','Pick our next movie night pick']}
+};
+const TOD_PENALTIES=['Do 10 pushups 💪','Send a silly selfie 🤳','Sing happy birthday 🎂','Speak in a funny voice for 1 min 🗣️'];
+const TOD_CATS=[['romantic','💕 Romantic'],['cute','🥰 Cute'],['funny','😂 Funny'],['deep','💭 Deep'],['hot','🔥 Hot'],['adventure','🗺️ Adventure']];
 const TOD = {
   chan:null, state:null, category:'romantic', timerInt:null,
   async open(body){
     this.chan = new GameChannel('tod');
     let st = await this.chan.load();
-    if(!st) st = { turn:'user1', current:null, streak:0, history:[], custom:[] };
-    this.state = st;
-    this.chan.listen(payload=>{
-      if(payload.type==='card') this.applyCard(payload,false);
-      if(payload.type==='react') this.floatEmoji(payload.emoji);
-      if(payload.type==='resolve') this.applyResolve(payload,false);
-    });
+    if(!st) st = {turn:'user1', streak:0, current:null, category:'romantic'};
+    this.state = st; this.category=st.category||'romantic';
+    this.chan.listen(p=>{ if(p.type==='sync'){ this.state=p.state; this.category=this.state.category; this.render(); } });
     this.render();
   },
   close(){ clearInterval(this.timerInt); if(this.chan) this.chan.close(); },
-  sync(){ this.chan.persist(this.state); },
-  render(){
-    const body=document.getElementById('goBody'); if(!body) return;
-    const myTurn = this.state.turn===ID.role;
-    body.innerHTML = `
-      <div class="tod-cats">${TOD_CATS.map(c=>`<div class="tod-cat ${this.category===c.id?'sel':''}" style="${this.category===c.id?'background:'+c.color:''}" onclick="TOD.setCat('${c.id}')">${c.emoji} ${c.name}</div>`).join('')}</div>
-      <div class="tod-turn">Turn: <strong>${myTurn?'You 🎯':esc(ID.partnerName)}</strong> ${this.state.streak>1?`<span class="tod-streak">🔥 ${this.state.streak} streak</span>`:''}</div>
-      <div id="todCardArea">${this.state.current?this.renderCard():this.renderWheel()}</div>
-      ${this.state.custom.length?`<div class="hub-sec-title"><span>✍️ Custom Questions</span><div class="line"></div></div>
-      <div class="tod-custom-list">${this.state.custom.map((c,i)=>`<div class="tod-custom-item"><span>${c.type==='truth'?'💬':'🎯'}</span><span style="flex:1">${esc(c.text)}</span><button class="del-btn" style="background:none;border:none;color:var(--text3);cursor:pointer" onclick="TOD.delCustom(${i})">✕</button></div>`).join('')}</div>`:''}
-      <div class="hub-sec-title"><span>➕ Add Your Own</span><div class="line"></div></div>
-      <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input type="text" id="todCustomIn" placeholder="Type a truth or dare..." style="flex:1;padding:10px 13px;border-radius:12px;background:var(--g1);border:1px solid var(--border);color:#fff;font-size:12px">
-        <select id="todCustomType" style="padding:0 10px;border-radius:12px;background:var(--g1);border:1px solid var(--border);color:#fff;font-size:12px"><option value="truth">Truth</option><option value="dare">Dare</option></select>
-        <button class="btn btn-glass btn-sm" onclick="TOD.addCustom()">Add</button>
-      </div>
-      <button class="btn btn-glass btn-sm" style="width:100%;justify-content:center" onclick="TOD.aiGenerate()">✨ AI Generate a Question</button>
-    `;
-  },
-  setCat(id){ this.category=id; Snd.tap(); this.render(); },
-  renderWheel(){
-    const cat = TOD_CATS.find(c=>c.id===this.category);
-    return `<div class="tod-wheel-wrap">
-      <div class="tod-wheel"><svg viewBox="0 0 100 100" id="todWheelSvg">
-        ${['💬 Truth','🎯 Dare'].map((l,i)=>`<path d="M50,50 L50,4 A46,46 0 0,1 ${50+46*Math.sin(Math.PI*(i+1))},${50-46*Math.cos(Math.PI*(i+1))} Z" fill="${i===0?'hsl(215,90%,55%)':'hsl(330,85%,55%)'}" stroke="#0a0a15" stroke-width="1"/>`).join('')}
-        <circle cx="50" cy="50" r="10" fill="#0a0a15" stroke="#fff" stroke-width="1.5"/>
-      </svg><div class="tod-wheel-center">${cat.emoji}</div></div>
-      <button class="btn btn-pink" style="padding:13px 30px;font-size:14px" onclick="TOD.spin()">🎡 Spin the Wheel</button>
-    </div>`;
-  },
+  sync(){ this.chan.send({type:'sync',state:this.state}); this.chan.persist(this.state); },
+  setCategory(c){ this.category=c; this.state.category=c; this.sync(); this.render(); Snd.tap(); },
   spin(){
-    Snd.spin();
-    const svg=document.getElementById('todWheelSvg');
-    const isTruth = Math.random()<0.5;
-    const spins = 4+Math.random()*3;
-    const target = (isTruth?0:180) + spins*360;
-    svg.style.transform='rotate('+target+'deg)';
-    setTimeout(()=>{ this.drawCard(isTruth?'truth':'dare'); },3200);
-  },
-  drawCard(type){
-    const bank = TOD_BANK[this.category];
-    const pool = type==='truth'?bank.truth:bank.dare;
-    const custom = this.state.custom.filter(c=>c.type===type).map(c=>c.text);
-    const text = rand(pool.concat(custom.length?custom:[]));
-    const diff = rand(['Easy','Medium','Bold']);
-    const card = { type, text, cat:this.category, diff };
-    this.applyCard(card,true);
-  },
-  applyCard(card,broadcast){
-    this.state.current = card;
-    if(broadcast) this.chan.send({type:'card',...card});
-    this.render(); this.startCardTimer();
-    if(broadcast) this.sync();
-  },
-  renderCard(){
-    const c=this.state.current;
-    return `<div class="tod-card ${c.type}">
-      <div class="tod-card-diff">${c.diff}</div>
-      <div class="tod-card-type">${c.type==='truth'?'💬 Truth':'🎯 Dare'} · ${TOD_CATS.find(x=>x.id===c.cat).name}</div>
-      <div class="tod-card-text" id="todCardText">${esc(c.text)}</div>
-      <div class="tod-timer-ring" id="todTimerRing"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="4"/><circle id="todTimerCircle" cx="20" cy="20" r="17" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="106.8" stroke-dashoffset="0" stroke-linecap="round"/></svg></div>
-      <div class="tod-reactions">
-        ${['😂','😍','😳','🔥','👏'].map(e=>`<button class="tod-react-btn" onclick="TOD.react('${e}')">${e}</button>`).join('')}
-      </div>
-      <div style="display:flex;gap:8px;margin-top:14px">
-        <button class="btn btn-glass btn-sm" onclick="TOD.speakCard()">🔊 Read</button>
-        <button class="btn btn-glass btn-sm" onclick="TOD.penalty()">😅 Skip (penalty)</button>
-        <button class="btn btn-accent btn-sm" onclick="TOD.completeCard()">✅ Done!</button>
-      </div>
-    </div>`;
+    if(this.state.turn!==ID.role || this.state.current) return;
+    Snd.tap();
+    const pool = TOD_DATA[this.category];
+    const isT = Math.random()<0.5;
+    const text = rand(isT?pool.truths:pool.dares);
+    this.state.current = {type:isT?'truth':'dare', text};
+    this.sync(); this.render(); this.startCardTimer();
   },
   startCardTimer(){
     clearInterval(this.timerInt); let secs=45;
     this.timerInt=setInterval(()=>{
-      secs--; const el=document.getElementById('todTimerCircle');
-      if(el){ const off=106.8*(1-secs/45); el.setAttribute('stroke-dashoffset',off); }
-      if(secs<=0){ clearInterval(this.timerInt); this.penalty(); }
+      secs--; if(secs<=0){ clearInterval(this.timerInt); this.penalty(); }
     },1000);
   },
   speakCard(){
     if(!('speechSynthesis' in window)){ toast('Voice not supported on this browser'); return; }
-    const u=new SpeechSynthesisUtterance(this.state.current.text); u.rate=0.95; u.pitch=1.05;
+    const u=new SpeechSynthesisUtterance(this.state.current.text); u.rate=0.95;
     speechSynthesis.cancel(); speechSynthesis.speak(u);
   },
   react(emoji){ this.chan.send({type:'react',emoji}); this.floatEmoji(emoji); },
@@ -1515,83 +942,219 @@ const TOD = {
   },
   completeCard(){
     clearInterval(this.timerInt);
-    this.state.streak++; this.state.history.push(this.state.current);
-    GameCore.me().todCount=(GameCore.me().todCount||0)+1;
-    GameCore.me().todStreak=this.state.streak;
-    GameCore.me().todBestStreak=Math.max(GameCore.me().todBestStreak||0,this.state.streak);
-    if(GameCore.me().todCount>=25) GameCore.unlock('tod_25');
-    if(this.state.streak>=10) GameCore.unlock('tod_streak10');
-    GameCore.addXP(10); GameCore.addCoins(this.state.streak>=5?8:4);
-    Hub.completeDailyIfPending('tod'); Snd.success();
-    this.chan.send({type:'resolve',streak:this.state.streak,turn:this.nextTurn()});
-    this.applyResolve({streak:this.state.streak,turn:this.state.turn===('user1')?'user2':'user1'},true);
+    this.state.streak++; this.state.current=null;
+    this.state.turn = this.state.turn==='user1'?'user2':'user1';
+    GameCore.addXP(10); GameCore.addCoins(4); Snd.success();
+    this.sync(); this.render();
   },
   penalty(){
     clearInterval(this.timerInt);
     const pen = rand(TOD_PENALTIES);
-    Snd.fail(); this.state.streak=0;
+    Snd.fail(); this.state.streak=0; this.state.current=null;
+    this.state.turn = this.state.turn==='user1'?'user2':'user1';
     showReward('😅','Penalty Time!',[pen]);
-    this.chan.send({type:'resolve',streak:0,turn:this.nextTurn()});
-    this.applyResolve({streak:0,turn:this.state.turn==='user1'?'user2':'user1'},true);
+    this.sync(); this.render();
   },
-  nextTurn(){ return this.state.turn==='user1'?'user2':'user1'; },
-  applyResolve(payload,isLocal){
-    this.state.streak=payload.streak; this.state.turn=payload.turn; this.state.current=null;
-    this.render(); if(isLocal) this.sync();
-  },
-  addCustom(){
-    const inp=document.getElementById('todCustomIn'); const type=document.getElementById('todCustomType').value;
-    const text=inp.value.trim(); if(!text) return;
-    this.state.custom.push({type,text}); inp.value=''; this.sync(); this.render(); Snd.tap(); toast('Added to your question pool ✨');
-  },
-  delCustom(i){ this.state.custom.splice(i,1); this.sync(); this.render(); },
-  async aiGenerate(){
-    toast('✨ Generating with AI…');
-    try{
-      const prompt = `Generate one fun, tasteful ${rand(['truth question','dare challenge'])} for a couple's Truth or Dare game in the "${this.category}" mood (romantic/cute/funny/deep/hot/adventure — keep it appropriate for a general audience, no explicit content). Reply with ONLY the question/dare text, one sentence, no preamble.`;
-      const res = await fetch(AI_API+'/api/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:prompt,myName:ID.myName,partnerName:ID.partnerName})});
-      const data = await res.json();
-      const text = (data.reply||'').split('\\n')[0].replace(/^["']|["']$/g,'').trim();
-      if(text){ this.state.custom.push({type:Math.random()<0.5?'truth':'dare',text}); this.sync(); this.render(); toast('AI question added! ✨'); }
-      else toast('AI is unavailable right now — try again later');
-    }catch(e){ toast('AI generation failed — check your connection'); }
+  render(){
+    const body=document.getElementById('goBody'); if(!body) return;
+    const s=this.state, myTurn=s.turn===ID.role;
+    body.innerHTML = `
+      <div class="turn-bar ${myTurn?'mine':''}">🔥 Streak: ${s.streak} &nbsp;·&nbsp; ${myTurn?'✨ Your turn to spin':esc(ID.partnerName)+'\'s turn…'}</div>
+      <div class="tod-cat-row">${TOD_CATS.map(([id,label])=>`<button class="tod-cat ${this.category===id?'sel':''}" onclick="TOD.setCategory('${id}')">${label}</button>`).join('')}</div>
+      ${s.current ? `
+      <div class="tod-card">
+        <div class="tod-card-type">${s.current.type==='truth'?'💬 TRUTH':'⚡ DARE'}</div>
+        <div class="tod-card-text">${esc(s.current.text)}</div>
+        <div class="tod-reactions">${['😂','😍','😳','🔥','👏'].map(e=>`<button class="tod-react-btn" onclick="TOD.react('${e}')">${e}</button>`).join('')}</div>
+        <div style="display:flex;gap:8px;margin-top:14px;justify-content:center">
+          <button class="btn btn-glass btn-sm" onclick="TOD.speakCard()">🔊 Read</button>
+          ${myTurn?`<button class="btn btn-glass btn-sm" onclick="TOD.penalty()">😅 Skip</button><button class="btn btn-pink btn-sm" onclick="TOD.completeCard()">✅ Done!</button>`:''}
+        </div>
+      </div>` : `
+      <div class="tod-wheel-wrap">
+        <button class="tod-spin-btn" ${!myTurn?'disabled':''} onclick="TOD.spin()">SPIN 🎡</button>
+        <div style="font-size:12px;color:var(--text2)">${myTurn?'Tap to reveal your truth or dare':'Waiting for '+esc(ID.partnerName)+'…'}</div>
+      </div>`}
+    `;
   }
 };
 
 /* ═══════════════════════════════════════════════════════
-   INIT
+   GAME 4 — DRAW & GUESS
 ═══════════════════════════════════════════════════════ */
+const DRAW_WORDS=['cat','pizza','rainbow','guitar','heart','tree','sun','umbrella','robot','castle','fish','flower','moon','car','house','butterfly','ice cream','star','crown','balloon','shoe','clock','book','key','cloud','boat','apple','kite','snowman','rocket'];
+const DW_COLORS=['#ef4444','#f59e0b','#22c55e','#3b82f6','#a855f7','#ffffff','#000000'];
+const Draw = {
+  chan:null, state:null, canvas:null, ctx:null, drawing:false, color:'#ef4444', lastPt:null,
+  async open(body){
+    this.chan = new GameChannel('draw');
+    let st = await this.chan.load();
+    if(!st) st = {drawer:'user1', word:rand(DRAW_WORDS), strokes:[], guesses:[], scores:{user1:0,user2:0}, round:1};
+    this.state = st;
+    this.chan.listen(p=>{
+      if(p.type==='sync'){ this.state=p.state; this.render(); this.redrawAll(); }
+      else if(p.type==='stroke'){ this.state.strokes.push(p.stroke); this.drawSeg(p.stroke); }
+      else if(p.type==='clear'){ this.state.strokes=[]; this.clearCanvas(); }
+    });
+    this.render();
+  },
+  close(){ if(this.chan) this.chan.close(); },
+  sync(){ this.chan.send({type:'sync',state:this.state}); this.chan.persist(this.state); },
+  isDrawer(){ return this.state.drawer===ID.role; },
+  setupCanvas(){
+    this.canvas=document.getElementById('dwCanvas'); if(!this.canvas) return;
+    const wrap=this.canvas.parentElement;
+    this.canvas.width=wrap.clientWidth; this.canvas.height=wrap.clientHeight;
+    this.ctx=this.canvas.getContext('2d');
+    this.ctx.lineCap='round'; this.ctx.lineJoin='round'; this.ctx.lineWidth=5;
+    this.redrawAll();
+    const getPt=(e)=>{ const r=this.canvas.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:(t.clientX-r.left)/r.width, y:(t.clientY-r.top)/r.height}; };
+    const start=(e)=>{ if(!this.isDrawer()) return; e.preventDefault(); this.drawing=true; this.lastPt=getPt(e); };
+    const move=(e)=>{
+      if(!this.isDrawer()||!this.drawing) return; e.preventDefault();
+      const p=getPt(e); const stroke={x0:this.lastPt.x,y0:this.lastPt.y,x1:p.x,y1:p.y,color:this.color};
+      this.drawSeg(stroke); this.state.strokes.push(stroke); this.chan.send({type:'stroke',stroke}); this.lastPt=p;
+    };
+    const end=()=>{ this.drawing=false; if(this.isDrawer()) this.chan.persist(this.state); };
+    this.canvas.onmousedown=start; this.canvas.onmousemove=move; window.onmouseup=end;
+    this.canvas.ontouchstart=start; this.canvas.ontouchmove=move; this.canvas.ontouchend=end;
+  },
+  drawSeg(s){
+    if(!this.ctx) return;
+    this.ctx.strokeStyle=s.color; this.ctx.beginPath();
+    this.ctx.moveTo(s.x0*this.canvas.width, s.y0*this.canvas.height);
+    this.ctx.lineTo(s.x1*this.canvas.width, s.y1*this.canvas.height);
+    this.ctx.stroke();
+  },
+  clearCanvas(){ if(this.ctx) this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height); },
+  redrawAll(){ this.clearCanvas(); (this.state.strokes||[]).forEach(s=>this.drawSeg(s)); },
+  clear(){ if(!this.isDrawer()) return; this.state.strokes=[]; this.chan.send({type:'clear'}); this.clearCanvas(); this.chan.persist(this.state); },
+  newWord(){ if(!this.isDrawer()) return; this.state.word=rand(DRAW_WORDS); this.state.strokes=[]; this.sync(); this.clearCanvas(); toast('New word! ✏️'); },
+  guess(){
+    const inp=document.getElementById('dwGuessIn'); const val=(inp.value||'').trim().toLowerCase();
+    if(!val) return; inp.value='';
+    if(val===this.state.word.toLowerCase()){
+      GameCore.addXP(20); GameCore.addCoins(8); Snd.success();
+      this.state.scores[ID.role]=(this.state.scores[ID.role]||0)+1;
+      showReward('🎉','Correct guess!',['The word was “'+this.state.word+'”','+20 XP']);
+      this.state.drawer = this.state.drawer==='user1'?'user2':'user1';
+      this.state.word = rand(DRAW_WORDS); this.state.strokes=[]; this.state.round++;
+      this.sync(); this.clearCanvas(); this.render();
+    } else { toast('❌ Not quite — try again!'); Snd.fail(); }
+  },
+  render(){
+    const body=document.getElementById('goBody'); if(!body) return;
+    body.className='gobody nopad';
+    const drawer=this.isDrawer();
+    body.innerHTML = `
+      <div class="dw-wrap" style="height:100%">
+        <div style="padding:10px 12px 0"><div class="score-bar" style="margin-bottom:8px">
+          <div class="score-pill ${ID.role==='user1'?'mine':''}"><div class="sp-name">${esc(ID.myName)}</div><div class="sp-val">${this.state.scores.user1||0}</div></div>
+          <div class="score-pill ${ID.role==='user2'?'mine':''}"><div class="sp-name">${esc(ID.partnerName)}</div><div class="sp-val">${this.state.scores.user2||0}</div></div>
+        </div></div>
+        <div class="dw-toolbar">
+          ${drawer ? DW_COLORS.map(c=>`<div class="dw-color ${this.color===c?'sel':''}" style="background:${c}" onclick="Draw.pickColor('${c}')"></div>`).join('') : `<div class="dw-word-reveal">🤔 ${esc(ID.partnerName)} is drawing — guess below!</div>`}
+          ${drawer?`<button class="dw-tool-btn" onclick="Draw.clear()" title="Clear">🗑️</button><button class="dw-tool-btn" onclick="Draw.newWord()" title="New word">🔀</button>`:''}
+        </div>
+        <div class="dw-canvas-wrap">
+          ${drawer?`<div class="dw-guess-banner">✏️ Draw: <strong>${esc(this.state.word)}</strong></div>`:''}
+          <canvas id="dwCanvas"></canvas>
+        </div>
+        ${!drawer?`<div class="dw-guess-row"><input class="dw-guess-in" id="dwGuessIn" placeholder="Type your guess…" onkeydown="if(event.key==='Enter')Draw.guess()"><button class="btn btn-pink" onclick="Draw.guess()">Guess</button></div>`:''}
+      </div>
+    `;
+    setTimeout(()=>this.setupCanvas(),30);
+  },
+  pickColor(c){ this.color=c; this.render(); setTimeout(()=>this.setupCanvas(),30); }
+};
 
 /* ═══════════════════════════════════════════════════════
-   EXPOSE GLOBALS FOR ADDON PACKS (couple-games-addon.js etc.)
-   Top-level const/function in a classic <script> tag do NOT
-   attach to window — addon scripts that check window.X or
-   call window.X() need these explicitly exported.
+   GAME 5 — MEMORY MATCH
+═══════════════════════════════════════════════════════ */
+const MM_EMOJIS=['❤️','🌟','🎈','🍕','🌙','🐶','🎵','🌈'];
+const Memory = {
+  chan:null, state:null, busy:false,
+  async open(body){
+    this.chan = new GameChannel('memory');
+    let st = await this.chan.load();
+    if(!st) st = this.fresh();
+    this.state = st;
+    this.chan.listen(p=>{ if(p.type==='sync'){ this.state=p.state; this.render(); } });
+    this.render();
+  },
+  close(){ if(this.chan) this.chan.close(); },
+  sync(){ this.chan.send({type:'sync',state:this.state}); this.chan.persist(this.state); },
+  fresh(){
+    let deck=[...MM_EMOJIS,...MM_EMOJIS].map((e,i)=>({id:i,emoji:e,matched:false}));
+    for(let i=deck.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [deck[i],deck[j]]=[deck[j],deck[i]]; }
+    return { cards:deck, flipped:[], turn:'user1', scores:{user1:0,user2:0}, winner:null };
+  },
+  restart(){ this.state=this.fresh(); this.sync(); this.render(); },
+  flip(i){
+    const s=this.state;
+    if(s.winner || s.turn!==ID.role || this.busy) return;
+    if(s.cards[i].matched || s.flipped.includes(i)) return;
+    s.flipped.push(i); Snd.tap();
+    this.sync(); this.render();
+    if(s.flipped.length===2){
+      this.busy=true;
+      const [a,b]=s.flipped;
+      setTimeout(()=>{
+        if(s.cards[a].emoji===s.cards[b].emoji){
+          s.cards[a].matched=true; s.cards[b].matched=true;
+          s.scores[ID.role]=(s.scores[ID.role]||0)+1;
+          GameCore.addXP(6); GameCore.addCoins(3); Snd.success();
+          s.flipped=[];
+          if(s.cards.every(c=>c.matched)){
+            s.winner = s.scores.user1>=s.scores.user2 ? 'user1':'user2';
+            if(s.scores.user1===s.scores.user2) s.winner='draw';
+            setTimeout(()=>showReward('🧠','All pairs matched!',['Final: '+s.scores.user1+' - '+s.scores.user2]),300);
+          }
+        } else {
+          Snd.fail(); s.flipped=[]; s.turn = s.turn==='user1'?'user2':'user1';
+        }
+        this.busy=false; this.sync(); this.render();
+      },850);
+    }
+  },
+  render(){
+    const body=document.getElementById('goBody'); if(!body) return;
+    const s=this.state, myTurn=s.turn===ID.role && !s.winner;
+    body.innerHTML = `
+      <div class="score-bar">
+        <div class="score-pill ${ID.role==='user1'?'mine':''}"><div class="sp-name">${esc(ID.myName)}</div><div class="sp-val">${s.scores.user1||0}</div></div>
+        <div class="score-pill ${ID.role==='user2'?'mine':''}"><div class="sp-name">${esc(ID.partnerName)}</div><div class="sp-val">${s.scores.user2||0}</div></div>
+      </div>
+      <div class="turn-bar ${myTurn?'mine':''}">${s.winner?(s.winner==='draw'?'🤝 It is a tie!':(s.winner===ID.role?'🎉 You won!':esc(ID.partnerName)+' won!')):(myTurn?'✨ Your turn — flip 2 cards':esc(ID.partnerName)+' is turn…')}</div>
+      <div class="mm-grid">
+        ${s.cards.map((c,i)=>{
+          const shown = c.matched || s.flipped.includes(i);
+          return `<div class="mm-card ${shown?(c.matched?'matched':'flipped'):''}" onclick="Memory.flip(${i})">${shown?c.emoji:''}</div>`;
+        }).join('')}
+      </div>
+      <div style="text-align:center;margin-top:16px">${s.winner?'<button class="btn btn-accent" onclick="Memory.restart()">🔄 Play Again</button>':''}</div>
+    `;
+  }
+};
+
+/* ═══════════════════════════════════════════════════════
+   EXPOSE GLOBALS
 ═══════════════════════════════════════════════════════ */
 window.GameCore = GameCore;
 window.GameChannel = GameChannel;
+window.GameVideo = GameVideo;
 window.GAMES = GAMES;
-window.ACHIEVEMENTS = ACHIEVEMENTS;
-window.Snd = Snd;
-window.Hub = Hub;
-window.ID = ID;
-window.toast = toast;
-window.showReward = showReward;
-window.closeReward = closeReward;
-window.esc = esc;
-window.rand = rand;
-window.uid = uid;
-window.todayStr = todayStr;
+window.Snd = Snd; window.Hub = Hub; window.ID = ID;
+window.toast = toast; window.showReward = showReward; window.closeReward = closeReward;
+window.esc = esc; window.rand = rand; window.uid = uid; window.todayStr = todayStr;
+window.TTT = TTT; window.Ludo = Ludo; window.TOD = TOD; window.Draw = Draw; window.Memory = Memory;
 
 Hub.init();
-
 </script>
-<script src="couple-games-addon.js"></script>
 <script src="/premium-motion.js"></script>
 <script src="/premium-states.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <script src="/ui-icons.js"></script>
-<!-- Premium Sound System (additive, non-invasive) -->
 <script src="/js/audio/sound-engine.js"></script>
 <script src="/js/audio/sound-library.js"></script>
 <script src="/js/audio/audio-integration.js"></script>
