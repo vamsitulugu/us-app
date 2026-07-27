@@ -1792,83 +1792,72 @@ const LiveMap = (() => {
   }
 
   async function searchAlongRoute(key) {
-    const coords = st.navRouteCoords;
     const t = ROUTE_POI_TYPES[key];
-    if (!coords || coords.length < 2 || !t) { toast('Start navigation first'); return; }
+    if (!t) return;
+    // FIX: this used to corridor-sample only 8 points along the *entire*
+    // remaining route (which can be hundreds of km), so almost every
+    // category came back "No more X ahead on this route" simply because
+    // real POIs are sparse relative to those 8 sample points. What people
+    // actually want here is "what's near me right now" — so just search a
+    // ~5km radius around the current position, like the Nearby tab does.
+    const center = S.myLoc || (st.navRouteCoords && st.navRouteCoords[0] ? { lat: st.navRouteCoords[0][0], lng: st.navRouteCoords[0][1] } : null);
+    if (!center) { toast('Enable location first'); return; }
     _routePoiActive = key;
     document.querySelectorAll('.lm-poi-chip').forEach(c => c.classList.toggle('active', c.dataset.poi === key));
     const resultsEl = document.getElementById('lmRoutePoiResults');
     if (!resultsEl) return;
     resultsEl.style.display = 'block';
-    resultsEl.innerHTML = `<div class="empty">Searching ${t.label.toLowerCase()} along the route…</div>`;
+    resultsEl.innerHTML = `<div class="empty">Searching ${t.label.toLowerCase()} nearby…</div>`;
     (st.routePoiMarkers || []).forEach(m => st.map.removeLayer(m));
     st.routePoiMarkers = [];
 
-    const radius = 700; // corridor half-width, meters
-    const samples = _sampleRouteCoords(coords, 8);
-    const filters = samples.map(c => `node[${t.tag}](around:${radius},${c[0]},${c[1]});`).join('');
-    const query = `[out:json][timeout:15];(${filters});out center 40;`;
+    const radius = 5000; // ~5km radius around current position
+    const query = `[out:json][timeout:15];(node[${t.tag}](around:${radius},${center.lat},${center.lng});way[${t.tag}](around:${radius},${center.lat},${center.lng}));out center 40;`;
     try {
       if (!window.OverpassService) throw new Error('search engine not loaded');
       const data = await window.OverpassService.runQuery(query);
       const seen = new Set();
-      let places = (data.elements || []).filter(e => {
-        if (e.lat == null || e.lon == null || seen.has(e.id)) return false;
-        seen.add(e.id);
-        return true;
-      });
-      // Corridor filter: an "around" hit near a sample point can still be off
-      // to the side of the actual road — drop anything not genuinely close
-      // to the route line itself.
-      places = places.filter(p => _minDistToRouteM({ lat: p.lat, lng: p.lon }, coords) <= radius);
-      places.forEach(p => { p._prog = _distAlongRouteKm({ lat: p.lat, lng: p.lon }, coords); });
-      places.sort((a, b) => a._prog - b._prog);
-      places = places.slice(0, 15);
-      // Cache the full result set (with route-progress already computed) so
-      // live GPS updates can re-filter/re-sort locally with zero extra network calls.
-      st.routePoiCache = { key, t, coords, places };
+      let places = (data.elements || []).map(e => ({ ...e, lat: e.lat ?? e.center?.lat, lon: e.lon ?? e.center?.lon }))
+        .filter(e => e.lat != null && e.lon != null && !seen.has(e.id) && seen.add(e.id));
+      places.forEach(p => { p._distKm = haversine(center, { lat: p.lat, lng: p.lon }); });
+      places.sort((a, b) => a._distKm - b._distKm);
+      places = places.slice(0, 20);
+      st.routePoiCache = { key, t, center, places };
       _renderRoutePoiList();
     } catch (e) {
-      resultsEl.innerHTML = '<div class="empty">Couldn\'t search along the route right now — try again.</div>';
+      resultsEl.innerHTML = '<div class="empty">Couldn\'t search nearby right now — try again.</div>';
     }
   }
 
-  // Re-renders the active route-POI list/markers from the cached result set,
-  // dropping anything already behind the current position and showing
-  // "X km ahead" instead of absolute route km. No network calls — pure local
-  // re-filter, called on every accepted GPS fix while a search is active.
+  // Re-renders the active nearby-POI list/markers from the cached result
+  // set — pure local re-render, no network calls.
   function _renderRoutePoiList() {
     const cache = st.routePoiCache;
     if (!cache || !_routePoiActive || cache.key !== _routePoiActive) return;
-    const { t, coords, places: all } = cache;
+    const { t, places } = cache;
     const resultsEl = document.getElementById('lmRoutePoiResults');
     if (!resultsEl) return;
-
-    const myProg = S.myLoc ? _distAlongRouteKm(S.myLoc, coords) : 0;
-    const BEHIND_BUFFER_KM = 0.15; // small grace so we don't drop a POI we're still passing
-    const ahead = all.filter(p => p._prog >= myProg - BEHIND_BUFFER_KM);
 
     (st.routePoiMarkers || []).forEach(m => st.map.removeLayer(m));
     st.routePoiMarkers = [];
 
-    if (!ahead.length) {
-      resultsEl.innerHTML = `<div class="empty">No more ${t.label.toLowerCase()} ahead on this route.</div>`;
+    if (!places.length) {
+      resultsEl.innerHTML = `<div class="empty">No ${t.label.toLowerCase()} found within 5km.</div>`;
       return;
     }
-    resultsEl.innerHTML = ahead.map(p => {
+    resultsEl.innerHTML = places.map(p => {
       const name = p.tags?.name || t.label;
-      const remainKm = Math.max(0, p._prog - myProg);
       return `<div class="money-row">
         <div class="money-ic inc">${t.icon}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:12px;font-weight:500;color:var(--white)">${esc(name)}</div>
-          <div style="font-size:10px;color:var(--text3)">${remainKm.toFixed(1)} km ahead</div>
+          <div style="font-size:10px;color:var(--text3)">${p._distKm.toFixed(1)} km away</div>
         </div>
         <button class="btn btn-glass btn-xs" onclick="LiveMap.flyTo(${p.lat},${p.lon})">View</button>
         <button class="btn btn-accent btn-xs" onclick="LiveMap.navigateToPoint(${p.lat},${p.lon},'${esc(name).replace(/'/g, "\\'")}')">🧭</button>
       </div>`;
     }).join('');
-    ahead.forEach(p => {
+    places.forEach(p => {
       const mIcon = L.divIcon({ html: `<div style="width:20px;height:20px;border-radius:50%;background:#2a2a2a;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px">${t.icon}</div>`, className: '', iconSize: [20, 20] });
       const m = L.marker([p.lat, p.lon], { icon: mIcon }).addTo(st.map).bindPopup(esc(p.tags?.name || t.label));
       st.routePoiMarkers.push(m);

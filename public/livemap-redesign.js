@@ -108,21 +108,22 @@
       else setTimeout(killShimmer, 1200);
     }
 
-    // ── Bottom sheet: re-home the toolbar + panels into tabbed sections ──
+    // ── Bottom sheet: only Partner / Saved / Weather need a dedicated tab
+    // now — the toolbar, Start button, Directions/Nav panels and place
+    // details card all stay exactly where they already are in the markup:
+    // directly after the map, inside mainTitleCard. Nothing here relocates
+    // them anymore, which is what keeps them "right after the map" instead
+    // of scrolled far down the page.
     const sheet = document.createElement('div');
     sheet.className = 'lm2-sheet';
     sheet.innerHTML = `
       <div class="lm2-sheet-tabs" id="lm2SheetTabs">
-        <div class="lm2-sheet-tab active" data-tab="nav">Navigation</div>
-        <div class="lm2-sheet-tab" data-tab="nearby">Nearby</div>
-        <div class="lm2-sheet-tab" data-tab="partner">Partner</div>
+        <div class="lm2-sheet-tab active" data-tab="partner">Partner</div>
         <div class="lm2-sheet-tab" data-tab="saved">Saved</div>
         <div class="lm2-sheet-tab" data-tab="weather">Weather</div>
       </div>
       <div class="lm2-sheet-body">
-        <div class="lm2-sheet-section active" data-section="nav"></div>
-        <div class="lm2-sheet-section" data-section="nearby"></div>
-        <div class="lm2-sheet-section" data-section="partner"></div>
+        <div class="lm2-sheet-section active" data-section="partner"></div>
         <div class="lm2-sheet-section" data-section="saved"></div>
         <div class="lm2-sheet-section" data-section="weather"></div>
       </div>`;
@@ -139,52 +140,16 @@
       };
     });
 
-    const navSection = sheet.querySelector('[data-section="nav"]');
-    const nearbySection = sheet.querySelector('[data-section="nearby"]');
     const partnerSection = sheet.querySelector('[data-section="partner"]');
     const savedSection = sheet.querySelector('[data-section="saved"]');
     const weatherSection = sheet.querySelector('[data-section="weather"]');
 
-    // Navigation: toolbar's action row + nav/directions panels + the
-    // video-call / love-note actions already sitting under the map card.
-    if (toolbar) navSection.appendChild(toolbar);
-    // Privacy sits right after the action row (Locate Me / Locate Partner /
-    // Meeting Point / Favorites / Daily Route / Privacy), not buried at the
-    // bottom of the page in the Weather tab.
-    const privacyPanel = $('lmPrivacyPanel');
-    if (privacyPanel) {
-      const t = document.createElement('div');
-      t.className = 'lm2-sheet-section-title';
-      t.textContent = 'Privacy';
-      navSection.appendChild(t);
-      navSection.appendChild(privacyPanel);
-    }
-    ['lmDirectionsPanel', 'lmNavPanel', 'lmPlaceDetailsCard'].forEach(id => { const el = $(id); if (el) navSection.appendChild(el); });
-    const actionsRow = mapCard?.querySelector('button[onclick*="startVideoCallFromMap"]')?.closest('div');
-    if (actionsRow) navSection.appendChild(actionsRow);
-    const loveNotes = $('lmLoveNotesPanel'); if (loveNotes) navSection.appendChild(loveNotes);
-    const togetherBanner = $('lmTogetherBanner'); if (togetherBanner) navSection.appendChild(togetherBanner);
-    const travelNote = $('mapTravelNote'); if (travelNote) navSection.appendChild(travelNote);
-    const periodStats = mapCard?.querySelector('.period-stats'); if (periodStats) navSection.appendChild(periodStats);
-
-    // Nearby: our new fallback-aware chip row + results container
-    nearbySection.innerHTML = `
-      <div class="lm2-sheet-section-title">Search nearby</div>
-      <div class="lm2-chip-row" id="lm2NearbyChips"></div>
-      <div id="lm2NearbySort" style="display:flex;gap:6px;margin:10px 0;font-size:11px;color:var(--lm2-text-hint)">
-        Sort:
-        <span class="lm2-chip lm2-sort-chip active" data-sort="distance" style="padding:4px 10px;min-height:auto">Distance</span>
-        <span class="lm2-chip lm2-sort-chip" data-sort="rating" style="padding:4px 10px;min-height:auto">Rating</span>
-        <span class="lm2-chip lm2-sort-chip" data-sort="open" style="padding:4px 10px;min-height:auto">Open now</span>
-      </div>
-      <div id="lm2NearbyResults"></div>`;
-
     // Partner: presence/status only — the actual actions (Video Call,
-    // Meeting Point, Love Note, Locate Partner) already live in the
-    // Navigation tab's toolbar+actions row above; repeating them here
-    // was pure visual duplication, not a second feature.
+    // Meeting Point, Love Note, Locate Partner) already live right above,
+    // directly under the map — repeating them here was pure visual
+    // duplication, not a second feature.
     partnerSection.innerHTML = `<div class="lm2-sheet-section-title">Stay close</div>
-      <div style="font-size:11px;color:var(--lm2-text-hint);margin-bottom:8px">Quick actions are in the Navigation tab above ⬆️</div>`;
+      <div style="font-size:11px;color:var(--lm2-text-hint);margin-bottom:8px">Quick actions are right above, under the map ⬆️</div>`;
 
     // Saved: favorites panel + important-places cards
     savedSection.innerHTML = `<div class="lm2-sheet-section-title">Favorites</div>`;
@@ -195,8 +160,7 @@
     if (myPlacesCard) { savedSection.appendChild(document.createElement('div')).outerHTML = '<div class="lm2-sheet-section-title">My important places</div>'; savedSection.appendChild(myPlacesCard); }
     if (ptPlacesCard) { const t = document.createElement('div'); t.className = 'lm2-sheet-section-title'; t.textContent = "Partner's places"; savedSection.appendChild(t); savedSection.appendChild(ptPlacesCard); }
 
-    // Weather panel (Privacy now lives in the Navigation tab, right after
-    // the action row — see above)
+    // Weather panel
     const weatherPanel = $('lmWeatherPanel');
     weatherSection.innerHTML = `<div class="lm2-sheet-section-title">Weather</div>`;
     if (weatherPanel) { weatherPanel.style.display = 'block'; weatherSection.appendChild(weatherPanel); window.LiveMap?.getWeather?.(); }
@@ -204,12 +168,10 @@
     // Banners stay at the very top of the page (above the header)
     ['lmPermBanner', 'lmOfflineBanner', 'lmEmergencyBanner'].forEach(id => { const el = $(id); if (el) page.insertBefore(el, header); });
 
-    // Empty the now-hollowed-out original card wrapper (icons/labels are
-    // preserved on the moved elements themselves, so this just discards
-    // leftover wrapper chrome).
-    if (mainTitleCard && !mainTitleCard.contains(mapView) && mainTitleCard.children.length <= 1) mainTitleCard.remove();
-
-    buildNearbyChips();
+    // mainTitleCard keeps the Start button / toolbar / privacy / directions
+    // & nav panels / place details card / video-call+love-note row / period
+    // stats exactly as they already are in the markup, right after the map —
+    // nothing here empties it out, so don't remove it.
   }
 
   /* Close the floating search-results dropdown when the user taps
@@ -708,7 +670,7 @@
       const prev = window.goto;
       window.goto = function (page) {
         prev(page);
-        if (page === 'map') { restructure(); buildNearbyChips(); }
+        if (page === 'map') { restructure(); }
       };
     }
   }, 500);
