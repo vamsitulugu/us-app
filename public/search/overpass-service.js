@@ -92,15 +92,13 @@
    * single healthy mirror among the 7 wins immediately.
    */
   async function runQuery(query, signal) {
-    const attempts = MIRRORS.map(mirror => tryMirror(mirror, query, signal));
-    try {
-      return await Promise.any(attempts);
-    } catch (aggregateErr) {
-      if (signal?.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });
-      console.warn('[overpass-service] every mirror failed:', (aggregateErr.errors || []).map(e => e.message));
-    }
-
-    // Backend proxy as a last resort before giving up on "live" data.
+    // FIX: the backend proxy (routes/search.js) exists specifically because
+    // public Overpass mirrors frequently reject cross-origin POSTs from a
+    // browser (CORS block / 406) — but this used to race the 7 mirrors
+    // FIRST and only fall back to the proxy after every one of them failed,
+    // burning the whole timeout window on calls that were doomed from the
+    // start. Try the proxy first; it's the one path proven to work from
+    // the browser.
     if (PROXY_ENDPOINT) {
       try {
         const res = await fetchWithTimeout(PROXY_ENDPOINT, {
@@ -112,6 +110,16 @@
       } catch (e) {
         if (signal?.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });
       }
+    }
+
+    // Fall back to racing the public mirrors directly — still useful for
+    // non-browser callers, or if the proxy itself is down.
+    const attempts = MIRRORS.map(mirror => tryMirror(mirror, query, signal));
+    try {
+      return await Promise.any(attempts);
+    } catch (aggregateErr) {
+      if (signal?.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });
+      console.warn('[overpass-service] every mirror failed:', (aggregateErr.errors || []).map(e => e.message));
     }
 
     throw new Error('All Overpass mirrors and the backend proxy failed');

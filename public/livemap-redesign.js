@@ -148,6 +148,17 @@
     // Navigation: toolbar's action row + nav/directions panels + the
     // video-call / love-note actions already sitting under the map card.
     if (toolbar) navSection.appendChild(toolbar);
+    // Privacy sits right after the action row (Locate Me / Locate Partner /
+    // Meeting Point / Favorites / Daily Route / Privacy), not buried at the
+    // bottom of the page in the Weather tab.
+    const privacyPanel = $('lmPrivacyPanel');
+    if (privacyPanel) {
+      const t = document.createElement('div');
+      t.className = 'lm2-sheet-section-title';
+      t.textContent = 'Privacy';
+      navSection.appendChild(t);
+      navSection.appendChild(privacyPanel);
+    }
     ['lmDirectionsPanel', 'lmNavPanel', 'lmPlaceDetailsCard'].forEach(id => { const el = $(id); if (el) navSection.appendChild(el); });
     const actionsRow = mapCard?.querySelector('button[onclick*="startVideoCallFromMap"]')?.closest('div');
     if (actionsRow) navSection.appendChild(actionsRow);
@@ -184,13 +195,11 @@
     if (myPlacesCard) { savedSection.appendChild(document.createElement('div')).outerHTML = '<div class="lm2-sheet-section-title">My important places</div>'; savedSection.appendChild(myPlacesCard); }
     if (ptPlacesCard) { const t = document.createElement('div'); t.className = 'lm2-sheet-section-title'; t.textContent = "Partner's places"; savedSection.appendChild(t); savedSection.appendChild(ptPlacesCard); }
 
-    // Weather + privacy panels
+    // Weather panel (Privacy now lives in the Navigation tab, right after
+    // the action row — see above)
     const weatherPanel = $('lmWeatherPanel');
-    const privacyPanel = $('lmPrivacyPanel');
     weatherSection.innerHTML = `<div class="lm2-sheet-section-title">Weather</div>`;
     if (weatherPanel) { weatherPanel.style.display = 'block'; weatherSection.appendChild(weatherPanel); window.LiveMap?.getWeather?.(); }
-    if (privacyPanel) { const t = document.createElement('div'); t.className = 'lm2-sheet-section-title'; t.textContent = 'Privacy'; weatherSection.appendChild(t); weatherSection.appendChild(privacyPanel); }
-    const weatherBtn = $('lmWeatherBtn'); if (weatherBtn) weatherBtn.remove(); // now redundant, tab covers it
 
     // Banners stay at the very top of the page (above the header)
     ['lmPermBanner', 'lmOfflineBanner', 'lmEmergencyBanner'].forEach(id => { const el = $(id); if (el) page.insertBefore(el, header); });

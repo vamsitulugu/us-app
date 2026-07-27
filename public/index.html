@@ -5632,7 +5632,12 @@ select option { background: #0D0D0D; color: #fff; }
    <div id="lmDirectionsPanel" style="display:none;margin-bottom:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px;font-size:11px;color:var(--text3)"></div>
 
    <div id="mapView" style="width:100%;height:340px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border)"></div>
- 
+
+   <!-- Single "Start" button — appears right after the map once a place has
+        been searched/picked, and goes straight into turn-by-turn navigation
+        (no separate Directions panel to open first). -->
+   <button id="lmStartNavBtn" class="btn btn-accent" style="display:none;width:100%;margin-top:10px;font-weight:700;font-size:14px;padding:12px" onclick="LiveMap.startQuickNav()">▶ Start</button>
+
     <!-- PHASE 2: map style switcher + quick actions -->
     <div class="lm-toolbar">
       <div class="lm-style-seg">
@@ -5651,14 +5656,12 @@ select option { background: #0D0D0D; color: #fff; }
         <div class="lm-tool-btn" onclick="LiveMap.showMeetingPoint()"><span class="lm-tool-ico">🤝</span>Meeting Point</div>
         <div class="lm-tool-btn" id="lmFavBtn" onclick="LiveMap.toggleFavoritesPanel()"><span class="lm-tool-ico">⭐</span>Favorites</div>
         <div class="lm-tool-btn" onclick="LiveMap.openRouteHistory()"><span class="lm-tool-ico">🛣️</span>Daily Route</div>
-        <div class="lm-tool-btn" id="lmWeatherBtn" onclick="LiveMap.getWeather()"><span class="lm-tool-ico">⛅</span>Weather</div>
         <div class="lm-tool-btn" id="lmPrivacyBtn" onclick="LiveMap.togglePrivacyPanel()"><span class="lm-tool-ico">🔒</span>Privacy</div>
-        <div class="lm-tool-btn" id="lmNavBtn" onclick="LiveMap.toggleNavPanel()"><span class="lm-tool-ico">🧭</span>Navigate</div>
       </div>
     </div>
 
-    <div id="lmWeatherPanel" style="display:none;margin-top:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--text3)"></div>
     <div id="lmPrivacyPanel" style="display:none;margin-top:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--text3)"></div>
+    <div id="lmWeatherPanel" style="display:none;margin-top:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--text3)"></div>
     <div id="lmNavPanel" style="display:none;margin-top:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--text3)"></div>
     <div id="lmFavoritesPanel" style="display:none;margin-top:10px"></div>
     <div id="lmMeetingSuggestions" style="display:none;margin-top:10px"></div>

@@ -332,6 +332,30 @@
 .lm2-scale-tap{transition:transform 150ms ease}
 .lm2-scale-tap:active{transform:scale(.96)}
 
+/* FIX: stray red tap-highlight rectangle appearing on chips/toolbar
+   buttons on mobile — the global `-webkit-tap-highlight-color:transparent`
+   in index.html doesn't reliably suppress it on every mobile browser for
+   plain <div> "buttons", so belt-and-suspenders it here on the exact
+   elements users tap in this redesign. */
+#page-map .lm2-chip,
+#page-map .lm2-icon-btn,
+#page-map .lm-tool-btn,
+#page-map .lm2-sort-chip,
+#page-map button{
+  -webkit-tap-highlight-color:transparent;
+  -webkit-touch-callout:none;
+  outline:none;
+  user-select:none;
+}
+#page-map .lm2-chip:focus,#page-map .lm2-chip:active,
+#page-map .lm2-icon-btn:focus,#page-map .lm2-icon-btn:active,
+#page-map .lm-tool-btn:focus,#page-map .lm-tool-btn:active,
+#page-map .lm2-sort-chip:focus,#page-map .lm2-sort-chip:active,
+#page-map button:focus,#page-map button:active{
+  outline:none;
+  box-shadow:none;
+}
+
 /* ── 13. Accessibility ───────────────────────────────────────────── */
 #page-map{font-size:14px}
 #page-map .lm2-icon-btn,

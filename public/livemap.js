@@ -1077,11 +1077,23 @@ const LiveMap = (() => {
     st.destMarker = L.marker([p.lat, p.lng], { icon }).addTo(st.map);
     st.map.setView([p.lat, p.lng], 15);
     document.getElementById('lmDirectionsPanel').style.display = 'none';
+    _showStartNavBtn(p);
     _renderPlaceDetailsCard();
+  }
+  function _showStartNavBtn(p) {
+    const btn = document.getElementById('lmStartNavBtn');
+    if (!btn) return;
+    btn.style.display = 'block';
+    btn.textContent = '▶ Start' + (p?.name ? ' — ' + p.name : '');
+  }
+  function _hideStartNavBtn() {
+    const btn = document.getElementById('lmStartNavBtn');
+    if (btn) btn.style.display = 'none';
   }
   function closePlaceDetails() {
     document.getElementById('lmPlaceDetailsCard').style.display = 'none';
     document.getElementById('lmDirectionsPanel').style.display = 'none';
+    _hideStartNavBtn();
     if (st.destMarker) { st.map.removeLayer(st.destMarker); st.destMarker = null; }
     if (st.dirLine) { st.map.removeLayer(st.dirLine); st.dirLine = null; }
     (st.dirAltLines || []).forEach(l => st.map.removeLayer(l)); st.dirAltLines = [];
@@ -1108,7 +1120,6 @@ const LiveMap = (() => {
         ${distPt != null ? `<div>💜 ${distPt.toFixed(1)} km from partner</div>` : ''}
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
-        <button class="btn btn-accent btn-xs" onclick="LiveMap.openDirections()">🧭 Directions</button>
         <button class="btn btn-glass btn-xs" onclick="LiveMap.saveGmPlace()">📌 Save</button>
         <button class="btn btn-glass btn-xs" onclick="LiveMap.shareGmPlace()">📤 Share</button>
         <button class="btn btn-glass btn-xs" onclick="LiveMap.meetHereGmPlace()">🤝 Meet Here</button>
@@ -1436,6 +1447,22 @@ const LiveMap = (() => {
       destination the Directions planner picked. Note: like every turn-by-
       turn nav app, live navigation always starts from your current live
       position (not the custom "From" point, which is for route preview only). */
+  /** Handler for the single full-width "▶ Start" button that now sits
+      right under the map. Replaces the old two-step Directions → Start
+      Navigation flow with one tap: compute the route, then go straight
+      into live turn-by-turn nav. */
+  async function startQuickNav() {
+    if (!_gmActivePlace) { toast('Search for a place first'); return; }
+    const btn = document.getElementById('lmStartNavBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '▶ Starting…'; }
+    try {
+      await _runDirections();
+      if (!_dirRoutesCache) { toast('Could not get a route'); return; }
+      startDirNavigation();
+    } finally {
+      if (btn) { btn.disabled = false; btn.style.display = 'none'; }
+    }
+  }
   function startDirNavigation() {
     if (!_dirRoutesCache) return;
     _navTarget = { lat: _dirRoutesCache.dest.lat, lng: _dirRoutesCache.dest.lng, label: _dirRoutesCache.dest.name };
@@ -2693,7 +2720,7 @@ const LiveMap = (() => {
     onSearchInput, searchByChip, pickSearchResult,
     gmSearchInput, gmSearchFocus, gmSearchClear, gmPickResult, gmPickRecent,
     closePlaceDetails, toggleFavoritePlace, saveGmPlace, shareGmPlace, meetHereGmPlace,
-    openDirections, pickCustomOrigin, resetOriginToCurrent, setDirMode, selectDirRoute, startDirNavigation,
+    openDirections, pickCustomOrigin, resetOriginToCurrent, setDirMode, selectDirRoute, startDirNavigation, startQuickNav,
     toggleFavoritesPanel, openFavorite, removeFavorite, moveFavorite, renameFavorite,
     startVideoCallFromMap, openLoveNoteComposer, sendLoveNote, foundLoveNote,
     flyTo,

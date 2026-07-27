@@ -234,9 +234,16 @@
         id: 'lm3d-sat', type: 'raster', source: 'lm3d-sat-src',
         paint: {}
       }];
-      const sources = { 'lm3d-sat-src': { type: 'raster', tiles: RASTER.satellite.tiles, tileSize: 256, attribution: RASTER.satellite.attribution } };
+      // FIX: zooming in past the imagery resolution Esri actually has for
+      // a given area (common in rural/small towns) used to request tiles
+      // at those higher zooms directly, which Esri answers with a grey
+      // "Map data not yet available" placeholder tile instead of an error —
+      // so it looked like satellite view was broken. Capping maxzoom tells
+      // MapLibre to stop requesting new tiles past that level and instead
+      // scale up the last real tile it has, like Google Maps does.
+      const sources = { 'lm3d-sat-src': { type: 'raster', tiles: RASTER.satellite.tiles, tileSize: 256, maxzoom: 17, attribution: RASTER.satellite.attribution } };
       if (theme === 'hybrid') {
-        sources['lm3d-hybrid-src'] = { type: 'raster', tiles: RASTER.hybridLabels.tiles, tileSize: 256, attribution: RASTER.hybridLabels.attribution };
+        sources['lm3d-hybrid-src'] = { type: 'raster', tiles: RASTER.hybridLabels.tiles, tileSize: 256, maxzoom: 17, attribution: RASTER.hybridLabels.attribution };
         layers.push({ id: 'lm3d-hybrid-labels', type: 'raster', source: 'lm3d-hybrid-src' });
       }
       return { version: 8, sources, layers, glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf' };
