@@ -85,7 +85,8 @@
       const cloth = this._mat(col);
       const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 16, 16), skin);
       head.position.y = 1.62;
-      const torso = new THREE.Mesh(new THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.24, 0.6, 4, 8) : new THREE.CylinderGeometry(0.24, 0.22, 0.75, 10), cloth);
+      const torsoGeo = typeof THREE.CapsuleGeometry === 'function' ? new THREE.CapsuleGeometry(0.24, 0.6, 4, 8) : new THREE.CylinderGeometry(0.24, 0.22, 0.75, 10);
+      const torso = new THREE.Mesh(torsoGeo, cloth);
       torso.position.y = 1.15;
       const hip = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.2, 0.18, 10), cloth);
       hip.position.y = 0.78;
