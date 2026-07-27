@@ -176,7 +176,7 @@
     }
     set3D(on) {
       // "tilt into 3D" — used when following/navigating; flat for overview
-      this.gl.easeTo({ pitch: on ? 55 : 0, duration: 600 });
+      this.gl.easeTo({ pitch: on ? 68 : 0, duration: 600 });
       this.setTerrainEnabled(on);
     }
     // Phase 5 — camera mode presets. 'top' = classic flat map, 'tilt' =
@@ -188,8 +188,8 @@
       opts = opts || {};
       const presets = {
         top:  { pitch: 0,  zoom: opts.zoom || Math.min(this.gl.getZoom(), 16) },
-        tilt: { pitch: 55, zoom: opts.zoom || Math.max(this.gl.getZoom(), 16) },
-        eye:  { pitch: 82, zoom: opts.zoom || 19 }
+        tilt: { pitch: 68, zoom: opts.zoom || Math.max(this.gl.getZoom(), 17.5) },
+        eye:  { pitch: 84, zoom: opts.zoom || 20 }
       };
       const p = presets[mode] || presets.top;
       this.setTerrainEnabled(mode !== 'top');

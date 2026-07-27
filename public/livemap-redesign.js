@@ -108,6 +108,29 @@
       else setTimeout(killShimmer, 1200);
     }
 
+    // ── Reorder the "route" content vs. the "toolbar" content ─────
+    // Requested layout: right after the map — the Start button, then the
+    // driving/walking/cycling route panel (lmNavPanel), the distance/ETA
+    // stats, the travel note / "together" banner, and the Video Call /
+    // Leave a Love Note row. THEN, below all of that, the map-style row
+    // (Map/Dark/Satellite/Hybrid/Auto) + the 3D/Eye-level toggle + the
+    // Locate Me/Partner/Meeting/Favorites/Daily Route/Privacy action row.
+    // Nothing is cloned or rebuilt — same elements, same ids/handlers,
+    // just moved earlier in the DOM (CSS/JS that targets them by id is
+    // unaffected).
+    if (toolbar && mainTitleCard) {
+      const periodStats = mainTitleCard.querySelector('.period-stats');
+      const travelNote = $('mapTravelNote');
+      const togetherBanner = $('lmTogetherBanner');
+      const navPanel = $('lmNavPanel');
+      const loveNotesPanel = $('lmLoveNotesPanel');
+      const callBtn = mainTitleCard.querySelector('[onclick="LiveMap.startVideoCallFromMap()"]');
+      const actionRow = callBtn ? callBtn.closest('div') : null;
+      [navPanel, periodStats, travelNote, togetherBanner, actionRow, loveNotesPanel].forEach(el => {
+        if (el) toolbar.parentNode.insertBefore(el, toolbar);
+      });
+    }
+
     // ── Bottom sheet: only Partner / Saved / Weather need a dedicated tab
     // now — the toolbar, Start button, Directions/Nav panels and place
     // details card all stay exactly where they already are in the markup:

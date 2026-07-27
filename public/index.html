@@ -2976,7 +2976,10 @@
     @media(max-width:700px) {
       .sidebar {
         position: fixed;
-        left: -250px;
+        width: 270px;
+        min-width: 270px;
+        max-width: 270px;
+        left: -270px;
         top: 0;
         bottom: 0;
         z-index: 16;
@@ -2986,11 +2989,18 @@
 
       .sidebar.mob-open {
         display: flex;
-        transform: translateX(250px)
+        transform: translateX(270px)
       }
 
       .sidebar-overlay.active {
         display: block
+      }
+
+      /* Keep the logo/app-name clear of the phone's status bar (clock,
+         signal, battery) when the drawer is open — same content as
+         desktop, just pushed down with safe-area-aware top padding. */
+      .sidebar .sb-logo {
+        padding-top: calc(env(safe-area-inset-top, 0px) + 34px);
       }
     }
 

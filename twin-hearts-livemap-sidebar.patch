@@ -1,0 +1,110 @@
+From 8440726e8825ddfb7b901bd56136615915823c4b Mon Sep 17 00:00:00 2001
+From: Vamsi <vamsi@dev.local>
+Date: Mon, 27 Jul 2026 14:20:19 +0000
+Subject: [PATCH] Live Map: reorder route/action section above style toolbar;
+ deeper 3D tilt; wider mobile sidebar with status-bar clearance
+
+---
+ public/index.html           | 14 ++++++++++++--
+ public/js/livemap3d-shim.js |  6 +++---
+ public/livemap-redesign.js  | 23 +++++++++++++++++++++++
+ 3 files changed, 38 insertions(+), 5 deletions(-)
+
+diff --git a/public/index.html b/public/index.html
+index 2c07633..9271492 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -2976,7 +2976,10 @@
+     @media(max-width:700px) {
+       .sidebar {
+         position: fixed;
+-        left: -250px;
++        width: 270px;
++        min-width: 270px;
++        max-width: 270px;
++        left: -270px;
+         top: 0;
+         bottom: 0;
+         z-index: 16;
+@@ -2986,12 +2989,19 @@
+ 
+       .sidebar.mob-open {
+         display: flex;
+-        transform: translateX(250px)
++        transform: translateX(270px)
+       }
+ 
+       .sidebar-overlay.active {
+         display: block
+       }
++
++      /* Keep the logo/app-name clear of the phone's status bar (clock,
++         signal, battery) when the drawer is open — same content as
++         desktop, just pushed down with safe-area-aware top padding. */
++      .sidebar .sb-logo {
++        padding-top: calc(env(safe-area-inset-top, 0px) + 34px);
++      }
+     }
+ 
+     /* ════ SETTINGS PHOTO HERO ════ */
+diff --git a/public/js/livemap3d-shim.js b/public/js/livemap3d-shim.js
+index 3640367..50f0ff0 100644
+--- a/public/js/livemap3d-shim.js
++++ b/public/js/livemap3d-shim.js
+@@ -176,7 +176,7 @@
+     }
+     set3D(on) {
+       // "tilt into 3D" — used when following/navigating; flat for overview
+-      this.gl.easeTo({ pitch: on ? 55 : 0, duration: 600 });
++      this.gl.easeTo({ pitch: on ? 68 : 0, duration: 600 });
+       this.setTerrainEnabled(on);
+     }
+     // Phase 5 — camera mode presets. 'top' = classic flat map, 'tilt' =
+@@ -188,8 +188,8 @@
+       opts = opts || {};
+       const presets = {
+         top:  { pitch: 0,  zoom: opts.zoom || Math.min(this.gl.getZoom(), 16) },
+-        tilt: { pitch: 55, zoom: opts.zoom || Math.max(this.gl.getZoom(), 16) },
+-        eye:  { pitch: 82, zoom: opts.zoom || 19 }
++        tilt: { pitch: 68, zoom: opts.zoom || Math.max(this.gl.getZoom(), 17.5) },
++        eye:  { pitch: 84, zoom: opts.zoom || 20 }
+       };
+       const p = presets[mode] || presets.top;
+       this.setTerrainEnabled(mode !== 'top');
+diff --git a/public/livemap-redesign.js b/public/livemap-redesign.js
+index c6725db..d995cf4 100644
+--- a/public/livemap-redesign.js
++++ b/public/livemap-redesign.js
+@@ -108,6 +108,29 @@
+       else setTimeout(killShimmer, 1200);
+     }
+ 
++    // ── Reorder the "route" content vs. the "toolbar" content ─────
++    // Requested layout: right after the map — the Start button, then the
++    // driving/walking/cycling route panel (lmNavPanel), the distance/ETA
++    // stats, the travel note / "together" banner, and the Video Call /
++    // Leave a Love Note row. THEN, below all of that, the map-style row
++    // (Map/Dark/Satellite/Hybrid/Auto) + the 3D/Eye-level toggle + the
++    // Locate Me/Partner/Meeting/Favorites/Daily Route/Privacy action row.
++    // Nothing is cloned or rebuilt — same elements, same ids/handlers,
++    // just moved earlier in the DOM (CSS/JS that targets them by id is
++    // unaffected).
++    if (toolbar && mainTitleCard) {
++      const periodStats = mainTitleCard.querySelector('.period-stats');
++      const travelNote = $('mapTravelNote');
++      const togetherBanner = $('lmTogetherBanner');
++      const navPanel = $('lmNavPanel');
++      const loveNotesPanel = $('lmLoveNotesPanel');
++      const callBtn = mainTitleCard.querySelector('[onclick="LiveMap.startVideoCallFromMap()"]');
++      const actionRow = callBtn ? callBtn.closest('div') : null;
++      [navPanel, periodStats, travelNote, togetherBanner, actionRow, loveNotesPanel].forEach(el => {
++        if (el) toolbar.parentNode.insertBefore(el, toolbar);
++      });
++    }
++
+     // ── Bottom sheet: only Partner / Saved / Weather need a dedicated tab
+     // now — the toolbar, Start button, Directions/Nav panels and place
+     // details card all stay exactly where they already are in the markup:
+-- 
+2.43.0
+
