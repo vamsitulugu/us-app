@@ -39,7 +39,12 @@ const OVERPASS_HEADERS = {
 };
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours — POIs don't move often
-const MIRROR_TIMEOUT_MS = 9000; // fail a slow mirror fast, don't let it eat Render's gateway timeout
+// FIX: _diag showed real mirrors taking up to ~13s even for a trivial
+// single-node test query — actual POI queries are heavier, so 9s was
+// giving up on mirrors (like maps.mail.ru) that were genuinely about to
+// succeed. 16s keeps a safety margin under a typical ~30s gateway timeout
+// while giving slower-but-working mirrors a real chance.
+const MIRROR_TIMEOUT_MS = 16000;
 
 // Rounds lat/lng to ~1km grid so nearby repeat searches hit the same cache row
 function cacheKeyFor(query) {

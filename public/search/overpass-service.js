@@ -40,7 +40,15 @@
     'User-Agent': 'USCouplesApp/1.0 (personal project; contact via app)'
   };
 
-  const PER_MIRROR_TIMEOUT_MS = 6000;
+  // FIX: the _diag endpoint showed real mirrors taking up to ~13s even for a
+  // trivial test query — actual POI searches (around:radius, way+node, out
+  // center) are heavier, so 6s was routinely aborting live requests that
+  // were about to succeed. The proxy is the one path proven to avoid
+  // browser CORS blocks, so it gets a longer budget of its own; the direct
+  // mirror fallback (only used if the proxy is fully down) keeps a slightly
+  // shorter one since it races 7 mirrors in parallel anyway.
+  const PROXY_TIMEOUT_MS = 20000;
+  const PER_MIRROR_TIMEOUT_MS = 12000;
 
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -105,7 +113,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query })
-        }, PER_MIRROR_TIMEOUT_MS, signal);
+        }, PROXY_TIMEOUT_MS, signal);
         if (res.ok) return await res.json();
       } catch (e) {
         if (signal?.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });

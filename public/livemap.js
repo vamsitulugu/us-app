@@ -1893,9 +1893,18 @@ const LiveMap = (() => {
     // Straight-line fallback (walk/bike modes, or driving route lookup failed)
     const km = haversine(S.myLoc, dest);
     const mins = Math.round((km / prof.kmh) * 60);
-    st.navLine = L.polyline([[S.myLoc.lat, S.myLoc.lng], [dest.lat, dest.lng]], { color: '#5b9bff', weight: 4, opacity: 0.6, dashArray: '8,8' }).addTo(st.map);
-    st.map.fitBounds(st.navLine.getBounds(), { padding: [50, 50] });
-    st.navRouteCoords = [[S.myLoc.lat, S.myLoc.lng], [dest.lat, dest.lng]];
+    const straightCoords = [[S.myLoc.lat, S.myLoc.lng], [dest.lat, dest.lng]];
+    st.navLine = L.polyline(straightCoords, { color: '#5b9bff', weight: 4, opacity: 0.6, dashArray: '8,8' }).addTo(st.map);
+    // FIX: st.navLine.getBounds() doesn't exist on the 3D-map shim's polyline
+    // (livemap3d-shim.js only implements the subset of Leaflet's API this
+    // file actually calls, and getBounds wasn't one of them) — that threw
+    // "st.navLine.getBounds is not a function" and silently broke the
+    // Walking/Cycling fallback route (Driving never hit this because it
+    // has a real OSRM route and calls fitBounds(coords) directly instead).
+    // fitBounds already accepts a plain array of [lat,lng] points in both
+    // the shim and real Leaflet, so just pass the coords we already have.
+    st.map.fitBounds(straightCoords, { padding: [50, 50] });
+    st.navRouteCoords = straightCoords;
     _startNavProgress({ totalKm: km, totalMins: mins, steps: null, dest });
     panel.innerHTML = _navModeButtons() + `
       <div style="margin-top:8px;font-size:11px">
