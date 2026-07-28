@@ -96,11 +96,12 @@
 
     mountUI() {
       if (document.getElementById('ltbPanel')) return;
-      // Anchor point: livemap.js's own markup includes a settings/
-      // controls area — this looks for a couple of likely containers
-      // and falls back to appending to <body> so it never throws even
-      // if the host page's DOM shifts.
-      const host = document.getElementById('lmControls') || document.getElementById('mapControls') || document.body;
+      // Anchor point: only mounts into a real Live Map container.
+      // If neither exists on the current page, this is a no-op —
+      // it must never fall back to <body>, since body is the flex
+      // app-shell root and an extra sibling there wrecks the layout.
+      const host = document.getElementById('lmControls') || document.getElementById('mapControls');
+      if (!host) return; // no known Live Map container on this page — never fall back to <body>, that breaks the flex app-shell layout
       const panel = document.createElement('div');
       panel.id = 'ltbPanel';
       panel.style.cssText = 'margin:10px 4px;padding:12px 14px;border-radius:14px;background:var(--g1,rgba(255,255,255,.045));border:1px solid var(--border,rgba(255,255,255,.11));backdrop-filter:blur(20px)';
