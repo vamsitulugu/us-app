@@ -73,7 +73,7 @@ router.get('/:coupleId/:role/:date', async (req, res) => {
   const { coupleId, role, date } = req.params;
   const { data, error } = await supabase
     .from('route_points')
-    .select('lat,lng,accuracy,speed,created_at')
+    .select('lat,lng,accuracy,speed,heading,altitude,activity_type,created_at')
     .eq('couple_id', coupleId).eq('role', role).eq('local_date', date)
     .order('created_at', { ascending: true })
     .limit(5000);

@@ -140,6 +140,35 @@ const LiveMap = (() => {
     }
   }
 
+  /* ── SAFETY ALERTS (item 3) ──────────────────────────────────
+     Detects device-side conditions that could mean tracking is
+     about to degrade (low battery, GPS/permission lost, offline)
+     and notifies the partner via the existing push/FCM pipeline.
+     Each type is a one-shot per "state entered" — a boolean latch
+     resets it once the condition clears, so this can't spam. */
+  const _safetyLatch = {};
+  function _notifyPartnerSafety(type) {
+    if (!S.coupleId) return;
+    api('POST', '/api/tracking/safety-alert', { coupleId: S.coupleId, role: S.role, type, senderName: S.myName || S.role }).catch(() => {});
+  }
+  function _armSafety(type, active) {
+    if (active && !_safetyLatch[type]) { _safetyLatch[type] = true; _notifyPartnerSafety(type); }
+    else if (!active && _safetyLatch[type]) { _safetyLatch[type] = false; }
+  }
+  let _battWatcherStarted = false;
+  function _startBatteryWatcher() {
+    if (_battWatcherStarted || !navigator.getBattery) return;
+    _battWatcherStarted = true;
+    navigator.getBattery().then(b => {
+      const check = () => _armSafety('battery_low', b.level <= 0.15 && !b.charging);
+      check();
+      b.addEventListener('levelchange', check);
+      b.addEventListener('chargingchange', check);
+    }).catch(() => {});
+  }
+  window.addEventListener('online',  () => _armSafety('internet_lost', false));
+  window.addEventListener('offline', () => _armSafety('internet_lost', true));
+
   /* ── PERMISSION / TRACKING LIFECYCLE ─────────────────────── */
   function startTracking() {
     _clearPauseTimer();
@@ -155,6 +184,7 @@ const LiveMap = (() => {
     });
     st.tracking = true;
     _syncTrackToggle();
+    _startBatteryWatcher();
   }
 
   // If high-accuracy GPS repeatedly fails (common indoors/older devices), fall
@@ -305,8 +335,10 @@ const LiveMap = (() => {
     st.permState = err.code === 1 ? 'denied' : 'error';
     if (err.code === 1) {
       _showPermBanner('🚫 Location permission denied. Enable location access in your browser/device settings to share your live position, or add places manually below.');
+      _armSafety('permission_revoked', true);
     } else {
       _showPermBanner('⚠️ Couldn\'t get your location right now (' + (err.message || 'GPS error') + '). Retrying automatically…');
+      if (err.code === 2) _armSafety('gps_disabled', true);
     }
     _updateMyStatusUI();
   }
@@ -318,7 +350,9 @@ const LiveMap = (() => {
   function _onPosition(pos) {
     st.permState = 'granted';
     _hidePermBanner();
-    const { latitude: lat, longitude: lng, accuracy, heading, speed } = pos.coords;
+    _armSafety('permission_revoked', false);
+    _armSafety('gps_disabled', false);
+    const { latitude: lat, longitude: lng, accuracy, heading, speed, altitude } = pos.coords;
     const now = Date.now();
 
     // ── Accuracy gate: reject low-quality fixes (cell/wifi triangulation) ──
@@ -382,6 +416,7 @@ const LiveMap = (() => {
           accuracy: st.approxLocation ? Math.max(accuracy || 0, 1000) : (accuracy || null),
           heading: st.approxLocation ? null : (heading || null),
           speed: speed || null, moving: (speed || 0) > 1,
+          altitude: (altitude != null && !st.approxLocation) ? altitude : null,
           localDate: _localDateStr()
         }).then(() => { _pingLmChanged(); })
           .catch(() => { /* offline or transient — next tick will retry */ });
@@ -2049,6 +2084,7 @@ const LiveMap = (() => {
   const STOP_SPEED_KMH = 1.5;  // below this we count the interval as "stopped", not crawling traffic
   const MIN_STOP_MIN    = 0.5; // ignore sub-30s pauses (red lights, GPS jitter) as real "stops"
   const ARRIVAL_KM      = 0.03; // ~30m from destination counts as arrived
+  const LONG_STOP_ALERT_MIN = 20; // mid-trip stop this long notifies the partner (item 3 — safety)
   function _maneuverText(man, roadName) {
     const name = roadName ? esc(roadName) : '';
     if (!man) return name || 'Continue';
@@ -2092,8 +2128,10 @@ const LiveMap = (() => {
       if (np.curSpeedKmh < STOP_SPEED_KMH) {
         np.stoppedSec += dtSec;
         if (np.stopStartTs == null) np.stopStartTs = np.lastTs;
+        if ((now - np.stopStartTs) / 60000 >= LONG_STOP_ALERT_MIN) _armSafety('long_stop', true);
       } else {
         np.movingSec += dtSec;
+        _armSafety('long_stop', false);
         if (np.stopStartTs != null) {
           const stopMins = (np.lastTs - np.stopStartTs) / 60000;
           if (stopMins >= MIN_STOP_MIN) np.stops.push({ mins: stopMins });
@@ -2454,9 +2492,62 @@ const LiveMap = (() => {
       _drawRouteOnMap(data.points);
       _renderStopsList(data.stops);
       _renderJourneySummary(data.stops);
+      _loadDailyTimeline(date, role);
     } catch (e) {
       body.innerHTML = '<div class="empty">No route data for this day yet</div>';
     }
+  }
+
+  /* ── DAILY NARRATIVE TIMELINE ────────────────────────────────
+     "🏠 Left Home → 🎓 Arrived College → 🍴 Restaurant → 🏠 Home"
+     Reads /api/tracking/.../timeline/:date (place_visits, already
+     populated automatically by geofence + auto-place detection).
+     Purely additive UI — renders into #lmDailyTimeline, which sits
+     right above the existing #lmJourneySummary line so both can
+     coexist: the arrow line stays as a quick glance, this is the
+     fuller story with times and per-place icons. */
+  const TIMELINE_CAT_ICON = {
+    home: '🏠', college: '🎓', office: '💼', restaurant: '🍴',
+    mall: '🛍️', hospital: '🏥', fuel: '⛽', gym: '🏋️', park: '🌳',
+    other: '📍'
+  };
+  function _fmtClockTs(iso) {
+    return iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
+  }
+  async function _loadDailyTimeline(date, role) {
+    const el = document.getElementById('lmDailyTimeline');
+    if (!el) return;
+    el.innerHTML = '<div class="empty" style="padding:8px 0">Loading timeline…</div>';
+    try {
+      const data = await api('GET', `/api/tracking/${S.coupleId}/${role || S.role}/timeline/${date}`);
+      _renderDailyTimeline(data && data.events);
+    } catch (e) {
+      el.innerHTML = '';
+    }
+  }
+  function _renderDailyTimeline(events) {
+    const el = document.getElementById('lmDailyTimeline');
+    if (!el) return;
+    if (!events || !events.length) { el.innerHTML = ''; return; }
+    el.innerHTML = `
+      <div style="font-size:11px;font-weight:600;color:var(--text3);margin:10px 0 6px;text-transform:uppercase;letter-spacing:.4px">Today's Timeline</div>
+      <div class="lm-timeline">
+        ${events.map((ev, i) => {
+          const icon = TIMELINE_CAT_ICON[ev.category] || TIMELINE_CAT_ICON.other;
+          const durationTxt = ev.ongoing
+            ? `Still here · since ${_fmtClockTs(ev.arrivedAt)}`
+            : `${_fmtClockTs(ev.arrivedAt)} – ${_fmtClockTs(ev.leftAt)}${ev.durationMin != null ? ` · ${ev.durationMin} min` : ''}`;
+          return `
+          <div class="lm-timeline-item">
+            <div class="lm-timeline-dot">${icon}</div>
+            <div class="lm-timeline-body">
+              <div class="lm-timeline-place">${esc(ev.label)}</div>
+              <div class="lm-timeline-time">${durationTxt}</div>
+            </div>
+          </div>
+          ${i < events.length - 1 ? '<div class="lm-timeline-connector"></div>' : ''}`;
+        }).join('')}
+      </div>`;
   }
   /** "Home → College → Shopping → Home" style summary line, using saved place names, plus longest-stop / most-visited-place callouts. */
   function _renderJourneySummary(stops) {
@@ -2480,9 +2571,10 @@ const LiveMap = (() => {
   }
   /** Client-side extended stats from raw points — moving/stopped time, speed, mode-split distance, accuracy. */
   function _computeExtendedStats(points, totalDurationMin) {
-    const out = { movingMin: 0, stoppedMin: 0, avgKmh: 0, maxKmh: 0, walkKm: 0, driveKm: 0, cycleKm: 0, avgAccuracy: null };
+    const out = { movingMin: 0, stoppedMin: 0, avgKmh: 0, maxKmh: 0, walkKm: 0, driveKm: 0, cycleKm: 0, avgAccuracy: null, elevGainM: 0, elevLossM: 0 };
     if (!points || points.length < 2) return out;
     let movingSec = 0, speedSumKmh = 0, speedSamples = 0, maxKmh = 0, accSum = 0, accN = 0;
+    let elevGain = 0, elevLoss = 0, hasAlt = false;
     for (let i = 1; i < points.length; i++) {
       const a = points[i - 1], b = points[i];
       const dtSec = Math.max(0.5, (new Date(b.created_at) - new Date(a.created_at)) / 1000);
@@ -2497,6 +2589,15 @@ const LiveMap = (() => {
         else out.driveKm += segKm;
       }
       if (a.accuracy != null) { accSum += a.accuracy; accN++; }
+      // Elevation gain/loss — only counted between two fixes that both have
+      // an altitude reading, ignoring sub-2m deltas (typical GPS altitude
+      // noise) so gentle terrain doesn't get inflated by jitter.
+      if (a.altitude != null && b.altitude != null) {
+        hasAlt = true;
+        const d = b.altitude - a.altitude;
+        if (d > 2) elevGain += d;
+        else if (d < -2) elevLoss += -d;
+      }
     }
     out.movingMin = Math.round(movingSec / 60);
     out.stoppedMin = Math.max(0, Math.round((totalDurationMin || 0) - out.movingMin));
@@ -2504,6 +2605,8 @@ const LiveMap = (() => {
     out.maxKmh = +maxKmh.toFixed(1);
     out.walkKm = +out.walkKm.toFixed(2); out.driveKm = +out.driveKm.toFixed(2); out.cycleKm = +out.cycleKm.toFixed(2);
     out.avgAccuracy = accN ? Math.round(accSum / accN) : null;
+    out.elevGainM = hasAlt ? Math.round(elevGain) : null;
+    out.elevLossM = hasAlt ? Math.round(elevLoss) : null;
     return out;
   }
 
@@ -2532,6 +2635,12 @@ const LiveMap = (() => {
         <div class="pstat"><div class="pstat-n">${ext.driveKm} km</div><div class="pstat-l">🚗 Driving</div></div>
         <div class="pstat"><div class="pstat-n">${ext.avgAccuracy != null ? ext.avgAccuracy + ' m' : '—'}</div><div class="pstat-l">GPS Accuracy</div></div>
       </div>
+      ${ext.elevGainM != null ? `
+      <div class="period-stats" style="margin-bottom:10px">
+        <div class="pstat"><div class="pstat-n">⬆️ ${ext.elevGainM} m</div><div class="pstat-l">Elevation Gain</div></div>
+        <div class="pstat"><div class="pstat-n">⬇️ ${ext.elevLossM} m</div><div class="pstat-l">Elevation Loss</div></div>
+      </div>` : ''}
+      <div id="lmDailyTimeline"></div>
       <div id="lmJourneySummary"></div>
       <div class="lm-playback-bar" style="display:flex;align-items:center;gap:8px;margin:8px 0;flex-wrap:wrap">
         <button class="btn btn-glass btn-sm" id="lmPlaybackPlayBtn" onclick="LiveMap.playbackRoute()">▶ Play Journey</button>
@@ -2555,13 +2664,86 @@ const LiveMap = (() => {
       </div>
       <div id="lmStopsList" style="margin-top:10px"></div>`;
   }
+  // Activity → route-segment color, reusing the activity_type already
+  // stored per-point (native classifyActivity() / _activityFromSpeed()).
+  // Kept separate from CATS (place categories) since this colors travel
+  // mode, not a stop's place type.
+  const ACTIVITY_COLOR = {
+    still: '#8b8f9a', walking: '#4cd964', running: '#ffcc00',
+    cycling: '#5ac8fa', driving: 'var(--accent)'
+  };
+  function _activitySegColor(p) {
+    if (p.activity_type && ACTIVITY_COLOR[p.activity_type]) return ACTIVITY_COLOR[p.activity_type];
+    // Fallback for older points recorded before activity_type existed —
+    // derive the same bucket from speed so old history still colors sanely.
+    const kmh = (p.speed || 0) * 3.6;
+    if (kmh < 1) return ACTIVITY_COLOR.still;
+    if (kmh < 7) return ACTIVITY_COLOR.walking;
+    if (kmh < 15) return ACTIVITY_COLOR.running;
+    if (kmh < 35) return ACTIVITY_COLOR.cycling;
+    return ACTIVITY_COLOR.driving;
+  }
+  // Douglas-Peucker simplification (item 4 — performance). A full day at
+  // 5-10s intervals can be 3000-5000+ points; drawing that many individual
+  // colored segments is what actually costs FPS, not the map itself. This
+  // keeps visual shape (turns, curves) while dropping near-collinear points.
+  // Only touches the DRAWN line — raw points/stats/playback stay exact.
+  function _perpDistM(p, a, b) {
+    if (a.lat === b.lat && a.lng === b.lng) return haversine(p, a) * 1000;
+    const y0 = p.lat, x0 = p.lng, y1 = a.lat, x1 = a.lng, y2 = b.lat, x2 = b.lng;
+    const num = Math.abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1);
+    const den = Math.sqrt((y2 - y1) ** 2 + (x2 - x1) ** 2) || 1e-9;
+    // Rough conversion from degree-space distance to meters at this latitude.
+    const degToM = 111320 * Math.cos((y0 * Math.PI) / 180);
+    return (num / den) * degToM;
+  }
+  function _simplifyRoute(points, toleranceM) {
+    if (!points || points.length < 3) return points || [];
+    function dp(pts) {
+      if (pts.length < 3) return pts;
+      let maxDist = 0, idx = 0;
+      const a = pts[0], b = pts[pts.length - 1];
+      for (let i = 1; i < pts.length - 1; i++) {
+        const d = _perpDistM(pts[i], a, b);
+        if (d > maxDist) { maxDist = d; idx = i; }
+      }
+      if (maxDist > toleranceM) {
+        const left = dp(pts.slice(0, idx + 1));
+        const right = dp(pts.slice(idx));
+        return left.slice(0, -1).concat(right);
+      }
+      return [a, b];
+    }
+    return dp(points);
+  }
+  const ROUTE_SIMPLIFY_MAX_POINTS = 800; // above this, simplify before drawing
+  const ROUTE_SIMPLIFY_TOLERANCE_M = 8;   // ~8m — invisible at normal zoom, big point-count win
+
   function _drawRouteOnMap(points) {
     if (!st.map) return;
-    if (st.routeLine) { st.map.removeLayer(st.routeLine); st.routeLine = null; }
+    if (st.routeLine) {
+      // st.routeLine may be a single polyline or a LayerGroup of colored
+      // segments — either way, removing it from the map is the same call.
+      st.map.removeLayer(st.routeLine); st.routeLine = null;
+    }
     st.routeStopMarkers.forEach(m => st.map.removeLayer(m)); st.routeStopMarkers = [];
     if (!points || points.length < 2) return;
-    const latlngs = points.map(p => [p.lat, p.lng]);
-    st.routeLine = L.polyline(latlngs, { color: 'var(--accent)', weight: 4, opacity: 0.75 }).addTo(st.map);
+    const drawPoints = points.length > ROUTE_SIMPLIFY_MAX_POINTS
+      ? _simplifyRoute(points, ROUTE_SIMPLIFY_TOLERANCE_M)
+      : points;
+    const latlngs = drawPoints.map(p => [p.lat, p.lng]);
+
+    // Draw as consecutive colored segments so a single day's route shows
+    // walking/running/cycling/driving stretches at a glance, same glow
+    // style as before — purely a color change per segment, no new visual
+    // language introduced.
+    const group = L.layerGroup();
+    for (let i = 1; i < drawPoints.length; i++) {
+      const color = _activitySegColor(drawPoints[i]);
+      L.polyline([[drawPoints[i - 1].lat, drawPoints[i - 1].lng], [drawPoints[i].lat, drawPoints[i].lng]],
+        { color, weight: 4, opacity: 0.8, lineCap: 'round', lineJoin: 'round' }).addTo(group);
+    }
+    st.routeLine = group.addTo(st.map);
     st.map.fitBounds(latlngs, { padding: [50, 50] });
   }
   function _renderStopsList(stops) {

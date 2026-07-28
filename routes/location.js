@@ -11,6 +11,25 @@ const ONLINE_WINDOW_MS = 60 * 1000; // last ping within 60s = "online"
 const ROUTE_DEDUPE_MIN_METERS = 8;   // skip storing a route point if it barely moved from the last stored one
 const ROUTE_DEDUPE_MAX_AGE_MS = 5 * 60 * 1000; // still store a point if this much time passed, even if stationary
 
+// ── Possible-spoofing alert (item 3 — safety) ─────────────────────
+// Android flags a fix as `isFromMockProvider()` when it came from a
+// mock-location app rather than real GPS/network hardware. One alert
+// per couple/role per cooldown window — never blocks the ping response.
+const { sendPushToPartner, sendFCMToPartner } = require('./auth');
+const _spoofCooldown = new Map();
+const SPOOF_ALERT_COOLDOWN_MS = 20 * 60 * 1000;
+async function _alertPossibleSpoofing(coupleId, role) {
+  const key = coupleId + '|' + role;
+  const last = _spoofCooldown.get(key) || 0;
+  if (Date.now() - last < SPOOF_ALERT_COOLDOWN_MS) return;
+  _spoofCooldown.set(key, Date.now());
+  const payload = { title: '⚠️ Location Check', body: 'Their location looks like it may be coming from a mock/fake GPS source.', tag: 'safety-possible_spoofing' };
+  await Promise.all([
+    sendPushToPartner(coupleId, role, payload).catch(() => {}),
+    sendFCMToPartner(coupleId, role, payload).catch(() => {})
+  ]);
+}
+
 // ── Route history opt-in gate ────────────────────────────────────
 // Route recording is OFF by default. A row only allows recording once
 // the person has explicitly turned it on via POST /api/route/settings
@@ -91,10 +110,11 @@ function _shouldStoreRoutePoint(coupleId, role, lat, lng, localDate) {
 // page is open, and via background geolocation.watchPosition.
 // Tiny payload — does NOT touch app_state / chat / photos.
 router.post('/ping', async (req, res) => {
-  const { coupleId, role, lat, lng, accuracy, heading, speed, moving, emergency, vehicleType } = req.body;
+  const { coupleId, role, lat, lng, accuracy, heading, speed, moving, emergency, vehicleType, mockLocation } = req.body;
   if (!coupleId || !role || lat == null || lng == null) {
     return res.status(400).json({ error: 'Missing coupleId/role/lat/lng' });
   }
+  if (mockLocation) _alertPossibleSpoofing(coupleId, role).catch(() => {});
 
   // Self-declared travel mode (walking/bike/car/bus). GPS speed alone can't
   // tell a car from a bus — that's assigned by booking in Uber/Intercity/ABHI
@@ -159,8 +179,10 @@ router.post('/ping', async (req, res) => {
       couple_id: coupleId, role, lat, lng,
       accuracy: accuracy ?? null, speed: speed ?? null,
       heading: req.body.heading ?? null,
+      altitude: req.body.altitude ?? null,
       battery_level: req.body.batteryLevel ?? null,
       activity_type: req.body.activityType || null,
+      mock_location: !!mockLocation,
       source: req.body.source || 'foreground',
       local_date: localDate
     }).then(() => {}).catch(() => {});

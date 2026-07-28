@@ -26,6 +26,22 @@ function haversineM(a, b) {
   return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
 }
 
+const { sendPushToPartner, sendFCMToPartner } = require('./auth');
+
+const _spoofCooldownBatch = new Map();
+const SPOOF_ALERT_COOLDOWN_MS = 20 * 60 * 1000;
+async function _alertPossibleSpoofing(coupleId, role) {
+  const key = coupleId + '|' + role;
+  const last = _spoofCooldownBatch.get(key) || 0;
+  if (Date.now() - last < SPOOF_ALERT_COOLDOWN_MS) return;
+  _spoofCooldownBatch.set(key, Date.now());
+  const payload = { title: '⚠️ Location Check', body: 'Their location looks like it may be coming from a mock/fake GPS source.', tag: 'safety-possible_spoofing' };
+  await Promise.all([
+    sendPushToPartner(coupleId, role, payload).catch(() => {}),
+    sendFCMToPartner(coupleId, role, payload).catch(() => {})
+  ]);
+}
+
 // ── POST /api/tracking/batch ─────────────────────────────────────
 // The native Android foreground service calls this after it has been
 // offline (no internet) and accumulated points locally. Each point
@@ -55,8 +71,10 @@ router.post('/batch', async (req, res) => {
       accuracy: p.accuracy ?? null,
       speed: p.speed ?? null,
       heading: p.heading ?? null,
+      altitude: p.altitude ?? null,
       battery_level: p.batteryLevel ?? null,
       activity_type: p.activityType || null,
+      mock_location: !!p.mockLocation,
       local_date: p.localDate || new Date(p.ts || Date.now()).toISOString().slice(0, 10),
       source: 'offline_sync',
       created_at: p.ts ? new Date(p.ts).toISOString() : undefined
@@ -67,6 +85,8 @@ router.post('/batch', async (req, res) => {
       if (error) console.warn('batch route_points insert failed:', error.message);
     }
   }
+
+  if (points.some(p => p.mockLocation)) _alertPossibleSpoofing(coupleId, role).catch(() => {});
 
   // Update live_locations with the most recent point so the partner's
   // screen reflects reality immediately instead of waiting for the
@@ -239,6 +259,84 @@ router.post('/:coupleId/:role/known-places', async (req, res) => {
   }).select().single();
   if (error) return res.status(500).json({ error: error.message });
   return res.json(data);
+});
+
+// ── GET /api/tracking/:coupleId/:role/timeline/:date ─────────────
+// Daily narrative timeline (item 2): every place_visit that day —
+// known place or auto-detected/reverse-geocoded stop — in order,
+// with arrival/departure time, duration, and category for the icon
+// chain ("🏠 Left Home → 🎓 Arrived College → 🍴 Restaurant → 🏠 Home").
+// Purely additive: reads place_visits, which detectPlacesAndGeofences()
+// already populates on every live ping and batch sync — no new writes.
+router.get('/:coupleId/:role/timeline/:date', async (req, res) => {
+  const { coupleId, role, date } = req.params;
+  const { data, error } = await supabase
+    .from('place_visits')
+    .select('id, label, category, known_place_id, lat, lng, arrived_at, left_at, duration_min')
+    .eq('couple_id', coupleId).eq('role', role).eq('local_date', date)
+    .order('arrived_at', { ascending: true })
+    .limit(200);
+  if (error) return res.status(500).json({ error: error.message });
+
+  const visits = data || [];
+  // Collapse back-to-back duplicates at the same known place (can happen
+  // if a geofence briefly flickers in/out at the radius boundary).
+  const collapsed = [];
+  for (const v of visits) {
+    const prev = collapsed[collapsed.length - 1];
+    if (prev && prev.known_place_id && prev.known_place_id === v.known_place_id && !prev.left_at) continue;
+    collapsed.push(v);
+  }
+  const events = collapsed.map(v => ({
+    id: v.id,
+    label: v.label || 'Unknown place',
+    category: v.category || 'other',
+    arrivedAt: v.arrived_at,
+    leftAt: v.left_at,
+    durationMin: v.duration_min ?? (v.left_at ? Math.round((new Date(v.left_at) - new Date(v.arrived_at)) / 60000) : null),
+    ongoing: !v.left_at
+  }));
+  return res.json({ date, events });
+});
+
+// Cooldown per (coupleId, role, type) so a flapping condition (e.g. battery
+// hovering right at the threshold) can't spam the partner's phone. In-memory
+// is fine here — worst case after a server restart is one extra alert.
+const _alertCooldowns = new Map(); // key: coupleId|role|type -> timestamp
+const SAFETY_ALERT_COOLDOWN_MS = 20 * 60 * 1000; // 20 min per alert type
+
+const SAFETY_ALERT_COPY = {
+  battery_low:        { title: '🔋 Battery Low', body: name => `${name}'s phone battery is running low — location sharing may stop soon.` },
+  gps_disabled:       { title: '📡 GPS Issue', body: name => `${name}'s device can't get a GPS fix right now.` },
+  permission_revoked: { title: '🚫 Location Permission Off', body: name => `${name} turned off location permission — live sharing has stopped.` },
+  internet_lost:      { title: '📶 Internet Lost', body: name => `${name} lost internet connection — location will resume once they're back online.` },
+  long_stop:          { title: '⏱️ Unexpected Long Stop', body: name => `${name} has been stopped for a while during an active trip.` },
+  possible_spoofing:  { title: '⚠️ Location Check', body: name => `${name}'s location looks like it may be coming from a mock/fake GPS source.` }
+};
+
+// ── POST /api/tracking/safety-alert ───────────────────────────────
+// Body: { coupleId, role, type, senderName }. `role` is the person the
+// alert is ABOUT (i.e. the sender describing their own device state);
+// the notification always goes to the OTHER partner.
+router.post('/safety-alert', async (req, res) => {
+  const { coupleId, role, type, senderName } = req.body;
+  if (!coupleId || !role || !SAFETY_ALERT_COPY[type]) {
+    return res.status(400).json({ error: 'Missing/invalid coupleId/role/type' });
+  }
+  const key = `${coupleId}|${role}|${type}`;
+  const last = _alertCooldowns.get(key) || 0;
+  if (Date.now() - last < SAFETY_ALERT_COOLDOWN_MS) {
+    return res.json({ ok: true, throttled: true });
+  }
+  _alertCooldowns.set(key, Date.now());
+
+  const copy = SAFETY_ALERT_COPY[type];
+  const payload = { title: copy.title, body: copy.body(senderName || 'Your partner'), tag: 'safety-' + type };
+  await Promise.all([
+    sendPushToPartner(coupleId, role, payload).catch(() => {}),
+    sendFCMToPartner(coupleId, role, payload).catch(() => {})
+  ]);
+  return res.json({ ok: true });
 });
 
 // ── GET /api/tracking/:coupleId/:role/daily-report/:date ─────────

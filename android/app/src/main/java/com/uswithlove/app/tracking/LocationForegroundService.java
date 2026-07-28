@@ -164,10 +164,12 @@ public class LocationForegroundService extends Service {
             point.put("lng", loc.getLongitude());
             point.put("accuracy", loc.hasAccuracy() ? loc.getAccuracy() : JSONObject.NULL);
             point.put("heading", loc.hasBearing() ? loc.getBearing() : JSONObject.NULL);
+            point.put("altitude", loc.hasAltitude() ? loc.getAltitude() : JSONObject.NULL);
             point.put("speed", lastSpeedMs);
             point.put("moving", lastSpeedMs > 0.3f);
             point.put("batteryLevel", AdaptiveIntervalPolicy.readBattery(this).pct);
             point.put("activityType", classifyActivity(lastSpeedMs));
+            point.put("mockLocation", loc.isFromMockProvider());
             point.put("localDate", java.text.SimpleDateFormat.getDateInstance().format(new java.util.Date())); // overridden server-side format below
             point.put("localDate", new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date()));
             point.put("ts", System.currentTimeMillis());
