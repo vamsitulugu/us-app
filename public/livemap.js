@@ -343,7 +343,8 @@ const LiveMap = (() => {
     _updateMyStatusUI();
   }
 
-  const MAX_ACCEPTABLE_ACCURACY_M = 100;   // reject fixes worse than this (cell/wifi-only)
+  const MAX_ACCEPTABLE_ACCURACY_M = 100;
+  const MAX_FIRST_FIX_ACCURACY_M  = 3000;   // reject fixes worse than this (cell/wifi-only)
   const MAX_PLAUSIBLE_SPEED_MPS   = 60;    // ~216 km/h — beyond this, treat as GPS glitch, not a real jump
   const SMOOTH_ALPHA              = 0.35;  // EMA smoothing factor (lower = smoother, higher = snappier)
 
@@ -356,11 +357,20 @@ const LiveMap = (() => {
     const now = Date.now();
 
     // ── Accuracy gate: reject low-quality fixes (cell/wifi triangulation) ──
-    // unless it's our very first fix ever (better a rough dot than no dot).
-    if (accuracy != null && accuracy > MAX_ACCEPTABLE_ACCURACY_M && S.myLoc) {
-      console.warn('LiveMap: rejecting low-accuracy fix (' + Math.round(accuracy) + 'm)');
-      return;
-    }
+if (accuracy != null && accuracy > MAX_ACCEPTABLE_ACCURACY_M) {
+  if (S.myLoc) {
+    // Already have a fix — just wait for a better one, don't disturb what's shown.
+    console.warn('LiveMap: rejecting low-accuracy fix (' + Math.round(accuracy) + 'm)');
+    return;
+  }
+  // No fix yet: "better a rough dot than no dot" — but only up to a sane ceiling.
+  // A 30-100km cell-tower fix is not a rough dot, it's a different city/state, so
+  // we still refuse those and keep showing "Locating…" until GPS narrows down.
+  if (accuracy > MAX_FIRST_FIX_ACCURACY_M) {
+    console.warn('LiveMap: rejecting wild first fix (' + Math.round(accuracy) + 'm) — waiting for a better one');
+    return;
+  }
+}
 
     // ── Outlier gate: reject physically implausible jumps ──
     // Self-healing: if we keep rejecting fixes (meaning our anchor point
