@@ -121,7 +121,7 @@ const LiveMap = (() => {
      S.placesList = [{ id, owner:'user1'|'user2', cat, name, lat, lng, address, ts }]
      Migrates legacy S.places (object keyed by label: Home/College/Office/Other)
      into the new array on first load. */
-  function migrateLegacyPlaces() {
+ function migrateLegacyPlaces() {
     if (!Array.isArray(S.placesList)) S.placesList = [];
     if (S.places && typeof S.places === 'object') {
       Object.values(S.places).forEach(p => {
@@ -137,6 +137,29 @@ const LiveMap = (() => {
           });
         }
       });
+    }
+    _dedupPlaces();
+  }
+
+  // One-time cleanup for places already duplicated by the old savePlace()
+  // double-submission bug (e.g. two identical "Home" entries). Keeps the
+  // earliest entry per owner+category+rounded-coordinate combo, drops the rest.
+  function _dedupPlaces() {
+    if (!Array.isArray(S.placesList) || S.placesList.length < 2) return;
+    const sorted = S.placesList.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0));
+    const seen = new Set();
+    const deduped = [];
+    let removed = 0;
+    sorted.forEach(p => {
+      const key = (p.owner || '') + '|' + (p.cat || '') + '|' +
+        Math.round((p.lat || 0) * 10000) + '|' + Math.round((p.lng || 0) * 10000);
+      if (seen.has(key)) { removed++; return; }
+      seen.add(key);
+      deduped.push(p);
+    });
+    if (removed > 0) {
+      S.placesList = deduped;
+      scheduleSave();
     }
   }
 
@@ -331,13 +354,23 @@ const LiveMap = (() => {
     if (t) t.classList.toggle('on', st.tracking);
   }
 
+  let _posErrStreak = 0;
   function _onPosError(err) {
     st.permState = err.code === 1 ? 'denied' : 'error';
     if (err.code === 1) {
+      _posErrStreak = 0;
       _showPermBanner('🚫 Location permission denied. Enable location access in your browser/device settings to share your live position, or add places manually below.');
       _armSafety('permission_revoked', true);
     } else {
-      _showPermBanner('⚠️ Couldn\'t get your location right now (' + (err.message || 'GPS error') + '). Retrying automatically…');
+      _posErrStreak++;
+      if (_posErrStreak >= 4) {
+        // Repeated timeouts/unavailable errors in a row almost always mean the
+        // phone's Location/GPS toggle itself is off (not a permission problem —
+        // that would fail instantly with code 1, not time out repeatedly).
+        _showPermBanner('⚠️ Still can\'t get a location fix after several tries — please check that Location/GPS is turned on in your phone\'s system settings.');
+      } else {
+        _showPermBanner('⚠️ Couldn\'t get your location right now (' + (err.message || 'GPS error') + '). Retrying automatically…');
+      }
       if (err.code === 2) _armSafety('gps_disabled', true);
     }
     _updateMyStatusUI();
@@ -353,6 +386,7 @@ const LiveMap = (() => {
     _hidePermBanner();
     _armSafety('permission_revoked', false);
     _armSafety('gps_disabled', false);
+    _posErrStreak = 0;
     const { latitude: lat, longitude: lng, accuracy, heading, speed, altitude } = pos.coords;
     const now = Date.now();
 
@@ -1561,7 +1595,15 @@ if (accuracy != null && accuracy > MAX_ACCEPTABLE_ACCURACY_M) {
       }
     }
   }
+  let _savingPlace = false;
   function savePlace() {
+    // Guard against rapid double-tap on "Save Place" firing this twice
+    // before the modal closes — each call used to push a brand-new entry
+    // with a fresh random id, producing near-identical duplicate places.
+    if (_savingPlace) return;
+    _savingPlace = true;
+    setTimeout(() => { _savingPlace = false; }, 800);
+
     const cat = document.getElementById('lmPlaceCat').value;
     const lat = parseFloat(document.getElementById('lmPlaceLat').value);
     const lng = parseFloat(document.getElementById('lmPlaceLng').value);
