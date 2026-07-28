@@ -159,6 +159,12 @@
       tab.onclick = () => {
         sheet.querySelectorAll('.lm2-sheet-tab').forEach(t => t.classList.toggle('active', t === tab));
         const target = sheet.querySelector(`.lm2-sheet-section[data-section="${tab.dataset.tab}"]`);
+        // The Weather tab's fetch used to only run once, at page-build
+        // time — if GPS hadn't resolved yet the panel got stuck on
+        // "Waiting for your location…" forever, since nothing on the tab
+        // itself ever re-triggered a fetch. Re-run (forced, so it doesn't
+        // just toggle the panel closed) every time this tab is selected.
+        if (tab.dataset.tab === 'weather') window.LiveMap?.getWeather?.(true);
         target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       };
     });

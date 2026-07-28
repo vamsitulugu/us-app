@@ -611,7 +611,16 @@ const LiveMap = (() => {
     95: '⛈️', 96: '⛈️', 99: '⛈️'
   };
   let _weatherCache = null; // { key, at, data }
-  async function getWeather() {
+  // `forceOpen`: skip the "toggle closed if already open" behavior below.
+  // The weather panel used to be opened by a dedicated toggle button, but
+  // it now lives permanently inside the map page's Weather tab (always
+  // display:block), so the old toggle-off branch made every click after
+  // the first just hide the panel again instead of refreshing it — and if
+  // location wasn't ready on first load, it never got a retry at all,
+  // which is why the Weather tab appeared to "do nothing". Callers that
+  // explicitly want a fetch/refresh (e.g. the Weather tab click handler)
+  // pass forceOpen=true; the panel's own initial auto-load stays untouched.
+  async function getWeather(forceOpen) {
     const panel = document.getElementById('lmWeatherPanel');
     if (!panel) return;
     const loc = S.myLoc || (st.myLast ? { lat: st.myLast.lat, lng: st.myLast.lng } : null);
@@ -621,7 +630,7 @@ const LiveMap = (() => {
       return;
     }
     // Toggle off if already open and fresh
-    if (panel.style.display === 'block' && _weatherCache && Date.now() - _weatherCache.at < 600000) {
+    if (!forceOpen && panel.style.display === 'block' && _weatherCache && Date.now() - _weatherCache.at < 600000) {
       panel.style.display = 'none';
       return;
     }
@@ -925,7 +934,25 @@ const LiveMap = (() => {
     _renderPlaceMarkers();
   }
 
-  function flyTo(lat, lng) { if (st.map) st.map.setView([lat, lng], 15); }
+  // ── Issue 3 fix: Locate Me / Locate Partner / Meeting Point / Favorite
+  // Place / Daily Route / View Place all update the map's camera or
+  // location, but the map card can be scrolled out of view (e.g. after
+  // scrolling down to the toolbar or a places list) when the user taps
+  // them, so the result appeared to happen "off-screen" until they
+  // manually scrolled back up. Bring the map fully into view with a
+  // smooth native scroll — but only if it isn't already visible, so
+  // nothing jumps or flickers when it's already on-screen.
+  function _scrollToMapIfNeeded() {
+    const mapEl = document.getElementById('mapView');
+    if (!mapEl) return;
+    const rect = mapEl.getBoundingClientRect();
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    const fullyVisible = rect.top >= 0 && rect.bottom <= vh;
+    if (fullyVisible) return;
+    mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function flyTo(lat, lng) { if (st.map) st.map.setView([lat, lng], 15); _scrollToMapIfNeeded(); }
 
   /* ── PLACE SEARCH (via SearchService — Overpass/Nominatim/Photon engine) ── */
   const CAT_SEARCH_MAP = { College: 'college', Hostel: 'hotel', Cafe: 'cafe', Restaurant: 'restaurant', Gym: 'gym' };
@@ -1128,6 +1155,7 @@ const LiveMap = (() => {
     });
     st.destMarker = L.marker([p.lat, p.lng], { icon }).addTo(st.map);
     st.map.setView([p.lat, p.lng], 15);
+    _scrollToMapIfNeeded();
     document.getElementById('lmDirectionsPanel').style.display = 'none';
     _showStartNavBtn(p);
     _renderPlaceDetailsCard();
@@ -1701,10 +1729,12 @@ const LiveMap = (() => {
   function locateMe() {
     if (!S.myLoc) { toast('Still finding your location…'); return; }
     st.map && st.map.setView([S.myLoc.lat, S.myLoc.lng], 16);
+    _scrollToMapIfNeeded();
   }
   function locatePartner() {
     if (!S.ptLoc) { toast('Partner hasn\'t shared their location yet'); return; }
     st.map && st.map.setView([S.ptLoc.lat, S.ptLoc.lng], 16);
+    _scrollToMapIfNeeded();
   }
 
   /* ══════════════════════════════════════════════════════════
@@ -2276,6 +2306,7 @@ const LiveMap = (() => {
         <br><button class="btn btn-accent btn-xs" style="margin-top:6px" onclick="LiveMap.navigateToPoint(${mid.lat},${mid.lng},'Meeting point')">🧭 Navigate Here</button>`)
       .openPopup();
     st.map.setView([mid.lat, mid.lng], 14);
+    _scrollToMapIfNeeded();
     const distEach = haversine(S.myLoc, mid);
     toast(`🤝 Meeting point set — about ${distEach.toFixed(1)} km from each of you`);
     _findMeetingPlaceSuggestions(mid);
@@ -2390,6 +2421,7 @@ const LiveMap = (() => {
   async function openRouteHistory(role) {
     st.routeViewRole = role || S.role;
     openM('lmRouteModal');
+    _scrollToMapIfNeeded();
     document.getElementById('lmRouteBody').innerHTML = '<div class="empty">Loading dates…</div>';
     _renderRouteRoleToggle();
     _loadRouteSettings(); // Phase 4: reflect current opt-in state each time the modal opens

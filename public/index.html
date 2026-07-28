@@ -3773,7 +3773,20 @@
   background: rgba(255,255,255,0.04); border: 1px solid var(--gb, rgba(255,255,255,0.06));
   margin-bottom: 8px;
 }
-.lm-style-seg .lm-tool-btn { flex: 1; justify-content: center; }
+/* Fix: on narrow screens, 5 buttons with icon+label text and the base
+   .lm-tool-btn padding/gap couldn't shrink below their content's natural
+   width (flex items default to min-width:auto), so the row's total
+   min-content width exceeded the container and the last button ("Auto")
+   was pushed outside it. min-width:0 lets flex-shrink actually shrink
+   these items to fit; the tighter padding/gap and clamp()'d font-size
+   keep all five equally sized and legible without wrapping or clipping
+   at any mobile width. */
+.lm-style-seg .lm-tool-btn {
+  flex: 1 1 0; min-width: 0; justify-content: center;
+  padding: 9px 4px; gap: 3px; font-size: clamp(9.5px, 2.6vw, 12px);
+  overflow: hidden;
+}
+.lm-style-seg .lm-tool-btn .lm-tool-ico { font-size: clamp(12px, 3.2vw, 15px); flex-shrink: 0; }
 .lm-tool-btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 9px 13px; border-radius: 11px; cursor: pointer;
