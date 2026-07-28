@@ -179,6 +179,7 @@ const LiveMap = (() => {
     }
     if (st.watchId != null) return; // already tracking
     st._highAccuracyFailed = false;
+    st._cachedFallbackTried = false;
     st.watchId = navigator.geolocation.watchPosition(_onPosition, _onPosErrorWithFallback, {
       enableHighAccuracy: true, maximumAge: 5000, timeout: 15000
     });
@@ -194,10 +195,26 @@ const LiveMap = (() => {
     if (!st._highAccuracyFailed && (err.code === 2 || err.code === 3)) {
       st._highAccuracyFailed = true;
       if (st.watchId != null) { navigator.geolocation.clearWatch(st.watchId); st.watchId = null; }
-      st.watchId = navigator.geolocation.watchPosition(_onPosition, _onPosError, {
+      st.watchId = navigator.geolocation.watchPosition(_onPosition, _onNetworkPosErrorWithFallback, {
         enableHighAccuracy: false, maximumAge: 20000, timeout: 20000
       });
       _showPermBanner('⚠️ High-accuracy GPS unavailable — using network location instead (less precise).');
+      return;
+    }
+    _onPosError(err);
+  }
+
+  // Last-resort tier: if BOTH the high-accuracy and network watches time out
+  // (slow/cold GPS + weak network-location signal — the exact case reported
+  // on some devices), try once more accepting ANY cached fix the OS already
+  // has (maximumAge: Infinity), instead of giving up. This never overrides
+  // the two live-fix attempts above; it only runs if both already failed.
+  function _onNetworkPosErrorWithFallback(err) {
+    if (!st._cachedFallbackTried && (err.code === 2 || err.code === 3)) {
+      st._cachedFallbackTried = true;
+      navigator.geolocation.getCurrentPosition(_onPosition, () => _onPosError(err), {
+        enableHighAccuracy: false, maximumAge: Infinity, timeout: 25000
+      });
       return;
     }
     _onPosError(err);
