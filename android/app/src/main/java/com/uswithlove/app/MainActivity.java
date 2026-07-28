@@ -12,6 +12,7 @@ import android.view.Window;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
+import com.uswithlove.app.tracking.BackgroundLocationPlugin;
 
 public class MainActivity extends BridgeActivity {
   // Must match the channel id the backend sets on Touch push messages
@@ -37,6 +38,7 @@ public class MainActivity extends BridgeActivity {
   @Override
   public void onCreate(Bundle savedInstanceState) {
     registerPlugin(CallAudioPlugin.class);
+    registerPlugin(BackgroundLocationPlugin.class);
     super.onCreate(savedInstanceState);
     setupSystemBars();
     createTouchNotificationChannel();

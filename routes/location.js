@@ -156,10 +156,14 @@ router.post('/ping', async (req, res) => {
     if (!enabled) return;
     if (_shouldStoreRoutePoint(coupleId, role, lat, lng, localDate)) {
       supabase.from('route_points').insert({
-        couple_id: coupleId, role, lat, lng,
-        accuracy: accuracy ?? null, speed: speed ?? null,
-        local_date: localDate
-      }).then(() => {}).catch(() => {});
+      couple_id: coupleId, role, lat, lng,
+      accuracy: accuracy ?? null, speed: speed ?? null,
+      heading: req.body.heading ?? null,
+      battery_level: req.body.batteryLevel ?? null,
+      activity_type: req.body.activityType || null,
+      source: req.body.source || 'foreground',
+      local_date: localDate
+    }).then(() => {}).catch(() => {});
     }
   }).catch(() => {});
 

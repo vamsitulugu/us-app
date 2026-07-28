@@ -34,7 +34,25 @@
 <meta-data
     android:name="com.google.firebase.messaging.default_notification_color"
     android:resource="@color/notification_icon_color" />
-    
+
+        <!-- ═══ Background Location Tracking (item 1) ═══ -->
+        <!-- foregroundServiceType="location" is REQUIRED on API 34+ (Android 14)
+             — omitting it makes the OS throw a MissingForegroundServiceTypeException
+             at startForeground() time. -->
+        <service
+            android:name=".tracking.LocationForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
+        <receiver
+            android:name=".tracking.BootReceiver"
+            android:exported="false"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
     <!-- Permissions -->
@@ -54,6 +72,23 @@
          features, which already call navigator.geolocation. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- ═══ Background Location Tracking (item 1) — new ═══ -->
+    <!-- Android 10+ (API 29+) requires this as a SEPARATE grant from the
+         two above, requested only after foreground location is already
+         granted (see BackgroundLocationPlugin). -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <!-- Required to run a foreground service at all (API 28+), and the
+         location-typed variant specifically on API 34+. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- Lets BootReceiver restart tracking automatically after a restart. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Optional: improves activity_type accuracy (still/walking/driving)
+         beyond the speed-based heuristic already used as a fallback in
+         LocationForegroundService. Requested lazily — the service works
+         fine without it if the person declines. -->
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />

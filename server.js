@@ -98,6 +98,7 @@ app.use('/api/ai',    aiRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/location', require('./routes/location'));
 app.use('/api/route', require('./routes/route'));
+app.use('/api/tracking', require('./routes/tracking'));
 app.use('/api/globe', require('./routes/globe'));
 app.use('/api/home', require('./routes/home'));
 app.use('/api/chat', require('./routes/chat'));
