@@ -153,16 +153,35 @@
             source: 'openmaptiles',
             'source-layer': 'building',
             type: 'fill-extrusion',
-            minzoom: 14,
+            // Buildings start appearing a zoom level earlier and ramp in
+            // opacity over the following level (via the paint expression
+            // below) instead of a hard on/off at 14 — reads as a smooth
+            // reveal while zooming in rather than a sudden pop-in.
+            minzoom: 13,
             paint: {
-              'fill-extrusion-color': ['coalesce', ['get', 'colour'], '#c9c9d4'],
+              'fill-extrusion-color': ['coalesce', ['get', 'colour'], '#cfd2dc'],
               'fill-extrusion-height': ['coalesce', ['get', 'render_height'], ['*', ['coalesce', ['get', 'levels'], 3], 3]],
               'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
-              'fill-extrusion-opacity': 0.85
+              // Shades each building from base (darker) to roofline
+              // (lit) using MapLibre's built-in extrusion shading model —
+              // this alone is most of the difference between "flat
+              // painted box" and something that reads as a real 3D form.
+              'fill-extrusion-vertical-gradient': true,
+              'fill-extrusion-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0, 14, 0.9]
             }
           });
+          this._setBuildingLight();
         } catch (e) { /* style has no building layer (raster theme) — fine */ }
       }
+    }
+    // A low, warm directional light (instead of MapLibre's flat default)
+    // gives the extrusions visible sun-and-shadow contrast between
+    // sun-facing and shaded walls — cheap (no extra geometry/tiles, just
+    // a lighting parameter) so it costs nothing on Android GPUs.
+    _setBuildingLight() {
+      try {
+        this.gl.setLight({ anchor: 'viewport', color: '#fff7ec', intensity: 0.4, position: [1.15, 210, 30] });
+      } catch (e) { /* older MapLibre without setLight — extrusions still render, just flatter */ }
     }
     _addTerrain() {
       try {
@@ -175,8 +194,10 @@
       try { this.gl.setTerrain(on ? { source: 'lm3d-terrain', exaggeration: 1.3 } : null); } catch (e) {}
     }
     set3D(on) {
-      // "tilt into 3D" — used when following/navigating; flat for overview
-      this.gl.easeTo({ pitch: on ? 68 : 0, duration: 600 });
+      // "tilt into 3D" — used when following/navigating; flat for overview.
+      // Eased (ease-out) rather than linear so the tilt settles instead
+      // of stopping abruptly — same duration/behavior, smoother motion.
+      this.gl.easeTo({ pitch: on ? 68 : 0, duration: 600, easing: (t) => 1 - Math.pow(1 - t, 3) });
       this.setTerrainEnabled(on);
     }
     // Phase 5 — camera mode presets. 'top' = classic flat map, 'tilt' =

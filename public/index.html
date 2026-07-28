@@ -2968,7 +2968,14 @@
       display: none;
       position: fixed;
       inset: 0;
-      z-index: 15;
+      /* Must sit above the Live Map's map canvas, marker/overlay panes,
+         and the Avatar3D WebGL overlay canvases (which peak at
+         z-index:650 in public/js/avatar3d.js) so the scrim — and the
+         drawer above it — are never rendered underneath the map while
+         open. Kept below true full-screen app overlays (auth, alarm,
+         image viewer, toasts, etc., which start at z-index:9990) so
+         those still take priority over the drawer. */
+      z-index: 9000;
       background: rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(4px)
     }
@@ -2982,7 +2989,11 @@
         left: -270px;
         top: 0;
         bottom: 0;
-        z-index: 16;
+        /* See .sidebar-overlay above: must outrank the map/marker/
+           Avatar3D stacking (max z-index 650) so the drawer always
+           renders above the Live Map, but stay under app-wide
+           full-screen overlays (9990+). */
+        z-index: 9001;
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         min-height: 100dvh
       }

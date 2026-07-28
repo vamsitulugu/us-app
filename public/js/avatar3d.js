@@ -36,7 +36,17 @@
       this.canvas = document.createElement('canvas');
       this.canvas.width = size;
       this.canvas.height = size;
-      this.canvas.style.cssText = `position:absolute;left:-999px;top:-999px;width:${size}px;height:${size}px;pointer-events:none;z-index:${who === 'my' ? 640 : 650};transform:translate(-50%,-72%);filter:drop-shadow(0 4px 6px rgba(0,0,0,.45));transition:left .35s linear,top .35s linear;`;
+      // NOTE: no CSS transition on left/top. Screen position here must
+      // track the map's own projection 1:1, every render frame (pan,
+      // zoom, rotate, drag) — any CSS easing on left/top fights that
+      // per-frame projection and makes the avatar visibly lag behind
+      // the basemap while dragging, then "catch up" once the drag ends.
+      // The actual GPS-update smoothing (glide to a new fix) is already
+      // done upstream in livemap.js's _tickAnim(), which lerps the
+      // marker's lat/lng over ~900ms *before* it's projected to a
+      // screen point here — so by the time setScreenPos() is called,
+      // the motion is already smooth and this must simply follow it.
+      this.canvas.style.cssText = `position:absolute;left:-999px;top:-999px;width:${size}px;height:${size}px;pointer-events:none;z-index:${who === 'my' ? 640 : 650};transform:translate(-50%,-72%);filter:drop-shadow(0 4px 6px rgba(0,0,0,.45));`;
 
       this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, alpha: true, antialias: true });
       this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
