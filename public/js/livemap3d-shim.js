@@ -89,7 +89,6 @@
         zoom: 2,
         pitch: 0,
         bearing: 0,
-        maxPitch: 85,
         attributionControl: true,
         antialias: true
       });
