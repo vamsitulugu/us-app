@@ -227,9 +227,22 @@ button{font-family:inherit;cursor:pointer}
 .ludo-base-row{display:flex;gap:18px}
 .ludo-base{display:flex;gap:8px;padding:10px 14px;border-radius:16px;background:var(--g1);border:1px solid var(--border)}
 .ludo-base-token{width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff}
-.ludo-dice{width:64px;height:64px;border-radius:16px;background:#fff;color:#111;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;box-shadow:0 8px 24px rgba(0,0,0,.4);transition:var(--t)}
-.ludo-dice.rolling{animation:dshake .5s ease}
-@keyframes dshake{0%,100%{transform:rotate(0)}25%{transform:rotate(-14deg)}75%{transform:rotate(14deg)}}
+.ludo-dice{width:64px;height:64px;border-radius:16px;background:linear-gradient(155deg,#fff,#e2e2ea);color:#111;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;box-shadow:0 8px 24px rgba(0,0,0,.4),inset 0 -3px 0 rgba(0,0,0,.12),inset 0 2px 0 rgba(255,255,255,.9);transition:var(--t);position:relative}
+.ludo-dice.rolling{animation:dspin .55s cubic-bezier(.34,1.1,.64,1)}
+@keyframes dspin{0%{transform:rotate(0) scale(1)}30%{transform:rotate(140deg) scale(1.12)}60%{transform:rotate(280deg) scale(.96)}100%{transform:rotate(360deg) scale(1)}}
+.ludo-token.capturing{animation:tokencap .5s ease forwards}
+@keyframes tokencap{0%{transform:translate(-50%,-50%) scale(1);opacity:1}60%{transform:translate(-50%,-50%) scale(1.6);opacity:.7}100%{transform:translate(-50%,-50%) scale(.2);opacity:0}}
+.ludo-token.homing{animation:tokenhome .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes tokenhome{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.5)}100%{transform:translate(-50%,-50%) scale(1)}}
+.ludo-token.mine-glow{box-shadow:0 3px 8px rgba(0,0,0,.5),0 0 0 5px var(--accent-glow)}
+.ludo-burst{position:absolute;width:6px;height:6px;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:6;animation:burstfly .6s ease-out forwards}
+@keyframes burstfly{0%{opacity:1;transform:translate(-50%,-50%) translate(0,0) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) translate(var(--bx),var(--by)) scale(.3)}}
+.ludo-timerbar{width:100%;max-width:340px;height:4px;border-radius:3px;background:var(--g2);overflow:hidden}
+.ludo-timerbar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width 1s linear}
+.ludo-history{width:100%;max-width:340px;display:flex;flex-direction:column;gap:4px;max-height:78px;overflow-y:auto}
+.ludo-hist-row{font-size:10.5px;color:var(--text2);padding:3px 10px;border-radius:9px;background:var(--g1);border:1px solid var(--border)}
+.ludo-leave{font-size:11px;color:var(--text3);text-decoration:underline;background:none;border:none;cursor:pointer;padding:4px}
+.ludo-current-glow{box-shadow:0 0 0 3px var(--accent-glow),0 8px 24px rgba(0,0,0,.4) !important}
 
 /* ═══ DRAW & GUESS ═══ */
 .dw-wrap{display:flex;flex-direction:column;height:100%}
@@ -243,6 +256,18 @@ button{font-family:inherit;cursor:pointer}
 .dw-guess-row{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);flex-shrink:0}
 .dw-guess-in{flex:1;padding:11px 14px;border-radius:13px;background:var(--g2);border:1px solid var(--border2);color:#fff;font-size:13px}
 .dw-word-reveal{font-size:11px;color:var(--gold);font-weight:800;padding:6px 12px}
+.dw-size-btn{width:26px;height:26px;border-radius:50%;background:var(--g2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dw-size-btn.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}
+.dw-size-dot{border-radius:50%;background:#fff}
+.dw-timerbar{height:4px;background:var(--g2);flex-shrink:0}
+.dw-timerbar-fill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width 1s linear}
+.dw-hint-row{font-size:10.5px;color:var(--text2);padding:4px 12px;text-align:center;flex-shrink:0;letter-spacing:2px;font-weight:700}
+.dw-guess-hist{display:flex;flex-direction:column;gap:3px;padding:6px 12px;max-height:64px;overflow-y:auto;flex-shrink:0}
+.dw-guess-hist-row{font-size:11px;color:var(--text2);background:var(--g1);border:1px solid var(--border);border-radius:9px;padding:3px 10px}
+.dw-guess-hist-row.correct{color:var(--green,#34d399);border-color:rgba(52,211,153,.4)}
+.dw-typing{font-size:10.5px;color:var(--text3);padding:0 12px;font-style:italic}
+.dw-react-row{display:flex;gap:6px;padding:6px 12px;flex-shrink:0}
+.dw-react-btn2{width:28px;height:28px;border-radius:50%;background:var(--g2);border:1px solid var(--border);font-size:14px;flex-shrink:0}
 
 /* ═══ MEMORY MATCH ═══ */
 .mm-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:340px;margin:0 auto}
@@ -837,20 +862,38 @@ const LUDO_COLORS = {user1:'#ef4444', user2:'#22c55e'};
 const LUDO_NAMES  = {user1:'Red', user2:'Green'};
 const LUDO_START = {user1:0, user2:26};
 const LUDO_SAFE = [0,8,13,21,26,34,39,47];
+const LUDO_TURN_SECONDS = 30;
 const Ludo = {
-  chan:null, state:null, rolling:false,
+  chan:null, state:null, rolling:false, lastCapture:null, lastHome:null, timerTick:null, timerLeft:LUDO_TURN_SECONDS,
   async open(body){
     this.chan = new GameChannel('ludo');
     let st = await this.chan.load();
     if(!st) st = this.fresh();
+    if(!st.moveHistory) st.moveHistory=[];
+    if(!st.turnStartedAt) st.turnStartedAt=Date.now();
     this.state = st;
     this.chan.listen(p=>{ if(p.type==='sync'){ this.state=p.state; this.render(); } });
+    this.startTimer();
     this.render();
   },
-  close(){ if(this.chan) this.chan.close(); },
+  close(){ if(this.chan) this.chan.close(); clearInterval(this.timerTick); },
   sync(){ this.chan.send({type:'sync',state:this.state}); this.chan.persist(this.state); },
-  fresh(){ return { tokens:{user1:[-1,-1,-1,-1],user2:[-1,-1,-1,-1]}, turn:'user1', dice:null, winner:null }; },
+  fresh(){ return { tokens:{user1:[-1,-1,-1,-1],user2:[-1,-1,-1,-1]}, turn:'user1', dice:null, winner:null, moveHistory:[], turnStartedAt:Date.now() }; },
   restart(){ this.state=this.fresh(); this.sync(); this.render(); },
+  leave(){ Hub.exitGame(); },
+  startTimer(){
+    clearInterval(this.timerTick);
+    this.timerTick = setInterval(()=>{
+      if(!this.state || this.state.winner) return;
+      const elapsed = Math.floor((Date.now()-(this.state.turnStartedAt||Date.now()))/1000);
+      this.timerLeft = Math.max(0, LUDO_TURN_SECONDS-elapsed);
+      const el=document.getElementById('ludoTimerFill'); if(el) el.style.width=(this.timerLeft/LUDO_TURN_SECONDS*100)+'%';
+    },1000);
+  },
+  logMove(text){
+    this.state.moveHistory.unshift(text);
+    if(this.state.moveHistory.length>8) this.state.moveHistory.length=8;
+  },
   movable(role,d){
     const out=[];
     this.state.tokens[role].forEach((pos,i)=>{
@@ -872,9 +915,24 @@ const Ludo = {
       this.sync(); this.render();
       if(!mv.length){
         toast(d===6?'Rolled a 6 but no legal move':'No legal move — turn passes');
-        setTimeout(()=>{ this.state.dice=null; this.state.turn = d===6?ID.role:otherRole; this.sync(); this.render(); },1000);
+        setTimeout(()=>{ this.state.dice=null; this.state.turn = d===6?ID.role:otherRole; this.state.turnStartedAt=Date.now(); this.logMove((d===6?'You':esc(ID.partnerName))+' rolled '+d+' — no move'); this.sync(); this.render(); },1000);
       }
     },550);
+  },
+  spawnBurst(x,y){
+    const board=document.getElementById('ludoBoard'); if(!board) return;
+    const colors=['#ffd24a','#ff6b6b','#4ade80','#60a5fa'];
+    for(let k=0;k<10;k++){
+      const b=document.createElement('div');
+      b.className='ludo-burst';
+      const ang=Math.random()*2*Math.PI, dist=24+Math.random()*30;
+      b.style.left=x+'%'; b.style.top=y+'%';
+      b.style.background=colors[k%colors.length];
+      b.style.setProperty('--bx',(Math.cos(ang)*dist)+'px');
+      b.style.setProperty('--by',(Math.sin(ang)*dist)+'px');
+      board.appendChild(b);
+      setTimeout(()=>b.remove(),650);
+    }
   },
   moveToken(i){
     if(this.state.winner || this.state.turn!==ID.role || this.state.dice==null) return;
@@ -885,6 +943,7 @@ const Ludo = {
     const newPos = pos===-1 ? 0 : pos+d;
     tokens[i]=newPos;
     Snd.place();
+    this.logMove((role===ID.role?'You':esc(ID.partnerName))+' moved token '+(i+1)+' ('+d+')');
     // capture check on global ring (not home stretch)
     if(newPos>=0 && newPos<=50){
       const globalIdx=(LUDO_START[role]+newPos)%52;
@@ -893,12 +952,15 @@ const Ludo = {
         this.state.tokens[opp].forEach((op,oi)=>{
           if(op>=0 && op<=50 && (LUDO_START[opp]+op)%52===globalIdx){
             this.state.tokens[opp][oi]=-1;
-            toast('🎯 Captured '+ID.partnerName+'\'s token!'); GameCore.addCoins(5);
+            const capXY=this.ringXY(globalIdx,42);
+            this.lastCapture={role:opp,i:oi,x:capXY.x,y:capXY.y};
+            toast('🎯 Captured '+ID.partnerName+'\'s token!'); GameCore.addCoins(5); Snd.fail();
+            this.logMove('🎯 Token '+(oi+1)+' captured!');
           }
         });
       }
     }
-    if(newPos===57) toast('🏠 A token made it home!');
+    if(newPos===57){ toast('🏠 A token made it home!'); this.lastHome={role,i}; Snd.success(); }
     const allHome = tokens.every(t=>t===57);
     if(allHome){
       this.state.winner=role;
@@ -906,6 +968,7 @@ const Ludo = {
       setTimeout(()=>showReward('👑','Ludo Champion!',['+15 XP','+10 🪙']),300);
     } else {
       this.state.turn = d===6 ? role : (role==='user1'?'user2':'user1');
+      this.state.turnStartedAt=Date.now();
     }
     this.state.dice=null;
     this.sync(); this.render();
@@ -916,10 +979,12 @@ const Ludo = {
     const body=document.getElementById('goBody'); if(!body) return;
     const s=this.state, myTurn=s.turn===ID.role && !s.winner;
     const mv = s.dice!=null ? this.movable(ID.role,s.dice) : [];
+    const capturedThisRender=this.lastCapture, homedThisRender=this.lastHome;
+    this.lastCapture=null; this.lastHome=null;
     let cellsHtml='', tokensHtml='';
     for(let gi=0; gi<52; gi++){
       const {x,y}=this.ringXY(gi,42);
-      cellsHtml += `<div class="ludo-cell ${LUDO_SAFE.includes(gi)?'safe':''}" style="left:${x}%;top:${y}%"></div>`;
+      cellsHtml += `<div class="ludo-cell ${LUDO_SAFE.includes(gi)?'safe':''}" style="left:${x}%;top:${y}%">${LUDO_SAFE.includes(gi)?'★':''}</div>`;
     }
     ['user1','user2'].forEach(role=>{
       const entryGlobal=(LUDO_START[role]+50)%52; // last ring cell before turning home
@@ -936,17 +1001,24 @@ const Ludo = {
         else if(pos<=56){ const h=pos-51; const R=42-(h+1)*6.2; x=50+R*Math.cos(entryAng); y=50+R*Math.sin(entryAng); }
         else { x=50; y=50; }
         const canMove = role===ID.role && mv.includes(i);
-        tokensHtml += `<div class="ludo-token ${canMove?'playable':''}" style="left:${x}%;top:${y}%;background:${LUDO_COLORS[role]};${canMove?'box-shadow:0 0 0 4px rgba(255,255,255,.5)':''}" onclick="${canMove?`Ludo.moveToken(${i})`:''}">${i+1}</div>`;
+        const isCurrent = role===s.turn && !s.winner;
+        const justHomed = homedThisRender && homedThisRender.role===role && homedThisRender.i===i;
+        tokensHtml += `<div class="ludo-token ${canMove?'playable':''} ${isCurrent?'mine-glow':''} ${justHomed?'homing':''}" style="left:${x}%;top:${y}%;background:${LUDO_COLORS[role]};${canMove?'box-shadow:0 0 0 4px rgba(255,255,255,.5)':''}" onclick="${canMove?`Ludo.moveToken(${i})`:''}">${i+1}</div>`;
       });
     });
+    if(capturedThisRender){
+      setTimeout(()=>this.spawnBurst(capturedThisRender.x, capturedThisRender.y),10);
+    }
     const baseRow=(role)=> s.tokens[role].map((pos,i)=>{
       if(pos!==-1) return '';
       const canExit = role===ID.role && mv.includes(i);
       return `<div class="ludo-base-token" style="background:${LUDO_COLORS[role]};${canExit?'box-shadow:0 0 0 3px #fff;cursor:pointer':''}" onclick="${canExit?`Ludo.moveToken(${i})`:''}">${i+1}</div>`;
     }).join('');
+    const historyHtml = (s.moveHistory||[]).map(h=>`<div class="ludo-hist-row">${h}</div>`).join('');
     body.innerHTML = `
       <div class="turn-bar ${myTurn?'mine':''}">${s.winner? (s.winner===ID.role?'👑 You won!':esc(ID.partnerName)+' won this game') : (myTurn?'✨ Your turn — roll the dice':esc(ID.partnerName)+' is playing…')}</div>
       <div class="ludo-wrap">
+        <div class="ludo-timerbar"><div class="ludo-timerbar-fill" id="ludoTimerFill" style="width:${(this.timerLeft/LUDO_TURN_SECONDS*100)}%"></div></div>
         <div class="ludo-board" id="ludoBoard">
           ${cellsHtml}
           <div class="ludo-home-hub">🏠</div>
@@ -958,7 +1030,11 @@ const Ludo = {
           <div class="ludo-base">${baseRow('user2')}</div>
         </div>
         <div style="font-size:11px;color:var(--text2);text-align:center">🔴 ${esc(ID.role==='user1'?ID.myName:ID.partnerName)} · 🟢 ${esc(ID.role==='user2'?ID.myName:ID.partnerName)} — roll a 6 to leave base, land exactly on 57 to get home</div>
-        ${s.winner?'<button class="btn btn-accent" onclick="Ludo.restart()">🔄 New Game</button>':''}
+        ${historyHtml?`<div class="ludo-history">${historyHtml}</div>`:''}
+        <div style="display:flex;gap:10px">
+          ${s.winner?'<button class="btn btn-accent" onclick="Ludo.restart()">🔄 Rematch</button>':''}
+          <button class="ludo-leave" onclick="Ludo.leave()">Leave game</button>
+        </div>
       </div>
     `;
   }
@@ -1213,63 +1289,140 @@ const TOD = {
 ═══════════════════════════════════════════════════════ */
 const DRAW_WORDS=['cat','pizza','rainbow','guitar','heart','tree','sun','umbrella','robot','castle','fish','flower','moon','car','house','butterfly','ice cream','star','crown','balloon','shoe','clock','book','key','cloud','boat','apple','kite','snowman','rocket'];
 const DW_COLORS=['#ef4444','#f59e0b','#22c55e','#3b82f6','#a855f7','#ffffff','#000000'];
+const DW_SIZES=[3,6,11];
+const DW_ROUND_SECONDS=75;
 const Draw = {
-  chan:null, state:null, canvas:null, ctx:null, drawing:false, color:'#ef4444', lastPt:null,
+  chan:null, state:null, canvas:null, ctx:null, drawing:false,
+  color:'#ef4444', size:6, mode:'pen', lastPt:null, strokeId:null, redoStack:[],
+  timerTick:null, timerLeft:DW_ROUND_SECONDS, typingHideT:null, partnerTyping:false,
   async open(body){
     this.chan = new GameChannel('draw');
     let st = await this.chan.load();
-    if(!st) st = {drawer:'user1', word:rand(DRAW_WORDS), strokes:[], guesses:[], scores:{user1:0,user2:0}, round:1};
-    this.state = st;
+    if(!st) st = {drawer:'user1', word:rand(DRAW_WORDS), strokes:[], guessLog:[], scores:{user1:0,user2:0}, round:1, roundStartedAt:Date.now()};
+    if(!st.guessLog) st.guessLog=[];
+    if(!st.roundStartedAt) st.roundStartedAt=Date.now();
+    this.state = st; this.redoStack=[];
     this.chan.listen(p=>{
-      if(p.type==='sync'){ this.state=p.state; this.render(); this.redrawAll(); }
+      if(p.type==='sync'){ this.state=p.state; this.redoStack=[]; this.render(); this.redrawAll(); }
       else if(p.type==='stroke'){ this.state.strokes.push(p.stroke); this.drawSeg(p.stroke); }
       else if(p.type==='clear'){ this.state.strokes=[]; this.clearCanvas(); }
+      else if(p.type==='undo'){ this.state.strokes=p.strokes; this.redrawAll(); }
+      else if(p.type==='typing'){ this.partnerTyping=true; clearTimeout(this.typingHideT); this.typingHideT=setTimeout(()=>{ this.partnerTyping=false; this.updateTypingUI(); },2200); this.updateTypingUI(); }
+      else if(p.type==='guesslog'){ this.state.guessLog=p.log; this.renderGuessLog(); }
     });
+    this.startTimer();
     this.render();
   },
-  close(){ if(this.chan) this.chan.close(); },
+  close(){ if(this.chan) this.chan.close(); clearInterval(this.timerTick); },
   sync(){ this.chan.send({type:'sync',state:this.state}); this.chan.persist(this.state); },
   isDrawer(){ return this.state.drawer===ID.role; },
+  startTimer(){
+    clearInterval(this.timerTick);
+    this.timerTick = setInterval(()=>{
+      if(!this.state) return;
+      const elapsed = Math.floor((Date.now()-(this.state.roundStartedAt||Date.now()))/1000);
+      this.timerLeft = Math.max(0, DW_ROUND_SECONDS-elapsed);
+      const fill=document.getElementById('dwTimerFill'); if(fill) fill.style.width=(this.timerLeft/DW_ROUND_SECONDS*100)+'%';
+      const hint=document.getElementById('dwHintRow'); if(hint) hint.innerHTML=this.hintText(elapsed);
+      if(this.timerLeft===0 && this.isDrawer()){
+        toast('⏱️ Time\'s up — new round'); this.nextRound(false);
+      }
+    },1000);
+  },
+  hintText(elapsed){
+    const w=this.state.word;
+    if(this.isDrawer()) return '';
+    let blanks = w.split('').map(ch=>ch===' '?' ':'_').join(' ');
+    if(elapsed>=30) blanks = w[0].toUpperCase()+blanks.slice(1);
+    if(elapsed>=45) return blanks+`  (${w.length} letters)`;
+    return blanks;
+  },
   setupCanvas(){
     this.canvas=document.getElementById('dwCanvas'); if(!this.canvas) return;
     const wrap=this.canvas.parentElement;
     this.canvas.width=wrap.clientWidth; this.canvas.height=wrap.clientHeight;
     this.ctx=this.canvas.getContext('2d');
-    this.ctx.lineCap='round'; this.ctx.lineJoin='round'; this.ctx.lineWidth=5;
+    this.ctx.lineCap='round'; this.ctx.lineJoin='round';
     this.redrawAll();
     const getPt=(e)=>{ const r=this.canvas.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:(t.clientX-r.left)/r.width, y:(t.clientY-r.top)/r.height}; };
-    const start=(e)=>{ if(!this.isDrawer()) return; e.preventDefault(); this.drawing=true; this.lastPt=getPt(e); };
+    const start=(e)=>{
+      if(!this.isDrawer()) return; e.preventDefault();
+      this.drawing=true; this.lastPt=getPt(e); this.strokeId=uid(); this.redoStack=[];
+    };
     const move=(e)=>{
       if(!this.isDrawer()||!this.drawing) return; e.preventDefault();
-      const p=getPt(e); const stroke={x0:this.lastPt.x,y0:this.lastPt.y,x1:p.x,y1:p.y,color:this.color};
+      const p=getPt(e);
+      const stroke={x0:this.lastPt.x,y0:this.lastPt.y,x1:p.x,y1:p.y,color:this.color,size:this.size,mode:this.mode,sid:this.strokeId};
       this.drawSeg(stroke); this.state.strokes.push(stroke); this.chan.send({type:'stroke',stroke}); this.lastPt=p;
     };
-    const end=()=>{ this.drawing=false; if(this.isDrawer()) this.chan.persist(this.state); };
+    const end=()=>{ this.drawing=false; this.strokeId=null; if(this.isDrawer()) this.chan.persist(this.state); };
     this.canvas.onmousedown=start; this.canvas.onmousemove=move; window.onmouseup=end;
     this.canvas.ontouchstart=start; this.canvas.ontouchmove=move; this.canvas.ontouchend=end;
   },
   drawSeg(s){
     if(!this.ctx) return;
-    this.ctx.strokeStyle=s.color; this.ctx.beginPath();
+    this.ctx.save();
+    if(s.mode==='eraser'){ this.ctx.globalCompositeOperation='destination-out'; this.ctx.strokeStyle='rgba(0,0,0,1)'; }
+    else { this.ctx.globalCompositeOperation='source-over'; this.ctx.strokeStyle=s.color; this.ctx.globalAlpha = s.mode==='highlighter'?0.35:1; }
+    this.ctx.lineWidth=(s.size||6)*(s.mode==='highlighter'?2.6:1);
+    this.ctx.beginPath();
     this.ctx.moveTo(s.x0*this.canvas.width, s.y0*this.canvas.height);
     this.ctx.lineTo(s.x1*this.canvas.width, s.y1*this.canvas.height);
     this.ctx.stroke();
+    this.ctx.restore();
   },
   clearCanvas(){ if(this.ctx) this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height); },
   redrawAll(){ this.clearCanvas(); (this.state.strokes||[]).forEach(s=>this.drawSeg(s)); },
-  clear(){ if(!this.isDrawer()) return; this.state.strokes=[]; this.chan.send({type:'clear'}); this.clearCanvas(); this.chan.persist(this.state); },
-  newWord(){ if(!this.isDrawer()) return; this.state.word=rand(DRAW_WORDS); this.state.strokes=[]; this.sync(); this.clearCanvas(); toast('New word! ✏️'); },
+  clear(){ if(!this.isDrawer()) return; this.state.strokes=[]; this.redoStack=[]; this.chan.send({type:'clear'}); this.clearCanvas(); this.chan.persist(this.state); },
+  undo(){
+    if(!this.isDrawer() || !this.state.strokes.length) return;
+    const lastId=this.state.strokes[this.state.strokes.length-1].sid;
+    const removed=[];
+    while(this.state.strokes.length && this.state.strokes[this.state.strokes.length-1].sid===lastId){ removed.unshift(this.state.strokes.pop()); }
+    this.redoStack.push(removed);
+    this.chan.send({type:'undo', strokes:this.state.strokes}); this.redrawAll(); this.chan.persist(this.state);
+  },
+  redo(){
+    if(!this.isDrawer() || !this.redoStack.length) return;
+    const grp=this.redoStack.pop();
+    grp.forEach(s=>this.state.strokes.push(s));
+    this.chan.send({type:'undo', strokes:this.state.strokes}); this.redrawAll(); this.chan.persist(this.state);
+  },
+  fill(){
+    if(!this.isDrawer()||!this.ctx) return;
+    this.ctx.save(); this.ctx.globalCompositeOperation='destination-over'; this.ctx.fillStyle=this.color;
+    this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height); this.ctx.restore();
+    toast('🪣 Background filled');
+  },
+  newWord(){ if(!this.isDrawer()) return; this.state.word=rand(DRAW_WORDS); this.state.strokes=[]; this.state.roundStartedAt=Date.now(); this.sync(); this.clearCanvas(); toast('New word! ✏️'); },
+  pickColor(c){ this.color=c; this.render(); setTimeout(()=>this.setupCanvas(),30); },
+  pickSize(sz){ this.size=sz; this.render(); setTimeout(()=>this.setupCanvas(),30); },
+  pickMode(m){ this.mode=m; this.render(); setTimeout(()=>this.setupCanvas(),30); },
+  notifyTyping(){ if(this.isDrawer()) return; this.chan.send({type:'typing'}); },
+  updateTypingUI(){ const el=document.getElementById('dwTyping'); if(el) el.textContent = this.partnerTyping ? esc(ID.myName)+' is typing…' : ''; },
+  renderGuessLog(){
+    const el=document.getElementById('dwGuessHist'); if(!el) return;
+    el.innerHTML=(this.state.guessLog||[]).slice(-6).map(g=>`<div class="dw-guess-hist-row ${g.correct?'correct':''}">${esc(g.name)}: ${esc(g.text)}</div>`).join('');
+    el.scrollTop=el.scrollHeight;
+  },
+  nextRound(scored){
+    this.state.drawer = this.state.drawer==='user1'?'user2':'user1';
+    this.state.word = rand(DRAW_WORDS); this.state.strokes=[]; this.state.round++;
+    this.state.roundStartedAt=Date.now();
+    this.sync(); this.clearCanvas(); this.render();
+  },
   guess(){
     const inp=document.getElementById('dwGuessIn'); const val=(inp.value||'').trim().toLowerCase();
     if(!val) return; inp.value='';
-    if(val===this.state.word.toLowerCase()){
+    const correct = val===this.state.word.toLowerCase();
+    const log=(this.state.guessLog||[]).concat([{name:ID.myName,text:val,correct}]);
+    this.state.guessLog=log; this.chan.send({type:'guesslog', log});
+    if(correct){
       GameCore.addXP(20); GameCore.addCoins(8); Snd.success();
       this.state.scores[ID.role]=(this.state.scores[ID.role]||0)+1;
       showReward('🎉','Correct guess!',['The word was “'+this.state.word+'”','+20 XP']);
-      this.state.drawer = this.state.drawer==='user1'?'user2':'user1';
-      this.state.word = rand(DRAW_WORDS); this.state.strokes=[]; this.state.round++;
-      this.sync(); this.clearCanvas(); this.render();
-    } else { toast('❌ Not quite — try again!'); Snd.fail(); }
+      this.nextRound(true);
+    } else { toast('❌ Not quite — try again!'); Snd.fail(); this.renderGuessLog(); }
   },
   render(){
     const body=document.getElementById('goBody'); if(!body) return;
@@ -1281,20 +1434,37 @@ const Draw = {
           <div class="score-pill ${ID.role==='user1'?'mine':''}"><div class="sp-name">${esc(ID.myName)}</div><div class="sp-val">${this.state.scores.user1||0}</div></div>
           <div class="score-pill ${ID.role==='user2'?'mine':''}"><div class="sp-name">${esc(ID.partnerName)}</div><div class="sp-val">${this.state.scores.user2||0}</div></div>
         </div></div>
+        <div class="dw-timerbar"><div class="dw-timerbar-fill" id="dwTimerFill" style="width:${(this.timerLeft/DW_ROUND_SECONDS*100)}%"></div></div>
         <div class="dw-toolbar">
           ${drawer ? DW_COLORS.map(c=>`<div class="dw-color ${this.color===c?'sel':''}" style="background:${c}" onclick="Draw.pickColor('${c}')"></div>`).join('') : `<div class="dw-word-reveal">🤔 ${esc(ID.partnerName)} is drawing — guess below!</div>`}
-          ${drawer?`<button class="dw-tool-btn" onclick="Draw.clear()" title="Clear">🗑️</button><button class="dw-tool-btn" onclick="Draw.newWord()" title="New word">🔀</button>`:''}
+          ${drawer?`
+            <div class="dw-tool-btn ${this.mode==='pen'?'sel':''}" style="cursor:pointer" onclick="Draw.pickMode('pen')" title="Pen">✏️</div>
+            <div class="dw-tool-btn ${this.mode==='highlighter'?'sel':''}" style="cursor:pointer" onclick="Draw.pickMode('highlighter')" title="Highlighter">🖊️</div>
+            <div class="dw-tool-btn ${this.mode==='eraser'?'sel':''}" style="cursor:pointer" onclick="Draw.pickMode('eraser')" title="Eraser">🧽</div>
+            ${DW_SIZES.map(sz=>`<div class="dw-size-btn ${this.size===sz?'sel':''}" onclick="Draw.pickSize(${sz})"><div class="dw-size-dot" style="width:${Math.max(4,sz*0.55)}px;height:${Math.max(4,sz*0.55)}px;background:${this.mode==='eraser'?'#888':this.color}"></div></div>`).join('')}
+            <button class="dw-tool-btn" onclick="Draw.fill()" title="Fill background">🪣</button>
+            <button class="dw-tool-btn" onclick="Draw.undo()" title="Undo">↩️</button>
+            <button class="dw-tool-btn" onclick="Draw.redo()" title="Redo">↪️</button>
+            <button class="dw-tool-btn" onclick="Draw.clear()" title="Clear">🗑️</button>
+            <button class="dw-tool-btn" onclick="Draw.newWord()" title="New word">🔀</button>
+          `:''}
         </div>
+        ${!drawer?`<div class="dw-hint-row" id="dwHintRow">${this.hintText(Math.floor((Date.now()-(this.state.roundStartedAt||Date.now()))/1000))}</div>`:''}
         <div class="dw-canvas-wrap">
           ${drawer?`<div class="dw-guess-banner">✏️ Draw: <strong>${esc(this.state.word)}</strong></div>`:''}
           <canvas id="dwCanvas"></canvas>
         </div>
-        ${!drawer?`<div class="dw-guess-row"><input class="dw-guess-in" id="dwGuessIn" placeholder="Type your guess…" onkeydown="if(event.key==='Enter')Draw.guess()"><button class="btn btn-pink" onclick="Draw.guess()">Guess</button></div>`:''}
+        <div class="dw-guess-hist" id="dwGuessHist"></div>
+        <div class="dw-react-row">${['😂','😍','🤔','🔥','👏'].map(e=>`<button class="dw-react-btn2" onclick="toast('${e}')">${e}</button>`).join('')}</div>
+        ${!drawer?`
+          <div class="dw-typing" id="dwTyping"></div>
+          <div class="dw-guess-row"><input class="dw-guess-in" id="dwGuessIn" oninput="Draw.notifyTyping()" placeholder="Type your guess…" onkeydown="if(event.key==='Enter')Draw.guess()"><button class="btn btn-pink" onclick="Draw.guess()">Guess</button></div>
+        `:''}
       </div>
     `;
     setTimeout(()=>this.setupCanvas(),30);
-  },
-  pickColor(c){ this.color=c; this.render(); setTimeout(()=>this.setupCanvas(),30); }
+    this.renderGuessLog();
+  }
 };
 
 /* ═══════════════════════════════════════════════════════
