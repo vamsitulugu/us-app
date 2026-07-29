@@ -17,10 +17,25 @@ const { saveUserPushSubscription, saveUserFcmToken, notifyUser } = require('../u
 const router = express.Router();
 
 // ── helpers ─────────────────────────────────────────────
+// The frontend now only asks users for raw digits (e.g. "7077745442"),
+// not the full "+14155551234" they used to have to type. The backend is
+// the single source of truth for turning that into a stored/sent E.164
+// number: if a "+" is already present we trust it (still validated);
+// otherwise we prepend the app's configured default country code.
+const DEFAULT_COUNTRY_CODE = process.env.DEFAULT_COUNTRY_CODE || '+91';
+
 function normalizePhone(phone) {
   if (!phone) return null;
-  const trimmed = String(phone).trim();
-  // Require E.164-ish format: leading + and 8-15 digits.
+  let trimmed = String(phone).trim().replace(/[\s\-()]/g, '');
+  if (!trimmed) return null;
+
+  if (!trimmed.startsWith('+')) {
+    // Raw digits only — prepend the configured default country code.
+    if (!/^\d{6,14}$/.test(trimmed)) return null;
+    trimmed = DEFAULT_COUNTRY_CODE + trimmed;
+  }
+
+  // Final E.164-ish check: leading + and 8-15 digits total.
   if (!/^\+[1-9]\d{7,14}$/.test(trimmed)) return null;
   return trimmed;
 }
@@ -57,7 +72,7 @@ router.post('/signup', async (req, res) => {
   try {
     const phoneNumber = normalizePhone(req.body.phoneNumber);
     const { name, password } = req.body;
-    if (!phoneNumber) return res.status(400).json({ error: 'Valid phone number required, e.g. +14155551234' });
+    if (!phoneNumber) return res.status(400).json({ error: 'Valid phone number required' });
     if (!name || !name.trim()) return res.status(400).json({ error: 'Name required' });
     if (!password || password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
 
