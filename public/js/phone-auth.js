@@ -113,6 +113,53 @@
     declineInvitation: (id) =>
       request('POST', '/api/auth-phone/partner/invitations/' + id + '/decline', undefined, { auth: true }),
 
+    // ── Pre-pairing push registration ──────────────────────
+    // A signed-in-but-not-yet-paired user still needs to receive
+    // partner invite/accept/decline pushes. Those are delivered via
+    // /api/auth-phone/* (user_id-keyed), which is a completely
+    // separate subscription store from the couple+role-keyed one
+    // index.html registers post-pairing — so this must be called
+    // independently, as soon as we have a signed-in session.
+    setupPushForCurrentUser: async () => {
+      if (!PhoneAuth.isSignedIn()) return;
+      try {
+        // Native (Capacitor/Android) FCM registration
+        if (global.Capacitor && global.Capacitor.isNativePlatform && global.Capacitor.isNativePlatform()) {
+          const { PushNotifications } = global.Capacitor.Plugins;
+          const perm = await PushNotifications.requestPermissions();
+          if (perm.receive === 'granted') {
+            await PushNotifications.register();
+            PushNotifications.addListener('registration', async (token) => {
+              try { await request('POST', '/api/auth-phone/fcm/register', { token: token.value }, { auth: true }); }
+              catch (e) { console.warn('[push] fcm register failed', e.message); }
+            });
+          }
+        }
+        // Web Push registration
+        if ('serviceWorker' in global.navigator && 'PushManager' in global.window) {
+          if (global.Notification && global.Notification.permission === 'denied') return;
+          const { publicKey } = await request('GET', '/api/auth-phone/push/vapidkey');
+          if (!publicKey) return;
+          const reg = await global.navigator.serviceWorker.ready.catch(() => null);
+          if (!reg) return;
+          let sub = await reg.pushManager.getSubscription();
+          if (!sub) {
+            if (global.Notification && global.Notification.permission !== 'granted') {
+              const p = await global.Notification.requestPermission();
+              if (p !== 'granted') return;
+            }
+            const raw = atob(publicKey.replace(/-/g, '+').replace(/_/g, '/'));
+            const key = new Uint8Array(raw.length);
+            for (let i = 0; i < raw.length; i++) key[i] = raw.charCodeAt(i);
+            sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+          }
+          await request('POST', '/api/auth-phone/push/subscribe', { subscription: sub.toJSON() }, { auth: true });
+        }
+      } catch (e) {
+        console.warn('[push] pre-pairing push setup failed:', e.message);
+      }
+    },
+
     // Existing couple-code endpoint (unauthenticated, still live) — used
     // purely to read back user1_name/user2_name/anniversary for the
     // couple a phone-auth user just got paired into.

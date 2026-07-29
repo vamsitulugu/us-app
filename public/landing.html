@@ -563,6 +563,10 @@ function showPhoneView(view){
 }
 
 async function finalizeIfPaired(user){
+  // Register for push/FCM now — even if not yet paired, the user needs
+  // to receive partner invite/accept/decline notifications, which are
+  // delivered on this (user-id-keyed) channel, not the post-pairing one.
+  PhoneAuth.setupPushForCurrentUser().catch(()=>{});
   if(user && user.coupleId){
     let partnerName='Partner', anniversary='';
     try{
@@ -649,6 +653,7 @@ async function doPartnerInvite(){
 }
 
 async function refreshPartnerInvitations(){
+  PhoneAuth.setupPushForCurrentUser().catch(()=>{});
   const box=document.getElementById('partnerIncomingBox');
   if(!box) return;
   try{

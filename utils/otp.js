@@ -19,11 +19,16 @@ async function verifyOtp(code, hash) {
 }
 
 // Sends the OTP over SMS if Twilio credentials are configured.
-// Falls back to logging it to the server console in dev/test,
-// so the flow is fully usable before an SMS provider is wired up.
+// Falls back to logging it to the server console ONLY outside production.
+// In production, if Twilio isn't configured or fails, the code is never
+// written to any log — the request fails loudly instead.
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
 async function sendOtpSms(phoneNumber, code) {
   const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER } = process.env;
-  if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_FROM_NUMBER) {
+  const twilioConfigured = TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_FROM_NUMBER;
+
+  if (twilioConfigured) {
     try {
       const twilio = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
       await twilio.messages.create({
@@ -33,10 +38,20 @@ async function sendOtpSms(phoneNumber, code) {
       });
       return { delivered: true, channel: 'sms' };
     } catch (err) {
-      console.error('Twilio send failed, falling back to console log:', err.message);
+      console.error('Twilio send failed:', err.message);
+      if (IS_PRODUCTION) {
+        throw new Error('Failed to send verification code. Please try again shortly.');
+      }
+      console.log(`📱 [DEV OTP FALLBACK, Twilio error] ${phoneNumber} -> ${code} (expires in ${OTP_TTL_MINUTES}m)`);
+      return { delivered: false, channel: 'console' };
     }
   }
-  // Dev fallback — never do this in a real production SMS path.
+
+  if (IS_PRODUCTION) {
+    console.error('OTP send blocked: Twilio is not configured and NODE_ENV=production, so the console fallback is disabled.');
+    throw new Error('SMS delivery is not configured. Please contact support.');
+  }
+
   console.log(`📱 [DEV OTP] ${phoneNumber} -> ${code} (expires in ${OTP_TTL_MINUTES}m)`);
   return { delivered: false, channel: 'console' };
 }
