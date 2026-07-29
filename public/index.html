@@ -4600,17 +4600,16 @@ select option { background: #0D0D0D; color: #fff; }
     </div>
   </div>
 </div>
-  <!-- Hidden pair-code form: kept (not shown to the user) because
-       openJoinPartnerModal()/doPair() still read these fields when
+  <!-- Hidden partner-invite form: kept (not shown by default) because
+       openJoinPartnerModal()/sendPartnerInvite() read this field when
        linking a partner from inside the app's settings page. The old
-       "Get Started / Join Partner" landing-style auth card that used
-       to render here has been removed — real auth now happens on
-       /landing.html before this page is ever reached. -->
+       6-digit connect-code pairing form has been retired — partner
+       linking now goes through the same phone-number invite/accept
+       flow as /landing.html (see PhoneAuth in /js/phone-auth.js). -->
   <div id="authOverlay" style="display:none">
     <div id="pairErr" class="auth-err"></div>
-    <input type="text" id="pairMyName" placeholder="Your name" autocomplete="off">
-    <input type="text" id="pairCode" placeholder="A1B2C3" maxlength="6">
-    <button id="pairBtn" onclick="doPair()">Connect with Partner</button>
+    <input type="tel" id="partnerInvitePhone" placeholder="+14155551234" autocomplete="tel">
+    <button id="pairBtn" onclick="sendPartnerInvite()">Send Invitation</button>
   </div>
 
   <!-- SIDEBAR -->
@@ -5078,11 +5077,8 @@ select option { background: #0D0D0D; color: #fff; }
         </div>
         <div class="two-col">
           <div class="card" style="margin-bottom:0">
-            <div class="card-title">💌 Connect Code</div>
-            <div class="code-box" id="myConnectCode">——</div>
-            <div style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.65">Share this 6-digit code with
-              your partner to link both devices.</div>
-            <button class="btn btn-accent btn-sm" style="margin-top:10px" onclick="copyCode()">📋 Copy Code</button>
+            <div class="card-title">💌 Partner Connection</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:6px;line-height:1.65">Connect with your partner using their phone number.</div>
             <div id="profPairStatus" style="font-size:11px;color:var(--text3);margin-top:10px">💌 Waiting for partner</div>
 <div id="profJoinBtn" style="margin-top:10px">
   <button class="btn btn-accent btn-sm" onclick="openJoinPartnerModal()">🔗 Join Partner</button>
@@ -6017,13 +6013,7 @@ select option { background: #0D0D0D; color: #fff; }
         <div class="settings-group">
           <div class="settings-group-header">🔗 Partner Connection</div>
           <div class="settings-row" style="cursor:default;flex-direction:column;align-items:flex-start">
-            <div style="font-size:11px;color:var(--text2);margin-bottom:12px;line-height:1.65">Share this 6-digit code
-              with your partner to link both devices.</div>
-            <div class="code-box" id="settingsConnectCode" style="width:100%;margin-bottom:12px">——</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn btn-accent btn-sm" onclick="copyCode()">📋 Copy Code</button>
-              <button class="btn btn-glass btn-sm" onclick="shareCode()">🔗 Share</button>
-            </div>
+            <div style="font-size:11px;color:var(--text2);margin-bottom:12px;line-height:1.65">Connect with your partner using their phone number.</div>
             <div id="settingsPairStatus" style="font-size:11px;color:var(--text3);margin-top:10px">💌 Waiting for
               partner</div>
             <button class="btn btn-danger btn-sm" id="removePartnerBtn" style="margin-top:12px;display:none" onclick="confirmRemovePartner()">💔 Remove Partner</button>
@@ -6689,30 +6679,27 @@ function saveLocal() {
         }
 
         // ─── AUTH ─────────────────────────────────────────────────
-        async function doPair() {
-          resetForNewAccount();
-          const name = document.getElementById('pairMyName').value.trim();
-          const code = document.getElementById('pairCode').value.trim().toUpperCase();
+        // Sends a partner invite by phone number (replaces the retired
+        // 6-digit connect-code pairing). The invite is accepted from the
+        // partner's own /landing.html "Connect with partner" screen (or
+        // future in-app inbox); accepting is what actually sets
+        // coupleId/role and triggers the phone-auth backend to create
+        // the couple row — so we just fire the invite here and let the
+        // partner-side accept flow (finalizeIfPaired in landing.html)
+        // establish the pairing on their device.
+        async function sendPartnerInvite() {
+          const phone = document.getElementById('partnerInvitePhone').value.trim();
           const errEl = document.getElementById('pairErr');
-          if (!name) { errEl.textContent = 'Please enter your name'; errEl.style.display = 'block'; return; }
-          if (code.length !== 6) { errEl.textContent = 'Enter a valid 6-digit code'; errEl.style.display = 'block'; return; }
+          if (!phone) { errEl.textContent = 'Enter your partner\'s phone number'; errEl.style.display = 'block'; return; }
           errEl.style.display = 'none';
-          const btn = document.getElementById('pairBtn'); btn.textContent = 'Connecting...'; btn.disabled = true;
+          const btn = document.getElementById('pairBtn'); btn.textContent = 'Sending...'; btn.disabled = true;
           try {
-            const data = await api('POST', '/api/auth/pair', { connectCode: code, myName: name });
-            S.coupleId = data.coupleId; S.connectCode = data.connectCode; S.myName = data.myName;
-            S.partnerName = data.partnerName; S.anniversary = data.anniversary || '';
-            S.role = 'user2'; S.setupDone = true; S.paired = true;
-            S.role = 'user2'; S.setupDone = true; S.paired = true;
-            setJustPairedAt(Date.now());
-            saveLocal(); document.getElementById('authOverlay').style.display = 'none';
-            await loadFromCloud(); pushMyProfile(); pullPartnerProfile(); saveToCloud();
-            applyNames(); renderAll(); updatePairStatus(); syncLoveCounterToFrame();
-            PM.relationshipConnected(document.body);
-            toast('Connected with ' + data.partnerName + '! 💕'); spawnPetals(); startAlarmCheck(); startSyncLoop();
-            if ('Notification' in window && Notification.permission === 'granted') setTimeout(registerPushSubscription, 2000);
+            if (!window.PhoneAuth || !PhoneAuth.isSignedIn()) throw new Error('Please sign in again from the login page');
+            await PhoneAuth.invitePartner(phone);
+            document.getElementById('authOverlay').style.display = 'none';
+            toast('Invitation sent 💌 — they\'ll get a notification to accept.');
           } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
-          finally { btn.textContent = 'Connect with Partner 💕'; btn.disabled = false; }
+          finally { btn.textContent = 'Send Invitation'; btn.disabled = false; }
         }
 
         // ─── CLOUD SYNC ──────────────────────────────────────────
@@ -6878,10 +6865,6 @@ function getJustPairedAt() {
 function setJustPairedAt(ts) {
   localStorage.setItem('uwl_justPairedAt', String(ts));
 }
-        function copyCode() {
-          const code = S.connectCode || '—';
-          navigator.clipboard ? navigator.clipboard.writeText(code).then(() => toast('Code copied: ' + code + ' 📋')) : toast('Your code: ' + code);
-        }
         // ─── TOUCH FEATURE ───────────────────────────────────────
         let lastTouchSeen = parseInt(localStorage.getItem('uwl_lastTouchSeen') || '0');
 
@@ -7102,8 +7085,6 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
           const el2 = document.getElementById('profPtName'); if (el2) el2.textContent = p;
           ['studyMyName', 'studyMyNameTT'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = m + "'s"; });
           ['studyPtName', 'studyPtNameTT'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = p + "'s"; });
-          const cc = document.getElementById('myConnectCode'), sc = document.getElementById('settingsConnectCode');
-          if (cc) cc.textContent = S.connectCode || '——'; if (sc) sc.textContent = S.connectCode || '——';
           const tpn = document.getElementById('touchPartnerName'); if (tpn) tpn.textContent = p + "'ll";
         }
         function setAvText(id, t) { const el = document.getElementById(id); if (!el) return; if (!el.querySelector('img')) el.textContent = t; }
@@ -7220,11 +7201,6 @@ const p = await Notification.requestPermission();
     toast('Notifications not enabled');
   }
 }
-        function shareCode() {
-          const code = S.connectCode || '—';
-          if (navigator.share) { navigator.share({ title: 'Twin Hearts', text: 'Join me on Twin Hearts! Use code: ' + code, url: window.location.href }).catch(() => { }); }
-          else { copyCode(); }
-        }
         function importData() {
           const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json';
           inp.onchange = e => {
@@ -9647,13 +9623,10 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && document.getElementById('searchOverlay').classList.contains('open')) closeSearch();
 });
 function openJoinPartnerModal() {
-  const code = prompt('Enter your partner\'s 6-digit connect code:');
-  if (!code || code.trim().length !== 6) { toast('Enter a valid 6-digit code'); return; }
-  const name = S.myName || prompt('Your name:');
-  if (!name) return;
-  document.getElementById('pairMyName').value = name;
-  document.getElementById('pairCode').value = code.trim().toUpperCase();
-  doPair();
+  const phone = prompt('Enter your partner\'s phone number (e.g. +14155551234):');
+  if (!phone || !phone.trim()) return;
+  document.getElementById('partnerInvitePhone').value = phone.trim();
+  sendPartnerInvite();
 }
 // ── IFRAME THEME + DREAM SYNC ──
         function syncThemeToFrame(frameId) {
@@ -9771,7 +9744,7 @@ if ('Notification' in window && Notification.permission === 'granted' && S.coupl
 function syncAuthOverlay() {
   // No-op: the old visible auth overlay was removed. Auth gating is
   // handled by the /landing.html redirect in init(); this hidden
-  // container only holds fields used by openJoinPartnerModal()/doPair().
+  // container only holds the field used by openJoinPartnerModal()/sendPartnerInvite().
 }
 
 // Re-sync whenever the page is restored from bfcache (common on mobile)
@@ -9942,6 +9915,7 @@ init();
 <script src="/search/overpass-service.js?v=2"></script>
 <script src="/search/nominatim-service.js?v=2"></script>
 <script src="/search/photon-service.js?v=2"></script>
+<script src="/js/phone-auth.js"></script>
 <script src="/search/search-service.js?v=2"></script>
 <!-- Live Map 3D upgrade (Phase 1) — must load before livemap.js -->
 <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
