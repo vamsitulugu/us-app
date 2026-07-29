@@ -303,6 +303,125 @@ button{font-family:inherit;cursor:pointer}
 .mm-card{aspect-ratio:1;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent-d));display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;transition:transform .4s cubic-bezier(.4,0,.2,1);position:relative;transform-style:preserve-3d}
 .mm-card.flipped{background:var(--g1);border:1px solid var(--border2)}
 .mm-card.matched{background:rgba(52,211,153,.2);border:1px solid var(--green);opacity:.7;cursor:default}
+
+/* ══ BOMB — Don't Touch The Bomb ══ */
+.bm-wrap{max-width:480px;margin:0 auto}
+.bm-hero{text-align:center;padding:6px 0 16px}
+.bm-hero-title{font-family:var(--ff-serif);font-size:22px;color:#fff}
+.bm-hero-sub{font-size:11.5px;color:var(--text2);margin-top:4px;letter-spacing:.5px;text-transform:uppercase}
+.bm-diffgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.bm-diffcard{border-radius:16px;padding:14px;border:1px solid var(--border);background:var(--g1);text-align:center;transition:var(--t)}
+.bm-diffcard.sel{border-color:var(--red);background:rgba(248,113,113,.12);box-shadow:0 0 0 1px var(--red-bg)}
+.bm-diffcard .bdc-name{font-weight:800;font-size:13px;color:#fff}
+.bm-diffcard .bdc-meta{font-size:10.5px;color:var(--text3);margin-top:3px}
+.bm-toggles{display:flex;gap:10px;margin:14px 0}
+.bm-toggle{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:13px;background:var(--g1);border:1px solid var(--border);font-size:11.5px;font-weight:700;color:var(--text2)}
+.bm-toggle.on{border-color:var(--gold);background:rgba(255,201,74,.12);color:var(--gold)}
+.bm-stats{display:flex;gap:10px;margin:14px 0}
+.bm-stat{flex:1;text-align:center;padding:10px;border-radius:13px;background:var(--g1);border:1px solid var(--border)}
+.bm-stat .bs-val{font-family:var(--ff-serif);font-size:18px;color:#fff}
+.bm-stat .bs-lbl{font-size:9.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.bm-startbtn{width:100%;padding:14px;border-radius:15px;background:linear-gradient(135deg,var(--red),#8b0d1a);color:#fff;font-weight:800;font-size:14.5px;border:none;box-shadow:0 6px 20px rgba(248,113,113,.3);margin-top:6px}
+.bm-role-banner{text-align:center;padding:9px 14px;border-radius:14px;margin-bottom:12px;font-size:12.5px;font-weight:700;background:var(--g1);border:1px solid var(--border)}
+.bm-role-banner.guide{background:linear-gradient(135deg,rgba(255,201,74,.16),rgba(255,255,255,.02));border-color:rgba(255,201,74,.35);color:var(--gold)}
+.bm-role-banner.mover{background:linear-gradient(135deg,hsla(var(--h),100%,55%,.16),rgba(255,255,255,.02));border-color:hsla(var(--h),100%,62%,.3);color:var(--accent-l)}
+.bm-countdown-wrap{display:flex;align-items:center;justify-content:center;min-height:280px}
+.bm-countdown-num{font-family:var(--ff-serif);font-size:90px;color:var(--red);text-shadow:0 0 40px var(--red-bg);animation:bmPulse .9s cubic-bezier(.34,1.56,.64,1)}
+@keyframes bmPulse{0%{transform:scale(.4);opacity:0}40%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:1}}
+.bm-timerbar{height:7px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;margin-bottom:10px}
+.bm-timerfill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--green),var(--gold));transition:width 1s linear}
+.bm-timerfill.low{background:linear-gradient(90deg,var(--red),#ff6b6b)}
+.bm-board{display:grid;gap:4px;margin:0 auto;touch-action:none}
+.bm-board.shake{animation:bmShake .5s cubic-bezier(.36,.07,.19,.97)}
+@keyframes bmShake{10%,90%{transform:translate3d(-1px,0,0)}20%,80%{transform:translate3d(3px,0,0)}30%,50%,70%{transform:translate3d(-7px,0,0)}40%,60%{transform:translate3d(7px,0,0)}}
+.bm-cell{aspect-ratio:1;border-radius:8px;background:var(--g1);border:1px solid var(--border);position:relative;display:flex;align-items:center;justify-content:center;font-size:14px;transition:background .15s,transform .15s;overflow:hidden}
+.bm-cell.path{cursor:pointer}
+.bm-cell.path:active{transform:scale(.9)}
+.bm-cell.start{background:hsla(var(--h),100%,55%,.14);border-color:hsla(var(--h),100%,62%,.35)}
+.bm-cell.goal{background:rgba(52,211,153,.14);border-color:rgba(52,211,153,.4)}
+.bm-cell.goal::after{content:'';position:absolute;inset:3px;border-radius:50%;background:radial-gradient(circle,rgba(52,211,153,.6),transparent 70%);animation:bmPortal 1.6s ease-in-out infinite}
+@keyframes bmPortal{0%,100%{opacity:.5;transform:scale(.85)}50%{opacity:1;transform:scale(1.05)}}
+.bm-cell.bomb-visible{background:rgba(248,113,113,.16);border-color:rgba(248,113,113,.4)}
+.bm-cell.bomb-visible::before{content:'💣';font-size:15px;animation:bmBlink 1.1s ease-in-out infinite}
+@keyframes bmBlink{0%,100%{opacity:1}50%{opacity:.25}}
+.bm-cell.danger-glow{box-shadow:inset 0 0 0 2px var(--red);animation:bmGlow 1s ease-in-out infinite}
+@keyframes bmGlow{0%,100%{box-shadow:inset 0 0 0 2px rgba(248,113,113,.25)}50%{box-shadow:inset 0 0 0 2px rgba(248,113,113,.85)}}
+.bm-cell.fogged{background:rgba(0,0,0,.55);border-color:rgba(255,255,255,.04)}
+.bm-cell.player .bm-token{width:62%;height:62%;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-d));display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 0 10px var(--accent-glow);animation:bmStep .3s ease-out}
+@keyframes bmStep{0%{transform:scale(.7)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
+.bm-cell.exploded{background:rgba(248,113,113,.4)}
+.bm-cell.exploded::before{content:'💥';font-size:22px;animation:bmBoom .5s ease-out}
+@keyframes bmBoom{0%{transform:scale(.2);opacity:0}50%{transform:scale(1.5);opacity:1}100%{transform:scale(1.1);opacity:1}}
+.bm-ping{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;animation:bmPingPop 1.1s ease-out forwards;pointer-events:none}
+@keyframes bmPingPop{0%{transform:scale(.3);opacity:0}30%{transform:scale(1.3);opacity:1}100%{transform:scale(1);opacity:0}}
+.bm-hud{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.bm-hud-chip{font-size:11px;font-weight:700;padding:6px 11px;border-radius:20px;background:var(--g1);border:1px solid var(--border);color:var(--text2)}
+.bm-guide-bar{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;justify-content:center}
+.bm-emoji-btn{width:38px;height:38px;border-radius:12px;background:var(--g1);border:1px solid var(--border);font-size:17px;display:flex;align-items:center;justify-content:center}
+.bm-emoji-btn:active{transform:scale(.88)}
+.bm-chatrow{display:flex;gap:8px;margin-top:10px}
+.bm-chatinput{flex:1;padding:10px 13px;border-radius:13px;background:var(--g1);border:1px solid var(--border);color:#fff;font-size:12.5px}
+.bm-chatlog{max-height:70px;overflow-y:auto;margin-top:8px;font-size:11.5px;color:var(--text2);display:flex;flex-direction:column;gap:3px}
+.bm-chatlog b{color:var(--gold)}
+.bm-result{text-align:center;padding:20px 10px}
+.bm-result-ico{font-size:52px;margin-bottom:8px}
+.bm-result-title{font-family:var(--ff-serif);font-size:24px;color:#fff}
+.bm-result-sub{font-size:12.5px;color:var(--text2);margin-top:6px}
+.bm-result-stats{display:flex;gap:10px;justify-content:center;margin:16px 0}
+.bm-fog-note{font-size:10.5px;color:var(--text3);text-align:center;margin-top:6px}
+
+/* ══ PICTURE PUZZLE ══ */
+.pz-wrap{max-width:520px;margin:0 auto}
+.pz-hero{text-align:center;padding:6px 0 14px}
+.pz-hero-title{font-family:var(--ff-serif);font-size:22px;color:#fff}
+.pz-hero-sub{font-size:11.5px;color:var(--text2);margin-top:4px;letter-spacing:.5px;text-transform:uppercase}
+.pz-photo-btn{width:100%;padding:16px;border-radius:16px;border:2px dashed var(--border2);background:var(--g1);color:var(--text2);font-weight:700;font-size:13.5px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
+.pz-photo-btn.has{border-style:solid;border-color:var(--green);color:#fff}
+.pz-photo-thumb{width:64px;height:64px;border-radius:12px;object-fit:cover;box-shadow:0 6px 16px rgba(0,0,0,.4)}
+.pz-sizegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:14px 0}
+.pz-sizecard{border-radius:14px;padding:12px 6px;border:1px solid var(--border);background:var(--g1);text-align:center;font-weight:800;font-size:13px;color:#fff}
+.pz-sizecard.sel{border-color:var(--accent2);background:rgba(168,85,247,.14);box-shadow:0 0 0 1px var(--accent2-glow)}
+.pz-sizecard .pzc-sub{font-size:9.5px;color:var(--text3);font-weight:600;margin-top:2px}
+.pz-custom-row{display:flex;align-items:center;gap:10px;margin:10px 0;justify-content:center}
+.pz-custom-row input{width:64px;padding:9px;border-radius:11px;background:var(--g1);border:1px solid var(--border);color:#fff;text-align:center;font-size:14px}
+.pz-startbtn{width:100%;padding:14px;border-radius:15px;background:linear-gradient(135deg,var(--accent2),var(--accent2-d));color:#fff;font-weight:800;font-size:14.5px;border:none;box-shadow:0 6px 20px var(--accent2-glow);margin-top:10px}
+.pz-startbtn:disabled{opacity:.4;pointer-events:none}
+.pz-countdown-wrap{display:flex;align-items:center;justify-content:center;min-height:260px}
+.pz-countdown-num{font-family:var(--ff-serif);font-size:88px;color:var(--accent2);text-shadow:0 0 40px var(--accent2-glow);animation:bmPulse .9s cubic-bezier(.34,1.56,.64,1)}
+.pz-hud{display:flex;justify-content:space-between;gap:8px;margin-bottom:9px;flex-wrap:wrap}
+.pz-hud-chip{font-size:10.5px;font-weight:700;padding:6px 10px;border-radius:20px;background:var(--g1);border:1px solid var(--border);color:var(--text2)}
+.pz-progress{height:7px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;margin-bottom:10px}
+.pz-progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent2),var(--gold));transition:width .4s cubic-bezier(.4,0,.2,1)}
+.pz-board{position:relative;display:grid;gap:2px;margin:0 auto;background:#000;border-radius:10px;overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.5);border:1px solid var(--border2);touch-action:none}
+.pz-slot{aspect-ratio:1;position:relative;background:rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.pz-slot.filled{background:#111}
+.pz-slot.target{box-shadow:inset 0 0 0 2px var(--accent2)}
+.pz-slot-coord{font-size:8.5px;color:var(--text3);font-weight:700;opacity:.5}
+.pz-slot-piece{position:absolute;inset:0;background-repeat:no-repeat}
+.pz-slot-piece.snap{animation:pzSnap .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pzSnap{0%{transform:scale(.6);opacity:0;filter:brightness(2)}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1;filter:brightness(1)}}
+.pz-glow{position:absolute;inset:0;box-shadow:inset 0 0 14px 4px rgba(255,201,74,.7);animation:pzGlowFade 1s ease-out forwards;pointer-events:none}
+@keyframes pzGlowFade{from{opacity:1}to{opacity:0}}
+.pz-tray-wrap{margin-top:12px}
+.pz-tray-label{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.pz-tray{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
+.pz-piece{width:52px;height:52px;flex-shrink:0;border-radius:10px;background-repeat:no-repeat;border:2px solid var(--border2);position:relative;box-shadow:0 4px 10px rgba(0,0,0,.4);transition:transform .15s}
+.pz-piece.sel{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-glow);transform:translateY(-4px)}
+.pz-piece.dragging{opacity:.35}
+.pz-piece.reject{animation:pzShake .4s ease}
+@keyframes pzShake{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+.pz-rotatebtn{position:absolute;bottom:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:var(--gold);color:#3a2600;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 3px 8px rgba(0,0,0,.4)}
+.pz-ghost{position:fixed;width:52px;height:52px;border-radius:10px;background-repeat:no-repeat;pointer-events:none;z-index:3600;box-shadow:0 10px 24px rgba(0,0,0,.5);border:2px solid var(--gold)}
+.pz-result{text-align:center;padding:12px 6px}
+.pz-result-img{width:100%;max-width:320px;border-radius:16px;margin:0 auto 14px;box-shadow:0 16px 44px rgba(0,0,0,.55);animation:pzReveal .8s cubic-bezier(.34,1.1,.64,1)}
+@keyframes pzReveal{0%{transform:scale(.6) rotate(-4deg);opacity:0;filter:blur(10px)}100%{transform:scale(1) rotate(0);opacity:1;filter:blur(0)}}
+.pz-result-title{font-family:var(--ff-serif);font-size:24px;color:#fff}
+.pz-result-sub{font-size:12.5px;color:var(--text2);margin-top:6px}
+.pz-confetti{position:fixed;inset:0;pointer-events:none;z-index:3700}
+.pz-confetti-piece{position:absolute;top:-20px;border-radius:2px}
+@keyframes pzFall{to{transform:translateY(110vh) rotate(600deg);opacity:0}}
+.pz-heart{position:fixed;pointer-events:none;z-index:3700;font-size:18px;animation:pzHeartUp 2.2s ease-out forwards}
+@keyframes pzHeartUp{0%{transform:translateY(0) scale(.6);opacity:1}100%{transform:translateY(-260px) scale(1.3);opacity:0}}
 </style>
 </head>
 <body>
@@ -786,6 +905,12 @@ const GAMES = [
   {id:'memory', title:'Memory Match', emoji:'🧠', badge:'', grad:'linear-gradient(135deg,#0d2a1a,#0d5c3a)',
     desc:'Flip cards together to find matching pairs — turns sync instantly between you two.',
     tags:['🧩 Classic','⏱ 5-10m','✨ 6 XP/pair']},
+  {id:'bomb', title:"Don't Touch The Bomb", emoji:'💣', badge:'new', grad:'linear-gradient(135deg,#1a0505,#6b0d1a)',
+    desc:'One of you sees the bombs, the other must cross the field blind — guide them with voice, chat & emoji.',
+    tags:['💣 Co-op','⏱ 3-8m','✨ 25 XP/win']},
+  {id:'puzzle', title:'Picture Puzzle', emoji:'🧩', badge:'new', grad:'linear-gradient(135deg,#1a0d2e,#4a0d5c)',
+    desc:'Pick a real photo from your phone — you each get half the pieces and must talk your way to the full picture.',
+    tags:['🧩 Co-op','⏱ 5-15m','✨ 30 XP/win']},
 ];
 
 /* ═══════════════════════════════════════════════════════
@@ -899,14 +1024,14 @@ const Hub = {
     const body = document.getElementById('goBody');
     body.className='gobody'; body.innerHTML='';
     Snd.click();
-    ({tod:TOD, ludo:Ludo, ttt:TTT, draw:Draw, memory:Memory})[gid].open(body);
+    ({tod:TOD, ludo:Ludo, ttt:TTT, draw:Draw, memory:Memory, bomb:Bomb, puzzle:Puzzle})[gid].open(body);
     GameVideo.startWatch(gid);
   },
   exitGame(){
     const gid=this.activeGameId;
     GameVideo.stop(true);
     GameVideo.stopWatch();
-    ({tod:TOD, ludo:Ludo, ttt:TTT, draw:Draw, memory:Memory})[gid]?.close?.();
+    ({tod:TOD, ludo:Ludo, ttt:TTT, draw:Draw, memory:Memory, bomb:Bomb, puzzle:Puzzle})[gid]?.close?.();
     document.getElementById('goverlay').classList.remove('open');
     this.activeGameId=null;
     setPresenceGame(null);
@@ -1866,6 +1991,682 @@ const Memory = {
 };
 
 /* ═══════════════════════════════════════════════════════
+   GAME 6 — DON'T TOUCH THE BOMB (Twin Hearts co-op)
+   Player A ("guide") sees the bomb field. Player B ("mover")
+   sees a clean grid and must cross it using only A's voice/
+   chat/emoji guidance (voice via the shared GameVideo call,
+   chat+emoji built in below). Roles swap every round.
+═══════════════════════════════════════════════════════ */
+const BM_DIFF = {
+  easy:   {label:'Easy',    size:8,  density:.13, time:90,  xp:15, coins:6},
+  medium: {label:'Medium',  size:10, density:.16, time:110, xp:20, coins:8},
+  hard:   {label:'Hard',    size:12, density:.19, time:135, xp:28, coins:11},
+  extreme:{label:'Extreme', size:13, density:.23, time:160, xp:38, coins:15, moving:true},
+};
+const BM_EMOJIS = ['⬆️','⬇️','⬅️','➡️','⚠️','✅','👍','😱','🎯','💕'];
+const Bomb = {
+  chan:null, state:null, timerTick:null, movingTick:null, sel:{difficulty:'easy',hint:false,fog:false},
+  _rewardedRound:0, _lastPing:null,
+
+  async open(body){
+    this.chan = new GameChannel('bomb');
+    let st = await this.chan.load();
+    if(!st || !st.phase) st = this.fresh();
+    this.state = st;
+    this.chan.listen(p=>{
+      if(p.type==='sync'){ this.state=p.state; this.render(); }
+      else if(p.type==='ping'){ this.showPing(p.idx); }
+      else if(p.type==='chat'){ this.state.chatLog=this.state.chatLog||[]; this.state.chatLog.push(p.msg); this.renderChatLog(); Snd.tap(); }
+    });
+    this.render();
+  },
+  close(){ if(this.chan) this.chan.close(); clearInterval(this.timerTick); clearInterval(this.movingTick); },
+  sync(){ this.chan.send({type:'sync',state:this.state}); this.chan.persist(this.state); },
+  fresh(){ return { phase:'lobby', difficulty:'easy', hintMode:false, fogMode:false, size:8, bombs:[], start:0, goal:63,
+    pos:0, moves:0, guiderRole:'user1', round:1, countdownAt:0, startedAt:0, timeLimit:90, result:null, explodedAt:null,
+    teamStreak:0, bestTimeMs:null, chatLog:[] }; },
+
+  isGuide(){ return this.state.guiderRole===ID.role; },
+  isMover(){ return !this.isGuide(); },
+
+  /* ── LOBBY ── */
+  pickDiff(d){ if(this.state.phase!=='lobby') return; this.sel.difficulty=d; Snd.tap(); this.render(); },
+  toggleHint(){ this.sel.hint=!this.sel.hint; Snd.tap(); this.render(); },
+  toggleFog(){ this.sel.fog=!this.sel.fog; Snd.tap(); this.render(); },
+  startRound(){
+    const cfg = BM_DIFF[this.sel.difficulty];
+    const size = cfg.size, total = size*size, start=0, goal=total-1;
+    const forbidden = new Set([start,goal, start+1,start+size, goal-1,goal-size]);
+    const bombs=[];
+    const need = Math.round(total*cfg.density);
+    let guard=0;
+    while(bombs.length<need && guard<total*6){
+      guard++;
+      const idx = Math.floor(Math.random()*total);
+      if(forbidden.has(idx) || bombs.includes(idx)) continue;
+      bombs.push(idx);
+    }
+    const prevGuider = this.state.guiderRole || 'user1';
+    this.state = {
+      ...this.fresh(),
+      phase:'countdown', difficulty:this.sel.difficulty, size, bombs, start, goal, pos:start,
+      hintMode:this.sel.hint, fogMode:this.sel.fog || !!cfg.moving,
+      guiderRole: this.state.round>1 ? (prevGuider==='user1'?'user2':'user1') : prevGuider,
+      round:this.state.round||1, countdownAt:Date.now()+3000, timeLimit:cfg.time,
+      teamStreak:this.state.teamStreak||0, bestTimeMs:this.state.bestTimeMs||null,
+    };
+    Snd.click();
+    this.sync(); this.render(); this.armCountdown();
+  },
+  armCountdown(){
+    clearInterval(this.timerTick);
+    this.timerTick = setInterval(()=>{
+      if(!this.state || this.state.phase!=='countdown') return;
+      const left = Math.ceil((this.state.countdownAt-Date.now())/1000);
+      const el=document.getElementById('bmCdNum'); if(el) el.textContent = left>0?left:'GO!';
+      if(left<=0){
+        clearInterval(this.timerTick);
+        if(this.isMover()){ this.state.phase='playing'; this.state.startedAt=Date.now(); this.sync(); }
+        setTimeout(()=>{ this.render(); this.armPlayTimer(); if(BM_DIFF[this.state.difficulty].moving) this.armMovingBombs(); },250);
+      }
+    },120);
+  },
+
+  /* ── PLAYING ── */
+  armPlayTimer(){
+    clearInterval(this.timerTick);
+    this.timerTick = setInterval(()=>{
+      if(!this.state || this.state.phase!=='playing') { clearInterval(this.timerTick); return; }
+      const elapsed=(Date.now()-this.state.startedAt)/1000;
+      const remain = Math.max(0, this.state.timeLimit-elapsed);
+      const fill=document.getElementById('bmTimerFill');
+      if(fill){ fill.style.width=(remain/this.state.timeLimit*100)+'%'; fill.classList.toggle('low', remain<15); }
+      const chip=document.getElementById('bmTimeChip'); if(chip) chip.textContent='⏱ '+Math.ceil(remain)+'s';
+      if(remain<=0 && this.isMover()){
+        this.state.phase='result'; this.state.result='timeout'; this.sync(); this.render();
+      }
+    },250);
+  },
+  armMovingBombs(){
+    clearInterval(this.movingTick);
+    if(!this.isGuide()) return; // bomb authority relocates them; other client just receives the sync
+    this.movingTick = setInterval(()=>{
+      if(!this.state || this.state.phase!=='playing') { clearInterval(this.movingTick); return; }
+      const size=this.state.size, total=size*size;
+      const taken = new Set([this.state.start,this.state.goal,this.state.pos,...this.state.bombs]);
+      const free=[]; for(let i=0;i<total;i++) if(!taken.has(i)) free.push(i);
+      if(!free.length || !this.state.bombs.length) return;
+      const bi = Math.floor(Math.random()*this.state.bombs.length);
+      this.state.bombs[bi] = free[Math.floor(Math.random()*free.length)];
+      this.sync(); this.render();
+    },7000);
+  },
+  adjacent(a,b){
+    const size=this.state.size; const ar=Math.floor(a/size),ac=a%size, br=Math.floor(b/size),bc=b%size;
+    return (ar===br && Math.abs(ac-bc)===1) || (ac===bc && Math.abs(ar-br)===1);
+  },
+  moveTo(idx){
+    if(this.state.phase!=='playing' || !this.isMover()) return;
+    if(!this.adjacent(this.state.pos, idx)) return;
+    this.state.moves++;
+    if(this.state.bombs.includes(idx)){
+      this.state.pos=idx; this.state.phase='result'; this.state.result='exploded'; this.state.explodedAt=idx;
+      this.state.teamStreak=0; this.sync(); this.render(); this.boom();
+      return;
+    }
+    this.state.pos=idx; Snd.tap();
+    if(idx===this.state.goal){
+      const ms = Date.now()-this.state.startedAt;
+      this.state.phase='result'; this.state.result='won'; this.state.finishMs=ms;
+      this.state.teamStreak=(this.state.teamStreak||0)+1;
+      if(!this.state.bestTimeMs || ms<this.state.bestTimeMs) this.state.bestTimeMs=ms;
+    }
+    this.sync(); this.render();
+  },
+  guidePing(idx){
+    if(this.state.phase!=='playing' || !this.isGuide()) return;
+    this.chan.send({type:'ping', idx, ts:Date.now()});
+    this.showPing(idx);
+    Snd.tap();
+  },
+  showPing(idx){
+    const cell=document.querySelector(`.bm-cell[data-i="${idx}"]`); if(!cell) return;
+    const p=document.createElement('div'); p.className='bm-ping'; p.textContent='📍';
+    p.addEventListener('animationend',()=>p.remove());
+    cell.appendChild(p);
+  },
+  boom(){
+    const board=document.getElementById('bmBoard'); if(board) board.classList.add('shake');
+    if(navigator.vibrate) navigator.vibrate([90,40,120]);
+    Snd.fail();
+    const wrap=document.createElement('div'); wrap.className='bm-particles'; document.body.appendChild(wrap);
+    const cell=document.querySelector('.bm-cell.exploded');
+    const r = cell ? cell.getBoundingClientRect() : {left:innerWidth/2,top:innerHeight/2,width:0,height:0};
+    for(let i=0;i<18;i++){
+      const p=document.createElement('div'); p.className='bm-particle';
+      const ang=Math.random()*Math.PI*2, dist=40+Math.random()*90;
+      p.style.left=(r.left+r.width/2)+'px'; p.style.top=(r.top+r.height/2)+'px';
+      p.style.background = Math.random()>.5 ? 'var(--red)' : '#ffb347';
+      p.animate([{transform:'translate(0,0)',opacity:1},{transform:`translate(${Math.cos(ang)*dist}px,${Math.sin(ang)*dist}px)`,opacity:0}],{duration:600+Math.random()*300,easing:'cubic-bezier(.2,.6,.3,1)'});
+      wrap.appendChild(p);
+    }
+    setTimeout(()=>wrap.remove(),1000);
+  },
+
+  /* ── CHAT ── */
+  sendChat(){
+    const input=document.getElementById('bmChatInput'); if(!input) return;
+    const text=input.value.trim(); if(!text) return;
+    const msg={who:ID.role,text,ts:Date.now()};
+    input.value='';
+    this.state.chatLog=this.state.chatLog||[]; this.state.chatLog.push(msg);
+    if(this.state.chatLog.length>20) this.state.chatLog=this.state.chatLog.slice(-20);
+    this.chan.send({type:'chat',msg}); this.chan.persist(this.state);
+    this.renderChatLog();
+  },
+  sendEmoji(e){
+    if(this.state.phase!=='playing') return;
+    const msg={who:ID.role,text:e,ts:Date.now()};
+    this.state.chatLog=this.state.chatLog||[]; this.state.chatLog.push(msg);
+    if(this.state.chatLog.length>20) this.state.chatLog=this.state.chatLog.slice(-20);
+    this.chan.send({type:'chat',msg}); this.chan.persist(this.state);
+    this.renderChatLog(); Snd.tap();
+  },
+  renderChatLog(){
+    const el=document.getElementById('bmChatLog'); if(!el) return;
+    const log=this.state.chatLog||[];
+    el.innerHTML = log.slice(-6).map(m=>`<div><b>${m.who===ID.role?esc(ID.myName):esc(ID.partnerName)}:</b> ${esc(m.text)}</div>`).join('');
+    el.scrollTop=el.scrollHeight;
+  },
+
+  /* ── ROUND FLOW ── */
+  nextRound(){ this.state.phase='lobby'; this.state.round=(this.state.round||1)+1; this.sync(); this.render(); },
+  changeDifficulty(){ this.state=this.fresh(); this.state.round=1; this.sync(); this.render(); },
+
+  maybeReward(){
+    if(this.state.phase!=='result' || this._rewardedRound===this.state.round) return;
+    this._rewardedRound=this.state.round;
+    const cfg=BM_DIFF[this.state.difficulty]||BM_DIFF.easy;
+    if(this.state.result==='won'){
+      const mine = this.isMover() ? cfg.xp : Math.round(cfg.xp*.65);
+      const coins = this.isMover() ? cfg.coins : Math.round(cfg.coins*.65);
+      GameCore.addXP(mine); GameCore.addCoins(coins); GameCore.addWin();
+      setTimeout(()=>showReward('💚','You made it across!',['+'+mine+' XP','+'+coins+' 🪙','🔥 '+this.state.teamStreak+' streak']),300);
+    } else {
+      Snd.fail();
+    }
+  },
+
+  render(){
+    const body=document.getElementById('goBody'); if(!body) return;
+    this.maybeReward();
+    const s=this.state;
+    if(s.phase==='lobby') return this.renderLobby(body);
+    if(s.phase==='countdown') return this.renderCountdown(body);
+    if(s.phase==='playing') return this.renderPlaying(body);
+    if(s.phase==='result') return this.renderResult(body);
+  },
+  renderLobby(body){
+    const s=this.state;
+    body.innerHTML = `
+      <div class="bm-wrap">
+        <div class="bm-hero">
+          <div class="bm-hero-title">💣 Don't Touch The Bomb</div>
+          <div class="bm-hero-sub">Everything Together</div>
+        </div>
+        <div class="bm-stats">
+          <div class="bm-stat"><div class="bs-val">${s.teamStreak||0}</div><div class="bs-lbl">Win Streak</div></div>
+          <div class="bm-stat"><div class="bs-val">${s.bestTimeMs?Math.round(s.bestTimeMs/1000)+'s':'—'}</div><div class="bs-lbl">Fastest</div></div>
+          <div class="bm-stat"><div class="bs-val">${s.round||1}</div><div class="bs-lbl">Round</div></div>
+        </div>
+        <div class="bm-diffgrid">
+          ${Object.entries(BM_DIFF).map(([k,c])=>`
+            <div class="bm-diffcard ${this.sel.difficulty===k?'sel':''}" onclick="Bomb.pickDiff('${k}')">
+              <div class="bdc-name">${c.label}</div>
+              <div class="bdc-meta">${c.size}×${c.size} · ${c.time}s${c.moving?' · moving bombs':''}</div>
+            </div>`).join('')}
+        </div>
+        <div class="bm-toggles">
+          <div class="bm-toggle ${this.sel.hint?'on':''}" onclick="Bomb.toggleHint()">💡 Hint Mode</div>
+          <div class="bm-toggle ${this.sel.fog?'on':''}" onclick="Bomb.toggleFog()">🌫 Fog Mode</div>
+        </div>
+        <div style="font-size:11.5px;color:var(--text2);text-align:center;line-height:1.6">
+          One of you (the <b>Guide</b>) sees the bomb field. The other (the <b>Mover</b>) crosses it blind —
+          use the 📹 video call, chat & emoji below to guide them tile by tile. Roles swap every round.
+        </div>
+        <button class="bm-startbtn" onclick="Bomb.startRound()">💣 Start Round</button>
+      </div>`;
+  },
+  renderCountdown(body){
+    const s=this.state;
+    const role = s.guiderRole===ID.role ? 'guide' : 'mover';
+    body.innerHTML = `
+      <div class="bm-wrap">
+        <div class="bm-role-banner ${role}">${role==='guide' ? '👁️ You are the GUIDE — you will see the bombs' : '🚶 You are the MOVER — cross the field blind!'}</div>
+        <div class="bm-countdown-wrap"><div class="bm-countdown-num" id="bmCdNum">3</div></div>
+      </div>`;
+    this.armCountdown();
+  },
+  renderPlaying(body){
+    const s=this.state, guide=this.isGuide(), size=s.size;
+    const cells=[];
+    for(let i=0;i<size*size;i++){
+      const isBomb = s.bombs.includes(i);
+      const isPos = s.pos===i;
+      const isStart = s.start===i, isGoal = s.goal===i;
+      let cls='bm-cell';
+      if(isStart) cls+=' start';
+      if(isGoal) cls+=' goal';
+      if(guide && isBomb) cls+=' bomb-visible';
+      if(!guide && s.explodedAt===i) cls+=' exploded';
+      if(!guide && s.fogMode){
+        const r1=Math.floor(i/size),c1=i%size, r2=Math.floor(s.pos/size),c2=s.pos%size;
+        const dist=Math.abs(r1-r2)+Math.abs(c1-c2);
+        if(dist>2 && !isGoal) cls+=' fogged';
+      }
+      if(!guide && s.hintMode && !isBomb){
+        const near = [i-1,i+1,i-size,i+size].some(n=> s.bombs.includes(n) && this.adjacent(i,n));
+        if(near) cls+=' danger-glow';
+      }
+      if(guide) cls+=' path'; else if(this.adjacent(s.pos,i) && s.phase==='playing') cls+=' path';
+      const token = isPos ? `<div class="bm-token">🧍</div>` : '';
+      const onclick = guide ? `Bomb.guidePing(${i})` : `Bomb.moveTo(${i})`;
+      cells.push(`<div class="${cls}" data-i="${i}" onclick="${onclick}">${isPos?token:(isGoal?'':'')}</div>`);
+    }
+    body.innerHTML = `
+      <div class="bm-wrap">
+        <div class="bm-role-banner ${guide?'guide':'mover'}">${guide?'👁️ Guide '+esc(ID.myName)+' partner across safely':'🚶 Tap an adjacent tile to move — follow the guidance!'}</div>
+        <div class="bm-hud">
+          <div class="bm-hud-chip" id="bmTimeChip">⏱ ${Math.ceil(s.timeLimit)}s</div>
+          <div class="bm-hud-chip">👣 ${s.moves||0} moves</div>
+          <div class="bm-hud-chip">${BM_DIFF[s.difficulty].label}</div>
+        </div>
+        <div class="bm-timerbar"><div class="bm-timerfill" id="bmTimerFill"></div></div>
+        <div class="bm-board" id="bmBoard" style="grid-template-columns:repeat(${size},1fr)">${cells.join('')}</div>
+        ${!guide && s.fogMode ? '<div class="bm-fog-note">🌫 Fog Mode: only nearby tiles are visible</div>' : ''}
+        ${guide ? `<div class="bm-guide-bar">${BM_EMOJIS.map(e=>`<div class="bm-emoji-btn" onclick="Bomb.sendEmoji('${e}')">${e}</div>`).join('')}</div>` : `<div class="bm-guide-bar">${BM_EMOJIS.slice(0,4).map(e=>`<div class="bm-emoji-btn" onclick="Bomb.sendEmoji('${e}')">${e}</div>`).join('')}</div>`}
+        <div class="bm-chatrow">
+          <input class="bm-chatinput" id="bmChatInput" placeholder="Type guidance…" onkeydown="if(event.key==='Enter')Bomb.sendChat()">
+          <button class="btn btn-accent" onclick="Bomb.sendChat()">➤</button>
+        </div>
+        <div class="bm-chatlog" id="bmChatLog"></div>
+      </div>`;
+    this.renderChatLog();
+    this.armPlayTimer();
+    if(BM_DIFF[s.difficulty].moving) this.armMovingBombs();
+  },
+  renderResult(body){
+    const s=this.state;
+    const won = s.result==='won';
+    const ico = won ? '🎉' : (s.result==='exploded' ? '💥' : '⏱️');
+    const title = won ? 'Made It Across!' : (s.result==='exploded' ? 'Boom! Round Over' : "Time's Up!");
+    const sub = won ? `Finished in ${(s.finishMs/1000).toFixed(1)}s with ${s.moves} moves` :
+      (s.result==='exploded' ? 'The mover hit a bomb — try again with clearer guidance!' : 'The field wasn\'t crossed in time.');
+    body.innerHTML = `
+      <div class="bm-wrap">
+        <div class="bm-result">
+          <div class="bm-result-ico">${ico}</div>
+          <div class="bm-result-title">${title}</div>
+          <div class="bm-result-sub">${sub}</div>
+          <div class="bm-result-stats">
+            <div class="bm-stat"><div class="bs-val">${s.teamStreak||0}</div><div class="bs-lbl">Streak</div></div>
+            <div class="bm-stat"><div class="bs-val">${s.bestTimeMs?Math.round(s.bestTimeMs/1000)+'s':'—'}</div><div class="bs-lbl">Best</div></div>
+          </div>
+          <button class="btn btn-accent" style="width:100%;justify-content:center;padding:13px" onclick="Bomb.nextRound()">🔄 Next Round — Swap Roles</button>
+          <button class="btn" style="width:100%;justify-content:center;padding:12px;margin-top:8px;background:var(--g1);border:1px solid var(--border)" onclick="Bomb.changeDifficulty()">⚙️ Change Difficulty</button>
+        </div>
+      </div>`;
+  }
+};
+
+/* ═══════════════════════════════════════════════════════
+   GAME 7 — PICTURE PUZZLE (Twin Hearts co-op)
+   A real photo is picked from the device (camera/gallery —
+   never a stock/placeholder image). It's sliced into an N×N
+   grid; each partner privately owns roughly half the pieces
+   and only sees their own tray. The shared board reveals a
+   cell the moment either partner drops the correct piece in
+   the correct orientation, so the full picture is built up
+   together. Live drag ghosts + a chat/emoji strip (voice is
+   free via the shared 📹 call) carry the communication.
+═══════════════════════════════════════════════════════ */
+const PZ_SIZES = [2,3,4,5,6];
+const Puzzle = {
+  chan:null, state:null, sel:{gridN:3,imageUrl:null,imageName:''},
+  held:null, dragGhost:null, _rewardedRound:0, timerTick:null,
+
+  async open(body){
+    this.chan = new GameChannel('puzzle');
+    let st = await this.chan.load();
+    if(!st || !st.phase) st = this.fresh();
+    this.state = st;
+    this.chan.listen(p=>{
+      if(p.type==='sync'){ this.state=p.state; this.render(); }
+      else if(p.type==='drag'){ this.showGhost(p); }
+      else if(p.type==='dragend'){ this.clearGhost(); }
+      else if(p.type==='chat'){ this.state.chatLog=this.state.chatLog||[]; this.state.chatLog.push(p.msg); this.renderChatLog(); Snd.tap(); }
+    });
+    this.render();
+  },
+  close(){ if(this.chan) this.chan.close(); clearInterval(this.timerTick); this.clearGhost(); },
+  sync(){ this.chan.send({type:'sync',state:this.state}); this.chan.persist(this.state); },
+  fresh(){ return { phase:'setup', gridN:3, imageUrl:null, pieces:[], round:1, countdownAt:0, startedAt:0, moves:0,
+    teamStreak:0, bestMs:null, chatLog:[] }; },
+
+  /* ── SETUP ── */
+  pickSize(n){ if(this.state.phase!=='setup') return; this.sel.gridN=n; Snd.tap(); this.render(); },
+  setCustomSize(v){ const n=Math.max(2,Math.min(8,parseInt(v)||3)); this.sel.gridN=n; this.render(); },
+  triggerPhotoPick(){
+    const inp=document.getElementById('pzFileInput'); if(inp) inp.click();
+  },
+  async onPhotoPicked(input){
+    const file = input.files && input.files[0]; if(!file) return;
+    input.value='';
+    if(!file.type.startsWith('image/')){ toast('⚠️ Please choose a photo'); return; }
+    toast('📤 Uploading your photo…', 4000);
+    try{
+      const form = new FormData();
+      form.append('file', file, file.name || 'puzzle.jpg');
+      form.append('coupleId', ID.coupleId);
+      const r = await fetch(API+'/api/media/upload', { method:'POST', body:form });
+      const data = await r.json().catch(()=>({}));
+      if(!r.ok || !data.url) throw new Error(data.error||'Upload failed');
+      this.sel.imageUrl = data.url; this.sel.imageName = file.name||'Your photo';
+      Snd.success(); toast('✅ Photo ready!');
+      this.render();
+    }catch(e){ toast('⚠️ Upload failed — try again'); }
+  },
+  startRound(){
+    if(!this.sel.imageUrl){ toast('📷 Choose a real photo first'); return; }
+    const n=this.sel.gridN, total=n*n;
+    const ids=[...Array(total).keys()];
+    for(let i=ids.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [ids[i],ids[j]]=[ids[j],ids[i]]; }
+    const pieces = ids.map((pid,i)=>({
+      id:pid, row:Math.floor(pid/n), col:pid%n,
+      rot:[0,90,180,270][Math.floor(Math.random()*4)],
+      owner: i%2===0 ? 'user1':'user2', placed:false
+    }));
+    this.state = { ...this.fresh(), phase:'countdown', gridN:n, imageUrl:this.sel.imageUrl, pieces,
+      round:this.state.round||1, countdownAt:Date.now()+3000,
+      teamStreak:this.state.teamStreak||0, bestMs:this.state.bestMs||null };
+    Snd.click(); this.sync(); this.render(); this.armCountdown();
+  },
+  armCountdown(){
+    clearInterval(this.timerTick);
+    this.timerTick = setInterval(()=>{
+      if(!this.state || this.state.phase!=='countdown') return;
+      const left = Math.ceil((this.state.countdownAt-Date.now())/1000);
+      const el=document.getElementById('pzCdNum'); if(el) el.textContent = left>0?left:'GO!';
+      if(left<=0){
+        clearInterval(this.timerTick);
+        if(ID.role==='user1'){ this.state.phase='playing'; this.state.startedAt=Date.now(); this.sync(); }
+        setTimeout(()=>{ this.render(); this.armPlayTimer(); },250);
+      }
+    },120);
+  },
+  armPlayTimer(){
+    clearInterval(this.timerTick);
+    this.timerTick = setInterval(()=>{
+      if(!this.state || this.state.phase!=='playing'){ clearInterval(this.timerTick); return; }
+      const chip=document.getElementById('pzTimeChip');
+      if(chip){ const el=Math.floor((Date.now()-this.state.startedAt)/1000); chip.textContent='⏱ '+String(Math.floor(el/60)).padStart(2,'0')+':'+String(el%60).padStart(2,'0'); }
+    },1000);
+  },
+
+  /* ── PLACEMENT ── */
+  myPieces(){ return this.state.pieces.filter(p=>p.owner===ID.role && !p.placed); },
+  progress(){ const t=this.state.pieces.length; const p=this.state.pieces.filter(x=>x.placed).length; return {p,t}; },
+  select(pid){
+    if(this.state.phase!=='playing') return;
+    this.held = this.held===pid ? null : pid;
+    Snd.tap(); this.render();
+  },
+  rotate(pid){
+    const piece=this.state.pieces.find(x=>x.id===pid); if(!piece || piece.owner!==ID.role || piece.placed) return;
+    piece.rot=(piece.rot+90)%360; Snd.tap(); this.sync(); this.render();
+  },
+  tryPlace(pid, targetRow, targetCol){
+    const piece=this.state.pieces.find(x=>x.id===pid);
+    if(!piece || piece.owner!==ID.role || piece.placed) return false;
+    const slotTaken = this.state.pieces.some(x=>x.placed && x.row===targetRow && x.col===targetCol);
+    this.state.moves++;
+    if(!slotTaken && piece.row===targetRow && piece.col===targetCol && piece.rot===0){
+      piece.placed=true; Snd.success();
+      this.held=null;
+      this.sync(); this.render();
+      const cell=document.querySelector(`.pz-slot[data-r="${targetRow}"][data-c="${targetCol}"]`);
+      if(cell){ const g=document.createElement('div'); g.className='pz-glow'; cell.appendChild(g); setTimeout(()=>g.remove(),1000); }
+      this.checkComplete();
+      return true;
+    }
+    Snd.fail();
+    const el=document.querySelector(`.pz-piece[data-pid="${pid}"]`); if(el){ el.classList.add('reject'); setTimeout(()=>el.classList.remove('reject'),400); }
+    this.sync(); this.render();
+    return false;
+  },
+  onSlotTap(row,col){
+    if(this.held==null) return;
+    this.tryPlace(this.held, row, col);
+  },
+
+  /* ── live pointer drag ── */
+  onPieceDown(e,pid){
+    if(this.state.phase!=='playing') return;
+    const piece=this.state.pieces.find(x=>x.id===pid); if(!piece || piece.owner!==ID.role || piece.placed) return;
+    e.preventDefault();
+    this.held=pid; this.render();
+    const move=(ev)=>{
+      const t=ev.touches?ev.touches[0]:ev;
+      this.chan.send({type:'drag', pid, x:t.clientX, y:t.clientY, imageUrl:this.state.imageUrl, gridN:this.state.gridN, row:piece.row, col:piece.col, rot:piece.rot});
+      this._ghostSelf(t.clientX,t.clientY,piece);
+    };
+    const up=(ev)=>{
+      window.removeEventListener('mousemove',move); window.removeEventListener('mouseup',up);
+      window.removeEventListener('touchmove',move); window.removeEventListener('touchend',up);
+      this._clearGhostSelf();
+      this.chan.send({type:'dragend'});
+      const t=ev.changedTouches?ev.changedTouches[0]:ev;
+      const el=document.elementFromPoint(t.clientX,t.clientY);
+      const slot = el && el.closest ? el.closest('.pz-slot') : null;
+      if(slot) this.tryPlace(pid, +slot.dataset.r, +slot.dataset.c);
+    };
+    window.addEventListener('mousemove',move); window.addEventListener('mouseup',up);
+    window.addEventListener('touchmove',move,{passive:false}); window.addEventListener('touchend',up);
+  },
+  _ghostSelf(x,y,piece){
+    let g=document.getElementById('pzSelfGhost');
+    if(!g){ g=document.createElement('div'); g.id='pzSelfGhost'; g.className='pz-ghost'; document.body.appendChild(g); }
+    const n=this.state.gridN;
+    g.style.backgroundImage=`url('${this.state.imageUrl}')`;
+    g.style.backgroundSize=`${n*100}% ${n*100}%`;
+    g.style.backgroundPosition=`${piece.col/(n-1||1)*100}% ${piece.row/(n-1||1)*100}%`;
+    g.style.transform=`rotate(${piece.rot}deg)`;
+    g.style.left=(x-26)+'px'; g.style.top=(y-26)+'px';
+  },
+  _clearGhostSelf(){ const g=document.getElementById('pzSelfGhost'); if(g) g.remove(); },
+  showGhost(p){
+    let g=document.getElementById('pzPartnerGhost');
+    if(!g){ g=document.createElement('div'); g.id='pzPartnerGhost'; g.className='pz-ghost'; g.style.borderColor='var(--accent2)'; document.body.appendChild(g); }
+    const n=p.gridN;
+    g.style.backgroundImage=`url('${p.imageUrl}')`;
+    g.style.backgroundSize=`${n*100}% ${n*100}%`;
+    g.style.backgroundPosition=`${p.col/(n-1||1)*100}% ${p.row/(n-1||1)*100}%`;
+    g.style.transform=`rotate(${p.rot}deg)`;
+    g.style.left=(p.x-26)+'px'; g.style.top=(p.y-26)+'px';
+  },
+  clearGhost(){ const g=document.getElementById('pzPartnerGhost'); if(g) g.remove(); },
+
+  checkComplete(){
+    if(this.state.pieces.every(p=>p.placed)){
+      const ms = Date.now()-this.state.startedAt;
+      this.state.phase='result'; this.state.finishMs=ms;
+      this.state.teamStreak=(this.state.teamStreak||0)+1;
+      if(!this.state.bestMs || ms<this.state.bestMs) this.state.bestMs=ms;
+      this.sync(); this.render();
+    }
+  },
+
+  /* ── chat ── */
+  sendChat(){
+    const input=document.getElementById('pzChatInput'); if(!input) return;
+    const text=input.value.trim(); if(!text) return;
+    input.value='';
+    const msg={who:ID.role,text,ts:Date.now()};
+    this.state.chatLog=this.state.chatLog||[]; this.state.chatLog.push(msg);
+    if(this.state.chatLog.length>20) this.state.chatLog=this.state.chatLog.slice(-20);
+    this.chan.send({type:'chat',msg}); this.chan.persist(this.state);
+    this.renderChatLog();
+  },
+  sendEmoji(e){
+    const msg={who:ID.role,text:e,ts:Date.now()};
+    this.state.chatLog=this.state.chatLog||[]; this.state.chatLog.push(msg);
+    if(this.state.chatLog.length>20) this.state.chatLog=this.state.chatLog.slice(-20);
+    this.chan.send({type:'chat',msg}); this.chan.persist(this.state);
+    this.renderChatLog(); Snd.tap();
+  },
+  renderChatLog(){
+    const el=document.getElementById('pzChatLog'); if(!el) return;
+    const log=this.state.chatLog||[];
+    el.innerHTML = log.slice(-6).map(m=>`<div><b>${m.who===ID.role?esc(ID.myName):esc(ID.partnerName)}:</b> ${esc(m.text)}</div>`).join('');
+    el.scrollTop=el.scrollHeight;
+  },
+
+  /* ── celebration ── */
+  celebrate(){
+    const wrap=document.createElement('div'); wrap.className='pz-confetti'; document.body.appendChild(wrap);
+    const colors=['#f87171','#ffc94a','#a855f7','#34d399','#60a5fa'];
+    for(let i=0;i<60;i++){
+      const c=document.createElement('div'); c.className='pz-confetti-piece';
+      c.style.left=Math.random()*100+'vw';
+      c.style.width=c.style.height=(5+Math.random()*6)+'px';
+      c.style.background=colors[i%colors.length];
+      c.style.animation=`pzFall ${1.6+Math.random()*1.4}s ease-in ${Math.random()*0.5}s forwards`;
+      wrap.appendChild(c);
+    }
+    for(let i=0;i<10;i++){
+      setTimeout(()=>{
+        const h=document.createElement('div'); h.className='pz-heart'; h.textContent='💕';
+        h.style.left=(30+Math.random()*40)+'vw'; h.style.top='70vh';
+        document.body.appendChild(h); setTimeout(()=>h.remove(),2300);
+      }, i*120);
+    }
+    setTimeout(()=>wrap.remove(),3200);
+  },
+
+  /* ── round flow ── */
+  nextRound(){ this.state=this.fresh(); this.state.teamStreak=this._carryStreak||0; this.sync(); this.render(); },
+  changePhoto(){ this.sel.imageUrl=null; this.sel.imageName=''; this.state=this.fresh(); this.sync(); this.render(); },
+
+  maybeReward(){
+    if(this.state.phase!=='result' || this._rewardedRound===this.state.round) return;
+    this._rewardedRound=this.state.round; this._carryStreak=this.state.teamStreak;
+    const owned = this.state.pieces.filter(p=>p.owner===ID.role).length;
+    const xp = 15+owned*2, coins=6+Math.round(owned*0.8);
+    GameCore.addXP(xp); GameCore.addCoins(coins); GameCore.addWin();
+    setTimeout(()=>{ showReward('🧩','Puzzle Complete!',['+'+xp+' XP','+'+coins+' 🪙','🔥 '+this.state.teamStreak+' streak']); this.celebrate(); },300);
+  },
+
+  render(){
+    const body=document.getElementById('goBody'); if(!body) return;
+    this.maybeReward();
+    const s=this.state;
+    if(s.phase==='setup') return this.renderSetup(body);
+    if(s.phase==='countdown') return this.renderCountdown(body);
+    if(s.phase==='playing') return this.renderPlaying(body);
+    if(s.phase==='result') return this.renderResult(body);
+  },
+  renderSetup(body){
+    const sel=this.sel;
+    body.innerHTML = `
+      <div class="pz-wrap">
+        <div class="pz-hero">
+          <div class="pz-hero-title">🧩 Picture Puzzle</div>
+          <div class="pz-hero-sub">Everything Together</div>
+        </div>
+        <input type="file" id="pzFileInput" accept="image/*" style="display:none" onchange="Puzzle.onPhotoPicked(this)">
+        <div class="pz-photo-btn ${sel.imageUrl?'has':''}" onclick="Puzzle.triggerPhotoPick()">
+          ${sel.imageUrl ? `<img class="pz-photo-thumb" src="${sel.imageUrl}"><div>✅ ${esc(sel.imageName)} — tap to change</div>` : `<div style="font-size:30px">📷</div><div>Choose a real photo from your phone</div><div style="font-size:10px;color:var(--text3)">Camera or gallery — no stock images</div>`}
+        </div>
+        <div class="pz-sizegrid">
+          ${PZ_SIZES.map(n=>`<div class="pz-sizecard ${sel.gridN===n?'sel':''}" onclick="Puzzle.pickSize(${n})">${n}×${n}<div class="pzc-sub">${n*n} pieces</div></div>`).join('')}
+          <div class="pz-sizecard ${!PZ_SIZES.includes(sel.gridN)?'sel':''}" onclick="Puzzle.pickSize(7)">Custom<div class="pzc-sub">${!PZ_SIZES.includes(sel.gridN)?sel.gridN+'×'+sel.gridN:'2-8'}</div></div>
+        </div>
+        ${!PZ_SIZES.includes(sel.gridN) ? `<div class="pz-custom-row"><input type="number" min="2" max="8" value="${sel.gridN}" oninput="Puzzle.setCustomSize(this.value)"><span style="font-size:11px;color:var(--text2)">pieces per side (2-8)</span></div>` : ''}
+        <div style="font-size:11.5px;color:var(--text2);text-align:center;line-height:1.6">
+          You'll each get about half the pieces in your own tray — neither of you sees the full picture.
+          Talk it through (📹 call, chat & emoji) to place every piece correctly.
+        </div>
+        <button class="pz-startbtn" ${!sel.imageUrl?'disabled':''} onclick="Puzzle.startRound()">🧩 Start Puzzle</button>
+      </div>`;
+  },
+  renderCountdown(body){
+    body.innerHTML = `<div class="pz-wrap"><div class="pz-countdown-wrap"><div class="pz-countdown-num" id="pzCdNum">3</div></div></div>`;
+    this.armCountdown();
+  },
+  renderPlaying(body){
+    const s=this.state, n=s.gridN;
+    const {p:placedCount,t:total} = this.progress();
+    const myPieces = this.myPieces();
+    const partnerLeft = s.pieces.filter(x=>x.owner!==ID.role && !x.placed).length;
+    let slots='';
+    for(let r=0;r<n;r++) for(let c=0;c<n;c++){
+      const piece = s.pieces.find(x=>x.row===r && x.col===c && x.placed);
+      const isTarget = this.held!=null && !piece;
+      slots += `<div class="pz-slot ${piece?'filled':''} ${isTarget?'target':''}" data-r="${r}" data-c="${c}" onclick="Puzzle.onSlotTap(${r},${c})">
+        ${piece ? `<div class="pz-slot-piece snap" style="background-image:url('${s.imageUrl}');background-size:${n*100}% ${n*100}%;background-position:${c/(n-1||1)*100}% ${r/(n-1||1)*100}%"></div>` : `<span class="pz-slot-coord">${r+1},${c+1}</span>`}
+      </div>`;
+    }
+    body.innerHTML = `
+      <div class="pz-wrap">
+        <div class="pz-hud">
+          <div class="pz-hud-chip" id="pzTimeChip">⏱ 00:00</div>
+          <div class="pz-hud-chip">👣 ${s.moves||0} moves</div>
+          <div class="pz-hud-chip">${placedCount}/${total} placed</div>
+          <div class="pz-hud-chip">💗 partner has ${partnerLeft} left</div>
+        </div>
+        <div class="pz-progress"><div class="pz-progress-fill" style="width:${total?Math.round(placedCount/total*100):0}%"></div></div>
+        <div class="pz-board" style="grid-template-columns:repeat(${n},1fr)">${slots}</div>
+        <div class="pz-tray-wrap">
+          <div class="pz-tray-label"><span>🧩 Your pieces (${myPieces.length})</span>${this.held!=null?'<span style="color:var(--gold)">Tap a board slot to place</span>':'<span>Tap a piece, then a slot</span>'}</div>
+          <div class="pz-tray">
+            ${myPieces.map(p=>`
+              <div class="pz-piece ${this.held===p.id?'sel':''}" data-pid="${p.id}"
+                   style="background-image:url('${s.imageUrl}');background-size:${n*100}% ${n*100}%;background-position:${p.col/(n-1||1)*100}% ${p.row/(n-1||1)*100}%;transform:rotate(${p.rot}deg)"
+                   onclick="Puzzle.select(${p.id})" onmousedown="Puzzle.onPieceDown(event,${p.id})" ontouchstart="Puzzle.onPieceDown(event,${p.id})">
+                ${this.held===p.id?`<div class="pz-rotatebtn" onclick="event.stopPropagation();Puzzle.rotate(${p.id})">↻</div>`:''}
+              </div>`).join('') || '<div style="font-size:11px;color:var(--text3);padding:10px">All your pieces are placed 🎉 — help guide your partner!</div>'}
+          </div>
+        </div>
+        <div class="bm-guide-bar">${['⬆️','⬇️','⬅️','➡️','↻','✅','👍','🎯'].map(e=>`<div class="bm-emoji-btn" onclick="Puzzle.sendEmoji('${e}')">${e}</div>`).join('')}</div>
+        <div class="bm-chatrow">
+          <input class="bm-chatinput" id="pzChatInput" placeholder="Describe where a piece goes…" onkeydown="if(event.key==='Enter')Puzzle.sendChat()">
+          <button class="btn btn-accent" onclick="Puzzle.sendChat()">➤</button>
+        </div>
+        <div class="bm-chatlog" id="pzChatLog"></div>
+      </div>`;
+    this.renderChatLog();
+    this.armPlayTimer();
+  },
+  renderResult(body){
+    const s=this.state;
+    body.innerHTML = `
+      <div class="pz-wrap">
+        <div class="pz-result">
+          <img class="pz-result-img" src="${s.imageUrl}">
+          <div class="pz-result-title">🎉 Puzzle Complete!</div>
+          <div class="pz-result-sub">Finished in ${Math.floor(s.finishMs/1000/60)}:${String(Math.floor(s.finishMs/1000)%60).padStart(2,'0')} with ${s.moves} moves</div>
+          <div class="bm-result-stats">
+            <div class="bm-stat"><div class="bs-val">${s.teamStreak||0}</div><div class="bs-lbl">Streak</div></div>
+            <div class="bm-stat"><div class="bs-val">${s.bestMs?Math.floor(s.bestMs/1000)+'s':'—'}</div><div class="bs-lbl">Best</div></div>
+          </div>
+          <button class="btn btn-accent" style="width:100%;justify-content:center;padding:13px" onclick="Puzzle.nextRound()">🔄 New Puzzle</button>
+          <button class="btn" style="width:100%;justify-content:center;padding:12px;margin-top:8px;background:var(--g1);border:1px solid var(--border)" onclick="Puzzle.changePhoto()">📷 Change Photo</button>
+        </div>
+      </div>`;
+  }
+};
+
+/* ═══════════════════════════════════════════════════════
    EXPOSE GLOBALS
 ═══════════════════════════════════════════════════════ */
 window.GameCore = GameCore;
@@ -1875,7 +2676,7 @@ window.GAMES = GAMES;
 window.Snd = Snd; window.Hub = Hub; window.ID = ID;
 window.toast = toast; window.showReward = showReward; window.closeReward = closeReward;
 window.esc = esc; window.rand = rand; window.uid = uid; window.todayStr = todayStr;
-window.TTT = TTT; window.Ludo = Ludo; window.TOD = TOD; window.Draw = Draw; window.Memory = Memory;
+window.TTT = TTT; window.Ludo = Ludo; window.TOD = TOD; window.Draw = Draw; window.Memory = Memory; window.Bomb = Bomb; window.Puzzle = Puzzle;
 
 Hub.init();
 </script>
