@@ -434,12 +434,13 @@ body.native-auth-only #authModal .modal-close{display:none}
     <div id="phoneSignupView">
       <div class="modal-headline">Sign up with your phone 📱</div>
       <div id="phoneSignupErr" class="auth-err"></div>
-      <div class="field"><label>Phone Number</label><input type="tel" id="phoneSignupPhone" placeholder="+14155551234" autocomplete="tel"></div>
+      <div class="field"><label>Phone Number</label><div class="phone-input-row"><span class="phone-cc" id="phoneSignupCC">+1</span><input type="tel" inputmode="numeric" id="phoneSignupPhone" placeholder="7077745442" autocomplete="tel" maxlength="10"></div></div>
       <div class="field"><label>Your Name</label><input type="text" id="phoneSignupName" placeholder="Your name" autocomplete="off"></div>
       <div class="field"><label>Password (min 6 chars)</label><input type="password" id="phoneSignupPassword" placeholder="Create a password"></div>
       <button class="auth-btn" id="phoneSignupBtn" onclick="doPhoneSignup()">Send Verification Code ✨</button>
       <div class="auth-divider">Already have an account?</div>
       <button class="auth-btn-alt" onclick="showPhoneView('phoneLoginView')">Sign In →</button>
+      <div class="auth-divider"><a href="#" onclick="showPhoneView('emailSignupView');return false;" style="color:inherit">Use email instead</a></div>
     </div>
 
     <div id="phoneOtpView">
@@ -453,11 +454,42 @@ body.native-auth-only #authModal .modal-close{display:none}
     <div id="phoneLoginView">
       <div class="modal-headline">Sign in with your phone 📱</div>
       <div id="phoneLoginErr" class="auth-err"></div>
-      <div class="field"><label>Phone Number</label><input type="tel" id="phoneLoginPhone" placeholder="+14155551234" autocomplete="tel"></div>
+      <div class="field"><label>Phone Number</label><div class="phone-input-row"><span class="phone-cc" id="phoneLoginCC">+1</span><input type="tel" inputmode="numeric" id="phoneLoginPhone" placeholder="7077745442" autocomplete="tel" maxlength="10"></div></div>
       <div class="field"><label>Password</label><input type="password" id="phoneLoginPassword" placeholder="Your password"></div>
       <button class="auth-btn" id="phoneLoginBtn" onclick="doPhoneLogin()">Sign In 💕</button>
       <div class="auth-divider">Don't have an account?</div>
       <button class="auth-btn-alt" onclick="showPhoneView('phoneSignupView')">Sign Up →</button>
+      <div class="auth-divider"><a href="#" onclick="showPhoneView('emailLoginView');return false;" style="color:inherit">Use email instead</a></div>
+    </div>
+
+    <div id="emailSignupView">
+      <div class="modal-headline">Sign up with email ✉️</div>
+      <div id="emailSignupErr" class="auth-err"></div>
+      <div class="field"><label>Email</label><input type="email" id="emailSignupEmail" placeholder="you@example.com" autocomplete="email"></div>
+      <div class="field"><label>Your Name</label><input type="text" id="emailSignupName" placeholder="Your name" autocomplete="off"></div>
+      <div class="field"><label>Password (min 6 chars)</label><input type="password" id="emailSignupPassword" placeholder="Create a password"></div>
+      <button class="auth-btn" id="emailSignupBtn" onclick="doEmailSignup()">Send Verification Link ✨</button>
+      <div class="auth-divider">Already have an account?</div>
+      <button class="auth-btn-alt" onclick="showPhoneView('emailLoginView')">Sign In →</button>
+      <div class="auth-divider"><a href="#" onclick="showPhoneView('phoneSignupView');return false;" style="color:inherit">Use phone instead</a></div>
+    </div>
+
+    <div id="emailSentView">
+      <div class="modal-headline">Check your inbox 💌</div>
+      <p style="font-size:14px;opacity:.8;text-align:center">We sent a verification link to your email. Open it to finish signing up.</p>
+      <div class="auth-divider"><a href="#" onclick="doEmailResend();return false;" style="color:inherit">Resend link</a></div>
+    </div>
+
+    <div id="emailLoginView">
+      <div class="modal-headline">Sign in with email ✉️</div>
+      <div id="emailLoginErr" class="auth-err"></div>
+      <div class="field"><label>Email</label><input type="email" id="emailLoginEmail" placeholder="you@example.com" autocomplete="email"></div>
+      <div class="field"><label>Password</label><input type="password" id="emailLoginPassword" placeholder="Your password"></div>
+      <button class="auth-btn" id="emailLoginBtn" onclick="doEmailLogin()">Sign In 💕</button>
+      <div class="auth-divider"><a href="#" onclick="doEmailForgotPassword();return false;" style="color:inherit">Forgot password?</a></div>
+      <div class="auth-divider">Don't have an account?</div>
+      <button class="auth-btn-alt" onclick="showPhoneView('emailSignupView')">Sign Up →</button>
+      <div class="auth-divider"><a href="#" onclick="showPhoneView('phoneLoginView');return false;" style="color:inherit">Use phone instead</a></div>
     </div>
 
     <div id="partnerConnectView">

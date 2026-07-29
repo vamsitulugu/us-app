@@ -9,6 +9,9 @@ const authRoutes  = require('./routes/auth');
 // couple-code signup/login/pairing keeps working untouched until the
 // frontend cutover (Phase 3) and cleanup (Phase 4).
 const authPhoneRoutes = require('./routes/auth-phone');
+// Email-based auth — alternate login + password recovery method,
+// same `users` table/JWT as phone auth (see routes/auth-email.js).
+const authEmailRoutes = require('./routes/auth-email');
 const dataRoutes  = require('./routes/data');
 const aiRoutes    = require('./routes/ai');
 const mediaRoutes = require('./routes/media');
@@ -134,6 +137,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 app.use('/api/', apiLimiter);
 app.use('/api/auth',  authLimiter, authRoutes);
 app.use('/api/auth-phone', authLimiter, authPhoneRoutes);
+app.use('/api/auth-email', authLimiter, authEmailRoutes);
 app.use('/api/data',  dataRoutes);
 app.use('/api/ai',    aiLimiter, aiRoutes);
 app.use('/api/media', mediaRoutes);
