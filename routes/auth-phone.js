@@ -12,6 +12,7 @@ const supabase = require('../middleware/supabase');
 const { requireAuth } = require('../middleware/requireAuth');
 const { signAccessToken, generateRefreshToken, hashRefreshToken, REFRESH_TTL_DAYS } = require('../utils/jwt');
 const { OTP_TTL_MINUTES, MAX_ATTEMPTS, generateOtp, hashOtp, verifyOtp, sendOtpSms } = require('../utils/otp');
+const { saveUserPushSubscription, saveUserFcmToken, notifyUser } = require('../utils/push');
 
 const router = express.Router();
 
@@ -243,6 +244,35 @@ router.get('/me', requireAuth, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════
+//  Per-user push registration (Phase 2)
+//  Needed so an invite/accept/decline notification can reach
+//  someone before they have a couple_id — see utils/push.js.
+// ═══════════════════════════════════════════════════════
+
+// ── GET /api/auth-phone/push/vapidkey ──────────────────
+router.get('/push/vapidkey', (req, res) => {
+  res.json({ publicKey: process.env.VAPID_PUBLIC_KEY || '' });
+});
+
+// ── POST /api/auth-phone/push/subscribe { subscription } ─
+router.post('/push/subscribe', requireAuth, async (req, res) => {
+  const { subscription } = req.body;
+  if (!subscription) return res.status(400).json({ error: 'subscription required' });
+  const { error } = await saveUserPushSubscription(req.user.id, subscription);
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ ok: true });
+});
+
+// ── POST /api/auth-phone/fcm/register { token } ────────
+router.post('/fcm/register', requireAuth, async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ error: 'token required' });
+  const { error } = await saveUserFcmToken(req.user.id, token);
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ ok: true });
+});
+
+// ═══════════════════════════════════════════════════════
 //  Partner search / invite / accept / decline
 //  (replaces the Couple Code "connect code" flow)
 // ═══════════════════════════════════════════════════════
@@ -287,6 +317,13 @@ router.post('/partner/invite', requireAuth, async (req, res) => {
       status: 'pending'
     }).select().single();
     if (error) return res.status(500).json({ error: 'Failed to send invitation: ' + error.message });
+
+    const { data: me } = await supabase.from('users').select('name').eq('id', req.user.id).maybeSingle();
+    notifyUser(target.id, {
+      title: 'Partner request 💌',
+      body: `${(me && me.name) || 'Someone'} wants to connect with you on Twin Hearts.`,
+      tag: 'partner-invite'
+    });
 
     return res.json({ ok: true, invitation: invite });
   } catch (err) {
@@ -348,6 +385,12 @@ router.post('/partner/invitations/:id/accept', requireAuth, async (req, res) => 
     await supabase.from('partner_invitations').update({ status: 'cancelled', updated_at: new Date().toISOString() })
       .in('target_id', [requester.id, me.id]).eq('status', 'pending');
 
+    notifyUser(requester.id, {
+      title: "You're paired! 💕",
+      body: `${me.name} accepted your invitation. You're now connected on Twin Hearts.`,
+      tag: 'partner-accepted'
+    });
+
     return res.json({ ok: true, coupleId });
   } catch (err) {
     console.error('Accept invite error:', err);
@@ -362,6 +405,13 @@ router.post('/partner/invitations/:id/decline', requireAuth, async (req, res) =>
   if (error || !invite) return res.status(404).json({ error: 'Invitation not found' });
 
   await supabase.from('partner_invitations').update({ status: 'declined', updated_at: new Date().toISOString() }).eq('id', invite.id);
+
+  notifyUser(invite.requester_id, {
+    title: 'Invitation declined',
+    body: 'Your partner request was declined.',
+    tag: 'partner-declined'
+  });
+
   return res.json({ ok: true });
 });
 
