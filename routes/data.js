@@ -210,7 +210,7 @@ router.patch('/profile/:coupleId', async (req, res) => {
 
   const { data, error } = await supabase
     .from('couples').update(updates).eq('id', req.params.coupleId)
-    .select('id, connect_code, user1_name, user2_name, anniversary, user1_bio, user2_bio, user1_avatar, user2_avatar')
+    .select('id, user1_name, user2_name, anniversary, user1_bio, user2_bio, user1_avatar, user2_avatar')
     .single();
 
   if (error) return res.status(500).json({ error: error.message });

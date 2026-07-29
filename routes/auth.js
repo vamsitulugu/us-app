@@ -1,5 +1,9 @@
 // ═══════════════════════════════════════════════════════
-//  Auth Routes — Real couple setup & pairing
+//  Auth Routes — Email/password auth + phone-based partner
+//  invitations. The `couples` table remains the shared-data
+//  container used by chat/location/tracking/music/etc (all still
+//  keyed by couple_id + role) — see routes/partner.js for how a
+//  couple row gets created/joined now that there is no connect code.
 // ═══════════════════════════════════════════════════════
 const express  = require('express');
 const bcrypt   = require('bcryptjs');
@@ -8,55 +12,10 @@ const supabase = require('../middleware/supabase');
 
 const router = express.Router();
 
-function genCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
-  return code;
+// Normalizes a phone number to digits-only for consistent lookups/uniqueness.
+function normalizePhone(phone) {
+  return String(phone || '').replace(/[^\d]/g, '');
 }
-
-// ── POST /api/auth/setup ───────────────────────────────
-router.post('/setup', async (req, res) => {
-  const { myName, partnerName, anniversary, vaultPin } = req.body;
-  if (!myName) return res.status(400).json({ error: 'Name required' });
-
-  // Generate unique connect code
-  let connectCode;
-  for (let i = 0; i < 10; i++) {
-    connectCode = genCode();
-    const { data } = await supabase
-      .from('couples')
-      .select('id')
-      .eq('connect_code', connectCode)
-      .maybeSingle();
-    if (!data) break;
-  }
-
-  const hashedPin = await bcrypt.hash(String(vaultPin || '1234'), 10);
-  const coupleId  = uuid();
-
-  const { error } = await supabase.from('couples').insert({
-    id:           coupleId,
-    connect_code: connectCode,
-    user1_name:   myName,
-    user2_name:   partnerName || 'Partner',
-    anniversary:  anniversary || null,
-    vault_pin:    hashedPin,
-    paired:       false, // becomes true only when a partner actually joins via /pair
-    created_at:   new Date().toISOString()
-  });
-
-  if (error) {
-    console.error('Setup error:', error);
-    return res.status(500).json({ error: 'Failed to create couple space: ' + error.message });
-  }
-
-  return res.json({
-    coupleId, connectCode, myName,
-    partnerName: partnerName || 'Partner',
-    paired: false
-  });
-});
 
 // ── POST /api/auth/verify-pin ──────────────────────────
 router.post('/verify-pin', async (req, res) => {
@@ -97,97 +56,72 @@ router.post('/change-pin', async (req, res) => {
 router.get('/couple/:id', async (req, res) => {
   const { data: couple, error } = await supabase
     .from('couples')
-    .select('id, connect_code, user1_name, user2_name, anniversary, paired, created_at')
+    .select('id, user1_name, user2_name, anniversary, paired, created_at')
     .eq('id', req.params.id)
     .maybeSingle();
 
   if (error || !couple) return res.status(404).json({ error: 'Not found' });
   return res.json(couple);
 });
-// ── POST /api/auth/pair ────────────────────────────────
-// Called by the partner (user2) to join an existing couple space
-router.post('/pair', async (req, res) => {
-  const { connectCode, myName } = req.body;
-  if (!connectCode || !myName) {
-    return res.status(400).json({ error: 'Connect code and name required' });
-  }
 
-  // Find the couple by connect code
-  const { data: couple, error } = await supabase
-    .from('couples')
-    .select('id, connect_code, user1_name, user2_name, anniversary, paired')
-    .eq('connect_code', connectCode.toUpperCase())
-    .maybeSingle();
-
-  if (error || !couple) {
-    return res.status(404).json({ error: 'Invalid connect code. Ask your partner to check their code.' });
-  }
-
-  if (couple.paired) {
-    return res.status(409).json({ error: 'This couple space is already paired with another device.' });
-  }
-
-  // Mark as paired and set user2's name
-  const { error: updateError } = await supabase
-    .from('couples')
-    .update({
-      user2_name: myName,
-      paired: true,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', couple.id);
-
-  if (updateError) {
-    return res.status(500).json({ error: 'Failed to pair: ' + updateError.message });
-  }
-
-  return res.json({
-    coupleId: couple.id,
-    connectCode: couple.connect_code,
-    myName: myName,
-    partnerName: couple.user1_name,
-    anniversary: couple.anniversary || '',
-    paired: true
-  });
-});
 // ── POST /api/auth/unpair ──────────────────────────────
 // Removes the partner relationship ONLY. Never touches
 // app_state, messages, photos, journal, transactions, etc —
 // all of it stays attached to coupleId untouched.
+//
+// The requesting user keeps their existing coupleId (and all its
+// data). The ex-partner is detached and given a brand-new, empty
+// solo couple space so they're never left without one — matching
+// what happened automatically at registration before pairing.
 router.post('/unpair', async (req, res) => {
   const { coupleId, requestingRole } = req.body;
   if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
 
   const { data: couple, error: fetchErr } = await supabase
     .from('couples')
-    .select('id, paired, connect_code')
+    .select('id, paired, user1_name, user2_name')
     .eq('id', coupleId)
     .maybeSingle();
 
   if (fetchErr || !couple) return res.status(404).json({ error: 'Couple not found' });
   if (!couple.paired) return res.status(409).json({ error: 'No active partner to remove' });
 
-  let newCode;
-  for (let i = 0; i < 10; i++) {
-    newCode = genCode();
-    const { data } = await supabase.from('couples').select('id').eq('connect_code', newCode).maybeSingle();
-    if (!data) break;
+  const otherRole = requestingRole === 'user1' ? 'user2' : 'user1';
+
+  // Give the ex-partner (if they have a user account) a fresh solo couple space
+  const { data: otherUser } = await supabase
+    .from('users').select('id, name').eq('couple_id', coupleId).eq('role', otherRole).maybeSingle();
+
+  if (otherUser) {
+    const newCoupleId = uuid();
+    const { error: newCoupleErr } = await supabase.from('couples').insert({
+      id: newCoupleId,
+      user1_name: otherUser.name,
+      user2_name: 'Partner',
+      paired: false,
+      created_at: new Date().toISOString()
+    });
+    if (!newCoupleErr) {
+      await supabase.from('users').update({
+        couple_id: newCoupleId, role: 'user1', updated_at: new Date().toISOString()
+      }).eq('id', otherUser.id);
+    }
   }
 
   const { error: updateErr } = await supabase
     .from('couples')
     .update({
       paired: false,
-      user2_name: 'Partner',
-      connect_code: newCode,
+      [otherRole === 'user1' ? 'user1_name' : 'user2_name']: 'Partner',
       updated_at: new Date().toISOString()
     })
     .eq('id', coupleId);
 
   if (updateErr) return res.status(500).json({ error: updateErr.message });
 
-  return res.json({ ok: true, newConnectCode: newCode, unpairedBy: requestingRole || null });
+  return res.json({ ok: true, unpairedBy: requestingRole || null });
 });
+
 // ── POST /api/push/subscribe ───────────────────────────
 // Saves a Web Push subscription for a device.
 // Requires VAPID keys in .env: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_EMAIL
@@ -201,17 +135,25 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
 }
 
 router.post('/push/subscribe', async (req, res) => {
-  const { coupleId, role, subscription } = req.body;
-  if (!coupleId || !role || !subscription) return res.status(400).json({ error: 'Missing fields' });
+  const { coupleId, role, userId, subscription } = req.body;
+  if (!subscription || (!coupleId && !userId)) return res.status(400).json({ error: 'Missing fields' });
 
-  const { error } = await supabase.from('push_subscriptions').upsert({
-    couple_id: coupleId,
-    role,
-    subscription: JSON.stringify(subscription),
-    updated_at: new Date().toISOString()
-  }, { onConflict: 'couple_id,role' });
-
-  if (error) return res.status(500).json({ error: error.message });
+  if (coupleId && role) {
+    const { error } = await supabase.from('push_subscriptions').upsert({
+      couple_id: coupleId,
+      role,
+      subscription: JSON.stringify(subscription),
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'couple_id,role' });
+    if (error) return res.status(500).json({ error: error.message });
+  } else {
+    const { error } = await supabase.from('push_subscriptions').upsert({
+      user_id: userId,
+      subscription: JSON.stringify(subscription),
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' });
+    if (error) return res.status(500).json({ error: error.message });
+  }
   return res.json({ ok: true });
 });
 
@@ -221,6 +163,9 @@ router.get('/push/vapidkey', (req, res) => {
 
 // ── Helper: send push to partner ─────────────────────
 // Call this from data.js whenever state is saved
+// UNCHANGED SIGNATURE — chat.js, call.js, data.js, globe.js, home.js,
+// location.js, meetplanner.js, music.js, signal.js, tracking.js all
+// depend on this exact (coupleId, senderRole, payload) shape.
 async function sendPushToPartner(coupleId, senderRole, payload) {
   if (!process.env.VAPID_PUBLIC_KEY) return;
   const partnerRole = senderRole === 'user1' ? 'user2' : 'user1';
@@ -258,17 +203,25 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   }
 }
 router.post('/register-fcm-token', async (req, res) => {
-  const { coupleId, role, token } = req.body;
-  if (!coupleId || !role || !token) return res.status(400).json({ error: 'Missing fields' });
+  const { coupleId, role, userId, token } = req.body;
+  if (!token || (!coupleId && !userId)) return res.status(400).json({ error: 'Missing fields' });
 
-  const { error } = await supabase.from('fcm_tokens').upsert({
-    couple_id: coupleId,
-    role,
-    token,
-    updated_at: new Date().toISOString()
-  }, { onConflict: 'couple_id,role' });
-
-  if (error) return res.status(500).json({ error: error.message });
+  if (coupleId && role) {
+    const { error } = await supabase.from('fcm_tokens').upsert({
+      couple_id: coupleId,
+      role,
+      token,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'couple_id,role' });
+    if (error) return res.status(500).json({ error: error.message });
+  } else {
+    const { error } = await supabase.from('fcm_tokens').upsert({
+      user_id: userId,
+      token,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' });
+    if (error) return res.status(500).json({ error: error.message });
+  }
   return res.json({ ok: true });
 });
 
@@ -326,54 +279,111 @@ async function sendFCMToPartner(coupleId, senderRole, payload) {
 }
 
 module.exports.sendFCMToPartner = sendFCMToPartner;
+
+// ── Helper: send push/FCM to a user directly by user_id ──────────
+// Used for partner-invitation notifications, which must reach someone
+// BEFORE they have a couple_id/role (i.e. before they're paired).
+async function sendPushToUser(userId, payload) {
+  if (process.env.VAPID_PUBLIC_KEY) {
+    const { data } = await supabase.from('push_subscriptions')
+      .select('subscription').eq('user_id', userId).maybeSingle();
+    if (data) {
+      try {
+        await webpush.sendNotification(JSON.parse(data.subscription), JSON.stringify(payload));
+      } catch (err) {
+        if (err.statusCode === 410) {
+          await supabase.from('push_subscriptions').delete().eq('user_id', userId);
+        }
+      }
+    }
+  }
+  if (fcmReady) {
+    const { data } = await supabase.from('fcm_tokens').select('token').eq('user_id', userId).maybeSingle();
+    if (data) {
+      try {
+        await fcmMessaging.send({
+          token: data.token,
+          notification: { title: payload.title || 'Twin Hearts 💕', body: payload.body || '' }
+        });
+      } catch (err) {
+        if (err.code === 'messaging/registration-token-not-registered') {
+          await supabase.from('fcm_tokens').delete().eq('user_id', userId);
+        }
+      }
+    }
+  }
+}
+module.exports.sendPushToUser = sendPushToUser;
+module.exports.normalizePhone = normalizePhone;
+
 // ── POST /api/auth/register ────────────────────────────
 router.post('/register', async (req, res) => {
-  const { email, password, myName, partnerName, anniversary } = req.body;
-  if (!email || !password || !myName) {
-    return res.status(400).json({ error: 'Email, password and name required' });
+  const { email, password, myName, phoneNumber } = req.body;
+  if (!email || !password || !myName || !phoneNumber) {
+    return res.status(400).json({ error: 'Name, email, password and phone number are required' });
   }
   if (password.length < 6) {
     return res.status(400).json({ error: 'Password must be at least 6 characters' });
   }
 
-  // Check if email already used
-  const { data: existing } = await supabase
-    .from('couples')
-    .select('id')
-    .eq('email', email.toLowerCase().trim())
-    .maybeSingle();
-  if (existing) return res.status(409).json({ error: 'An account with this email already exists. Please sign in.' });
-
-  let connectCode;
-  for (let i = 0; i < 10; i++) {
-    connectCode = genCode();
-    const { data } = await supabase.from('couples').select('id').eq('connect_code', connectCode).maybeSingle();
-    if (!data) break;
+  const normalizedEmail = email.toLowerCase().trim();
+  const normalizedPhone = normalizePhone(phoneNumber);
+  if (normalizedPhone.length < 7) {
+    return res.status(400).json({ error: 'Enter a valid phone number' });
   }
+
+  // Check if email already used
+  const { data: existingEmail } = await supabase
+    .from('users').select('id').eq('email', normalizedEmail).maybeSingle();
+  if (existingEmail) return res.status(409).json({ error: 'An account with this email already exists. Please sign in.' });
+
+  // Check if phone already used
+  const { data: existingPhone } = await supabase
+    .from('users').select('id').eq('phone_number', normalizedPhone).maybeSingle();
+  if (existingPhone) return res.status(409).json({ error: 'An account with this phone number already exists.' });
 
   const hashedPassword = await bcrypt.hash(password, 10);
   const hashedPin = await bcrypt.hash('1234', 10);
   const coupleId = uuid();
+  const userId = uuid();
 
-  const { error } = await supabase.from('couples').insert({
+  // Every user gets their own solo couple space at signup — this stays
+  // the shared-data container for chat/location/tracking/etc, and
+  // becomes the joint space once a partner request is accepted.
+  const { error: coupleError } = await supabase.from('couples').insert({
     id: coupleId,
-    connect_code: connectCode,
-    email: email.toLowerCase().trim(),
-    password_hash: hashedPassword,
     user1_name: myName,
-    user2_name: partnerName || 'Partner',
-    anniversary: anniversary || null,
+    user2_name: 'Partner',
     vault_pin: hashedPin,
     paired: false,
     created_at: new Date().toISOString()
   });
-
-  if (error) {
-    console.error('Register error:', error);
-    return res.status(500).json({ error: 'Failed to create account: ' + error.message });
+  if (coupleError) {
+    console.error('Register error (couple):', coupleError);
+    return res.status(500).json({ error: 'Failed to create account: ' + coupleError.message });
   }
 
-  return res.json({ coupleId, connectCode, myName, partnerName: partnerName || 'Partner', paired: false });
+  const { error: userError } = await supabase.from('users').insert({
+    id: userId,
+    name: myName,
+    email: normalizedEmail,
+    password_hash: hashedPassword,
+    phone_number: normalizedPhone,
+    couple_id: coupleId,
+    role: 'user1',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  });
+  if (userError) {
+    console.error('Register error (user):', userError);
+    await supabase.from('couples').delete().eq('id', coupleId); // roll back the orphaned couple row
+    return res.status(500).json({ error: 'Failed to create account: ' + userError.message });
+  }
+
+  return res.json({
+    userId, coupleId, myName, phoneNumber: normalizedPhone,
+    partnerName: 'Partner', role: 'user1', paired: false
+  });
 });
 
 // ── POST /api/auth/login ───────────────────────────────
@@ -381,26 +391,39 @@ router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
-  const { data: couple, error } = await supabase
-    .from('couples')
-    .select('id, connect_code, user1_name, user2_name, anniversary, paired, password_hash, email')
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('id, name, phone_number, password_hash, couple_id, role')
     .eq('email', email.toLowerCase().trim())
     .maybeSingle();
 
-  if (error || !couple) return res.status(401).json({ error: 'No account found with this email.' });
-  if (!couple.password_hash) return res.status(401).json({ error: 'This account was created without a password. Use your connect code to sign in.' });
+  if (error || !user) return res.status(401).json({ error: 'No account found with this email.' });
 
-  const match = await bcrypt.compare(password, couple.password_hash);
+  const match = await bcrypt.compare(password, user.password_hash);
   if (!match) return res.status(401).json({ error: 'Incorrect password.' });
 
+  let partnerName = 'Partner', anniversary = '', paired = false;
+  if (user.couple_id) {
+    const { data: couple } = await supabase
+      .from('couples').select('user1_name, user2_name, anniversary, paired')
+      .eq('id', user.couple_id).maybeSingle();
+    if (couple) {
+      partnerName = user.role === 'user1' ? couple.user2_name : couple.user1_name;
+      anniversary = couple.anniversary || '';
+      paired = couple.paired || false;
+    }
+  }
+
   return res.json({
-    coupleId: couple.id,
-    connectCode: couple.connect_code,
-    myName: couple.user1_name,
-    partnerName: couple.user2_name,
-    anniversary: couple.anniversary || '',
-    paired: couple.paired || false,
-    role: 'user1'
+    userId: user.id,
+    coupleId: user.couple_id,
+    myName: user.name,
+    phoneNumber: user.phone_number,
+    partnerName: partnerName || 'Partner',
+    anniversary,
+    paired,
+    role: user.role || 'user1'
   });
 });
+
 module.exports = router;

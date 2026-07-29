@@ -454,35 +454,13 @@ body.native-auth-only #authModal .modal-close{display:none}
       <div class="field"><label>Email</label><input type="email" id="regEmail" placeholder="your@email.com" autocomplete="email"></div>
       <div class="field"><label>Password (min 6 chars)</label><input type="password" id="regPassword" placeholder="Create a password"></div>
       <div class="field"><label>Your Name</label><input type="text" id="regMyName" placeholder="Your name" autocomplete="off"></div>
+      <div class="field"><label>Phone Number</label><input type="tel" id="regPhone" placeholder="e.g. 7077745442" autocomplete="tel"></div>
+      <div style="font-size:11.5px;color:var(--text3);margin:-6px 0 14px;line-height:1.5">This number is only used so your partner can find you. It is never used for login.</div>
       <button class="auth-btn" id="registerBtn" onclick="doEmailRegister()">Create Account ✨</button>
       <div class="auth-divider">Already have an account?</div>
       <button class="auth-btn-alt" onclick="authTab('login')">Sign In →</button>
     </div>
 
-    <div id="setupView">
-      <div class="auth-tabs">
-        <button class="auth-tab active" onclick="authTab('setup')">Get Started</button>
-        <button class="auth-tab" onclick="authTab('pair')">Join Partner</button>
-      </div>
-      <div class="modal-headline">Set up your couple space ✨</div>
-      <div id="setupErr" class="auth-err"></div>
-      <div class="field"><label>Partner's Name</label><input type="text" id="authPtName" placeholder="Partner's name" autocomplete="off"></div>
-      <div class="field"><label>Together Since (optional)</label><input type="date" id="authAnniv"></div>
-      <button class="auth-btn" id="setupBtn" onclick="doSetupFromLanding()">Create Our Space ✨</button>
-    </div>
-
-    <div id="pairView">
-      <div class="auth-tabs">
-        <button class="auth-tab" onclick="authTab('setup')">Get Started</button>
-        <button class="auth-tab active" onclick="authTab('pair')">Join Partner</button>
-      </div>
-      <div class="modal-headline">Enter your partner's 6-digit code 💕</div>
-      <div id="pairErr" class="auth-err"></div>
-      <div class="field"><label>Partner's Connect Code</label><input type="text" id="pairCode" placeholder="A1B2C3" maxlength="6" style="text-transform:uppercase;letter-spacing:4px;font-size:18px;font-weight:700;text-align:center"></div>
-      <button class="auth-btn" id="pairBtn" onclick="doPairFromLanding()">Connect with Partner 💕</button>
-      <div class="auth-divider">Starting fresh?</div>
-      <button class="auth-btn-alt" onclick="authTab('setup')">Create New Space →</button>
-    </div>
   </div>
 </div>
 
@@ -560,15 +538,12 @@ function openAuth(view){
 }
 function closeAuth(){ document.getElementById('authModal').classList.remove('open'); }
 function authTab(tab){
-  ['login','register','setup','pair'].forEach(v=>{
+  ['login','register'].forEach(v=>{
     const el=document.getElementById(v+'View');
     if(el) el.classList.toggle('active', v===tab);
   });
   document.querySelectorAll('#loginView .auth-tab,#registerView .auth-tab').forEach(b=>{
     b.classList.toggle('active', (tab==='login'&&b.textContent.trim()==='Sign In')||(tab==='register'&&b.textContent.trim()==='Sign Up'));
-  });
-  document.querySelectorAll('#setupView .auth-tab,#pairView .auth-tab').forEach(b=>{
-    b.classList.toggle('active', (tab==='setup'&&b.textContent.trim()==='Get Started')||(tab==='pair'&&b.textContent.trim()==='Join Partner'));
   });
 }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
@@ -584,7 +559,7 @@ async function doEmailLogin(){
     const r=await fetch(API+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});
     const data=await r.json();
     if(!r.ok) throw new Error(data.error||'Login failed');
-    saveAndGo(data, data.role);
+    saveAndGo(data);
   }catch(e){ err.textContent=e.message; err.style.display='block'; }
   finally{ btn.textContent='Sign In 💕'; btn.disabled=false; }
 }
@@ -592,52 +567,25 @@ async function doEmailRegister(){
   const email=document.getElementById('regEmail').value.trim();
   const pass=document.getElementById('regPassword').value;
   const name=document.getElementById('regMyName').value.trim();
+  const phone=document.getElementById('regPhone').value.trim();
   const err=document.getElementById('registerErr');
-  if(!email||!pass||!name){ err.textContent='Fill in all fields'; err.style.display='block'; return; }
+  if(!email||!pass||!name||!phone){ err.textContent='Fill in all fields'; err.style.display='block'; return; }
   if(pass.length<6){ err.textContent='Password must be at least 6 characters'; err.style.display='block'; return; }
   err.style.display='none';
   const btn=document.getElementById('registerBtn'); btn.textContent='Creating...'; btn.disabled=true;
   try{
-    const r=await fetch(API+'/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass,myName:name,partnerName:'Partner'})});
+    const r=await fetch(API+'/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass,myName:name,phoneNumber:phone})});
     const data=await r.json();
     if(!r.ok) throw new Error(data.error||'Registration failed');
-    _authUser={...data,email,role:'user1'};
-    authTab('setup');
+    saveAndGo({...data,email});
   }catch(e){ err.textContent=e.message; err.style.display='block'; }
   finally{ btn.textContent='Create Account ✨'; btn.disabled=false; }
 }
-async function doSetupFromLanding(){
-  if(!_authUser){ authTab('register'); return; }
-  const ptName=document.getElementById('authPtName').value.trim()||'Partner';
-  const anniv=document.getElementById('authAnniv').value;
-  const err=document.getElementById('setupErr'); err.style.display='none';
-  const btn=document.getElementById('setupBtn'); btn.textContent='Saving...'; btn.disabled=true;
-  try{
-    await fetch(API+'/api/data/profile/'+_authUser.coupleId,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({partnerName:ptName,anniversary:anniv})});
-    saveAndGo({..._authUser,partnerName:ptName,anniversary:anniv},'user1');
-  }catch(e){ err.textContent=e.message||'Error'; err.style.display='block'; }
-  finally{ btn.textContent='Create Our Space ✨'; btn.disabled=false; }
-}
-async function doPairFromLanding(){
-  if(!_authUser){ authTab('register'); return; }
-  const code=document.getElementById('pairCode').value.trim().toUpperCase();
-  const err=document.getElementById('pairErr');
-  if(code.length!==6){ err.textContent='Enter a valid 6-digit code'; err.style.display='block'; return; }
-  err.style.display='none';
-  const btn=document.getElementById('pairBtn'); btn.textContent='Connecting...'; btn.disabled=true;
-  try{
-    const r=await fetch(API+'/api/auth/pair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({connectCode:code,myName:_authUser.myName})});
-    const data=await r.json();
-    if(!r.ok) throw new Error(data.error||'Pair failed');
-    saveAndGo({...data,role:'user2'},'user2');
-  }catch(e){ err.textContent=e.message; err.style.display='block'; }
-  finally{ btn.textContent='Connect with Partner 💕'; btn.disabled=false; }
-}
-function saveAndGo(data, role){
+function saveAndGo(data){
   const freshState={
-    coupleId:data.coupleId, connectCode:data.connectCode, myName:data.myName,
+    userId:data.userId, coupleId:data.coupleId, myName:data.myName, phoneNumber:data.phoneNumber||'',
     partnerName:data.partnerName||'Partner', anniversary:data.anniversary||'',
-    role:role||data.role||'user1', setupDone:true, paired:data.paired||false, theme:'t-blue'
+    role:data.role||'user1', setupDone:true, paired:data.paired||false, theme:'t-blue'
   };
   localStorage.setItem('uwl_v5', JSON.stringify(freshState));
   window.location.href='/';

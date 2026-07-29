@@ -4600,17 +4600,15 @@ select option { background: #0D0D0D; color: #fff; }
     </div>
   </div>
 </div>
-  <!-- Hidden pair-code form: kept (not shown to the user) because
-       openJoinPartnerModal()/doPair() still read these fields when
-       linking a partner from inside the app's settings page. The old
-       "Get Started / Join Partner" landing-style auth card that used
-       to render here has been removed — real auth now happens on
-       /landing.html before this page is ever reached. -->
+  <!-- Hidden partner-phone-request form: kept (not shown to the user)
+       because sendPartnerRequest() still reads
+       these fields when linking a partner from inside the app's
+       settings page. Real auth happens on /landing.html before this
+       page is ever reached — this is only the partner connection step. -->
   <div id="authOverlay" style="display:none">
     <div id="pairErr" class="auth-err"></div>
-    <input type="text" id="pairMyName" placeholder="Your name" autocomplete="off">
-    <input type="text" id="pairCode" placeholder="A1B2C3" maxlength="6">
-    <button id="pairBtn" onclick="doPair()">Connect with Partner</button>
+    <input type="tel" id="partnerPhoneInput" placeholder="Partner's phone number" autocomplete="off">
+    <button id="pairBtn" onclick="sendPartnerRequest()">Send Connection Request ❤️</button>
   </div>
 
   <!-- SIDEBAR -->
@@ -5077,16 +5075,14 @@ select option { background: #0D0D0D; color: #fff; }
           </div>
         </div>
         <div class="two-col">
-          <div class="card" style="margin-bottom:0">
-            <div class="card-title">💌 Connect Code</div>
-            <div class="code-box" id="myConnectCode">——</div>
-            <div style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.65">Share this 6-digit code with
-              your partner to link both devices.</div>
-            <button class="btn btn-accent btn-sm" style="margin-top:10px" onclick="copyCode()">📋 Copy Code</button>
-            <div id="profPairStatus" style="font-size:11px;color:var(--text3);margin-top:10px">💌 Waiting for partner</div>
-<div id="profJoinBtn" style="margin-top:10px">
-  <button class="btn btn-accent btn-sm" onclick="openJoinPartnerModal()">🔗 Join Partner</button>
-</div>
+          <div class="card" style="margin-bottom:0" id="partnerConnectionCard">
+            <div class="card-title">❤️ Partner Connection</div>
+            <div id="partnerConnectionBody">
+              <div style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.65">Find your partner using their phone number.</div>
+              <div class="field"><label>Partner Phone Number</label><input type="tel" id="profPartnerPhone" placeholder="e.g. 7077745442" autocomplete="off"></div>
+              <button class="btn btn-accent btn-sm" onclick="sendPartnerRequestFromProfile()">Send Connection Request ❤️</button>
+              <div id="profPairStatus" style="font-size:11px;color:var(--text3);margin-top:10px">Not Connected</div>
+            </div>
           </div>
           <div class="card" style="margin-bottom:0">
             <div class="card-title">🌹 Our Story</div>
@@ -6015,17 +6011,13 @@ select option { background: #0D0D0D; color: #fff; }
 
         <!-- PARTNER CONNECT -->
         <div class="settings-group">
-          <div class="settings-group-header">🔗 Partner Connection</div>
+          <div class="settings-group-header">❤️ Partner Connection Status</div>
           <div class="settings-row" style="cursor:default;flex-direction:column;align-items:flex-start">
-            <div style="font-size:11px;color:var(--text2);margin-bottom:12px;line-height:1.65">Share this 6-digit code
-              with your partner to link both devices.</div>
-            <div class="code-box" id="settingsConnectCode" style="width:100%;margin-bottom:12px">——</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn btn-accent btn-sm" onclick="copyCode()">📋 Copy Code</button>
-              <button class="btn btn-glass btn-sm" onclick="shareCode()">🔗 Share</button>
+            <div id="settingsPairStatus" style="font-size:13px;color:var(--white);margin-bottom:12px">Not Connected</div>
+            <div id="settingsPartnerRequestForm" style="width:100%">
+              <div class="field" style="margin-bottom:8px"><label>Partner Phone Number</label><input type="tel" id="settingsPartnerPhone" placeholder="e.g. 7077745442" autocomplete="off"></div>
+              <button class="btn btn-accent btn-sm" onclick="sendPartnerRequestFromSettings()">Send Connection Request ❤️</button>
             </div>
-            <div id="settingsPairStatus" style="font-size:11px;color:var(--text3);margin-top:10px">💌 Waiting for
-              partner</div>
             <button class="btn btn-danger btn-sm" id="removePartnerBtn" style="margin-top:12px;display:none" onclick="confirmRemovePartner()">💔 Remove Partner</button>
           </div>
         </div>
@@ -6551,7 +6543,7 @@ function applyRebranding() {
 
         // ─── STATE ───────────────────────────────────────────────
         let S = {
-          coupleId: null, connectCode: null, myName: 'You', partnerName: 'Partner',
+          userId: null, coupleId: null, myName: 'You', partnerName: 'Partner',
           role: 'user1', anniversary: '', myBio: '', partnerBio: '',
           myLoveLang: '', ptLoveLang: '', myAvatar: '', partnerAvatar: '',
           vaultPin: '1234', calYear: new Date().getFullYear(), calMonth: new Date().getMonth(),
@@ -6569,7 +6561,7 @@ function applyRebranding() {
         window.S = S;
         function freshAppState() {
   return {
-    coupleId: null, connectCode: null, myName: 'You', partnerName: 'Partner',
+    userId: null, coupleId: null, myName: 'You', partnerName: 'Partner',
     role: 'user1', anniversary: '', myBio: '', partnerBio: '',
     myLoveLang: '', ptLoveLang: '', myAvatar: '', partnerAvatar: '',
     vaultPin: '1234', calYear: new Date().getFullYear(), calMonth: new Date().getMonth(),
@@ -6636,7 +6628,6 @@ async function removePartner() {
     const data = await api('POST', '/api/auth/unpair', { coupleId: S.coupleId, requestingRole: S.role });
     S.paired = false; S.partnerName = 'Partner'; S.partnerAvatar = ''; S._pairToastShown = false;
     if (S.profile) delete S.profile[otherKey()];
-    if (data.newConnectCode) S.connectCode = data.newConnectCode;
     saveLocal(); applyNames(); updatePairStatus(); renderAll();
     toast('💔 Partner removed. Your data is safe — share your new code to pair again.');
     if (S.role === 'user2') {
@@ -6688,31 +6679,89 @@ function saveLocal() {
           el.classList.add('active'); goto(page);
         }
 
-        // ─── AUTH ─────────────────────────────────────────────────
-        async function doPair() {
-          resetForNewAccount();
-          const name = document.getElementById('pairMyName').value.trim();
-          const code = document.getElementById('pairCode').value.trim().toUpperCase();
+        // ─── PARTNER PHONE CONNECTION ────────────────────────────
+        async function sendPartnerRequest(phoneOverride) {
           const errEl = document.getElementById('pairErr');
-          if (!name) { errEl.textContent = 'Please enter your name'; errEl.style.display = 'block'; return; }
-          if (code.length !== 6) { errEl.textContent = 'Enter a valid 6-digit code'; errEl.style.display = 'block'; return; }
-          errEl.style.display = 'none';
-          const btn = document.getElementById('pairBtn'); btn.textContent = 'Connecting...'; btn.disabled = true;
+          const phone = (phoneOverride || document.getElementById('partnerPhoneInput')?.value || '').trim();
+          if (!phone) { if (errEl) { errEl.textContent = 'Enter your partner\'s phone number'; errEl.style.display = 'block'; } return; }
+          if (errEl) errEl.style.display = 'none';
+          const btn = document.getElementById('pairBtn'); if (btn) { btn.textContent = 'Sending...'; btn.disabled = true; }
           try {
-            const data = await api('POST', '/api/auth/pair', { connectCode: code, myName: name });
-            S.coupleId = data.coupleId; S.connectCode = data.connectCode; S.myName = data.myName;
-            S.partnerName = data.partnerName; S.anniversary = data.anniversary || '';
-            S.role = 'user2'; S.setupDone = true; S.paired = true;
-            S.role = 'user2'; S.setupDone = true; S.paired = true;
+            await api('POST', '/api/partner/request', { userId: S.userId, partnerPhone: phone });
+            S.partnerRequestSent = true; saveLocal();
+            toast('Invitation sent ❤️ Waiting for your partner to accept.');
+            updatePairStatus();
+          } catch (e) {
+            if (errEl) { errEl.textContent = e.message; errEl.style.display = 'block'; } else { toast(e.message); }
+          } finally {
+            if (btn) { btn.textContent = 'Send Connection Request ❤️'; btn.disabled = false; }
+          }
+        }
+        async function sendPartnerRequestFromProfile() {
+          const phone = document.getElementById('profPartnerPhone')?.value || '';
+          await sendPartnerRequest(phone);
+        }
+        async function sendPartnerRequestFromSettings() {
+          const phone = document.getElementById('settingsPartnerPhone')?.value || '';
+          await sendPartnerRequest(phone);
+        }
+        // Called on every app launch / resume / refresh — checks for a
+        // pending invitation from a partner, with no typing or codes.
+        async function checkPendingPartnerRequest() {
+          if (!S.userId || S.paired) return;
+          try {
+            const data = await api('GET', '/api/partner/pending/' + S.userId);
+            if (data && data.request) {
+              showPartnerRequestPopup(data.request);
+            } else {
+              const modal = document.getElementById('partnerRequestModal');
+              if (modal) modal.style.display = 'none';
+            }
+          } catch (e) { console.warn('Pending partner check:', e.message); }
+        }
+        function showPartnerRequestPopup(request) {
+          let modal = document.getElementById('partnerRequestModal');
+          if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'partnerRequestModal';
+            modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(5,3,3,.75);display:flex;align-items:center;justify-content:center;padding:20px';
+            document.body.appendChild(modal);
+          }
+          modal.dataset.requestId = request.id;
+          modal.style.display = 'flex';
+          modal.innerHTML = `
+            <div style="background:#0d0808;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:26px;max-width:340px;width:100%;text-align:center">
+              <div style="font-size:34px;margin-bottom:10px">❤️</div>
+              <div style="font-size:17px;color:#fff;font-weight:600;margin-bottom:6px">Connection Request</div>
+              <div style="font-size:13px;color:rgba(255,255,255,.6);margin-bottom:20px">${esc(request.senderName || 'Someone')} wants to connect with you.</div>
+              <div style="display:flex;gap:10px;justify-content:center">
+                <button class="btn btn-accent btn-sm" onclick="acceptPartnerRequest('${request.id}')">Accept ❤️</button>
+                <button class="btn btn-glass btn-sm" onclick="declinePartnerRequest('${request.id}')">Decline</button>
+              </div>
+            </div>`;
+        }
+        async function acceptPartnerRequest(requestId) {
+          try {
+            const data = await api('POST', '/api/partner/accept', { requestId, userId: S.userId });
+            S.coupleId = data.coupleId; S.partnerName = data.partnerName || 'Partner';
+            S.role = data.role || 'user2'; S.paired = true; S.setupDone = true;
+            S.partnerRequestSent = false;
             setJustPairedAt(Date.now());
-            saveLocal(); document.getElementById('authOverlay').style.display = 'none';
+            saveLocal();
+            const modal = document.getElementById('partnerRequestModal'); if (modal) modal.style.display = 'none';
             await loadFromCloud(); pushMyProfile(); pullPartnerProfile(); saveToCloud();
             applyNames(); renderAll(); updatePairStatus(); syncLoveCounterToFrame();
             PM.relationshipConnected(document.body);
-            toast('Connected with ' + data.partnerName + '! 💕'); spawnPetals(); startAlarmCheck(); startSyncLoop();
+            toast('Connected with ' + S.partnerName + '! 💕'); spawnPetals(); startAlarmCheck(); startSyncLoop();
             if ('Notification' in window && Notification.permission === 'granted') setTimeout(registerPushSubscription, 2000);
-          } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
-          finally { btn.textContent = 'Connect with Partner 💕'; btn.disabled = false; }
+          } catch (e) { toast('Could not accept: ' + e.message); }
+        }
+        async function declinePartnerRequest(requestId) {
+          try {
+            await api('POST', '/api/partner/reject', { requestId, userId: S.userId });
+            const modal = document.getElementById('partnerRequestModal'); if (modal) modal.style.display = 'none';
+            toast('Invitation declined');
+          } catch (e) { toast('Error: ' + e.message); }
         }
 
         // ─── CLOUD SYNC ──────────────────────────────────────────
@@ -6723,7 +6772,7 @@ function saveLocal() {
   try {
     const state = await api('GET', '/api/data/state/' + S.coupleId);
     if (state) {
-      const protect = ['coupleId', 'connectCode', 'myName', 'partnerName',
+      const protect = ['userId', 'coupleId', 'myName', 'partnerName',
   'role', 'setupDone', 'theme', 'vaultPin',
   'myAvatar', 'partnerAvatar', 'paired', '_pairToastShown'];
       const saved = {};
@@ -6745,7 +6794,7 @@ async function saveToCloud() {
   if (_isSaving) { _saveQueued = true; return; }
   _isSaving = true;
   try {
-    const st = { ...S }; delete st.coupleId; delete st.connectCode;
+    const st = { ...S }; delete st.coupleId;
     await api('POST', '/api/data/state', {
       coupleId: S.coupleId,
       state: st,
@@ -6767,7 +6816,7 @@ async function saveToCloud() {
   if (S.coupleId) {
     navigator.sendBeacon(
       API + '/api/data/state',
-      new Blob([JSON.stringify({ coupleId: S.coupleId, state: { ...S, coupleId: undefined, connectCode: undefined } })], { type: 'application/json' })
+      new Blob([JSON.stringify({ coupleId: S.coupleId, state: { ...S, coupleId: undefined } })], { type: 'application/json' })
     );
   }
 });
@@ -6782,16 +6831,30 @@ async function saveToCloud() {
           else { pill.className = 'sync-status sync-off'; dot.className = 'pulse pulse-off'; txt.textContent = 'Offline'; }
         }
         function updatePairStatus() {
-          const msg = S.paired ? ('✅ Linked with ' + (S.partnerName || 'Partner')) : '💌 Waiting for partner to join';
+          let msg;
+          if (S.paired) msg = 'Connected ❤️';
+          else if (S.partnerRequestSent) msg = 'Waiting for Partner ❤️';
+          else msg = 'Not Connected';
+
           const pill = document.getElementById('pairPill'), dot = document.getElementById('pairDot'), txt = document.getElementById('pairText');
-          if (S.paired) { pill.className = 'sync-status sync-on'; dot.className = 'pulse pulse-on'; txt.textContent = 'Linked with ' + (S.partnerName || 'Partner'); }
-          else { pill.className = 'sync-status sync-off'; dot.className = 'pulse pulse-off'; txt.textContent = 'Waiting for partner'; }
-          const jb = document.getElementById('profJoinBtn');
-          if (jb) jb.style.display = S.paired ? 'none' : 'block';
+          if (pill && dot && txt) {
+            if (S.paired) { pill.className = 'sync-status sync-on'; dot.className = 'pulse pulse-on'; txt.textContent = 'Linked with ' + (S.partnerName || 'Partner'); }
+            else { pill.className = 'sync-status sync-off'; dot.className = 'pulse pulse-off'; txt.textContent = S.partnerRequestSent ? 'Waiting for partner' : 'Not connected'; }
+          }
           const rpb = document.getElementById('removePartnerBtn');
           if (rpb) rpb.style.display = S.paired ? 'inline-flex' : 'none';
-          const p1 = document.getElementById('profPairStatus'); if (p1) p1.textContent = msg;
-          const p2 = document.getElementById('settingsPairStatus'); if (p2) p2.textContent = msg;
+
+          const profForm = document.getElementById('profPartnerRequestForm') || document.getElementById('partnerConnectionBody');
+          const settingsForm = document.getElementById('settingsPartnerRequestForm');
+          const showForm = !S.paired && !S.partnerRequestSent;
+          const profInput = document.getElementById('profPartnerPhone');
+          if (profInput) profInput.closest('.field') && (profInput.closest('.field').style.display = showForm ? 'block' : 'none');
+          const profBtnEl = document.querySelector('#partnerConnectionBody .btn-accent');
+          if (profBtnEl) profBtnEl.style.display = showForm ? 'inline-flex' : 'none';
+          if (settingsForm) settingsForm.style.display = showForm ? 'block' : 'none';
+
+          const p1 = document.getElementById('profPairStatus'); if (p1) p1.textContent = msg + (S.paired ? ' — ' + (S.partnerName || 'Partner') : '');
+          const p2 = document.getElementById('settingsPairStatus'); if (p2) p2.textContent = msg + (S.paired ? ' — ' + (S.partnerName || 'Partner') : '');
           renderPartnerLastSeen();
         }
         function fmtLastSeen(ts) {
@@ -6859,8 +6922,8 @@ if (_unpairStrikes < 4) {
     // Confirmed unpair
     S.paired = false;
     S._pairToastShown = false;
+    S.partnerRequestSent = false;
     _unpairStrikes = 0;
-    if (c.connect_code) S.connectCode = c.connect_code;
     S.partnerAvatar = ''; if (S.profile) delete S.profile[otherKey()];
     applyNames(); updatePairStatus();
     toast('💔 The partner connection was removed.', 4000);
@@ -6878,10 +6941,6 @@ function getJustPairedAt() {
 function setJustPairedAt(ts) {
   localStorage.setItem('uwl_justPairedAt', String(ts));
 }
-        function copyCode() {
-          const code = S.connectCode || '—';
-          navigator.clipboard ? navigator.clipboard.writeText(code).then(() => toast('Code copied: ' + code + ' 📋')) : toast('Your code: ' + code);
-        }
         // ─── TOUCH FEATURE ───────────────────────────────────────
         let lastTouchSeen = parseInt(localStorage.getItem('uwl_lastTouchSeen') || '0');
 
@@ -7102,8 +7161,6 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
           const el2 = document.getElementById('profPtName'); if (el2) el2.textContent = p;
           ['studyMyName', 'studyMyNameTT'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = m + "'s"; });
           ['studyPtName', 'studyPtNameTT'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = p + "'s"; });
-          const cc = document.getElementById('myConnectCode'), sc = document.getElementById('settingsConnectCode');
-          if (cc) cc.textContent = S.connectCode || '——'; if (sc) sc.textContent = S.connectCode || '——';
           const tpn = document.getElementById('touchPartnerName'); if (tpn) tpn.textContent = p + "'ll";
         }
         function setAvText(id, t) { const el = document.getElementById(id); if (!el) return; if (!el.querySelector('img')) el.textContent = t; }
@@ -7220,11 +7277,6 @@ const p = await Notification.requestPermission();
     toast('Notifications not enabled');
   }
 }
-        function shareCode() {
-          const code = S.connectCode || '—';
-          if (navigator.share) { navigator.share({ title: 'Twin Hearts', text: 'Join me on Twin Hearts! Use code: ' + code, url: window.location.href }).catch(() => { }); }
-          else { copyCode(); }
-        }
         function importData() {
           const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json';
           inp.onchange = e => {
@@ -7233,7 +7285,7 @@ const p = await Notification.requestPermission();
             r.onload = ev => {
               try {
                 const d = JSON.parse(ev.target.result);
-                const preserve = { coupleId: S.coupleId, connectCode: S.connectCode, myName: S.myName, partnerName: S.partnerName, role: S.role, setupDone: S.setupDone };
+                const preserve = { userId: S.userId, coupleId: S.coupleId, myName: S.myName, partnerName: S.partnerName, role: S.role, setupDone: S.setupDone };
                 Object.assign(S, d); Object.assign(S, preserve);
                 saveLocal(); renderAll(); toast('Backup restored! ✅');
               } catch { toast('Invalid backup file ❌'); }
@@ -8856,6 +8908,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
             // Then sync from cloud in background
             loadFromCloud().then(() => {
   checkPairStatus();
+  checkPendingPartnerRequest();
   checkIncomingTouch();
   checkIncomingMissYou();
   checkIncomingHug();
@@ -8908,8 +8961,8 @@ function startSyncLoop() {
       await loadFromCloud();
     }
 
-    // checkPairStatus only matters before pairing; skip it forever once paired.
-    if (!S.paired) await checkPairStatus();
+    // checkPairStatus/pending-invite polling only matters before pairing; skip forever once paired.
+    if (!S.paired) { await checkPairStatus(); await checkPendingPartnerRequest(); }
 
     checkIncomingTouch();
     checkIncomingMissYou();
@@ -9646,15 +9699,6 @@ function doSearch(query) {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && document.getElementById('searchOverlay').classList.contains('open')) closeSearch();
 });
-function openJoinPartnerModal() {
-  const code = prompt('Enter your partner\'s 6-digit connect code:');
-  if (!code || code.trim().length !== 6) { toast('Enter a valid 6-digit code'); return; }
-  const name = S.myName || prompt('Your name:');
-  if (!name) return;
-  document.getElementById('pairMyName').value = name;
-  document.getElementById('pairCode').value = code.trim().toUpperCase();
-  doPair();
-}
 // ── IFRAME THEME + DREAM SYNC ──
         function syncThemeToFrame(frameId) {
           const frame = document.getElementById(frameId);
@@ -9771,7 +9815,7 @@ if ('Notification' in window && Notification.permission === 'granted' && S.coupl
 function syncAuthOverlay() {
   // No-op: the old visible auth overlay was removed. Auth gating is
   // handled by the /landing.html redirect in init(); this hidden
-  // container only holds fields used by openJoinPartnerModal()/doPair().
+  // container only holds fields used by sendPartnerRequest().
 }
 
 // Re-sync whenever the page is restored from bfcache (common on mobile)
@@ -9785,7 +9829,7 @@ window.addEventListener('pageshow', (e) => {
 
 // Re-sync on tab focus too, cheap safety net
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') syncAuthOverlay();
+  if (document.visibilityState === 'visible') { syncAuthOverlay(); if (!S.paired) checkPendingPartnerRequest(); }
 });
 // ═══════ GLOBAL COUPLE-KARAOKE INVITE LISTENER (works on any page) ═══════
 (function() {
