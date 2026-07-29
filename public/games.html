@@ -215,6 +215,10 @@ button{font-family:inherit;cursor:pointer}
 .tod-reactions{display:flex;gap:6px;justify-content:center;margin-top:16px;flex-wrap:wrap}
 .tod-react-btn{width:36px;height:36px;border-radius:50%;background:var(--g2);border:1px solid var(--border);font-size:16px}
 .tod-float-emoji{position:fixed;font-size:34px;z-index:9997;animation:todfloat 2s ease forwards;pointer-events:none}
+.tod-history{width:100%;max-width:320px;display:flex;flex-direction:column;gap:5px;max-height:130px;overflow-y:auto;margin-top:6px}
+.tod-hist-row{font-size:11px;color:var(--text2);background:var(--g1);border:1px solid var(--border);border-radius:10px;padding:6px 10px}
+.tod-hist-type{margin-right:4px}
+.tod-hist-ans{color:var(--accent2);font-weight:700}
 @keyframes todfloat{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-160px) scale(1.6)}}
 
 /* ═══ LUDO ═══ */
@@ -252,6 +256,7 @@ button{font-family:inherit;cursor:pointer}
 .dw-canvas-wrap{flex:1;position:relative;overflow:hidden;background:#fff;min-height:220px}
 #dwCanvas{width:100%;height:100%;touch-action:none;cursor:crosshair}
 .dw-tool-btn{width:32px;height:32px;border-radius:9px;background:var(--g2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;flex-shrink:0}
+.dw-tool-btn.sel{border-color:var(--accent2);box-shadow:0 0 0 2px var(--accent2-glow)}
 .dw-guess-banner{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;padding:8px 18px;border-radius:20px;font-size:12px;font-weight:700;backdrop-filter:blur(8px);z-index:5}
 .dw-guess-row{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);flex-shrink:0}
 .dw-guess-in{flex:1;padding:11px 14px;border-radius:13px;background:var(--g2);border:1px solid var(--border2);color:#fff;font-size:13px}
@@ -425,7 +430,7 @@ const GameCore = {
   level(xp){ return Math.floor(Math.sqrt(Math.max(0,xp)/28))+1; },
   xpForLevel(lv){ return Math.pow(lv-1,2)*28; },
   addXP(n){
-    const p=this.me(); const before=this.level(p.xp); p.xp+=n; const after=this.level(p.xp);
+    const p=this.me(); const before=this.level(p.xp); p.xp=Math.max(0,p.xp+n); const after=this.level(p.xp);
     this.touchStreak(); this.saveCloud(); Hub.refreshRankCards();
     if(document.getElementById('goXpChip')) document.getElementById('goXpChip').textContent='✨ '+p.xp+' XP';
     if(after>before){ setTimeout(()=>showReward('🏆','Level Up!',['Level '+after]),400); }
@@ -888,6 +893,18 @@ const Ludo = {
       const elapsed = Math.floor((Date.now()-(this.state.turnStartedAt||Date.now()))/1000);
       this.timerLeft = Math.max(0, LUDO_TURN_SECONDS-elapsed);
       const el=document.getElementById('ludoTimerFill'); if(el) el.style.width=(this.timerLeft/LUDO_TURN_SECONDS*100)+'%';
+      if(this.timerLeft===0 && this.state.turn===ID.role){
+        if(this.state.dice==null){
+          toast('⏱️ Time\'s up — turn skipped');
+          this.logMove('⏱️ '+(this.state.turn===ID.role?'You':esc(ID.partnerName))+' timed out');
+          this.state.turn = otherRole; this.state.turnStartedAt=Date.now(); this.state.dice=null;
+          this.sync(); this.render();
+        } else {
+          const mv=this.movable(ID.role, this.state.dice);
+          if(mv.length){ toast('⏱️ Auto-moved (time up)'); this.moveToken(mv[0]); }
+          else { this.state.dice=null; this.state.turn=otherRole; this.state.turnStartedAt=Date.now(); this.sync(); this.render(); }
+        }
+      }
     },1000);
   },
   logMove(text){
@@ -1054,11 +1071,12 @@ const TOD_DATA = {
 const TOD_PENALTIES=['Do 10 pushups 💪','Send a silly selfie 🤳','Sing happy birthday 🎂','Speak in a funny voice for 1 min 🗣️'];
 const TOD_CATS=[['romantic','💕 Romantic'],['cute','🥰 Cute'],['funny','😂 Funny'],['deep','💭 Deep'],['hot','🔥 Hot'],['adventure','🗺️ Adventure']];
 const TOD = {
-  chan:null, state:null, category:'romantic', timerInt:null, _displayAngle:0, _bottleWired:false, _lastPhase:null,
+  chan:null, state:null, category:'romantic', timerInt:null, _displayAngle:0, _bottleWired:false, _lastPhase:null, showHistory:false,
   async open(body){
     this.chan = new GameChannel('tod');
     let st = await this.chan.load();
-    if(!st) st = {turn:'user1', streak:0, phase:'idle', category:'romantic', current:null};
+    if(!st) st = {turn:'user1', streak:0, phase:'idle', category:'romantic', current:null, history:[]};
+    if(!st.history) st.history=[];
     // backward-compat with the old (pre-rebuild) saved shape
     if(!st.phase) st.phase = st.current ? 'reveal' : 'idle';
     if(st.phase==='reveal' && st.current && !st.current.askedBy){ st.phase='idle'; st.current=null; }
@@ -1178,6 +1196,7 @@ const TOD = {
     speechSynthesis.cancel(); speechSynthesis.speak(u);
   },
   react(emoji){ this.chan.send({type:'react',emoji}); this.floatEmoji(emoji); },
+  toggleHistory(){ this.showHistory=!this.showHistory; this.render(); },
   floatEmoji(emoji){
     const el=document.createElement('div'); el.className='tod-float-emoji'; el.textContent=emoji;
     el.style.left=(40+Math.random()*20)+'vw'; el.style.bottom='120px';
@@ -1185,6 +1204,9 @@ const TOD = {
   },
   completeCard(){
     clearInterval(this.timerInt);
+    if(!this.state.history) this.state.history=[];
+    if(this.state.current) this.state.history.unshift({type:this.state.current.type,text:this.state.current.text,answer:this.state.current.answer});
+    if(this.state.history.length>10) this.state.history.length=10;
     this.state.streak++; this.state.current=null; this.state.phase='idle';
     this.state.turn = this.state.turn==='user1'?'user2':'user1';
     GameCore.addXP(10); GameCore.addCoins(4);
@@ -1193,9 +1215,14 @@ const TOD = {
   skipCurrent(){
     clearInterval(this.timerInt);
     const pen = rand(TOD_PENALTIES);
-    Snd.fail(); this.state.streak=0; this.state.current=null; this.state.phase='idle';
+    Snd.fail(); this.state.streak=0;
+    if(!this.state.history) this.state.history=[];
+    if(this.state.current) this.state.history.unshift({type:this.state.current.type,text:this.state.current.text,answer:'⏭️ Skipped'});
+    if(this.state.history.length>10) this.state.history.length=10;
+    GameCore.addXP(-5);
+    this.state.current=null; this.state.phase='idle';
     this.state.turn = this.state.turn==='user1'?'user2':'user1';
-    showReward('😅','Penalty Time!',[pen]);
+    showReward('😅','Penalty Time!',[pen,'-5 XP for skipping']);
     this.sync(); this.render();
   },
   render(){
@@ -1232,6 +1259,8 @@ const TOD = {
         </div>
         <button class="tod-spin-btn" ${!myTurn||s.phase==='spinning'?'disabled':''} onclick="TOD.spin()">${s.phase==='spinning'?'SPINNING…':'SPIN THE BOTTLE 🌀'}</button>
         <div class="tod-bottle-hint">${myTurn?'Flick, drag, or tap Spin':'Waiting for '+esc(ID.partnerName)+'…'}</div>
+        ${s.phase==='idle'?`<button class="btn btn-glass btn-sm" onclick="TOD.toggleHistory()">📜 ${this.showHistory?'Hide':'Show'} history</button>`:''}
+        ${s.phase==='idle' && this.showHistory ? `<div class="tod-history">${(s.history&&s.history.length)?s.history.map(h=>`<div class="tod-hist-row"><span class="tod-hist-type">${h.type==='truth'?'💬':'⚡'}</span> ${esc(h.text)} <span class="tod-hist-ans">→ ${esc(h.answer||'')}</span></div>`).join(''):'<div class="tod-hist-row">No rounds played yet</div>'}</div>` : ''}
       </div>`;
     } else if(s.phase==='choose'){
       main = myTurn ? `
@@ -1304,7 +1333,7 @@ const Draw = {
     this.state = st; this.redoStack=[];
     this.chan.listen(p=>{
       if(p.type==='sync'){ this.state=p.state; this.redoStack=[]; this.render(); this.redrawAll(); }
-      else if(p.type==='stroke'){ this.state.strokes.push(p.stroke); this.drawSeg(p.stroke); }
+      else if(p.type==='stroke'){ this.state.strokes.push(p.stroke); if(p.stroke.mode==='fill') this.floodFillAt(p.stroke.x,p.stroke.y,p.stroke.color); else this.drawSeg(p.stroke); }
       else if(p.type==='clear'){ this.state.strokes=[]; this.clearCanvas(); }
       else if(p.type==='undo'){ this.state.strokes=p.strokes; this.redrawAll(); }
       else if(p.type==='typing'){ this.partnerTyping=true; clearTimeout(this.typingHideT); this.typingHideT=setTimeout(()=>{ this.partnerTyping=false; this.updateTypingUI(); },2200); this.updateTypingUI(); }
@@ -1347,10 +1376,18 @@ const Draw = {
     const getPt=(e)=>{ const r=this.canvas.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:(t.clientX-r.left)/r.width, y:(t.clientY-r.top)/r.height}; };
     const start=(e)=>{
       if(!this.isDrawer()) return; e.preventDefault();
+      if(this.mode==='fill'){
+        const p=getPt(e);
+        const fillItem={x:p.x,y:p.y,color:this.color,mode:'fill',sid:uid()};
+        this.floodFillAt(p.x,p.y,this.color);
+        this.state.strokes.push(fillItem); this.chan.send({type:'stroke',stroke:fillItem}); this.chan.persist(this.state);
+        Snd.tap();
+        return;
+      }
       this.drawing=true; this.lastPt=getPt(e); this.strokeId=uid(); this.redoStack=[];
     };
     const move=(e)=>{
-      if(!this.isDrawer()||!this.drawing) return; e.preventDefault();
+      if(!this.isDrawer()||!this.drawing||this.mode==='fill') return; e.preventDefault();
       const p=getPt(e);
       const stroke={x0:this.lastPt.x,y0:this.lastPt.y,x1:p.x,y1:p.y,color:this.color,size:this.size,mode:this.mode,sid:this.strokeId};
       this.drawSeg(stroke); this.state.strokes.push(stroke); this.chan.send({type:'stroke',stroke}); this.lastPt=p;
@@ -1371,8 +1408,51 @@ const Draw = {
     this.ctx.stroke();
     this.ctx.restore();
   },
+  hexToRgb(hex){
+    if(hex==='#ffffff') return {r:255,g:255,b:255};
+    if(hex==='#000000') return {r:0,g:0,b:0};
+    const h=hex.replace('#','');
+    return { r:parseInt(h.substring(0,2),16), g:parseInt(h.substring(2,4),16), b:parseInt(h.substring(4,6),16) };
+  },
+  floodFillAt(nx,ny,color){
+    if(!this.ctx) return;
+    const w=this.canvas.width, h=this.canvas.height;
+    const x=Math.floor(nx*w), y=Math.floor(ny*h);
+    if(x<0||y<0||x>=w||y>=h) return;
+    const imgData=this.ctx.getImageData(0,0,w,h);
+    const data=imgData.data;
+    const idxOf=(cx,cy)=>(cy*w+cx)*4;
+    const si=idxOf(x,y);
+    const sr=data[si], sg=data[si+1], sb=data[si+2], sa=data[si+3];
+    const fc=this.hexToRgb(color);
+    if(Math.abs(sr-fc.r)<12 && Math.abs(sg-fc.g)<12 && Math.abs(sb-fc.b)<12 && sa>240) return; // already this color
+    const tol=48;
+    const matches=(i)=>{
+      const dr=data[i]-sr, dg=data[i+1]-sg, db=data[i+2]-sb, da=data[i+3]-sa;
+      return (dr*dr+dg*dg+db*db+da*da) <= tol*tol;
+    };
+    const visited=new Uint8Array(w*h);
+    const stack=[[x,y]];
+    let guard=0;
+    while(stack.length && guard<w*h*2){
+      guard++;
+      const [cx,cy]=stack.pop();
+      if(cx<0||cy<0||cx>=w||cy>=h) continue;
+      const vi=cy*w+cx;
+      if(visited[vi]) continue;
+      const i=idxOf(cx,cy);
+      if(!matches(i)) continue;
+      visited[vi]=1;
+      data[i]=fc.r; data[i+1]=fc.g; data[i+2]=fc.b; data[i+3]=255;
+      stack.push([cx+1,cy],[cx-1,cy],[cx,cy+1],[cx,cy-1]);
+    }
+    this.ctx.putImageData(imgData,0,0);
+  },
   clearCanvas(){ if(this.ctx) this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height); },
-  redrawAll(){ this.clearCanvas(); (this.state.strokes||[]).forEach(s=>this.drawSeg(s)); },
+  redrawAll(){
+    this.clearCanvas();
+    (this.state.strokes||[]).forEach(s=>{ if(s.mode==='fill') this.floodFillAt(s.x,s.y,s.color); else this.drawSeg(s); });
+  },
   clear(){ if(!this.isDrawer()) return; this.state.strokes=[]; this.redoStack=[]; this.chan.send({type:'clear'}); this.clearCanvas(); this.chan.persist(this.state); },
   undo(){
     if(!this.isDrawer() || !this.state.strokes.length) return;
@@ -1387,12 +1467,6 @@ const Draw = {
     const grp=this.redoStack.pop();
     grp.forEach(s=>this.state.strokes.push(s));
     this.chan.send({type:'undo', strokes:this.state.strokes}); this.redrawAll(); this.chan.persist(this.state);
-  },
-  fill(){
-    if(!this.isDrawer()||!this.ctx) return;
-    this.ctx.save(); this.ctx.globalCompositeOperation='destination-over'; this.ctx.fillStyle=this.color;
-    this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height); this.ctx.restore();
-    toast('🪣 Background filled');
   },
   newWord(){ if(!this.isDrawer()) return; this.state.word=rand(DRAW_WORDS); this.state.strokes=[]; this.state.roundStartedAt=Date.now(); this.sync(); this.clearCanvas(); toast('New word! ✏️'); },
   pickColor(c){ this.color=c; this.render(); setTimeout(()=>this.setupCanvas(),30); },
@@ -1441,8 +1515,8 @@ const Draw = {
             <div class="dw-tool-btn ${this.mode==='pen'?'sel':''}" style="cursor:pointer" onclick="Draw.pickMode('pen')" title="Pen">✏️</div>
             <div class="dw-tool-btn ${this.mode==='highlighter'?'sel':''}" style="cursor:pointer" onclick="Draw.pickMode('highlighter')" title="Highlighter">🖊️</div>
             <div class="dw-tool-btn ${this.mode==='eraser'?'sel':''}" style="cursor:pointer" onclick="Draw.pickMode('eraser')" title="Eraser">🧽</div>
+            <div class="dw-tool-btn ${this.mode==='fill'?'sel':''}" style="cursor:pointer" onclick="Draw.pickMode('fill')" title="Fill">🪣</div>
             ${DW_SIZES.map(sz=>`<div class="dw-size-btn ${this.size===sz?'sel':''}" onclick="Draw.pickSize(${sz})"><div class="dw-size-dot" style="width:${Math.max(4,sz*0.55)}px;height:${Math.max(4,sz*0.55)}px;background:${this.mode==='eraser'?'#888':this.color}"></div></div>`).join('')}
-            <button class="dw-tool-btn" onclick="Draw.fill()" title="Fill background">🪣</button>
             <button class="dw-tool-btn" onclick="Draw.undo()" title="Undo">↩️</button>
             <button class="dw-tool-btn" onclick="Draw.redo()" title="Redo">↪️</button>
             <button class="dw-tool-btn" onclick="Draw.clear()" title="Clear">🗑️</button>
