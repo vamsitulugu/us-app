@@ -270,8 +270,11 @@ body.native-auth-only #authModal .modal-close{display:none}
 .auth-divider{text-align:center;font-size:11px;color:var(--text3);margin:15px 0}
 .auth-btn-alt{width:100%;padding:12px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;background:var(--g2);color:var(--white);border:1px solid var(--border2);font-family:var(--ff-sans);transition:all .2s}
 .auth-btn-alt:hover{background:var(--g3)}
-#phoneSignupView,#phoneOtpView,#phoneLoginView,#partnerConnectView{display:none}
-#phoneSignupView.active,#phoneOtpView.active,#phoneLoginView.active,#partnerConnectView.active{display:block;animation:fadeSlide .25s ease}
+#phoneSignupView,#phoneOtpView,#phoneLoginView,#partnerConnectView,#emailSignupView,#emailSentView,#emailLoginView{display:none}
+#phoneSignupView.active,#phoneOtpView.active,#phoneLoginView.active,#partnerConnectView.active,#emailSignupView.active,#emailSentView.active,#emailLoginView.active{display:block;animation:fadeSlide .25s ease}
+.phone-input-row{display:flex;align-items:stretch;gap:8px}
+.phone-input-row .phone-cc{display:flex;align-items:center;padding:0 12px;border:1px solid var(--border);border-radius:var(--rs);background:var(--g1);color:var(--text2);font-size:13px;font-weight:600;white-space:nowrap}
+.phone-input-row input{flex:1;min-width:0}
 @keyframes fadeSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
@@ -434,7 +437,7 @@ body.native-auth-only #authModal .modal-close{display:none}
     <div id="phoneSignupView">
       <div class="modal-headline">Sign up with your phone 📱</div>
       <div id="phoneSignupErr" class="auth-err"></div>
-      <div class="field"><label>Phone Number</label><div class="phone-input-row"><span class="phone-cc" id="phoneSignupCC">+1</span><input type="tel" inputmode="numeric" id="phoneSignupPhone" placeholder="7077745442" autocomplete="tel" maxlength="10"></div></div>
+      <div class="field"><label>Phone Number</label><div class="phone-input-row"><span class="phone-cc" id="phoneSignupCC">🇮🇳 +91</span><input type="tel" inputmode="numeric" id="phoneSignupPhone" placeholder="7077745442" autocomplete="tel" maxlength="10" oninput="sanitizePhoneInput(this)"></div></div>
       <div class="field"><label>Your Name</label><input type="text" id="phoneSignupName" placeholder="Your name" autocomplete="off"></div>
       <div class="field"><label>Password (min 6 chars)</label><input type="password" id="phoneSignupPassword" placeholder="Create a password"></div>
       <button class="auth-btn" id="phoneSignupBtn" onclick="doPhoneSignup()">Send Verification Code ✨</button>
@@ -454,7 +457,7 @@ body.native-auth-only #authModal .modal-close{display:none}
     <div id="phoneLoginView">
       <div class="modal-headline">Sign in with your phone 📱</div>
       <div id="phoneLoginErr" class="auth-err"></div>
-      <div class="field"><label>Phone Number</label><div class="phone-input-row"><span class="phone-cc" id="phoneLoginCC">+1</span><input type="tel" inputmode="numeric" id="phoneLoginPhone" placeholder="7077745442" autocomplete="tel" maxlength="10"></div></div>
+      <div class="field"><label>Phone Number</label><div class="phone-input-row"><span class="phone-cc" id="phoneLoginCC">🇮🇳 +91</span><input type="tel" inputmode="numeric" id="phoneLoginPhone" placeholder="7077745442" autocomplete="tel" maxlength="10" oninput="sanitizePhoneInput(this)"></div></div>
       <div class="field"><label>Password</label><input type="password" id="phoneLoginPassword" placeholder="Your password"></div>
       <button class="auth-btn" id="phoneLoginBtn" onclick="doPhoneLogin()">Sign In 💕</button>
       <div class="auth-divider">Don't have an account?</div>
@@ -587,8 +590,45 @@ function goToApp(){ window.location.href='/'; }
 let _pendingPhone = null;
 let _pendingPurpose = 'signup';
 
+// Keeps phone inputs to digits-only, max 10 — this is what fixes the
+// "stuck after 7 digits" bug: strays like '+', '-', spaces, or an
+// accidentally-typed '91' country code used to eat into the 10-char cap.
+// Only real digits count now, and the user is never asked to type '+91'.
+function sanitizePhoneInput(el){
+  const digits = el.value.replace(/\D/g, '').slice(0, 10);
+  if (el.value !== digits) el.value = digits;
+}
+
+// OTP UX: auto-focus on view switch, allow pasting the full code, and
+// auto-submit once 6 digits are present — mirrors WhatsApp/Telegram feel.
+(function initOtpUx(){
+  const otpEl = document.getElementById('phoneOtpCode');
+  if (!otpEl) return;
+  otpEl.addEventListener('input', () => {
+    otpEl.value = otpEl.value.replace(/\D/g, '').slice(0, 6);
+    if (otpEl.value.length === 6) doPhoneVerifyOtp();
+  });
+  otpEl.addEventListener('paste', (e) => {
+    const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pasted) {
+      e.preventDefault();
+      otpEl.value = pasted;
+      if (pasted.length === 6) doPhoneVerifyOtp();
+    }
+  });
+})();
+
+const _origShowPhoneViewForOtp = showPhoneView;
+showPhoneView = function(view){
+  _origShowPhoneViewForOtp(view);
+  if (view === 'phoneOtpView') {
+    const otpEl = document.getElementById('phoneOtpCode');
+    if (otpEl) { otpEl.value=''; setTimeout(() => otpEl.focus(), 260); }
+  }
+};
+
 function showPhoneView(view){
-  ['phoneSignupView','phoneOtpView','phoneLoginView','partnerConnectView'].forEach(v=>{
+  ['phoneSignupView','phoneOtpView','phoneLoginView','partnerConnectView','emailSignupView','emailSentView','emailLoginView'].forEach(v=>{
     const el=document.getElementById(v);
     if(el) el.classList.toggle('active', v===view);
   });
