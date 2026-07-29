@@ -15,49 +15,6 @@ function genCode() {
   return code;
 }
 
-// ── POST /api/auth/setup ───────────────────────────────
-router.post('/setup', async (req, res) => {
-  const { myName, partnerName, anniversary, vaultPin } = req.body;
-  if (!myName) return res.status(400).json({ error: 'Name required' });
-
-  // Generate unique connect code
-  let connectCode;
-  for (let i = 0; i < 10; i++) {
-    connectCode = genCode();
-    const { data } = await supabase
-      .from('couples')
-      .select('id')
-      .eq('connect_code', connectCode)
-      .maybeSingle();
-    if (!data) break;
-  }
-
-  const hashedPin = await bcrypt.hash(String(vaultPin || '1234'), 10);
-  const coupleId  = uuid();
-
-  const { error } = await supabase.from('couples').insert({
-    id:           coupleId,
-    connect_code: connectCode,
-    user1_name:   myName,
-    user2_name:   partnerName || 'Partner',
-    anniversary:  anniversary || null,
-    vault_pin:    hashedPin,
-    paired:       false, // becomes true only when a partner actually joins via /pair
-    created_at:   new Date().toISOString()
-  });
-
-  if (error) {
-    console.error('Setup error:', error);
-    return res.status(500).json({ error: 'Failed to create couple space: ' + error.message });
-  }
-
-  return res.json({
-    coupleId, connectCode, myName,
-    partnerName: partnerName || 'Partner',
-    paired: false
-  });
-});
-
 // ── POST /api/auth/verify-pin ──────────────────────────
 router.post('/verify-pin', async (req, res) => {
   const { coupleId, pin } = req.body;
@@ -103,52 +60,6 @@ router.get('/couple/:id', async (req, res) => {
 
   if (error || !couple) return res.status(404).json({ error: 'Not found' });
   return res.json(couple);
-});
-// ── POST /api/auth/pair ────────────────────────────────
-// Called by the partner (user2) to join an existing couple space
-router.post('/pair', async (req, res) => {
-  const { connectCode, myName } = req.body;
-  if (!connectCode || !myName) {
-    return res.status(400).json({ error: 'Connect code and name required' });
-  }
-
-  // Find the couple by connect code
-  const { data: couple, error } = await supabase
-    .from('couples')
-    .select('id, connect_code, user1_name, user2_name, anniversary, paired')
-    .eq('connect_code', connectCode.toUpperCase())
-    .maybeSingle();
-
-  if (error || !couple) {
-    return res.status(404).json({ error: 'Invalid connect code. Ask your partner to check their code.' });
-  }
-
-  if (couple.paired) {
-    return res.status(409).json({ error: 'This couple space is already paired with another device.' });
-  }
-
-  // Mark as paired and set user2's name
-  const { error: updateError } = await supabase
-    .from('couples')
-    .update({
-      user2_name: myName,
-      paired: true,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', couple.id);
-
-  if (updateError) {
-    return res.status(500).json({ error: 'Failed to pair: ' + updateError.message });
-  }
-
-  return res.json({
-    coupleId: couple.id,
-    connectCode: couple.connect_code,
-    myName: myName,
-    partnerName: couple.user1_name,
-    anniversary: couple.anniversary || '',
-    paired: true
-  });
 });
 // ── POST /api/auth/unpair ──────────────────────────────
 // Removes the partner relationship ONLY. Never touches
