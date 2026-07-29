@@ -270,8 +270,8 @@ body.native-auth-only #authModal .modal-close{display:none}
 .auth-divider{text-align:center;font-size:11px;color:var(--text3);margin:15px 0}
 .auth-btn-alt{width:100%;padding:12px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;background:var(--g2);color:var(--white);border:1px solid var(--border2);font-family:var(--ff-sans);transition:all .2s}
 .auth-btn-alt:hover{background:var(--g3)}
-#loginView,#registerView,#setupView,#pairView{display:none}
-#loginView.active,#registerView.active,#setupView.active,#pairView.active{display:block;animation:fadeSlide .25s ease}
+#loginView,#registerView,#setupView,#pairView,#phoneSignupView,#phoneOtpView,#phoneLoginView,#partnerConnectView{display:none}
+#loginView.active,#registerView.active,#setupView.active,#pairView.active,#phoneSignupView.active,#phoneOtpView.active,#phoneLoginView.active,#partnerConnectView.active{display:block;animation:fadeSlide .25s ease}
 @keyframes fadeSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
@@ -442,6 +442,7 @@ body.native-auth-only #authModal .modal-close{display:none}
       <button class="auth-btn" id="loginBtn" onclick="doEmailLogin()">Sign In 💕</button>
       <div class="auth-divider">— or —</div>
       <button class="auth-btn-alt" onclick="authTab('register')">Create new account →</button>
+      <button class="auth-btn-alt" style="margin-top:8px" onclick="showPhoneView('phoneLoginView')">Sign in with phone number →</button>
     </div>
 
     <div id="registerView">
@@ -457,6 +458,7 @@ body.native-auth-only #authModal .modal-close{display:none}
       <button class="auth-btn" id="registerBtn" onclick="doEmailRegister()">Create Account ✨</button>
       <div class="auth-divider">Already have an account?</div>
       <button class="auth-btn-alt" onclick="authTab('login')">Sign In →</button>
+      <button class="auth-btn-alt" style="margin-top:8px" onclick="showPhoneView('phoneSignupView')">Sign up with phone number →</button>
     </div>
 
     <div id="setupView">
@@ -482,6 +484,49 @@ body.native-auth-only #authModal .modal-close{display:none}
       <button class="auth-btn" id="pairBtn" onclick="doPairFromLanding()">Connect with Partner 💕</button>
       <div class="auth-divider">Starting fresh?</div>
       <button class="auth-btn-alt" onclick="authTab('setup')">Create New Space →</button>
+    </div>
+
+    <!-- ═══ Phone-number auth (Phase 3) — runs alongside email/couple-code
+         flows above; not removed yet (that's cleanup, later) ═══ -->
+    <div id="phoneSignupView">
+      <div class="modal-headline">Sign up with your phone 📱</div>
+      <div id="phoneSignupErr" class="auth-err"></div>
+      <div class="field"><label>Phone Number</label><input type="tel" id="phoneSignupPhone" placeholder="+14155551234" autocomplete="tel"></div>
+      <div class="field"><label>Your Name</label><input type="text" id="phoneSignupName" placeholder="Your name" autocomplete="off"></div>
+      <div class="field"><label>Password (min 6 chars)</label><input type="password" id="phoneSignupPassword" placeholder="Create a password"></div>
+      <button class="auth-btn" id="phoneSignupBtn" onclick="doPhoneSignup()">Send Verification Code ✨</button>
+      <div class="auth-divider">Already have an account?</div>
+      <button class="auth-btn-alt" onclick="showPhoneView('phoneLoginView')">Sign In →</button>
+      <button class="auth-btn-alt" style="margin-top:8px" onclick="authTab('register')">← Back to email sign up</button>
+    </div>
+
+    <div id="phoneOtpView">
+      <div class="modal-headline">Enter your verification code 💕</div>
+      <div id="phoneOtpErr" class="auth-err"></div>
+      <div class="field"><label>6-digit code</label><input type="text" id="phoneOtpCode" placeholder="123456" maxlength="6" style="letter-spacing:4px;font-size:18px;font-weight:700;text-align:center"></div>
+      <button class="auth-btn" id="phoneOtpBtn" onclick="doPhoneVerifyOtp()">Verify Code 💕</button>
+      <div class="auth-divider"><a href="#" onclick="doPhoneResendOtp();return false;" style="color:inherit">Resend code</a></div>
+    </div>
+
+    <div id="phoneLoginView">
+      <div class="modal-headline">Sign in with your phone 📱</div>
+      <div id="phoneLoginErr" class="auth-err"></div>
+      <div class="field"><label>Phone Number</label><input type="tel" id="phoneLoginPhone" placeholder="+14155551234" autocomplete="tel"></div>
+      <div class="field"><label>Password</label><input type="password" id="phoneLoginPassword" placeholder="Your password"></div>
+      <button class="auth-btn" id="phoneLoginBtn" onclick="doPhoneLogin()">Sign In 💕</button>
+      <div class="auth-divider">Don't have an account?</div>
+      <button class="auth-btn-alt" onclick="showPhoneView('phoneSignupView')">Sign Up →</button>
+      <button class="auth-btn-alt" style="margin-top:8px" onclick="authTab('login')">← Back to email sign in</button>
+    </div>
+
+    <div id="partnerConnectView">
+      <div class="modal-headline">Connect with your partner 💕</div>
+      <div id="partnerConnectErr" class="auth-err"></div>
+      <div id="partnerIncomingBox"></div>
+      <div class="field"><label>Partner's Phone Number</label><input type="tel" id="partnerSearchPhone" placeholder="+14155551234" autocomplete="tel"></div>
+      <button class="auth-btn" id="partnerInviteBtn" onclick="doPartnerInvite()">Send Invitation 💌</button>
+      <div id="partnerInviteStatus" style="margin-top:10px;font-size:13px;opacity:.75"></div>
+      <div class="auth-divider"><a href="#" onclick="refreshPartnerInvitations();return false;" style="color:inherit">Check for invitations</a></div>
     </div>
   </div>
 </div>
@@ -530,6 +575,7 @@ body.native-auth-only #authModal .modal-close{display:none}
   </div>
 </div>
 
+<script src="/js/phone-auth.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════
    Ripple effect (delegated — works on any .ripple-surface button)
@@ -643,6 +689,143 @@ function saveAndGo(data, role){
   window.location.href='/';
 }
 function goToApp(){ window.location.href='/'; }
+
+/* ═══════════════════════════════════════════════════════════════
+   Phone-number auth glue (Phase 3) — talks to PhoneAuth
+   (public/js/phone-auth.js). Runs alongside the email/couple-code
+   flows above; nothing above this comment was changed.
+   ═══════════════════════════════════════════════════════════════ */
+let _pendingPhone = null;
+let _pendingPurpose = 'signup';
+
+function showPhoneView(view){
+  ['loginView','registerView','setupView','pairView','phoneSignupView','phoneOtpView','phoneLoginView','partnerConnectView'].forEach(v=>{
+    const el=document.getElementById(v);
+    if(el) el.classList.toggle('active', v===view);
+  });
+}
+
+async function finalizeIfPaired(user){
+  if(user && user.coupleId){
+    let partnerName='Partner', anniversary='';
+    try{
+      const couple = await PhoneAuth.getCoupleDetails(user.coupleId);
+      partnerName = (user.role==='user2' ? couple.user1_name : couple.user2_name) || 'Partner';
+      anniversary = couple.anniversary || '';
+    }catch(e){ /* fall back to defaults below */ }
+    PhoneAuth.saveLegacySessionAndGo({...user, partnerName, anniversary});
+  } else {
+    showPhoneView('partnerConnectView');
+    refreshPartnerInvitations();
+  }
+}
+
+async function doPhoneSignup(){
+  const phone=document.getElementById('phoneSignupPhone').value.trim();
+  const name=document.getElementById('phoneSignupName').value.trim();
+  const pass=document.getElementById('phoneSignupPassword').value;
+  const err=document.getElementById('phoneSignupErr'); err.style.display='none';
+  if(!phone||!name||!pass){ err.textContent='Fill in all fields'; err.style.display='block'; return; }
+  if(pass.length<6){ err.textContent='Password must be at least 6 characters'; err.style.display='block'; return; }
+  const btn=document.getElementById('phoneSignupBtn'); btn.textContent='Sending...'; btn.disabled=true;
+  try{
+    await PhoneAuth.signup(phone, name, pass);
+    _pendingPhone=phone; _pendingPurpose='signup';
+    showPhoneView('phoneOtpView');
+  }catch(e){ err.textContent=e.message; err.style.display='block'; }
+  finally{ btn.textContent='Send Verification Code ✨'; btn.disabled=false; }
+}
+
+async function doPhoneResendOtp(){
+  const err=document.getElementById('phoneOtpErr'); err.style.display='none';
+  if(!_pendingPhone) return;
+  try{
+    await PhoneAuth.requestOtp(_pendingPhone, _pendingPurpose);
+    err.style.color='';
+    err.textContent='A new code was sent.'; err.style.display='block';
+  }catch(e){ err.textContent=e.message; err.style.display='block'; }
+}
+
+async function doPhoneVerifyOtp(){
+  const code=document.getElementById('phoneOtpCode').value.trim();
+  const err=document.getElementById('phoneOtpErr'); err.style.display='none';
+  if(code.length!==6){ err.textContent='Enter the 6-digit code'; err.style.display='block'; return; }
+  const btn=document.getElementById('phoneOtpBtn'); btn.textContent='Verifying...'; btn.disabled=true;
+  try{
+    const data=await PhoneAuth.verifyOtp(_pendingPhone, code, _pendingPurpose);
+    await finalizeIfPaired(data.user);
+  }catch(e){ err.textContent=e.message; err.style.display='block'; }
+  finally{ btn.textContent='Verify Code 💕'; btn.disabled=false; }
+}
+
+async function doPhoneLogin(){
+  const phone=document.getElementById('phoneLoginPhone').value.trim();
+  const pass=document.getElementById('phoneLoginPassword').value;
+  const err=document.getElementById('phoneLoginErr'); err.style.display='none';
+  if(!phone||!pass){ err.textContent='Enter your phone number and password'; err.style.display='block'; return; }
+  const btn=document.getElementById('phoneLoginBtn'); btn.textContent='Signing in...'; btn.disabled=true;
+  try{
+    const data=await PhoneAuth.login(phone, pass);
+    await finalizeIfPaired(data.user);
+  }catch(e){
+    if(String(e.message||'').toLowerCase().includes('not verified')){
+      _pendingPhone=phone; _pendingPurpose='login';
+      try{ await PhoneAuth.requestOtp(phone,'login'); showPhoneView('phoneOtpView'); return; }catch(e2){ /* fall through to show original error */ }
+    }
+    err.textContent=e.message; err.style.display='block';
+  }
+  finally{ btn.textContent='Sign In 💕'; btn.disabled=false; }
+}
+
+async function doPartnerInvite(){
+  const phone=document.getElementById('partnerSearchPhone').value.trim();
+  const status=document.getElementById('partnerInviteStatus');
+  const err=document.getElementById('partnerConnectErr'); err.style.display='none';
+  status.textContent='';
+  if(!phone){ err.textContent='Enter your partner\'s phone number'; err.style.display='block'; return; }
+  const btn=document.getElementById('partnerInviteBtn'); btn.textContent='Sending...'; btn.disabled=true;
+  try{
+    await PhoneAuth.invitePartner(phone);
+    status.textContent='Invitation sent 💌 — they\'ll get a notification to accept.';
+  }catch(e){ err.textContent=e.message; err.style.display='block'; }
+  finally{ btn.textContent='Send Invitation 💌'; btn.disabled=false; }
+}
+
+async function refreshPartnerInvitations(){
+  const box=document.getElementById('partnerIncomingBox');
+  if(!box) return;
+  try{
+    const {incoming}=await PhoneAuth.listInvitations();
+    if(!incoming || !incoming.length){ box.innerHTML=''; return; }
+    box.innerHTML = '<div style="font-size:13px;opacity:.75;margin-bottom:8px">Incoming requests:</div>' + incoming.map(inv=>{
+      const name = (inv.requester && inv.requester.name) || 'Someone';
+      const phoneNum = (inv.requester && inv.requester.phone_number) || '';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;padding:10px;border:1px solid var(--border);border-radius:10px">'
+        + '<span>'+name+' <span style="opacity:.6">('+phoneNum+')</span></span>'
+        + '<span style="display:flex;gap:6px">'
+        + '<button class="auth-btn" style="padding:6px 14px;font-size:13px" onclick="acceptInvite(\''+inv.id+'\')">Accept</button>'
+        + '<button class="auth-btn-alt" style="padding:6px 14px;font-size:13px" onclick="declineInvite(\''+inv.id+'\')">Decline</button>'
+        + '</span></div>';
+    }).join('');
+  }catch(e){ /* not signed in yet or network hiccup — silently ignore */ }
+}
+
+async function acceptInvite(id){
+  try{
+    await PhoneAuth.acceptInvitation(id);
+    const user = await PhoneAuth.me();
+    await finalizeIfPaired({ id:user.id, phoneNumber:user.phone_number, name:user.name, coupleId:user.couple_id, role:user.role });
+  }catch(e){
+    const err=document.getElementById('partnerConnectErr');
+    err.textContent=e.message; err.style.display='block';
+  }
+}
+
+async function declineInvite(id){
+  try{ await PhoneAuth.declineInvitation(id); refreshPartnerInvitations(); }
+  catch(e){ /* ignore */ }
+}
+
 
 /* ═══════════════════════════════════════════════════════════════
    SMART PLATFORM DETECTION + INSTALL EXPERIENCE
