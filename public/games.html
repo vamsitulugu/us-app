@@ -422,6 +422,114 @@ button{font-family:inherit;cursor:pointer}
 @keyframes pzFall{to{transform:translateY(110vh) rotate(600deg);opacity:0}}
 .pz-heart{position:fixed;pointer-events:none;z-index:3700;font-size:18px;animation:pzHeartUp 2.2s ease-out forwards}
 @keyframes pzHeartUp{0%{transform:translateY(0) scale(.6);opacity:1}100%{transform:translateY(-260px) scale(1.3);opacity:0}}
+
+/* ══ MIND READER ══ */
+.mr-wrap{max-width:520px;margin:0 auto;position:relative}
+.mr-bgfloat{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.mr-bgheart{position:absolute;bottom:-40px;font-size:18px;opacity:0;animation:mrFloatUp linear forwards}
+@keyframes mrFloatUp{0%{opacity:0;transform:translateY(0) scale(.6) rotate(0)}10%{opacity:.5}90%{opacity:.35}100%{opacity:0;transform:translateY(-100vh) scale(1.1) rotate(30deg)}}
+.mr-hero{text-align:center;padding:6px 0 14px;position:relative;z-index:1}
+.mr-hero-title{font-family:var(--ff-serif);font-size:23px;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px}
+.mr-hero-sub{font-size:11.5px;color:var(--text2);margin-top:4px;letter-spacing:.5px;text-transform:uppercase}
+.mr-compat-ring-wrap{display:flex;justify-content:center;margin:16px 0}
+.mr-compat-ring{position:relative;width:120px;height:120px}
+.mr-compat-ring svg{transform:rotate(-90deg)}
+.mr-compat-ring-bg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:9}
+.mr-compat-ring-fill{fill:none;stroke:url(#mrRingGrad);stroke-width:9;stroke-linecap:round;transition:stroke-dashoffset 1s cubic-bezier(.34,1.1,.64,1)}
+.mr-compat-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.mr-compat-num .val{font-family:var(--ff-serif);font-size:26px;color:#fff}
+.mr-compat-num .lbl{font-size:8.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-top:1px}
+.mr-modegrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.mr-modecard{border-radius:16px;padding:14px;border:1px solid var(--border);background:var(--g1);text-align:center;transition:var(--t)}
+.mr-modecard.sel{border-color:var(--accent2);background:rgba(168,85,247,.14);box-shadow:0 0 0 1px var(--accent2-glow)}
+.mr-modecard .mmc-ico{font-size:20px}
+.mr-modecard .mmc-name{font-weight:800;font-size:12.5px;color:#fff;margin-top:4px}
+.mr-modecard .mmc-sub{font-size:9.5px;color:var(--text3);margin-top:2px}
+.mr-catgrid{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;margin:12px 0}
+.mr-catgrid::-webkit-scrollbar{height:0}
+.mr-catchip{flex-shrink:0;padding:8px 13px;border-radius:20px;background:var(--g1);border:1px solid var(--border);font-size:11.5px;font-weight:700;color:var(--text2);white-space:nowrap}
+.mr-catchip.sel{background:linear-gradient(135deg,var(--accent2),var(--accent2-d));color:#fff;border-color:transparent}
+.mr-startbtn{width:100%;padding:14px;border-radius:15px;background:linear-gradient(135deg,var(--accent2),#ff6fae);color:#fff;font-weight:800;font-size:14.5px;border:none;box-shadow:0 6px 20px var(--accent2-glow);margin-top:6px}
+.mr-quicklinks{display:flex;gap:8px;margin-top:10px}
+.mr-quicklinks .btn{flex:1;justify-content:center}
+.mr-statgrid{display:flex;gap:10px;margin:14px 0}
+.mr-stat{flex:1;text-align:center;padding:10px;border-radius:13px;background:var(--g1);border:1px solid var(--border)}
+.mr-stat .ms-val{font-family:var(--ff-serif);font-size:18px;color:#fff}
+.mr-stat .ms-lbl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+
+.mr-countdown-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:260px;gap:10px;position:relative;z-index:1}
+.mr-countdown-num{font-family:var(--ff-serif);font-size:86px;color:var(--accent2);text-shadow:0 0 40px var(--accent2-glow);animation:bmPulse .9s cubic-bezier(.34,1.56,.64,1)}
+
+.mr-roundbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.mr-roundchip{font-size:10.5px;font-weight:700;padding:6px 11px;border-radius:20px;background:var(--g1);border:1px solid var(--border);color:var(--text2)}
+.mr-progress{height:5px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;margin-bottom:14px}
+.mr-progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent2),var(--gold));transition:width .5s cubic-bezier(.4,0,.2,1)}
+.mr-timerbar{height:5px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;margin-bottom:10px}
+.mr-timerfill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width 1s linear}
+.mr-timerfill.low{background:linear-gradient(90deg,var(--red),#ff6b6b)}
+
+.mr-qcard{background:linear-gradient(155deg,rgba(255,255,255,.09),rgba(255,255,255,.02));border:1px solid var(--border2);border-radius:22px;padding:22px 20px;text-align:center;margin-bottom:14px;position:relative;overflow:hidden}
+.mr-qcard::before{content:'';position:absolute;top:-30%;right:-20%;width:60%;height:60%;background:radial-gradient(circle,var(--accent2-glow),transparent 70%);pointer-events:none}
+.mr-qcat{font-size:9.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--accent2);margin-bottom:8px}
+.mr-qtext{font-family:var(--ff-serif);font-size:19px;color:#fff;line-height:1.5;position:relative;z-index:1}
+
+.mr-answer-area{position:relative}
+.mr-answer-box{width:100%;min-height:90px;padding:14px;border-radius:16px;background:var(--g2);border:1px solid var(--border2);color:#fff;font-size:14.5px;font-family:inherit;resize:none}
+.mr-answer-box:focus{outline:none;border-color:var(--accent2)}
+.mr-mc-grid{display:flex;flex-direction:column;gap:8px}
+.mr-mc-opt{padding:13px 16px;border-radius:14px;background:var(--g1);border:1px solid var(--border2);color:#fff;font-size:13.5px;font-weight:600;text-align:left;display:flex;align-items:center;gap:10px}
+.mr-mc-opt.sel{border-color:var(--accent2);background:rgba(168,85,247,.16);box-shadow:0 0 0 1px var(--accent2-glow)}
+.mr-mc-opt .opt-dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--border2);flex-shrink:0}
+.mr-mc-opt.sel .opt-dot{background:var(--accent2);border-color:var(--accent2)}
+.mr-answer-actions{display:flex;gap:8px;margin-top:12px;justify-content:center}
+.mr-lock-status{display:flex;gap:10px;justify-content:center;margin-top:14px}
+.mr-lock-pill{flex:1;max-width:150px;padding:10px;border-radius:14px;background:var(--g1);border:1px solid var(--border);text-align:center;font-size:11px;font-weight:700;color:var(--text2);transition:var(--t)}
+.mr-lock-pill.locked{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.mr-lock-pill.typing{border-color:var(--gold);color:var(--gold)}
+.mr-waiting-note{font-size:11px;color:var(--text3);text-align:center;margin-top:10px;font-style:italic}
+
+/* reveal: two flip-cards facing each other */
+.mr-reveal-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;position:relative;z-index:1}
+.mr-flip-row{display:flex;gap:14px;width:100%;perspective:1200px}
+.mr-flipcard{flex:1;min-height:150px;position:relative}
+.mr-flipcard-inner{position:relative;width:100%;height:100%;min-height:150px;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.34,1.1,.64,1)}
+.mr-flipcard.flipped .mr-flipcard-inner{transform:rotateY(180deg)}
+.mr-flipface{position:absolute;inset:0;border-radius:18px;backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;text-align:center}
+.mr-flipface.front{background:linear-gradient(155deg,rgba(255,255,255,.09),rgba(255,255,255,.02));border:1px solid var(--border2)}
+.mr-flipface.front .ff-ico{font-size:30px;animation:mrPulseIco 1.4s ease-in-out infinite}
+@keyframes mrPulseIco{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+.mr-flipface.back{background:linear-gradient(155deg,rgba(168,85,247,.22),rgba(255,255,255,.02));border:1px solid var(--accent2);transform:rotateY(180deg)}
+.mr-flipface .ff-name{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+.mr-flipface .ff-answer{font-family:var(--ff-serif);font-size:15px;color:#fff;line-height:1.4}
+.mr-match-badge{padding:8px 18px;border-radius:20px;font-size:12.5px;font-weight:800;display:flex;align-items:center;gap:6px;animation:gopop .4s cubic-bezier(.34,1.56,.64,1)}
+.mr-match-badge.exact{background:linear-gradient(135deg,var(--green),#0f9d6e);color:#fff}
+.mr-match-badge.near{background:linear-gradient(135deg,var(--gold),#e08a00);color:#3a2600}
+.mr-match-badge.funny{background:linear-gradient(135deg,var(--accent2),var(--accent2-d));color:#fff}
+.mr-match-badge.diff{background:var(--g2);color:var(--text2);border:1px solid var(--border2)}
+.mr-heart-burst{position:fixed;pointer-events:none;z-index:3700;font-size:20px;animation:pzHeartUp 2s ease-out forwards}
+.mr-score-tick{font-size:11px;color:var(--text2);text-align:center}
+.mr-next-hint{font-size:10.5px;color:var(--text3);text-align:center;font-style:italic;margin-top:2px}
+
+/* end of match summary */
+.mr-summary{text-align:center;padding:10px 6px;position:relative;z-index:1}
+.mr-summary-ico{font-size:52px;margin-bottom:6px}
+.mr-summary-title{font-family:var(--ff-serif);font-size:24px;color:#fff}
+.mr-summary-sub{font-size:12.5px;color:var(--text2);margin-top:6px}
+.mr-summary-ring-wrap{display:flex;justify-content:center;margin:18px 0}
+.mr-cat-breakdown{display:flex;flex-direction:column;gap:6px;margin:14px 0;text-align:left}
+.mr-cat-row{display:flex;align-items:center;gap:8px;font-size:11.5px}
+.mr-cat-row .cr-name{width:90px;flex-shrink:0;color:var(--text2);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mr-cat-row .cr-bar{flex:1;height:6px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden}
+.mr-cat-row .cr-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent2),var(--gold))}
+.mr-cat-row .cr-pct{width:34px;text-align:right;color:var(--text3);font-weight:700;font-size:10.5px}
+.mr-achv-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:14px 0}
+.mr-achv-chip{font-size:10.5px;font-weight:700;padding:6px 12px;border-radius:20px;background:rgba(255,201,74,.14);border:1px solid rgba(255,201,74,.35);color:var(--gold);display:flex;align-items:center;gap:5px}
+
+.mr-history-list{display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;margin-top:10px}
+.mr-hist-item{background:var(--g1);border:1px solid var(--border);border-radius:12px;padding:9px 12px;font-size:11px;color:var(--text2)}
+.mr-hist-item .hi-q{color:#fff;font-weight:600;font-size:11.5px;margin-bottom:3px}
+.mr-hist-item .hi-a{display:flex;gap:10px;flex-wrap:wrap}
+.mr-fav-star{color:var(--gold);cursor:pointer}
 </style>
 </head>
 <body>
@@ -887,12 +995,15 @@ const GameVideo = {
 };
 
 /* ═══════════════════════════════════════════════════════
-   GAME DEFINITIONS (hub cards) — 5 real, fully-synced games
+   GAME DEFINITIONS (hub cards) — real, fully-synced games
 ═══════════════════════════════════════════════════════ */
 const GAMES = [
   {id:'tod', title:'Truth or Dare', emoji:'🔥', badge:'trend', grad:'linear-gradient(135deg,#2a0d0d,#6b0d1a)',
     desc:'Spin the wheel — real-time synced truths & dares, streaks, reactions & voice reading.',
     tags:['🎡 Party','⏱ 10m+','✨ 10 XP/round']},
+  {id:'mindreader', title:'Mind Reader', emoji:'🔮', badge:'new', grad:'linear-gradient(135deg,#1a0d2e,#5c0d4a)',
+    desc:'Answer secretly, flip together — see how well you really know each other with live compatibility scoring.',
+    tags:['🧠 Compat','⏱ 5-15m','✨ 12 XP/round']},
   {id:'ludo', title:'Real Ludo', emoji:'🎲', badge:'new', grad:'linear-gradient(135deg,#0d1a2a,#0d3a5c)',
     desc:'Classic 2-player Ludo — real dice, safe cells, capturing & home stretch, synced live.',
     tags:['🎲 Board','⏱ 15-25m','✨ 15 XP/win']},
@@ -1024,14 +1135,14 @@ const Hub = {
     const body = document.getElementById('goBody');
     body.className='gobody'; body.innerHTML='';
     Snd.click();
-    ({tod:TOD, ludo:Ludo, ttt:TTT, draw:Draw, memory:Memory, bomb:Bomb, puzzle:Puzzle})[gid].open(body);
+    ({tod:TOD, mindreader:MindReader, ludo:Ludo, ttt:TTT, draw:Draw, memory:Memory, bomb:Bomb, puzzle:Puzzle})[gid].open(body);
     GameVideo.startWatch(gid);
   },
   exitGame(){
     const gid=this.activeGameId;
     GameVideo.stop(true);
     GameVideo.stopWatch();
-    ({tod:TOD, ludo:Ludo, ttt:TTT, draw:Draw, memory:Memory, bomb:Bomb, puzzle:Puzzle})[gid]?.close?.();
+    ({tod:TOD, mindreader:MindReader, ludo:Ludo, ttt:TTT, draw:Draw, memory:Memory, bomb:Bomb, puzzle:Puzzle})[gid]?.close?.();
     document.getElementById('goverlay').classList.remove('open');
     this.activeGameId=null;
     setPresenceGame(null);
@@ -2667,6 +2778,522 @@ const Puzzle = {
 };
 
 /* ═══════════════════════════════════════════════════════
+   GAME 8 — MIND READER
+   Both partners secretly answer the same question, lock in,
+   then flip together. Matching is scored (exact / near /
+   funny / different) with a running compatibility %, per-
+   category breakdown, streaks, achievements and history —
+   all realtime-synced through the same GameChannel pattern
+   used across the rest of Twin Hearts.
+═══════════════════════════════════════════════════════ */
+const MR_CATEGORIES = [
+  'love','relationship','movies','music','travel','dreams','food','future',
+  'habits','personality','funny','deep','memories','dating','lifestyle','family','goals','random'
+];
+const MR_CAT_LABELS = {
+  love:'💕 Love', relationship:'💑 Relationship', movies:'🎬 Movies', music:'🎵 Music',
+  travel:'✈️ Travel', dreams:'🌙 Dreams', food:'🍕 Food', future:'🔮 Future',
+  habits:'🔁 Habits', personality:'🌟 Personality', funny:'😂 Funny', deep:'💭 Deep Questions',
+  memories:'📸 Memories', dating:'💌 Dating', lifestyle:'🏡 Lifestyle', family:'👨‍👩‍👧 Family',
+  goals:'🎯 Goals', random:'🎲 Random'
+};
+// Expandable question bank — each entry: {cat, type:'text'|'mc', q, options?}
+const MR_QUESTIONS = [
+  {cat:'love', q:"What movie do you think your partner loves the most?"},
+  {cat:'love', q:"What's one word your partner would use to describe their love for you?"},
+  {cat:'love', q:"What small gesture makes your partner feel most loved?"},
+  {cat:'love', q:"What do you think your partner finds most attractive about you?"},
+  {cat:'love', type:'mc', q:"How does your partner prefer to receive love?", options:['Words of affirmation','Quality time','Physical touch','Acts of service','Gifts']},
+  {cat:'relationship', q:"What's the biggest lesson your partner has taught you?"},
+  {cat:'relationship', q:"What do you think your partner's love language is?"},
+  {cat:'relationship', q:"What's one thing you two argue about most?"},
+  {cat:'relationship', q:"What does your partner think is the key to a happy relationship?"},
+  {cat:'relationship', type:'mc', q:"Who do you think says 'I love you' first more often?", options:['Me','My partner','About equal']},
+  {cat:'movies', q:"What's your partner's all-time favorite movie?"},
+  {cat:'movies', q:"What movie genre does your partner secretly love but rarely admits?"},
+  {cat:'movies', q:"Which movie character reminds your partner of you?"},
+  {cat:'movies', type:'mc', q:"What genre would your partner pick for movie night tonight?", options:['Romance','Action','Comedy','Horror','Documentary']},
+  {cat:'music', q:"What's your partner's favorite song right now?"},
+  {cat:'music', q:"What artist does your partner listen to the most?"},
+  {cat:'music', q:"What song would your partner say describes your relationship?"},
+  {cat:'music', type:'mc', q:"What genre is your partner's guilty pleasure?", options:['Pop','Country','K-pop','Rock','EDM']},
+  {cat:'travel', q:"What's the #1 place on your partner's travel bucket list?"},
+  {cat:'travel', q:"What kind of vacation does your partner enjoy most — beach, mountains, or city?"},
+  {cat:'travel', q:"What's the best trip you two have taken together, according to your partner?"},
+  {cat:'travel', type:'mc', q:"How does your partner prefer to travel?", options:['Spontaneous road trip','Fully planned itinerary','All-inclusive resort','Backpacking adventure']},
+  {cat:'dreams', q:"What's a dream your partner has never told anyone but you?"},
+  {cat:'dreams', q:"If your partner could have any job in the world, what would it be?"},
+  {cat:'dreams', q:"What does your partner dream about most often?"},
+  {cat:'food', q:"What's your partner's ultimate comfort food?"},
+  {cat:'food', q:"What food can your partner absolutely not stand?"},
+  {cat:'food', q:"What's the one meal your partner would want on their last day on Earth?"},
+  {cat:'food', type:'mc', q:"What would your partner order right now?", options:['Pizza','Sushi','Tacos','Burger','Pasta']},
+  {cat:'future', q:"Where does your partner see the two of you in 10 years?"},
+  {cat:'future', q:"What's one goal your partner wants to achieve this year?"},
+  {cat:'future', q:"What does your partner think our biggest challenge will be in the future?"},
+  {cat:'habits', q:"What's your partner's most annoying habit (be honest)?"},
+  {cat:'habits', q:"What's one habit your partner is trying to break?"},
+  {cat:'habits', type:'mc', q:"Is your partner a morning person or night owl?", options:['Morning person','Night owl','Neither — always tired']},
+  {cat:'personality', q:"How would your partner describe their own personality in 3 words?"},
+  {cat:'personality', q:"What does your partner think is their biggest strength?"},
+  {cat:'personality', q:"What does your partner think is their biggest flaw?"},
+  {cat:'funny', q:"What's the weirdest thing your partner has ever eaten?"},
+  {cat:'funny', q:"What's your partner's most embarrassing moment?"},
+  {cat:'funny', q:"If your partner were an animal, which one would they be?"},
+  {cat:'deep', q:"What does your partner think is the meaning of life?"},
+  {cat:'deep', q:"What's a fear your partner rarely talks about?"},
+  {cat:'deep', q:"What does your partner think love really means?"},
+  {cat:'memories', q:"What's your partner's favorite memory of the two of you?"},
+  {cat:'memories', q:"What was your partner's first impression of you?"},
+  {cat:'memories', q:"What's the funniest memory your partner has of you?"},
+  {cat:'dating', q:"What's your partner's idea of the perfect date night?"},
+  {cat:'dating', q:"Where did your partner want to go on your first date?"},
+  {cat:'lifestyle', q:"What's your partner's ideal way to spend a lazy Sunday?"},
+  {cat:'lifestyle', q:"Is your partner more of a homebody or a social butterfly?"},
+  {cat:'family', q:"Who is your partner closest to in their family?"},
+  {cat:'family', q:"How many kids does your partner want (if any)?"},
+  {cat:'goals', q:"What's the next big goal your partner wants to hit together?"},
+  {cat:'goals', q:"What's one thing your partner wants to learn this year?"},
+  {cat:'random', q:"If your partner won the lottery tomorrow, what's the first thing they'd buy?"},
+  {cat:'random', q:"What superpower would your partner pick if they could have one?"},
+  {cat:'random', q:"What's your partner's spirit animal?"},
+];
+const MR_MODES = [
+  {id:'random', ico:'🎲', name:'Random', sub:'Any category'},
+  {id:'category', ico:'🗂️', name:'Category', sub:'Pick a focus'},
+  {id:'best10', ico:'🏁', name:'Best of 10', sub:'Fixed round count'},
+  {id:'endless', ico:'♾️', name:'Endless', sub:'Play till you stop'},
+];
+const MR_ACHIEVEMENTS = [
+  {id:'soulmates', ico:'💞', name:'Soulmates', test:s=>s.compatPct>=90},
+  {id:'streak5', ico:'🔥', name:'5-Match Streak', test:s=>s.bestStreak>=5},
+  {id:'ten_rounds', ico:'🏁', name:'10 Rounds Played', test:s=>s.totalRounds>=10},
+  {id:'category_master', ico:'🎯', name:'Category Master', test:s=>Object.values(s.catStats||{}).some(c=>c.total>=5 && c.matched/c.total>=0.8)},
+  {id:'funny_bunch', ico:'😂', name:'Funny Bunch', test:s=>(s.funnyMatches||0)>=5},
+];
+function mrNormalize(s){ return String(s||'').toLowerCase().trim().replace(/[^a-z0-9 ]+/g,'').replace(/\s+/g,' '); }
+function mrLevenshtein(a,b){
+  const m=a.length,n=b.length; if(!m) return n; if(!n) return m;
+  const dp=Array.from({length:m+1},(_,i)=>[i,...Array(n).fill(0)]);
+  for(let j=0;j<=n;j++) dp[0][j]=j;
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++) dp[i][j]= a[i-1]===b[j-1] ? dp[i-1][j-1] : 1+Math.min(dp[i-1][j-1],dp[i-1][j],dp[i][j-1]);
+  return dp[m][n];
+}
+// Similarity classifier: exact / near / funny(low similarity but both non-empty & short & silly-ish) / different
+function mrClassifyMatch(a,b,isMC){
+  const na=mrNormalize(a), nb=mrNormalize(b);
+  if(!na || !nb) return 'diff';
+  if(isMC) return na===nb ? 'exact' : 'diff';
+  if(na===nb) return 'exact';
+  const maxLen=Math.max(na.length,nb.length);
+  const dist=mrLevenshtein(na,nb);
+  const simRatio = 1-(dist/Math.max(1,maxLen));
+  if(simRatio>=0.72) return 'exact';
+  // word-overlap for near matches (e.g. "the beach" vs "beach vacation")
+  const wa=new Set(na.split(' ').filter(w=>w.length>2));
+  const wb=new Set(nb.split(' ').filter(w=>w.length>2));
+  let overlap=0; wa.forEach(w=>{ if(wb.has(w)) overlap++; });
+  const overlapRatio = overlap / Math.max(1, Math.min(wa.size,wb.size));
+  if(simRatio>=0.42 || overlapRatio>=0.5) return 'near';
+  // funny: both short, playful punctuation/emoji-ish, but not similar at all
+  const playful = /[😂🤣😅😆!?]|lol|lmao|haha/i;
+  if((playful.test(a)||playful.test(b)) && maxLen<=40) return 'funny';
+  return 'diff';
+}
+const MR_MATCH_META = {
+  exact:{label:'🎯 Exact Match!', pts:10, cls:'exact'},
+  near: {label:'👍 Near Match',   pts:5,  cls:'near'},
+  funny:{label:'😂 Funny Match',  pts:3,  cls:'funny'},
+  diff: {label:'💭 Different Answers', pts:1, cls:'diff'},
+};
+
+const MindReader = {
+  chan:null, state:null, sel:{mode:'random', category:'random'}, typingTimer:null,
+  countdownTick:null, answerTimer:null, revealed:false, _bgTimer:null,
+
+  async open(body){
+    this.chan = new GameChannel('mindreader');
+    let st = await this.chan.load();
+    if(!st || !st.phase) st = this.fresh();
+    this.state = st;
+    this.chan.listen(p=>{
+      if(p.type==='sync'){ this.state=p.state; this.render(); }
+      else if(p.type==='typing'){ this.showPartnerTyping(); }
+    });
+    this.spawnFloatingHearts();
+    this.render();
+  },
+  close(){
+    if(this.chan) this.chan.close();
+    clearInterval(this.countdownTick); clearInterval(this.answerTimer); clearInterval(this._bgTimer);
+    const bg=document.getElementById('mrBgFloat'); if(bg) bg.remove();
+  },
+  sync(){ this.chan.send({type:'sync',state:this.state}); this.chan.persist(this.state); },
+
+  fresh(){
+    return {
+      phase:'lobby', mode:'random', category:'random', roundIndex:0, targetRounds:null,
+      question:null, usedQIds:[], countdownAt:0,
+      answers:{user1:null,user2:null}, locked:{user1:false,user2:false}, roundStartedAt:0,
+      matchType:null, revealedAt:0,
+      compatPct:0, totalPts:0, maxPts:0, totalRounds:0, bestStreak:0, curStreak:0,
+      catStats:{}, funnyMatches:0, achievementsUnlocked:[], history:[], favorites:[]
+    };
+  },
+
+  /* ── floating heart background ── */
+  spawnFloatingHearts(){
+    let bg=document.getElementById('mrBgFloat');
+    if(!bg){ bg=document.createElement('div'); bg.id='mrBgFloat'; bg.className='mr-bgfloat'; document.body.appendChild(bg); }
+    clearInterval(this._bgTimer);
+    this._bgTimer=setInterval(()=>{
+      if(!document.getElementById('mrBgFloat')) return;
+      const h=document.createElement('div'); h.className='mr-bgheart';
+      h.textContent = rand(['💕','💗','💖','✨','🔮']);
+      h.style.left = Math.random()*100+'vw';
+      h.style.animationDuration = (7+Math.random()*6)+'s';
+      bg.appendChild(h);
+      setTimeout(()=>h.remove(),14000);
+    },1400);
+  },
+
+  /* ── lobby ── */
+  pickMode(m){ if(this.state.phase!=='lobby') return; this.sel.mode=m; Snd.tap(); this.render(); },
+  pickCategory(c){ if(this.state.phase!=='lobby') return; this.sel.category=c; Snd.tap(); this.render(); },
+  pickQuestion(){
+    const pool = this.sel.category==='random' ? MR_QUESTIONS : MR_QUESTIONS.filter(q=>q.cat===this.sel.category);
+    const used = new Set(this.state.usedQIds||[]);
+    let avail = pool.filter((q,i)=>!used.has(pool.indexOf(q)+':'+q.q));
+    let candidates = pool.filter(q=>!used.has(q.q));
+    if(!candidates.length){ this.state.usedQIds=[]; candidates=pool; }
+    return rand(candidates);
+  },
+  startMatch(){
+    const mode=this.sel.mode;
+    this.state = { ...this.fresh(),
+      mode, category:this.sel.category,
+      targetRounds: mode==='best10' ? 10 : null,
+      compatPct:this.state.compatPct||0, totalPts:this.state.totalPts||0, maxPts:this.state.maxPts||0,
+      totalRounds:this.state.totalRounds||0, bestStreak:this.state.bestStreak||0,
+      catStats:this.state.catStats||{}, funnyMatches:this.state.funnyMatches||0,
+      achievementsUnlocked:this.state.achievementsUnlocked||[], history:this.state.history||[], favorites:this.state.favorites||[]
+    };
+    this.beginRound();
+  },
+  dailyChallenge(){ this.sel.mode='best10'; this.sel.category='random'; this.startMatch(); toast('📅 Daily Challenge started!'); },
+  weeklyChallenge(){ this.sel.mode='endless'; this.sel.category='random'; this.startMatch(); toast('🗓️ Weekly Challenge started!'); },
+
+  beginRound(){
+    const q = this.pickQuestion();
+    this.state.question = q;
+    this.state.usedQIds = (this.state.usedQIds||[]).concat([q.q]);
+    this.state.roundIndex = (this.state.roundIndex||0)+1;
+    this.state.answers = {user1:null,user2:null};
+    this.state.locked = {user1:false,user2:false};
+    this.state.matchType = null;
+    this.state.phase='countdown';
+    this.state.countdownAt = Date.now()+3000;
+    Snd.click();
+    this.sync(); this.render(); this.armCountdown();
+  },
+  armCountdown(){
+    clearInterval(this.countdownTick);
+    this.countdownTick=setInterval(()=>{
+      if(!this.state || this.state.phase!=='countdown') return;
+      const left=Math.ceil((this.state.countdownAt-Date.now())/1000);
+      const el=document.getElementById('mrCdNum'); if(el) el.textContent = left>0?left:'GO!';
+      if(left<=0){
+        clearInterval(this.countdownTick);
+        if(ID.role==='user1'){ this.state.phase='answering'; this.state.roundStartedAt=Date.now(); this.sync(); }
+        setTimeout(()=>{ this.render(); this.armAnswerTimer(); },250);
+      }
+    },120);
+  },
+  armAnswerTimer(){
+    clearInterval(this.answerTimer);
+    this.answerTimer=setInterval(()=>{
+      if(!this.state || this.state.phase!=='answering'){ clearInterval(this.answerTimer); return; }
+      const elapsed=(Date.now()-this.state.roundStartedAt)/1000;
+      const remain=Math.max(0,60-elapsed);
+      const fill=document.getElementById('mrTimerFill');
+      if(fill){ fill.style.width=(remain/60*100)+'%'; fill.classList.toggle('low',remain<12); }
+      if(remain<=0 && !this.state.locked[myKey==='u1'?'user1':'user2']){
+        this.autoLock();
+      }
+    },400);
+  },
+  autoLock(){
+    const draft=document.getElementById('mrAnswerBox');
+    const val=(draft?.value||'').trim() || this.mcSelected || '';
+    this.lockAnswer(val || '(no answer)');
+  },
+
+  notifyTyping(){ this.chan.send({type:'typing'}); },
+  showPartnerTyping(){
+    const pill=document.getElementById('mrPartnerLockPill');
+    if(pill && !pill.classList.contains('locked')){ pill.classList.add('typing'); pill.textContent='✍️ '+ID.partnerName+' is typing…'; }
+  },
+
+  mcSelected:null,
+  selectMC(opt){
+    if(this.state.locked[myKey==='u1'?'user1':'user2']) return;
+    this.mcSelected=opt; Snd.tap(); this.render();
+  },
+  lockAnswer(overrideVal){
+    const roleKey = ID.role;
+    if(this.state.locked[roleKey]) return;
+    let val = overrideVal;
+    if(val===undefined){
+      if(this.state.question.type==='mc'){
+        if(!this.mcSelected){ toast('Pick an option first'); return; }
+        val = this.mcSelected;
+      } else {
+        const ta=document.getElementById('mrAnswerBox'); val=(ta?.value||'').trim();
+        if(!val){ toast('Write your answer first ✍️'); return; }
+      }
+    }
+    this.state.answers[roleKey]=val;
+    this.state.locked[roleKey]=true;
+    Snd.tap();
+    this.sync(); this.render();
+    this.maybeReveal();
+  },
+  maybeReveal(){
+    if(this.state.locked.user1 && this.state.locked.user2 && this.state.phase==='answering'){
+      this.state.phase='reveal'; this.state.revealedAt=Date.now();
+      // scoring authority: user1 computes to avoid double-counting races
+      if(ID.role==='user1'){
+        const isMC = this.state.question.type==='mc';
+        const mt = mrClassifyMatch(this.state.answers.user1, this.state.answers.user2, isMC);
+        this.state.matchType = mt;
+        const pts = MR_MATCH_META[mt].pts;
+        this.state.totalPts=(this.state.totalPts||0)+pts;
+        this.state.maxPts=(this.state.maxPts||0)+10;
+        this.state.compatPct = this.state.maxPts ? Math.round(this.state.totalPts/this.state.maxPts*100) : 0;
+        this.state.totalRounds=(this.state.totalRounds||0)+1;
+        if(mt==='exact'||mt==='near'){ this.state.curStreak=(this.state.curStreak||0)+1; this.state.bestStreak=Math.max(this.state.bestStreak||0,this.state.curStreak); }
+        else { this.state.curStreak=0; }
+        if(mt==='funny') this.state.funnyMatches=(this.state.funnyMatches||0)+1;
+        const cat=this.state.question.cat;
+        this.state.catStats=this.state.catStats||{};
+        this.state.catStats[cat]=this.state.catStats[cat]||{total:0,matched:0};
+        this.state.catStats[cat].total++;
+        if(mt==='exact'||mt==='near') this.state.catStats[cat].matched++;
+        this.state.history=(this.state.history||[]);
+        this.state.history.unshift({ q:this.state.question.q, cat, a1:this.state.answers.user1, a2:this.state.answers.user2, mt, ts:Date.now(), fav:false });
+        if(this.state.history.length>60) this.state.history.length=60;
+        // achievements
+        this.state.achievementsUnlocked=this.state.achievementsUnlocked||[];
+        MR_ACHIEVEMENTS.forEach(a=>{
+          if(!this.state.achievementsUnlocked.includes(a.id) && a.test(this.state)) this.state.achievementsUnlocked.push(a.id);
+        });
+        this.sync();
+      }
+      this.render();
+      setTimeout(()=>this.runFlipAnimation(),150);
+    }
+  },
+  runFlipAnimation(){
+    this.revealed=false; this.render();
+    Snd.tap();
+    setTimeout(()=>{
+      this.revealed=true; this.render();
+      const mt=this.state.matchType;
+      if(mt==='exact'){ Snd.success(); this.heartExplosion(); GameCore.addXP(12); GameCore.addCoins(6); }
+      else if(mt==='near'){ Snd.success(); GameCore.addXP(8); GameCore.addCoins(4); }
+      else if(mt==='funny'){ Snd.tap(); GameCore.addXP(6); GameCore.addCoins(3); }
+      else { Snd.fail(); GameCore.addXP(3); GameCore.addCoins(1); }
+    },700);
+  },
+  heartExplosion(){
+    for(let i=0;i<14;i++){
+      setTimeout(()=>{
+        const h=document.createElement('div'); h.className='mr-heart-burst'; h.textContent=rand(['💕','💖','💗','✨']);
+        h.style.left=(35+Math.random()*30)+'vw'; h.style.top=(50+Math.random()*10)+'vh';
+        document.body.appendChild(h); setTimeout(()=>h.remove(),2100);
+      }, i*60);
+    }
+  },
+  toggleFavCurrent(){
+    const item=this.state.history && this.state.history[0]; if(!item) return;
+    item.fav=!item.fav; this.sync(); this.render(); Snd.tap();
+  },
+  nextRound(){
+    clearInterval(this.answerTimer); this.mcSelected=null;
+    const done = this.state.targetRounds && this.state.roundIndex>=this.state.targetRounds;
+    if(done){ this.state.phase='summary'; this.sync(); this.render(); return; }
+    this.beginRound();
+  },
+  endMatch(){ clearInterval(this.answerTimer); this.state.phase='summary'; this.sync(); this.render(); },
+  backToLobby(){ this.state.phase='lobby'; this.sync(); this.render(); },
+
+  render(){
+    const body=document.getElementById('goBody'); if(!body) return;
+    const s=this.state;
+    if(s.phase==='lobby') return this.renderLobby(body);
+    if(s.phase==='countdown') return this.renderCountdown(body);
+    if(s.phase==='answering') return this.renderAnswering(body);
+    if(s.phase==='reveal') return this.renderReveal(body);
+    if(s.phase==='summary') return this.renderSummary(body);
+  },
+
+  ringSvg(pct,size,label,val){
+    const r=(size-9)/2, c=2*Math.PI*r, off=c*(1-pct/100);
+    return `<div class="mr-compat-ring" style="width:${size}px;height:${size}px">
+      <svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+        <defs><linearGradient id="mrRingGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="var(--accent2)"/><stop offset="100%" stop-color="var(--gold)"/>
+        </linearGradient></defs>
+        <circle class="mr-compat-ring-bg" cx="${size/2}" cy="${size/2}" r="${r}"/>
+        <circle class="mr-compat-ring-fill" cx="${size/2}" cy="${size/2}" r="${r}" stroke-dasharray="${c}" stroke-dashoffset="${off}"/>
+      </svg>
+      <div class="mr-compat-num"><div class="val">${val!=null?val:pct+'%'}</div><div class="lbl">${label}</div></div>
+    </div>`;
+  },
+
+  renderLobby(body){
+    const s=this.state, sel=this.sel;
+    body.innerHTML = `
+      <div class="mr-wrap">
+        <div class="mr-hero">
+          <div class="mr-hero-title">🔮 Mind Reader</div>
+          <div class="mr-hero-sub">Everything Together</div>
+        </div>
+        <div class="mr-compat-ring-wrap">${this.ringSvg(s.compatPct||0,120,'COMPATIBILITY')}</div>
+        <div class="mr-statgrid">
+          <div class="mr-stat"><div class="ms-val">${s.totalRounds||0}</div><div class="ms-lbl">Rounds</div></div>
+          <div class="mr-stat"><div class="ms-val">${s.bestStreak||0}</div><div class="ms-lbl">Best Streak</div></div>
+          <div class="mr-stat"><div class="ms-val">${(s.achievementsUnlocked||[]).length}</div><div class="ms-lbl">Achievements</div></div>
+        </div>
+        <div class="mr-modegrid">
+          ${MR_MODES.map(m=>`<div class="mr-modecard ${sel.mode===m.id?'sel':''}" onclick="MindReader.pickMode('${m.id}')">
+            <div class="mmc-ico">${m.ico}</div><div class="mmc-name">${m.name}</div><div class="mmc-sub">${m.sub}</div>
+          </div>`).join('')}
+        </div>
+        ${sel.mode==='category' ? `<div class="mr-catgrid">
+          ${MR_CATEGORIES.map(c=>`<div class="mr-catchip ${sel.category===c?'sel':''}" onclick="MindReader.pickCategory('${c}')">${MR_CAT_LABELS[c]}</div>`).join('')}
+        </div>` : ''}
+        <button class="mr-startbtn" onclick="MindReader.startMatch()">🔮 Start Reading Minds</button>
+        <div class="mr-quicklinks">
+          <button class="btn btn-glass btn-sm" onclick="MindReader.dailyChallenge()">📅 Daily</button>
+          <button class="btn btn-glass btn-sm" onclick="MindReader.weeklyChallenge()">🗓️ Weekly</button>
+        </div>
+        ${(s.achievementsUnlocked&&s.achievementsUnlocked.length) ? `<div class="mr-achv-row">${s.achievementsUnlocked.map(id=>{const a=MR_ACHIEVEMENTS.find(x=>x.id===id);return a?`<div class="mr-achv-chip">${a.ico} ${a.name}</div>`:'';}).join('')}</div>`:''}
+        ${(s.history&&s.history.length) ? `
+          <div class="hub-sec-title" style="margin-top:18px"><span>📜 Recent Rounds</span><div class="line"></div></div>
+          <div class="mr-history-list">
+            ${s.history.slice(0,8).map(h=>`<div class="mr-hist-item">
+              <div class="hi-q">${h.fav?'<span class="mr-fav-star">★</span> ':''}${esc(h.q)}</div>
+              <div class="hi-a"><span>${esc(ID.myName)}: ${esc(ID.role==='user1'?h.a1:h.a2)}</span><span>${esc(ID.partnerName)}: ${esc(ID.role==='user1'?h.a2:h.a1)}</span></div>
+            </div>`).join('')}
+          </div>` : ''}
+      </div>`;
+  },
+  renderCountdown(body){
+    body.innerHTML = `<div class="mr-wrap"><div class="mr-countdown-wrap"><div style="font-size:13px;color:var(--text2)">Get ready to answer secretly…</div><div class="mr-countdown-num" id="mrCdNum">3</div></div></div>`;
+    this.armCountdown();
+  },
+  renderAnswering(body){
+    const s=this.state, q=s.question, roleKey=ID.role;
+    const myLocked = s.locked[roleKey];
+    const ptLocked = s.locked[roleKey==='user1'?'user2':'user1'];
+    body.innerHTML = `
+      <div class="mr-wrap">
+        <div class="mr-roundbar">
+          <div class="mr-roundchip">Round ${s.roundIndex}${s.targetRounds?'/'+s.targetRounds:''}</div>
+          <div class="mr-roundchip">${MR_CAT_LABELS[q.cat]||q.cat}</div>
+          <div class="mr-roundchip">🔥 ${s.curStreak||0} streak</div>
+        </div>
+        <div class="mr-timerbar"><div class="mr-timerfill" id="mrTimerFill" style="width:100%"></div></div>
+        <div class="mr-qcard">
+          <div class="mr-qcat">${MR_CAT_LABELS[q.cat]||q.cat}</div>
+          <div class="mr-qtext">${esc(q.q)}</div>
+        </div>
+        ${myLocked ? `
+          <div class="mr-waiting-note">✅ Your answer is locked — waiting for ${esc(ID.partnerName)}…</div>
+        ` : q.type==='mc' ? `
+          <div class="mr-mc-grid">
+            ${(q.options||[]).map(opt=>`<div class="mr-mc-opt ${this.mcSelected===opt?'sel':''}" onclick="MindReader.selectMC('${opt.replace(/'/g,"\\'")}')"><span class="opt-dot"></span>${esc(opt)}</div>`).join('')}
+          </div>
+          <div class="mr-answer-actions"><button class="btn btn-pink" onclick="MindReader.lockAnswer()">🔒 Lock Answer</button></div>
+        ` : `
+          <div class="mr-answer-area">
+            <textarea class="mr-answer-box" id="mrAnswerBox" placeholder="Type your secret answer…" oninput="MindReader.notifyTyping()"></textarea>
+          </div>
+          <div class="mr-answer-actions"><button class="btn btn-pink" onclick="MindReader.lockAnswer()">🔒 Lock Answer</button></div>
+        `}
+        <div class="mr-lock-status">
+          <div class="mr-lock-pill ${myLocked?'locked':''}">${myLocked?'🔒 You — locked':esc(ID.myName)+' — answering…'}</div>
+          <div class="mr-lock-pill ${ptLocked?'locked':''}" id="mrPartnerLockPill">${ptLocked?'🔒 '+esc(ID.partnerName)+' — locked':esc(ID.partnerName)+' — answering…'}</div>
+        </div>
+        <div class="mr-waiting-note">Answers stay hidden until you both lock in 🔒</div>
+      </div>`;
+    this.armAnswerTimer();
+  },
+  renderReveal(body){
+    const s=this.state, q=s.question;
+    const mine = ID.role==='user1' ? s.answers.user1 : s.answers.user2;
+    const theirs = ID.role==='user1' ? s.answers.user2 : s.answers.user1;
+    const mt=s.matchType, meta=mt?MR_MATCH_META[mt]:null;
+    const flipped = this.revealed;
+    body.innerHTML = `
+      <div class="mr-wrap">
+        <div class="mr-roundbar">
+          <div class="mr-roundchip">Round ${s.roundIndex}${s.targetRounds?'/'+s.targetRounds:''}</div>
+          <div class="mr-roundchip">${MR_CAT_LABELS[q.cat]||q.cat}</div>
+        </div>
+        <div class="mr-qcard"><div class="mr-qcat">${MR_CAT_LABELS[q.cat]||q.cat}</div><div class="mr-qtext">${esc(q.q)}</div></div>
+        <div class="mr-reveal-wrap">
+          <div class="mr-flip-row">
+            <div class="mr-flipcard ${flipped?'flipped':''}"><div class="mr-flipcard-inner">
+              <div class="mr-flipface front"><div class="ff-ico">🔒</div><div style="font-size:11px;color:var(--text3);margin-top:6px">${esc(ID.myName)}</div></div>
+              <div class="mr-flipface back"><div class="ff-name">${esc(ID.myName)}</div><div class="ff-answer">${esc(mine||'')}</div></div>
+            </div></div>
+            <div class="mr-flipcard ${flipped?'flipped':''}"><div class="mr-flipcard-inner">
+              <div class="mr-flipface front"><div class="ff-ico">🔒</div><div style="font-size:11px;color:var(--text3);margin-top:6px">${esc(ID.partnerName)}</div></div>
+              <div class="mr-flipface back"><div class="ff-name">${esc(ID.partnerName)}</div><div class="ff-answer">${esc(theirs||'')}</div></div>
+            </div></div>
+          </div>
+          ${flipped && meta ? `
+            <div class="mr-match-badge ${meta.cls}">${meta.label} +${meta.pts}pts</div>
+            <div class="mr-score-tick">Compatibility now ${s.compatPct}% · ${s.totalPts}/${s.maxPts} pts</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-glass btn-sm" onclick="MindReader.toggleFavCurrent()">${(s.history&&s.history[0]&&s.history[0].fav)?'★ Favorited':'☆ Favorite this'}</button>
+            </div>
+            <button class="btn btn-accent" style="width:100%;justify-content:center;padding:13px;margin-top:6px" onclick="MindReader.nextRound()">${s.targetRounds && s.roundIndex>=s.targetRounds ? '🏁 See Results' : 'Next Question ➤'}</button>
+            <button class="btn" style="width:100%;justify-content:center;padding:11px;background:var(--g1);border:1px solid var(--border)" onclick="MindReader.endMatch()">End Match</button>
+          ` : `<div class="mr-next-hint">Flipping your answers…</div>`}
+        </div>
+      </div>`;
+  },
+  renderSummary(body){
+    const s=this.state;
+    const ico = s.compatPct>=90?'💞':s.compatPct>=70?'💕':s.compatPct>=45?'💗':'🌱';
+    const title = s.compatPct>=90?'Practically Soulmates!':s.compatPct>=70?'Great Connection!':s.compatPct>=45?'Getting To Know Each Other':'Room To Grow Together';
+    const cats = Object.entries(s.catStats||{}).sort((a,b)=>b[1].total-a[1].total).slice(0,6);
+    body.innerHTML = `
+      <div class="mr-wrap">
+        <div class="mr-summary">
+          <div class="mr-summary-ico">${ico}</div>
+          <div class="mr-summary-title">${title}</div>
+          <div class="mr-summary-sub">${s.roundIndex} question${s.roundIndex===1?'':'s'} answered this match</div>
+          <div class="mr-summary-ring-wrap">${this.ringSvg(s.compatPct||0,140,'COMPATIBILITY')}</div>
+          <div class="mr-statgrid">
+            <div class="mr-stat"><div class="ms-val">${s.totalRounds||0}</div><div class="ms-lbl">Lifetime Rounds</div></div>
+            <div class="mr-stat"><div class="ms-val">${s.bestStreak||0}</div><div class="ms-lbl">Best Streak</div></div>
+            <div class="mr-stat"><div class="ms-val">${s.funnyMatches||0}</div><div class="ms-lbl">Funny Matches</div></div>
+          </div>
+          ${cats.length? `<div class="mr-cat-breakdown">
+            ${cats.map(([cat,st])=>{ const pct=st.total?Math.round(st.matched/st.total*100):0; return `<div class="mr-cat-row"><div class="cr-name">${MR_CAT_LABELS[cat]||cat}</div><div class="cr-bar"><div class="cr-bar-fill" style="width:${pct}%"></div></div><div class="cr-pct">${pct}%</div></div>`; }).join('')}
+          </div>` : ''}
+          ${(s.achievementsUnlocked&&s.achievementsUnlocked.length) ? `<div class="mr-achv-row">${s.achievementsUnlocked.map(id=>{const a=MR_ACHIEVEMENTS.find(x=>x.id===id);return a?`<div class="mr-achv-chip">${a.ico} ${a.name}</div>`:'';}).join('')}</div>`:''}
+          <button class="btn btn-accent" style="width:100%;justify-content:center;padding:13px;margin-top:10px" onclick="MindReader.backToLobby()">🔮 Back to Mind Reader</button>
+        </div>
+      </div>`;
+  }
+};
+
+/* ═══════════════════════════════════════════════════════
    EXPOSE GLOBALS
 ═══════════════════════════════════════════════════════ */
 window.GameCore = GameCore;
@@ -2676,7 +3303,7 @@ window.GAMES = GAMES;
 window.Snd = Snd; window.Hub = Hub; window.ID = ID;
 window.toast = toast; window.showReward = showReward; window.closeReward = closeReward;
 window.esc = esc; window.rand = rand; window.uid = uid; window.todayStr = todayStr;
-window.TTT = TTT; window.Ludo = Ludo; window.TOD = TOD; window.Draw = Draw; window.Memory = Memory; window.Bomb = Bomb; window.Puzzle = Puzzle;
+window.TTT = TTT; window.Ludo = Ludo; window.TOD = TOD; window.Draw = Draw; window.Memory = Memory; window.Bomb = Bomb; window.Puzzle = Puzzle; window.MindReader = MindReader;
 
 Hub.init();
 </script>
