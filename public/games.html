@@ -232,17 +232,27 @@ button{font-family:inherit;cursor:pointer}
 .tod-hist-ans{color:var(--accent2);font-weight:700}
 @keyframes todfloat{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-160px) scale(1.6)}}
 
-/* ═══ LUDO ═══ */
+/* ═══ LUDO (classic board) ═══ */
 .ludo-wrap{display:flex;flex-direction:column;align-items:center;gap:12px}
-.ludo-board{position:relative;width:min(88vw,340px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.04),rgba(0,0,0,.15));border:1px solid var(--border2)}
-.ludo-home-hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:26%;height:26%;border-radius:50%;background:linear-gradient(135deg,var(--gold),#e08a00);display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 30px var(--gold-glow)}
-.ludo-cell{position:absolute;width:6.5%;height:6.5%;border-radius:50%;background:var(--g2);border:1px solid var(--border);transform:translate(-50%,-50%)}
-.ludo-cell.safe{background:rgba(255,201,74,.25);border-color:rgba(255,201,74,.5)}
-.ludo-token{position:absolute;width:8%;height:8%;border-radius:50%;border:2px solid rgba(255,255,255,.7);transform:translate(-50%,-50%);z-index:3;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;box-shadow:0 3px 8px rgba(0,0,0,.5);transition:left .4s cubic-bezier(.4,0,.2,1),top .4s cubic-bezier(.4,0,.2,1)}
+.ludo-board{position:relative;width:min(92vw,380px);aspect-ratio:1;display:grid;grid-template-columns:repeat(15,1fr);grid-template-rows:repeat(15,1fr);border-radius:12px;overflow:hidden;background:#f4f4f8;border:3px solid #23233a;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.ludo-sq{position:relative;background:#fff;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.08)}
+.ludo-sq.safe{background:#ffe9a8}
+.ludo-sq.safe .star{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:8px;color:#c98a00}
+.ludo-sq.lane-user1{background:#fca5a5}
+.ludo-sq.lane-user2{background:#86efac}
+.ludo-sq.lane-dim{background:#dcdce6}
+.ludo-corner{position:absolute;border-radius:8px}
+.ludo-corner.user1{background:#ef4444}
+.ludo-corner.user2{background:#22c55e}
+.ludo-corner.dim{background:#c7c7d1}
+.ludo-corner-inner{position:absolute;background:rgba(255,255,255,.92);border-radius:8px}
+.ludo-home-hub{position:absolute;border-radius:6px;background:linear-gradient(135deg,var(--gold),#e08a00);display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 0 16px var(--gold-glow);transform:translate(-50%,-50%);z-index:2}
+.ludo-token{position:absolute;width:7.4%;height:7.4%;border-radius:50%;border:2px solid rgba(255,255,255,.85);transform:translate(-50%,-50%);z-index:5;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#fff;box-shadow:0 3px 8px rgba(0,0,0,.5);transition:left .4s cubic-bezier(.4,0,.2,1),top .4s cubic-bezier(.4,0,.2,1)}
+.ludo-token.playable{cursor:pointer}
 .ludo-base-row{display:flex;gap:18px}
 .ludo-base{display:flex;gap:8px;padding:10px 14px;border-radius:16px;background:var(--g1);border:1px solid var(--border)}
 .ludo-base-token{width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff}
-.ludo-dice{width:64px;height:64px;border-radius:16px;background:linear-gradient(155deg,#fff,#e2e2ea);color:#111;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;box-shadow:0 8px 24px rgba(0,0,0,.4),inset 0 -3px 0 rgba(0,0,0,.12),inset 0 2px 0 rgba(255,255,255,.9);transition:var(--t);position:relative}
+.ludo-dice{width:60px;height:60px;border-radius:16px;background:linear-gradient(155deg,#fff,#e2e2ea);color:#111;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;box-shadow:0 8px 24px rgba(0,0,0,.4),inset 0 -3px 0 rgba(0,0,0,.12),inset 0 2px 0 rgba(255,255,255,.9);transition:var(--t);position:relative}
 .ludo-dice.rolling{animation:dspin .55s cubic-bezier(.34,1.1,.64,1)}
 @keyframes dspin{0%{transform:rotate(0) scale(1)}30%{transform:rotate(140deg) scale(1.12)}60%{transform:rotate(280deg) scale(.96)}100%{transform:rotate(360deg) scale(1)}}
 .ludo-token.capturing{animation:tokencap .5s ease forwards}
@@ -970,6 +980,37 @@ const LUDO_NAMES  = {user1:'Red', user2:'Green'};
 const LUDO_START = {user1:0, user2:26};
 const LUDO_SAFE = [0,8,13,21,26,34,39,47];
 const LUDO_TURN_SECONDS = 30;
+// Classic 15x15 Ludo board coordinates (row,col), 0-indexed. 52-cell shared outer path.
+const LUDO_PATH = [
+  [6,1],[6,2],[6,3],[6,4],[6,5],
+  [5,6],[4,6],[3,6],[2,6],[1,6],[0,6],
+  [0,7],
+  [0,8],[1,8],[2,8],[3,8],[4,8],[5,8],
+  [6,9],[6,10],[6,11],[6,12],[6,13],[6,14],
+  [7,14],
+  [8,14],[8,13],[8,12],[8,11],[8,10],[8,9],
+  [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],
+  [14,7],
+  [14,6],[13,6],[12,6],[11,6],[10,6],[9,6],
+  [8,5],[8,4],[8,3],[8,2],[8,1],[8,0],
+  [7,0],
+  [6,0]
+];
+// Home-stretch lane cells (6 each) leading into the center hub at [7,7]
+const LUDO_HOME_LANE = {
+  user1: [[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],
+  user2: [[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]]
+};
+// The other two (unused, decorative) home lanes for visual completeness
+const LUDO_DIM_LANES = [
+  [[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],
+  [[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]]
+];
+const LUDO_CENTER = [7,7];
+// Base yard corner origins {row,col} for top-left 6x6 blocks, and their 4 token pockets (relative row,col)
+const LUDO_BASE_ORIGIN = { user1:{row:0,col:0}, user2:{row:9,col:9} };
+const LUDO_DIM_CORNERS = [{row:0,col:9},{row:9,col:0}];
+const LUDO_POCKETS = [[1,1],[1,4],[4,1],[4,4]];
 const Ludo = {
   chan:null, state:null, rolling:false, lastCapture:null, lastHome:null, timerTick:null, timerLeft:LUDO_TURN_SECONDS,
   async open(body){
@@ -1071,7 +1112,7 @@ const Ludo = {
         this.state.tokens[opp].forEach((op,oi)=>{
           if(op>=0 && op<=50 && (LUDO_START[opp]+op)%52===globalIdx){
             this.state.tokens[opp][oi]=-1;
-            const capXY=this.ringXY(globalIdx,42);
+            const capXY=this.cellXY(...LUDO_PATH[globalIdx]);
             this.lastCapture={role:opp,i:oi,x:capXY.x,y:capXY.y};
             toast('🎯 Captured '+ID.partnerName+'\'s token!'); GameCore.addCoins(5); Snd.fail();
             this.logMove('🎯 Token '+(oi+1)+' captured!');
@@ -1092,62 +1133,66 @@ const Ludo = {
     this.state.dice=null;
     this.sync(); this.render();
   },
-  // map global ring index (0..51) -> {x,y} percent on circular board
-  ringXY(gi,R){ const ang=(gi/52)*2*Math.PI - Math.PI/2; return {x:50+R*Math.cos(ang), y:50+R*Math.sin(ang)}; },
+  // map a 15x15 grid (row,col) -> {x,y} percent on the square board
+  cellXY(row,col){ return {x:(col+0.5)/15*100, y:(row+0.5)/15*100}; },
+  gridStyle(row,col,rs=1,cs=1){ return `grid-row:${row+1}/span ${rs};grid-column:${col+1}/span ${cs}`; },
   render(){
     const body=document.getElementById('goBody'); if(!body) return;
     const s=this.state, myTurn=s.turn===ID.role && !s.winner;
     const mv = s.dice!=null ? this.movable(ID.role,s.dice) : [];
     const capturedThisRender=this.lastCapture, homedThisRender=this.lastHome;
     this.lastCapture=null; this.lastHome=null;
-    let cellsHtml='', tokensHtml='';
-    for(let gi=0; gi<52; gi++){
-      const {x,y}=this.ringXY(gi,42);
-      cellsHtml += `<div class="ludo-cell ${LUDO_SAFE.includes(gi)?'safe':''}" style="left:${x}%;top:${y}%">${LUDO_SAFE.includes(gi)?'★':''}</div>`;
-    }
+
+    // --- static board squares (built once per render, cheap) ---
+    let sqHtml='';
+    LUDO_PATH.forEach((rc,gi)=>{
+      const safe = LUDO_SAFE.includes(gi);
+      sqHtml += `<div class="ludo-sq ${safe?'safe':''}" style="${this.gridStyle(rc[0],rc[1])}">${safe?'<span class="star">★</span>':''}</div>`;
+    });
     ['user1','user2'].forEach(role=>{
-      const entryGlobal=(LUDO_START[role]+50)%52; // last ring cell before turning home
-      const entryAng=(LUDO_START[role]/52)*2*Math.PI - Math.PI/2;
-      for(let h=0;h<6;h++){
-        const R=42-(h+1)*6.2;
-        const x=50+R*Math.cos(entryAng), y=50+R*Math.sin(entryAng);
-        cellsHtml += `<div class="ludo-cell" style="left:${x}%;top:${y}%;background:${LUDO_COLORS[role]}55"></div>`;
-      }
+      LUDO_HOME_LANE[role].forEach(rc=>{ sqHtml += `<div class="ludo-sq lane-${role}" style="${this.gridStyle(rc[0],rc[1])}"></div>`; });
+    });
+    LUDO_DIM_LANES.forEach(lane=>{ lane.forEach(rc=>{ sqHtml += `<div class="ludo-sq lane-dim" style="${this.gridStyle(rc[0],rc[1])}"></div>`; }); });
+    // corner base yards
+    sqHtml += `<div class="ludo-corner user1" style="${this.gridStyle(0,0,6,6)}"></div><div class="ludo-corner-inner" style="${this.gridStyle(1,1,4,4)}"></div>`;
+    sqHtml += `<div class="ludo-corner user2" style="${this.gridStyle(9,9,6,6)}"></div><div class="ludo-corner-inner" style="${this.gridStyle(10,10,4,4)}"></div>`;
+    LUDO_DIM_CORNERS.forEach(c=>{ sqHtml += `<div class="ludo-corner dim" style="${this.gridStyle(c.row,c.col,6,6)}"></div><div class="ludo-corner-inner" style="${this.gridStyle(c.row+1,c.col+1,4,4)}"></div>`; });
+    // center home hub
+    const hubXY=this.cellXY(LUDO_CENTER[0],LUDO_CENTER[1]);
+    const hubHtml = `<div class="ludo-home-hub" style="left:${hubXY.x}%;top:${hubXY.y}%;width:16%;height:16%">🏠</div>`;
+
+    // --- tokens (including those still in base, shown in their pocket) ---
+    let tokensHtml='';
+    ['user1','user2'].forEach(role=>{
       s.tokens[role].forEach((pos,i)=>{
         let x,y;
-        if(pos===-1) return; // shown in base row, not on board
-        else if(pos<=50){ const gi=(LUDO_START[role]+pos)%52; ({x,y}=this.ringXY(gi,42)); }
-        else if(pos<=56){ const h=pos-51; const R=42-(h+1)*6.2; x=50+R*Math.cos(entryAng); y=50+R*Math.sin(entryAng); }
-        else { x=50; y=50; }
+        if(pos===-1){
+          const origin=LUDO_BASE_ORIGIN[role], pk=LUDO_POCKETS[i];
+          ({x,y}=this.cellXY(origin.row+pk[0], origin.col+pk[1]));
+        }
+        else if(pos<=50){ const gi=(LUDO_START[role]+pos)%52; ({x,y}=this.cellXY(...LUDO_PATH[gi])); }
+        else if(pos<=56){ const h=pos-51; ({x,y}=this.cellXY(...LUDO_HOME_LANE[role][h])); }
+        else { ({x,y}=this.cellXY(...LUDO_CENTER)); }
         const canMove = role===ID.role && mv.includes(i);
         const isCurrent = role===s.turn && !s.winner;
         const justHomed = homedThisRender && homedThisRender.role===role && homedThisRender.i===i;
-        tokensHtml += `<div class="ludo-token ${canMove?'playable':''} ${isCurrent?'mine-glow':''} ${justHomed?'homing':''}" style="left:${x}%;top:${y}%;background:${LUDO_COLORS[role]};${canMove?'box-shadow:0 0 0 4px rgba(255,255,255,.5)':''}" onclick="${canMove?`Ludo.moveToken(${i})`:''}">${i+1}</div>`;
+        tokensHtml += `<div class="ludo-token ${canMove?'playable':''} ${isCurrent?'mine-glow':''} ${justHomed?'homing':''}" style="left:${x}%;top:${y}%;background:${LUDO_COLORS[role]};${canMove?'box-shadow:0 0 0 3px rgba(255,255,255,.6),0 3px 8px rgba(0,0,0,.5)':''}" onclick="${canMove?`Ludo.moveToken(${i})`:''}">${i+1}</div>`;
       });
     });
     if(capturedThisRender){
       setTimeout(()=>this.spawnBurst(capturedThisRender.x, capturedThisRender.y),10);
     }
-    const baseRow=(role)=> s.tokens[role].map((pos,i)=>{
-      if(pos!==-1) return '';
-      const canExit = role===ID.role && mv.includes(i);
-      return `<div class="ludo-base-token" style="background:${LUDO_COLORS[role]};${canExit?'box-shadow:0 0 0 3px #fff;cursor:pointer':''}" onclick="${canExit?`Ludo.moveToken(${i})`:''}">${i+1}</div>`;
-    }).join('');
     const historyHtml = (s.moveHistory||[]).map(h=>`<div class="ludo-hist-row">${h}</div>`).join('');
     body.innerHTML = `
       <div class="turn-bar ${myTurn?'mine':''}">${s.winner? (s.winner===ID.role?'👑 You won!':esc(ID.partnerName)+' won this game') : (myTurn?'✨ Your turn — roll the dice':esc(ID.partnerName)+' is playing…')}</div>
       <div class="ludo-wrap">
         <div class="ludo-timerbar"><div class="ludo-timerbar-fill" id="ludoTimerFill" style="width:${(this.timerLeft/LUDO_TURN_SECONDS*100)}%"></div></div>
         <div class="ludo-board" id="ludoBoard">
-          ${cellsHtml}
-          <div class="ludo-home-hub">🏠</div>
+          ${sqHtml}
+          ${hubHtml}
           ${tokensHtml}
         </div>
         <div class="ludo-dice ${this.rolling?'rolling':''}" onclick="Ludo.roll()" style="${myTurn && s.dice==null && !this.rolling ? 'cursor:pointer;box-shadow:0 0 0 4px var(--accent-glow)':''}">${this.rolling?'🎲':(s.dice||'🎲')}</div>
-        <div class="ludo-base-row">
-          <div class="ludo-base">${baseRow('user1')}</div>
-          <div class="ludo-base">${baseRow('user2')}</div>
-        </div>
         <div style="font-size:11px;color:var(--text2);text-align:center">🔴 ${esc(ID.role==='user1'?ID.myName:ID.partnerName)} · 🟢 ${esc(ID.role==='user2'?ID.myName:ID.partnerName)} — roll a 6 to leave base, land exactly on 57 to get home</div>
         ${historyHtml?`<div class="ludo-history">${historyHtml}</div>`:''}
         <div style="display:flex;gap:10px">
