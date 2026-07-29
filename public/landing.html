@@ -520,7 +520,7 @@ body.native-auth-only #authModal .modal-close{display:none}
   </div>
 </div>
 
-<script src="/js/phone-auth.js"></script>
+<script src="/js/email-auth.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════
    Ripple effect (delegated — works on any .ripple-surface button)
@@ -540,24 +540,19 @@ document.addEventListener('click', e=>{
 });
 
 /* ═══════════════════════════════════════════════════════════════
-   Auth modal control (phone-number auth only — Couple Code and
-   email+password flows removed in Phase 4 cleanup)
+   Auth modal control (email auth — the only authentication method;
+   phone number is collected as a searchable profile field only)
    ═══════════════════════════════════════════════════════════════ */
-const API = 'https://us-app-av6d.onrender.com';
-
 function openAuth(view){
   document.getElementById('authModal').classList.add('open');
-  showPhoneView(view === 'signup' ? 'phoneSignupView' : 'phoneLoginView');
+  // If a JWT session already exists (e.g. user verified their email and
+  // closed the tab before pairing), skip straight past signup/login.
+  if (EmailAuth.isSignedIn()) { resumeSignedInSession(); return; }
+  showPhoneView(view === 'signup' ? 'emailSignupView' : 'emailLoginView');
 }
 function closeAuth(){ document.getElementById('authModal').classList.remove('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 function goToApp(){ window.location.href='/'; }
-
-/* ═══════════════════════════════════════════════════════════════
-   Phone-number auth glue — talks to PhoneAuth (public/js/phone-auth.js)
-   ═══════════════════════════════════════════════════════════════ */
-let _pendingPhone = null;
-let _pendingPurpose = 'signup';
 
 // Keeps phone inputs to digits-only, max 10 — this is what fixes the
 // "stuck after 7 digits" bug: strays like '+', '-', spaces, or an
@@ -568,115 +563,96 @@ function sanitizePhoneInput(el){
   if (el.value !== digits) el.value = digits;
 }
 
-// OTP UX: auto-focus on view switch, allow pasting the full code, and
-// auto-submit once 6 digits are present — mirrors WhatsApp/Telegram feel.
-(function initOtpUx(){
-  const otpEl = document.getElementById('phoneOtpCode');
-  if (!otpEl) return;
-  otpEl.addEventListener('input', () => {
-    otpEl.value = otpEl.value.replace(/\D/g, '').slice(0, 6);
-    if (otpEl.value.length === 6) doPhoneVerifyOtp();
-  });
-  otpEl.addEventListener('paste', (e) => {
-    const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
-    if (pasted) {
-      e.preventDefault();
-      otpEl.value = pasted;
-      if (pasted.length === 6) doPhoneVerifyOtp();
-    }
-  });
-})();
-
-const _origShowPhoneViewForOtp = showPhoneView;
-showPhoneView = function(view){
-  _origShowPhoneViewForOtp(view);
-  if (view === 'phoneOtpView') {
-    const otpEl = document.getElementById('phoneOtpCode');
-    if (otpEl) { otpEl.value=''; setTimeout(() => otpEl.focus(), 260); }
-  }
-};
-
 function showPhoneView(view){
-  ['phoneSignupView','phoneOtpView','phoneLoginView','partnerConnectView','emailSignupView','emailSentView','emailLoginView'].forEach(v=>{
+  ['partnerConnectView','emailSignupView','emailSentView','emailLoginView'].forEach(v=>{
     const el=document.getElementById(v);
     if(el) el.classList.toggle('active', v===view);
   });
 }
 
+// After signup/login/verify/accept — decide whether this user still
+// needs to connect with a partner, or is already paired and should go
+// straight into the app.
 async function finalizeIfPaired(user){
   // Register for push/FCM now — even if not yet paired, the user needs
   // to receive partner invite/accept/decline notifications, which are
   // delivered on this (user-id-keyed) channel, not the post-pairing one.
-  PhoneAuth.setupPushForCurrentUser().catch(()=>{});
+  EmailAuth.setupPushForCurrentUser().catch(()=>{});
   if(user && user.coupleId){
     let partnerName='Partner', anniversary='';
     try{
-      const couple = await PhoneAuth.getCoupleDetails(user.coupleId);
+      const couple = await EmailAuth.getCoupleDetails(user.coupleId);
       partnerName = (user.role==='user2' ? couple.user1_name : couple.user2_name) || 'Partner';
       anniversary = couple.anniversary || '';
     }catch(e){ /* fall back to defaults below */ }
-    PhoneAuth.saveLegacySessionAndGo({...user, partnerName, anniversary});
+    EmailAuth.saveLegacySessionAndGo({...user, partnerName, anniversary});
   } else {
     showPhoneView('partnerConnectView');
     refreshPartnerInvitations();
   }
 }
 
-async function doPhoneSignup(){
-  const phone=document.getElementById('phoneSignupPhone').value.trim();
-  const name=document.getElementById('phoneSignupName').value.trim();
-  const pass=document.getElementById('phoneSignupPassword').value;
-  const err=document.getElementById('phoneSignupErr'); err.style.display='none';
-  if(!phone||!name||!pass){ err.textContent='Fill in all fields'; err.style.display='block'; return; }
-  if(pass.length<6){ err.textContent='Password must be at least 6 characters'; err.style.display='block'; return; }
-  const btn=document.getElementById('phoneSignupBtn'); btn.textContent='Sending...'; btn.disabled=true;
+// Called when the auth modal opens and a JWT session already exists
+// (session restore) — re-fetches the current user rather than assuming
+// stale localStorage is still accurate.
+async function resumeSignedInSession(){
   try{
-    await PhoneAuth.signup(phone, name, pass);
-    _pendingPhone=phone; _pendingPurpose='signup';
-    showPhoneView('phoneOtpView');
-  }catch(e){ err.textContent=e.message; err.style.display='block'; }
-  finally{ btn.textContent='Send Verification Code ✨'; btn.disabled=false; }
-}
-
-async function doPhoneResendOtp(){
-  const err=document.getElementById('phoneOtpErr'); err.style.display='none';
-  if(!_pendingPhone) return;
-  try{
-    await PhoneAuth.requestOtp(_pendingPhone, _pendingPurpose);
-    err.style.color='';
-    err.textContent='A new code was sent.'; err.style.display='block';
-  }catch(e){ err.textContent=e.message; err.style.display='block'; }
-}
-
-async function doPhoneVerifyOtp(){
-  const code=document.getElementById('phoneOtpCode').value.trim();
-  const err=document.getElementById('phoneOtpErr'); err.style.display='none';
-  if(code.length!==6){ err.textContent='Enter the 6-digit code'; err.style.display='block'; return; }
-  const btn=document.getElementById('phoneOtpBtn'); btn.textContent='Verifying...'; btn.disabled=true;
-  try{
-    const data=await PhoneAuth.verifyOtp(_pendingPhone, code, _pendingPurpose);
-    await finalizeIfPaired(data.user);
-  }catch(e){ err.textContent=e.message; err.style.display='block'; }
-  finally{ btn.textContent='Verify Code 💕'; btn.disabled=false; }
-}
-
-async function doPhoneLogin(){
-  const phone=document.getElementById('phoneLoginPhone').value.trim();
-  const pass=document.getElementById('phoneLoginPassword').value;
-  const err=document.getElementById('phoneLoginErr'); err.style.display='none';
-  if(!phone||!pass){ err.textContent='Enter your phone number and password'; err.style.display='block'; return; }
-  const btn=document.getElementById('phoneLoginBtn'); btn.textContent='Signing in...'; btn.disabled=true;
-  try{
-    const data=await PhoneAuth.login(phone, pass);
-    await finalizeIfPaired(data.user);
+    const user = await EmailAuth.me();
+    await finalizeIfPaired({ id:user.id, phoneNumber:user.phone_number, name:user.name, coupleId:user.couple_id, role:user.role });
   }catch(e){
-    if(String(e.message||'').toLowerCase().includes('not verified')){
-      _pendingPhone=phone; _pendingPurpose='login';
-      try{ await PhoneAuth.requestOtp(phone,'login'); showPhoneView('phoneOtpView'); return; }catch(e2){ /* fall through to show original error */ }
-    }
-    err.textContent=e.message; err.style.display='block';
+    // Token/refresh both invalid — clear and fall back to login.
+    EmailAuth.clearSession();
+    showPhoneView('emailLoginView');
   }
+}
+
+async function doEmailSignup(){
+  const email=document.getElementById('emailSignupEmail').value.trim();
+  const name=document.getElementById('emailSignupName').value.trim();
+  const pass=document.getElementById('emailSignupPassword').value;
+  const phone=document.getElementById('emailSignupPhone').value.trim();
+  const err=document.getElementById('emailSignupErr'); err.style.display='none';
+  if(!email||!name||!pass||!phone){ err.textContent='Fill in all fields'; err.style.display='block'; return; }
+  if(pass.length<6){ err.textContent='Password must be at least 6 characters'; err.style.display='block'; return; }
+  if(phone.length!==10){ err.textContent='Enter a valid 10-digit phone number'; err.style.display='block'; return; }
+  const cc = (document.getElementById('emailSignupCC').textContent.match(/\+\d+/) || ['+91'])[0];
+  const btn=document.getElementById('emailSignupBtn'); btn.textContent='Sending...'; btn.disabled=true;
+  try{
+    await EmailAuth.signup(email, name, pass, cc+phone);
+    showPhoneView('emailSentView');
+  }catch(e){ err.textContent=e.message; err.style.display='block'; }
+  finally{ btn.textContent='Send Verification Link ✨'; btn.disabled=false; }
+}
+
+async function doEmailResend(){
+  const email=document.getElementById('emailSignupEmail').value.trim();
+  if(!email) return;
+  try{ await EmailAuth.resendVerification(email); }
+  catch(e){ /* silently ignore — user already sees the "check your inbox" view */ }
+}
+
+async function doEmailLogin(){
+  const email=document.getElementById('emailLoginEmail').value.trim();
+  const pass=document.getElementById('emailLoginPassword').value;
+  const err=document.getElementById('emailLoginErr'); err.style.display='none';
+  if(!email||!pass){ err.textContent='Enter your email and password'; err.style.display='block'; return; }
+  const btn=document.getElementById('emailLoginBtn'); btn.textContent='Signing in...'; btn.disabled=true;
+  try{
+    const data=await EmailAuth.login(email, pass);
+    await finalizeIfPaired(data.user);
+  }catch(e){ err.textContent=e.message; err.style.display='block'; }
   finally{ btn.textContent='Sign In 💕'; btn.disabled=false; }
+}
+
+async function doEmailForgotPassword(){
+  const email=document.getElementById('emailLoginEmail').value.trim();
+  const err=document.getElementById('emailLoginErr'); err.style.display='none';
+  if(!email){ err.textContent='Enter your email above first, then tap "Forgot password?"'; err.style.display='block'; return; }
+  try{
+    await EmailAuth.forgotPassword(email);
+    err.style.color='';
+    err.textContent='If that email is registered, a reset link is on its way.'; err.style.display='block';
+  }catch(e){ err.textContent=e.message; err.style.display='block'; }
 }
 
 async function doPartnerInvite(){
@@ -687,18 +663,18 @@ async function doPartnerInvite(){
   if(!phone){ err.textContent='Enter your partner\'s phone number'; err.style.display='block'; return; }
   const btn=document.getElementById('partnerInviteBtn'); btn.textContent='Sending...'; btn.disabled=true;
   try{
-    await PhoneAuth.invitePartner(phone);
+    await EmailAuth.invitePartner(phone);
     status.textContent='Invitation sent 💌 — they\'ll get a notification to accept.';
   }catch(e){ err.textContent=e.message; err.style.display='block'; }
   finally{ btn.textContent='Send Invitation 💌'; btn.disabled=false; }
 }
 
 async function refreshPartnerInvitations(){
-  PhoneAuth.setupPushForCurrentUser().catch(()=>{});
+  EmailAuth.setupPushForCurrentUser().catch(()=>{});
   const box=document.getElementById('partnerIncomingBox');
   if(!box) return;
   try{
-    const {incoming}=await PhoneAuth.listInvitations();
+    const {incoming}=await EmailAuth.listInvitations();
     if(!incoming || !incoming.length){ box.innerHTML=''; return; }
     box.innerHTML = '<div style="font-size:13px;opacity:.75;margin-bottom:8px">Incoming requests:</div>' + incoming.map(inv=>{
       const name = (inv.requester && inv.requester.name) || 'Someone';
@@ -715,8 +691,8 @@ async function refreshPartnerInvitations(){
 
 async function acceptInvite(id){
   try{
-    await PhoneAuth.acceptInvitation(id);
-    const user = await PhoneAuth.me();
+    await EmailAuth.acceptInvitation(id);
+    const user = await EmailAuth.me();
     await finalizeIfPaired({ id:user.id, phoneNumber:user.phone_number, name:user.name, coupleId:user.couple_id, role:user.role });
   }catch(e){
     const err=document.getElementById('partnerConnectErr');
@@ -725,9 +701,20 @@ async function acceptInvite(id){
 }
 
 async function declineInvite(id){
-  try{ await PhoneAuth.declineInvitation(id); refreshPartnerInvitations(); }
+  try{ await EmailAuth.declineInvitation(id); refreshPartnerInvitations(); }
   catch(e){ /* ignore */ }
 }
+
+// Session restore on page load: if already signed in with a valid JWT
+// but not yet paired (e.g. verified email, closed tab, came back), pick
+// up right where they left off instead of showing signup/login again.
+(function restoreSessionOnLoad(){
+  if (!EmailAuth.isSignedIn() || alreadySignedIn()) return; // alreadySignedIn() = fully paired via uwl_v5, handled elsewhere
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('authModal').classList.add('open');
+    resumeSignedInSession();
+  });
+})();
 
 
 /* ═══════════════════════════════════════════════════════════════
