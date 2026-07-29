@@ -423,8 +423,9 @@ body.native-auth-only #authModal .modal-close{display:none}
   <div class="footer-links"><a href="#install">Download</a><a href="#" onclick="openAuth('login');return false;">Sign In</a></div>
 </footer>
 
-<!-- ═══ Auth modal — phone-number authentication only
-     (Couple Code / email+password UI removed in Phase 4 cleanup) ═══ -->
+<!-- ═══ Auth modal — email authentication (phone OTP retired;
+     phone number is now collected only as a profile field used for
+     partner search) ═══ -->
 <div class="modal-bg" id="authModal">
   <div class="mcard">
     <button class="modal-close" onclick="closeAuth()">✕</button>
@@ -434,47 +435,16 @@ body.native-auth-only #authModal .modal-close{display:none}
       <span class="brand-tag">Everything Together.</span>
     </div>
 
-    <div id="phoneSignupView">
-      <div class="modal-headline">Sign up with your phone 📱</div>
-      <div id="phoneSignupErr" class="auth-err"></div>
-      <div class="field"><label>Phone Number</label><div class="phone-input-row"><span class="phone-cc" id="phoneSignupCC">🇮🇳 +91</span><input type="tel" inputmode="numeric" id="phoneSignupPhone" placeholder="7077745442" autocomplete="tel" maxlength="10" oninput="sanitizePhoneInput(this)"></div></div>
-      <div class="field"><label>Your Name</label><input type="text" id="phoneSignupName" placeholder="Your name" autocomplete="off"></div>
-      <div class="field"><label>Password (min 6 chars)</label><input type="password" id="phoneSignupPassword" placeholder="Create a password"></div>
-      <button class="auth-btn" id="phoneSignupBtn" onclick="doPhoneSignup()">Send Verification Code ✨</button>
-      <div class="auth-divider">Already have an account?</div>
-      <button class="auth-btn-alt" onclick="showPhoneView('phoneLoginView')">Sign In →</button>
-      <div class="auth-divider"><a href="#" onclick="showPhoneView('emailSignupView');return false;" style="color:inherit">Use email instead</a></div>
-    </div>
-
-    <div id="phoneOtpView">
-      <div class="modal-headline">Enter your verification code 💕</div>
-      <div id="phoneOtpErr" class="auth-err"></div>
-      <div class="field"><label>6-digit code</label><input type="text" id="phoneOtpCode" placeholder="123456" maxlength="6" style="letter-spacing:4px;font-size:18px;font-weight:700;text-align:center"></div>
-      <button class="auth-btn" id="phoneOtpBtn" onclick="doPhoneVerifyOtp()">Verify Code 💕</button>
-      <div class="auth-divider"><a href="#" onclick="doPhoneResendOtp();return false;" style="color:inherit">Resend code</a></div>
-    </div>
-
-    <div id="phoneLoginView">
-      <div class="modal-headline">Sign in with your phone 📱</div>
-      <div id="phoneLoginErr" class="auth-err"></div>
-      <div class="field"><label>Phone Number</label><div class="phone-input-row"><span class="phone-cc" id="phoneLoginCC">🇮🇳 +91</span><input type="tel" inputmode="numeric" id="phoneLoginPhone" placeholder="7077745442" autocomplete="tel" maxlength="10" oninput="sanitizePhoneInput(this)"></div></div>
-      <div class="field"><label>Password</label><input type="password" id="phoneLoginPassword" placeholder="Your password"></div>
-      <button class="auth-btn" id="phoneLoginBtn" onclick="doPhoneLogin()">Sign In 💕</button>
-      <div class="auth-divider">Don't have an account?</div>
-      <button class="auth-btn-alt" onclick="showPhoneView('phoneSignupView')">Sign Up →</button>
-      <div class="auth-divider"><a href="#" onclick="showPhoneView('emailLoginView');return false;" style="color:inherit">Use email instead</a></div>
-    </div>
-
     <div id="emailSignupView">
-      <div class="modal-headline">Sign up with email ✉️</div>
+      <div class="modal-headline">Create your space ✨</div>
       <div id="emailSignupErr" class="auth-err"></div>
-      <div class="field"><label>Email</label><input type="email" id="emailSignupEmail" placeholder="you@example.com" autocomplete="email"></div>
       <div class="field"><label>Your Name</label><input type="text" id="emailSignupName" placeholder="Your name" autocomplete="off"></div>
+      <div class="field"><label>Email</label><input type="email" id="emailSignupEmail" placeholder="you@example.com" autocomplete="email"></div>
       <div class="field"><label>Password (min 6 chars)</label><input type="password" id="emailSignupPassword" placeholder="Create a password"></div>
+      <div class="field"><label>Phone Number</label><div class="phone-input-row"><span class="phone-cc" id="emailSignupCC">🇮🇳 +91</span><input type="tel" inputmode="numeric" id="emailSignupPhone" placeholder="7077745442" autocomplete="tel" maxlength="10" oninput="sanitizePhoneInput(this)"></div><div style="font-size:12px;opacity:.65;margin-top:4px">Used only so your partner can find you — never for signing in.</div></div>
       <button class="auth-btn" id="emailSignupBtn" onclick="doEmailSignup()">Send Verification Link ✨</button>
       <div class="auth-divider">Already have an account?</div>
       <button class="auth-btn-alt" onclick="showPhoneView('emailLoginView')">Sign In →</button>
-      <div class="auth-divider"><a href="#" onclick="showPhoneView('phoneSignupView');return false;" style="color:inherit">Use phone instead</a></div>
     </div>
 
     <div id="emailSentView">
@@ -492,7 +462,6 @@ body.native-auth-only #authModal .modal-close{display:none}
       <div class="auth-divider"><a href="#" onclick="doEmailForgotPassword();return false;" style="color:inherit">Forgot password?</a></div>
       <div class="auth-divider">Don't have an account?</div>
       <button class="auth-btn-alt" onclick="showPhoneView('emailSignupView')">Sign Up →</button>
-      <div class="auth-divider"><a href="#" onclick="showPhoneView('phoneLoginView');return false;" style="color:inherit">Use phone instead</a></div>
     </div>
 
     <div id="partnerConnectView">
