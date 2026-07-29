@@ -249,7 +249,6 @@ button{font-family:inherit;cursor:pointer}
 .ludo-corner.dim-yellow{background:linear-gradient(155deg,#ffe27a,#f5b301)}
 .ludo-corner.dim-blue{background:linear-gradient(155deg,#78c2ff,#2f8fe0)}
 .ludo-corner-inner{position:absolute;background:rgba(255,255,255,.94);border-radius:9px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
-.ludo-corner-pocket{position:absolute;width:34%;height:34%;border-radius:50%;transform:translate(-50%,-50%);opacity:.5}
 .ludo-home-hub{position:absolute;border-radius:8px;background:conic-gradient(from 0deg,#ef4444 0 25%,#ffd54a 25% 50%,#22c55e 50% 75%,#2f8fe0 75% 100%);display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 0 18px rgba(255,255,255,.35),inset 0 0 0 2px rgba(255,255,255,.5);transform:translate(-50%,-50%);z-index:2}
 .ludo-token{position:absolute;width:7.6%;height:7.6%;border-radius:50%;border:2px solid rgba(255,255,255,.9);transform:translate(-50%,-50%);z-index:5;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#fff;box-shadow:0 3px 8px rgba(0,0,0,.5);transition:left .4s cubic-bezier(.4,0,.2,1),top .4s cubic-bezier(.4,0,.2,1)}
 .ludo-token.playable{cursor:pointer}
@@ -1162,7 +1161,6 @@ const Ludo = {
     sqHtml += `<div class="ludo-corner user2" style="${this.gridStyle(9,9,6,6)}"></div><div class="ludo-corner-inner" style="${this.gridStyle(10,10,4,4)}"></div>`;
     LUDO_DIM_CORNERS.forEach(c=>{
       sqHtml += `<div class="ludo-corner ${c.cls}" style="${this.gridStyle(c.row,c.col,6,6)}"></div><div class="ludo-corner-inner" style="${this.gridStyle(c.row+1,c.col+1,4,4)}"></div>`;
-      LUDO_POCKETS.forEach(pk=>{ const xy=this.cellXY(c.row+pk[0],c.col+pk[1]); sqHtml += `<div class="ludo-corner-pocket" style="left:${xy.x}%;top:${xy.y}%;background:${c.dot}"></div>`; });
     });
     // center home hub
     const hubXY=this.cellXY(LUDO_CENTER[0],LUDO_CENTER[1]);
@@ -1469,21 +1467,72 @@ const TOD = {
 
 /* ═══════════════════════════════════════════════════════
    GAME 4 — DRAW & GUESS
+   The drawer now types their OWN word (with quick suggestion
+   chips + voice input) instead of a random pick. Guesses are
+   checked with a "best-effort detection engine": exact match →
+   typo-tolerant match (Levenshtein) → plural/stem match →
+   substring/compound match → semantic similarity via the free
+   Datamuse API (synonyms + "means like"), so e.g. guessing
+   "man"/"boy" for a drawn "human" still counts as correct.
 ═══════════════════════════════════════════════════════ */
 const DRAW_WORDS=['cat','pizza','rainbow','guitar','heart','tree','sun','umbrella','robot','castle','fish','flower','moon','car','house','butterfly','ice cream','star','crown','balloon','shoe','clock','book','key','cloud','boat','apple','kite','snowman','rocket'];
 const DW_COLORS=['#ef4444','#f59e0b','#22c55e','#3b82f6','#a855f7','#ffffff','#000000'];
 const DW_SIZES=[3,6,11];
 const DW_ROUND_SECONDS=75;
+
+function dwNormalize(s){ return String(s||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,''); }
+function dwStem(s){ return s.replace(/(ies)$/,'y').replace(/(es|s)$/,''); }
+function dwLevenshtein(a,b){
+  const m=a.length, n=b.length;
+  if(!m) return n; if(!n) return m;
+  const dp=Array.from({length:m+1},(_,i)=>[i,...Array(n).fill(0)]);
+  for(let j=0;j<=n;j++) dp[0][j]=j;
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++){
+    dp[i][j] = a[i-1]===b[j-1] ? dp[i-1][j-1] : 1+Math.min(dp[i-1][j-1],dp[i-1][j],dp[i][j-1]);
+  }
+  return dp[m][n];
+}
+// synonym/semantic cache so we don't hammer the API on repeated guesses in the same round
+const dwSynCache = new Map();
+async function dwRelatedWords(word){
+  if(dwSynCache.has(word)) return dwSynCache.get(word);
+  let pool=[];
+  try{
+    const [syn,ml] = await Promise.all([
+      fetch(`https://api.datamuse.com/words?rel_syn=${encodeURIComponent(word)}&max=25`).then(r=>r.ok?r.json():[]).catch(()=>[]),
+      fetch(`https://api.datamuse.com/words?ml=${encodeURIComponent(word)}&max=15`).then(r=>r.ok?r.json():[]).catch(()=>[])
+    ]);
+    pool = [...(syn||[]),...(ml||[])].map(x=>dwNormalize(x.word)).filter(Boolean);
+  }catch(e){ /* offline or API unreachable — fall back to non-semantic checks only */ }
+  dwSynCache.set(word,pool);
+  return pool;
+}
+// Returns true if `guess` should count as a correct match for `target`.
+async function dwCheckMatch(guess,target){
+  const ng=dwNormalize(guess), nt=dwNormalize(target);
+  if(!ng||!nt) return false;
+  if(ng===nt) return true;
+  if(dwStem(ng)===dwStem(nt)) return true;
+  const maxLen=Math.max(ng.length,nt.length);
+  if(maxLen>=4 && dwLevenshtein(ng,nt)<=Math.max(1,Math.floor(maxLen*0.25))) return true; // typo tolerance
+  if(maxLen>=5 && (ng.includes(nt)||nt.includes(ng))) return true; // compound/substring (e.g. "icecream" vs "cream")
+  // semantic similarity — check both directions since synonym lists aren't always symmetric
+  const [targetPool,guessPool] = await Promise.all([dwRelatedWords(nt), dwRelatedWords(ng)]);
+  if(targetPool.includes(ng) || guessPool.includes(nt)) return true;
+  return false;
+}
+
 const Draw = {
-  chan:null, state:null, canvas:null, ctx:null, drawing:false,
+  chan:null, state:null, canvas:null, ctx:null, drawing:false, checking:false,
   color:'#ef4444', size:6, mode:'pen', lastPt:null, strokeId:null, redoStack:[],
   timerTick:null, timerLeft:DW_ROUND_SECONDS, typingHideT:null, partnerTyping:false,
   async open(body){
     this.chan = new GameChannel('draw');
     let st = await this.chan.load();
-    if(!st) st = {drawer:'user1', word:rand(DRAW_WORDS), strokes:[], guessLog:[], scores:{user1:0,user2:0}, round:1, roundStartedAt:Date.now()};
+    if(!st) st = this.fresh();
     if(!st.guessLog) st.guessLog=[];
     if(!st.roundStartedAt) st.roundStartedAt=Date.now();
+    if(st.wordSet===undefined) st.wordSet = !!st.word; // backward-compat with older saved games
     this.state = st; this.redoStack=[];
     this.chan.listen(p=>{
       if(p.type==='sync'){ this.state=p.state; this.redoStack=[]; this.render(); this.redrawAll(); }
@@ -1498,11 +1547,12 @@ const Draw = {
   },
   close(){ if(this.chan) this.chan.close(); clearInterval(this.timerTick); },
   sync(){ this.chan.send({type:'sync',state:this.state}); this.chan.persist(this.state); },
+  fresh(){ return {drawer:'user1', word:'', wordSet:false, strokes:[], guessLog:[], scores:{user1:0,user2:0}, round:1, roundStartedAt:Date.now()}; },
   isDrawer(){ return this.state.drawer===ID.role; },
   startTimer(){
     clearInterval(this.timerTick);
     this.timerTick = setInterval(()=>{
-      if(!this.state) return;
+      if(!this.state || !this.state.wordSet) return;
       const elapsed = Math.floor((Date.now()-(this.state.roundStartedAt||Date.now()))/1000);
       this.timerLeft = Math.max(0, DW_ROUND_SECONDS-elapsed);
       const fill=document.getElementById('dwTimerFill'); if(fill) fill.style.width=(this.timerLeft/DW_ROUND_SECONDS*100)+'%';
@@ -1513,8 +1563,8 @@ const Draw = {
     },1000);
   },
   hintText(elapsed){
-    const w=this.state.word;
-    if(this.isDrawer()) return '';
+    const w=this.state.word||'';
+    if(this.isDrawer()||!w) return '';
     let blanks = w.split('').map(ch=>ch===' '?' ':'_').join(' ');
     if(elapsed>=30) blanks = w[0].toUpperCase()+blanks.slice(1);
     if(elapsed>=45) return blanks+`  (${w.length} letters)`;
@@ -1529,7 +1579,7 @@ const Draw = {
     this.redrawAll();
     const getPt=(e)=>{ const r=this.canvas.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:(t.clientX-r.left)/r.width, y:(t.clientY-r.top)/r.height}; };
     const start=(e)=>{
-      if(!this.isDrawer()) return; e.preventDefault();
+      if(!this.isDrawer()||!this.state.wordSet) return; e.preventDefault();
       if(this.mode==='fill'){
         const p=getPt(e);
         const fillItem={x:p.x,y:p.y,color:this.color,mode:'fill',sid:uid()};
@@ -1622,7 +1672,24 @@ const Draw = {
     grp.forEach(s=>this.state.strokes.push(s));
     this.chan.send({type:'undo', strokes:this.state.strokes}); this.redrawAll(); this.chan.persist(this.state);
   },
-  newWord(){ if(!this.isDrawer()) return; this.state.word=rand(DRAW_WORDS); this.state.strokes=[]; this.state.roundStartedAt=Date.now(); this.sync(); this.clearCanvas(); toast('New word! ✏️'); },
+  // drawer picks/types their own word for this round
+  fillWordSuggestion(text){ const inp=document.getElementById('dwWordIn'); if(inp){ inp.value=text; inp.focus(); } },
+  voiceWord(){
+    const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!Rec){ toast('🎙️ Voice input not supported on this browser'); return; }
+    const rec = new Rec(); rec.lang='en-US'; rec.interimResults=false;
+    rec.onresult=(e)=>{ const txt=e.results[0][0].transcript; const inp=document.getElementById('dwWordIn'); if(inp) inp.value=txt; };
+    rec.onerror=()=>toast('Couldn\'t hear that — try again');
+    toast('🎙️ Listening…'); rec.start();
+  },
+  setWord(){
+    if(!this.isDrawer()) return;
+    const inp=document.getElementById('dwWordIn'); const val=(inp?.value||'').trim();
+    if(!val){ toast('Type what you\'ll draw first ✍️'); return; }
+    this.state.word=val; this.state.wordSet=true; this.state.roundStartedAt=Date.now(); this.state.strokes=[];
+    Snd.tap(); this.sync(); this.clearCanvas(); this.render();
+  },
+  newWord(){ if(!this.isDrawer()) return; this.state.word=''; this.state.wordSet=false; this.state.strokes=[]; this.sync(); this.clearCanvas(); this.render(); },
   pickColor(c){ this.color=c; this.render(); setTimeout(()=>this.setupCanvas(),30); },
   pickSize(sz){ this.size=sz; this.render(); setTimeout(()=>this.setupCanvas(),30); },
   pickMode(m){ this.mode=m; this.render(); setTimeout(()=>this.setupCanvas(),30); },
@@ -1635,15 +1702,21 @@ const Draw = {
   },
   nextRound(scored){
     this.state.drawer = this.state.drawer==='user1'?'user2':'user1';
-    this.state.word = rand(DRAW_WORDS); this.state.strokes=[]; this.state.round++;
+    this.state.word=''; this.state.wordSet=false; this.state.strokes=[]; this.state.round++;
     this.state.roundStartedAt=Date.now();
     this.sync(); this.clearCanvas(); this.render();
   },
-  guess(){
-    const inp=document.getElementById('dwGuessIn'); const val=(inp.value||'').trim().toLowerCase();
-    if(!val) return; inp.value='';
-    const correct = val===this.state.word.toLowerCase();
-    const log=(this.state.guessLog||[]).concat([{name:ID.myName,text:val,correct}]);
+  async guess(){
+    if(this.checking) return;
+    const inp=document.getElementById('dwGuessIn'); const raw=(inp.value||'').trim();
+    if(!raw || !this.state.word) return;
+    inp.value=''; this.checking=true;
+    const btn=document.querySelector('.dw-guess-row .btn-pink'); if(btn){ btn.disabled=true; btn.textContent='Checking…'; }
+    let correct=false;
+    try{ correct = await dwCheckMatch(raw, this.state.word); }catch(e){ correct = dwNormalize(raw)===dwNormalize(this.state.word); }
+    this.checking=false;
+    if(btn){ btn.disabled=false; btn.textContent='Guess'; }
+    const log=(this.state.guessLog||[]).concat([{name:ID.myName,text:raw,correct}]);
     this.state.guessLog=log; this.chan.send({type:'guesslog', log});
     if(correct){
       GameCore.addXP(20); GameCore.addCoins(8); Snd.success();
@@ -1654,8 +1727,35 @@ const Draw = {
   },
   render(){
     const body=document.getElementById('goBody'); if(!body) return;
-    body.className='gobody nopad';
     const drawer=this.isDrawer();
+    const wordSet = !!this.state.wordSet;
+
+    // --- drawer/guesser both wait here until the drawer types their word ---
+    if(!wordSet){
+      body.className='gobody';
+      body.innerHTML = `
+        <div class="score-bar" style="margin-bottom:12px">
+          <div class="score-pill ${ID.role==='user1'?'mine':''}"><div class="sp-name">${esc(ID.myName)}</div><div class="sp-val">${this.state.scores.user1||0}</div></div>
+          <div class="score-pill ${ID.role==='user2'?'mine':''}"><div class="sp-name">${esc(ID.partnerName)}</div><div class="sp-val">${this.state.scores.user2||0}</div></div>
+        </div>
+        ${drawer ? `
+        <div class="tod-compose">
+          <div class="tod-compose-label">🎨 What will you draw?</div>
+          <textarea class="tod-compose-box" id="dwWordIn" placeholder="Type the word or thing you'll draw…" style="min-height:56px"></textarea>
+          <div class="tod-suggest-row">${DRAW_WORDS.map(w=>`<div class="tod-suggest-chip" onclick="Draw.fillWordSuggestion('${w.replace(/'/g,"\\'")}')">${esc(w)}</div>`).join('')}</div>
+          <div style="display:flex;gap:8px;justify-content:center">
+            <button class="btn btn-glass btn-sm" onclick="Draw.voiceWord()">🎙️ Voice</button>
+            <button class="btn btn-pink btn-sm" onclick="Draw.setWord()">Start Drawing ➤</button>
+          </div>
+        </div>` : `
+        <div class="tod-wheel-wrap"><div style="font-size:40px">✍️</div><div class="tod-bottle-hint">${esc(ID.partnerName)} is picking what to draw…</div></div>
+        `}
+      `;
+      return;
+    }
+
+    // --- normal drawing/guessing round ---
+    body.className='gobody nopad';
     body.innerHTML = `
       <div class="dw-wrap" style="height:100%">
         <div style="padding:10px 12px 0"><div class="score-bar" style="margin-bottom:8px">
@@ -1674,7 +1774,7 @@ const Draw = {
             <button class="dw-tool-btn" onclick="Draw.undo()" title="Undo">↩️</button>
             <button class="dw-tool-btn" onclick="Draw.redo()" title="Redo">↪️</button>
             <button class="dw-tool-btn" onclick="Draw.clear()" title="Clear">🗑️</button>
-            <button class="dw-tool-btn" onclick="Draw.newWord()" title="New word">🔀</button>
+            <button class="dw-tool-btn" onclick="Draw.newWord()" title="Pick a new word">🔀</button>
           `:''}
         </div>
         ${!drawer?`<div class="dw-hint-row" id="dwHintRow">${this.hintText(Math.floor((Date.now()-(this.state.roundStartedAt||Date.now()))/1000))}</div>`:''}
