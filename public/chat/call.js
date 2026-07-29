@@ -283,6 +283,11 @@ async function initSignalCursor() {
   }
 
   async function handleSignal(m) {
+    // In-game "face to face" video (Games page) reuses this same signal
+    // table but is tagged with gameCtx and has its own compact accept/
+    // decline card + side-by-side UI — it must never trigger the
+    // full-screen call overlay here.
+    if (m && m.gameCtx) return;
     if (m.type === 'offer' && !pc) {
       if (m.ts && Date.now() - m.ts > 45000) return; // ignore stale offers
       showIncoming(m);

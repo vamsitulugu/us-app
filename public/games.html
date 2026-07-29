@@ -132,6 +132,17 @@ button{font-family:inherit;cursor:pointer}
 .gv-ctrl-btn.end{background:var(--red)}
 .gv-status{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;color:#fff;background:rgba(0,0,0,.5);padding:4px 12px;border-radius:20px;z-index:5}
 
+/* ═══ IN-GAME VIDEO INVITE — compact accept/decline card (matches sing-together card), never full-screen ═══ */
+.gv-incoming-overlay{position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.65);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px;animation:gvfadein .2s ease}
+@keyframes gvfadein{from{opacity:0}to{opacity:1}}
+.gv-incoming-card{width:100%;max-width:320px;background:linear-gradient(160deg,rgba(40,10,20,.97),rgba(10,10,16,.97));border:1px solid var(--border2);border-radius:24px;padding:26px 22px;text-align:center;animation:gopop .35s cubic-bezier(.34,1.56,.64,1)}
+.gv-incoming-ico{font-size:38px;margin-bottom:10px}
+.gv-incoming-text{font-size:15px;color:#fff;line-height:1.5;margin-bottom:20px}
+.gv-incoming-actions{display:flex;gap:10px}
+.gv-incoming-actions button{flex:1;padding:12px;border-radius:14px;font-weight:700;font-size:13.5px;cursor:pointer;border:none}
+.gv-incoming-actions .gv-decline-btn{border:1px solid var(--border2);background:rgba(255,255,255,.08);color:#fff}
+.gv-incoming-actions .gv-accept-btn{background:linear-gradient(135deg,var(--accent2),var(--accent2-d));color:#fff;box-shadow:0 8px 24px var(--accent2-glow)}
+
 /* generic ui atoms */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:13px;font-size:13px;border:none;font-weight:700;color:#fff;transition:var(--ts)}
 .btn:active{transform:scale(.95)}
@@ -522,11 +533,20 @@ function setPresenceGame(gid){ if(presenceChan) presenceChan.track({game:gid,ts:
 const GameVideo = {
   pc:null, localStream:null, active:false, gameId:null,
   lastSignalId:0, pollTimer:null, muted:false, camOff:false, connected:false,
+  watchTimer:null, lastWatchId:0, incomingMsg:null,
 
   async toggle(){
     if(this.active){ this.stop(); return; }
-    this.gameId = Hub.activeGameId;
-    if(!this.gameId) return;
+    const gid = Hub.activeGameId;
+    if(!gid) return;
+    try{
+      await this._startLocal(gid);
+      await this._makeOffer();
+    }catch(e){ /* _startLocal already handled its own failure toast+cleanup */ }
+  },
+
+  async _startLocal(gid){
+    this.gameId = gid;
     document.getElementById('goVidBtn').classList.add('on');
     document.getElementById('goVideo').classList.add('on');
     document.getElementById('gvStatus').style.display='block';
@@ -537,14 +557,12 @@ const GameVideo = {
       document.getElementById('gvLocal').srcObject = this.localStream;
     }catch(e){
       toast('⚠️ Camera/mic permission needed for video');
-      this.stop(); return;
+      this.stop(true); throw e;
     }
     document.getElementById('gvStatus').textContent = 'Connecting…';
     await this._initCursor();
     await this._setupPeer();
     this._pollLoop();
-    // user1 always initiates the offer; user2 always waits — avoids glare
-    if(ID.role==='user1') this._makeOffer();
   },
 
   async _iceServers(){
@@ -585,7 +603,7 @@ const GameVideo = {
     try{
       await fetch(API+'/api/call/signal',{
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({coupleId:ID.coupleId, role:ID.role, payload:{...msg, gameCtx:this.gameId}})
+        body: JSON.stringify({coupleId:ID.coupleId, role:ID.role, payload:{...msg, gameCtx:this.gameId, ts:Date.now()}})
       });
     }catch(e){ /* signaling hiccup — the poll loop below will retry the flow */ }
   },
@@ -609,7 +627,7 @@ const GameVideo = {
           this.lastSignalId = Math.max(this.lastSignalId, row.id);
           const msg = row.payload;
           if(!msg || msg.gameCtx !== this.gameId) continue;
-          if(msg.type==='offer' && this.pc){
+          if(msg.type==='offer' && this.pc && !this.pc.currentRemoteDescription){
             await this.pc.setRemoteDescription(msg.sdp);
             const answer = await this.pc.createAnswer();
             await this.pc.setLocalDescription(answer);
@@ -619,11 +637,93 @@ const GameVideo = {
           } else if(msg.type==='ice' && this.pc){
             try{ await this.pc.addIceCandidate(msg.candidate); }catch(e){}
           } else if(msg.type==='end'){
-            toast(ID.partnerName+' ended the video'); this.stop();
+            toast(ID.partnerName+' ended the video'); this.stop(true);
+          } else if(msg.type==='decline'){
+            toast(ID.partnerName+' declined the video call'); this.stop(true);
           }
         }
       }catch(e){}
     }, 900);
+  },
+
+  /* ── Incoming-call watcher: runs the whole time a game is open (even
+     before anyone taps the camera icon) and, on receiving a partner's
+     offer, shows a small accept/decline card — same pattern as the
+     "sing together" invite card — instead of the site-wide full-screen
+     call overlay (which is now told to ignore gameCtx-tagged signals). ── */
+  async startWatch(gid){
+    this.gameId = gid;
+    clearInterval(this.watchTimer);
+    this.hideIncomingCard();
+    try{
+      const r = await fetch(API+'/api/call/signal/'+ID.coupleId+'?role='+otherRole, {cache:'no-store'});
+      if(r.ok){ const rows = await r.json(); if(rows.length) this.lastWatchId = Math.max(...rows.map(x=>x.id)); }
+    }catch(e){}
+    this.watchTimer = setInterval(async ()=>{
+      if(this.active || this.incomingMsg) return;
+      try{
+        const r = await fetch(API+'/api/call/signal/'+ID.coupleId+'?role='+otherRole+'&after='+this.lastWatchId, {cache:'no-store'});
+        if(!r.ok) return;
+        const rows = await r.json();
+        for(const row of rows){
+          this.lastWatchId = Math.max(this.lastWatchId, row.id);
+          const msg = row.payload;
+          if(!msg || msg.gameCtx !== gid) continue;
+          if(msg.type==='offer' && !this.active && (!msg.ts || Date.now()-msg.ts<20000)){
+            this.showIncomingCard(msg);
+          } else if(msg.type==='end' || msg.type==='cancel'){
+            this.hideIncomingCard();
+          }
+        }
+      }catch(e){}
+    }, 1100);
+  },
+  stopWatch(){ clearInterval(this.watchTimer); this.watchTimer=null; this.hideIncomingCard(); },
+
+  showIncomingCard(msg){
+    if(document.getElementById('gvIncomingOverlay')) return;
+    this.incomingMsg = msg;
+    const el=document.createElement('div');
+    el.id='gvIncomingOverlay'; el.className='gv-incoming-overlay';
+    el.innerHTML = `
+      <div class="gv-incoming-card">
+        <div class="gv-incoming-ico">🎥</div>
+        <div class="gv-incoming-text"><strong>${esc(ID.partnerName)}</strong> wants to video chat while you play 💗</div>
+        <div class="gv-incoming-actions">
+          <button class="gv-decline-btn" id="gvIncomingDecline">Decline</button>
+          <button class="gv-accept-btn" id="gvIncomingAccept">Accept 🎥</button>
+        </div>
+      </div>`;
+    document.body.appendChild(el);
+    document.getElementById('gvIncomingDecline').onclick = ()=>this.declineIncoming();
+    document.getElementById('gvIncomingAccept').onclick = ()=>this.acceptIncoming();
+    if(navigator.vibrate) navigator.vibrate([120,60,120]);
+    Snd.tap();
+  },
+  hideIncomingCard(){
+    const el=document.getElementById('gvIncomingOverlay'); if(el) el.remove();
+    this.incomingMsg=null;
+  },
+  async declineIncoming(){
+    const msg=this.incomingMsg; this.hideIncomingCard();
+    if(!msg) return;
+    try{
+      await fetch(API+'/api/call/signal',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({coupleId:ID.coupleId, role:ID.role, payload:{type:'decline', gameCtx:this.gameId, ts:Date.now()}})
+      });
+    }catch(e){}
+  },
+  async acceptIncoming(){
+    const msg=this.incomingMsg; this.hideIncomingCard();
+    if(!msg) return;
+    try{
+      await this._startLocal(this.gameId);
+      await this.pc.setRemoteDescription(msg.sdp);
+      const answer = await this.pc.createAnswer();
+      await this.pc.setLocalDescription(answer);
+      this._send({type:'answer', sdp:answer});
+    }catch(e){ toast('Could not connect video'); this.stop(true); }
   },
 
   toggleMute(){
@@ -787,10 +887,12 @@ const Hub = {
     body.className='gobody'; body.innerHTML='';
     Snd.click();
     ({tod:TOD, ludo:Ludo, ttt:TTT, draw:Draw, memory:Memory})[gid].open(body);
+    GameVideo.startWatch(gid);
   },
   exitGame(){
     const gid=this.activeGameId;
     GameVideo.stop(true);
+    GameVideo.stopWatch();
     ({tod:TOD, ludo:Ludo, ttt:TTT, draw:Draw, memory:Memory})[gid]?.close?.();
     document.getElementById('goverlay').classList.remove('open');
     this.activeGameId=null;
