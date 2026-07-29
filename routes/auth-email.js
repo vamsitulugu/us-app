@@ -97,23 +97,28 @@ async function issueAndSendVerification(userId, email) {
 
 // ── POST /api/auth-email/signup { email, name, password } ──
 router.post('/signup', async (req, res) => {
+  const reqId = uuid().slice(0, 8);
+  console.log(`[signup ${reqId}] request received: email=${req.body && req.body.email ? '(present)' : '(missing)'} name=${req.body && req.body.name ? '(present)' : '(missing)'} phoneNumber=${req.body && req.body.phoneNumber ? '(present)' : '(missing)'} password=${req.body && req.body.password ? '(length ' + req.body.password.length + ')' : '(missing)'}`);
   try {
     const email = normalizeEmail(req.body.email);
     const { name, password } = req.body;
     const phoneNumber = normalizePhone(req.body.phoneNumber);
+    console.log(`[signup ${reqId}] normalized: email=${email} phoneNumber=${phoneNumber}`);
     if (!email) return res.status(400).json({ error: 'Valid email required' });
     if (!name || !name.trim()) return res.status(400).json({ error: 'Name required' });
     if (!password || password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
     if (!phoneNumber) return res.status(400).json({ error: 'Valid phone number required' });
 
-    const { data: existing } = await supabase.from('users').select('id, email_verified').eq('email', email).maybeSingle();
+    const { data: existing, error: existingErr } = await supabase.from('users').select('id, email_verified').eq('email', email).maybeSingle();
+    if (existingErr) { console.error(`[signup ${reqId}] lookup-by-email failed:`, existingErr); return res.status(500).json({ error: 'Database error checking email: ' + existingErr.message }); }
     if (existing && existing.email_verified) {
       return res.status(409).json({ error: 'An account with this email already exists. Please log in.' });
     }
 
     // Phone number is a profile field, not an auth method — but it must
     // stay unique so partner search resolves to exactly one account.
-    const { data: phoneOwner } = await supabase.from('users').select('id').eq('phone_number', phoneNumber).maybeSingle();
+    const { data: phoneOwner, error: phoneErr } = await supabase.from('users').select('id').eq('phone_number', phoneNumber).maybeSingle();
+    if (phoneErr) { console.error(`[signup ${reqId}] lookup-by-phone failed:`, phoneErr); return res.status(500).json({ error: 'Database error checking phone number: ' + phoneErr.message }); }
     if (phoneOwner && (!existing || phoneOwner.id !== existing.id)) {
       return res.status(409).json({ error: 'That phone number is already registered to another account.' });
     }
@@ -124,7 +129,9 @@ router.post('/signup', async (req, res) => {
     if (existing) {
       // Re-signup on an unverified email — update and re-send the link.
       userId = existing.id;
-      await supabase.from('users').update({ name: name.trim(), password_hash: passwordHash, phone_number: phoneNumber, updated_at: new Date().toISOString() }).eq('id', userId);
+      const { error: updateErr } = await supabase.from('users').update({ name: name.trim(), password_hash: passwordHash, phone_number: phoneNumber, updated_at: new Date().toISOString() }).eq('id', userId);
+      if (updateErr) { console.error(`[signup ${reqId}] update existing user failed:`, updateErr); return res.status(500).json({ error: 'Failed to update account: ' + updateErr.message }); }
+      console.log(`[signup ${reqId}] updated existing unverified user ${userId}`);
     } else {
       userId = uuid();
       const { error } = await supabase.from('users').insert({
@@ -135,14 +142,21 @@ router.post('/signup', async (req, res) => {
         phone_number: phoneNumber,
         email_verified: false
       });
-      if (error) return res.status(500).json({ error: 'Failed to create account: ' + error.message });
+      if (error) { console.error(`[signup ${reqId}] insert failed:`, error); return res.status(500).json({ error: 'Failed to create account: ' + error.message }); }
+      console.log(`[signup ${reqId}] inserted new user ${userId}`);
     }
 
-    await issueAndSendVerification(userId, email);
+    try {
+      await issueAndSendVerification(userId, email);
+    } catch (mailErr) {
+      console.error(`[signup ${reqId}] verification email step failed:`, mailErr.stack || mailErr);
+      return res.status(500).json({ error: mailErr.message || 'Account created but failed to send verification email' });
+    }
+    console.log(`[signup ${reqId}] verification email sent, signup complete`);
     return res.json({ ok: true, email, verificationSent: true });
   } catch (err) {
-    console.error('Email signup error:', err);
-    return res.status(500).json({ error: 'Signup failed' });
+    console.error(`[signup ${reqId}] unhandled error:`, err.stack || err);
+    return res.status(500).json({ error: err.message || 'Signup failed' });
   }
 });
 
@@ -159,8 +173,8 @@ router.post('/resend', async (req, res) => {
     await issueAndSendVerification(user.id, email);
     return res.json({ ok: true, verificationSent: true });
   } catch (err) {
-    console.error('Resend verification error:', err);
-    return res.status(500).json({ error: 'Failed to resend verification link' });
+    console.error('Resend verification error:', err.stack || err);
+    return res.status(500).json({ error: err.message || 'Failed to resend verification link' });
   }
 });
 
@@ -189,8 +203,8 @@ router.post('/verify', async (req, res) => {
     const tokens = await issueTokenPair(user);
     return res.json(tokens);
   } catch (err) {
-    console.error('Verify email error:', err);
-    return res.status(500).json({ error: 'Verification failed' });
+    console.error('Verify email error:', err.stack || err);
+    return res.status(500).json({ error: err.message || 'Verification failed' });
   }
 });
 
@@ -211,8 +225,8 @@ router.post('/login', async (req, res) => {
     const tokens = await issueTokenPair(user);
     return res.json(tokens);
   } catch (err) {
-    console.error('Email login error:', err);
-    return res.status(500).json({ error: 'Login failed' });
+    console.error('Email login error:', err.stack || err);
+    return res.status(500).json({ error: err.message || 'Login failed' });
   }
 });
 
@@ -241,8 +255,8 @@ router.post('/forgot-password', async (req, res) => {
     }
     return res.json({ ok: true });
   } catch (err) {
-    console.error('Forgot password error:', err);
-    return res.status(500).json({ error: 'Failed to process request' });
+    console.error('Forgot password error:', err.stack || err);
+    return res.status(500).json({ error: err.message || 'Failed to process request' });
   }
 });
 
@@ -267,8 +281,8 @@ router.post('/reset-password', async (req, res) => {
 
     return res.json({ ok: true });
   } catch (err) {
-    console.error('Reset password error:', err);
-    return res.status(500).json({ error: 'Failed to reset password' });
+    console.error('Reset password error:', err.stack || err);
+    return res.status(500).json({ error: err.message || 'Failed to reset password' });
   }
 });
 
@@ -290,8 +304,8 @@ router.post('/link', requireAuth, async (req, res) => {
     await issueAndSendVerification(req.user.id, email);
     return res.json({ ok: true, verificationSent: true });
   } catch (err) {
-    console.error('Link email error:', err);
-    return res.status(500).json({ error: 'Failed to link email' });
+    console.error('Link email error:', err.stack || err);
+    return res.status(500).json({ error: err.message || 'Failed to link email' });
   }
 });
 
@@ -324,8 +338,8 @@ router.post('/refresh', async (req, res) => {
     const tokens = await issueTokenPair(user);
     return res.json(tokens);
   } catch (err) {
-    console.error('Refresh error:', err);
-    return res.status(500).json({ error: 'Failed to refresh session' });
+    console.error('Refresh error:', err.stack || err);
+    return res.status(500).json({ error: err.message || 'Failed to refresh session' });
   }
 });
 
