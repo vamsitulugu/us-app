@@ -4,6 +4,11 @@ const cors    = require('cors');
 const path    = require('path');
 
 const authRoutes  = require('./routes/auth');
+// New phone-number based auth (Phase 1 of Couple-Code migration).
+// Mounted separately from the legacy `authRoutes` above so existing
+// couple-code signup/login/pairing keeps working untouched until the
+// frontend cutover (Phase 3) and cleanup (Phase 4).
+const authPhoneRoutes = require('./routes/auth-phone');
 const dataRoutes  = require('./routes/data');
 const aiRoutes    = require('./routes/ai');
 const mediaRoutes = require('./routes/media');
@@ -128,6 +133,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 // on top of it for the routes that need them most.
 app.use('/api/', apiLimiter);
 app.use('/api/auth',  authLimiter, authRoutes);
+app.use('/api/auth-phone', authLimiter, authPhoneRoutes);
 app.use('/api/data',  dataRoutes);
 app.use('/api/ai',    aiLimiter, aiRoutes);
 app.use('/api/media', mediaRoutes);
