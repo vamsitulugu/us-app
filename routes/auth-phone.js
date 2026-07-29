@@ -70,22 +70,34 @@ async function issueTokenPair(res, user) {
 // Creates the user record (unverified) and sends a signup OTP.
 router.post('/signup', async (req, res) => {
   try {
+    console.log('[signup] incoming request body:', { ...req.body, password: req.body && req.body.password ? '***' : req.body && req.body.password });
     const phoneNumber = normalizePhone(req.body.phoneNumber);
     const { name, password } = req.body;
+    console.log('[signup] normalized phone:', req.body.phoneNumber, '->', phoneNumber);
     if (!phoneNumber) return res.status(400).json({ error: 'Valid phone number required' });
     if (!name || !name.trim()) return res.status(400).json({ error: 'Name required' });
     if (!password || password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
 
-    const { data: existing } = await supabase.from('users').select('id, phone_verified').eq('phone_number', phoneNumber).maybeSingle();
+    const { data: existing, error: lookupErr } = await supabase.from('users').select('id, phone_verified').eq('phone_number', phoneNumber).maybeSingle();
+    if (lookupErr) {
+      console.error('[signup] user lookup failed:', lookupErr);
+      return res.status(500).json({ error: 'Failed to check existing account: ' + lookupErr.message });
+    }
+    console.log('[signup] existing user lookup result:', existing);
     if (existing && existing.phone_verified) {
       return res.status(409).json({ error: 'An account with this phone number already exists. Please log in.' });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    console.log('[signup] password hashed');
 
     if (existing) {
       // Re-signup attempt on an unverified number — update and re-send OTP.
-      await supabase.from('users').update({ name: name.trim(), password_hash: passwordHash, updated_at: new Date().toISOString() }).eq('id', existing.id);
+      const { error } = await supabase.from('users').update({ name: name.trim(), password_hash: passwordHash, updated_at: new Date().toISOString() }).eq('id', existing.id);
+      if (error) {
+        console.error('[signup] user update failed:', error);
+        return res.status(500).json({ error: 'Failed to update account: ' + error.message });
+      }
     } else {
       const { error } = await supabase.from('users').insert({
         id: uuid(),
@@ -94,14 +106,18 @@ router.post('/signup', async (req, res) => {
         password_hash: passwordHash,
         phone_verified: false
       });
-      if (error) return res.status(500).json({ error: 'Failed to create account: ' + error.message });
+      if (error) {
+        console.error('[signup] user insert failed:', error);
+        return res.status(500).json({ error: 'Failed to create account: ' + error.message });
+      }
     }
-
+    console.log('[signup] user row ready, issuing OTP for', phoneNumber);
     await issueAndSendOtp(phoneNumber, 'signup');
     return res.json({ ok: true, phoneNumber, otpSent: true, expiresInMinutes: OTP_TTL_MINUTES });
   } catch (err) {
-    console.error('Signup error:', err);
-    return res.status(500).json({ error: 'Signup failed' });
+    console.error('Signup error:', err.stack || err);
+    const message = process.env.NODE_ENV === 'production' ? 'Signup failed' : (err.message || 'Signup failed');
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -111,14 +127,22 @@ async function issueAndSendOtp(phoneNumber, purpose) {
   const codeHash = await hashOtp(code);
   const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
 
+  // attempts/verified set explicitly — do not rely on DB-side column
+  // defaults existing, since a missing default turns this into a silent
+  // NOT NULL insert failure that surfaces only as a generic 500 upstream.
   const { error } = await supabase.from('otp_verifications').insert({
     id: uuid(),
     phone_number: phoneNumber,
     code_hash: codeHash,
     purpose,
+    attempts: 0,
+    verified: false,
     expires_at: expiresAt.toISOString()
   });
-  if (error) throw new Error('Failed to store OTP: ' + error.message);
+  if (error) {
+    console.error('[issueAndSendOtp] insert failed:', error);
+    throw new Error('Failed to store OTP: ' + error.message);
+  }
 
   await sendOtpSms(phoneNumber, code);
 }
