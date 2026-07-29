@@ -234,25 +234,29 @@ button{font-family:inherit;cursor:pointer}
 
 /* ═══ LUDO (classic board) ═══ */
 .ludo-wrap{display:flex;flex-direction:column;align-items:center;gap:12px}
-.ludo-board{position:relative;width:min(92vw,380px);aspect-ratio:1;display:grid;grid-template-columns:repeat(15,1fr);grid-template-rows:repeat(15,1fr);border-radius:12px;overflow:hidden;background:#f4f4f8;border:3px solid #23233a;box-shadow:0 10px 30px rgba(0,0,0,.45)}
-.ludo-sq{position:relative;background:#fff;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.08)}
-.ludo-sq.safe{background:#ffe9a8}
-.ludo-sq.safe .star{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:8px;color:#c98a00}
-.ludo-sq.lane-user1{background:#fca5a5}
-.ludo-sq.lane-user2{background:#86efac}
-.ludo-sq.lane-dim{background:#dcdce6}
-.ludo-corner{position:absolute;border-radius:8px}
-.ludo-corner.user1{background:#ef4444}
-.ludo-corner.user2{background:#22c55e}
-.ludo-corner.dim{background:#c7c7d1}
-.ludo-corner-inner{position:absolute;background:rgba(255,255,255,.92);border-radius:8px}
-.ludo-home-hub{position:absolute;border-radius:6px;background:linear-gradient(135deg,var(--gold),#e08a00);display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 0 16px var(--gold-glow);transform:translate(-50%,-50%);z-index:2}
-.ludo-token{position:absolute;width:7.4%;height:7.4%;border-radius:50%;border:2px solid rgba(255,255,255,.85);transform:translate(-50%,-50%);z-index:5;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#fff;box-shadow:0 3px 8px rgba(0,0,0,.5);transition:left .4s cubic-bezier(.4,0,.2,1),top .4s cubic-bezier(.4,0,.2,1)}
+.ludo-board{position:relative;width:min(92vw,380px);aspect-ratio:1;display:grid;grid-template-columns:repeat(15,1fr);grid-template-rows:repeat(15,1fr);border-radius:14px;overflow:hidden;background:linear-gradient(155deg,#1447e6,#0d2f9e);border:4px solid #0a2470;box-shadow:0 12px 34px rgba(0,0,0,.5),inset 0 0 0 2px rgba(255,255,255,.08)}
+.ludo-sq{position:relative;background:#fefefe;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.1)}
+.ludo-sq.arm-a{background:#fff}
+.ludo-sq.safe{background:#ffe082}
+.ludo-sq.safe .star{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:#c98a00;text-shadow:0 1px 0 rgba(255,255,255,.5)}
+.ludo-sq.lane-user1{background:linear-gradient(155deg,#ff6b6b,#ef4444)}
+.ludo-sq.lane-user2{background:linear-gradient(155deg,#4ade80,#22c55e)}
+.ludo-sq.lane-dim1{background:linear-gradient(155deg,#ffd54a,#f5b301)}
+.ludo-sq.lane-dim2{background:linear-gradient(155deg,#5ab8ff,#2f8fe0)}
+.ludo-corner{position:absolute;border-radius:10px;box-shadow:inset 0 0 0 3px rgba(255,255,255,.35)}
+.ludo-corner.user1{background:linear-gradient(155deg,#ff8a8a,#ef4444)}
+.ludo-corner.user2{background:linear-gradient(155deg,#5eeba0,#22c55e)}
+.ludo-corner.dim-yellow{background:linear-gradient(155deg,#ffe27a,#f5b301)}
+.ludo-corner.dim-blue{background:linear-gradient(155deg,#78c2ff,#2f8fe0)}
+.ludo-corner-inner{position:absolute;background:rgba(255,255,255,.94);border-radius:9px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+.ludo-corner-pocket{position:absolute;width:34%;height:34%;border-radius:50%;transform:translate(-50%,-50%);opacity:.5}
+.ludo-home-hub{position:absolute;border-radius:8px;background:conic-gradient(from 0deg,#ef4444 0 25%,#ffd54a 25% 50%,#22c55e 50% 75%,#2f8fe0 75% 100%);display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 0 18px rgba(255,255,255,.35),inset 0 0 0 2px rgba(255,255,255,.5);transform:translate(-50%,-50%);z-index:2}
+.ludo-token{position:absolute;width:7.6%;height:7.6%;border-radius:50%;border:2px solid rgba(255,255,255,.9);transform:translate(-50%,-50%);z-index:5;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#fff;box-shadow:0 3px 8px rgba(0,0,0,.5);transition:left .4s cubic-bezier(.4,0,.2,1),top .4s cubic-bezier(.4,0,.2,1)}
 .ludo-token.playable{cursor:pointer}
 .ludo-base-row{display:flex;gap:18px}
 .ludo-base{display:flex;gap:8px;padding:10px 14px;border-radius:16px;background:var(--g1);border:1px solid var(--border)}
 .ludo-base-token{width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff}
-.ludo-dice{width:60px;height:60px;border-radius:16px;background:linear-gradient(155deg,#fff,#e2e2ea);color:#111;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;box-shadow:0 8px 24px rgba(0,0,0,.4),inset 0 -3px 0 rgba(0,0,0,.12),inset 0 2px 0 rgba(255,255,255,.9);transition:var(--t);position:relative}
+.ludo-dice{width:60px;height:60px;border-radius:16px;background:linear-gradient(155deg,#fff,#e2e2ea);color:#111;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;box-shadow:0 8px 24px rgba(0,0,0,.4),inset 0 -3px 0 rgba(0,0,0,.12),inset 0 2px 0 rgba(255,255,255,.9);transition:var(--t);position:relative;border:2px solid #ffe082}
 .ludo-dice.rolling{animation:dspin .55s cubic-bezier(.34,1.1,.64,1)}
 @keyframes dspin{0%{transform:rotate(0) scale(1)}30%{transform:rotate(140deg) scale(1.12)}60%{transform:rotate(280deg) scale(.96)}100%{transform:rotate(360deg) scale(1)}}
 .ludo-token.capturing{animation:tokencap .5s ease forwards}
@@ -1009,7 +1013,7 @@ const LUDO_DIM_LANES = [
 const LUDO_CENTER = [7,7];
 // Base yard corner origins {row,col} for top-left 6x6 blocks, and their 4 token pockets (relative row,col)
 const LUDO_BASE_ORIGIN = { user1:{row:0,col:0}, user2:{row:9,col:9} };
-const LUDO_DIM_CORNERS = [{row:0,col:9},{row:9,col:0}];
+const LUDO_DIM_CORNERS = [{row:0,col:9,cls:'dim-yellow',dot:'#f5b301'},{row:9,col:0,cls:'dim-blue',dot:'#2f8fe0'}];
 const LUDO_POCKETS = [[1,1],[1,4],[4,1],[4,4]];
 const Ludo = {
   chan:null, state:null, rolling:false, lastCapture:null, lastHome:null, timerTick:null, timerLeft:LUDO_TURN_SECONDS,
@@ -1152,11 +1156,14 @@ const Ludo = {
     ['user1','user2'].forEach(role=>{
       LUDO_HOME_LANE[role].forEach(rc=>{ sqHtml += `<div class="ludo-sq lane-${role}" style="${this.gridStyle(rc[0],rc[1])}"></div>`; });
     });
-    LUDO_DIM_LANES.forEach(lane=>{ lane.forEach(rc=>{ sqHtml += `<div class="ludo-sq lane-dim" style="${this.gridStyle(rc[0],rc[1])}"></div>`; }); });
+    LUDO_DIM_LANES.forEach((lane,li)=>{ lane.forEach(rc=>{ sqHtml += `<div class="ludo-sq lane-dim${li+1}" style="${this.gridStyle(rc[0],rc[1])}"></div>`; }); });
     // corner base yards
     sqHtml += `<div class="ludo-corner user1" style="${this.gridStyle(0,0,6,6)}"></div><div class="ludo-corner-inner" style="${this.gridStyle(1,1,4,4)}"></div>`;
     sqHtml += `<div class="ludo-corner user2" style="${this.gridStyle(9,9,6,6)}"></div><div class="ludo-corner-inner" style="${this.gridStyle(10,10,4,4)}"></div>`;
-    LUDO_DIM_CORNERS.forEach(c=>{ sqHtml += `<div class="ludo-corner dim" style="${this.gridStyle(c.row,c.col,6,6)}"></div><div class="ludo-corner-inner" style="${this.gridStyle(c.row+1,c.col+1,4,4)}"></div>`; });
+    LUDO_DIM_CORNERS.forEach(c=>{
+      sqHtml += `<div class="ludo-corner ${c.cls}" style="${this.gridStyle(c.row,c.col,6,6)}"></div><div class="ludo-corner-inner" style="${this.gridStyle(c.row+1,c.col+1,4,4)}"></div>`;
+      LUDO_POCKETS.forEach(pk=>{ const xy=this.cellXY(c.row+pk[0],c.col+pk[1]); sqHtml += `<div class="ludo-corner-pocket" style="left:${xy.x}%;top:${xy.y}%;background:${c.dot}"></div>`; });
+    });
     // center home hub
     const hubXY=this.cellXY(LUDO_CENTER[0],LUDO_CENTER[1]);
     const hubHtml = `<div class="ludo-home-hub" style="left:${hubXY.x}%;top:${hubXY.y}%;width:16%;height:16%">🏠</div>`;
