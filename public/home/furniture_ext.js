@@ -529,7 +529,7 @@ const HomeFurnitureExt = (() => {
     recordAction({ type: 'scale', obj, from, to });
     obj.scale.setScalar(to);
     if (obj.userData.dbId) {
-      HomeAPI.furniture.update(obj.userData.dbId, { scale: to }).catch(() => {});
+      HomeAPI.furniture.update(obj.userData.dbId, { scale: to }, HomeUtils.getCoupleId()).catch(() => {});
     }
     HomeUtils.toast(`⤢ Scale: ${to.toFixed(2)}×`);
   }

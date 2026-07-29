@@ -56,9 +56,13 @@ router.post('/furniture', async (req, res) => {
 });
 
 // PUT update furniture position/rotation/color
+// Was updatable by `id` alone with no ownership check — anyone who knew
+// or guessed a furniture UUID could move/recolor another couple's items.
+// Now requires coupleId and scopes the update/delete to it.
 router.put('/furniture/:id', async (req, res) => {
   try {
-    const { pos_x, pos_y, pos_z, rot_y, scale, color, label, meta } = req.body;
+    const { pos_x, pos_y, pos_z, rot_y, scale, color, label, meta, coupleId } = req.body;
+    if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
     const updates = { updated_at: new Date().toISOString() };
     if (pos_x   !== undefined) updates.pos_x  = pos_x;
     if (pos_y   !== undefined) updates.pos_y  = pos_y;
@@ -70,17 +74,23 @@ router.put('/furniture/:id', async (req, res) => {
     if (meta    !== undefined) updates.meta   = meta;
     const { data, error } = await supabase
       .from('home_furniture').update(updates)
-      .eq('id', req.params.id).select().single();
+      .eq('id', req.params.id).eq('couple_id', coupleId).select().single();
     if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Furniture not found' });
     res.json(data);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// DELETE furniture
+// DELETE furniture — same ownership fix as PUT above.
 router.delete('/furniture/:id', async (req, res) => {
   try {
-    const { error } = await supabase.from('home_furniture').delete().eq('id', req.params.id);
+    const coupleId = req.body?.coupleId || req.query.coupleId;
+    if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
+    const { data, error } = await supabase
+      .from('home_furniture').delete()
+      .eq('id', req.params.id).eq('couple_id', coupleId).select();
     if (error) throw error;
+    if (!data || !data.length) return res.status(404).json({ error: 'Furniture not found' });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -131,9 +141,12 @@ router.post('/pets', async (req, res) => {
 });
 
 // PATCH pet — feed / play / update mood
+// Was updatable by `id` alone with no ownership check; now requires
+// coupleId and scopes the update to it.
 router.patch('/pets/:id', async (req, res) => {
   try {
-    const { action, name, color } = req.body;
+    const { action, name, color, coupleId } = req.body;
+    if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
     const updates = { updated_at: new Date().toISOString() };
     if (action === 'feed') {
       updates.hunger = 100;
@@ -147,8 +160,9 @@ router.patch('/pets/:id', async (req, res) => {
     if (name  !== undefined) updates.name  = name;
     if (color !== undefined) updates.color = color;
     const { data, error } = await supabase
-      .from('home_pets').update(updates).eq('id', req.params.id).select().single();
+      .from('home_pets').update(updates).eq('id', req.params.id).eq('couple_id', coupleId).select().single();
     if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Pet not found' });
     res.json(data);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -197,10 +211,17 @@ router.post('/memories', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Was deletable by `id` alone with no ownership check; now requires
+// coupleId and scopes the delete to it.
 router.delete('/memories/:id', async (req, res) => {
   try {
-    const { error } = await supabase.from('home_memory_objects').delete().eq('id', req.params.id);
+    const coupleId = req.body?.coupleId || req.query.coupleId;
+    if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
+    const { data, error } = await supabase
+      .from('home_memory_objects').delete()
+      .eq('id', req.params.id).eq('couple_id', coupleId).select();
     if (error) throw error;
+    if (!data || !data.length) return res.status(404).json({ error: 'Memory object not found' });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

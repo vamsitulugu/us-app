@@ -211,7 +211,7 @@ const HomeFurniture = (() => {
 
   async function persistColor(root) {
     if (!root.userData.dbId) return;
-    try { await HomeAPI.furniture.update(root.userData.dbId, { color: root.userData.color }); }
+    try { await HomeAPI.furniture.update(root.userData.dbId, { color: root.userData.color }, coupleId); }
     catch (err) { HomeUtils.toast('Could not save color: ' + err.message, 'error'); }
   }
 

@@ -167,7 +167,7 @@ const HomeScene = (() => {
         pos_y: obj.position.y,
         pos_z: obj.position.z,
         rot_y: obj.rotation.y
-      });
+      }, state.coupleId);
       HomeUtils.toast('Furniture saved ✓', 'success');
     } catch (err) {
       HomeUtils.toast('Save failed: ' + err.message, 'error');

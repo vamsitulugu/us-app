@@ -1715,7 +1715,7 @@ async function saveMemory() {
   try {
     let savedMemory;
     if (editingMemoryId) {
-      const res = await fetch(`${API}/api/globe/${editingMemoryId}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ memory }) });
+      const res = await fetch(`${API}/api/globe/${editingMemoryId}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ coupleId, memory }) });
       savedMemory = await res.json();
       toast('Memory updated! 💕');
     } else {
@@ -1780,14 +1780,14 @@ async function addJournalToMemory(memoryId) {
 }
 async function deleteMedia(mediaId, memoryId) {
   if (!confirm('Delete this media?')) return;
-  await fetch(`${API}/api/globe/media/${mediaId}`, { method:'DELETE' });
+  await fetch(`${API}/api/globe/media/${mediaId}`, { method:'DELETE', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ coupleId }) });
   toast('Deleted');
   await loadMemories();
   openMemoryDetail(memoryId);
 }
 async function deleteMemory(id) {
   if (!confirm('Delete this memory? This cannot be undone.')) return;
-  await fetch(`${API}/api/globe/${id}`, { method:'DELETE' });
+  await fetch(`${API}/api/globe/${id}`, { method:'DELETE', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ coupleId }) });
   toast('Memory removed from globe');
   await loadMemories();
   closeDetailPanel();

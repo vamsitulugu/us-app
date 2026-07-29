@@ -64,34 +64,49 @@ router.post('/', async (req, res) => {
 });
 
 // PUT update memory
+// Previously this updated by `id` alone with no check that the memory
+// actually belongs to the caller's couple — anyone who obtained a memory
+// UUID (e.g. from a shared screenshot or a synced-session devtools poke)
+// could edit another couple's globe memory. Now requires coupleId and
+// scopes the update to it, the same pattern chat.js/music.js already use.
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { memory } = req.body;
+    const { memory, coupleId } = req.body;
+    if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
+
     const { data, error } = await supabase
       .from('globe_memories')
       .update(memory)
       .eq('id', id)
+      .eq('couple_id', coupleId)
       .select()
       .single();
 
     if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Memory not found' });
     res.json(data);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// DELETE memory
+// DELETE memory — same ownership fix as PUT above.
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { error } = await supabase
+    const coupleId = req.body?.coupleId || req.query.coupleId;
+    if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
+
+    const { data, error } = await supabase
       .from('globe_memories')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('couple_id', coupleId)
+      .select();
 
     if (error) throw error;
+    if (!data || !data.length) return res.status(404).json({ error: 'Memory not found' });
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -128,16 +143,23 @@ router.post('/:memoryId/media', async (req, res) => {
   }
 });
 
-// DELETE media
+// DELETE media — was previously deletable by anyone who knew the media
+// UUID; now scoped to the caller's couple the same way as memory delete.
 router.delete('/media/:mediaId', async (req, res) => {
   try {
     const { mediaId } = req.params;
-    const { error } = await supabase
+    const coupleId = req.body?.coupleId || req.query.coupleId;
+    if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
+
+    const { data, error } = await supabase
       .from('globe_memory_media')
       .delete()
-      .eq('id', mediaId);
+      .eq('id', mediaId)
+      .eq('couple_id', coupleId)
+      .select();
 
     if (error) throw error;
+    if (!data || !data.length) return res.status(404).json({ error: 'Media not found' });
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });

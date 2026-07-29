@@ -20,25 +20,27 @@ const HomeAPI = (() => {
   }
 
   // ── Furniture ──────────────────────────────────
+  // update/remove now also send coupleId — the backend verifies the
+  // furniture item actually belongs to that couple before mutating it.
   const furniture = {
-    list:   (cid)       => req('GET',    `/furniture/${cid}`),
-    add:    (payload)   => req('POST',   `/furniture`, payload),
-    update: (id, data)  => req('PUT',    `/furniture/${id}`, data),
-    remove: (id)        => req('DELETE', `/furniture/${id}`)
+    list:   (cid)              => req('GET',    `/furniture/${cid}`),
+    add:    (payload)           => req('POST',   `/furniture`, payload),
+    update: (id, data, cid)     => req('PUT',    `/furniture/${id}`, { ...data, coupleId: cid || data.coupleId }),
+    remove: (id, cid)           => req('DELETE', `/furniture/${id}`, { coupleId: cid })
   };
 
   // ── Pets ───────────────────────────────────────
   const pets = {
-    list:   (cid)         => req('GET',   `/pets/${cid}`),
-    create: (payload)     => req('POST',  `/pets`, payload),
-    action: (id, payload) => req('PATCH', `/pets/${id}`, payload)
+    list:   (cid)              => req('GET',   `/pets/${cid}`),
+    create: (payload)          => req('POST',  `/pets`, payload),
+    action: (id, payload, cid) => req('PATCH', `/pets/${id}`, { ...payload, coupleId: cid || payload.coupleId })
   };
 
   // ── Memory objects ─────────────────────────────
   const memories = {
     list:   (cid)     => req('GET',    `/memories/${cid}`),
     add:    (payload) => req('POST',   `/memories`, payload),
-    remove: (id)      => req('DELETE', `/memories/${id}`)
+    remove: (id, cid) => req('DELETE', `/memories/${id}`, { coupleId: cid })
   };
 
   // ── Settings ───────────────────────────────────

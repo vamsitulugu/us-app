@@ -8,9 +8,24 @@ const multer   = require('multer');
 const supabase = require('../middleware/supabase');
 const router   = express.Router();
 
+// Both couple-photos and vault-media only ever receive images/videos from
+// the app itself (see index.html's photo/vault upload flows) — nothing in
+// the UI uploads any other type here. Restricting to that on the server
+// prevents someone hitting this endpoint directly from uploading an HTML
+// or SVG file (which can execute script when opened) or any other
+// unexpected/executable content, without changing what real users can do.
+const ALLOWED_MEDIA_MIME = /^(image\/(jpeg|png|gif|webp|heic|heif)|video\/(mp4|quicktime|webm|3gpp|x-matroska))$/i;
+function mediaFileFilter(req, file, cb) {
+    if (!ALLOWED_MEDIA_MIME.test(file.mimetype)) {
+        return cb(new Error('Unsupported file type'));
+    }
+    cb(null, true);
+}
+
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 20 * 1024 * 1024 } // 20MB max
+    limits: { fileSize: 20 * 1024 * 1024 }, // 20MB max
+    fileFilter: mediaFileFilter
 });
 const uploadAudio = multer({
     storage: multer.memoryStorage(),
@@ -98,10 +113,31 @@ router.post('/upload-cover', upload.single('file'), async (req, res) => {
 });
 
 // ── DELETE /api/media/delete ───────────────────────────
+// Previously accepted an arbitrary `path` + `bucket` string with no check
+// that the path belonged to the caller's own coupleId — anyone who knew
+// or guessed another couple's storage path (paths are `${coupleId}/...`,
+// so this required knowing their coupleId too, but there was still no
+// enforcement) could delete their photos/vault media. Also added a
+// path-traversal guard since `path` is used directly in a storage call.
+const ALLOWED_MEDIA_BUCKETS = ['couple-photos', 'vault-media'];
 router.delete('/delete', async (req, res) => {
-    const { path, bucket } = req.body;
+    const { path, bucket, coupleId } = req.body;
     if (!path) return res.status(400).json({ error: 'path required' });
-    await supabase.storage.from(bucket || 'couple-photos').remove([path]);
+    if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
+    if (path.includes('..') || path.startsWith('/')) {
+        return res.status(400).json({ error: 'Invalid path' });
+    }
+    const targetBucket = bucket || 'couple-photos';
+    if (!ALLOWED_MEDIA_BUCKETS.includes(targetBucket)) {
+        return res.status(400).json({ error: 'Invalid bucket' });
+    }
+    // Every path is written as `${coupleId}/...` at upload time (see
+    // /upload above) — enforce that the caller can only ever delete
+    // objects under their own coupleId prefix.
+    if (!path.startsWith(`${coupleId}/`)) {
+        return res.status(403).json({ error: 'Not authorized to delete this file' });
+    }
+    await supabase.storage.from(targetBucket).remove([path]);
     return res.json({ ok: true });
 });
 
@@ -131,10 +167,28 @@ router.post('/upload-recording', uploadAudio.single('file'), async (req, res) =>
 
 // ── DELETE /api/media/delete-recording ────────────────
 router.delete('/delete-recording', async (req, res) => {
-    const { path } = req.body;
+    const { path, coupleId } = req.body;
     if (!path) return res.status(400).json({ error: 'path required' });
+    if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
+    if (path.includes('..') || path.startsWith('/')) {
+        return res.status(400).json({ error: 'Invalid path' });
+    }
+    if (!path.startsWith(`${coupleId}/`)) {
+        return res.status(403).json({ error: 'Not authorized to delete this file' });
+    }
     await supabase.storage.from('couple-recordings').remove([path]);
     return res.json({ ok: true });
 });
 
 module.exports = router;
+
+// Router-level error handler — catches multer errors (unsupported file
+// type from mediaFileFilter above, or file-too-large) and returns a
+// proper JSON response instead of falling through to server.js's generic
+// "Internal server error" handler.
+router.use((err, req, res, next) => {
+    if (err) {
+        return res.status(400).json({ error: err.message || 'Upload failed' });
+    }
+    next();
+});
