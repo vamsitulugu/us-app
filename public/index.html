@@ -9930,6 +9930,24 @@ document.addEventListener('keydown', e => {
   PushNotifications.addListener('registration', async (token) => {
     await api('POST', '/api/auth/register-fcm-token', { coupleId: S.coupleId, role: S.role, userId: S.userId, token: token.value });
   });
+  // Fires when the user taps a native FCM notification — whether the app
+  // was in the background or fully closed (cold start). The url we now
+  // send in the FCM `data` payload (see sendFCMToPartner in routes/auth.js)
+  // lands here as notification.notification.data.url, exactly the same
+  // shape the web notification_click listener already reads.
+  PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+    try {
+      const data = action?.notification?.data || {};
+      if (!data.url) return;
+      const page = new URL(data.url, window.location.origin).searchParams.get('page');
+      if (!page) return;
+      // On cold start this may fire before init() has rendered the
+      // dashboard yet — queue it the same way the ?page= URL param is
+      // queued, so it's picked up once the app finishes rendering.
+      if (S.setupDone && S.coupleId) navigateToDeepLink(page);
+      else window.__DEEP_LINK_PAGE__ = page;
+    } catch (err) { console.warn('[pushNotificationActionPerformed] bad url:', err); }
+  });
 }
 // ── PUSH NOTIFICATION SUBSCRIPTION ─────────────────────
 async function registerPushSubscription() {
