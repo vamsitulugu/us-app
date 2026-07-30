@@ -136,66 +136,60 @@ router.get('/status/:userId', async (req, res) => {
 });
 
 // ── POST /api/partner/accept ───────────────────────────
+// Maps the Postgres error codes raised inside accept_partner_request()
+// back to the same HTTP status/messages the old inline logic returned,
+// so the API contract for callers/frontend doesn't change.
+const ACCEPT_RPC_ERROR_MAP = {
+  P0001: { status: 404, message: 'Invitation not found' },
+  P0002: { status: 403, message: 'This invitation is not for you' },
+  P0003: { status: 409, message: 'This invitation is no longer pending' },
+  P0004: { status: 404, message: 'Account not found' },
+  P0005: { status: 409, message: 'That person is already connected with someone else.' }
+};
+
 router.post('/accept', async (req, res) => {
   const { requestId, userId } = req.body;
   if (!requestId || !userId) return res.status(400).json({ error: 'Missing data' });
 
-  const { data: request } = await supabase
-    .from('partner_requests').select('id, sender_id, receiver_id, status').eq('id', requestId).maybeSingle();
-  if (!request) return res.status(404).json({ error: 'Invitation not found' });
-  if (request.receiver_id !== userId) return res.status(403).json({ error: 'This invitation is not for you' });
-  if (request.status !== 'pending') return res.status(409).json({ error: 'This invitation is no longer pending' });
+  // The entire merge (validation + both users' updates + couple update +
+  // partner_requests cleanup) runs inside a single Postgres transaction
+  // via this RPC. Postgres functions are atomic: if any step raises,
+  // everything prior in the same call is rolled back automatically, so
+  // there's no window where one account is linked and the other isn't.
+  const { data, error } = await supabase.rpc('accept_partner_request', {
+    p_request_id: requestId,
+    p_user_id: userId
+  });
 
-  const { data: sender } = await supabase.from('users').select('id, name, couple_id').eq('id', request.sender_id).maybeSingle();
-  const { data: receiver } = await supabase.from('users').select('id, name, couple_id').eq('id', request.receiver_id).maybeSingle();
-  if (!sender || !receiver) return res.status(404).json({ error: 'Account not found' });
-
-  const { data: senderCouple } = await supabase.from('couples').select('id, paired').eq('id', sender.couple_id).maybeSingle();
-  if (senderCouple && senderCouple.paired) return res.status(409).json({ error: 'That person is already connected with someone else.' });
-
-  // Merge receiver into sender's couple space (user2)
-  const oldReceiverCoupleId = receiver.couple_id;
-  const { error: userUpdateErr } = await supabase.from('users').update({
-    couple_id: sender.couple_id, role: 'user2', updated_at: new Date().toISOString()
-  }).eq('id', receiver.id);
-  if (userUpdateErr) return res.status(500).json({ error: userUpdateErr.message });
-
-  const { error: coupleUpdateErr } = await supabase.from('couples').update({
-    user2_name: receiver.name, paired: true, updated_at: new Date().toISOString()
-  }).eq('id', sender.couple_id);
-  if (coupleUpdateErr) return res.status(500).json({ error: coupleUpdateErr.message });
-
-  await supabase.from('partner_requests').update({
-    status: 'accepted', updated_at: new Date().toISOString()
-  }).eq('id', requestId);
-
-  // Decline any other pending invitations either of them was part of
-  await supabase.from('partner_requests')
-    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-    .in('sender_id', [sender.id, receiver.id])
-    .eq('status', 'pending');
-  await supabase.from('partner_requests')
-    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-    .in('receiver_id', [sender.id, receiver.id])
-    .eq('status', 'pending');
-
-  // The receiver's old solo couple space is discarded (no data was in it)
-  if (oldReceiverCoupleId && oldReceiverCoupleId !== sender.couple_id) {
-    await supabase.from('couples').delete().eq('id', oldReceiverCoupleId);
+  if (error) {
+    const mapped = ACCEPT_RPC_ERROR_MAP[error.code];
+    if (mapped) return res.status(mapped.status).json({ error: mapped.message });
+    return res.status(500).json({ error: error.message });
   }
 
-  sendPushToUser(sender.id, {
+  const result = Array.isArray(data) ? data[0] : data;
+  if (!result) return res.status(500).json({ error: 'Accept failed unexpectedly' });
+
+  const {
+    couple_id: coupleId,
+    role,
+    partner_name: partnerName,
+    sender_id: senderId,
+    receiver_name: receiverName
+  } = result;
+
+  sendPushToUser(senderId, {
     title: 'Twin Hearts ❤️',
-    body: (receiver.name || 'Your partner') + ' accepted your connection request!',
+    body: (receiverName || 'Your partner') + ' accepted your connection request!',
     icon: '/icons/icon-192.png',
     tag: 'partner-accepted'
   }).catch(() => {});
 
   return res.json({
     ok: true,
-    coupleId: sender.couple_id,
-    role: 'user2',
-    partnerName: sender.name
+    coupleId,
+    role,
+    partnerName
   });
 });
 
