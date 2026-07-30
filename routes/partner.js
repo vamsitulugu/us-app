@@ -171,11 +171,11 @@ router.post('/accept', async (req, res) => {
   if (!result) return res.status(500).json({ error: 'Accept failed unexpectedly' });
 
   const {
-    couple_id: coupleId,
-    role,
-    partner_name: partnerName,
-    sender_id: senderId,
-    receiver_name: receiverName
+    out_couple_id: coupleId,
+    out_role: role,
+    out_partner_name: partnerName,
+    out_sender_id: senderId,
+    out_receiver_name: receiverName
   } = result;
 
   sendPushToUser(senderId, {

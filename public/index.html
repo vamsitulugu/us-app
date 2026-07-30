@@ -5079,7 +5079,7 @@ select option { background: #0D0D0D; color: #fff; }
             <div class="card-title">❤️ Partner Connection</div>
             <div id="partnerConnectionBody">
               <div style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.65">Find your partner using their phone number.</div>
-              <div class="field"><label>Partner Phone Number</label><input type="tel" id="profPartnerPhone" placeholder="e.g. 7077745442" autocomplete="off"></div>
+              <div class="field"><label>Partner Phone Number</label><input type="tel" id="profPartnerPhone" placeholder="10-digit phone number" inputmode="numeric" maxlength="10" autocomplete="off" style="letter-spacing:1px;font-size:16px"></div>
               <button class="btn btn-accent btn-sm" onclick="sendPartnerRequestFromProfile()">Send Connection Request ❤️</button>
               <div id="profPairStatus" style="font-size:11px;color:var(--text3);margin-top:10px">Not Connected</div>
             </div>
@@ -6015,7 +6015,7 @@ select option { background: #0D0D0D; color: #fff; }
           <div class="settings-row" style="cursor:default;flex-direction:column;align-items:flex-start">
             <div id="settingsPairStatus" style="font-size:13px;color:var(--white);margin-bottom:12px">Not Connected</div>
             <div id="settingsPartnerRequestForm" style="width:100%">
-              <div class="field" style="margin-bottom:8px"><label>Partner Phone Number</label><input type="tel" id="settingsPartnerPhone" placeholder="e.g. 7077745442" autocomplete="off"></div>
+              <div class="field" style="margin-bottom:8px"><label>Partner Phone Number</label><input type="tel" id="settingsPartnerPhone" placeholder="10-digit phone number" inputmode="numeric" maxlength="10" autocomplete="off" style="letter-spacing:1px;font-size:16px"></div>
               <button class="btn btn-accent btn-sm" onclick="sendPartnerRequestFromSettings()">Send Connection Request ❤️</button>
             </div>
             <button class="btn btn-danger btn-sm" id="removePartnerBtn" style="margin-top:12px;display:none" onclick="confirmRemovePartner()">💔 Remove Partner</button>
