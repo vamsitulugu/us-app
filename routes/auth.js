@@ -64,6 +64,53 @@ router.get('/couple/:id', async (req, res) => {
   return res.json(couple);
 });
 
+// ── GET /api/auth/session/:userId ──────────────────────
+// Lightweight session-restore validator used on app startup / reinstall.
+// It does NOT introduce any new auth mechanism — it simply confirms the
+// userId remembered on-device still corresponds to a real account, and
+// returns the latest user + couple + partner snapshot so the client never
+// has to render the dashboard from stale cached data. No schema changes,
+// no tokens: this reuses the exact same `users` / `couples` tables and
+// fields already used by /login and /register.
+router.get('/session/:userId', async (req, res) => {
+  const { userId } = req.params;
+  if (!userId) return res.status(400).json({ error: 'Missing userId' });
+
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('id, name, email, phone_number, couple_id, role')
+    .eq('id', userId)
+    .maybeSingle();
+
+  // Invalid / deleted account — the client is expected to treat this as
+  // "session expired" and clear all local auth data for this account.
+  if (error || !user) return res.status(401).json({ error: 'Session no longer valid' });
+
+  let partnerName = 'Partner', anniversary = '', paired = false;
+  if (user.couple_id) {
+    const { data: couple } = await supabase
+      .from('couples').select('user1_name, user2_name, anniversary, paired')
+      .eq('id', user.couple_id).maybeSingle();
+    if (couple) {
+      partnerName = user.role === 'user1' ? couple.user2_name : couple.user1_name;
+      anniversary = couple.anniversary || '';
+      paired = couple.paired || false;
+    }
+  }
+
+  return res.json({
+    userId: user.id,
+    coupleId: user.couple_id,
+    myName: user.name,
+    email: user.email,
+    phoneNumber: user.phone_number,
+    partnerName: partnerName || 'Partner',
+    anniversary,
+    paired,
+    role: user.role || 'user1'
+  });
+});
+
 // ── POST /api/auth/unpair ──────────────────────────────
 // Removes the partner relationship ONLY. Never touches
 // app_state, messages, photos, journal, transactions, etc —
@@ -496,7 +543,7 @@ router.post('/login', async (req, res) => {
 
   const { data: user, error } = await supabase
     .from('users')
-    .select('id, name, phone_number, password_hash, couple_id, role')
+    .select('id, name, email, phone_number, password_hash, couple_id, role')
     .eq('email', email.toLowerCase().trim())
     .maybeSingle();
 
@@ -521,6 +568,7 @@ router.post('/login', async (req, res) => {
     userId: user.id,
     coupleId: user.couple_id,
     myName: user.name,
+    email: user.email,
     phoneNumber: user.phone_number,
     partnerName: partnerName || 'Partner',
     anniversary,

@@ -4370,9 +4370,18 @@ select option { background: #0D0D0D; color: #fff; }
   
   <link rel="stylesheet" href="/responsive-fix.css">
   <script src="/js/scroll-reset.js"></script>
+  <script src="/js/session-manager.js"></script>
 </head>
 
 <body class="t-blue">
+  <div id="accountPicker" style="display:none;position:fixed;inset:0;z-index:99999;background:linear-gradient(160deg,#1a1030,#2b1a3d);align-items:center;justify-content:center;font-family:inherit;color:#fff">
+    <div style="width:min(92vw,380px);background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:18px;padding:28px 22px;backdrop-filter:blur(10px)">
+      <div style="text-align:center;font-size:22px;font-weight:700;margin-bottom:4px">Welcome Back ❤️</div>
+      <div style="text-align:center;font-size:14px;opacity:.75;margin-bottom:20px">Choose an account</div>
+      <div id="accountPickerList"></div>
+      <button onclick="AccountPicker.useAnother()" style="width:100%;margin-top:10px;padding:12px;border-radius:12px;border:1px dashed rgba(255,255,255,0.3);background:transparent;color:#fff;font-size:14px;cursor:pointer">+ Use another account</button>
+    </div>
+  </div>
   <div id="appLoader">
   <div class="al-shell">
     <!-- sidebar skeleton -->
@@ -9051,10 +9060,17 @@ function renderCountdowns() {
           if (el) el.textContent = 'Last backup: ' + S.settings.lastBackup;
           scheduleSave(); toast('Backup exported! 📤');
         }
-        function clearAllData() { if (!confirm('Log out and clear all local data?\n\n(Cloud data in Supabase is preserved.)')) return; localStorage.removeItem('uwl_v5'); location.reload(); }
+        function clearAllData() {
+          if (!confirm('Log out and clear all local data?\n\n(Cloud data in Supabase is preserved.)')) return;
+          if (window.SessionManager && S.userId) SessionManager.forgetAccount(S.userId);
+          localStorage.removeItem('uwl_v5');
+          location.reload();
+        }
 function logOut() {
   if (!confirm('Log out? You can sign back in anytime. Your data stays safe in the cloud.')) return;
+  const uid = S.userId;
   resetForNewAccount();   // was: localStorage.removeItem('uwl_v5') only
+  if (window.SessionManager && uid) SessionManager.forgetAccount(uid);
   window.location.href = '/landing.html';
 }   
         function quickMood(el, mood) {
@@ -9094,19 +9110,86 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
   window.addEventListener('load', () => window.Capacitor.Plugins.SplashScreen.hide());
 }
 
-        // ─── INIT ────────────────────────────────────────────────
-        async function init() {
-        loadLocal(); // always load from localStorage first — instant, never blank
-        AppLoader.ready('theme');
-        syncAuthOverlay();
-        if (!S.coupleId) {
-          AppLoader.showAuthSkeleton();
-          AppLoader.ready('auth');  
-          window.location.href = '/landing.html';
-          return;
+        // ─── ACCOUNT PICKER ──────────────────────────────────────
+        // Shown instead of the dashboard when more than one account is
+        // remembered on this device. Never auto-picks — the user must
+        // choose explicitly.
+        window.AccountPicker = {
+          show(accounts) {
+            const wrap = document.getElementById('accountPicker');
+            const list = document.getElementById('accountPickerList');
+            list.innerHTML = accounts.map(a => `
+              <button onclick="AccountPicker.select('${a.userId}')"
+                style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;margin-bottom:10px;border-radius:12px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer;font-size:15px">
+                <span style="font-size:22px">👤</span>
+                <span style="display:flex;flex-direction:column">
+                  <span style="font-weight:600">${(a.myName || 'Account').replace(/</g,'&lt;')}</span>
+                  <span style="font-size:12px;opacity:.7">${(a.email || '').replace(/</g,'&lt;')}</span>
+                </span>
+              </button>`).join('');
+            wrap.style.display = 'flex';
+            AppLoader.forceHide();
+          },
+          hide() { document.getElementById('accountPicker').style.display = 'none'; },
+          select(userId) { this.hide(); restoreAccount(userId); },
+          useAnother() { window.location.href = '/landing.html?newAccount=1'; }
+        };
+
+        // ─── RESTORE ONE ACCOUNT ─────────────────────────────────
+        // Validates the session with the backend, pulls the latest
+        // user/couple/partner state, and ONLY THEN reveals the dashboard.
+        // The database is always the source of truth — local cache is
+        // used only as an offline fallback, never as the initial paint.
+        async function restoreAccount(userId) {
+          const result = window.SessionManager
+            ? await SessionManager.validateSession(userId)
+            : { ok: false, reason: 'network' };
+
+          if (!result.ok) {
+            if (result.reason === 'invalid') {
+              // Expired / deleted account — wipe every trace of it.
+              SessionManager.forgetAccount(userId);
+              if (S.userId === userId) SessionManager.clearAuthData({ keepOtherAccounts: true });
+              const remaining = SessionManager.getAccounts();
+              if (remaining.length > 0) { AccountPicker.show(remaining); return; }
+              AppLoader.showAuthSkeleton();
+              AppLoader.ready('auth');
+              window.location.href = '/landing.html';
+              return;
+            }
+            // Couldn't reach the backend right now — fall back to local
+            // cache ONLY if it belongs to this same account, so the app
+            // still works offline instead of hard-failing.
+            if (S.userId === userId && S.coupleId) {
+              toast('Offline — showing your last saved data');
+              finishRestore();
+            } else {
+              AppLoader.forceHide();
+              toast('Could not connect. Check your internet and try again.');
+              const accounts = SessionManager ? SessionManager.getAccounts() : [];
+              if (accounts.length > 1) AccountPicker.show(accounts);
+              else window.location.href = '/landing.html';
+            }
+            return;
+          }
+
+          const data = result.data;
+          SessionManager.setLastActive(userId);
+          if (S.userId !== userId) { Object.keys(S).forEach(k => delete S[k]); Object.assign(S, freshAppState()); }
+          Object.assign(S, {
+            userId: data.userId, coupleId: data.coupleId, myName: data.myName,
+            partnerName: data.partnerName || 'Partner', anniversary: data.anniversary || '',
+            role: data.role || 'user1', paired: !!data.paired, setupDone: true
+          });
+          // Latest couple/profile/partner info (existing endpoint — no
+          // schema or auth changes).
+          await loadFromCloud();
+          saveLocal();
+          finishRestore();
         }
-        AppLoader.ready('auth');
-  if (!S.setupDone) S.setupDone = true; // coupleId existing means setup already happened
+
+        function finishRestore() {
+          AppLoader.ready('auth');
           if (S.theme) {
             document.body.className = S.theme;
             const hMap = {
@@ -9117,40 +9200,64 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
             const h = hMap[S.theme] || 340;
             document.documentElement.style.setProperty('--h', h);
           }
-          if (S.setupDone && S.coupleId) {
-            document.getElementById('authOverlay').style.display = 'none';
-            renderAll(); // render immediately from localStorage — no blank screen
-            updatePairStatus();
-            // If this load came from a notification tap (e.g. /?page=chat),
-            // jump straight to that page instead of leaving the user on the
-            // dashboard. Then clean the URL so a manual refresh doesn't
-            // re-trigger it.
-            if (window.__DEEP_LINK_PAGE__) {
-              navigateToDeepLink(window.__DEEP_LINK_PAGE__);
-              window.__DEEP_LINK_PAGE__ = null;
-              history.replaceState({}, '', window.location.pathname);
-            }
-            // Then sync from cloud in background
-            loadFromCloud().then(() => {
-  checkPairStatus();
-  checkPendingPartnerRequest();
-  subscribeToPartnerRealtime();
-  checkIncomingTouch();
-  checkIncomingMissYou();
-  checkIncomingHug();
-  renderAll();
-  AppLoader.ready('data');   
-}).catch(() => {
-  AppLoader.ready('data');
-});
-            startAlarmCheck();
-            if ('Notification' in window && Notification.permission === 'granted') setTimeout(registerPushSubscription, 2000);
-            setupNativeNotifications();
-            startSyncLoop();
+          document.getElementById('authOverlay').style.display = 'none';
+          renderAll(); // now painting with fresh, validated state — never stale
+          updatePairStatus();
+          AppLoader.ready('data');
+          // If this load came from a notification tap (e.g. /?page=chat),
+          // jump straight to that page instead of leaving the user on the
+          // dashboard. Then clean the URL so a manual refresh doesn't
+          // re-trigger it.
+          if (window.__DEEP_LINK_PAGE__) {
+            navigateToDeepLink(window.__DEEP_LINK_PAGE__);
+            window.__DEEP_LINK_PAGE__ = null;
+            history.replaceState({}, '', window.location.pathname);
           }
+          checkPairStatus();
+          checkPendingPartnerRequest();
+          subscribeToPartnerRealtime();
+          checkIncomingTouch();
+          checkIncomingMissYou();
+          checkIncomingHug();
+          startAlarmCheck();
+          if ('Notification' in window && Notification.permission === 'granted') setTimeout(registerPushSubscription, 2000);
+          setupNativeNotifications();
+          startSyncLoop();
           if (!history.state) {
-  history.replaceState({ page: 'dashboard' }, '', '#dashboard');
-}
+            history.replaceState({ page: 'dashboard' }, '', '#dashboard');
+          }
+        }
+
+        // ─── INIT ────────────────────────────────────────────────
+        async function init() {
+        AppLoader.ready('theme');
+        syncAuthOverlay();
+        loadLocal(); // legacy single-session cache — used for offline fallback / migration only, never for the initial paint
+
+        // Legacy migration: installs from before multi-account support
+        // have an active uwl_v5 session but no account registry yet.
+        // Register it once so multi-account picking works going forward
+        // without signing anyone out.
+        if (window.SessionManager && SessionManager.getAccounts().length === 0 && S.coupleId && S.userId) {
+          SessionManager.rememberAccount({ userId: S.userId, email: S.email || '', myName: S.myName, coupleId: S.coupleId });
+        }
+
+        const accounts = window.SessionManager ? SessionManager.getAccounts() : [];
+
+        if (accounts.length === 0) {
+          AppLoader.showAuthSkeleton();
+          AppLoader.ready('auth');
+          window.location.href = '/landing.html';
+          return;
+        }
+
+        if (accounts.length === 1) {
+          await restoreAccount(accounts[0].userId);
+          return;
+        }
+
+        // Multiple remembered accounts — never silently choose one.
+        AccountPicker.show(accounts);
         }
 
         // ─── PAGE MANAGER (lightweight) ──────────────────────────

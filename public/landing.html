@@ -277,6 +277,7 @@ body.native-auth-only #authModal .modal-close{display:none}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
   <script src="/js/scroll-reset.js"></script>
+  <script src="/js/session-manager.js"></script>
 </head>
 <body>
 
@@ -589,6 +590,15 @@ function saveAndGo(data){
     role:data.role||'user1', setupDone:true, paired:data.paired||false, theme:'t-blue'
   };
   localStorage.setItem('uwl_v5', JSON.stringify(freshState));
+  try { sessionStorage.setItem('uwl_just_authenticated', data.userId); } catch(e){}
+  // Remember this account so a later reinstall can offer it in the
+  // account picker if other accounts are also signed in on this device.
+  // Purely additive bookkeeping — does not change login/signup itself.
+  if (window.SessionManager) {
+    window.SessionManager.rememberAccount({
+      userId: data.userId, email: data.email || '', myName: data.myName, coupleId: data.coupleId
+    });
+  }
   window.location.href='/';
 }
 function goToApp(){ window.location.href='/'; }
