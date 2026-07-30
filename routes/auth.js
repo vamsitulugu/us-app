@@ -11,7 +11,6 @@ const crypto   = require('crypto');
 const rateLimit = require('express-rate-limit');
 const { v4: uuid } = require('uuid');
 const supabase = require('../middleware/supabase');
-const { sendPasswordResetEmail } = require('../middleware/mailer');
 
 const router = express.Router();
 
@@ -581,26 +580,26 @@ router.post('/login', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════
-//  FORGOT PASSWORD — additive only. Uses the existing `users` table
-//  plus two new nullable columns (reset_token_hash, reset_token_expires)
-//  — see scripts/migrations/001_password_reset.sql. Does not touch
-//  signup, signin, or partner-connection logic anywhere above.
+//  FORGOT PASSWORD — Email + Phone verification flow.
+//  Uses the existing `users` table and the existing
+//  reset_token_hash / reset_token_expires columns (same ones the
+//  prior email-link flow used) — no schema changes required.
+//  Does not touch signup, signin, or partner-connection logic
+//  anywhere above.
 // ═══════════════════════════════════════════════════════
-const RESET_TOKEN_TTL_MINUTES = 60; // reset link is valid for 1 hour
+const RESET_TOKEN_TTL_MINUTES = 10; // reset token is valid for 10 minutes
 
-// Stricter limiter than the (currently-unused) authLimiter in server.js —
-// defined here and applied directly to these two routes so existing
-// routes/behavior elsewhere are completely unaffected.
+// Rate limiters — same two limiters as before, reused for the new routes.
 const resetRequestLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,                   // 5 forgot-password requests per IP per 15 min
+  max: 5,                   // 5 identity-verification requests per IP per 15 min
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many reset requests. Please wait a while and try again.' }
+  message: { error: 'Too many attempts. Please wait a while and try again.' }
 });
 const resetSubmitLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10, // token validation / password submit attempts per IP
+  max: 10, // password-update attempts per IP
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many attempts. Please wait a while and try again.' }
@@ -610,89 +609,57 @@ function hashToken(rawToken) {
   return crypto.createHash('sha256').update(rawToken).digest('hex');
 }
 
-function buildResetLink(rawToken) {
-  const base = (process.env.APP_PUBLIC_URL || process.env.APP_URL || 'https://twinhearts.vercel.app').replace(/\/$/, '');
-  return `${base}/reset-password.html?token=${rawToken}`;
-}
+// ── POST /api/auth/verify-reset-identity ────────────────
+// Body: { email, phone }
+// Verifies BOTH email and phone number against the same user row.
+// Never reveals which field (or whether the account itself) was wrong —
+// same generic error either way, exactly like the old flow's
+// no-enumeration guarantee.
+router.post('/verify-reset-identity', resetRequestLimiter, async (req, res) => {
+  const { email, phone } = req.body;
+  const GENERIC_ERROR = 'The provided information does not match our records.';
 
-// ── POST /api/auth/forgot-password ─────────────────────
-// Body: { email }
-router.post('/forgot-password', resetRequestLimiter, async (req, res) => {
-  const { email } = req.body;
-  if (!email || !String(email).trim()) {
-    return res.status(400).json({ error: 'Email is required' });
+  if (!email || !phone) {
+    return res.status(400).json({ error: GENERIC_ERROR });
   }
-  const normalizedEmail = String(email).toLowerCase().trim();
 
-  // Generic response used regardless of whether the account exists —
-  // never reveal account existence via this endpoint (email enumeration).
-  const GENERIC_MESSAGE = 'If an account with that email exists, a password reset link has been sent.';
+  const normalizedEmail = String(email).toLowerCase().trim();
+  const normalizedPhone = normalizePhone(phone);
 
   const { data: user, error } = await supabase
     .from('users')
-    .select('id, name, email')
+    .select('id')
     .eq('email', normalizedEmail)
+    .eq('phone_number', normalizedPhone)
     .maybeSingle();
 
-  // No account, or lookup error: respond identically to the success case.
-  // Do NOT distinguish these — that's the whole point of the fix.
+  if (error) console.error('verify-reset-identity: user lookup error', error);
+
+  // No match, or lookup error: respond identically either way.
   if (error || !user) {
-    if (error) console.error('forgot-password: user lookup error', error);
-    return res.json({ message: GENERIC_MESSAGE });
+    return res.status(400).json({ error: GENERIC_ERROR });
   }
 
   const rawToken = crypto.randomBytes(32).toString('hex');
   const tokenHash = hashToken(rawToken);
   const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MINUTES * 60 * 1000).toISOString();
 
+  // Overwrites any previous token for this user, so old tokens are
+  // implicitly invalidated the moment a new one is issued.
   const { error: updateErr } = await supabase
     .from('users')
     .update({ reset_token_hash: tokenHash, reset_token_expires: expiresAt })
     .eq('id', user.id);
 
-  // Even on internal failure, don't leak account existence via a
-  // different status code — log it, but still return the generic message.
   if (updateErr) {
-    console.error('forgot-password: failed to store reset token', updateErr);
-    return res.json({ message: GENERIC_MESSAGE });
+    console.error('verify-reset-identity: failed to store reset token', updateErr);
+    return res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 
-  try {
-    await sendPasswordResetEmail({
-      to: user.email,
-      name: user.name,
-      resetLink: buildResetLink(rawToken),
-      expiresInMinutes: RESET_TOKEN_TTL_MINUTES
-    });
-  } catch (mailErr) {
-    console.error('forgot-password: failed to send email', mailErr);
-    // Same reasoning — don't leak success/failure asymmetry tied to
-    // whether the account existed.
-    return res.json({ message: GENERIC_MESSAGE });
-  }
-
-  return res.json({ message: GENERIC_MESSAGE });
-});
-// ── GET /api/auth/reset-password/:token ─────────────────
-// Used by reset-password.html on load to decide whether to show the
-// new-password form or the "link expired" state, WITHOUT ever
-// revealing which email/user the token belongs to.
-router.get('/reset-password/:token', resetSubmitLimiter, async (req, res) => {
-  const { token } = req.params;
-  if (!token) return res.status(400).json({ valid: false });
-
-  const tokenHash = hashToken(token);
-  const { data: user, error } = await supabase
-    .from('users')
-    .select('id, reset_token_expires')
-    .eq('reset_token_hash', tokenHash)
-    .maybeSingle();
-
-  if (error || !user || !user.reset_token_expires || new Date(user.reset_token_expires) < new Date()) {
-    return res.status(400).json({ valid: false, error: 'This password reset link has expired.' });
-  }
-
-  return res.json({ valid: true });
+  // Token is returned directly to the client (no email involved) so the
+  // SPA can move straight to the Change Password screen. It never touches
+  // localStorage — the frontend keeps it in memory only for this step.
+  return res.json({ resetToken: rawToken });
 });
 
 // ── POST /api/auth/reset-password ───────────────────────

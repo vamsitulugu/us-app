@@ -270,8 +270,8 @@ body.native-auth-only #authModal .modal-close{display:none}
 .auth-divider{text-align:center;font-size:11px;color:var(--text3);margin:15px 0}
 .auth-btn-alt{width:100%;padding:12px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;background:var(--g2);color:var(--white);border:1px solid var(--border2);font-family:var(--ff-sans);transition:all .2s}
 .auth-btn-alt:hover{background:var(--g3)}
-#loginView,#registerView,#setupView,#pairView,#forgotView{display:none}
-#loginView.active,#registerView.active,#setupView.active,#pairView.active,#forgotView.active{display:block;animation:fadeSlide .25s ease}
+#loginView,#registerView,#setupView,#pairView,#forgotView,#changePasswordView{display:none}
+#loginView.active,#registerView.active,#setupView.active,#pairView.active,#forgotView.active,#changePasswordView.active{display:block;animation:fadeSlide .25s ease}
 @keyframes fadeSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
@@ -453,14 +453,26 @@ body.native-auth-only #authModal .modal-close{display:none}
     <div id="forgotView">
       <div class="modal-headline" style="margin-bottom:18px">Reset your password 🔑</div>
       <div id="forgotErr" class="auth-err"></div>
-      <div id="forgotSuccess" class="auth-err" style="display:none;background:var(--green-bg);color:var(--green);border-color:rgba(52,211,153,.3)"></div>
       <div id="forgotFormWrap">
-        <p style="font-size:12.5px;color:var(--text2);line-height:1.7;margin-bottom:16px">Enter the email you registered with and we'll send you a link to reset your password.</p>
+        <p style="font-size:12.5px;color:var(--text2);line-height:1.7;margin-bottom:16px">Enter the email and phone number you registered with to verify it's you.</p>
         <div class="field"><label>Email</label><input type="email" id="forgotEmail" placeholder="your@email.com" autocomplete="email"></div>
-        <button class="auth-btn" id="forgotBtn" onclick="doForgotPassword()">Send Reset Email 💌</button>
+        <div class="field"><label>Phone Number</label><input type="tel" id="forgotPhone" placeholder="Your registered phone number" autocomplete="tel"></div>
+        <button class="auth-btn" id="forgotBtn" onclick="doVerifyIdentity()">Continue</button>
       </div>
       <div class="auth-divider">Remembered your password?</div>
-      <button class="auth-btn-alt" onclick="authTab('login')">Sign In →</button>
+      <button class="auth-btn-alt" onclick="authTab('login')">Back to Login →</button>
+    </div>
+
+    <!-- ═══ Change Password view — reached only after email+phone match ═══ -->
+    <div id="changePasswordView">
+      <div class="modal-headline" style="margin-bottom:18px">Choose a new password 🔒</div>
+      <div id="changePasswordErr" class="auth-err"></div>
+      <div id="changePasswordSuccess" class="auth-err" style="display:none;background:var(--green-bg);color:var(--green);border-color:rgba(52,211,153,.3)"></div>
+      <div id="changePasswordFormWrap">
+        <div class="field"><label>New Password</label><input type="password" id="newPasswordInput" placeholder="At least 6 characters" autocomplete="new-password"></div>
+        <div class="field"><label>Confirm Password</label><input type="password" id="confirmPasswordInput" placeholder="Re-enter password" autocomplete="new-password"></div>
+        <button class="auth-btn" id="updatePasswordBtn" onclick="doUpdatePassword()">Update Password</button>
+      </div>
     </div>
 
     <div id="registerView">
@@ -557,7 +569,7 @@ function openAuth(view){
 }
 function closeAuth(){ document.getElementById('authModal').classList.remove('open'); }
 function authTab(tab){
-  ['login','register','forgot'].forEach(v=>{
+  ['login','register','forgot','changePassword'].forEach(v=>{
     const el=document.getElementById(v+'View');
     if(el) el.classList.toggle('active', v===tab);
   });
@@ -567,32 +579,73 @@ function authTab(tab){
 }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 
-/* ── Forgot Password (additive — does not touch login/register) ── */
+/* ── Forgot Password: Email + Phone verification (additive — does not touch login/register) ── */
+let pendingResetToken = null; // held in memory only for the duration of this flow, never persisted
+
 function openForgotPassword(){
   const err=document.getElementById('forgotErr'); err.style.display='none';
-  const ok=document.getElementById('forgotSuccess'); ok.style.display='none';
   document.getElementById('forgotFormWrap').style.display='block';
   document.getElementById('forgotEmail').value='';
-  const btn=document.getElementById('forgotBtn'); btn.textContent='Send Reset Email 💌'; btn.disabled=false;
+  document.getElementById('forgotPhone').value='';
+  const btn=document.getElementById('forgotBtn'); btn.textContent='Continue'; btn.disabled=false;
+  pendingResetToken = null;
   authTab('forgot');
 }
-async function doForgotPassword(){
+
+async function doVerifyIdentity(){
   const email=document.getElementById('forgotEmail').value.trim();
+  const phone=document.getElementById('forgotPhone').value.trim();
   const err=document.getElementById('forgotErr');
-  const ok=document.getElementById('forgotSuccess');
-  err.style.display='none'; ok.style.display='none';
-  if(!email){ err.textContent='Enter your email address'; err.style.display='block'; return; }
-  const btn=document.getElementById('forgotBtn'); btn.textContent='Sending...'; btn.disabled=true;
+  err.style.display='none';
+  if(!email || !phone){ err.textContent='Enter both your email and phone number'; err.style.display='block'; return; }
+  const btn=document.getElementById('forgotBtn'); btn.textContent='Checking...'; btn.disabled=true;
   try{
-    const r=await fetch(API+'/api/auth/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    const r=await fetch(API+'/api/auth/verify-reset-identity',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone})});
     const data=await r.json();
-    if(!r.ok) throw new Error(data.error||'Could not send reset email');
-    ok.textContent=data.message||'Password reset email sent.';
-    ok.style.display='block';
-    document.getElementById('forgotFormWrap').style.display='none';
+    if(!r.ok || !data.resetToken) throw new Error(data.error||'The provided information does not match our records.');
+    pendingResetToken = data.resetToken;
+    openChangePassword();
   }catch(e){
     err.textContent=e.message; err.style.display='block';
-    btn.textContent='Send Reset Email 💌'; btn.disabled=false;
+    btn.textContent='Continue'; btn.disabled=false;
+  }
+}
+
+function openChangePassword(){
+  const err=document.getElementById('changePasswordErr'); err.style.display='none';
+  const ok=document.getElementById('changePasswordSuccess'); ok.style.display='none';
+  document.getElementById('changePasswordFormWrap').style.display='block';
+  document.getElementById('newPasswordInput').value='';
+  document.getElementById('confirmPasswordInput').value='';
+  const btn=document.getElementById('updatePasswordBtn'); btn.textContent='Update Password'; btn.disabled=false;
+  authTab('changePassword');
+}
+
+async function doUpdatePassword(){
+  const pass=document.getElementById('newPasswordInput').value;
+  const confirm=document.getElementById('confirmPasswordInput').value;
+  const err=document.getElementById('changePasswordErr');
+  const ok=document.getElementById('changePasswordSuccess');
+  err.style.display='none'; ok.style.display='none';
+
+  if(!pendingResetToken){ err.textContent='Your session expired. Please start over.'; err.style.display='block'; return; }
+  if(!pass || !confirm){ err.textContent='Enter and confirm your new password'; err.style.display='block'; return; }
+  if(pass.length < 6){ err.textContent='Password must be at least 6 characters'; err.style.display='block'; return; }
+  if(pass !== confirm){ err.textContent='Passwords do not match'; err.style.display='block'; return; }
+
+  const btn=document.getElementById('updatePasswordBtn'); btn.textContent='Updating...'; btn.disabled=true;
+  try{
+    const r=await fetch(API+'/api/auth/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:pendingResetToken,newPassword:pass})});
+    const data=await r.json();
+    if(!r.ok) throw new Error(data.error||'Could not update password');
+    pendingResetToken = null; // single-use — discard immediately after success
+    ok.textContent='Password updated successfully.';
+    ok.style.display='block';
+    document.getElementById('changePasswordFormWrap').style.display='none';
+    setTimeout(()=>{ authTab('login'); }, 1600);
+  }catch(e){
+    err.textContent=e.message; err.style.display='block';
+    btn.textContent='Update Password'; btn.disabled=false;
   }
 }
 
