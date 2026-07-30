@@ -4369,6 +4369,7 @@ select option { background: #0D0D0D; color: #fff; }
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <link rel="stylesheet" href="/responsive-fix.css">
+  <script src="/js/scroll-reset.js"></script>
 </head>
 
 <body class="t-blue">
@@ -7203,6 +7204,34 @@ function setJustPairedAt(ts) {
           pg.classList.add('active');
           const ni = document.querySelector('.ni[data-page="' + page + '"]'); if (ni) ni.classList.add('active');
           document.getElementById('topTitle').textContent = pageTitles[page] || page;
+          // Every page must open at the top rather than remembering the
+          // previous page's scroll offset. The SPA shell shares a single
+          // scrollable #content region across all .page sections, so
+          // switching which one is visible doesn't naturally reset scroll —
+          // do it explicitly here. scroll-behavior:smooth on .content (see
+          // CSS) makes this an animated reset rather than an abrupt jump.
+          // Chat intentionally overrides this a moment later via its own
+          // scrollToBottom() call above/below, which is the one deliberate
+          // "preserve scroll position" exception.
+          (function resetPageScroll() {
+            const contentEl = document.querySelector('.content');
+            if (contentEl) contentEl.scrollTop = 0;
+            if (window.__resetScrollToTop) window.__resetScrollToTop(pg);
+            // Pages loaded into persistent same-origin <iframe>s (they never
+            // reload once first opened) also need their own internal scroll
+            // reset — post a message their scroll-reset.js listens for.
+            const FRAME_IDS = {
+              collection: 'collectionFrame', globe: 'globeFrame', music: 'musicFrame',
+              lovecounter: 'lovecounterFrame', dreamgoals: 'dreamgoalsFrame',
+              places: 'placesFrame', meetplanner: 'meetplannerFrame',
+              games: 'gamesFrame', virtualhome: 'virtualhomeFrame'
+            };
+            const fid = FRAME_IDS[page];
+            const fr = fid && document.getElementById(fid);
+            if (fr && fr.contentWindow) {
+              try { fr.contentWindow.postMessage({ type: 'US_RESET_SCROLL' }, window.location.origin); } catch (e) {}
+            }
+          })();
           if (page !== 'camera' && camStream) stopCamera();
           if (pushHistory) {
     history.pushState({ page }, '', '#' + page);

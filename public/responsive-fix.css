@@ -1,1 +1,205 @@
-html{-webkit-text-size-adjust:100%!important;-moz-text-size-adjust:100%!important;-ms-text-size-adjust:100%!important;text-size-adjust:100%!important}:root{font-size:clamp(13.5px, 3.7vw, 15px);--r:clamp(15px, 4.2vw, 18px);--rs:clamp(10px, 2.9vw, 12px);--rss:clamp(7px, 2vw, 8px);--space:clamp(16px, 4.8vw, 20px)}@media (min-width:900px){:root{font-size:15px;--r:18px;--rs:12px;--rss:8px;--space:20px}}@media (max-width:360px){:root{font-size:13px;--space:14px}}body,html{max-width:100%;overflow-x:hidden}:root{--safe-top:env(safe-area-inset-top, 0px);--safe-bottom:env(safe-area-inset-bottom, 0px);--safe-left:env(safe-area-inset-left, 0px);--safe-right:env(safe-area-inset-right, 0px)}.topbar{padding-top:max(env(safe-area-inset-top),0px)!important;height:auto!important;min-height:calc(58px + env(safe-area-inset-top))}@media (max-width:700px){.topbar{min-height:calc(52px + env(safe-area-inset-top))}}
+/* ════════════════════════════════════════════════════════════
+   RESPONSIVE-FIX.CSS
+   Purpose: make visual density consistent across all Android
+   devices (and web/APK), without changing design, colors,
+   animations, layout structure, or functionality.
+
+   ROOT CAUSES ADDRESSED (found during audit):
+   1. Android Chrome/WebView applies automatic "font boosting"
+      (text-size-adjust) to inflate text in narrow columns. This
+      algorithm differs by device/manufacturer/WebView version,
+      so identical CSS renders at different sizes on different
+      phones even though no app code changed. This is the
+      primary cause of "same code, different scale."
+   2. The app's spacing/radius/font design tokens (--space, --r,
+      --rs, --rss, root font-size) were fixed px values with a
+      single breakpoint cliff at 700px. A 360px-wide phone and a
+      480px-wide phone both got the exact same fixed px sizing,
+      so cards/paddings/fonts felt "oversized" on narrower
+      screens and "compact" on wider ones.
+   3. viewport meta tags were inconsistent across pages
+      (some pages allowed user-scaling, others didn't).
+
+   FIX STRATEGY:
+   - Disable Android's automatic text inflation everywhere.
+   - Convert the existing design tokens to fluid clamp() values
+     driven by viewport width, so density smoothly scales
+     between small/medium/large phones instead of jumping at a
+     single breakpoint. Values match the original px sizing at
+     common phone widths (~360-430px) so premium look/spacing is
+     preserved, not redesigned.
+   - This file is loaded last (after all other stylesheets) and
+     only redeclares existing custom properties + a couple of
+     safe global rules -- it does not touch component markup,
+     class names, JS, or business logic.
+   ════════════════════════════════════════════════════════════ */
+
+/* 1) Kill Android/iOS automatic text-size inflation. This alone
+   fixes the majority of "different font/card size on different
+   phones" reports, because it stops the OS/WebView from
+   rescaling text on top of our CSS. */
+html {
+  -webkit-text-size-adjust: 100% !important;
+  -moz-text-size-adjust: 100% !important;
+  -ms-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+}
+
+/* 2) Fluid design tokens. clamp(min, preferred, max) keeps the
+   same visual density used today at ~390px (a common mid-size
+   phone baseline) while smoothly scaling down for small phones
+   (~340-360px) and up for large phones/tablets (~600-900px),
+   instead of the old single 700px cliff. */
+:root {
+  /* base rem unit — was fixed 15px */
+  font-size: clamp(13.5px, 3.7vw, 15px);
+
+  /* radii — unchanged look at baseline width, gentle scale */
+  --r: clamp(15px, 4.2vw, 18px);
+  --rs: clamp(10px, 2.9vw, 12px);
+  --rss: clamp(7px, 2vw, 8px);
+
+  /* spacing unit used across cards/sections/gaps */
+  --space: clamp(16px, 4.8vw, 20px);
+}
+
+/* Tablet / large-screen ceiling: prevent tokens from continuing
+   to grow past typical large-phone width so tablets don't get
+   oversized cards either (keeps premium density consistent up
+   to ~900px, existing 1024px tablet media query in index.html
+   still governs layout/columns beyond that). */
+@media (min-width: 900px) {
+  :root {
+    font-size: 15px;
+    --r: 18px;
+    --rs: 12px;
+    --rss: 8px;
+    --space: 20px;
+  }
+}
+
+/* Very small phones (<=360px, e.g. older/compact Android
+   devices) get a touch more headroom reduction so multi-column
+   stat rows and cards keep breathing room instead of clipping
+   or forcing horizontal scroll. */
+@media (max-width: 360px) {
+  :root {
+    font-size: 13px;
+    --space: 14px;
+  }
+}
+
+/* 3) Guard against horizontal scroll/clipping regardless of
+   device, without altering layout. */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* 4) Respect safe areas consistently (notches / gesture bars)
+   for any element opting into it; harmless no-op otherwise. */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+/* 5) Edge-to-edge status bar clearance. Now that Android draws the
+   app behind the (transparent) status bar, the topbar's own dark
+   background needs to extend up through that area while its
+   content (logo/menu/title/actions) stays clear of the status bar
+   icons. box-sizing:border-box (already set globally) means this
+   padding adds to the bar's total height rather than shrinking its
+   content, so nothing gets visually compressed. */
+.topbar {
+  padding-top: max(env(safe-area-inset-top), 0px) !important;
+  height: auto !important;
+  min-height: calc(58px + env(safe-area-inset-top));
+}
+
+@media (max-width: 700px) {
+  .topbar {
+    min-height: calc(52px + env(safe-area-inset-top));
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   6) UNIVERSAL OVERFLOW / WRAP SAFETY NET
+   Purpose: eliminate the remaining "cards overflow / buttons move /
+   text wraps incorrectly / layouts collapse" reports across
+   320-1440px, WITHOUT touching any component's structure, colors,
+   or animations. Every rule below is a generic, low-specificity
+   safeguard that only engages when a layout would otherwise
+   overflow or clip -- it does not change sizing of anything that
+   already fits.
+   ════════════════════════════════════════════════════════════ */
+
+/* Media never exceeds its container, regardless of the natural
+   size of the source image/video/map tile/iframe. This is the
+   single biggest cause of horizontal overflow on narrow phones. */
+img, video, canvas, svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* iframes (music/games/globe/lovecounter/collection/dreamgoals/
+   places/meetplanner/virtualhome pages) fill their allotted box
+   instead of imposing their own intrinsic width. */
+iframe {
+  max-width: 100%;
+}
+
+/* Long unbroken strings (emails, links, IDs, partner-entered
+   free text) wrap inside their card instead of forcing the card
+   to overflow horizontally. */
+body, p, span, div, h1, h2, h3, h4, h5, h6, li, a, button, label {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Flex/grid children default to allowing themselves to shrink
+   below their content's intrinsic size -- the #1 cause of flex
+   items pushing siblings off-screen or wrapping/overlapping on
+   narrow viewports. Anything that intentionally needs its full
+   intrinsic width can still opt back in with min-width:auto. */
+.row, .grid, .flex, [class*="-row"], [class*="-grid"], [class*="-flex"] {
+  min-width: 0;
+}
+
+.row > *, .grid > *, .flex > * {
+  min-width: 0;
+}
+
+/* Fixed/absolute overlays (modals, sheets, panels, toasts) never
+   exceed the viewport, so they can't force page-level horizontal
+   scroll on small screens even if a fixed px width was authored
+   for a larger baseline. */
+.modal, .modal-bg, .sheet, .panel, .overlay, .toast, .dropdown {
+  max-width: 100vw;
+}
+
+/* Tables (rare, but present in some data views) scroll internally
+   instead of blowing out the page width. */
+table {
+  max-width: 100%;
+  display: block;
+  overflow-x: auto;
+}
+
+/* Buttons/inputs don't grow past their container on very narrow
+   phones (320-360px) where multiple inline actions previously
+   collided or wrapped mid-row. */
+button, input, select, textarea {
+  max-width: 100%;
+}
+
+/* Small-phone breakpoint tuning (320-375px): tighten button/action
+   row gaps slightly so multi-button rows (common in card headers
+   and modals) stay on one line instead of wrapping mid-row. Only
+   affects spacing, never colors, radii, or animation. */
+@media (max-width: 375px) {
+  .btn-row, .actions, .card-actions, [class*="-actions"] {
+    gap: 6px;
+  }
+}
