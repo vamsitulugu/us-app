@@ -160,11 +160,20 @@ router.post('/push/subscribe', async (req, res) => {
     // even if the couple_id+role upsert above didn't have a user_id
     // column to write to (e.g. constraint mismatch on older rows).
     if (userId) {
-      await supabase.from('push_subscriptions').upsert({
-        user_id: userId,
-        subscription: JSON.stringify(subscription),
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id' }).catch(() => {});
+      // NOTE: supabase-js query builders are thenable (implement .then())
+      // but do NOT implement .catch()/.finally() as standalone methods —
+      // calling .catch() on one throws a synchronous TypeError. That
+      // crashed the whole Node process on every push-token registration
+      // that reached this branch, which is why partner requests were
+      // intermittently slow: Render was cold-restarting the free
+      // instance (30-90s) after each crash, not a partner-request bug.
+      try {
+        await supabase.from('push_subscriptions').upsert({
+          user_id: userId,
+          subscription: JSON.stringify(subscription),
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+      } catch (e) { console.error('[push/subscribe] secondary user_id upsert failed:', e.message); }
     }
   } else {
     const { error } = await supabase.from('push_subscriptions').upsert({
@@ -239,11 +248,13 @@ router.post('/register-fcm-token', async (req, res) => {
     const { error } = await supabase.from('fcm_tokens').upsert(row, { onConflict: 'couple_id,role' });
     if (error) return res.status(500).json({ error: error.message });
     if (userId) {
-      await supabase.from('fcm_tokens').upsert({
-        user_id: userId,
-        token,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id' }).catch(() => {});
+      try {
+        await supabase.from('fcm_tokens').upsert({
+          user_id: userId,
+          token,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+      } catch (e) { console.error('[register-fcm-token] secondary user_id upsert failed:', e.message); }
     }
   } else {
     const { error } = await supabase.from('fcm_tokens').upsert({
