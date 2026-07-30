@@ -6698,6 +6698,7 @@ function saveLocal() {
           try {
             await api('POST', '/api/partner/request', { userId: S.userId, partnerPhone: phone });
             S.partnerRequestSent = true; saveLocal();
+            subscribeToPartnerRealtime();
             toast('Invitation sent ❤️ Waiting for your partner to accept.');
             updatePairStatus();
           } catch (e) {
@@ -6716,6 +6717,31 @@ function saveLocal() {
         }
         // Called on every app launch / resume / refresh — checks for a
         // pending invitation from a partner, with no typing or codes.
+        // ── Realtime: instant partner-request delivery ──────────
+        // Mirrors the existing broadcast-channel pattern used by
+        // games.html/globe.html/music.html/livemap.js. The 5s polling
+        // loop (startSyncLoop) is what caused new requests to take
+        // 3-6s to "appear" — this closes that gap for anyone who's
+        // online right now, while polling stays as the DB-is-truth
+        // fallback for offline/missed-broadcast cases.
+        let _partnerRealtimeChannel = null;
+        function subscribeToPartnerRealtime() {
+          if (_partnerRealtimeChannel || !S.userId || S.paired) return;
+          const sb = window.__SHARED_SB__;
+          if (!sb) { console.warn('[partner realtime] shared supabase client unavailable'); return; }
+          try {
+            _partnerRealtimeChannel = sb.channel(`partner_requests:${S.userId}`, { config: { broadcast: { self: false } } })
+              .on('broadcast', { event: 'new_request' }, () => {
+                checkPendingPartnerRequest();
+                loadPendingRequestsList();
+              })
+              .on('broadcast', { event: 'partner_accepted' }, () => {
+                renderSettingsWaitingCard();
+                updatePairStatus();
+              })
+              .subscribe();
+          } catch (e) { console.warn('[partner realtime] subscribe failed:', e.message); _partnerRealtimeChannel = null; }
+        }
         async function checkPendingPartnerRequest() {
           if (!S.userId || S.paired) return;
           try {
@@ -6781,6 +6807,7 @@ function saveLocal() {
             S.partnerRequestSent = false;
             setJustPairedAt(Date.now());
             saveLocal();
+            if (_partnerRealtimeChannel) { try { window.__SHARED_SB__?.removeChannel(_partnerRealtimeChannel); } catch(e){} _partnerRealtimeChannel = null; }
             const modal = document.getElementById('partnerRequestModal'); if (modal) modal.style.display = 'none';
             await loadFromCloud(); pushMyProfile(); pullPartnerProfile(); saveToCloud();
             applyNames(); renderAll(); updatePairStatus(); syncLoveCounterToFrame();
@@ -9012,6 +9039,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
             loadFromCloud().then(() => {
   checkPairStatus();
   checkPendingPartnerRequest();
+  subscribeToPartnerRealtime();
   checkIncomingTouch();
   checkIncomingMissYou();
   checkIncomingHug();
@@ -9870,7 +9898,7 @@ document.addEventListener('keydown', e => {
   if (perm.receive !== 'granted') return;
   await PushNotifications.register();
   PushNotifications.addListener('registration', async (token) => {
-    await api('POST', '/api/auth/register-fcm-token', { coupleId: S.coupleId, role: S.role, token: token.value });
+    await api('POST', '/api/auth/register-fcm-token', { coupleId: S.coupleId, role: S.role, userId: S.userId, token: token.value });
   });
 }
 // ── PUSH NOTIFICATION SUBSCRIPTION ─────────────────────
@@ -9901,7 +9929,7 @@ async function registerPushSubscription() {
     const r = await fetch(API + '/api/auth/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ coupleId: S.coupleId, role: S.role, subscription: sub.toJSON() })
+      body: JSON.stringify({ coupleId: S.coupleId, role: S.role, userId: S.userId, subscription: sub.toJSON() })
     });
     const result = await r.json();
     if (r.ok) console.log('[push] subscribed', result);

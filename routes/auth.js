@@ -138,14 +138,34 @@ router.post('/push/subscribe', async (req, res) => {
   const { coupleId, role, userId, subscription } = req.body;
   if (!subscription || (!coupleId && !userId)) return res.status(400).json({ error: 'Missing fields' });
 
+  // ROOT CAUSE FIX: every user gets a solo `couple_id` at signup (role
+  // 'user1'), so this always had coupleId+role and took this branch —
+  // meaning `user_id` was NEVER written here. sendPushToUser() (used for
+  // partner-invitation pushes, which must reach someone BEFORE they're
+  // paired) looks up strictly by user_id, so it always found nothing and
+  // silently sent nothing. Storing user_id here too (whenever the caller
+  // has it) fixes that without touching the couple_id+role lookup path
+  // that chat/calls/touch/etc already rely on.
   if (coupleId && role) {
-    const { error } = await supabase.from('push_subscriptions').upsert({
+    const row = {
       couple_id: coupleId,
       role,
       subscription: JSON.stringify(subscription),
       updated_at: new Date().toISOString()
-    }, { onConflict: 'couple_id,role' });
+    };
+    if (userId) row.user_id = userId;
+    const { error } = await supabase.from('push_subscriptions').upsert(row, { onConflict: 'couple_id,role' });
     if (error) return res.status(500).json({ error: error.message });
+    // Also upsert the user_id-only row so sendPushToUser's lookup works
+    // even if the couple_id+role upsert above didn't have a user_id
+    // column to write to (e.g. constraint mismatch on older rows).
+    if (userId) {
+      await supabase.from('push_subscriptions').upsert({
+        user_id: userId,
+        subscription: JSON.stringify(subscription),
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' }).catch(() => {});
+    }
   } else {
     const { error } = await supabase.from('push_subscriptions').upsert({
       user_id: userId,
@@ -206,14 +226,25 @@ router.post('/register-fcm-token', async (req, res) => {
   const { coupleId, role, userId, token } = req.body;
   if (!token || (!coupleId && !userId)) return res.status(400).json({ error: 'Missing fields' });
 
+  // Same root-cause fix as /push/subscribe above: store user_id too so
+  // sendPushToUser() (partner-invitation pushes) can find this token.
   if (coupleId && role) {
-    const { error } = await supabase.from('fcm_tokens').upsert({
+    const row = {
       couple_id: coupleId,
       role,
       token,
       updated_at: new Date().toISOString()
-    }, { onConflict: 'couple_id,role' });
+    };
+    if (userId) row.user_id = userId;
+    const { error } = await supabase.from('fcm_tokens').upsert(row, { onConflict: 'couple_id,role' });
     if (error) return res.status(500).json({ error: error.message });
+    if (userId) {
+      await supabase.from('fcm_tokens').upsert({
+        user_id: userId,
+        token,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' }).catch(() => {});
+    }
   } else {
     const { error } = await supabase.from('fcm_tokens').upsert({
       user_id: userId,
@@ -283,37 +314,94 @@ module.exports.sendFCMToPartner = sendFCMToPartner;
 // ── Helper: send push/FCM to a user directly by user_id ──────────
 // Used for partner-invitation notifications, which must reach someone
 // BEFORE they have a couple_id/role (i.e. before they're paired).
+// ── Helper: send push/FCM to a user directly by user_id ──────────
+// Used for partner-invitation notifications, which must reach someone
+// BEFORE they have a couple_id/role (i.e. before they're paired).
 async function sendPushToUser(userId, payload) {
+  const t0 = Date.now();
+  const result = { webpush: null, fcm: null };
+  console.log(`[push:start] user=${userId} tag=${payload.tag || ''} t=${t0}`);
+
   if (process.env.VAPID_PUBLIC_KEY) {
-    const { data } = await supabase.from('push_subscriptions')
-      .select('subscription').eq('user_id', userId).maybeSingle();
-    if (data) {
+    const { data, error: lookupErr } = await supabase
+      .from('push_subscriptions').select('subscription, updated_at').eq('user_id', userId).maybeSingle();
+    if (lookupErr) {
+      console.error(`[push:webpush] user=${userId} token lookup failed:`, lookupErr.message);
+    } else if (!data) {
+      console.warn(`[push:webpush] user=${userId} no subscription on file — device never registered, or registered before the userId fix (run migration 004)`);
+    } else {
+      const ageMin = data.updated_at ? Math.round((Date.now() - new Date(data.updated_at).getTime()) / 60000) : null;
+      console.log(`[push:webpush] user=${userId} subscription found, last updated ${ageMin}min ago`);
       try {
-        await webpush.sendNotification(JSON.parse(data.subscription), JSON.stringify(payload));
+        const sendRes = await webpush.sendNotification(JSON.parse(data.subscription), JSON.stringify(payload));
+        result.webpush = { sent: true, statusCode: sendRes.statusCode };
+        console.log(`[push:webpush] user=${userId} sent OK statusCode=${sendRes.statusCode} (${Date.now() - t0}ms)`);
       } catch (err) {
+        result.webpush = { sent: false, statusCode: err.statusCode, error: err.body || err.message };
+        console.error(`[push:webpush] user=${userId} FAILED statusCode=${err.statusCode} body=${err.body || err.message}`);
         if (err.statusCode === 410) {
           await supabase.from('push_subscriptions').delete().eq('user_id', userId);
+          console.log(`[push:webpush] user=${userId} subscription expired (410) — removed`);
         }
       }
     }
+  } else {
+    console.warn('[push:webpush] VAPID_PUBLIC_KEY not set — web push disabled entirely');
   }
+
   if (fcmReady) {
-    const { data } = await supabase.from('fcm_tokens').select('token').eq('user_id', userId).maybeSingle();
-    if (data) {
+    const { data, error: lookupErr } = await supabase
+      .from('fcm_tokens').select('token, updated_at').eq('user_id', userId).maybeSingle();
+    if (lookupErr) {
+      console.error(`[push:fcm] user=${userId} token lookup failed:`, lookupErr.message);
+    } else if (!data) {
+      console.warn(`[push:fcm] user=${userId} no FCM token on file — device never registered, or registered before the userId fix (run migration 004)`);
+    } else {
+      const ageMin = data.updated_at ? Math.round((Date.now() - new Date(data.updated_at).getTime()) / 60000) : null;
+      console.log(`[push:fcm] user=${userId} token found, last updated ${ageMin}min ago`);
       try {
-        await fcmMessaging.send({
+        const messageId = await fcmMessaging.send({
           token: data.token,
           notification: { title: payload.title || 'Twin Hearts 💕', body: payload.body || '' }
         });
+        result.fcm = { sent: true, messageId };
+        console.log(`[push:fcm] user=${userId} sent OK messageId=${messageId} (${Date.now() - t0}ms)`);
       } catch (err) {
+        result.fcm = { sent: false, code: err.code, error: err.message };
+        console.error(`[push:fcm] user=${userId} FAILED code=${err.code} message=${err.message}`);
         if (err.code === 'messaging/registration-token-not-registered') {
           await supabase.from('fcm_tokens').delete().eq('user_id', userId);
+          console.log(`[push:fcm] user=${userId} token stale — removed`);
         }
       }
     }
+  } else if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+    console.warn('[push:fcm] FIREBASE_SERVICE_ACCOUNT not set — native push disabled entirely');
   }
+
+  console.log(`[push:done] user=${userId} total=${Date.now() - t0}ms result=${JSON.stringify(result)}`);
+  return result;
 }
 module.exports.sendPushToUser = sendPushToUser;
+// ── Realtime broadcast helper (mirrors routes/location.js's pattern) ──
+// Stateless Broadcast-over-HTTP: no server-side websocket to maintain.
+// Fire-and-forget — if it fails, the existing polling loop still covers
+// it, so nothing is ever blocked on this.
+async function broadcastEvent(topic, event, payload) {
+  try {
+    await fetch(`${process.env.SUPABASE_URL}/realtime/v1/api/broadcast`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: process.env.SUPABASE_SERVICE_KEY,
+        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}`
+      },
+      body: JSON.stringify({ messages: [{ topic, event, payload: payload || {} }] })
+    });
+  } catch (e) { /* fire-and-forget — polling fallback covers this */ }
+}
+module.exports.broadcastEvent = broadcastEvent;
+
 module.exports.normalizePhone = normalizePhone;
 
 // ── POST /api/auth/register ────────────────────────────

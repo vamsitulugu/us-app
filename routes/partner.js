@@ -11,12 +11,15 @@
 // ═══════════════════════════════════════════════════════
 const express  = require('express');
 const supabase = require('../middleware/supabase');
-const { sendPushToUser, normalizePhone } = require('./auth');
+const { sendPushToUser, normalizePhone, broadcastEvent } = require('./auth');
 
 const router = express.Router();
 
 // ── POST /api/partner/request ──────────────────────────
 router.post('/request', async (req, res) => {
+  const t0 = Date.now();
+  console.log(`[partner:request] backend received t=${t0}`);
+
   const { userId, partnerPhone } = req.body;
   if (!userId || !partnerPhone) return res.status(400).json({ error: 'Missing data' });
 
@@ -58,6 +61,9 @@ router.post('/request', async (req, res) => {
     return res.status(409).json({ error: 'You already have a pending request.' });
   }
 
+  const tInsertStart = Date.now();
+  console.log(`[partner:request] db insert start t=${tInsertStart} (+${tInsertStart - t0}ms validation)`);
+
   const { data: request, error } = await supabase.from('partner_requests').insert({
     sender_id: sender.id,
     receiver_id: receiver.id,
@@ -66,17 +72,40 @@ router.post('/request', async (req, res) => {
     updated_at: new Date().toISOString()
   }).select('id').single();
 
+  const tInsertDone = Date.now();
+  console.log(`[partner:request] db insert done t=${tInsertDone} (+${tInsertDone - tInsertStart}ms)`);
+
   if (error) return res.status(500).json({ error: 'Failed to send invitation: ' + error.message });
 
+  // Response goes back to the sender NOW — push delivery and the
+  // realtime broadcast below both happen after this, unawaited, so
+  // neither can add latency to the sender's "Invitation sent" moment.
+  res.json({ ok: true, requestId: request.id });
+  console.log(`[partner:request] HTTP response sent t=${Date.now()} (+${Date.now() - tInsertDone}ms since insert done, total ${Date.now() - t0}ms)`);
+
+  // Realtime: tell the receiver's client instantly if it's online,
+  // instead of waiting for the next 5s poll tick (this app's existing
+  // polling loop — see startSyncLoop() in index.html — is what caused
+  // the reported 3-6s "appears" delay). The DB row above is already the
+  // source of truth; this broadcast is purely a latency shortcut, and
+  // polling still covers it if the broadcast is missed or the receiver
+  // is offline.
+  broadcastEvent(`partner_requests:${receiver.id}`, 'new_request', { requestId: request.id })
+    .then(() => console.log(`[partner:request] realtime broadcast sent t=${Date.now()}`));
+
   // Push notification is only a convenience — the database is the source of truth.
+  const tPushStart = Date.now();
+  console.log(`[partner:request] push start t=${tPushStart}`);
   sendPushToUser(receiver.id, {
     title: 'Twin Hearts ❤️',
     body: (sender.name || 'Someone') + ' wants to connect with you.',
     icon: '/icons/icon-192.png',
     tag: 'partner-request'
-  }).catch(() => {});
-
-  return res.json({ ok: true, requestId: request.id });
+  }).then(result => {
+    console.log(`[partner:request] push done t=${Date.now()} (+${Date.now() - tPushStart}ms) result=${JSON.stringify(result)}`);
+  }).catch(err => {
+    console.error(`[partner:request] push threw unexpectedly:`, err.message);
+  });
 });
 
 // ── GET /api/partner/pending/:userId ───────────────────
@@ -243,12 +272,17 @@ router.post('/accept', async (req, res) => {
     out_receiver_name: receiverName
   } = result;
 
+  broadcastEvent(`partner_requests:${senderId}`, 'partner_accepted', { coupleId })
+    .then(() => console.log(`[partner:accept] realtime broadcast sent to sender=${senderId}`));
+
   sendPushToUser(senderId, {
     title: 'Twin Hearts ❤️',
     body: (receiverName || 'Your partner') + ' accepted your connection request!',
     icon: '/icons/icon-192.png',
     tag: 'partner-accepted'
-  }).catch(() => {});
+  }).then(result => {
+    console.log(`[partner:accept] push done result=${JSON.stringify(result)}`);
+  }).catch(err => console.error('[partner:accept] push threw unexpectedly:', err.message));
 
   return res.json({
     ok: true,
