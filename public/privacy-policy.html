@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Privacy Policy — Twin Hearts</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+    color: #111111;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .appbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #ffffff;
+    border-bottom: 1px solid #e5e5e5;
+    padding: calc(12px + env(safe-area-inset-top)) 14px 12px;
+  }
+  .back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #f2f2f2;
+    color: #111111;
+    border: none;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .back-btn:active { background: #e5e5e5; }
+  .appbar-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: #111111;
+  }
+  .content {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 20px 18px 48px;
+    overflow-y: auto;
+  }
+  .content h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 4px 0 4px;
+    color: #111111;
+  }
+  .updated {
+    font-size: 12.5px;
+    color: #666666;
+    margin: 0 0 22px;
+  }
+  .content h2 {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 26px 0 8px;
+    color: #111111;
+  }
+  .content p {
+    font-size: 14.5px;
+    line-height: 1.7;
+    color: #222222;
+    margin: 0 0 12px;
+  }
+  .content ul {
+    margin: 0 0 12px;
+    padding-left: 20px;
+  }
+  .content li {
+    font-size: 14.5px;
+    line-height: 1.7;
+    color: #222222;
+    margin-bottom: 6px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="appbar">
+    <button class="back-btn" onclick="goBack()" aria-label="Back">←</button>
+    <div class="appbar-title">Privacy Policy</div>
+  </div>
+
+  <div class="content">
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: July 31, 2026</p>
+
+    <p>This Privacy Policy explains how Twin Hearts ("we", "our", "the app") collects, uses, and protects your information when you use our application. By using Twin Hearts, you agree to the practices described in this policy.</p>
+
+    <h2>1. Information We Collect</h2>
+    <p>We collect information you provide directly, such as your name, email address, phone number, and profile details when you create an account. We also collect content you generate within the app, including messages, photos, shared memories, and location data when you choose to share it with your partner.</p>
+
+    <h2>2. How We Use Your Information</h2>
+    <p>Your information is used to provide core app features, including account creation, partner pairing, real-time chat, shared music and games, live location sharing, and other couple-focused experiences. We may also use your information to maintain and improve app performance and security.</p>
+
+    <h2>3. Location Data</h2>
+    <p>If you enable location sharing, your location is shared only with your paired partner and is used to power features such as live map, journey tracking, and meeting point suggestions. You may pause or disable location sharing at any time from within the app.</p>
+
+    <h2>4. Data Storage and Security</h2>
+    <p>Your data is stored securely using industry-standard cloud infrastructure. We apply access controls and encryption where appropriate to protect your information from unauthorized access, alteration, or disclosure.</p>
+
+    <h2>5. Sharing of Information</h2>
+    <p>We do not sell your personal information. Information you share within the app is only visible to your paired partner, except where you explicitly choose to share it more broadly. We may share limited data with service providers who help us operate the app, under appropriate confidentiality obligations.</p>
+
+    <h2>6. Your Choices</h2>
+    <ul>
+      <li>You can update or correct your account information at any time.</li>
+      <li>You can disable location sharing or notifications from the app settings.</li>
+      <li>You can request deletion of your account and associated data.</li>
+    </ul>
+
+    <h2>7. Children's Privacy</h2>
+    <p>Twin Hearts is not intended for use by individuals under the age of 13. We do not knowingly collect personal information from children.</p>
+
+    <h2>8. Changes to This Policy</h2>
+    <p>We may update this Privacy Policy from time to time. Continued use of the app after changes are posted constitutes acceptance of the updated policy.</p>
+
+    <h2>9. Contact Us</h2>
+    <p>If you have any questions about this Privacy Policy or how your information is handled, please contact us through the support option available within the app.</p>
+  </div>
+
+  <script>
+    function goBack() {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = 'landing.html';
+      }
+    }
+  </script>
+
+</body>
+</html>
