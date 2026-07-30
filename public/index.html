@@ -6018,7 +6018,16 @@ select option { background: #0D0D0D; color: #fff; }
               <div class="field" style="margin-bottom:8px"><label>Partner Phone Number</label><input type="tel" id="settingsPartnerPhone" placeholder="10-digit phone number" inputmode="numeric" maxlength="10" autocomplete="off" style="letter-spacing:1px;font-size:16px"></div>
               <button class="btn btn-accent btn-sm" onclick="sendPartnerRequestFromSettings()">Send Connection Request ❤️</button>
             </div>
+            <div id="settingsWaitingCard" style="display:none;width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px;margin-top:4px"></div>
             <button class="btn btn-danger btn-sm" id="removePartnerBtn" style="margin-top:12px;display:none" onclick="confirmRemovePartner()">💔 Remove Partner</button>
+          </div>
+        </div>
+
+        <!-- PARTNER REQUESTS (pending invitations received) -->
+        <div class="settings-group">
+          <div class="settings-group-header">❤️ Partner Requests</div>
+          <div id="settingsPendingRequestsList" style="padding:2px 0 4px">
+            <div style="font-size:12px;color:rgba(255,255,255,.45);padding:8px 2px">No pending partner requests.</div>
           </div>
         </div>
 
@@ -6719,6 +6728,22 @@ function saveLocal() {
             }
           } catch (e) { console.warn('Pending partner check:', e.message); }
         }
+        function initialsAvatarHtml(name, imgUrl, size) {
+          size = size || 44;
+          if (imgUrl) return `<img src="${esc(imgUrl)}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0">`;
+          const letter = (name || '?').trim().charAt(0).toUpperCase() || '?';
+          return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,var(--accent,#e11d48),#7f1d1d);display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.42)}px;font-weight:700;color:#fff;flex-shrink:0">${esc(letter)}</div>`;
+        }
+        function fmtSentAgo(ts) {
+          if (!ts) return '';
+          const mins = Math.max(0, Math.floor((Date.now() - new Date(ts).getTime()) / 60000));
+          if (mins < 1) return 'Sent just now';
+          if (mins < 60) return 'Sent ' + mins + ' min' + (mins === 1 ? '' : 's') + ' ago';
+          const hrs = Math.floor(mins / 60);
+          if (hrs < 24) return 'Sent ' + hrs + ' hour' + (hrs === 1 ? '' : 's') + ' ago';
+          const days = Math.floor(hrs / 24);
+          return 'Sent ' + days + ' day' + (days === 1 ? '' : 's') + ' ago';
+        }
         function showPartnerRequestPopup(request) {
           let modal = document.getElementById('partnerRequestModal');
           if (!modal) {
@@ -6732,7 +6757,15 @@ function saveLocal() {
           modal.innerHTML = `
             <div style="background:#0d0808;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:26px;max-width:340px;width:100%;text-align:center">
               <div style="font-size:34px;margin-bottom:10px">❤️</div>
-              <div style="font-size:17px;color:#fff;font-weight:600;margin-bottom:6px">Connection Request</div>
+              <div style="font-size:17px;color:#fff;font-weight:600;margin-bottom:16px">Connection Request</div>
+              <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px;margin-bottom:16px;text-align:left">
+                ${initialsAvatarHtml(request.senderName, request.senderAvatar, 48)}
+                <div style="min-width:0">
+                  <div style="font-size:14px;color:#fff;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">👤 ${esc(request.senderName || 'Someone')}</div>
+                  ${request.senderPhone ? `<div style="font-size:12px;color:rgba(255,255,255,.55);margin-top:2px">📱 ${esc(request.senderPhone)}</div>` : ''}
+                  <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px">🕒 ${esc(fmtSentAgo(request.createdAt))}</div>
+                </div>
+              </div>
               <div style="font-size:13px;color:rgba(255,255,255,.6);margin-bottom:20px">${esc(request.senderName || 'Someone')} wants to connect with you.</div>
               <div style="display:flex;gap:10px;justify-content:center">
                 <button class="btn btn-accent btn-sm" onclick="acceptPartnerRequest('${request.id}')">Accept ❤️</button>
@@ -6761,6 +6794,74 @@ function saveLocal() {
             await api('POST', '/api/partner/reject', { requestId, userId: S.userId });
             const modal = document.getElementById('partnerRequestModal'); if (modal) modal.style.display = 'none';
             toast('Invitation declined');
+            loadPendingRequestsList();
+          } catch (e) { toast('Error: ' + e.message); }
+        }
+
+        // ── Partner Requests list (Settings > Partner Requests) ──
+        // Shows every pending invitation addressed to this user, not
+        // just the most recent one the popup shows. The DB is the
+        // source of truth here — this list is what stays correct even
+        // if a push notification never arrived or was dismissed.
+        async function loadPendingRequestsList() {
+          const el = document.getElementById('settingsPendingRequestsList');
+          if (!el || !S.userId || S.paired) return;
+          try {
+            const data = await api('GET', '/api/partner/pending-list/' + S.userId);
+            const requests = (data && data.requests) || [];
+            if (!requests.length) {
+              el.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,.45);padding:8px 2px">No pending partner requests.</div>';
+              return;
+            }
+            el.innerHTML = requests.map(r => `
+              <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px;margin-bottom:10px">
+                ${initialsAvatarHtml(r.senderName, r.senderAvatar, 40)}
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:13px;color:#fff;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">👤 ${esc(r.senderName || 'Someone')}</div>
+                  ${r.senderPhone ? `<div style="font-size:11px;color:rgba(255,255,255,.55);margin-top:2px">📱 ${esc(r.senderPhone)}</div>` : ''}
+                  <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">${esc(fmtSentAgo(r.createdAt))}</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <button class="btn btn-accent btn-sm" style="padding:6px 12px;font-size:12px" onclick="acceptPartnerRequest('${r.id}')">Accept ❤️</button>
+                  <button class="btn btn-glass btn-sm" style="padding:6px 12px;font-size:12px" onclick="declinePartnerRequest('${r.id}')">Decline</button>
+                </div>
+              </div>`).join('');
+          } catch (e) { console.warn('Pending requests list:', e.message); }
+        }
+
+        // ── Sender-side "Waiting for partner" card with target info + Cancel ──
+        async function renderSettingsWaitingCard() {
+          const card = document.getElementById('settingsWaitingCard');
+          if (!card) return;
+          if (!S.partnerRequestSent || S.paired) { card.style.display = 'none'; return; }
+          try {
+            const data = await api('GET', '/api/partner/status/' + S.userId);
+            if (!data || data.status !== 'waiting') { card.style.display = 'none'; return; }
+            card.dataset.requestId = data.requestId || '';
+            card.style.display = 'block';
+            card.innerHTML = `
+              <div style="font-size:12px;color:rgba(255,255,255,.6);margin-bottom:8px">Waiting for partner...</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:8px">Request sent to</div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                ${initialsAvatarHtml(data.receiverName, null, 36)}
+                <div>
+                  <div style="font-size:13px;color:#fff;font-weight:600">👤 ${esc(data.receiverName || 'Someone')}</div>
+                  ${data.receiverPhone ? `<div style="font-size:11px;color:rgba(255,255,255,.55)">📱 ${esc(data.receiverPhone)}</div>` : ''}
+                  <div style="font-size:10px;color:rgba(255,255,255,.4)">${esc(fmtSentAgo(data.createdAt))}</div>
+                </div>
+              </div>
+              <button class="btn btn-glass btn-sm" onclick="cancelPartnerRequest()">Cancel Request</button>`;
+          } catch (e) { console.warn('Waiting card:', e.message); card.style.display = 'none'; }
+        }
+        async function cancelPartnerRequest() {
+          const card = document.getElementById('settingsWaitingCard');
+          const requestId = card && card.dataset.requestId;
+          if (!requestId) return;
+          try {
+            await api('POST', '/api/partner/cancel', { requestId, userId: S.userId });
+            S.partnerRequestSent = false; saveLocal();
+            toast('Request cancelled');
+            updatePairStatus();
           } catch (e) { toast('Error: ' + e.message); }
         }
 
@@ -6856,6 +6957,8 @@ async function saveToCloud() {
           const p1 = document.getElementById('profPairStatus'); if (p1) p1.textContent = msg + (S.paired ? ' — ' + (S.partnerName || 'Partner') : '');
           const p2 = document.getElementById('settingsPairStatus'); if (p2) p2.textContent = msg + (S.paired ? ' — ' + (S.partnerName || 'Partner') : '');
           renderPartnerLastSeen();
+          renderSettingsWaitingCard();
+          loadPendingRequestsList();
         }
         function fmtLastSeen(ts) {
   if (!ts) return null;
@@ -8962,7 +9065,7 @@ function startSyncLoop() {
     }
 
     // checkPairStatus/pending-invite polling only matters before pairing; skip forever once paired.
-    if (!S.paired) { await checkPairStatus(); await checkPendingPartnerRequest(); }
+    if (!S.paired) { await checkPairStatus(); await checkPendingPartnerRequest(); loadPendingRequestsList(); renderSettingsWaitingCard(); }
 
     checkIncomingTouch();
     checkIncomingMissYou();
@@ -9829,8 +9932,21 @@ window.addEventListener('pageshow', (e) => {
 
 // Re-sync on tab focus too, cheap safety net
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') { syncAuthOverlay(); if (!S.paired) checkPendingPartnerRequest(); }
+  if (document.visibilityState === 'visible') { syncAuthOverlay(); if (!S.paired) { checkPendingPartnerRequest(); loadPendingRequestsList(); renderSettingsWaitingCard(); } }
 });
+// A push notification (partner request, accepted, etc.) was tapped while
+// the app was backgrounded/closed — the DB is the source of truth, so
+// re-fetch pending requests now rather than trusting the notification
+// payload itself.
+if (navigator.serviceWorker) {
+  navigator.serviceWorker.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'notification_click' && S.userId && !S.paired) {
+      checkPendingPartnerRequest();
+      loadPendingRequestsList();
+      renderSettingsWaitingCard();
+    }
+  });
+}
 // ═══════ GLOBAL COUPLE-KARAOKE INVITE LISTENER (works on any page) ═══════
 (function() {
   const seqStoreKey = () => 'ck_lastSeenSeq_' + (S.coupleId || 'nc');

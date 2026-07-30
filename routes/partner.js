@@ -33,7 +33,7 @@ router.post('/request', async (req, res) => {
   }
 
   if (normalizedPhone === sender.phone_number) {
-    return res.status(400).json({ error: 'You cannot invite yourself.' });
+    return res.status(400).json({ error: 'You cannot connect with yourself.' });
   }
 
   const { data: receiver } = await supabase
@@ -44,7 +44,7 @@ router.post('/request', async (req, res) => {
 
   if (receiver.couple_id) {
     const { data: rCouple } = await supabase.from('couples').select('paired').eq('id', receiver.couple_id).maybeSingle();
-    if (rCouple && rCouple.paired) return res.status(409).json({ error: 'This person is already connected with someone else.' });
+    if (rCouple && rCouple.paired) return res.status(409).json({ error: 'This Twin Hearts account is already connected to another partner.' });
   }
 
   // No duplicate pending invitation between the same two users (either direction)
@@ -55,7 +55,7 @@ router.post('/request', async (req, res) => {
     .eq('status', 'pending')
     .maybeSingle();
   if (existingReq) {
-    return res.status(409).json({ error: 'There is already a pending invitation between you two.' });
+    return res.status(409).json({ error: 'You already have a pending request.' });
   }
 
   const { data: request, error } = await supabase.from('partner_requests').insert({
@@ -93,15 +93,71 @@ router.get('/pending/:userId', async (req, res) => {
 
   if (error || !request) return res.json({ request: null });
 
-  const { data: sender } = await supabase.from('users').select('name, phone_number').eq('id', request.sender_id).maybeSingle();
+  const { data: sender } = await supabase
+    .from('users').select('name, phone_number, couple_id, role').eq('id', request.sender_id).maybeSingle();
+
+  let senderAvatar = null;
+  if (sender && sender.couple_id) {
+    const { data: couple } = await supabase
+      .from('couples').select('user1_avatar, user2_avatar').eq('id', sender.couple_id).maybeSingle();
+    if (couple) senderAvatar = sender.role === 'user2' ? (couple.user2_avatar || null) : (couple.user1_avatar || null);
+  }
 
   return res.json({
     request: {
       id: request.id,
       senderName: sender ? sender.name : 'Someone',
       senderPhone: sender ? sender.phone_number : '',
+      senderAvatar,
       createdAt: request.created_at
     }
+  });
+});
+
+// ── GET /api/partner/pending-list/:userId ──────────────
+// All pending invitations addressed to this user (Partner Requests
+// section). GET /pending/:userId above stays as-is for the popup
+// (most recent single request) so nothing existing breaks.
+router.get('/pending-list/:userId', async (req, res) => {
+  const { data: requests, error } = await supabase
+    .from('partner_requests')
+    .select('id, sender_id, created_at')
+    .eq('receiver_id', req.params.userId)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+
+  if (error) return res.status(500).json({ error: error.message });
+  if (!requests || !requests.length) return res.json({ requests: [] });
+
+  const senderIds = requests.map(r => r.sender_id);
+  const { data: senders } = await supabase
+    .from('users').select('id, name, phone_number, couple_id, role').in('id', senderIds);
+  const senderMap = {};
+  (senders || []).forEach(s => { senderMap[s.id] = s; });
+
+  // Avatars live on couples.user1_avatar/user2_avatar (keyed by role),
+  // not on the users table — look those up too.
+  const coupleIds = [...new Set((senders || []).map(s => s.couple_id).filter(Boolean))];
+  let coupleMap = {};
+  if (coupleIds.length) {
+    const { data: couples } = await supabase
+      .from('couples').select('id, user1_avatar, user2_avatar').in('id', coupleIds);
+    (couples || []).forEach(c => { coupleMap[c.id] = c; });
+  }
+  const avatarFor = s => {
+    const c = s && coupleMap[s.couple_id];
+    if (!c) return null;
+    return s.role === 'user2' ? (c.user2_avatar || null) : (c.user1_avatar || null);
+  };
+
+  return res.json({
+    requests: requests.map(r => ({
+      id: r.id,
+      senderName: senderMap[r.sender_id]?.name || 'Someone',
+      senderPhone: senderMap[r.sender_id]?.phone_number || '',
+      senderAvatar: avatarFor(senderMap[r.sender_id]),
+      createdAt: r.created_at
+    }))
   });
 });
 
@@ -122,8 +178,17 @@ router.get('/status/:userId', async (req, res) => {
   }
 
   const { data: sent } = await supabase
-    .from('partner_requests').select('id').eq('sender_id', user.id).eq('status', 'pending').maybeSingle();
-  if (sent) return res.json({ status: 'waiting' });
+    .from('partner_requests').select('id, receiver_id, created_at').eq('sender_id', user.id).eq('status', 'pending').maybeSingle();
+  if (sent) {
+    const { data: receiver } = await supabase.from('users').select('name, phone_number').eq('id', sent.receiver_id).maybeSingle();
+    return res.json({
+      status: 'waiting',
+      requestId: sent.id,
+      receiverName: receiver ? receiver.name : 'Someone',
+      receiverPhone: receiver ? receiver.phone_number : '',
+      createdAt: sent.created_at
+    });
+  }
 
   const { data: received } = await supabase
     .from('partner_requests').select('id, sender_id').eq('receiver_id', user.id).eq('status', 'pending').maybeSingle();
@@ -144,7 +209,7 @@ const ACCEPT_RPC_ERROR_MAP = {
   P0002: { status: 403, message: 'This invitation is not for you' },
   P0003: { status: 409, message: 'This invitation is no longer pending' },
   P0004: { status: 404, message: 'Account not found' },
-  P0005: { status: 409, message: 'That person is already connected with someone else.' }
+  P0005: { status: 409, message: 'This Twin Hearts account is already connected to another partner.' }
 };
 
 router.post('/accept', async (req, res) => {
