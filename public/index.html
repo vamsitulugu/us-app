@@ -6481,6 +6481,12 @@ select option { background: #0D0D0D; color: #fff; }
 
       <div class="toast" id="toast"></div>
 <script>
+  // Notification deep-linking: chat/call/globe/music/etc. pushes include
+  // a url like /?page=chat so tapping the notification opens the right
+  // page instead of always landing on the dashboard. Captured here,
+  // before anything else runs, so a fully-closed-app cold start doesn't
+  // lose it to timing.
+  window.__DEEP_LINK_PAGE__ = new URLSearchParams(window.location.search).get('page') || null;
   window.__SUPABASE_URL__ = 'https://jmhsyhpmuszyphwjfcuk.supabase.co';
   window.__SUPABASE_ANON_KEY__ = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptaHN5aHBtdXN6eXBod2pmY3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5NzAzODIsImV4cCI6MjA5OTU0NjM4Mn0.hXmVIoESJ5SkbhIaN-UyWLbJ4XdvZD_dd7U2WzFfvNI';
   // Single shared Supabase client for this page's window context. chat.js,
@@ -7131,6 +7137,21 @@ function setJustPairedAt(ts) {
           level: 'Couple Level ',globe: 'Memory Globe ', dreamhome: 'Dream Home ',games: 'Couple Games ',
           dreamgoals: 'Dream Goals ', places: 'Places Memory ', meetplanner: 'Meet Planner '
         };
+        // Valid page ids goto() recognizes (mirrors the .page/#page-X elements
+        // in the DOM) — used to sanity-check both the initial ?page= URL param
+        // and any notification-click payload before calling goto() with it.
+        const DEEP_LINK_PAGES = new Set([
+          'dashboard', 'chat', 'music', 'globe', 'virtualhome', 'meetplanner',
+          'games', 'calendar', 'settings', 'profile', 'map', 'ai', 'capsule',
+          'surprise', 'level', 'dreamhome', 'dreamgoals', 'places',
+          'lovecounter', 'fights', 'myspace', 'vault', 'bucket', 'money',
+          'period', 'study', 'collection'
+        ]);
+        function navigateToDeepLink(page) {
+          if (!page || !DEEP_LINK_PAGES.has(page)) return false;
+          goto(page);
+          return true;
+        }
         function goto(page, pushHistory = true) {
           if (window.PageManager) PageManager.currentPage = page;
           const _wasVirtualHome = document.getElementById('page-virtualhome')?.classList.contains('active');
@@ -9035,6 +9056,15 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
             document.getElementById('authOverlay').style.display = 'none';
             renderAll(); // render immediately from localStorage — no blank screen
             updatePairStatus();
+            // If this load came from a notification tap (e.g. /?page=chat),
+            // jump straight to that page instead of leaving the user on the
+            // dashboard. Then clean the URL so a manual refresh doesn't
+            // re-trigger it.
+            if (window.__DEEP_LINK_PAGE__) {
+              navigateToDeepLink(window.__DEEP_LINK_PAGE__);
+              window.__DEEP_LINK_PAGE__ = null;
+              history.replaceState({}, '', window.location.pathname);
+            }
             // Then sync from cloud in background
             loadFromCloud().then(() => {
   checkPairStatus();
@@ -9968,7 +9998,17 @@ document.addEventListener('visibilitychange', () => {
 // payload itself.
 if (navigator.serviceWorker) {
   navigator.serviceWorker.addEventListener('message', (e) => {
-    if (e.data && e.data.type === 'notification_click' && S.userId && !S.paired) {
+    if (!e.data || e.data.type !== 'notification_click') return;
+    // App was already open (foreground/background) — the service worker
+    // focused this window and told us which notification was tapped.
+    // Route straight there instead of leaving whatever page was showing.
+    if (e.data.url) {
+      try {
+        const page = new URL(e.data.url, window.location.origin).searchParams.get('page');
+        navigateToDeepLink(page);
+      } catch (err) { console.warn('[notification_click] bad url:', e.data.url); }
+    }
+    if (S.userId && !S.paired) {
       checkPendingPartnerRequest();
       loadPendingRequestsList();
       renderSettingsWaitingCard();

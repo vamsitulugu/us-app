@@ -36,23 +36,23 @@ router.get('/state/:coupleId', async (req, res) => {
 // Config: array-based content. Each entry describes a list field to diff.
 // `pick(item)` returns a short display string used in the notification body.
 const ARRAY_WATCHERS = [
-  { key: 'photos',        title: '📸 New Memory',         tag: 'photos',     pick: i => i.name || 'a new photo/video' },
-  { key: 'notes',         title: '📝 New Note',           tag: 'notes',      pick: i => i.text },
-  { key: 'journal',       title: '📖 New Journal Entry',  tag: 'journal',    pick: i => (i.mood ? i.mood + ' — ' : '') + (i.body || '').slice(0, 80) },
-  { key: 'bucket',        title: '🌟 New Dream Added',    tag: 'bucket',     pick: i => i.title },
-  { key: 'events',        title: '📅 New Event',          tag: 'events',     pick: i => i.title + (i.date ? ' on ' + i.date : '') },
-  { key: 'transactions',  title: '💰 New Transaction',    tag: 'money',      pick: i => (i.desc || i.description || 'Transaction') + (i.amt ? ' — ₹' + i.amt : '') },
-  { key: 'milestones',    title: '💫 New Milestone',      tag: 'milestone',  pick: i => i.title },
-  { key: 'habits',        title: '✅ New Habit',          tag: 'habit',      pick: i => i.name },
-  { key: 'fights',        title: '⚡ New Fight Logged',    tag: 'fight',      pick: i => i.title },
-  { key: 'surprises',     title: '🎁 New Surprise',       tag: 'surprise',   pick: () => 'A surprise is waiting for you' },
-  { key: 'capsules',      title: '💌 New Love Capsule',   tag: 'capsule',    pick: () => 'A sealed message is waiting' },
-  { key: 'sharedSongs',   title: '🎵 New Song Shared',    tag: 'song',       pick: i => i.label || 'a song' },
-  { key: 'dreamBoard',    title: '🏡 New Dream Home Idea', tag: 'dreamhome', pick: i => i.title },
-  { key: 'vault',         title: '🔐 New Vault Item',     tag: 'vault',      pick: () => 'A new item was added to the vault' },
-  { key: 'places',        title: '📍 New Place Added',    tag: 'places',     pick: () => 'A new important place was added', isObjectMap: true },
-  { key: 'periods',       title: '🩷 Period Logged',      tag: 'period',     pick: () => 'A new period entry was logged' },
-  { key: 'reminders',     title: '🔔 New Reminder',       tag: 'reminder',   pick: i => i.title }
+  { key: 'photos',        title: '📸 New Memory',         tag: 'photos',     page: 'camera',    pick: i => i.name || 'a new photo/video' },
+  { key: 'notes',         title: '📝 New Note',           tag: 'notes',      page: 'myspace',   pick: i => i.text },
+  { key: 'journal',       title: '📖 New Journal Entry',  tag: 'journal',    page: 'myspace',   pick: i => (i.mood ? i.mood + ' — ' : '') + (i.body || '').slice(0, 80) },
+  { key: 'bucket',        title: '🌟 New Dream Added',    tag: 'bucket',     page: 'bucket',    pick: i => i.title },
+  { key: 'events',        title: '📅 New Event',          tag: 'events',     page: 'calendar',  pick: i => i.title + (i.date ? ' on ' + i.date : '') },
+  { key: 'transactions',  title: '💰 New Transaction',    tag: 'money',      page: 'money',     pick: i => (i.desc || i.description || 'Transaction') + (i.amt ? ' — ₹' + i.amt : '') },
+  { key: 'milestones',    title: '💫 New Milestone',      tag: 'milestone',  page: 'profile',   pick: i => i.title },
+  { key: 'habits',        title: '✅ New Habit',          tag: 'habit',      page: 'myspace',   pick: i => i.name },
+  { key: 'fights',        title: '⚡ New Fight Logged',    tag: 'fight',      page: 'fights',    pick: i => i.title },
+  { key: 'surprises',     title: '🎁 New Surprise',       tag: 'surprise',   page: 'surprise',  pick: () => 'A surprise is waiting for you' },
+  { key: 'capsules',      title: '💌 New Love Capsule',   tag: 'capsule',    page: 'capsule',   pick: () => 'A sealed message is waiting' },
+  { key: 'sharedSongs',   title: '🎵 New Song Shared',    tag: 'song',       page: 'music',     pick: i => i.label || 'a song' },
+  { key: 'dreamBoard',    title: '🏡 New Dream Home Idea', tag: 'dreamhome', page: 'dreamhome', pick: i => i.title },
+  { key: 'vault',         title: '🔐 New Vault Item',     tag: 'vault',      page: 'vault',     pick: () => 'A new item was added to the vault' },
+  { key: 'places',        title: '📍 New Place Added',    tag: 'places',     page: 'map',       pick: () => 'A new important place was added', isObjectMap: true },
+  { key: 'periods',       title: '🩷 Period Logged',      tag: 'period',     page: 'period',    pick: () => 'A new period entry was logged' },
+  { key: 'reminders',     title: '🔔 New Reminder',       tag: 'reminder',   page: 'myspace',   pick: i => i.title }
 ];
 
 function diffAndNotify(coupleId, senderRole, prevState, nextState, myName) {
@@ -85,7 +85,8 @@ function diffAndNotify(coupleId, senderRole, prevState, nextState, myName) {
         title: w.title,
         body: (myName || 'Your partner') + ': ' + String(body).slice(0, 120),
         icon: '/icons/icon-192.png',
-        tag: w.tag
+        tag: w.tag,
+        url: '/?page=' + w.page
       });
     });
   });
@@ -93,13 +94,13 @@ function diffAndNotify(coupleId, senderRole, prevState, nextState, myName) {
   // ── Non-array "event" style fields (single-object signals) ──
   const role = senderRole;
   if (next.touch && next.touch.from === role && (!prev.touch || prev.touch.ts !== next.touch.ts)) {
-    notifyBoth(coupleId, role, { title: '💓 Touch', body: (myName || 'Your partner') + ' sent you a touch', icon: '/icons/icon-192.png', tag: 'touch' });
+    notifyBoth(coupleId, role, { title: '💓 Touch', body: (myName || 'Your partner') + ' sent you a touch', icon: '/icons/icon-192.png', tag: 'touch', url: '/?page=dashboard' });
   }
   if (next.missYou && next.missYou.from === role && (!prev.missYou || prev.missYou.ts !== next.missYou.ts)) {
-    notifyBoth(coupleId, role, { title: '💔 Miss You', body: (myName || 'Your partner') + ' misses you', icon: '/icons/icon-192.png', tag: 'missyou' });
+    notifyBoth(coupleId, role, { title: '💔 Miss You', body: (myName || 'Your partner') + ' misses you', icon: '/icons/icon-192.png', tag: 'missyou', url: '/?page=dashboard' });
   }
   if (next.hug && next.hug.from === role && next.hug.status === 'pending' && (!prev.hug || prev.hug.id !== next.hug.id)) {
-    notifyBoth(coupleId, role, { title: '🤗 Virtual Hug', body: (myName || 'Your partner') + ' sent you a hug!', icon: '/icons/icon-192.png', tag: 'hug' });
+    notifyBoth(coupleId, role, { title: '🤗 Virtual Hug', body: (myName || 'Your partner') + ' sent you a hug!', icon: '/icons/icon-192.png', tag: 'hug', url: '/?page=dashboard' });
   }
   ['ck_user1', 'ck_user2'].forEach(key => {
     const nArr = Array.isArray(next[key]) ? next[key] : [];
@@ -112,14 +113,14 @@ function diffAndNotify(coupleId, senderRole, prevState, nextState, myName) {
         body: (myName || 'Your partner') + ' invited you to sing "' + (last.songTitle || 'a song') + '"',
         icon: '/icons/icon-192.png',
         tag: 'ck-invite',
-        url: '/#music'
+        url: '/?page=music'
       });
     }
   });
 
   // ── Profile-level nudge: partner joined / paired info changed, etc. ──
   if (next.paired && !prev.paired) {
-    notifyBoth(coupleId, role, { title: '💕 Connected!', body: 'You are now linked with ' + (myName || 'your partner'), icon: '/icons/icon-192.png', tag: 'paired' });
+    notifyBoth(coupleId, role, { title: '💕 Connected!', body: 'You are now linked with ' + (myName || 'your partner'), icon: '/icons/icon-192.png', tag: 'paired', url: '/?page=dashboard' });
   }
 
   // ── Music player (music.html syncs metadata under music_user1/music_user2,
