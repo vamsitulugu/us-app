@@ -17,4 +17,8 @@
          legacy theme colors directly. -->
     <color name="statusBarBackground">#0B0B0B</color>
     <color name="navigationBarBackground">#0B0B0B</color>
+
+    <!-- Matches capacitor.config.json plugins.SplashScreen.backgroundColor,
+         used by the responsive launch-screen background (splash_centered.xml). -->
+    <color name="splashBackground">#1a0010</color>
 </resources>

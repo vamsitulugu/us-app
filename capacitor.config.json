@@ -21,7 +21,7 @@
       "launchAutoHide": false,
       "backgroundColor": "#1a0010",
       "androidSplashResourceName": "splash",
-      "androidScaleType": "CENTER_CROP",
+      "androidScaleType": "CENTER_INSIDE",
       "showSpinner": false
     },
     "StatusBar": {

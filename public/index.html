@@ -3,6 +3,32 @@
 
 <head>
   <meta charset="UTF-8">
+  <script>
+  // ─── Pre-paint session guard ────────────────────────────────────────
+  // Must be the very first thing in <head> so it runs before this
+  // document downloads/parses/paints any further. If there's no local
+  // couple session yet, this is a logged-out visit (first open, or a
+  // bounce-back after signup before pairing finishes) — send the user
+  // straight to the landing page instead of ever showing this page's
+  // dashboard skeleton. Reads the same 'uwl_v5'/coupleId that the app's
+  // own init() already reads later; nothing about auth itself changes.
+  (function () {
+    try {
+      var raw = localStorage.getItem('uwl_v5');
+      var hasSession = false;
+      if (raw) {
+        var s = JSON.parse(raw);
+        hasSession = !!(s && s.coupleId);
+      }
+      if (!hasSession) {
+        location.replace('/landing.html');
+      }
+    } catch (e) {
+      // localStorage/JSON unavailable or corrupt — fall through and let
+      // the normal in-page init() logic handle it as before.
+    }
+  })();
+  </script>
   <!-- Resource hints: warm up connections to origins this app always
        needs (data backend, auth/storage, fonts, CDNs) so DNS+TLS
        negotiation overlaps with HTML parsing instead of happening
@@ -76,7 +102,7 @@
       90deg,
       transparent 0%,
       rgba(255,255,255,0.045) 20%,
-      rgba(229,9,20,0.07) 50%,
+      rgba(255,255,255,0.10) 50%,
       rgba(255,255,255,0.045) 80%,
       transparent 100%
     );
@@ -146,6 +172,10 @@
     padding: 20px;
   }
   .al-auth-wrap.al-show { display: flex; }
+  /* Only one skeleton on screen at a time: once the auth skeleton is
+     shown, fully hide the dashboard/sidebar skeleton behind it instead
+     of letting both render simultaneously. */
+  #appLoader.al-auth-mode .al-shell { display: none; }
   .al-auth-card {
     width: 100%;
     max-width: 460px;
@@ -194,7 +224,7 @@
   }
   .al-progress-dot {
     width: 6px; height: 6px; border-radius: 50%;
-    background: #E50914;
+    background: rgba(255,255,255,0.45);
     animation: al-pulse 1.2s ease-in-out infinite;
   }
   @keyframes al-pulse { 0%,100%{opacity:0.3} 50%{opacity:1} }
@@ -4411,8 +4441,8 @@ select option { background: #0D0D0D; color: #fff; }
 
 <script id="skeletonLoaderScript">
 (function () {
-  const READY_KEYS = ['css', 'fonts', 'theme', 'auth', 'data'];
-  const state = { css: false, fonts: false, theme: false, auth: false, data: false };
+  const READY_KEYS = ['css', 'fonts', 'theme', 'auth', 'data', 'icons'];
+  const state = { css: false, fonts: false, theme: false, auth: false, data: false, icons: false };
   const SAFETY_TIMEOUT_MS = 6000; // never block the app forever
   let settled = false;
  
@@ -4425,7 +4455,8 @@ select option { background: #0D0D0D; color: #fff; }
     fonts: 'Loading fonts…',
     theme: 'Applying theme…',
     auth: 'Checking session…',
-    data: 'Syncing your data…'
+    data: 'Syncing your data…',
+    icons: 'Preparing icons…'
   };
  
   function updateProgressLabel() {
@@ -4463,9 +4494,11 @@ select option { background: #0D0D0D; color: #fff; }
     // e.g. right where you currently do: if (!S.coupleId) { ... })
     showAuthSkeleton() {
       if (authWrap) authWrap.classList.add('al-show');
+      if (overlay) overlay.classList.add('al-auth-mode');
     },
     hideAuthSkeleton() {
       if (authWrap) authWrap.classList.remove('al-show');
+      if (overlay) overlay.classList.remove('al-auth-mode');
     },
     // escape hatch, e.g. for a "Retry" button on network failure
     forceHide: hideOverlay
