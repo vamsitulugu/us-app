@@ -7,8 +7,11 @@
 // ═══════════════════════════════════════════════════════
 const express  = require('express');
 const bcrypt   = require('bcryptjs');
+const crypto   = require('crypto');
+const rateLimit = require('express-rate-limit');
 const { v4: uuid } = require('uuid');
 const supabase = require('../middleware/supabase');
+const { sendPasswordResetEmail } = require('../middleware/mailer');
 
 const router = express.Router();
 
@@ -575,6 +578,166 @@ router.post('/login', async (req, res) => {
     paired,
     role: user.role || 'user1'
   });
+});
+
+// ═══════════════════════════════════════════════════════
+//  FORGOT PASSWORD — additive only. Uses the existing `users` table
+//  plus two new nullable columns (reset_token_hash, reset_token_expires)
+//  — see scripts/migrations/001_password_reset.sql. Does not touch
+//  signup, signin, or partner-connection logic anywhere above.
+// ═══════════════════════════════════════════════════════
+const RESET_TOKEN_TTL_MINUTES = 60; // reset link is valid for 1 hour
+
+// Stricter limiter than the (currently-unused) authLimiter in server.js —
+// defined here and applied directly to these two routes so existing
+// routes/behavior elsewhere are completely unaffected.
+const resetRequestLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,                   // 5 forgot-password requests per IP per 15 min
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many reset requests. Please wait a while and try again.' }
+});
+const resetSubmitLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10, // token validation / password submit attempts per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many attempts. Please wait a while and try again.' }
+});
+
+function hashToken(rawToken) {
+  return crypto.createHash('sha256').update(rawToken).digest('hex');
+}
+
+function buildResetLink(rawToken) {
+  const base = (process.env.APP_PUBLIC_URL || process.env.APP_URL || 'https://twinhearts.vercel.app').replace(/\/$/, '');
+  return `${base}/reset-password.html?token=${rawToken}`;
+}
+
+// ── POST /api/auth/forgot-password ─────────────────────
+// Body: { email }
+router.post('/forgot-password', resetRequestLimiter, async (req, res) => {
+  const { email } = req.body;
+  if (!email || !String(email).trim()) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+  const normalizedEmail = String(email).toLowerCase().trim();
+
+  // Generic response used regardless of whether the account exists —
+  // never reveal account existence via this endpoint (email enumeration).
+  const GENERIC_MESSAGE = 'If an account with that email exists, a password reset link has been sent.';
+
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('id, name, email')
+    .eq('email', normalizedEmail)
+    .maybeSingle();
+
+  // No account, or lookup error: respond identically to the success case.
+  // Do NOT distinguish these — that's the whole point of the fix.
+  if (error || !user) {
+    if (error) console.error('forgot-password: user lookup error', error);
+    return res.json({ message: GENERIC_MESSAGE });
+  }
+
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  const tokenHash = hashToken(rawToken);
+  const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MINUTES * 60 * 1000).toISOString();
+
+  const { error: updateErr } = await supabase
+    .from('users')
+    .update({ reset_token_hash: tokenHash, reset_token_expires: expiresAt })
+    .eq('id', user.id);
+
+  // Even on internal failure, don't leak account existence via a
+  // different status code — log it, but still return the generic message.
+  if (updateErr) {
+    console.error('forgot-password: failed to store reset token', updateErr);
+    return res.json({ message: GENERIC_MESSAGE });
+  }
+
+  try {
+    await sendPasswordResetEmail({
+      to: user.email,
+      name: user.name,
+      resetLink: buildResetLink(rawToken),
+      expiresInMinutes: RESET_TOKEN_TTL_MINUTES
+    });
+  } catch (mailErr) {
+    console.error('forgot-password: failed to send email', mailErr);
+    // Same reasoning — don't leak success/failure asymmetry tied to
+    // whether the account existed.
+    return res.json({ message: GENERIC_MESSAGE });
+  }
+
+  return res.json({ message: GENERIC_MESSAGE });
+});
+// ── GET /api/auth/reset-password/:token ─────────────────
+// Used by reset-password.html on load to decide whether to show the
+// new-password form or the "link expired" state, WITHOUT ever
+// revealing which email/user the token belongs to.
+router.get('/reset-password/:token', resetSubmitLimiter, async (req, res) => {
+  const { token } = req.params;
+  if (!token) return res.status(400).json({ valid: false });
+
+  const tokenHash = hashToken(token);
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('id, reset_token_expires')
+    .eq('reset_token_hash', tokenHash)
+    .maybeSingle();
+
+  if (error || !user || !user.reset_token_expires || new Date(user.reset_token_expires) < new Date()) {
+    return res.status(400).json({ valid: false, error: 'This password reset link has expired.' });
+  }
+
+  return res.json({ valid: true });
+});
+
+// ── POST /api/auth/reset-password ───────────────────────
+// Body: { token, newPassword }
+router.post('/reset-password', resetSubmitLimiter, async (req, res) => {
+  const { token, newPassword } = req.body;
+  if (!token || !newPassword) {
+    return res.status(400).json({ error: 'Missing token or new password' });
+  }
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  }
+
+  const tokenHash = hashToken(token);
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('id, reset_token_expires')
+    .eq('reset_token_hash', tokenHash)
+    .maybeSingle();
+
+  if (error || !user || !user.reset_token_expires || new Date(user.reset_token_expires) < new Date()) {
+    return res.status(400).json({ error: 'This password reset link has expired.' });
+  }
+
+  // Hash exactly like the existing signup/login flow (bcryptjs, cost 10).
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  // Update password AND invalidate the token in the same write so it
+  // can never be reused (single-use tokens).
+  const { error: updateErr } = await supabase
+    .from('users')
+    .update({
+      password_hash: hashedPassword,
+      reset_token_hash: null,
+      reset_token_expires: null,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', user.id);
+
+  if (updateErr) {
+    console.error('reset-password: failed to update password', updateErr);
+    return res.status(500).json({ error: 'Could not update password. Please try again.' });
+  }
+
+  return res.json({ message: 'Password updated' });
 });
 
 module.exports = router;
