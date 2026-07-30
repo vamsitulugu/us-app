@@ -12,21 +12,77 @@
   // straight to the landing page instead of ever showing this page's
   // dashboard skeleton. Reads the same 'uwl_v5'/coupleId that the app's
   // own init() already reads later; nothing about auth itself changes.
-  (function () {
-    try {
-      var raw = localStorage.getItem('uwl_v5');
-      var hasSession = false;
-      if (raw) {
+  //
+  // Additive fresh-install check: on Android, a restored 'uwl_v5' can
+  // legitimately be there even on a brand-new install of this app,
+  // because android:allowBackup lets Android's Auto Backup bring the
+  // WebView's local storage back from the signed-in Google account after
+  // an uninstall. InstallGuard (native plugin) tells us whether THIS
+  // install has ever run before, using a marker file in a directory the
+  // OS guarantees is never included in that backup. If this is a true
+  // fresh install, the restored session is discarded (local data only —
+  // nothing on the server is touched) and the user lands on the login
+  // screen, exactly like a first-ever install. Safe to run this check
+  // asynchronously: the native splash screen (launchAutoHide:false in
+  // capacitor.config.json) stays up until SplashScreen.hide() is called
+  // on window 'load', much later, so there is no flash of the dashboard
+  // in between. On the plain web/PWA build (no Capacitor / no native
+  // plugin available), this check is skipped entirely and behavior is
+  // unchanged from before.
+  (async function () {
+    function readSession() {
+      try {
+        var raw = localStorage.getItem('uwl_v5');
+        if (!raw) return null;
         var s = JSON.parse(raw);
-        hasSession = !!(s && s.coupleId);
+        return (s && s.coupleId) ? s : null;
+      } catch (e) {
+        return null;
       }
-      if (!hasSession) {
-        location.replace('/landing.html');
+    }
+
+    // Same key list SessionManager.clearAuthData() clears — duplicated
+    // here (not imported) because /js/session-manager.js loads much
+    // later in <body> and this guard must run before anything else.
+    function clearLocalAuthDataOnly() {
+      localStorage.removeItem('uwl_v5');
+      ['uwl_lastTouchSeen', 'uwl_lastMissSeen', 'uwl_lastHugSeen',
+       'uwl_lastHugResultSeen', 'uwl_justPairedAt',
+       'uwl_accounts', 'uwl_active_user'].forEach(function (k) {
+        localStorage.removeItem(k);
+      });
+      try { sessionStorage.clear(); } catch (e) {}
+    }
+
+    var session = readSession();
+    if (!session) {
+      location.replace('/landing.html');
+      return;
+    }
+
+    try {
+      var isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+      var guard = isNative && window.Capacitor.Plugins && window.Capacitor.Plugins.InstallGuard;
+      if (guard) {
+        var result = await guard.checkFreshInstall();
+        if (result && result.freshInstall) {
+          // Restored session belongs to a previous install, not this
+          // one — discard the LOCAL copy only. No Supabase data,
+          // partner link, chats, or profile are touched anywhere by
+          // this; the user simply signs back in normally.
+          clearLocalAuthDataOnly();
+          location.replace('/landing.html');
+          return;
+        }
       }
     } catch (e) {
-      // localStorage/JSON unavailable or corrupt — fall through and let
-      // the normal in-page init() logic handle it as before.
+      // Plugin unavailable or errored — fall through and let the
+      // existing session stand exactly as before this change, rather
+      // than risk wrongly logging someone out due to a native-side
+      // hiccup.
     }
+    // Genuine ongoing session (normal reopen, or native check passed) —
+    // fall through and let the normal in-page init() logic handle it.
   })();
   </script>
   <!-- Resource hints: warm up connections to origins this app always

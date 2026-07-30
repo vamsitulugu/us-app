@@ -39,6 +39,7 @@ public class MainActivity extends BridgeActivity {
   public void onCreate(Bundle savedInstanceState) {
     registerPlugin(CallAudioPlugin.class);
     registerPlugin(BackgroundLocationPlugin.class);
+    registerPlugin(InstallGuardPlugin.class);
     super.onCreate(savedInstanceState);
     setupSystemBars();
     createTouchNotificationChannel();
