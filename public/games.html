@@ -2698,7 +2698,7 @@ const Puzzle = {
         </div>
         <input type="file" id="pzFileInput" accept="image/*" style="display:none" onchange="Puzzle.onPhotoPicked(this)">
         <div class="pz-photo-btn ${sel.imageUrl?'has':''}" onclick="Puzzle.triggerPhotoPick()">
-          ${sel.imageUrl ? `<img class="pz-photo-thumb" src="${sel.imageUrl}"><div>✅ ${esc(sel.imageName)} — tap to change</div>` : `<div style="font-size:30px">📷</div><div>Choose a real photo from your phone</div><div style="font-size:10px;color:var(--text3)">Camera or gallery — no stock images</div>`}
+          ${sel.imageUrl ? `<img class="pz-photo-thumb" src="${sel.imageUrl}" alt="Selected puzzle photo"><div>✅ ${esc(sel.imageName)} — tap to change</div>` : `<div style="font-size:30px">📷</div><div>Choose a real photo from your phone</div><div style="font-size:10px;color:var(--text3)">Camera or gallery — no stock images</div>`}
         </div>
         <div class="pz-sizegrid">
           ${PZ_SIZES.map(n=>`<div class="pz-sizecard ${sel.gridN===n?'sel':''}" onclick="Puzzle.pickSize(${n})">${n}×${n}<div class="pzc-sub">${n*n} pieces</div></div>`).join('')}
@@ -2765,7 +2765,7 @@ const Puzzle = {
     body.innerHTML = `
       <div class="pz-wrap">
         <div class="pz-result">
-          <img class="pz-result-img" src="${s.imageUrl}">
+          <img class="pz-result-img" src="${s.imageUrl}" alt="Completed puzzle photo">
           <div class="pz-result-title">🎉 Puzzle Complete!</div>
           <div class="pz-result-sub">Finished in ${Math.floor(s.finishMs/1000/60)}:${String(Math.floor(s.finishMs/1000)%60).padStart(2,'0')} with ${s.moves} moves</div>
           <div class="bm-result-stats">

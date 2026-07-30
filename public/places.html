@@ -405,7 +405,7 @@ function loadBannerFile(input){
 function renderBannerPreview(){
   document.getElementById('pmBannerPreview').innerHTML = pmPendingBanner === 'uploading'
     ? '⏳ Uploading…'
-    : (pmPendingBanner ? `<img src="${pmPendingBanner}">` : 'No banner yet');
+    : (pmPendingBanner ? `<img src="${pmPendingBanner}" alt="Banner preview">` : 'No banner yet');
 }
 function loadPmPhotos(input){
   Array.from(input.files).forEach(file => {
@@ -420,7 +420,7 @@ function loadPmPhotos(input){
 }
 function renderPmPhotoThumbs(){
   document.getElementById('pmPhotoThumbs').innerHTML = pmPendingPhotos.map((p,i)=>`
-    <div class="pm-photo-thumb">${p === 'uploading' ? '⏳' : `<img src="${p}">`}<button onclick="pmPendingPhotos.splice(${i},1);renderPmPhotoThumbs()">✕</button></div>
+    <div class="pm-photo-thumb">${p === 'uploading' ? '⏳' : `<img src="${p}" alt="Uploaded photo">`}<button onclick="pmPendingPhotos.splice(${i},1);renderPmPhotoThumbs()">✕</button></div>
   `).join('');
 }
 function usePmCurrentLocation(){
@@ -503,7 +503,7 @@ function deleteCurrentPlace(){
 function renderPmGallery(p){
   const el=document.getElementById('pmGallery');
   const photos=p.photos||[];
-  el.innerHTML = photos.map((ph,i)=>`<div class="pm-gallery-item" onclick="openPmLightbox(${i})"><img src="${ph}" loading="lazy"></div>`).join('')
+  el.innerHTML = photos.map((ph,i)=>`<div class="pm-gallery-item" onclick="openPmLightbox(${i})"><img src="${ph}" loading="lazy" alt="Place photo"></div>`).join('')
     + `<label class="pm-gallery-add">+<span>Add</span><input type="file" accept="image/*" multiple style="display:none" onchange="addGalleryPhotos(this)"></label>`;
 }
 function addGalleryPhotos(input){
