@@ -36,7 +36,13 @@ router.get('/state/:coupleId', async (req, res) => {
 // Config: array-based content. Each entry describes a list field to diff.
 // `pick(item)` returns a short display string used in the notification body.
 const ARRAY_WATCHERS = [
-  { key: 'photos',        title: '📸 New Memory',         tag: 'photos',     page: 'camera',    pick: i => i.name || 'a new photo/video' },
+  // NOTE: i.name is the original filename from the phone/gallery/camera
+  // (e.g. "18f91de5-83d6-488f-9260-1bc70bfd....jpg" for photos saved by
+  // Android's camera app with UUID filenames), never a user-entered
+  // caption — the app has no caption field for photos/videos. Showing it
+  // in a notification just leaked a meaningless raw filename/UUID to the
+  // partner. Describe the memory by type instead.
+  { key: 'photos',        title: '📸 New Memory',         tag: 'photos',     page: 'camera',    pick: i => i.type === 'video' ? 'a new video' : 'a new photo' },
   { key: 'notes',         title: '📝 New Note',           tag: 'notes',      page: 'myspace',   pick: i => i.text },
   { key: 'journal',       title: '📖 New Journal Entry',  tag: 'journal',    page: 'myspace',   pick: i => (i.mood ? i.mood + ' — ' : '') + (i.body || '').slice(0, 80) },
   { key: 'bucket',        title: '🌟 New Dream Added',    tag: 'bucket',     page: 'bucket',    pick: i => i.title },
