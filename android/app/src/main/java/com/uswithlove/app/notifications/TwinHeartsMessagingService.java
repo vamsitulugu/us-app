@@ -164,6 +164,22 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
             .setConversationTitle(senderName)
             .addMessage(body, System.currentTimeMillis(), sender);
 
+    // IMPORTANT: for a plain 1:1 MessagingStyle conversation, Android's
+    // system UI ALWAYS uses the sender's Person icon as the header/large
+    // icon — it silently overrides setLargeIcon() the moment the Person
+    // has a real photo. That's why the app logo disappeared the instant
+    // the partner-photo fix started working: the OS was doing exactly
+    // what it's designed to do (prioritize the contact's photo, like
+    // WhatsApp/Telegram 1:1 chats do).
+    //
+    // Per Android's own docs (Notifications in Android P), marking the
+    // style as a group conversation is what's required for the system to
+    // actually honor setLargeIcon() on the Builder instead of overriding
+    // it with the sender's photo — even with just one other participant.
+    // (There is no separate setGroupIcon() method on MessagingStyle —
+    // setLargeIcon() below is still the one that supplies the bitmap.)
+    style.setGroupConversation(true);
+
     NotificationCompat.Action reply = new NotificationCompat.Action.Builder(
         android.R.drawable.ic_menu_send, "Reply", actionPendingIntent(ctx, "REPLY", data, 100))
         .addRemoteInput(new androidx.core.app.RemoteInput.Builder(NotificationActionReceiver.KEY_REPLY_TEXT)
