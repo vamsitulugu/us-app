@@ -10379,7 +10379,7 @@ if (navigator.serviceWorker) {
       const state = await api('GET', '/api/data/state/' + S.coupleId);
       const existing = Array.isArray((state||{})[key]) ? state[key] : [];
       const updated = [...existing, payload].slice(-20);
-      await api('POST', '/api/data/state', { coupleId: S.coupleId, state: { [key]: updated } });
+      await api('POST', '/api/data/state', { coupleId: S.coupleId, state: { [key]: updated }, senderRole: S.role, myName: S.myName });
     } catch (e) {}
   }
 

@@ -162,7 +162,7 @@ function diffAndNotify(coupleId, senderRole, prevState, nextState, myName) {
 }
 
 router.post('/state', async (req, res) => {
-  const { coupleId, state } = req.body;
+  const { coupleId, state, senderRole, myName } = req.body;
   if (!coupleId || !state) return res.status(400).json({ error: 'Missing data' });
 
   const { data: prevRow } = await supabase
@@ -186,7 +186,22 @@ router.post('/state', async (req, res) => {
   }, { onConflict: 'couple_id' });
 
   if (!error) {
-    try { diffAndNotify(coupleId, state.role || merged.role, prevState, merged, state.myName || merged.myName); }
+    // ROOT CAUSE FIX (notification pipeline): prefer the explicit
+    // top-level senderRole/myName the client sends on every save
+    // (see saveToCloud() in index.html) over state.role/merged.role.
+    // Partial-state saves (karaoke ck_* invites, single-key quick
+    // saves) never include `role` inside `state`, so this used to fall
+    // back to merged.role — a field living in the single SHARED
+    // app_state row, last overwritten by whichever partner saved a
+    // full state most recently. That is not necessarily who is
+    // sending THIS save, so diffAndNotify's senderRole (and therefore
+    // the partnerRole it pushes to) could be computed backwards,
+    // silently sending the notification to the wrong device — often
+    // the sender's own subscription — while the real partner got
+    // nothing.
+    const resolvedRole = senderRole || state.role || merged.role;
+    const resolvedName = myName || state.myName || merged.myName;
+    try { diffAndNotify(coupleId, resolvedRole, prevState, merged, resolvedName); }
     catch (e) { console.warn('Notify diff error:', e.message); }
   }
 

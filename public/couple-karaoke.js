@@ -97,7 +97,7 @@
       outbox.push(payload);
       if (outbox.length > 20) outbox = outbox.slice(-20);
       try {
-        await window.MusicPlayer.api('POST', '/api/data/state', { coupleId: ctx.coupleId, state: { [myKey]: outbox } });
+        await window.MusicPlayer.api('POST', '/api/data/state', { coupleId: ctx.coupleId, state: { [myKey]: outbox }, senderRole: ctx.role });
       } catch (e) {}
     }
     async function pollOnce() {
