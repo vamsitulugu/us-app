@@ -12,6 +12,7 @@ const router   = express.Router();
 let _sendPushToPartner, _sendFCMToPartner;
 try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch (_) {}
 try { _sendFCMToPartner = require('./auth').sendFCMToPartner; } catch (_) {}
+const { isViewingChat } = require('./presence');
 
 function otherRole(role) { return role === 'user1' ? 'user2' : 'user1'; }
 
@@ -88,16 +89,36 @@ router.post('/', async (req, res) => {
   data.delivered = true;
   data.delivered_at = deliveredAt;
 
-  // Push notify partner
-  const chatPayload = {
-    title: '💬 New message',
-    body: text ? text.slice(0, 80) : (type === 'image' ? '📷 Photo' : type === 'video' ? '🎬 Video' : '🎙️ Voice message'),
-    icon: '/icons/icon-192.png',
-    tag: 'chat-msg',
-    url: '/?page=chat'
-  };
-  if (_sendPushToPartner) _sendPushToPartner(coupleId, senderRole, chatPayload).catch(() => {});
-  if (_sendFCMToPartner) _sendFCMToPartner(coupleId, senderRole, chatPayload).catch(() => {});
+  // Push notify partner — but only if they're NOT currently looking at
+  // this same conversation. Real-time (Supabase Realtime, already wired
+  // up above) delivers the message to them either way; this only
+  // decides whether to ALSO interrupt them with a system notification.
+  // See routes/presence.js — the client sends a heartbeat with its
+  // current page whenever it's open, so "viewing chat right now" is
+  // just "their last heartbeat says page === 'chat'".
+  const receiverRole = senderRole === 'user1' ? 'user2' : 'user1';
+  if (!isViewingChat(coupleId, receiverRole)) {
+    // Best-effort sender name for the notification body/MessagingStyle
+    // (see TwinHeartsMessagingService reading data.senderName). Never
+    // blocks or fails the send — a lookup error just falls back to the
+    // generic "New message" title already used everywhere else.
+    let senderName = null;
+    try {
+      const { data: couple } = await supabase.from('couples')
+        .select('user1_name, user2_name').eq('id', coupleId).maybeSingle();
+      senderName = couple ? (senderRole === 'user1' ? couple.user1_name : couple.user2_name) : null;
+    } catch (_) {}
+    const chatPayload = {
+      title: senderName ? `💬 ${senderName}` : '💬 New message',
+      body: text ? text.slice(0, 80) : (type === 'image' ? '📷 Photo' : type === 'video' ? '🎬 Video' : '🎙️ Voice message'),
+      icon: '/icons/icon-192.png',
+      tag: 'chat-msg',
+      url: '/?page=chat',
+      senderName: senderName || undefined
+    };
+    if (_sendPushToPartner) _sendPushToPartner(coupleId, senderRole, chatPayload).catch(() => {});
+    if (_sendFCMToPartner) _sendFCMToPartner(coupleId, senderRole, chatPayload).catch(() => {});
+  }
 
   return res.json(data);
 });

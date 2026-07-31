@@ -396,6 +396,7 @@ async function sendFCMToPartner(coupleId, senderRole, payload) {
     coupleId: String(coupleId),
     myRole: partnerRole,       // the recipient's own role — needed to send a Reply or mark-as-read as themselves
     senderRole: senderRole,
+    ...(payload.senderName ? { senderName: payload.senderName } : {}),
     ...(isIncomingCall ? { callerRole: senderRole, type: payload.type || (payload.title && payload.title.includes('Video') ? 'video' : 'voice') } : {})
   };
 

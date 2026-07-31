@@ -7260,8 +7260,59 @@ function setJustPairedAt(ts) {
           goto(page);
           return true;
         }
+        // ── Presence heartbeat (see routes/presence.js) ──────────────
+        // Tells the backend which page is currently on screen, so a new
+        // chat message can skip the push notification when the receiver
+        // is already looking at that same conversation (real-time still
+        // delivers the message either way — this only gates the
+        // system notification on top of it).
+        let _presenceInterval = null;
+        function reportPresence(page) {
+          if (!S.coupleId || !S.role) return;
+          fetch(API + '/api/presence/view', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ coupleId: S.coupleId, role: S.role, page })
+          }).catch(() => {});
+          // Keep renewing while this page stays open — otherwise a long
+          // idle stay on the chat page would go stale (see STALE_MS in
+          // routes/presence.js) and start re-triggering pushes for
+          // messages the person is still actively looking at.
+          if (_presenceInterval) clearInterval(_presenceInterval);
+          if (page) {
+            _presenceInterval = setInterval(() => {
+              if (document.visibilityState === 'visible') reportPresence(page);
+            }, 15000);
+          }
+        }
+        // Tab hidden / app backgrounded / phone locked → clear presence
+        // immediately (don't wait for the heartbeat to go stale) so a
+        // message sent right after backgrounding still notifies promptly.
+        // Tab visible again → re-report whatever page is still showing.
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'hidden') {
+            if (_presenceInterval) clearInterval(_presenceInterval);
+            navigator.sendBeacon && navigator.sendBeacon(
+              API + '/api/presence/view',
+              new Blob([JSON.stringify({ coupleId: S.coupleId, role: S.role, page: null })], { type: 'application/json' })
+            );
+          } else if (window.PageManager?.currentPage) {
+            reportPresence(window.PageManager.currentPage);
+          }
+        });
+        // Tab/app actually closing — sendBeacon is the only send method
+        // that reliably completes during unload.
+        window.addEventListener('pagehide', () => {
+          if (!S.coupleId || !S.role) return;
+          navigator.sendBeacon && navigator.sendBeacon(
+            API + '/api/presence/view',
+            new Blob([JSON.stringify({ coupleId: S.coupleId, role: S.role, page: null })], { type: 'application/json' })
+          );
+        });
+
         function goto(page, pushHistory = true) {
           if (window.PageManager) PageManager.currentPage = page;
+          reportPresence(page);
           const _wasVirtualHome = document.getElementById('page-virtualhome')?.classList.contains('active');
           // Any in-chat modal (GIF picker, emoji picker, attach sheet, etc.) is
           // tied to the chat page's DOM. Leaving the page — including via the
@@ -9282,7 +9333,26 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
           checkIncomingMissYou();
           checkIncomingHug();
           startAlarmCheck();
+          reportPresence(window.PageManager?.currentPage || 'dashboard');
           if ('Notification' in window && Notification.permission === 'granted') setTimeout(registerPushSubscription, 2000);
+          // One-time auto-prompt: previously permission was only ever
+          // requested from a manual Settings toggle, so anyone who never
+          // found that toggle simply never got a push subscription —
+          // this is the single biggest reason pushes silently never
+          // arrived. Ask once, a few seconds after the dashboard is up
+          // (not immediately on load, so it doesn't compete with the
+          // browser's own "site wants to..." prompt timing heuristics).
+          // The localStorage flag makes this fire at most once per
+          // device even if permission is later revoked — a revoked
+          // permission needs a deliberate re-enable via the Settings
+          // toggle, not another surprise prompt.
+          if ('Notification' in window && Notification.permission === 'default' && !localStorage.getItem('notifAutoPromptShown')) {
+            localStorage.setItem('notifAutoPromptShown', '1');
+            setTimeout(async () => {
+              const p = await Notification.requestPermission();
+              if (p === 'granted') { await registerPushSubscription(); syncNotifToggleUI(); }
+            }, 4000);
+          }
           setupNativeNotifications();
           startSyncLoop();
           if (!history.state) {

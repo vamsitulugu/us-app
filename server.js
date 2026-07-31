@@ -107,6 +107,7 @@ app.use('/api/call', require('./routes/call'));
 app.use('/api/music', require('./routes/music'));
 app.use('/api/lyrics', require('./routes/lyrics'));
 app.use('/api/search', require('./routes/search'));
+app.use('/api/presence', require('./routes/presence'));
 // ── Health check ───────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
