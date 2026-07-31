@@ -43,6 +43,14 @@ dependencies {
     // Background Location Tracking — FusedLocationProviderClient
     implementation "com.google.android.gms:play-services-location:21.3.0"
 
+    // Firebase Messaging — needed to extend FirebaseMessagingService
+    // directly (TwinHeartsMessagingService). @capacitor/push-notifications
+    // depends on this internally but doesn't expose it to app-module code,
+    // so it has to be declared here too. The BoM pins a matching version
+    // set; keep it in sync with google-services.json's project config.
+    implementation platform('com.google.firebase:firebase-bom:33.5.1')
+    implementation 'com.google.firebase:firebase-messaging'
+
 }
 
 apply from: 'capacitor.build.gradle'

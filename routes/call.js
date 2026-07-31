@@ -32,12 +32,13 @@ router.post('/notify', async (req, res) => {
   const { coupleId, callerRole, type } = req.body;
   if (!coupleId || !callerRole) return res.status(400).json({ error: 'Missing data' });
   const callPayload = {
-    title: type === 'video' ? '📹 Incoming video call' : '🎙️ Incoming voice call',
+    title: type === 'video' ? '🎥 Incoming Video Call' : '📞 Incoming Voice Call',
     body: 'Tap to answer',
     icon: '/icons/icon-192.png',
     tag: 'incoming-call',
     renotify: true,
-    url: '/?page=chat'
+    url: '/?page=chat',
+    type: type || 'voice'
   };
   if (_sendPushToPartner) _sendPushToPartner(coupleId, callerRole, callPayload).catch(() => {});
   if (_sendFCMToPartner) _sendFCMToPartner(coupleId, callerRole, callPayload).catch(() => {});

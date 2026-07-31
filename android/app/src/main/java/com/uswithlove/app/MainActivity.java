@@ -30,6 +30,21 @@ public class MainActivity extends BridgeActivity {
   // with high importance so it rings the same way a real phone call does.
   public static final String CALLS_CHANNEL_ID = "calls_channel_v1";
 
+  // ── Additional per-category channels (must match CHANNEL_MAP in
+  // routes/auth.js). Before this, every notification that wasn't a Touch
+  // or a Call fell into FCM's auto-created "Miscellaneous" bucket — one
+  // shared importance level, one shared (default) sound, no per-category
+  // mute control in Android's app notification settings. Splitting these
+  // out is what lets someone mute Games but keep Messages, exactly like
+  // WhatsApp's Settings > Notifications does per category. ──
+  public static final String MESSAGES_CHANNEL_ID = "messages_channel_v1";
+  public static final String PARTNER_CHANNEL_ID = "partner_requests_channel_v1";
+  public static final String MEMORIES_CHANNEL_ID = "memories_channel_v1";
+  public static final String GAMES_CHANNEL_ID = "games_channel_v1";
+  public static final String REMINDERS_CHANNEL_ID = "reminders_channel_v1";
+  public static final String SAFETY_CHANNEL_ID = "safety_channel_v1";
+  public static final String GENERAL_CHANNEL_ID = "general_channel_v1";
+
   // App theme's dark background (matches public/index.html body
   // background #0B0B0B). Used so the status/nav bars read as part of
   // the app instead of showing the OS's default gray scrim.
@@ -44,6 +59,65 @@ public class MainActivity extends BridgeActivity {
     setupSystemBars();
     createTouchNotificationChannel();
     createCallsNotificationChannel();
+    createSimpleChannel(MESSAGES_CHANNEL_ID, "Messages", "New chat messages from your partner",
+        NotificationManager.IMPORTANCE_HIGH, new long[]{0, 250, 150, 250});
+    createSimpleChannel(PARTNER_CHANNEL_ID, "Partner Requests", "Pairing and connection requests",
+        NotificationManager.IMPORTANCE_HIGH, new long[]{0, 300, 200, 300, 200, 300});
+    createSimpleChannel(MEMORIES_CHANNEL_ID, "Memories", "Photos, journal entries, and shared memories",
+        NotificationManager.IMPORTANCE_DEFAULT, new long[]{0, 200});
+    createSimpleChannel(GAMES_CHANNEL_ID, "Games", "Game invitations from your partner",
+        NotificationManager.IMPORTANCE_DEFAULT, new long[]{0, 150, 100, 150, 100, 150});
+    createSimpleChannel(REMINDERS_CHANNEL_ID, "Reminders", "Calendar, anniversary, and birthday reminders",
+        NotificationManager.IMPORTANCE_DEFAULT, new long[]{0, 200, 200, 200});
+    createSimpleChannel(SAFETY_CHANNEL_ID, "Location & Safety", "Location check and mock-GPS alerts",
+        NotificationManager.IMPORTANCE_HIGH, new long[]{0, 400, 200, 400});
+    createSimpleChannel(GENERAL_CHANNEL_ID, "General", "Everything else Twin Hearts lets you know about",
+        NotificationManager.IMPORTANCE_DEFAULT, new long[]{0, 150});
+    handleDeepLink(getIntent());
+  }
+
+  @Override
+  public void onNewIntent(android.content.Intent intent) {
+    super.onNewIntent(intent);
+    setIntent(intent);
+    handleDeepLink(intent);
+  }
+
+  // Notifications built in TwinHeartsMessagingService attach the target
+  // in-app path (e.g. "/?page=chat") as a "deepLinkUrl" extra on both the
+  // tap-to-open PendingIntent and the Answer-call / quick-action intents.
+  // This turns that into an actual in-app navigation instead of just
+  // opening to whatever page the WebView happened to be on.
+  private void handleDeepLink(android.content.Intent intent) {
+    if (intent == null) return;
+    String path = intent.getStringExtra("deepLinkUrl");
+    if (path == null || path.isEmpty()) return;
+    android.webkit.WebView webView = getBridge() != null ? getBridge().getWebView() : null;
+    if (webView == null) return;
+    String origin = "https://twinhearts.vercel.app";
+    String target = path.startsWith("http") ? path : origin + path;
+    webView.post(() -> webView.loadUrl(target));
+  }
+
+  // Shared creator for every channel that doesn't need a custom sound
+  // (Touch and Calls keep their own dedicated methods above since they
+  // attach a ringtone/locked vibration). Idempotent — Android already
+  // no-ops createNotificationChannel() for an existing id, and the
+  // explicit getNotificationChannel() check avoids the lookup entirely
+  // on the common (already-created) path.
+  private void createSimpleChannel(String id, String name, String description,
+                                    int importance, long[] vibrationPattern) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
+    NotificationManager manager = getSystemService(NotificationManager.class);
+    if (manager == null || manager.getNotificationChannel(id) != null) return;
+
+    NotificationChannel channel = new NotificationChannel(id, name, importance);
+    channel.setDescription(description);
+    channel.enableVibration(true);
+    channel.setVibrationPattern(vibrationPattern);
+    channel.enableLights(true);
+    channel.setLightColor(Color.parseColor("#B30000")); // deep red brand accent
+    manager.createNotificationChannel(channel);
   }
 
   // Root cause this addresses: targetSdk 36 (Android 15+) makes

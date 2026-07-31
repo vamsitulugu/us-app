@@ -97,10 +97,12 @@ router.post('/request', async (req, res) => {
   const tPushStart = Date.now();
   console.log(`[partner:request] push start t=${tPushStart}`);
   sendPushToUser(receiver.id, {
-    title: 'Twin Hearts ❤️',
-    body: (sender.name || 'Someone') + ' wants to connect with you.',
+    title: '💕 New Partner Request',
+    body: (sender.name || 'Someone') + ' sent you a partner request. Tap to review and accept.',
     icon: '/icons/icon-192.png',
-    tag: 'partner-request'
+    tag: 'partner-request',
+    requestId: request.id,
+    userId: receiver.id
   }).then(result => {
     console.log(`[partner:request] push done t=${Date.now()} (+${Date.now() - tPushStart}ms) result=${JSON.stringify(result)}`);
   }).catch(err => {

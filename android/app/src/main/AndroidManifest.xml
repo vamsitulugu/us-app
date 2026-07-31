@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -34,6 +34,27 @@
 <meta-data
     android:name="com.google.firebase.messaging.default_notification_color"
     android:resource="@color/notification_icon_color" />
+
+        <!-- Overrides com.capacitorjs.plugins.pushnotifications.MessagingService
+             (declared with the same intent-filter in that library's own
+             manifest) so every push we receive goes through our own
+             styled builder (channels, MessagingStyle, CallStyle, action
+             buttons) instead of the library's plain auto-notification.
+             tools:node="replace" is required because two <service>
+             entries can't otherwise both claim the same
+             MESSAGING_EVENT intent-filter during manifest merging. -->
+        <service
+            android:name="com.uswithlove.app.notifications.TwinHeartsMessagingService"
+            android:exported="false"
+            tools:node="replace">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <receiver
+            android:name="com.uswithlove.app.notifications.NotificationActionReceiver"
+            android:exported="false" />
 
         <!-- ═══ Background Location Tracking (item 1) ═══ -->
         <!-- foregroundServiceType="location" is REQUIRED on API 34+ (Android 14)
@@ -94,4 +115,11 @@
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Lets the incoming-call notification launch full-screen over the
+         lock screen, the way a real phone call does. Android treats this
+         as a "special" permission the Play Store reviews on submission —
+         it's already scoped correctly here since it's only used for
+         CallStyle/incoming-call notifications (see
+         TwinHeartsMessagingService.showIncomingCall). -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 </manifest>

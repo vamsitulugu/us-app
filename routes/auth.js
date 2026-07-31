@@ -333,37 +333,78 @@ const TOUCH_CHANNEL_ID = 'touch_channel_v1';
 // call is already over, so it stays on the default channel.
 const CALLS_CHANNEL_ID = 'calls_channel_v1';
 
+// Remaining per-category channels — must match the constants of the same
+// name created natively in MainActivity.java. Every notification tag in
+// the app is classified below so it lands on the right Android channel
+// (own mute switch, own importance, own vibration) instead of all falling
+// into FCM's shared default "Miscellaneous" bucket, which is what was
+// happening for everything except Touch and Calls before this.
+const MESSAGES_CHANNEL_ID = 'messages_channel_v1';
+const PARTNER_CHANNEL_ID = 'partner_requests_channel_v1';
+const MEMORIES_CHANNEL_ID = 'memories_channel_v1';
+const GAMES_CHANNEL_ID = 'games_channel_v1';
+const REMINDERS_CHANNEL_ID = 'reminders_channel_v1';
+const SAFETY_CHANNEL_ID = 'safety_channel_v1';
+const GENERAL_CHANNEL_ID = 'general_channel_v1';
+
+// Deep-red brand accent used as the notification accent color across
+// every channel (small-icon tint on Android 8+, ticker/LED tint on
+// older devices) — replaces the old near-black #1a0010, which read as
+// "no color" in the status bar and didn't match the black/deep-red
+// brand described for this notification system.
+const BRAND_ACCENT_COLOR = '#B30000';
+
+// tag -> channelId. Matched by exact tag first, then by prefix for the
+// families of tags that share a channel (e.g. every 'home-*' / 'globe-*'
+// memory tag, every 'safety-*' alert).
+function channelForTag(tag) {
+  tag = tag || '';
+  if (tag === 'touch') return TOUCH_CHANNEL_ID;
+  if (tag === 'incoming-call') return CALLS_CHANNEL_ID;
+  if (tag === 'missed-call' || tag === 'chat-msg' || tag === 'missyou' || tag === 'hug') return MESSAGES_CHANNEL_ID;
+  if (tag === 'partner-request' || tag === 'partner-accepted' || tag === 'paired' || tag === 'ck-invite') return PARTNER_CHANNEL_ID;
+  if (tag.startsWith('safety-')) return SAFETY_CHANNEL_ID;
+  if (tag === 'events' || tag === 'reminder' || tag === 'meetplan' || tag === 'meetup-complete') return REMINDERS_CHANNEL_ID;
+  if (tag === 'photos' || tag.startsWith('globe-') || tag.startsWith('home-') || tag === 'journal' || tag === 'milestone' || tag === 'capsule') return MEMORIES_CHANNEL_ID;
+  if (tag.startsWith('music-') || tag === 'song' || tag === 'karaoke-rec') return GAMES_CHANNEL_ID;
+  return GENERAL_CHANNEL_ID;
+}
+module.exports.channelForTag = channelForTag;
+
 async function sendFCMToPartner(coupleId, senderRole, payload) {
   if (!fcmReady) return;
   const partnerRole = senderRole === 'user1' ? 'user2' : 'user1';
-  const { data } = await supabase.from('fcm_tokens')
+  const { data: tokenRow } = await supabase.from('fcm_tokens')
     .select('token').eq('couple_id', coupleId).eq('role', partnerRole).maybeSingle();
-  if (!data) return;
-  const isTouch = payload.tag === 'touch';
+  if (!tokenRow) return;
   const isIncomingCall = payload.tag === 'incoming-call';
+
+  // Data-only message (no top-level "notification" field): this is what
+  // guarantees TwinHeartsMessagingService.onMessageReceived() runs and
+  // builds the styled notification every time, even while the app is
+  // fully backgrounded/killed. A "notification" field would instead let
+  // Android auto-display a plain system notification and skip our
+  // service's onMessageReceived() for that message when the app isn't
+  // in the foreground. Every string value below becomes a String extra
+  // the native action buttons (Accept/Decline/Reply/Mark as Read/…)
+  // read directly off the tapped notification's Intent.
+  const fcmData = {
+    title: payload.title || 'Twin Hearts 💕',
+    body: payload.body || '',
+    url: payload.url || '/',
+    tag: payload.tag || '',
+    coupleId: String(coupleId),
+    myRole: partnerRole,       // the recipient's own role — needed to send a Reply or mark-as-read as themselves
+    senderRole: senderRole,
+    ...(isIncomingCall ? { callerRole: senderRole, type: payload.type || (payload.title && payload.title.includes('Video') ? 'video' : 'voice') } : {})
+  };
+
   try {
     await fcmMessaging.send({
-      token: data.token,
-      notification: { title: payload.title || 'Twin Hearts 💕', body: payload.body || '' },
-      data: {
-        url: payload.url || '/',
-        tag: payload.tag || ''
-      },
+      token: tokenRow.token,
+      data: fcmData,
       android: {
         priority: isIncomingCall ? 'high' : undefined,
-        notification: {
-          icon: 'ic_stat_notify',
-          color: '#1a0010',
-          ...(isTouch ? {
-            channelId: TOUCH_CHANNEL_ID,
-            defaultVibrateTimings: false,
-            vibrateTimingsMillis: [0, 10000]
-          } : {}),
-          ...(isIncomingCall ? {
-            channelId: CALLS_CHANNEL_ID,
-            priority: 'max'
-          } : {})
-        }
       }
     });
   } catch (err) {
@@ -424,9 +465,25 @@ async function sendPushToUser(userId, payload) {
       const ageMin = data.updated_at ? Math.round((Date.now() - new Date(data.updated_at).getTime()) / 60000) : null;
       console.log(`[push:fcm] user=${userId} token found, last updated ${ageMin}min ago`);
       try {
+        // Data-only, same reasoning as sendFCMToPartner above. Any extra
+        // fields the caller put on payload (e.g. requestId/userId for a
+        // partner-request push — see routes/partner.js) are passed
+        // straight through so the notification's action buttons
+        // (Accept/Decline) have what they need without a second lookup.
+        const extra = {};
+        for (const [k, v] of Object.entries(payload)) {
+          if (['title', 'body', 'icon', 'url', 'tag'].includes(k)) continue;
+          if (v !== undefined && v !== null) extra[k] = String(v);
+        }
         const messageId = await fcmMessaging.send({
           token: data.token,
-          notification: { title: payload.title || 'Twin Hearts 💕', body: payload.body || '' }
+          data: {
+            title: payload.title || 'Twin Hearts 💕',
+            body: payload.body || '',
+            url: payload.url || '/',
+            tag: payload.tag || '',
+            ...extra
+          }
         });
         result.fcm = { sent: true, messageId };
         console.log(`[push:fcm] user=${userId} sent OK messageId=${messageId} (${Date.now() - t0}ms)`);
