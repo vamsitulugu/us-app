@@ -816,7 +816,7 @@ const platformMeta = {
   unknown:   { label:'your device',    icon:'💻', chip:'' }
 };
 
-let appMeta = { version:null, build:null, size:null, updated:null };
+let appMeta = { version:null, build:null, size:null, updated:null, downloadUrl:null };
 async function fetchAppMeta(){
   try{
     const r = await fetch('/downloads/app-meta.json', { cache:'no-store' });
@@ -938,7 +938,11 @@ function startApkDownload(){
   setTimeout(()=>{
     overlay.classList.remove('open');
     const a = document.createElement('a');
-    a.href = '/downloads/twin-hearts.apk';
+    // Single centralized source for the APK URL: app-meta.json's
+    // downloadUrl (a permanent Vercel Blob Storage URL), fetched into
+    // appMeta by fetchAppMeta(). Falls back to the legacy local path
+    // only if metadata hasn't loaded yet (e.g. very first paint).
+    a.href = appMeta.downloadUrl || '/downloads/twin-hearts.apk';
     a.download = 'twin-hearts.apk';
     document.body.appendChild(a);
     a.click();

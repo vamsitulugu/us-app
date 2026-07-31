@@ -2,5 +2,7 @@
   "version": "1.0.0",
   "build": "1",
   "size": "28 MB",
-  "updated": "Jul 2026"
+  "updated": "Jul 2026",
+  "downloadUrl": "https://<your-store-id>.public.blob.vercel-storage.com/downloads/twin-hearts.apk",
+  "uploadedAt": "2026-07-31T00:00:00.000Z"
 }
