@@ -3,7 +3,10 @@ package com.uswithlove.app.notifications;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.net.Uri;
 import android.os.Build;
 import androidx.core.app.NotificationCompat;
@@ -11,6 +14,8 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.core.app.Person;
 import androidx.core.graphics.drawable.IconCompat;
 import androidx.annotation.NonNull;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.capacitorjs.plugins.pushnotifications.PushNotificationsPlugin;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
@@ -18,6 +23,8 @@ import com.uswithlove.app.MainActivity;
 
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Replaces Capacitor's default MessagingService (see AndroidManifest.xml,
@@ -36,6 +43,16 @@ import java.util.Random;
  * firing exactly as before.
  */
 public class TwinHeartsMessagingService extends FirebaseMessagingService {
+
+  // Single background executor for the (best-effort, non-blocking) avatar
+  // fetch below. Never used to delay posting the notification itself —
+  // the notification always goes out first with a letter-avatar fallback,
+  // then gets silently swapped to the real photo if/when it loads.
+  private static final ExecutorService AVATAR_EXECUTOR = Executors.newCachedThreadPool();
+
+  // 46dp — matches the "44-48dp" premium-avatar spec, converted to px
+  // at draw time via displayMetrics.
+  private static final int AVATAR_SIZE_DP = 46;
 
   @Override
   public void onMessageReceived(@NonNull RemoteMessage remoteMessage) {
@@ -90,9 +107,57 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
   }
 
   // ── Chat: MessagingStyle, like WhatsApp/Telegram ─────────────────
+  //
+  // Appearance-only upgrade over the previous version:
+  //  - sender's circular avatar (real profile photo if available, else a
+  //    generated letter-avatar) shown next to the message, ~46dp
+  //  - Twin Hearts logo shown as the notification's large icon (the
+  //    "premium branding on the right" treatment RedBus/WhatsApp use)
+  // None of the reply/mark-read actions, channel, group, tag, or FCM
+  // handling below this comment were touched.
   private void showChatMessage(Map<String, String> data, String tag, String senderName, String body, String url) {
     Context ctx = getApplicationContext();
-    Person sender = new Person.Builder().setName(senderName).build();
+
+    Bitmap letterAvatar = buildLetterAvatarBitmap(ctx, senderName);
+    Bitmap appLogo = buildAppLogoBitmap(ctx);
+    String avatarUrl = data.get("senderAvatar");
+
+    // Post immediately with the letter-avatar fallback — never wait on
+    // the network for the notification to appear.
+    postChatNotification(ctx, data, tag, senderName, body, url, letterAvatar, appLogo);
+
+    if (avatarUrl == null || avatarUrl.trim().isEmpty()) return;
+
+    // Best-effort, async: fetch + circle-crop the real profile photo
+    // (Glide handles memory/disk caching for us) and silently re-post
+    // the same notification (same tag/id) with the upgraded avatar once
+    // it's ready. If this fails or is slow, the letter avatar already
+    // shown just stays as-is — nothing blocks, nothing breaks.
+    AVATAR_EXECUTOR.execute(() -> {
+      try {
+        int px = dpToPx(ctx, AVATAR_SIZE_DP);
+        Bitmap real = Glide.with(ctx)
+            .asBitmap()
+            .load(avatarUrl)
+            .transform(new CircleCrop())
+            .submit(px, px)
+            .get(); // this thread only — never the caller of onMessageReceived
+        if (real != null) {
+          postChatNotification(ctx, data, tag, senderName, body, url, real, appLogo);
+        }
+      } catch (Exception ignored) {
+        // Download failed / timed out — letter avatar already posted stands.
+      }
+    });
+  }
+
+  private void postChatNotification(Context ctx, Map<String, String> data, String tag, String senderName,
+                                     String body, String url, Bitmap avatar, Bitmap appLogo) {
+    IconCompat avatarIcon = IconCompat.createWithBitmap(avatar);
+    Person sender = new Person.Builder()
+        .setName(senderName)
+        .setIcon(avatarIcon)
+        .build();
 
     NotificationCompat.MessagingStyle style =
         new NotificationCompat.MessagingStyle(new Person.Builder().setName("You").build())
@@ -115,9 +180,55 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
         .addAction(reply)
         .addAction(markRead)
         .setGroup("chat_" + data.getOrDefault("coupleId", "default"))
+        .setLargeIcon(appLogo) // Twin Hearts branding, right side — like RedBus
         .setAutoCancel(true);
 
     notify(ctx, tag, builder);
+  }
+
+  // ── Circular letter-avatar fallback (drawn instantly, no I/O) ──────
+  private Bitmap buildLetterAvatarBitmap(Context ctx, String senderName) {
+    int px = dpToPx(ctx, AVATAR_SIZE_DP);
+    Bitmap bitmap = Bitmap.createBitmap(px, px, Bitmap.Config.ARGB_8888);
+    Canvas canvas = new Canvas(bitmap);
+
+    Paint circlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    circlePaint.setColor(Color.parseColor(NotificationRouter.BRAND_ACCENT_COLOR));
+    canvas.drawCircle(px / 2f, px / 2f, px / 2f, circlePaint);
+
+    String initial = (senderName == null || senderName.trim().isEmpty())
+        ? "?" : senderName.trim().substring(0, 1).toUpperCase();
+
+    Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    textPaint.setColor(Color.WHITE);
+    textPaint.setTextSize(px * 0.46f);
+    textPaint.setTextAlign(Paint.Align.CENTER);
+    textPaint.setFakeBoldText(true);
+    float textY = (px / 2f) - ((textPaint.descent() + textPaint.ascent()) / 2f);
+    canvas.drawText(initial, px / 2f, textY, textPaint);
+
+    return bitmap;
+  }
+
+  // ── Twin Hearts app logo, circle-cropped for the notification's
+  // large icon (the crisp branding shown on the right, RedBus-style) ──
+  private Bitmap buildAppLogoBitmap(Context ctx) {
+    int logoResId = ctx.getResources().getIdentifier("ic_launcher", "mipmap", ctx.getPackageName());
+    Bitmap source = android.graphics.BitmapFactory.decodeResource(ctx.getResources(), logoResId);
+    if (source == null) return null;
+
+    int size = Math.min(source.getWidth(), source.getHeight());
+    Bitmap output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+    Canvas canvas = new Canvas(output);
+    Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    paint.setShader(new android.graphics.BitmapShader(source, android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP));
+    canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint);
+    return output;
+  }
+
+  private int dpToPx(Context ctx, int dp) {
+    float density = ctx.getResources().getDisplayMetrics().density;
+    return Math.round(dp * density);
   }
 
   // ── Calls: CallStyle + full-screen intent, like a real phone call ──

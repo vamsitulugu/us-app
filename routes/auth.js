@@ -437,6 +437,11 @@ async function sendFCMToPartner(coupleId, senderRole, payload) {
     myRole: partnerRole,       // the recipient's own role — needed to send a Reply or mark-as-read as themselves
     senderRole: senderRole,
     ...(payload.senderName ? { senderName: payload.senderName } : {}),
+    // Sender's profile photo URL — purely cosmetic, used by
+    // TwinHeartsMessagingService to show a real circular avatar instead
+    // of a letter avatar in the chat notification. Falls back cleanly
+    // (native side already handles a missing/failed value) if absent.
+    ...(payload.senderAvatar ? { senderAvatar: payload.senderAvatar } : {}),
     ...(isIncomingCall ? { callerRole: senderRole, type: payload.type || (payload.title && payload.title.includes('Video') ? 'video' : 'voice') } : {})
   };
   console.log(`[NOTIF-DEBUG][fcm] Stage3 payload built for couple=${coupleId} role=${partnerRole}: tag=${fcmData.tag} title="${fcmData.title}"`);

@@ -118,10 +118,12 @@ router.post('/', async (req, res) => {
     // blocks or fails the send — a lookup error just falls back to the
     // generic "New message" title already used everywhere else.
     let senderName = null;
+    let senderAvatar = null;
     try {
       const { data: couple } = await supabase.from('couples')
-        .select('user1_name, user2_name').eq('id', coupleId).maybeSingle();
+        .select('user1_name, user2_name, user1_avatar, user2_avatar').eq('id', coupleId).maybeSingle();
       senderName = couple ? (senderRole === 'user1' ? couple.user1_name : couple.user2_name) : null;
+      senderAvatar = couple ? (senderRole === 'user1' ? couple.user1_avatar : couple.user2_avatar) : null;
     } catch (_) {}
     const chatPayload = {
       title: senderName ? `💬 ${senderName}` : '💬 New message',
@@ -129,7 +131,8 @@ router.post('/', async (req, res) => {
       icon: '/icons/icon-192.png',
       tag: 'chat-msg',
       url: '/?page=chat',
-      senderName: senderName || undefined
+      senderName: senderName || undefined,
+      senderAvatar: senderAvatar || undefined
     };
     if (_sendPushToPartner) {
       _sendPushToPartner(coupleId, senderRole, chatPayload).catch(err =>

@@ -51,6 +51,12 @@ dependencies {
     implementation platform('com.google.firebase:firebase-bom:33.5.1')
     implementation 'com.google.firebase:firebase-messaging'
 
+    // Glide — used only to fetch + disk/memory-cache the sender's profile
+    // photo for the chat notification's circular avatar (see
+    // TwinHeartsMessagingService#loadCircularAvatarAsync). Purely a
+    // notification-appearance dependency; does not touch FCM, channels,
+    // actions, or delivery.
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
 }
 
 apply from: 'capacitor.build.gradle'
