@@ -1,0 +1,48 @@
+From c314907ac86f242c3305b2b2c8ff6a7d357eb16d Mon Sep 17 00:00:00 2001
+From: Twin Hearts Dev <dev@uswithlove.app>
+Date: Fri, 31 Jul 2026 12:55:02 +0000
+Subject: [PATCH] Fix notif settings UI to detect native Capacitor push instead
+ of window.Notification
+
+---
+ public/index.html | 15 +++++++++++++--
+ 1 file changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/public/index.html b/public/index.html
+index 2158200..acbdcc6 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -7582,10 +7582,20 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
+   const el = document.getElementById('notifToggle');
+   const status = document.getElementById('notifStatus');
+   if (!el) return;
+-  const granted = ('Notification' in window) && Notification.permission === 'granted';
++  // Native Android app: WebView has no window.Notification API, but push
++  // is handled entirely through the Capacitor PushNotifications plugin +
++  // FCM (setupNativeNotifications()/register-fcm-token), not the web
++  // Notification API. Checking only 'Notification' in window made this
++  // label say "Not supported" on the phone even when native push was
++  // fully working — check the native platform first.
++  const isNative = window.Capacitor?.isNativePlatform?.();
++  const granted = isNative
++    ? true // native permission is requested/handled by setupNativeNotifications(); no separate JS flag to read here
++    : ('Notification' in window) && Notification.permission === 'granted';
+   el.classList.toggle('on', granted);
+   if (status) {
+-    status.textContent = !('Notification' in window) ? 'Not supported on this browser'
++    status.textContent = isNative ? '✅ Enabled via app'
++      : !('Notification' in window) ? 'Not supported on this browser'
+       : Notification.permission === 'granted' ? '✅ Enabled'
+       : Notification.permission === 'denied' ? '❌ Blocked — enable in browser settings'
+       : 'Tap to enable';
+@@ -7593,6 +7603,7 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
+ }
+ 
+ async function toggleNotifications() {
++  if (window.Capacitor?.isNativePlatform?.()) { toast('Notifications are managed automatically in the app'); return; }
+   if (!('Notification' in window)) { toast('Not supported on this browser'); return; }
+ 
+   if (Notification.permission === 'granted') {
+-- 
+2.43.0
+
