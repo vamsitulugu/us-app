@@ -125,6 +125,7 @@ router.post('/', async (req, res) => {
       senderName = couple ? (senderRole === 'user1' ? couple.user1_name : couple.user2_name) : null;
       senderAvatar = couple ? (senderRole === 'user1' ? couple.user1_avatar : couple.user2_avatar) : null;
     } catch (_) {}
+    console.log(`[NOTIF-DEBUG][chat] Stage1b avatar lookup couple=${coupleId} sender=${senderRole} senderAvatar=${senderAvatar ? senderAvatar : 'NULL — couples.' + (senderRole === 'user1' ? 'user1_avatar' : 'user2_avatar') + ' is empty, notification will fall back to letter avatar'}`);
     const chatPayload = {
       title: senderName ? `💬 ${senderName}` : '💬 New message',
       body: text ? text.slice(0, 80) : (type === 'image' ? '📷 Photo' : type === 'video' ? '🎬 Video' : '🎙️ Voice message'),
