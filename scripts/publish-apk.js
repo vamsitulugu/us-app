@@ -70,6 +70,18 @@ async function main() {
       addRandomSuffix: false,       // keep a stable, predictable filename
       allowOverwrite: true,         // overwrite the previous APK upload
       contentType: 'application/vnd.android.package-archive',
+      // Force a real "attachment" download (not "view in browser") and
+      // guarantee Android sees the right filename regardless of browser.
+      contentDisposition: 'attachment; filename="twin-hearts.apk"',
+      // BUG FIX: Vercel Blob's browser + edge CDN caches a public blob's
+      // bytes for up to 1 MONTH by default. Because this upload reuses the
+      // exact same URL every time (stable filename + overwrite), without
+      // this option a re-publish can silently keep serving the PREVIOUS
+      // build's bytes to anyone downloading — this is the most likely
+      // cause of the APK "installing" but behaving like an old/different
+      // build, or failing outright if the previous upload was ever
+      // interrupted. 60 is the minimum allowed TTL.
+      cacheControlMaxAge: 60,
       token,
     });
   } catch (err) {
@@ -86,13 +98,24 @@ async function main() {
   const outDir = path.join(__dirname, '..', 'public', 'downloads');
   fs.mkdirSync(outDir, { recursive: true });
 
+  const uploadedAt = new Date().toISOString();
+  // BUG FIX (defense in depth on top of cacheControlMaxAge above): append
+  // a version query string so every publish produces a brand-new URL from
+  // the browser/CDN cache's point of view, even within the 60s TTL window
+  // right after publishing. blobResult.downloadUrl already forces
+  // Content-Disposition: attachment via Blob's own "?download=1" — we
+  // append our cache-buster onto that.
+  const cacheBustedUrl = (blobResult.downloadUrl || blobResult.url) +
+    (((blobResult.downloadUrl || blobResult.url).includes('?')) ? '&' : '?') +
+    'v=' + encodeURIComponent(versionCode + '-' + Date.parse(uploadedAt));
+
   const meta = {
     version: versionName,
     build: versionCode,
     size: sizeMB,
     updated,
-    downloadUrl: blobResult.url,
-    uploadedAt: new Date().toISOString(),
+    downloadUrl: cacheBustedUrl,
+    uploadedAt,
   };
 
   try {
@@ -105,7 +128,7 @@ async function main() {
 
   console.log('✅ Published:');
   console.log('   ' + JSON.stringify(meta, null, 2));
-  console.log('\nDownload URL: ' + blobResult.url);
+  console.log('\nDownload URL: ' + cacheBustedUrl);
   console.log('\nDon\'t forget to bump versionCode/versionName in android/app/build.gradle before your NEXT build,');
   console.log('and to commit the updated public/downloads/app-meta.json (the APK itself is NOT committed).');
 }
