@@ -142,6 +142,24 @@ router.post('/:userId/avatar', upload.single('avatar'), async (req, res) => {
     .from('profiles').update({ avatar_url: avatarUrl }).eq('id', userId).select('*').single();
   if (error) return res.status(500).json({ error: error.message });
 
+  // ROOT CAUSE FIX (chat-notification avatar): routes/chat.js reads the
+  // sender's photo for push notifications off couples.user1_avatar /
+  // user2_avatar (keyed by role), NOT profiles.avatar_url — those are two
+  // separate tables/columns. Without this, an avatar uploaded here would
+  // never reach the notification, which would always fall back to the
+  // letter-avatar circle no matter what the user set as their photo.
+  // Best-effort: a failure here must never fail the avatar upload itself.
+  try {
+    const { data: me } = await supabase
+      .from('users').select('couple_id, role').eq('id', userId).maybeSingle();
+    if (me && me.couple_id) {
+      const column = me.role === 'user2' ? 'user2_avatar' : 'user1_avatar';
+      await supabase.from('couples').update({ [column]: avatarUrl }).eq('id', me.couple_id);
+    }
+  } catch (syncErr) {
+    console.warn('[profile:avatar] couples sync failed (non-fatal):', syncErr.message);
+  }
+
   broadcastEvent(`profile:${userId}`, 'profile_updated', { profile: saved });
   res.json(saved);
 });

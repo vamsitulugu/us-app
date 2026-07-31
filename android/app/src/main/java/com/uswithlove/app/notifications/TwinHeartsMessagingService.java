@@ -212,8 +212,17 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
 
   // ── Twin Hearts app logo, circle-cropped for the notification's
   // large icon (the crisp branding shown on the right, RedBus-style) ──
+  //
+  // NOTE: this deliberately does NOT read the "ic_launcher" mipmap.
+  // On API 26+ that identifier resolves to mipmap-anydpi-v26/ic_launcher.xml
+  // — an <adaptive-icon> XML, not a raster image. BitmapFactory.decodeResource()
+  // can't decode XML drawables, so it silently returned null here, which
+  // is why the large icon never actually appeared on real devices (Android
+  // just omits it rather than crashing). ic_notification_logo is a plain
+  // PNG in res/drawable-nodpi/ built from resources/icon.png specifically
+  // so this always decodes to a real Bitmap.
   private Bitmap buildAppLogoBitmap(Context ctx) {
-    int logoResId = ctx.getResources().getIdentifier("ic_launcher", "mipmap", ctx.getPackageName());
+    int logoResId = ctx.getResources().getIdentifier("ic_notification_logo", "drawable", ctx.getPackageName());
     Bitmap source = android.graphics.BitmapFactory.decodeResource(ctx.getResources(), logoResId);
     if (source == null) return null;
 
