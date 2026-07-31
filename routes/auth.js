@@ -304,34 +304,37 @@ router.post('/register-fcm-token', async (req, res) => {
   const { coupleId, role, userId, token } = req.body;
   if (!token || (!coupleId && !userId)) return res.status(400).json({ error: 'Missing fields' });
 
-  // Same root-cause fix as /push/subscribe above: store user_id too so
-  // sendPushToUser() (partner-invitation pushes) can find this token.
-  if (coupleId && role) {
-    const row = {
-      couple_id: coupleId,
-      role,
-      token,
-      updated_at: new Date().toISOString()
-    };
-    if (userId) row.user_id = userId;
-    const { error } = await supabase.from('fcm_tokens').upsert(row, { onConflict: 'couple_id,role' });
-    if (error) return res.status(500).json({ error: error.message });
-    if (userId) {
-      try {
-        await supabase.from('fcm_tokens').upsert({
-          user_id: userId,
-          token,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id' });
-      } catch (e) { console.error('[register-fcm-token] secondary user_id upsert failed:', e.message); }
-    }
-  } else {
+  // fcm_tokens has TWO separate unique constraints: (couple_id, role) and
+  // user_id (uniq_fcm_tokens_user). Upserting with onConflict:'couple_id,role'
+  // only resolves conflicts on that target — if a row with the same user_id
+  // already exists under a different couple_id/role (common while testing,
+  // or after re-pairing/re-login), Postgres tries to INSERT a new row and
+  // hits the OTHER constraint (uniq_fcm_tokens_user) instead, causing a 500
+  // and silently leaving this device's token unsaved. Since user_id is the
+  // one constraint guaranteed to exist whenever we have it, upsert on that
+  // single target and store couple_id/role alongside it.
+  if (userId) {
     const { error } = await supabase.from('fcm_tokens').upsert({
       user_id: userId,
+      ...(coupleId ? { couple_id: coupleId } : {}),
+      ...(role ? { role } : {}),
       token,
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' });
     if (error) return res.status(500).json({ error: error.message });
+  } else if (coupleId && role) {
+    // No userId available (legacy/older client) — fall back to the
+    // couple_id/role target, which is fine as long as no user_id row
+    // for the same person already exists.
+    const { error } = await supabase.from('fcm_tokens').upsert({
+      couple_id: coupleId,
+      role,
+      token,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'couple_id,role' });
+    if (error) return res.status(500).json({ error: error.message });
+  } else {
+    return res.status(400).json({ error: 'Missing fields' });
   }
   return res.json({ ok: true });
 });
