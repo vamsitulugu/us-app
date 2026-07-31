@@ -10,8 +10,18 @@ const supabase = require('../middleware/supabase');
 const router   = express.Router();
 
 let _sendPushToPartner, _sendFCMToPartner;
-try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch (_) {}
-try { _sendFCMToPartner = require('./auth').sendFCMToPartner; } catch (_) {}
+try {
+  _sendPushToPartner = require('./auth').sendPushToPartner;
+  console.log('[NOTIF-DEBUG][chat] sendPushToPartner loaded OK:', typeof _sendPushToPartner === 'function');
+} catch (e) {
+  console.error('[NOTIF-DEBUG][chat] FAILED HERE: Stage0 — require("./auth").sendPushToPartner threw at module load:', e.message);
+}
+try {
+  _sendFCMToPartner = require('./auth').sendFCMToPartner;
+  console.log('[NOTIF-DEBUG][chat] sendFCMToPartner loaded OK:', typeof _sendFCMToPartner === 'function');
+} catch (e) {
+  console.error('[NOTIF-DEBUG][chat] FAILED HERE: Stage0 — require("./auth").sendFCMToPartner threw at module load:', e.message);
+}
 const { isViewingChat } = require('./presence');
 
 function otherRole(role) { return role === 'user1' ? 'user2' : 'user1'; }
@@ -97,7 +107,12 @@ router.post('/', async (req, res) => {
   // current page whenever it's open, so "viewing chat right now" is
   // just "their last heartbeat says page === 'chat'".
   const receiverRole = senderRole === 'user1' ? 'user2' : 'user1';
-  if (!isViewingChat(coupleId, receiverRole)) {
+  const viewingChat = isViewingChat(coupleId, receiverRole);
+  console.log(`[NOTIF-DEBUG][chat] Stage1 message saved couple=${coupleId} sender=${senderRole} receiver=${receiverRole} receiverViewingThisChat=${viewingChat}`);
+  if (viewingChat) {
+    console.log(`[NOTIF-DEBUG][chat] Stage1 SKIPPED — receiver's presence heartbeat says they're already on this chat. No push sent (by design — real-time already delivered it).`);
+  }
+  if (!viewingChat) {
     // Best-effort sender name for the notification body/MessagingStyle
     // (see TwinHeartsMessagingService reading data.senderName). Never
     // blocks or fails the send — a lookup error just falls back to the
@@ -116,8 +131,18 @@ router.post('/', async (req, res) => {
       url: '/?page=chat',
       senderName: senderName || undefined
     };
-    if (_sendPushToPartner) _sendPushToPartner(coupleId, senderRole, chatPayload).catch(() => {});
-    if (_sendFCMToPartner) _sendFCMToPartner(coupleId, senderRole, chatPayload).catch(() => {});
+    if (_sendPushToPartner) {
+      _sendPushToPartner(coupleId, senderRole, chatPayload).catch(err =>
+        console.error(`[NOTIF-DEBUG][chat] sendPushToPartner threw unexpectedly:`, err.message));
+    } else {
+      console.error(`[NOTIF-DEBUG][chat] FAILED HERE: Stage0 — sendPushToPartner is undefined, webpush skipped entirely for couple=${coupleId}`);
+    }
+    if (_sendFCMToPartner) {
+      _sendFCMToPartner(coupleId, senderRole, chatPayload).catch(err =>
+        console.error(`[NOTIF-DEBUG][chat] sendFCMToPartner threw unexpectedly:`, err.message));
+    } else {
+      console.error(`[NOTIF-DEBUG][chat] FAILED HERE: Stage0 — sendFCMToPartner is undefined, FCM skipped entirely for couple=${coupleId}`);
+    }
   }
 
   return res.json(data);

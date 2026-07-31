@@ -245,16 +245,36 @@ router.get('/push/vapidkey', (req, res) => {
 // location.js, meetplanner.js, music.js, signal.js, tracking.js all
 // depend on this exact (coupleId, senderRole, payload) shape.
 async function sendPushToPartner(coupleId, senderRole, payload) {
-  if (!process.env.VAPID_PUBLIC_KEY) return;
+  const t0 = Date.now();
+  const tag = payload.tag || '';
+  console.log(`[NOTIF-DEBUG][webpush] Stage3 start couple=${coupleId} sender=${senderRole} tag=${tag}`);
+
+  if (!process.env.VAPID_PUBLIC_KEY) {
+    console.warn(`[NOTIF-DEBUG][webpush] FAILED HERE: Stage3 — VAPID_PUBLIC_KEY not set in this environment. Web push is entirely disabled. Fix: set VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY in Render env vars.`);
+    return;
+  }
   const partnerRole = senderRole === 'user1' ? 'user2' : 'user1';
-  const { data } = await supabase.from('push_subscriptions')
-    .select('subscription').eq('couple_id', coupleId).eq('role', partnerRole).maybeSingle();
-  if (!data) return;
+  const { data, error: lookupErr } = await supabase.from('push_subscriptions')
+    .select('subscription, updated_at').eq('couple_id', coupleId).eq('role', partnerRole).maybeSingle();
+
+  if (lookupErr) {
+    console.error(`[NOTIF-DEBUG][webpush] FAILED HERE: Stage2 — DB lookup errored for couple=${coupleId} role=${partnerRole}:`, lookupErr.message);
+    return;
+  }
+  if (!data) {
+    console.warn(`[NOTIF-DEBUG][webpush] FAILED HERE: Stage2 — no push_subscriptions row for couple=${coupleId} role=${partnerRole}. Partner's browser never completed registerPushSubscription(), or it was deleted after a prior 410. Fix: confirm that device has Notification permission=granted and reload it once so registerPushSubscription() re-runs.`);
+    return;
+  }
+  console.log(`[NOTIF-DEBUG][webpush] Stage2 OK — subscription found for couple=${coupleId} role=${partnerRole}, last updated ${data.updated_at}`);
+
   try {
-    await webpush.sendNotification(JSON.parse(data.subscription), JSON.stringify(payload));
+    const sendRes = await webpush.sendNotification(JSON.parse(data.subscription), JSON.stringify(payload));
+    console.log(`[NOTIF-DEBUG][webpush] Stage4 OK — push provider accepted, statusCode=${sendRes.statusCode} (${Date.now() - t0}ms) couple=${coupleId} role=${partnerRole}`);
   } catch (err) {
+    console.error(`[NOTIF-DEBUG][webpush] FAILED HERE: Stage4 — push provider rejected send. statusCode=${err.statusCode} body=${err.body || err.message} couple=${coupleId} role=${partnerRole}`);
     // Subscription expired — remove it
     if (err.statusCode === 410) {
+      console.log(`[NOTIF-DEBUG][webpush] subscription gone (410) — deleting stale row for couple=${coupleId} role=${partnerRole}`);
       await supabase.from('push_subscriptions').delete()
         .eq('couple_id', coupleId).eq('role', partnerRole);
     }
@@ -372,11 +392,28 @@ function channelForTag(tag) {
 module.exports.channelForTag = channelForTag;
 
 async function sendFCMToPartner(coupleId, senderRole, payload) {
-  if (!fcmReady) return;
+  const t0 = Date.now();
+  const tag = payload.tag || '';
+  console.log(`[NOTIF-DEBUG][fcm] Stage3 start couple=${coupleId} sender=${senderRole} tag=${tag}`);
+
+  if (!fcmReady) {
+    console.warn(`[NOTIF-DEBUG][fcm] FAILED HERE: Stage4 — Firebase Admin never initialized (fcmReady=false). Check FIREBASE_SERVICE_ACCOUNT env var on Render — either missing or failed JSON.parse/cert() at boot (see "Firebase init failed" in earlier logs at server start).`);
+    return;
+  }
   const partnerRole = senderRole === 'user1' ? 'user2' : 'user1';
-  const { data: tokenRow } = await supabase.from('fcm_tokens')
-    .select('token').eq('couple_id', coupleId).eq('role', partnerRole).maybeSingle();
-  if (!tokenRow) return;
+  const { data: tokenRow, error: lookupErr } = await supabase.from('fcm_tokens')
+    .select('token, updated_at').eq('couple_id', coupleId).eq('role', partnerRole).maybeSingle();
+
+  if (lookupErr) {
+    console.error(`[NOTIF-DEBUG][fcm] FAILED HERE: Stage2 — DB lookup errored for couple=${coupleId} role=${partnerRole}:`, lookupErr.message);
+    return;
+  }
+  if (!tokenRow) {
+    console.warn(`[NOTIF-DEBUG][fcm] FAILED HERE: Stage2 — no fcm_tokens row for couple=${coupleId} role=${partnerRole}. That device's app never completed setupNativeNotifications()/register-fcm-token, or the token was deleted after a prior "not-registered" error. Fix: open the app on that device once (it re-registers on every login) and re-check this table.`);
+    return;
+  }
+  console.log(`[NOTIF-DEBUG][fcm] Stage2 OK — token found for couple=${coupleId} role=${partnerRole}, last updated ${tokenRow.updated_at}`);
+
   const isIncomingCall = payload.tag === 'incoming-call';
 
   // Data-only message (no top-level "notification" field): this is what
@@ -399,17 +436,21 @@ async function sendFCMToPartner(coupleId, senderRole, payload) {
     ...(payload.senderName ? { senderName: payload.senderName } : {}),
     ...(isIncomingCall ? { callerRole: senderRole, type: payload.type || (payload.title && payload.title.includes('Video') ? 'video' : 'voice') } : {})
   };
+  console.log(`[NOTIF-DEBUG][fcm] Stage3 payload built for couple=${coupleId} role=${partnerRole}: tag=${fcmData.tag} title="${fcmData.title}"`);
 
   try {
-    await fcmMessaging.send({
+    const messageId = await fcmMessaging.send({
       token: tokenRow.token,
       data: fcmData,
       android: {
         priority: isIncomingCall ? 'high' : undefined,
       }
     });
+    console.log(`[NOTIF-DEBUG][fcm] Stage4 OK — Firebase accepted, messageId=${messageId} (${Date.now() - t0}ms) couple=${coupleId} role=${partnerRole}`);
   } catch (err) {
+    console.error(`[NOTIF-DEBUG][fcm] FAILED HERE: Stage4 — Firebase rejected send. code=${err.code} message=${err.message} couple=${coupleId} role=${partnerRole}`);
     if (err.code === 'messaging/registration-token-not-registered') {
+      console.log(`[NOTIF-DEBUG][fcm] token stale/uninstalled — deleting row for couple=${coupleId} role=${partnerRole}`);
       await supabase.from('fcm_tokens').delete().eq('couple_id', coupleId).eq('role', partnerRole);
     }
   }
