@@ -95,6 +95,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 app.use('/api/auth',  authRoutes);
 app.use('/api/data',  dataRoutes);
 app.use('/api/partner', require('./routes/partner'));
+app.use('/api/profile', require('./routes/profile'));
 app.use('/api/ai',    aiRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/location', require('./routes/location'));
