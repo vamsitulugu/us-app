@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Watch Together</title>
+<link rel="stylesheet" href="/theme-burgundy.css">
+<link rel="stylesheet" href="/movie.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div class="wt-page" id="wtPage">
+
+  <!-- Header -->
+  <header class="wt-header">
+    <button class="wt-back" id="wtBack" aria-label="Back">‹</button>
+    <div class="wt-title-wrap">
+      <h1>🎬 Watch Together</h1>
+      <p class="wt-subtitle">Different places. Same movie. Same moment. ❤️</p>
+    </div>
+    <button class="wt-history-btn" id="wtHistoryBtn" aria-label="History">🕘</button>
+  </header>
+
+  <!-- ══════ STATE: EMPTY / SELECT MOVIE ══════ -->
+  <section class="wt-state" id="stateEmpty">
+    <div class="wt-empty-card">
+      <div class="wt-empty-icon">🎬</div>
+      <h2>Pick a movie from your phone</h2>
+      <p class="wt-hint">Nothing gets uploaded — your movie stays completely on your device.</p>
+      <button class="wt-btn wt-btn-primary" id="btnChooseMovie">Choose Movie From Device</button>
+      <input type="file" id="movieFileInput" accept="video/mp4,video/webm,video/x-m4v,video/*" hidden>
+    </div>
+  </section>
+
+  <!-- ══════ STATE: MOVIE SELECTED / WAITING / READY ══════ -->
+  <section class="wt-state" id="stateLobby" hidden>
+    <div class="wt-movie-card" id="myMovieCard" hidden>
+      <div class="wt-movie-icon">🎞️</div>
+      <div class="wt-movie-info">
+        <div class="wt-movie-title" id="myMovieTitle">—</div>
+        <div class="wt-movie-meta" id="myMovieMeta">—</div>
+      </div>
+      <button class="wt-chip-btn" id="btnChangeMovie">Change</button>
+    </div>
+
+    <div class="wt-match-banner" id="matchBanner" hidden></div>
+
+    <div class="wt-partners-row">
+      <div class="wt-partner-chip" id="chipMe">
+        <span class="wt-partner-name">You</span>
+        <span class="wt-partner-state" id="stateMe">Selecting…</span>
+      </div>
+      <div class="wt-partner-chip" id="chipPartner">
+        <span class="wt-partner-name" id="partnerNameLabel">Partner</span>
+        <span class="wt-partner-state" id="statePartner">Waiting…</span>
+      </div>
+    </div>
+
+    <button class="wt-btn wt-btn-ready" id="btnReady" hidden>I'M READY</button>
+
+    <div class="wt-both-ready" id="bothReadyBlock" hidden>
+      <p>❤️ Both Ready</p>
+      <button class="wt-btn wt-btn-start" id="btnStart">START TOGETHER</button>
+    </div>
+  </section>
+
+  <!-- ══════ STATE: COUNTDOWN ══════ -->
+  <section class="wt-state wt-countdown" id="stateCountdown" hidden>
+    <div class="wt-countdown-num" id="countdownNum">3</div>
+  </section>
+
+  <!-- ══════ STATE: WATCHING (player) ══════ -->
+  <section class="wt-state wt-watching" id="stateWatching" hidden>
+    <div class="wt-player-wrap" id="playerWrap">
+      <video id="wtVideo" playsinline></video>
+
+      <!-- Floating partner PiP bubble (bridged from existing call system) -->
+      <div class="wt-pip" id="wtPip" hidden>
+        <video id="wtPipVideo" autoplay playsinline muted></video>
+        <div class="wt-pip-avatar-fallback" id="wtPipAvatarFallback" hidden></div>
+        <div class="wt-pip-badge" id="wtPipBadge">●</div>
+      </div>
+      <div class="wt-pip-controls" id="wtPipControls" hidden>
+        <button id="pipMuteBtn">🎙️</button>
+        <button id="pipCamBtn">📹</button>
+        <button id="pipEndBtn">☎</button>
+      </div>
+
+      <!-- Partner status overlay -->
+      <div class="wt-partner-overlay" id="partnerOverlay">❤️ Partner Watching</div>
+
+      <!-- Reactions layer -->
+      <div class="wt-reactions-layer" id="reactionsLayer"></div>
+
+      <!-- Controls -->
+      <div class="wt-controls" id="wtControls">
+        <div class="wt-timeline-row">
+          <input type="range" id="wtTimeline" min="0" max="100" value="0" step="0.1">
+        </div>
+        <div class="wt-controls-row">
+          <button id="btnSeekBack">↶10</button>
+          <button id="btnPlayPause">▶</button>
+          <button id="btnSeekFwd">↷10</button>
+          <span class="wt-time-label" id="wtTimeLabel">00:00 / 00:00</span>
+          <span class="wt-spacer"></span>
+          <button id="btnSync" title="Sync now">🔄</button>
+          <button id="btnChat" title="Chat">💬</button>
+          <button id="btnFullscreen" title="Fullscreen">⛶</button>
+        </div>
+        <div class="wt-sync-status" id="syncStatus">✓ In sync</div>
+      </div>
+
+      <div class="wt-reaction-bar" id="reactionBar">
+        <button data-r="❤️">❤️</button>
+        <button data-r="😂">😂</button>
+        <button data-r="🥺">🥺</button>
+        <button data-r="😱">😱</button>
+        <button data-r="😘">😘</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Non-blocking toast / banners for connection & partner-left states -->
+  <div class="wt-toast" id="wtToast" hidden></div>
+  <div class="wt-banner" id="wtBanner" hidden>
+    <span id="wtBannerText"></span>
+    <div class="wt-banner-actions" id="wtBannerActions"></div>
+  </div>
+</div>
+
+<script src="/movie.js"></script>
+</body>
+</html>

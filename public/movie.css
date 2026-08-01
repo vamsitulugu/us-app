@@ -1,0 +1,188 @@
+/* movie.css — Watch Together
+   Reuses the app's existing CSS variables (--accent, --text, --r, --g2,
+   --border, --t, etc. from theme-burgundy.css / index.html's :root) so
+   this page belongs visually to the rest of the app instead of
+   introducing a second design system. */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  background: #0a0a0c;
+  color: var(--text, rgba(255,255,255,.92));
+  font-family: var(--ff-sans, 'Inter', system-ui, sans-serif);
+  overscroll-behavior: none;
+}
+
+.wt-page { min-height: 100%; display: flex; flex-direction: column; }
+
+/* ── Header ── */
+.wt-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px calc(10px + env(safe-area-inset-top, 0px));
+  padding-top: calc(14px + env(safe-area-inset-top, 0px));
+  border-bottom: 1px solid var(--border, rgba(255,255,255,.1));
+}
+.wt-back, .wt-history-btn {
+  background: var(--g2, rgba(255,255,255,.08)); border: none; color: var(--text);
+  width: 36px; height: 36px; border-radius: var(--rss, 8px);
+  font-size: 20px; display: flex; align-items: center; justify-content: center;
+}
+.wt-title-wrap { flex: 1; text-align: center; }
+.wt-title-wrap h1 { font-size: 17px; margin: 0; font-weight: 700; }
+.wt-subtitle { margin: 2px 0 0; font-size: 12px; color: var(--text2, rgba(255,255,255,.62)); }
+
+/* ── Generic state wrapper ── */
+.wt-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 20px; gap: 18px; }
+
+/* ── Empty state ── */
+.wt-empty-card {
+  text-align: center; max-width: 340px;
+  background: var(--g1, rgba(255,255,255,.04)); border: 1px solid var(--border, rgba(255,255,255,.1));
+  border-radius: var(--r, 18px); padding: 32px 24px;
+}
+.wt-empty-icon { font-size: 48px; margin-bottom: 8px; }
+.wt-empty-card h2 { font-size: 18px; margin: 0 0 8px; }
+.wt-hint { font-size: 13px; color: var(--text2); margin: 0 0 20px; line-height: 1.5; }
+
+.wt-btn {
+  border: none; border-radius: var(--rs, 12px); padding: 14px 22px;
+  font-size: 15px; font-weight: 600; cursor: pointer; transition: var(--t);
+  width: 100%;
+}
+.wt-btn-primary { background: var(--accent); color: #fff; box-shadow: 0 6px 20px var(--accent-glow, rgba(229,9,20,.3)); }
+.wt-btn-primary:active { transform: scale(0.97); }
+.wt-btn-ready { background: var(--g2); color: var(--text); border: 1px solid var(--border2, rgba(255,255,255,.18)); }
+.wt-btn-ready.is-active { background: var(--green, #34d399); color: #05130d; }
+.wt-btn-start { background: var(--accent); color: #fff; }
+
+/* ── Lobby state ── */
+#stateLobby { width: 100%; max-width: 420px; }
+.wt-movie-card {
+  width: 100%; display: flex; align-items: center; gap: 12px;
+  background: var(--g1); border: 1px solid var(--border); border-radius: var(--rs);
+  padding: 14px 16px;
+}
+.wt-movie-icon { font-size: 26px; }
+.wt-movie-info { flex: 1; min-width: 0; }
+.wt-movie-title { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wt-movie-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.wt-chip-btn {
+  background: var(--g2); border: 1px solid var(--border); color: var(--text);
+  border-radius: 999px; padding: 6px 12px; font-size: 12px; cursor: pointer;
+}
+
+.wt-match-banner {
+  width: 100%; text-align: center; font-size: 13px; padding: 10px 14px; border-radius: var(--rs);
+}
+.wt-match-banner.match { background: var(--green-bg, rgba(52,211,153,.15)); color: var(--green, #34d399); }
+.wt-match-banner.mismatch { background: var(--red-bg, rgba(248,113,113,.15)); color: var(--red, #f87171); }
+
+.wt-partners-row { width: 100%; display: flex; gap: 10px; }
+.wt-partner-chip {
+  flex: 1; background: var(--g1); border: 1px solid var(--border); border-radius: var(--rs);
+  padding: 12px; display: flex; flex-direction: column; gap: 4px; align-items: center; text-align: center;
+}
+.wt-partner-name { font-size: 12px; color: var(--text2); }
+.wt-partner-state { font-size: 13px; font-weight: 600; }
+.wt-partner-chip.is-ready .wt-partner-state { color: var(--green, #34d399); }
+
+.wt-both-ready { width: 100%; text-align: center; display: flex; flex-direction: column; gap: 10px; }
+.wt-both-ready p { margin: 0; font-size: 15px; font-weight: 600; }
+
+/* ── Countdown ── */
+.wt-countdown { background: #000; }
+.wt-countdown-num {
+  font-size: 96px; font-weight: 800; color: var(--accent);
+  animation: wtPulse 1s ease-in-out infinite;
+}
+@keyframes wtPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.12); opacity: .85; } }
+
+/* ── Watching / player ── */
+.wt-watching { padding: 0; background: #000; }
+.wt-player-wrap { position: relative; width: 100%; flex: 1; background: #000; overflow: hidden; }
+#wtVideo { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
+
+/* Partner PiP bubble — reuses the same visual language as the existing
+   call PiP (public/chat/call.css .call-pip) but sized/positioned for
+   sitting over the movie rather than over chat. */
+.wt-pip {
+  position: absolute; width: 58px; height: 58px; border-radius: 50%;
+  overflow: hidden; border: 2px solid rgba(255,255,255,.85);
+  box-shadow: 0 4px 16px rgba(0,0,0,.5); z-index: 30;
+  top: 16px; right: 16px; cursor: grab; transition: border-radius .25s ease, width .25s ease, height .25s ease;
+  background: #222;
+}
+.wt-pip.expanded {
+  width: 120px; height: 190px; border-radius: 16px;
+}
+.wt-pip video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.wt-pip-avatar-fallback {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  background: var(--accent-d, #B30000); color: #fff; font-weight: 700; font-size: 20px;
+}
+.wt-pip-badge {
+  position: absolute; bottom: 4px; right: 4px; font-size: 8px; color: var(--green, #34d399);
+}
+.wt-pip-controls {
+  position: absolute; top: 214px; right: 16px; z-index: 30;
+  display: flex; gap: 6px;
+}
+.wt-pip-controls button {
+  width: 30px; height: 30px; border-radius: 50%; border: none;
+  background: rgba(0,0,0,.55); color: #fff; font-size: 13px;
+}
+
+.wt-partner-overlay {
+  position: absolute; top: 16px; left: 16px; z-index: 20;
+  background: rgba(0,0,0,.45); backdrop-filter: blur(6px);
+  padding: 6px 12px; border-radius: 999px; font-size: 12px;
+}
+
+.wt-reactions-layer { position: absolute; inset: 0; pointer-events: none; z-index: 25; overflow: hidden; }
+.wt-reaction-float {
+  position: absolute; bottom: 90px; font-size: 32px;
+  animation: wtFloatUp 2.2s ease-out forwards;
+}
+@keyframes wtFloatUp {
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  15% { opacity: 1; transform: translateY(-10px) scale(1); }
+  100% { transform: translateY(-260px) scale(1.1); opacity: 0; }
+}
+
+.wt-controls {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;
+  background: linear-gradient(to top, rgba(0,0,0,.85), transparent);
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom,0px));
+}
+.wt-timeline-row input[type=range] { width: 100%; accent-color: var(--accent); }
+.wt-controls-row { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.wt-controls-row button {
+  background: none; border: none; color: #fff; font-size: 17px; cursor: pointer; padding: 6px;
+}
+.wt-time-label { font-size: 11px; color: rgba(255,255,255,.7); white-space: nowrap; }
+.wt-spacer { flex: 1; }
+.wt-sync-status { text-align: right; font-size: 10px; color: rgba(255,255,255,.5); margin-top: 2px; }
+
+.wt-reaction-bar {
+  position: absolute; right: 10px; bottom: 90px; z-index: 20;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.wt-reaction-bar button {
+  width: 34px; height: 34px; border-radius: 50%; border: none;
+  background: rgba(0,0,0,.4); font-size: 17px;
+}
+
+/* ── Toast / banner (connection lost, partner left, errors) ── */
+.wt-toast, .wt-banner {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+  background: rgba(20,20,22,.95); border: 1px solid var(--border);
+  border-radius: var(--rs); padding: 12px 16px; font-size: 13px; z-index: 100;
+  max-width: 90vw; text-align: center;
+}
+.wt-banner-actions { display: flex; gap: 8px; margin-top: 8px; justify-content: center; }
+.wt-banner-actions button {
+  background: var(--accent); color: #fff; border: none; border-radius: var(--rss);
+  padding: 8px 14px; font-size: 12px;
+}
+.wt-banner-actions button.secondary { background: var(--g2); color: var(--text); }

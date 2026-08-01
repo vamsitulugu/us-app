@@ -1020,6 +1020,7 @@ async function initSignalCursor() {
       e.streams[0].getTracks().forEach(t => remoteStream.addTrack(t));
       if (document.getElementById('callRemoteVideo')) document.getElementById('callRemoteVideo').srcObject = remoteStream;
       if (document.getElementById('callRemoteAudio')) document.getElementById('callRemoteAudio').srcObject = remoteStream;
+      window.dispatchEvent(new CustomEvent('uwl:call-stream-changed'));
     };
     pc.onicecandidate = e => { if (e.candidate) pushSignal({ type: 'ice', candidate: e.candidate }); };
     let disconnectGrace = null;
@@ -1084,6 +1085,7 @@ async function initSignalCursor() {
     if (pc) { pc.close(); pc = null; }
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
     remoteStream = null;
+    window.dispatchEvent(new CustomEvent('uwl:call-stream-changed'));
     iceQueue = [];
     if (timerInt) clearInterval(timerInt);
     // NOTE: the idle signal-poll loop (pollInterval) is intentionally left
@@ -1221,6 +1223,24 @@ async function initSignalCursor() {
   });
   window.addEventListener('focus', () => pollSignal());
   window.addEventListener('pageshow', () => pollSignal());
-  return { startCall, acceptCall, declineCall, endCall, toggleMute, toggleCam, toggleSpeaker, flipCamera, minimize, restore, toggleMoreMenu, openChatDuringCall, acceptVideoUpgrade, declineVideoUpgrade, openMap, consumeNativeAnswer };
+
+  // ─── Watch Together bridge (read-only) ───
+  // Exposes the existing remoteStream/local mute state to other
+  // same-origin frames (e.g. public/movie.html's floating partner
+  // video) without duplicating any WebRTC/signaling logic here.
+  function getRemoteStream() { return remoteStream || null; }
+  function getRemoteCamOn() {
+    // A receiver's video track.enabled is always true locally — it does
+    // NOT reflect the sender's own camera toggle. track.muted is set by
+    // the browser when no media is actively flowing from the sender,
+    // which is the closest reliable signal we have without adding a new
+    // explicit "camera off" message to the signaling protocol.
+    const t = remoteStream && remoteStream.getVideoTracks()[0];
+    if (!t) return false;
+    return t.readyState === 'live' && !t.muted;
+  }
+  function getState() { return { muted: isMuted, camOn: !isCamOff, callType, speakerOn: isSpeakerOn }; }
+
+  return { startCall, acceptCall, declineCall, endCall, toggleMute, toggleCam, toggleSpeaker, flipCamera, minimize, restore, toggleMoreMenu, openChatDuringCall, acceptVideoUpgrade, declineVideoUpgrade, openMap, consumeNativeAnswer, getRemoteStream, getRemoteCamOn, getState };
 })();
 window.Call = Call;
