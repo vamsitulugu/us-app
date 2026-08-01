@@ -98,8 +98,15 @@ self.addEventListener('push', e => {
   e.waitUntil(
     self.registration.showNotification(data.title, {
       body:     data.body,
-      icon:     data.icon  || '/icons/icon-192.png',   // large icon (right side, OS-controlled)
-      badge:    '/icons/badge-96.png',                  // small monochrome status-bar icon
+      // Web Notification API only exposes ONE icon slot (unlike Android,
+      // which has a separate left-side avatar + right-side large logo) —
+      // this is the closest browsers can get to that treatment. Prefer
+      // the sender's uploaded photo (data.senderAvatar, same field the
+      // native Android app uses for its left-side avatar) so the person
+      // pushing the notification is visually identifiable; fall back to
+      // the Twin Hearts app logo when no avatar is available/loadable.
+      icon:     data.senderAvatar || data.icon || '/icons/icon-192.png',
+      badge:    '/icons/badge-96.png',                  // small monochrome status-bar icon — unchanged
       image:    data.image || undefined,                // optional big banner like WhatsApp media previews
       vibrate:  vibratePattern,
       tag:      data.tag   || 'us-app',

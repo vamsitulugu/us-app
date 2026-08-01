@@ -31,6 +31,22 @@ router.get('/turn-creds', async (req, res) => {
 router.post('/notify', async (req, res) => {
   const { coupleId, callerRole, type } = req.body;
   if (!coupleId || !callerRole) return res.status(400).json({ error: 'Missing data' });
+
+  // ROOT CAUSE FIX (incoming-call notification not showing partner photo):
+  // this payload never included the caller's name/avatar at all, so
+  // TwinHeartsMessagingService.showIncomingCall() only ever had a generic
+  // "Your partner" name and no photo URL to load — CallStyle fell back to
+  // a default silhouette avatar every time. Mirrors the same lookup
+  // routes/chat.js already does off couples.user1_avatar/user2_avatar.
+  let callerName = null;
+  let callerAvatar = null;
+  try {
+    const { data: couple } = await supabase.from('couples')
+      .select('user1_name, user2_name, user1_avatar, user2_avatar').eq('id', coupleId).maybeSingle();
+    callerName = couple ? (callerRole === 'user1' ? couple.user1_name : couple.user2_name) : null;
+    callerAvatar = couple ? (callerRole === 'user1' ? couple.user1_avatar : couple.user2_avatar) : null;
+  } catch (_) {}
+
   const callPayload = {
     title: type === 'video' ? '🎥 Incoming Video Call' : '📞 Incoming Voice Call',
     body: 'Tap to answer',
@@ -38,7 +54,9 @@ router.post('/notify', async (req, res) => {
     tag: 'incoming-call',
     renotify: true,
     url: '/?page=chat',
-    type: type || 'voice'
+    type: type || 'voice',
+    senderName: callerName || undefined,
+    senderAvatar: callerAvatar || undefined
   };
   if (_sendPushToPartner) _sendPushToPartner(coupleId, callerRole, callPayload).catch(() => {});
   if (_sendFCMToPartner) _sendFCMToPartner(coupleId, callerRole, callPayload).catch(() => {});

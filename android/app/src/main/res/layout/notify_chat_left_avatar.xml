@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Shared collapsed/expanded content view for ALL notification types
+  (chat, calls' non-CallStyle fallback, partner requests, games,
+  reminders, memories, general) — built once and reused by both
+  showChatMessage() and baseBuilder() in TwinHeartsMessagingService.
+
+  Used with NotificationCompat.DecoratedCustomViewStyle, which means Android
+  still draws all its normal chrome around this (status-bar smallIcon, the
+  large icon on the right, app name, timestamp, expand affordance) — this
+  layout only replaces the middle content row. That's what lets the LEFT
+  side show a circular partner-avatar (with the tiny Twin Hearts badge baked
+  into the bitmap, bottom-right corner) while the RIGHT-side large app logo
+  set via NotificationCompat.Builder#setLargeIcon keeps rendering exactly as
+  it did before, untouched.
+-->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp">
+
+    <ImageView
+        android:id="@+id/notif_left_avatar"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_alignParentStart="true"
+        android:layout_centerVertical="true"
+        android:contentDescription="@null" />
+
+    <TextView
+        android:id="@+id/notif_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toEndOf="@id/notif_left_avatar"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="12dp"
+        android:textStyle="bold"
+        android:textSize="14sp"
+        android:textColor="#DE000000"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <TextView
+        android:id="@+id/notif_body"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toEndOf="@id/notif_left_avatar"
+        android:layout_below="@id/notif_title"
+        android:layout_marginStart="12dp"
+        android:textSize="13sp"
+        android:textColor="#99000000"
+        android:maxLines="4"
+        android:ellipsize="end" />
+
+</RelativeLayout>

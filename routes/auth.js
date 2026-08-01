@@ -267,8 +267,29 @@ async function sendPushToPartner(coupleId, senderRole, payload) {
   }
   console.log(`[NOTIF-DEBUG][webpush] Stage2 OK — subscription found for couple=${coupleId} role=${partnerRole}, last updated ${data.updated_at}`);
 
+  // Same centralized sender-avatar lookup as sendFCMToPartner below —
+  // fills in payload.senderAvatar/senderName from the couples table when
+  // the caller hasn't already resolved it, so sw.js's push handler has a
+  // photo to use as the browser notification's icon for every
+  // notification type (not just chat/call/partner, which already
+  // attach it themselves). Best-effort, never blocks the push.
+  let webPayload = payload;
+  if (!payload.senderAvatar || !payload.senderName) {
+    try {
+      const { data: couple } = await supabase.from('couples')
+        .select('user1_name, user2_name, user1_avatar, user2_avatar').eq('id', coupleId).maybeSingle();
+      if (couple) {
+        webPayload = {
+          ...payload,
+          senderName: payload.senderName || (senderRole === 'user1' ? couple.user1_name : couple.user2_name),
+          senderAvatar: payload.senderAvatar || (senderRole === 'user1' ? couple.user1_avatar : couple.user2_avatar)
+        };
+      }
+    } catch (_) { /* non-fatal — sw.js falls back to the app icon */ }
+  }
+
   try {
-    const sendRes = await webpush.sendNotification(JSON.parse(data.subscription), JSON.stringify(payload));
+    const sendRes = await webpush.sendNotification(JSON.parse(data.subscription), JSON.stringify(webPayload));
     console.log(`[NOTIF-DEBUG][webpush] Stage4 OK — push provider accepted, statusCode=${sendRes.statusCode} (${Date.now() - t0}ms) couple=${coupleId} role=${partnerRole}`);
   } catch (err) {
     console.error(`[NOTIF-DEBUG][webpush] FAILED HERE: Stage4 — push provider rejected send. statusCode=${err.statusCode} body=${err.body || err.message} couple=${coupleId} role=${partnerRole}`);
@@ -419,6 +440,28 @@ async function sendFCMToPartner(coupleId, senderRole, payload) {
 
   const isIncomingCall = payload.tag === 'incoming-call';
 
+  // CENTRALIZED sender identity lookup — every notification type in the
+  // app funnels through here with (coupleId, senderRole), so this is the
+  // single place to resolve "whose avatar goes on the left" instead of
+  // duplicating the same couples-table lookup in globe.js/home.js/
+  // meetplanner.js/music.js/signal.js/data.js/location.js/tracking.js.
+  // Callers that already resolved this themselves (chat.js, call.js) pass
+  // it on payload.senderName/senderAvatar and we simply respect that —
+  // this only fills the gap for everyone else. Best-effort: a lookup
+  // failure here must never block the push itself.
+  let senderName = payload.senderName;
+  let senderAvatar = payload.senderAvatar;
+  if (!senderAvatar || !senderName) {
+    try {
+      const { data: couple } = await supabase.from('couples')
+        .select('user1_name, user2_name, user1_avatar, user2_avatar').eq('id', coupleId).maybeSingle();
+      if (couple) {
+        if (!senderName) senderName = senderRole === 'user1' ? couple.user1_name : couple.user2_name;
+        if (!senderAvatar) senderAvatar = senderRole === 'user1' ? couple.user1_avatar : couple.user2_avatar;
+      }
+    } catch (_) { /* non-fatal — native side falls back to a plain badge circle */ }
+  }
+
   // Data-only message (no top-level "notification" field): this is what
   // guarantees TwinHeartsMessagingService.onMessageReceived() runs and
   // builds the styled notification every time, even while the app is
@@ -436,12 +479,12 @@ async function sendFCMToPartner(coupleId, senderRole, payload) {
     coupleId: String(coupleId),
     myRole: partnerRole,       // the recipient's own role — needed to send a Reply or mark-as-read as themselves
     senderRole: senderRole,
-    ...(payload.senderName ? { senderName: payload.senderName } : {}),
-    // Sender's profile photo URL — purely cosmetic, used by
-    // TwinHeartsMessagingService to show a real circular avatar instead
-    // of a letter avatar in the chat notification. Falls back cleanly
-    // (native side already handles a missing/failed value) if absent.
-    ...(payload.senderAvatar ? { senderAvatar: payload.senderAvatar } : {}),
+    ...(senderName ? { senderName } : {}),
+    // Sender's profile photo URL — used by TwinHeartsMessagingService to
+    // build the left-side circular avatar (+ Twin Hearts badge) shown on
+    // every notification type. Falls back cleanly (native side already
+    // handles a missing/failed value with a plain badge circle) if absent.
+    ...(senderAvatar ? { senderAvatar } : {}),
     ...(isIncomingCall ? { callerRole: senderRole, type: payload.type || (payload.title && payload.title.includes('Video') ? 'video' : 'voice') } : {})
   };
   console.log(`[NOTIF-DEBUG][fcm] Stage3 payload built for couple=${coupleId} role=${partnerRole}: tag=${fcmData.tag} title="${fcmData.title}"`);

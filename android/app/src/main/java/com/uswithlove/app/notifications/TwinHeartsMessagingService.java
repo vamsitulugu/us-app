@@ -4,20 +4,27 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.net.Uri;
 import android.os.Build;
+import android.widget.RemoteViews;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.app.Person;
+import androidx.core.graphics.drawable.IconCompat;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import com.capacitorjs.plugins.pushnotifications.PushNotificationsPlugin;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 import com.uswithlove.app.MainActivity;
 
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Map;
 import java.util.Random;
 
@@ -91,23 +98,49 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
     PushNotificationsPlugin.onNewToken(token);
   }
 
-  // ── Chat: simple style, matching every other notification type ────
+  // ── Chat: DecoratedCustomViewStyle — partner avatar (left) + app logo (right) ──
   //
-  // Switched away from MessagingStyle on purpose: MessagingStyle's big
-  // avatar/logo circle only exists in the COLLAPSED preview — Android
-  // replaces that whole region with the conversation thread the moment
-  // it's expanded, for every app that uses this style (WhatsApp/Telegram
-  // included). There's no way to keep a persistent logo there while using
-  // MessagingStyle. Plain BigTextStyle (like showSimple/showActionable)
-  // keeps setLargeIcon() visible in BOTH states, matching RedBus/Rapido —
-  // which is what was chosen here. Trade-off: only one image can occupy
-  // that single large-icon slot, so this shows the Twin Hearts logo
-  // consistently rather than the partner's photo; the sender's name is
-  // still shown in the title text below so it's still clear who it's from.
+  // Previously plain BigTextStyle (see showActionable/showSimple), which
+  // only has one image slot (setLargeIcon, right side) — the Twin Hearts
+  // logo lived there and the partner's photo had nowhere to go.
+  // MessagingStyle was considered and rejected: its avatar circle only
+  // survives in the COLLAPSED preview and gets replaced by the
+  // conversation thread on expand, for every app using it (WhatsApp/
+  // Telegram included), so there's no way to keep it persistent.
+  //
+  // DecoratedCustomViewStyle solves both: Android still owns/renders all
+  // the standard chrome (status-bar smallIcon, setLargeIcon on the right,
+  // app name, timestamp, expand affordance) — it only lets our RemoteViews
+  // layout (notify_chat_left_avatar.xml) replace the middle content row,
+  // where we place the partner's circular avatar with the tiny Twin
+  // Hearts badge baked into its bottom-right corner. RIGHT-side large
+  // logo stays completely untouched; LEFT now matches the incoming-call
+  // notification's look.
   private void showChatMessage(Map<String, String> data, String tag, String senderName, String body, String url) {
     Context ctx = getApplicationContext();
+    String title = "💬 " + senderName;
 
-    NotificationCompat.Builder builder = baseBuilder(ctx, NotificationRouter.MESSAGES_CHANNEL_ID, "💬 " + senderName, body, url, data)
+    // LEFT-side avatar: partner's uploaded profile photo (data["senderAvatar"],
+    // populated by routes/chat.js from couples.user1_avatar/user2_avatar) with
+    // the tiny Twin Hearts logo badge composited onto its bottom-right corner —
+    // same treatment as the incoming-call notification's caller avatar. Falls
+    // back to a plain brand-colored circle if no photo is available/loadable.
+    Bitmap partnerPhoto = downloadBitmap(data.get("senderAvatar"));
+    Bitmap leftAvatar = buildAvatarWithBadge(ctx, partnerPhoto);
+    RemoteViews collapsed = buildAvatarRemoteViews(ctx, title, body, leftAvatar);
+
+    NotificationCompat.Builder builder = new NotificationCompat.Builder(ctx, NotificationRouter.MESSAGES_CHANNEL_ID)
+        .setSmallIcon(getIconRes(ctx)) // unchanged: Android-mandated monochrome status-bar icon
+        .setColor(Color.parseColor(NotificationRouter.BRAND_ACCENT_COLOR))
+        .setContentTitle(title)
+        .setContentText(body)
+        .setLargeIcon(buildAppLogoBitmap(ctx)) // unchanged: RIGHT-side large Twin Hearts logo
+        .setStyle(new NotificationCompat.DecoratedCustomViewStyle()) // keeps large icon/right chrome, replaces middle row only
+        .setCustomContentView(collapsed)
+        .setCustomBigContentView(collapsed)
+        .setAutoCancel(true)
+        .setContentIntent(contentIntent(ctx, url))
+        .setPriority(NotificationCompat.PRIORITY_HIGH)
         .addAction(new NotificationCompat.Action.Builder(
             android.R.drawable.ic_menu_send, "Reply", actionPendingIntent(ctx, "REPLY", data, 100))
             .addRemoteInput(new androidx.core.app.RemoteInput.Builder(NotificationActionReceiver.KEY_REPLY_TEXT)
@@ -120,6 +153,88 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
         .setGroup("chat_" + data.getOrDefault("coupleId", "default"));
 
     notify(ctx, tag, builder);
+  }
+
+  // ── Download a bitmap from a URL, synchronously. Safe here: onMessageReceived()
+  // already runs off the main thread (FCM's own background thread). Returns
+  // null on any failure so callers fall back cleanly — never throws.
+  @Nullable
+  private Bitmap downloadBitmap(@Nullable String urlStr) {
+    if (urlStr == null || urlStr.isEmpty()) return null;
+    HttpURLConnection conn = null;
+    try {
+      conn = (HttpURLConnection) new URL(urlStr).openConnection();
+      conn.setConnectTimeout(4000);
+      conn.setReadTimeout(4000);
+      conn.setDoInput(true);
+      conn.connect();
+      try (InputStream in = conn.getInputStream()) {
+        return BitmapFactory.decodeStream(in);
+      }
+    } catch (Exception e) {
+      return null;
+    } finally {
+      if (conn != null) conn.disconnect();
+    }
+  }
+
+  // Circle-crops any source bitmap to a square of the given size (px).
+  private Bitmap circleCrop(Bitmap source, int size) {
+    Bitmap scaled = Bitmap.createScaledBitmap(source, size, size, true);
+    Bitmap output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+    Canvas canvas = new Canvas(output);
+    Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    paint.setShader(new android.graphics.BitmapShader(scaled, android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP));
+    canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint);
+    return output;
+  }
+
+  // Composites a large circular avatar (partner's photo, or a plain
+  // brand-colored circle fallback when no photo is available/loadable)
+  // with the tiny Twin Hearts logo badge overlapping its bottom-right
+  // corner — the same visual treatment as the incoming-call notification.
+  // Builds the shared left-avatar RemoteViews content row (title + body +
+  // avatar bitmap) used by both showChatMessage() and baseBuilder() —
+  // the single place that wires the layout, so the two callers don't
+  // each duplicate setTextViewText/setImageViewBitmap calls.
+  private RemoteViews buildAvatarRemoteViews(Context ctx, String title, String body, @Nullable Bitmap leftAvatar) {
+    RemoteViews views = new RemoteViews(ctx.getPackageName(), com.uswithlove.app.R.layout.notify_chat_left_avatar);
+    views.setTextViewText(com.uswithlove.app.R.id.notif_title, title);
+    views.setTextViewText(com.uswithlove.app.R.id.notif_body, body);
+    if (leftAvatar != null) {
+      views.setImageViewBitmap(com.uswithlove.app.R.id.notif_left_avatar, leftAvatar);
+    }
+    return views;
+  }
+
+  private Bitmap buildAvatarWithBadge(Context ctx, @Nullable Bitmap photo) {
+    int avatarSize = 144; // px, downscaled by RemoteViews/Android to the 48dp slot
+    int badgeSize = (int) (avatarSize * 0.38f);
+
+    Bitmap avatarCircle;
+    if (photo != null) {
+      avatarCircle = circleCrop(photo, avatarSize);
+    } else {
+      avatarCircle = Bitmap.createBitmap(avatarSize, avatarSize, Bitmap.Config.ARGB_8888);
+      Canvas c = new Canvas(avatarCircle);
+      Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+      p.setColor(Color.parseColor(NotificationRouter.BRAND_ACCENT_COLOR));
+      c.drawCircle(avatarSize / 2f, avatarSize / 2f, avatarSize / 2f, p);
+    }
+
+    Bitmap logo = buildAppLogoBitmap(ctx);
+    if (logo == null) return avatarCircle;
+    Bitmap badge = circleCrop(logo, badgeSize);
+
+    Bitmap composite = Bitmap.createBitmap(avatarSize, avatarSize, Bitmap.Config.ARGB_8888);
+    Canvas canvas = new Canvas(composite);
+    canvas.drawBitmap(avatarCircle, 0, 0, null);
+    Paint ring = new Paint(Paint.ANTI_ALIAS_FLAG);
+    ring.setColor(Color.WHITE);
+    float cx = avatarSize - badgeSize / 2f, cy = avatarSize - badgeSize / 2f;
+    canvas.drawCircle(cx, cy, badgeSize / 2f + 4, ring);
+    canvas.drawBitmap(badge, avatarSize - badgeSize, avatarSize - badgeSize, null);
+    return composite;
   }
 
   // ── Twin Hearts app logo, circle-cropped for the notification's
@@ -157,7 +272,17 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
     PendingIntent fullScreenPendingIntent = PendingIntent.getActivity(
         ctx, 200, fullScreenIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-    Person caller = new Person.Builder().setName(callerName).build();
+    // ROOT CAUSE FIX: this used to build the Person with just a name, so
+    // CallStyle always fell back to a generic initials/silhouette avatar —
+    // it never actually tried to load the partner's uploaded photo. data
+    // now carries "senderAvatar" (see routes/call.js), same field/shape as
+    // chat notifications, so we download and attach it here the same way.
+    Person.Builder callerBuilder = new Person.Builder().setName(callerName);
+    Bitmap callerPhoto = downloadBitmap(data.get("senderAvatar"));
+    if (callerPhoto != null) {
+      callerBuilder.setIcon(IconCompat.createWithBitmap(circleCrop(callerPhoto, 256)));
+    }
+    Person caller = callerBuilder.build();
     PendingIntent answer = actionPendingIntent(ctx, "ANSWER_CALL", data, 201);
     PendingIntent decline = actionPendingIntent(ctx, "DECLINE_CALL", data, 202);
 
@@ -185,7 +310,7 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
     notify(ctx, tag, builder);
   }
 
-  // ── Partner requests / games / reminders: BigTextStyle + 2 actions ──
+  // ── Partner requests / games / reminders: avatar+badge left, 2 actions ──
   private void showActionable(Map<String, String> data, String tag, String channelId, String title, String body, String url,
                                String action1Key, String action1Label, String action2Key, String action2Label) {
     Context ctx = getApplicationContext();
@@ -197,31 +322,44 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
     notify(ctx, tag, builder);
   }
 
-  // ── Everything else: clean BigTextStyle, single tap-to-open ────────
+  // ── Everything else: avatar+badge left, single tap-to-open ────────
   private void showSimple(Map<String, String> data, String tag, String channelId, String title, String body, String url) {
     notify(getApplicationContext(), tag, baseBuilder(getApplicationContext(), channelId, title, body, url, data));
   }
 
-  private NotificationCompat.Builder baseBuilder(Context ctx, String channelId, String title, String body, String url, Map<String, String> data) {
+  private PendingIntent contentIntent(Context ctx, String url) {
     Intent openIntent = new Intent(ctx, MainActivity.class);
     openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
     openIntent.putExtra("deepLinkUrl", url);
-    PendingIntent contentIntent = PendingIntent.getActivity(
+    return PendingIntent.getActivity(
         ctx, new Random().nextInt(), openIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+  }
+
+  // Shared by showActionable() (partner-request, games, reminders) and
+  // showSimple() (partner-accepted/paired/ck-invite, memories, safety,
+  // general) — i.e. every notification type that isn't chat or a call.
+  // Same DecoratedCustomViewStyle treatment as showChatMessage(): Android
+  // keeps rendering its own chrome (smallIcon, right-side large logo, app
+  // name, timestamp) and only the middle row is replaced by our layout,
+  // which shows the sender's avatar + Twin Hearts badge on the left.
+  // data["senderAvatar"] is now populated centrally for every push (see
+  // sendFCMToPartner in routes/auth.js), so no per-notification-type
+  // lookup is needed here — this one implementation covers all of them.
+  private NotificationCompat.Builder baseBuilder(Context ctx, String channelId, String title, String body, String url, Map<String, String> data) {
+    Bitmap leftAvatar = buildAvatarWithBadge(ctx, downloadBitmap(data.get("senderAvatar")));
+    RemoteViews content = buildAvatarRemoteViews(ctx, title, body, leftAvatar);
 
     return new NotificationCompat.Builder(ctx, channelId)
         .setSmallIcon(getIconRes(ctx))
         .setColor(Color.parseColor(NotificationRouter.BRAND_ACCENT_COLOR))
         .setContentTitle(title)
         .setContentText(body)
-        .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
-        .setLargeIcon(buildAppLogoBitmap(ctx)) // Twin Hearts branding, right side —
-        // BigTextStyle (unlike MessagingStyle) keeps this visible in BOTH the
-        // collapsed and expanded states, so every non-chat notification
-        // (dreams, memories, games, reminders, partner requests) now shows
-        // the logo consistently, the way RedBus/Rapido always do.
+        .setLargeIcon(buildAppLogoBitmap(ctx)) // unchanged: RIGHT-side large Twin Hearts logo
+        .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+        .setCustomContentView(content)
+        .setCustomBigContentView(content)
         .setAutoCancel(true)
-        .setContentIntent(contentIntent)
+        .setContentIntent(contentIntent(ctx, url))
         .setPriority(NotificationCompat.PRIORITY_HIGH);
   }
 

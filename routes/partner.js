@@ -96,13 +96,25 @@ router.post('/request', async (req, res) => {
   // Push notification is only a convenience — the database is the source of truth.
   const tPushStart = Date.now();
   console.log(`[partner:request] push start t=${tPushStart}`);
+  // Sender has no couple yet at this point (this is what creates the
+  // pairing), so their avatar lives on profiles.avatar_url, not
+  // couples.user1_avatar/user2_avatar — mirrors GET /pending below,
+  // which already reads sender's avatar this same way for the in-app UI.
+  let requestSenderAvatar = null;
+  try {
+    const { data: senderProfile } = await supabase
+      .from('profiles').select('avatar_url').eq('id', sender.id).maybeSingle();
+    requestSenderAvatar = senderProfile ? senderProfile.avatar_url : null;
+  } catch (_) {}
   sendPushToUser(receiver.id, {
     title: '💕 New Partner Request',
     body: (sender.name || 'Someone') + ' sent you a partner request. Tap to review and accept.',
     icon: '/icons/icon-192.png',
     tag: 'partner-request',
     requestId: request.id,
-    userId: receiver.id
+    userId: receiver.id,
+    senderName: sender.name || undefined,
+    senderAvatar: requestSenderAvatar || undefined
   }).then(result => {
     console.log(`[partner:request] push done t=${Date.now()} (+${Date.now() - tPushStart}ms) result=${JSON.stringify(result)}`);
   }).catch(err => {
@@ -277,11 +289,23 @@ router.post('/accept', async (req, res) => {
   broadcastEvent(`partner_requests:${senderId}`, 'partner_accepted', { coupleId })
     .then(() => console.log(`[partner:accept] realtime broadcast sent to sender=${senderId}`));
 
+  // Both users are paired as of this RPC, so the accepter's (receiver's)
+  // avatar now lives on couples.user1_avatar/user2_avatar, keyed by their
+  // role — same lookup pattern used everywhere else in this file.
+  let accepterAvatar = null;
+  try {
+    const { data: couple } = await supabase.from('couples')
+      .select('user1_avatar, user2_avatar').eq('id', coupleId).maybeSingle();
+    if (couple) accepterAvatar = role === 'user2' ? (couple.user2_avatar || null) : (couple.user1_avatar || null);
+  } catch (_) {}
+
   sendPushToUser(senderId, {
     title: 'Twin Hearts ❤️',
     body: (receiverName || 'Your partner') + ' accepted your connection request!',
     icon: '/icons/icon-192.png',
-    tag: 'partner-accepted'
+    tag: 'partner-accepted',
+    senderName: receiverName || undefined,
+    senderAvatar: accepterAvatar || undefined
   }).then(result => {
     console.log(`[partner:accept] push done result=${JSON.stringify(result)}`);
   }).catch(err => console.error('[partner:accept] push threw unexpectedly:', err.message));
