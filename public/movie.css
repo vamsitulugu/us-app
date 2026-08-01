@@ -156,7 +156,7 @@ html, body { height: 100%; margin: 0; background: #000; }
   background: linear-gradient(to bottom, rgba(0,0,0,0.65), transparent);
 }
 .wt-icon-btn {
-  width: 40px; height: 40px; min-width: 40px; border-radius: 50%;
+  width: 44px; height: 44px; min-width: 44px; border-radius: 50%;
   background: rgba(0,0,0,0.4); border: none; color: #fff; font-size: 18px;
   display: flex; align-items: center; justify-content: center;
 }
@@ -254,21 +254,22 @@ html, body { height: 100%; margin: 0; background: #000; }
 }
 .wt-chat-composer-close { background: rgba(255,255,255,0.08) !important; }
 
+/* Centered, above the timeline, text-only "subtitle" toast. */
 .wt-chat-float-layer {
-  position: absolute; left: 12px; right: 70px; bottom: 78px; z-index: 3;
-  display: flex; flex-direction: column; gap: 6px; pointer-events: none;
+  position: absolute; left: 10%; right: 10%; bottom: 84px; z-index: 3;
+  display: flex; justify-content: center; pointer-events: none;
 }
-.wt-chat-bubble {
-  align-self: flex-start; max-width: 82%;
-  background: rgba(20,20,20,0.75); backdrop-filter: blur(6px);
-  border-radius: 14px; padding: 8px 12px; font-size: 13px;
-  animation: wtBubbleIn 0.25s ease;
+.wt-chat-toast {
+  max-width: 100%;
+  background: rgba(15,15,15,0.62); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  color: #fff; font-size: 14px; font-weight: 500; text-align: center;
+  border-radius: 16px; padding: 8px 16px;
+  opacity: 0; transform: translateY(8px) scale(0.98);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  overflow-wrap: break-word;
 }
-.wt-chat-bubble.mine { align-self: flex-end; background: rgba(179,18,46,0.55); }
-.wt-chat-bubble b { display: block; font-size: 10px; color: #ffb0be; margin-bottom: 2px; font-weight: 700; }
-.wt-chat-bubble.mine b { color: #ffd7dd; }
-.wt-chat-bubble.fading { opacity: 0; transform: translateY(4px); transition: opacity 0.6s ease, transform 0.6s ease; }
-@keyframes wtBubbleIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.wt-chat-toast.in { opacity: 1; transform: translateY(0) scale(1); }
+.wt-chat-toast.out { opacity: 0; transform: translateY(-4px) scale(0.98); }
 
 /* ═══ Reactions float animation ═══ */
 .wt-reactions-layer { position: absolute; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
@@ -282,28 +283,79 @@ html, body { height: 100%; margin: 0; background: #000; }
   100% { transform: translateY(-260px) scale(1.1); opacity: 0; }
 }
 
-/* ═══ Partner PiP bubble ═══ */
-.wt-pip {
-  position: absolute; z-index: 6; top: 16px; right: 16px;
-  width: 56px; height: 56px; border-radius: 50%; overflow: hidden;
-  border: 2px solid rgba(255,255,255,0.5); cursor: grab;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-  transition: width 0.25s ease, height 0.25s ease, border-radius 0.25s ease;
-  touch-action: none;
+/* ═══ Mini VOICE call bar — independent of movie-controls auto-hide ═══ */
+.wt-voice-bar {
+  position: absolute; z-index: 6;
+  top: max(10px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  display: flex; align-items: center; gap: 8px;
+  min-height: 48px; padding: 8px 12px;
+  background: rgba(15,15,15,0.7); backdrop-filter: blur(10px);
+  border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
 }
-.wt-pip.expanded { width: 108px; height: 192px; border-radius: 16px; }
-.wt-pip video { width: 100%; height: 100%; object-fit: cover; }
-.wt-pip-avatar-fallback {
+.wt-voice-bar-icon { width: 16px; height: 16px; color: #34d399; flex-shrink: 0; }
+.wt-voice-bar-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wt-voice-bar-time { font-size: 12px; color: #ccc; font-variant-numeric: tabular-nums; }
+.wt-voice-bar button {
+  width: 44px; height: 44px; min-width: 44px; border-radius: 50%; border: none;
+  background: rgba(255,255,255,0.1); color: #fff; display: flex; align-items: center; justify-content: center;
+}
+.wt-voice-bar button svg { width: 18px; height: 18px; }
+.wt-voice-bar-end { background: #b3122e !important; }
+
+/* Collapsed voice-call pill (tap to re-expand — does not end the call) */
+.wt-voice-pill {
+  position: absolute; z-index: 6;
+  top: max(10px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right));
+  display: flex; align-items: center; gap: 6px;
+  min-height: 36px; padding: 6px 12px; border-radius: 20px; border: none;
+  background: rgba(15,15,15,0.7); backdrop-filter: blur(10px); color: #fff; font-size: 12px;
+}
+.wt-voice-pill svg { width: 14px; height: 14px; color: #34d399; }
+
+/* ═══ Mini VIDEO call window — default small vertical (9:16) rectangle,
+   top-right, independent of movie-controls auto-hide ═══ */
+.wt-video-win {
+  position: absolute; z-index: 6;
+  top: max(10px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right));
+  width: 108px; aspect-ratio: 9 / 16;
+  max-height: 38%;
+  border-radius: 16px; overflow: hidden;
+  border: 1.5px solid rgba(255,255,255,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  touch-action: none; cursor: grab; background: #111;
+}
+.wt-video-win video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.wt-video-win-avatar-fallback {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.08); font-weight: 700; font-size: 22px;
+}
+.wt-video-win-controls {
+  position: absolute; inset: auto 0 0 0; display: flex; justify-content: center; gap: 6px;
+  padding: 6px; background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+  opacity: 0; transition: opacity 0.2s ease; pointer-events: none;
+}
+.wt-video-win.show-controls .wt-video-win-controls { opacity: 1; pointer-events: auto; }
+.wt-video-win-controls button {
+  width: 28px; height: 28px; border-radius: 50%; border: none; background: rgba(0,0,0,0.55); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.wt-video-win-controls button svg { width: 14px; height: 14px; }
+
+/* Minimized circular live-video bubble (rectangle ⇄ circle — same stream, no reconnect) */
+.wt-video-bubble {
+  position: absolute; z-index: 6;
+  top: max(10px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right));
+  width: 64px; height: 64px; border-radius: 50%; overflow: hidden;
+  border: 2px solid rgba(255,255,255,0.5); box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  touch-action: none; cursor: grab; background: #111;
+}
+.wt-video-bubble video { width: 100%; height: 100%; object-fit: cover; }
+.wt-video-bubble-avatar-fallback {
   width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
   background: rgba(255,255,255,0.1); font-weight: 700; font-size: 20px;
-}
-.wt-pip-badge { position: absolute; bottom: 4px; right: 4px; font-size: 9px; color: #34d399; }
-.wt-pip-controls {
-  position: absolute; z-index: 6; top: 214px; right: 16px;
-  display: flex; gap: 6px;
-}
-.wt-pip-controls button {
-  width: 34px; height: 34px; border-radius: 50%; border: none; background: rgba(0,0,0,0.55); color: #fff; font-size: 14px;
 }
 
 /* ═══ Modals ═══ */

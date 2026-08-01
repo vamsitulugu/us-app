@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Watch Together</title>
 <link rel="stylesheet" href="/theme-burgundy.css">
-<link rel="stylesheet" href="/movie.css?v=2">
+<link rel="stylesheet" href="/movie.css?v=3">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
 </head>
 <body>
 
@@ -14,7 +15,7 @@
 
   <!-- Header — hidden during WATCHING (cinema mode) -->
   <header class="wt-header" id="wtHeader">
-    <button class="wt-back" id="wtBack" aria-label="Back">‹</button>
+    <button class="wt-back" id="wtBack" aria-label="Back"><i data-lucide="chevron-left"></i></button>
     <div class="wt-title-wrap">
       <h1>🎬 Watch Together</h1>
       <p class="wt-subtitle">Different places. Same movie. Same moment. ❤️</p>
@@ -89,38 +90,58 @@
       <!-- Tap catcher for show/hide controls -->
       <div class="wt-tap-catcher" id="tapCatcher"></div>
 
-      <!-- Floating partner PiP bubble (bridged from existing call system) -->
-      <div class="wt-pip" id="wtPip" hidden>
-        <video id="wtPipVideo" autoplay playsinline muted></video>
-        <div class="wt-pip-avatar-fallback" id="wtPipAvatarFallback" hidden></div>
-        <div class="wt-pip-badge" id="wtPipBadge">●</div>
+      <!-- Mini VOICE call bar (bridged from existing call system) -->
+      <div class="wt-voice-bar" id="wtVoiceBar" hidden>
+        <i data-lucide="phone" class="wt-voice-bar-icon"></i>
+        <span class="wt-voice-bar-name" id="wtVoiceBarName">Partner</span>
+        <span class="wt-voice-bar-time" id="wtVoiceBarTime">00:00</span>
+        <button id="voiceMuteBtn" aria-label="Mute"><i data-lucide="mic"></i></button>
+        <button id="voiceSpeakerBtn" aria-label="Speaker"><i data-lucide="volume-2"></i></button>
+        <button id="voiceEndBtn" aria-label="End call" class="wt-voice-bar-end"><i data-lucide="phone-off"></i></button>
       </div>
-      <div class="wt-pip-controls" id="wtPipControls" hidden>
-        <button id="pipMuteBtn" aria-label="Mute">🎙️</button>
-        <button id="pipCamBtn" aria-label="Camera">📹</button>
-        <button id="pipEndBtn" aria-label="End call">☎</button>
+      <!-- Collapsed voice call pill -->
+      <button class="wt-voice-pill" id="wtVoicePill" hidden aria-label="Expand call">
+        <i data-lucide="phone"></i><span id="wtVoicePillTime">00:00</span>
+      </button>
+
+      <!-- Mini VIDEO call window (bridged from existing call system) -->
+      <div class="wt-video-win" id="wtVideoWin" hidden>
+        <video id="wtVideoWinVideo" autoplay playsinline muted></video>
+        <div class="wt-video-win-avatar-fallback" id="wtVideoWinAvatarFallback" hidden></div>
+        <div class="wt-video-win-controls" id="wtVideoWinControls" hidden>
+          <button id="videoWinMuteBtn" aria-label="Mute"><i data-lucide="mic"></i></button>
+          <button id="videoWinCamBtn" aria-label="Camera"><i data-lucide="video"></i></button>
+          <button id="videoWinMinBtn" aria-label="Minimize"><i data-lucide="minimize-2"></i></button>
+          <button id="videoWinEndBtn" aria-label="End call"><i data-lucide="phone-off"></i></button>
+        </div>
       </div>
+      <!-- Minimized circular live-video bubble -->
+      <div class="wt-video-bubble" id="wtVideoBubble" hidden>
+        <video id="wtVideoBubbleVideo" autoplay playsinline muted></video>
+        <div class="wt-video-bubble-avatar-fallback" id="wtVideoBubbleAvatarFallback" hidden></div>
+      </div>
+
 
       <!-- ── TOP OVERLAY: title / status / minimal actions ── -->
       <div class="wt-top-overlay" id="wtTopOverlay">
-        <button class="wt-icon-btn" id="btnExitWatching" aria-label="Exit">‹</button>
+        <button class="wt-icon-btn" id="btnExitWatching" aria-label="Exit"><i data-lucide="chevron-left"></i></button>
         <div class="wt-top-status">
           <span class="wt-movie-name" id="wtNowTitle">—</span>
           <span class="wt-status-pill" id="statusPill" hidden></span>
         </div>
-        <button class="wt-icon-btn" id="btnFullscreen" aria-label="Fullscreen">⛶</button>
+        <button class="wt-icon-btn" id="btnFullscreen" aria-label="Fullscreen"><i data-lucide="expand" id="fullscreenIcon"></i></button>
       </div>
 
       <!-- ── CENTER: playback controls ── -->
       <div class="wt-center-controls" id="wtCenterControls">
         <button class="wt-center-btn wt-seek-btn" id="btnSeekBack" aria-label="Back 10 seconds">
-          <span class="wt-seek-icon">↺</span><span class="wt-seek-num">10</span>
+          <i data-lucide="rotate-ccw" class="wt-seek-icon"></i><span class="wt-seek-num">10</span>
         </button>
         <button class="wt-center-btn wt-play-btn" id="btnPlayPause" aria-label="Play/Pause">
-          <span id="playIcon">▶</span>
+          <i data-lucide="play" id="playIcon"></i>
         </button>
         <button class="wt-center-btn wt-seek-btn" id="btnSeekFwd" aria-label="Forward 10 seconds">
-          <span class="wt-seek-icon">↻</span><span class="wt-seek-num">10</span>
+          <i data-lucide="rotate-cw" class="wt-seek-icon"></i><span class="wt-seek-num">10</span>
         </button>
       </div>
 
@@ -148,19 +169,19 @@
           <span class="wt-time-total" id="wtTimeTotal">0:00</span>
         </div>
         <div class="wt-secondary-row">
-          <button class="wt-sec-btn" id="btnSync" title="Sync now"><span>🔄</span><label>Sync</label></button>
-          <button class="wt-sec-btn" id="btnChat" title="Message"><span>💬</span><label>Message</label></button>
-          <button class="wt-sec-btn" id="btnVoiceCall" title="Voice call"><span>🎙️</span><label>Voice</label></button>
-          <button class="wt-sec-btn" id="btnVideoCall" title="Video call"><span>📹</span><label>Video</label></button>
-          <button class="wt-sec-btn wt-sec-btn-end" id="btnEndMovie" title="End movie"><span>⏹</span><label>End</label></button>
+          <button class="wt-sec-btn" id="btnSync" title="Sync now"><i data-lucide="refresh-cw"></i><label>Sync</label></button>
+          <button class="wt-sec-btn" id="btnChat" title="Message"><i data-lucide="message-circle"></i><label>Message</label></button>
+          <button class="wt-sec-btn" id="btnVoiceCall" title="Voice call"><i data-lucide="phone"></i><label>Voice</label></button>
+          <button class="wt-sec-btn" id="btnVideoCall" title="Video call"><i data-lucide="video"></i><label>Video</label></button>
+          <button class="wt-sec-btn wt-sec-btn-end" id="btnEndMovie" title="End movie"><i data-lucide="square"></i><label>End</label></button>
         </div>
       </div>
 
       <!-- Movie-chat composer (opens above keyboard, over the bottom overlay) -->
       <div class="wt-chat-composer" id="chatComposer" hidden>
         <input type="text" id="chatComposerInput" placeholder="Message your partner…" maxlength="500">
-        <button id="chatComposerSend" aria-label="Send">➤</button>
-        <button id="chatComposerClose" aria-label="Close" class="wt-chat-composer-close">✕</button>
+        <button id="chatComposerSend" aria-label="Send"><i data-lucide="send"></i></button>
+        <button id="chatComposerClose" aria-label="Close" class="wt-chat-composer-close"><i data-lucide="x"></i></button>
       </div>
     </div>
   </section>
@@ -201,6 +222,6 @@
   </div>
 </div>
 
-<script src="/movie.js?v=2"></script>
+<script src="/movie.js?v=3"></script>
 </body>
 </html>

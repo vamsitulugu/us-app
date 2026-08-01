@@ -135,6 +135,19 @@
   };
 
   const $ = (id) => document.getElementById(id);
+  // Lucide's createIcons() replaces the <i data-lucide="x"> element with
+  // the <svg> itself (attributes incl. id/class are carried over). To
+  // change an icon later we have to hand it a fresh <i> and re-run
+  // createIcons — just editing data-lucide on the existing <svg> does
+  // nothing.
+  function setIcon(el, name) {
+    if (!el) return;
+    const i = document.createElement('i');
+    i.id = el.id; i.className = el.className; i.setAttribute('data-lucide', name);
+    el.replaceWith(i);
+    if (window.lucide) window.lucide.createIcons();
+    return i;
+  }
   const els = {
     setup: $('stateSetup'), countdown: $('stateCountdown'), watching: $('stateWatching'),
     empty: $('wtEmptyCard'), lobby: $('wtLobby'), waiting: $('waitingBlock'),
@@ -462,7 +475,7 @@
     wakeControls();
   }
 
-  function updatePlayPauseIcon() { $('playIcon').textContent = els.video.paused ? '▶' : '⏸'; }
+  function updatePlayPauseIcon() { setIcon($('playIcon'), els.video.paused ? 'play' : 'pause'); }
 
   $('btnPlayPause').onclick = () => {
     if (state.applyingRemote) return;
@@ -559,11 +572,36 @@
   // truth (playerWrap.controls-hidden class), no competing timers.
   // ═══════════════════════════════════════════════════════
   let controlsLocked = false; // true while paused-needs-controls, dragging, chat/call open, or a modal is up
+  let tapControlsSetup = false;
   function setupControlsAutoHide() {
     clearTimeout(state.hideTimer);
     els.wrap.classList.remove('controls-hidden');
-    $('tapCatcher').onclick = onPlayerTap;
-    ['pointerdown', 'touchstart'].forEach(evt => els.wrap.addEventListener(evt, () => wakeControls()));
+    if (!tapControlsSetup) {
+      tapControlsSetup = true;
+      // ROOT CAUSE (found via mobile-input audit): this used to arm
+      // wakeControls() on the *wrap's* pointerdown/touchstart AND ALSO
+      // toggle controls off on the tap-catcher's click. On a quick tap
+      // those two fired back-to-back — pointerdown showed the controls,
+      // then the click (touchend) immediately hid them again a few ms
+      // later, so a normal tap looked like "nothing happened". A long
+      // press never produced a synthesized click the same way (it was
+      // interpreted as a hold, not a tap), so the click-hide branch
+      // never ran and the controls stayed visible — which is why only
+      // long-press appeared to "work". Fix: ONE listener, Pointer
+      // Events, on the tap-catcher only, with a movement threshold so
+      // it never fires during a drag — and it only ever SHOWS controls,
+      // never hides them (hiding is solely the inactivity timer's job).
+      const tc = $('tapCatcher');
+      let tsx = 0, tsy = 0, tMoved = false;
+      tc.addEventListener('pointerdown', (e) => { tsx = e.clientX; tsy = e.clientY; tMoved = false; }, { passive: true });
+      tc.addEventListener('pointermove', (e) => {
+        if (Math.abs(e.clientX - tsx) > 10 || Math.abs(e.clientY - tsy) > 10) tMoved = true;
+      }, { passive: true });
+      tc.addEventListener('pointerup', (e) => {
+        if (tMoved) return; // was a drag, not a tap — don't toggle controls
+        onPlayerTap();
+      });
+    }
     armHideTimer();
   }
   function anyModalOpen() {
@@ -571,9 +609,9 @@
   }
   function onPlayerTap() {
     if (anyModalOpen()) return; // modal owns all interaction while open
-    if (els.wrap.classList.contains('controls-hidden')) wakeControls();
-    else if (!controlsLocked) hideControlsNow();
-    else wakeControls();
+    // Spec: a tap always SHOWS controls (and resets the auto-hide timer).
+    // It never hides them — only the 3s inactivity timer hides controls.
+    wakeControls();
   }
   function wakeControls(forceLock) {
     els.wrap.classList.remove('controls-hidden');
@@ -629,70 +667,188 @@
   };
   // Fullscreen/orientation changes must never duplicate listeners —
   // this handler is attached exactly once at module scope.
-  document.addEventListener('fullscreenchange', () => wakeControls());
+  document.addEventListener('fullscreenchange', () => {
+    setIcon($('fullscreenIcon'), document.fullscreenElement ? 'shrink' : 'expand');
+    wakeControls();
+  });
 
   // ═══════════════════════════════════════════════════════
-  // SECTION 12 — Partner video PiP bridge (existing call system, bridged
-  // via window.parent.Call — NOT a second WebRTC implementation).
+  // SECTION 12 — Mini call UI, bridged to the EXISTING call engine via
+  // window.parent.Call. No new WebRTC/backend is created here — this
+  // only changes PRESENTATION for Watch Together:
+  //   • VOICE  → compact mini bar (collapsible to a pill)
+  //   • VIDEO  → small vertical-rectangle window, minimizable to a
+  //              circular live-video bubble (same stream, no reconnect)
+  // Right after start/accept we call Call.minimize(), which is the
+  // app's own existing "collapse the fullscreen call screen" path — we
+  // are not adding a new one — so Watch Together never shows the
+  // fullscreen call UI. The Chat page never calls minimize() itself, so
+  // its own calling behavior is completely unaffected.
   // ═══════════════════════════════════════════════════════
+  function getCall() { try { return window.parent.Call; } catch (e) { return null; } }
+
   let callBridgeSetup = false;
+  let callDucked = false, prevVolume = 1;
+  let callTimerInt = null, callStartedAt = null;
+  let videoMinimized = false;
+  let voiceCollapsed = false;
+
+  function callDurationStr() {
+    if (!callStartedAt) return '00:00';
+    const s = Math.max(0, Math.floor((Date.now() - callStartedAt) / 1000));
+    const m = Math.floor(s / 60), r = s % 60;
+    return String(m).padStart(2, '0') + ':' + String(r).padStart(2, '0');
+  }
+
+  function duckMovieAudio() {
+    if (callDucked) return;
+    callDucked = true;
+    prevVolume = els.video.volume;
+    els.video.volume = Math.min(prevVolume, 0.15);
+  }
+  function restoreMovieAudio() {
+    if (!callDucked) return;
+    callDucked = false;
+    els.video.volume = prevVolume;
+  }
+
   function setupCallBridge() {
     if (callBridgeSetup) return; // guard against duplicate listeners across rerenders/fullscreen toggles
     callBridgeSetup = true;
-    const pip = $('wtPip'), pipVideo = $('wtPipVideo'), fallback = $('wtPipAvatarFallback'), badge = $('wtPipBadge');
-    let expanded = false, dragMoved = false;
+
+    const voiceBar = $('wtVoiceBar'), voicePill = $('wtVoicePill');
+    const videoWin = $('wtVideoWin'), videoWinVideo = $('wtVideoWinVideo'), videoWinFallback = $('wtVideoWinAvatarFallback'), videoWinControls = $('wtVideoWinControls');
+    const videoBubble = $('wtVideoBubble'), videoBubbleVideo = $('wtVideoBubbleVideo'), videoBubbleFallback = $('wtVideoBubbleAvatarFallback');
 
     function refresh() {
-      let Call = null;
-      try { Call = window.parent.Call; } catch (e) {}
-      if (!Call || typeof Call.getRemoteStream !== 'function') { pip.hidden = true; $('wtPipControls').hidden = true; return; }
+      const Call = getCall();
+      if (!Call || typeof Call.getRemoteStream !== 'function') {
+        voiceBar.hidden = true; voicePill.hidden = true; videoWin.hidden = true; videoBubble.hidden = true;
+        if (callTimerInt) { clearInterval(callTimerInt); callTimerInt = null; }
+        callStartedAt = null; restoreMovieAudio();
+        return;
+      }
+      const st = typeof Call.getState === 'function' ? Call.getState() : {};
       const stream = Call.getRemoteStream();
-      const camOn = typeof Call.getRemoteCamOn === 'function' ? Call.getRemoteCamOn() : true;
-      if (!stream) { pip.hidden = true; $('wtPipControls').hidden = true; return; }
-      pip.hidden = false;
-      if (camOn) {
-        pipVideo.srcObject = stream; pipVideo.hidden = false; fallback.hidden = true;
-        badge.style.color = 'var(--green,#34d399)';
+      const active = !!stream || st.callType; // connecting or connected
+      if (!active) {
+        voiceBar.hidden = true; voicePill.hidden = true; videoWin.hidden = true; videoBubble.hidden = true;
+        if (callTimerInt) { clearInterval(callTimerInt); callTimerInt = null; }
+        callStartedAt = null; restoreMovieAudio();
+        return;
+      }
+      if (!callStartedAt) {
+        callStartedAt = Date.now();
+        if (!callTimerInt) callTimerInt = setInterval(updateTimers, 1000);
+        duckMovieAudio();
+        try { Call.minimize(); } catch (e) {} // collapse the existing fullscreen call screen
+      }
+
+      if (st.callType === 'video') {
+        voiceBar.hidden = true; voicePill.hidden = true;
+        const camOn = typeof Call.getRemoteCamOn === 'function' ? Call.getRemoteCamOn() : true;
+        if (videoMinimized) {
+          videoWin.hidden = true; videoBubble.hidden = false;
+          if (stream && camOn) { videoBubbleVideo.srcObject = stream; videoBubbleVideo.hidden = false; videoBubbleFallback.hidden = true; }
+          else { videoBubbleVideo.hidden = true; videoBubbleFallback.hidden = false; videoBubbleFallback.textContent = (ctx && ctx.partnerName ? ctx.partnerName[0] : 'P'); }
+        } else {
+          videoBubble.hidden = true; videoWin.hidden = false;
+          if (stream && camOn) { videoWinVideo.srcObject = stream; videoWinVideo.hidden = false; videoWinFallback.hidden = true; }
+          else { videoWinVideo.hidden = true; videoWinFallback.hidden = false; videoWinFallback.textContent = (ctx && ctx.partnerName ? ctx.partnerName[0] : 'P'); }
+        }
       } else {
-        pipVideo.hidden = true; fallback.hidden = false;
-        fallback.textContent = (ctx && ctx.partnerName ? ctx.partnerName[0] : 'P');
+        videoWin.hidden = true; videoBubble.hidden = true;
+        if (voiceCollapsed) { voiceBar.hidden = true; voicePill.hidden = false; }
+        else { voicePill.hidden = true; voiceBar.hidden = false; }
+        $('wtVoiceBarName').textContent = (ctx && ctx.partnerName) || 'Partner';
+        setIcon($('voiceMuteBtn').firstElementChild, st.muted ? 'mic-off' : 'mic');
+        setIcon($('voiceSpeakerBtn').firstElementChild, st.speakerOn ? 'volume-2' : 'volume-x');
       }
     }
+    function updateTimers() {
+      $('wtVoiceBarTime').textContent = callDurationStr();
+      $('wtVoicePillTime').textContent = callDurationStr();
+    }
+
     try { window.parent.addEventListener('uwl:call-stream-changed', refresh); } catch (e) {}
     refresh();
-    setInterval(refresh, 4000);
+    setInterval(refresh, 3000);
 
-    pip.onclick = () => { if (dragMoved) { dragMoved = false; return; } expanded = !expanded; pip.classList.toggle('expanded', expanded); $('wtPipControls').hidden = !expanded; wakeControls(); };
+    // ── Voice bar ──
+    $('voiceMuteBtn').onclick = () => { try { getCall().toggleMute(); } catch (e) {} refresh(); };
+    $('voiceSpeakerBtn').onclick = () => { try { getCall().toggleSpeaker(); } catch (e) {} refresh(); };
+    $('voiceEndBtn').onclick = () => { try { getCall().endCall(); } catch (e) {} restoreMovieAudio(); };
+    voiceBar.addEventListener('dblclick', () => { voiceCollapsed = true; refresh(); });
+    let voiceBarCollapseTimer = null;
+    voiceBar.addEventListener('pointerdown', () => { clearTimeout(voiceBarCollapseTimer); });
+    $('wtVoicePill').onclick = () => { voiceCollapsed = false; refresh(); };
 
-    let sx, sy, ox, oy, dragging = false;
-    pip.addEventListener('pointerdown', (e) => { dragging = true; dragMoved = false; sx = e.clientX; sy = e.clientY; const r = pip.getBoundingClientRect(); ox = r.left; oy = r.top; pip.setPointerCapture(e.pointerId); });
-    pip.addEventListener('pointermove', (e) => {
-      if (!dragging) return;
-      const dx = e.clientX - sx, dy = e.clientY - sy;
-      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) dragMoved = true;
-      pip.style.left = Math.max(4, ox + dx) + 'px'; pip.style.top = Math.max(4, oy + dy) + 'px';
-      pip.style.right = 'auto'; pip.style.bottom = 'auto';
+    // ── Video window: tap reveals controls, drag repositions ──
+    let vsx, vsy, vox, voy, vDragging = false, vDragMoved = false;
+    function armVideoControlsHide() {
+      clearTimeout(videoWin._hideT);
+      videoWin._hideT = setTimeout(() => videoWin.classList.remove('show-controls'), 3000);
+    }
+    videoWin.addEventListener('pointerdown', (e) => {
+      vDragging = true; vDragMoved = false; vsx = e.clientX; vsy = e.clientY;
+      const r = videoWin.getBoundingClientRect(); vox = r.left; voy = r.top;
+      videoWin.setPointerCapture(e.pointerId);
     });
-    pip.addEventListener('pointerup', () => {
-      dragging = false;
+    videoWin.addEventListener('pointermove', (e) => {
+      if (!vDragging) return;
+      const dx = e.clientX - vsx, dy = e.clientY - vsy;
+      if (Math.abs(dx) > 6 || Math.abs(dy) > 6) vDragMoved = true;
+      if (vDragMoved) {
+        videoWin.style.left = Math.max(4, vox + dx) + 'px'; videoWin.style.top = Math.max(4, voy + dy) + 'px';
+        videoWin.style.right = 'auto'; videoWin.style.bottom = 'auto';
+      }
+    });
+    videoWin.addEventListener('pointerup', () => {
+      vDragging = false;
+      if (vDragMoved) { snapToSafeEdge(videoWin); vDragMoved = false; return; }
+      videoWin.classList.toggle('show-controls');
+      armVideoControlsHide();
+    });
+    function snapToSafeEdge(el) {
       const wrap = els.wrap.getBoundingClientRect();
-      const r = pip.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
       const snapLeft = (r.left - wrap.left) < (wrap.width / 2);
-      const snapTop = (r.top - wrap.top) < (wrap.height / 2);
-      pip.style.left = pip.style.top = pip.style.right = pip.style.bottom = '';
-      pip.style.left = snapLeft ? '16px' : 'auto';
-      pip.style.right = snapLeft ? 'auto' : '16px';
-      pip.style.top = snapTop ? '16px' : 'auto';
-      pip.style.bottom = snapTop ? 'auto' : '90px';
-    });
+      el.style.left = el.style.top = el.style.right = el.style.bottom = '';
+      el.style.left = snapLeft ? '12px' : 'auto';
+      el.style.right = snapLeft ? 'auto' : '12px';
+      el.style.top = '12px';
+    }
+    $('videoWinMuteBtn').onclick = () => { try { getCall().toggleMute(); } catch (e) {} refresh(); };
+    $('videoWinCamBtn').onclick = () => { try { getCall().toggleCam(); } catch (e) {} };
+    $('videoWinEndBtn').onclick = () => { try { getCall().endCall(); } catch (e) {} restoreMovieAudio(); };
+    $('videoWinMinBtn').onclick = () => { videoMinimized = true; refresh(); }; // UI-only — stream keeps playing, no reconnect
 
-    $('pipMuteBtn').onclick = () => { try { window.parent.Call.toggleMute(); } catch (e) {} };
-    $('pipCamBtn').onclick = () => { try { window.parent.Call.toggleCam(); } catch (e) {} };
-    $('pipEndBtn').onclick = () => { try { window.parent.Call.endCall(); } catch (e) {} };
+    // ── Circular bubble: tap restores rectangle, draggable too ──
+    let bsx, bsy, box_, boy, bDragging = false, bDragMoved = false;
+    videoBubble.addEventListener('pointerdown', (e) => {
+      bDragging = true; bDragMoved = false; bsx = e.clientX; bsy = e.clientY;
+      const r = videoBubble.getBoundingClientRect(); box_ = r.left; boy = r.top;
+      videoBubble.setPointerCapture(e.pointerId);
+    });
+    videoBubble.addEventListener('pointermove', (e) => {
+      if (!bDragging) return;
+      const dx = e.clientX - bsx, dy = e.clientY - bsy;
+      if (Math.abs(dx) > 6 || Math.abs(dy) > 6) bDragMoved = true;
+      if (bDragMoved) {
+        videoBubble.style.left = Math.max(4, box_ + dx) + 'px'; videoBubble.style.top = Math.max(4, boy + dy) + 'px';
+        videoBubble.style.right = 'auto'; videoBubble.style.bottom = 'auto';
+      }
+    });
+    videoBubble.addEventListener('pointerup', () => {
+      bDragging = false;
+      if (bDragMoved) { snapToSafeEdge(videoBubble); bDragMoved = false; return; }
+      videoMinimized = false; refresh(); // restore rectangle — same stream, no reconnect
+    });
   }
 
   // Voice / Video call buttons — connect to the EXISTING call system,
-  // no fake UI, no second backend.
+  // no fake UI, no second backend. Watch Together never opens the
+  // fullscreen call screen (see setupCallBridge → Call.minimize()).
   $('btnVoiceCall').onclick = () => {
     try {
       const Call = window.parent.Call;
@@ -744,19 +900,33 @@
   $('chatComposerSend').onclick = sendMovieChat;
   composerInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMovieChat(); });
 
+  // Centered subtitle-style toast, text only (no username/sender label),
+  // shown ABOVE the timeline. Only one message is ever on screen — a
+  // burst of messages is queued and shown one-at-a-time so the movie
+  // never gets a stacked wall of bubbles.
+  const chatQueue = [];
+  let chatShowing = false;
   function showChatBubble(name, text, mine) {
-    const layer = $('chatFloatLayer');
-    const b = document.createElement('div');
-    b.className = 'wt-chat-bubble' + (mine ? ' mine' : '');
-    const nameEl = document.createElement('b'); nameEl.textContent = mine ? 'You' : name;
-    const txtEl = document.createElement('div'); txtEl.textContent = text;
-    b.appendChild(nameEl); b.appendChild(txtEl);
-    layer.appendChild(b);
-    // Cap visible bubbles so a burst of messages never becomes an
-    // unreadable stack over the movie.
-    while (layer.children.length > 3) layer.removeChild(layer.firstChild);
-    setTimeout(() => { b.classList.add('fading'); setTimeout(() => b.remove(), 650); }, 4200);
+    chatQueue.push(text);
     if (!mine) wakeControls();
+    if (!chatShowing) drainChatQueue();
+  }
+  function drainChatQueue() {
+    const text = chatQueue.shift();
+    if (text === undefined) { chatShowing = false; return; }
+    chatShowing = true;
+    const layer = $('chatFloatLayer');
+    layer.innerHTML = '';
+    const b = document.createElement('div');
+    b.className = 'wt-chat-toast';
+    b.textContent = text;
+    layer.appendChild(b);
+    // fade/slide in, hold ~3.5s, fade out, then show next queued message
+    requestAnimationFrame(() => b.classList.add('in'));
+    setTimeout(() => {
+      b.classList.remove('in'); b.classList.add('out');
+      setTimeout(() => { b.remove(); drainChatQueue(); }, 300);
+    }, 3500);
   }
 
   function startChatPolling() {
@@ -859,6 +1029,12 @@
   // SECTION 17 — Boot
   // ═══════════════════════════════════════════════════════
   $('wtBack').onclick = () => { try { window.parent.postMessage({ type: 'uwl:close-watch-together' }, '*'); } catch (e) {} };
+
+  // lucide.js is loaded with `defer`, so it finishes after this
+  // synchronous script runs — wait for DOMContentLoaded (which fires
+  // after all defer scripts) before the first icon render.
+  document.addEventListener('DOMContentLoaded', () => { if (window.lucide) window.lucide.createIcons(); });
+  if (document.readyState !== 'loading' && window.lucide) window.lucide.createIcons();
 
   (async function init() {
     if (!COUPLE_ID) { toast('Could not find your couple pairing.'); showState('setup'); showSetupSub('empty'); return; }
