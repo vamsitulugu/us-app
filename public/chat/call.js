@@ -66,6 +66,19 @@ const Call = (function () {
   function releaseCallAudio() {
     nativeCallAudio()?.release().catch(() => {});
   }
+
+  // ─── Centralized incoming-call notification cleanup ─────────────────
+  // Single choke point for cancelling the Android "incoming-call" system
+  // notification (see NotificationActionReceiver.java / TwinHeartsMessagingService
+  // showIncomingCall(), tag="incoming-call"). Called from cleanup() below,
+  // which already runs on every path that ends a call's "ringing/incoming"
+  // state — app Answer, app Decline, notification Answer (once acceptCall()
+  // completes), caller-cancel, timeout, and call end — so this one call
+  // site covers the whole notification lifecycle instead of scattering
+  // cancel calls across every one of those individual handlers.
+  function cancelIncomingCallNotification() {
+    nativeCallAudio()?.cancelIncomingCall?.().catch(() => {});
+  }
   let isMinimized = false, pipEl = null, pipDrag = null;
   let signalInterval = null;
   let videoUpgradePending = false;
@@ -979,6 +992,7 @@ async function initSignalCursor() {
       await pc.setLocalDescription(answer);
       if (myToken !== callToken) return; // torn down mid-negotiation — don't answer for a dead attempt
       await pushSignal({ type: 'answer', sdp: answer });
+      cancelIncomingCallNotification();
       onConnecting();
     } catch (e) {
       console.error('acceptCall failed:', e);
@@ -1065,6 +1079,7 @@ async function initSignalCursor() {
     clearRingTimeout();
     stopRingtone();
     releaseCallAudio();
+    cancelIncomingCallNotification();
     stopAutoHide();
     if (pc) { pc.close(); pc = null; }
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
@@ -1121,10 +1136,50 @@ async function initSignalCursor() {
   document.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
   document.addEventListener('click', unlockAudio, { once: true });
 
+  // ─── Pending notification action (Answer tapped from the Android
+  // incoming-call notification) ─────────────────────────────────────
+  // ANSWER_CALL previously just opened the app and stopped — it never
+  // ran the real accept-call logic, so the call was never actually
+  // answered (see NotificationActionReceiver.java). WebRTC needs a live
+  // JS runtime to negotiate media, so it can't be answered natively the
+  // way Decline now is; instead, MainActivity.handleDeepLink() loads the
+  // app with ?pendingAction=answer on the URL, and this consumes that
+  // flag once the runtime is ready and the matching offer has arrived
+  // over polling/realtime — then calls the SAME acceptCall() the in-app
+  // Answer button uses. `consumed` guards against firing twice (e.g. a
+  // duplicate DOMContentLoaded-adjacent call, or the query string
+  // surviving an SPA navigation).
+  let pendingActionConsumed = false;
+  function consumePendingCallAction() {
+    if (pendingActionConsumed) return;
+    let action = null;
+    try { action = new URLSearchParams(window.location.search).get('pendingAction'); } catch (e) {}
+    if (action !== 'answer') return;
+    pendingActionConsumed = true;
+    // Strip the param so a later reload/back-nav doesn't re-trigger it.
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.delete('pendingAction');
+      window.history.replaceState({}, '', u.toString());
+    } catch (e) {}
+    // The offer may not have arrived yet (poll cadence / realtime not up
+    // yet) — wait for it rather than assuming it's already there. Give
+    // up after 25s (just under the 30s ring timeout) so a stale/expired
+    // launch doesn't hang forever.
+    const deadline = Date.now() + 25000;
+    (function waitForOffer() {
+      if (pendingOffer && !pc) { acceptCall(); return; } // race check: if pc already exists, another path (e.g. realtime) is already handling it
+      if (pc) return; // already answered/answering via another path — don't double-answer
+      if (Date.now() > deadline) return;
+      setTimeout(waitForOffer, 300);
+    })();
+  }
+
   document.addEventListener('DOMContentLoaded', async () => {
     await initSignalCursor();
     setTimeout(startPolling, 1500);
     setTimeout(setupCallSignalRealtime, 1500);
+    consumePendingCallAction();
   });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') pollSignal();

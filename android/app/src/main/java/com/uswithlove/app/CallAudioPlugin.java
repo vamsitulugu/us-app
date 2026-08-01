@@ -130,4 +130,22 @@ public class CallAudioPlugin extends Plugin {
     }
     call.resolve();
   }
+
+  // Root cause this fixes: the incoming-call notification (tag
+  // "incoming-call", built in TwinHeartsMessagingService.showIncomingCall())
+  // only ever got cancelled by NotificationActionReceiver's own finally
+  // block — i.e. only when the person tapped Answer/Decline ON the
+  // notification itself. Answering or declining from inside the app left
+  // it dangling on-screen. call.js's cleanup() (the single place every
+  // call-ending path already funnels through) now calls this every time,
+  // so the same tag-based cancel that the notification actions use is
+  // also reachable from web-side call state changes. Deliberately targets
+  // only this one tag — never cancelAllNotifications() — so unrelated
+  // notifications (chat, partner requests, etc.) are untouched.
+  @PluginMethod
+  public void cancelIncomingCall(PluginCall call) {
+    String tag = "incoming-call";
+    androidx.core.app.NotificationManagerCompat.from(getContext()).cancel(tag, tag.hashCode());
+    call.resolve();
+  }
 }

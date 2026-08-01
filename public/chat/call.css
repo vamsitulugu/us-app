@@ -91,6 +91,20 @@
   display: flex; align-items: flex-start; justify-content: center;
   gap: 22px; margin-bottom: max(30px, env(safe-area-inset-bottom));
   width: 100%; max-width: 380px;
+  /* ROOT CAUSE FIX (buttons drifting to the lower-left on desktop, and
+     unevenly padded on mobile): .call-overlay is display:flex with
+     flex-direction:column and no align-items set, so its default cross-
+     axis alignment is "stretch". .call-controls lives as a direct child
+     of .call-overlay (a sibling of .call-content, not nested inside it),
+     so with only width:100%+max-width:380px and no auto margins, stretch
+     alignment leaves it pinned flush to the LEFT edge whenever the
+     viewport is wider than 380px (any desktop window) — its own centered
+     justify-content only centers the buttons *within* that already
+     mis-positioned 380px box. margin-inline:auto (+ align-self:center as
+     a belt-and-suspenders fallback for older engines) centers the whole
+     box itself in the overlay, on every screen size. */
+  margin-inline: auto;
+  align-self: center;
 }
 /* Incoming Decline/Accept: centered with a fixed gap between two
    identically-sized items, not space-between+padding. Space-between plus
