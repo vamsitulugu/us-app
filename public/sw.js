@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v6';
+const CACHE = 'uwl-v7'; // bumped: purges stale cached assets (incl. old movie.css) on activate
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
@@ -41,8 +41,12 @@ self.addEventListener('fetch', e => {
   // network-first behavior below, so the app shell itself is never
   // served stale either.
   const isNavigation = e.request.mode === 'navigate' || e.request.destination === 'document';
-  const isCosmeticAsset = !isNavigation && ['style', 'font', 'image'].includes(e.request.destination);
-  const isScript = e.request.destination === 'script';
+  // Stylesheets moved OUT of cache-first: a stale CSS file paired with a
+  // newer HTML/JS deploy isn't just cosmetically outdated, it can break
+  // layout/z-index/interactivity outright (bit us with Watch Together
+  // V2's stale movie.css). Fonts/images are still safe to serve stale.
+  const isCosmeticAsset = !isNavigation && ['font', 'image'].includes(e.request.destination);
+  const isScript = e.request.destination === 'script' || e.request.destination === 'style';
 
   if (isCosmeticAsset && e.request.method === 'GET') {
     e.respondWith(
