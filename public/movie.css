@@ -299,7 +299,10 @@ html, body { height: 100%; margin: 0; background: #000; }
   position: fixed; inset: 0; z-index: 50;
   background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
   display: flex; align-items: flex-end; justify-content: center;
+  pointer-events: auto;
 }
+.wt-modal-backdrop[hidden] { display: none !important; pointer-events: none !important; }
+.wt-modal { pointer-events: auto; }
 @media (min-width: 560px) { .wt-modal-backdrop { align-items: center; } }
 .wt-modal {
   width: 100%; max-width: 420px;

@@ -548,7 +548,11 @@
     ['pointerdown', 'touchstart'].forEach(evt => els.wrap.addEventListener(evt, () => wakeControls()));
     armHideTimer();
   }
+  function anyModalOpen() {
+    return !$('endModalBackdrop').hidden || !$('inviteModalBackdrop').hidden;
+  }
   function onPlayerTap() {
+    if (anyModalOpen()) return; // modal owns all interaction while open
     if (els.wrap.classList.contains('controls-hidden')) wakeControls();
     else if (!controlsLocked) hideControlsNow();
     else wakeControls();
@@ -567,8 +571,7 @@
     state.hideTimer = setTimeout(() => {
       const paused = els.video.paused;
       const chatOpen = !$('chatComposer').hidden;
-      const modalOpen = !$('endModalBackdrop').hidden || !$('inviteModalBackdrop').hidden;
-      if (paused || chatOpen || modalOpen || controlsLocked || state.scrubbing) return;
+      if (paused || chatOpen || anyModalOpen() || controlsLocked || state.scrubbing) return;
       hideControlsNow();
     }, 3000);
   }
@@ -759,10 +762,10 @@
   // ═══════════════════════════════════════════════════════
   // SECTION 14 — End movie (with confirmation)
   // ═══════════════════════════════════════════════════════
-  $('btnEndMovie').onclick = () => { $('endModalBackdrop').hidden = false; wakeControls(true); };
-  $('btnCancelEnd').onclick = () => { $('endModalBackdrop').hidden = true; armHideTimer(); };
-  $('btnConfirmEnd').onclick = async () => { $('endModalBackdrop').hidden = true; await endSession(); };
-  $('btnExitWatching').onclick = () => { $('endModalBackdrop').hidden = false; wakeControls(true); };
+  $('btnEndMovie').onclick = () => { controlsLocked = true; $('endModalBackdrop').hidden = false; wakeControls(true); };
+  $('btnCancelEnd').onclick = () => { $('endModalBackdrop').hidden = true; controlsLocked = false; armHideTimer(); };
+  $('btnConfirmEnd').onclick = async () => { $('endModalBackdrop').hidden = true; controlsLocked = false; await endSession(); };
+  $('btnExitWatching').onclick = () => { controlsLocked = true; $('endModalBackdrop').hidden = false; wakeControls(true); };
 
   async function endSession() {
     hideBanner();
