@@ -1,0 +1,95 @@
+diff --git a/public/index.html b/public/index.html
+index 55e72ea..9f374f9 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -4778,6 +4778,7 @@ select option { background: #0D0D0D; color: #fff; }
+       <div class="ni" data-page="collection"><span class="ico">🎙️</span>Collection</div>
+       <div class="ni" data-page="music"><span class="ico">🎵</span>Music</div>
+       <div class="ni" data-page="games"><span class="ico">🎮</span>Games <span class="games-badge">NEW</span></div>
++      <div class="ni" data-page="movie"><span class="ico">🎬</span>Watch Together</div>
+       <div class="ni" data-page="dreamgoals"><span class="ico">💫</span>Dream Goals <div class="dreams-new-badge"></div></div>
+       <div class="ni" data-page="money"><span class="ico">💰</span>Money</div>
+       <div class="ni" data-page="fights"><span class="ico">⚡</span>Fight Log</div>
+@@ -6285,6 +6286,13 @@ select option { background: #0D0D0D; color: #fff; }
+           <iframe id="gamesFrame" src="/games.html" title="Couple Games" allow="autoplay" loading="lazy"></iframe>
+         </div>
+       </div>
++
++      <!-- ════ WATCH TOGETHER PAGE ════ -->
++      <div class="page" id="page-movie">
++        <div class="iframe-page-wrap">
++          <iframe id="movieFrame" src="/movie.html" title="Watch Together" allow="autoplay; fullscreen" loading="lazy"></iframe>
++        </div>
++      </div>
+  
+       <!-- ════ MUSIC PAGE (REDESIGNED) ════ -->
+       <!-- DELETE your old page-music div and replace with: -->
+@@ -6321,6 +6329,7 @@ select option { background: #0D0D0D; color: #fff; }
+ <div class="bot-ni" data-page="ai"><span class="ico">🤖</span>AI</div>
+ <div class="bot-ni" data-page="globe"><span class="ico">🌍</span>Globe</div>
+ <div class="bot-ni" data-page="games"><span class="ico">🎮</span>Games</div>
++<div class="bot-ni" data-page="movie"><span class="ico">🎬</span>Watch</div>
+ <div class="bot-ni" data-page="settings"><span class="ico">⚙️</span>More</div>
+       </nav>
+ 
+@@ -7252,7 +7261,7 @@ function setJustPairedAt(ts) {
+           'games', 'calendar', 'settings', 'profile', 'map', 'ai', 'capsule',
+           'surprise', 'level', 'dreamhome', 'dreamgoals', 'places',
+           'lovecounter', 'fights', 'myspace', 'vault', 'bucket', 'money',
+-          'period', 'study', 'collection'
++          'period', 'study', 'collection', 'movie'
+         ]);
+         function navigateToDeepLink(page) {
+           if (!page || !DEEP_LINK_PAGES.has(page)) return false;
+@@ -7345,7 +7354,7 @@ function setJustPairedAt(ts) {
+               collection: 'collectionFrame', globe: 'globeFrame', music: 'musicFrame',
+               lovecounter: 'lovecounterFrame', dreamgoals: 'dreamgoalsFrame',
+               places: 'placesFrame', meetplanner: 'meetplannerFrame',
+-              games: 'gamesFrame', virtualhome: 'virtualhomeFrame'
++              games: 'gamesFrame', virtualhome: 'virtualhomeFrame', movie: 'movieFrame'
+             };
+             const fid = FRAME_IDS[page];
+             const fr = fid && document.getElementById(fid);
+@@ -7384,6 +7393,7 @@ function setJustPairedAt(ts) {
+           if (page === 'level') renderLevelPage();
+           if (page === 'dreamhome') renderDreamHome();
+           if (page === 'games') syncThemeToFrame('gamesFrame');
++          if (page === 'movie') syncThemeToFrame('movieFrame');
+           if (page === 'lovecounter') { syncThemeToFrame('lovecounterFrame'); syncLoveCounterToFrame(); }
+           if (page === 'collection') syncThemeToFrame('collectionFrame'); 
+           if (page === 'globe') syncThemeToFrame('globeFrame'); 
+@@ -9453,7 +9463,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
+           currentPage: 'dashboard',
+           SELF_SYNCING_PAGES: new Set([
+             'chat', 'games', 'music', 'globe', 'collection',
+-            'lovecounter', 'dreamgoals', 'meetplanner'
++            'lovecounter', 'dreamgoals', 'meetplanner', 'movie'
+           ]),
+           isSelfSyncing() { return this.SELF_SYNCING_PAGES.has(this.currentPage); }
+         };
+@@ -10272,10 +10282,12 @@ document.addEventListener('keydown', e => {
+         window.addEventListener('message', function(e) {
+           if (e.data && e.data.type === 'dreamgoals') { S.dreamGoals = e.data.dreams || []; scheduleSave(); }
+           if (e.data && e.data.type === 'placesmemory') { S.placesMemories = e.data.places || []; scheduleSave(); }
++          if (e.data && e.data.type === 'uwl:close-watch-together') { goto('dashboard'); }
++          if (e.data && e.data.type === 'uwl:open-chat-overlay') { goto('chat'); }
+         });
+         // Patch setTheme to sync iframes
+         const _origST = window.setTheme;
+-        window.setTheme = function(n, s) { _origST && _origST(n, s); setTimeout(() => ['gamesFrame','musicFrame','dreamgoalsFrame','placesFrame','lovecounterFrame','collectionFrame','meetplannerFrame'].forEach(syncThemeToFrame), 150); };
++        window.setTheme = function(n, s) { _origST && _origST(n, s); setTimeout(() => ['gamesFrame','musicFrame','dreamgoalsFrame','placesFrame','lovecounterFrame','collectionFrame','meetplannerFrame','movieFrame'].forEach(syncThemeToFrame), 150); };
+ 
+         async function setupNativeNotifications() {
+   if (!window.Capacitor?.isNativePlatform?.()) { console.log('[fcm] skip — not running inside the native app'); return; }
+diff --git a/server.js b/server.js
+index 0bc0bd3..3ba9b4c 100644
+--- a/server.js
++++ b/server.js
+@@ -110,6 +110,7 @@ app.use('/api/recordings', require('./routes/recordings'));
+ app.use('/api/lyrics', require('./routes/lyrics'));
+ app.use('/api/search', require('./routes/search'));
+ app.use('/api/presence', require('./routes/presence'));
++app.use('/api/movie', require('./routes/routes-movie'));
+ // ── Health check ───────────────────────────────────────
+ app.get('/api/health', (req, res) => {
+   res.json({ status: 'ok', timestamp: new Date().toISOString() });
