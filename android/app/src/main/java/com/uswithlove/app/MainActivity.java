@@ -152,10 +152,10 @@ public class MainActivity extends BridgeActivity {
   }
 
   @Override
-  protected void onDestroy() {
-    pendingLinkHandler.removeCallbacksAndMessages(null);
-    super.onDestroy();
-  }
+public void onDestroy() {
+  pendingLinkHandler.removeCallbacksAndMessages(null);
+  super.onDestroy();
+}
 
   // Shared creator for every channel that doesn't need a custom sound
   // (Touch and Calls keep their own dedicated methods above since they
