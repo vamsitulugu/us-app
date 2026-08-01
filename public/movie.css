@@ -15,11 +15,33 @@
    current and future. */
 [hidden] { display: none !important; }
 
-html, body { height: 100%; margin: 0; background: #000; }
+/* FIX 1 — this page is always loaded inside its own dedicated iframe
+   (see .iframe-page-wrap / #movieFrame in index.html), whose box is
+   already height-constrained by the parent shell. The old rule here
+   used `min-height: 100vh/100dvh`, which lets .wt-page grow TALLER than
+   that iframe box the moment any child's content/border/rounding adds
+   a fraction of a pixel — and once the document is taller than the
+   iframe's own viewport, the iframe scrolls internally. That internal
+   scroll is exactly the "page moves slightly / red strip / scrollbar"
+   bug: the maroon strip is the #0a0a0a background showing past the
+   bottom edge of .wt-page once it has been scrolled, and the scrollbar
+   is the iframe's own native scrollbar rendered inside its box.
+   Fix: pin html/body/.wt-page to EXACTLY 100dvh (not min-height) and
+   clip overflow at every level, so there is nothing left to scroll.
+   This only affects this document (movie.html’s own html/body), so it
+   cannot leak into Chat/Space/More, which are separate iframe pages. */
+html, body {
+  height: 100%;
+  height: 100dvh;
+  margin: 0;
+  background: #000;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
 
 .wt-page {
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   background: #0a0a0a;
   color: #fff;
   display: flex;
@@ -27,6 +49,8 @@ html, body { height: 100%; margin: 0; background: #000; }
   font-family: inherit;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 /* ═══ Header (hidden during watching) ═══ */
@@ -47,11 +71,18 @@ html, body { height: 100%; margin: 0; background: #000; }
 .wt-subtitle { margin: 2px 0 0; font-size: 12px; color: #9a9a9a; }
 
 /* ═══ State wrapper: only one visible at a time ═══ */
-.wt-state { flex: 1; display: flex; flex-direction: column; }
+/* min-height: 0 is required on a flex:1 child inside a fixed-height
+   flex column — without it the child refuses to shrink below its
+   content size and pushes .wt-page (and therefore the iframe) taller
+   than the viewport, which is what re-introduces scrolling. */
+.wt-state { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .wt-state[hidden] { display: none !important; }
 
 /* ═══ SETUP state ═══ */
-#stateSetup { padding: 20px 16px 32px; gap: 16px; display: flex; flex-direction: column; align-items: stretch; }
+/* If the lobby content is ever taller than a small phone's screen, it
+   scrolls WITHIN this panel only — the header above and (in the parent
+   shell) the bottom nav below never move. */
+#stateSetup { padding: 20px 16px 32px; gap: 16px; display: flex; flex-direction: column; align-items: stretch; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 
 .wt-empty-card {
   margin-top: 12vh;
@@ -285,8 +316,15 @@ html, body { height: 100%; margin: 0; background: #000; }
 .wt-chat-composer-close { background: rgba(255,255,255,0.08) !important; }
 
 /* Centered, above the timeline, text-only "subtitle" toast. */
+/* Fix 4: --wt-chat-gap-bottom is set by movie.js to the measured height
+   of #wtBottomOverlay (timeline + secondary row) plus a 16px breathing
+   gap, so the message always clears the timeline by a fixed visual gap
+   no matter how tall the bottom overlay is in portrait vs landscape —
+   rather than a hard-coded bottom offset that only happened to work
+   for one layout. Falls back to 84px if JS hasn't measured yet. */
 .wt-chat-float-layer {
-  position: absolute; left: 10%; right: 10%; bottom: 84px; z-index: 3;
+  position: absolute; left: 10%; right: 10%; z-index: 3;
+  bottom: var(--wt-chat-gap-bottom, 84px);
   display: flex; justify-content: center; pointer-events: none;
 }
 .wt-chat-toast {
@@ -352,27 +390,67 @@ html, body { height: 100%; margin: 0; background: #000; }
   top: max(10px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right));
   width: 108px; aspect-ratio: 9 / 16;
   max-height: 38%;
+  /* overflow stays VISIBLE on the outer positioning box — clipping is
+     done one level down, on .wt-video-win-frame, so the runtime pill
+     and vertical menu (which live outside the frame, hanging below it)
+     are never cut off by the same rule that rounds the video corners. */
+  touch-action: none; cursor: grab;
+}
+.wt-video-win-frame {
+  position: relative; width: 100%; height: 100%;
   border-radius: 16px; overflow: hidden;
   border: 1.5px solid rgba(255,255,255,0.35);
   box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-  touch-action: none; cursor: grab; background: #111;
+  background: #111;
 }
 .wt-video-win video { width: 100%; height: 100%; object-fit: cover; display: block; }
 .wt-video-win-avatar-fallback {
   width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
   background: rgba(255,255,255,0.08); font-weight: 700; font-size: 22px;
 }
-.wt-video-win-controls {
-  position: absolute; inset: auto 0 0 0; display: flex; justify-content: center; gap: 6px;
-  padding: 6px; background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
-  opacity: 0; transition: opacity 0.2s ease; pointer-events: none;
+/* Runtime pill — physically attached under the video rectangle
+   (position:absolute, top:100%, so it renders as its own row directly
+   below the card rather than overlaid on top of the video). */
+.wt-video-runtime {
+  position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  margin-top: 6px; z-index: 2;
+  display: flex; align-items: center; gap: 5px;
+  border: none; border-radius: 14px; padding: 5px 11px;
+  background: rgba(15,15,15,0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+  color: #fff; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
-.wt-video-win.show-controls .wt-video-win-controls { opacity: 1; pointer-events: auto; }
-.wt-video-win-controls button {
-  width: 28px; height: 28px; border-radius: 50%; border: none; background: rgba(0,0,0,0.55); color: #fff;
-  display: flex; align-items: center; justify-content: center;
+.wt-video-runtime svg { width: 12px; height: 12px; color: #34d399; }
+
+/* Vertical control menu — expands DOWNWARD beneath the runtime pill by
+   default. Collapsed to max-height:0 rather than display:none so the
+   expand/collapse can animate smoothly. */
+.wt-video-vmenu {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  top: 100%; margin-top: 44px; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  background: rgba(15,15,15,0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.12); border-radius: 22px;
+  padding: 0 8px; width: 52px;
+  max-height: 0; opacity: 0; overflow: hidden; pointer-events: none;
+  transition: max-height 220ms ease, opacity 180ms ease, padding 220ms ease;
 }
-.wt-video-win-controls button svg { width: 14px; height: 14px; }
+.wt-video-vmenu.is-open { max-height: 280px; opacity: 1; padding: 10px 8px; pointer-events: auto; }
+/* When there isn't enough room below (near the bottom of the screen),
+   flip the menu to expand UPWARD above the runtime pill instead. */
+.wt-video-vmenu.opens-up { top: auto; bottom: 100%; margin-top: 0; margin-bottom: 44px; }
+.wt-video-vmenu button {
+  width: 42px; height: 42px; flex-shrink: 0; border: none; border-radius: 50%;
+  background: rgba(255,255,255,0.1); color: #fff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+}
+.wt-video-vmenu button svg { width: 16px; height: 16px; }
+.wt-video-vmenu button label { font-size: 7px; font-weight: 600; color: #ddd; pointer-events: none; }
+.wt-video-vmenu button.wt-video-vmenu-danger { background: #b3122e; }
+.wt-video-vmenu button.wt-video-vmenu-danger label { color: #fff; }
+.wt-video-vmenu button.is-active { background: rgba(255,180,60,0.25); }
 
 /* Minimized circular live-video bubble (rectangle ⇄ circle — same stream, no reconnect) */
 .wt-video-bubble {

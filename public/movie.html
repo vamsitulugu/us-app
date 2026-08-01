@@ -109,13 +109,22 @@
 
       <!-- Mini VIDEO call window (bridged from existing call system) -->
       <div class="wt-video-win" id="wtVideoWin" hidden>
-        <video id="wtVideoWinVideo" autoplay playsinline></video>
-        <div class="wt-video-win-avatar-fallback" id="wtVideoWinAvatarFallback" hidden></div>
-        <div class="wt-video-win-controls" id="wtVideoWinControls" hidden>
-          <button id="videoWinMuteBtn" aria-label="Mute"><i data-lucide="mic"></i></button>
-          <button id="videoWinCamBtn" aria-label="Camera"><i data-lucide="video"></i></button>
-          <button id="videoWinMinBtn" aria-label="Minimize"><i data-lucide="minimize-2"></i></button>
-          <button id="videoWinEndBtn" aria-label="End call"><i data-lucide="phone-off"></i></button>
+        <div class="wt-video-win-frame">
+          <video id="wtVideoWinVideo" autoplay playsinline></video>
+          <div class="wt-video-win-avatar-fallback" id="wtVideoWinAvatarFallback" hidden></div>
+        </div>
+
+        <!-- Compact runtime pill, physically attached under the rectangle -->
+        <button class="wt-video-runtime" id="wtVideoRuntime" aria-label="Call controls">
+          <i data-lucide="video"></i><span id="wtVideoRuntimeTime">00:00</span>
+        </button>
+
+        <!-- Tap the runtime pill → this expands vertically -->
+        <div class="wt-video-vmenu" id="wtVideoVMenu">
+          <button id="vmenuMuteBtn" aria-label="Mute"><i data-lucide="mic"></i><label>Mute</label></button>
+          <button id="vmenuSpeakerBtn" aria-label="Speaker"><i data-lucide="volume-2"></i><label>Speaker</label></button>
+          <button id="vmenuMinBtn" aria-label="Minimize"><i data-lucide="minimize-2"></i><label>Minimize</label></button>
+          <button id="vmenuEndBtn" class="wt-video-vmenu-danger" aria-label="End call"><i data-lucide="phone-off"></i><label>End</label></button>
         </div>
       </div>
       <!-- Minimized circular live-video bubble -->

@@ -162,7 +162,7 @@
     document.getElementById('wtPage').classList.toggle('is-watching', name === 'watching');
     if (name === 'setup') els.setup.hidden = false;
     else if (name === 'countdown') els.countdown.hidden = false;
-    else if (name === 'watching') els.watching.hidden = false;
+    else if (name === 'watching') { els.watching.hidden = false; if (typeof syncChatGap === 'function') requestAnimationFrame(syncChatGap); }
   }
 
   function showSetupSub(sub) {
@@ -643,9 +643,20 @@
   }
   function onPlayerTap() {
     if (anyModalOpen()) return; // modal owns all interaction while open
-    // Spec: a tap always SHOWS controls (and resets the auto-hide timer).
-    // It never hides them — only the 3s inactivity timer hides controls.
-    wakeControls();
+    // Fix 3: tap toggles — SHOW if hidden, HIDE immediately if already
+    // visible — while a stretch of inactivity still auto-hides via the
+    // existing single timer (armHideTimer), never a second competing
+    // timer. Special states (scrubbing, chat open, dragging mini video,
+    // reaction bar, modal) are already funneled through `controlsLocked`
+    // / the checks below, so a background tap can't fight them.
+    if (controlsLocked || state.scrubbing) return;
+    const currentlyHidden = els.wrap.classList.contains('controls-hidden');
+    if (currentlyHidden) {
+      wakeControls();
+    } else {
+      clearTimeout(state.hideTimer);
+      hideControlsNow();
+    }
   }
   function wakeControls(forceLock) {
     els.wrap.classList.remove('controls-hidden');
@@ -779,7 +790,8 @@
     callBridgeSetup = true;
 
     const voiceBar = $('wtVoiceBar'), voicePill = $('wtVoicePill');
-    const videoWin = $('wtVideoWin'), videoWinVideo = $('wtVideoWinVideo'), videoWinFallback = $('wtVideoWinAvatarFallback'), videoWinControls = $('wtVideoWinControls');
+    const videoWin = $('wtVideoWin'), videoWinVideo = $('wtVideoWinVideo'), videoWinFallback = $('wtVideoWinAvatarFallback');
+    const videoRuntime = $('wtVideoRuntime'), videoRuntimeTime = $('wtVideoRuntimeTime'), videoVMenu = $('wtVideoVMenu');
     const videoBubble = $('wtVideoBubble'), videoBubbleVideo = $('wtVideoBubbleVideo'), videoBubbleFallback = $('wtVideoBubbleAvatarFallback');
 
     // Bind a remote <video> element to `stream` and make sure it actually
@@ -826,6 +838,12 @@
 
       if (st.callType === 'video') {
         voiceBar.hidden = true; voicePill.hidden = true;
+        const muteIcon = $('vmenuMuteBtn').querySelector('svg');
+        if (muteIcon) setIcon(muteIcon, st.muted ? 'mic-off' : 'mic');
+        $('vmenuMuteBtn').classList.toggle('is-active', !!st.muted);
+        const spkIcon = $('vmenuSpeakerBtn').querySelector('svg');
+        if (spkIcon) setIcon(spkIcon, st.speakerOn ? 'volume-2' : 'volume-x');
+        $('vmenuSpeakerBtn').classList.toggle('is-active', !!st.speakerOn);
         const camOn = typeof Call.getRemoteCamOn === 'function' ? Call.getRemoteCamOn() : true;
         if (videoMinimized) {
           videoWin.hidden = true; videoBubble.hidden = false;
@@ -846,8 +864,10 @@
       }
     }
     function updateTimers() {
-      $('wtVoiceBarTime').textContent = callDurationStr();
-      $('wtVoicePillTime').textContent = callDurationStr();
+      const t = callDurationStr();
+      $('wtVoiceBarTime').textContent = t;
+      $('wtVoicePillTime').textContent = t;
+      videoRuntimeTime.textContent = t;
     }
 
     try { window.parent.addEventListener('uwl:call-stream-changed', refresh); } catch (e) {}
@@ -863,13 +883,10 @@
     voiceBar.addEventListener('pointerdown', () => { clearTimeout(voiceBarCollapseTimer); });
     $('wtVoicePill').onclick = () => { voiceCollapsed = false; refresh(); };
 
-    // ── Video window: tap reveals controls, drag repositions ──
+    // ── Video window: drag repositions (unchanged) ──
     let vsx, vsy, vox, voy, vDragging = false, vDragMoved = false;
-    function armVideoControlsHide() {
-      clearTimeout(videoWin._hideT);
-      videoWin._hideT = setTimeout(() => videoWin.classList.remove('show-controls'), 3000);
-    }
     videoWin.addEventListener('pointerdown', (e) => {
+      if (videoRuntime.contains(e.target) || videoVMenu.contains(e.target)) return; // let the pill/menu own their own taps
       vDragging = true; vDragMoved = false; vsx = e.clientX; vsy = e.clientY;
       const r = videoWin.getBoundingClientRect(); vox = r.left; voy = r.top;
       videoWin.setPointerCapture(e.pointerId);
@@ -881,13 +898,12 @@
       if (vDragMoved) {
         videoWin.style.left = Math.max(4, vox + dx) + 'px'; videoWin.style.top = Math.max(4, voy + dy) + 'px';
         videoWin.style.right = 'auto'; videoWin.style.bottom = 'auto';
+        if (videoVMenu.classList.contains('is-open')) positionVMenu(); // keep it from drifting off-screen mid-drag
       }
     });
     videoWin.addEventListener('pointerup', () => {
       vDragging = false;
-      if (vDragMoved) { snapToSafeEdge(videoWin); vDragMoved = false; return; }
-      videoWin.classList.toggle('show-controls');
-      armVideoControlsHide();
+      if (vDragMoved) { snapToSafeEdge(videoWin); vDragMoved = false; }
     });
     function snapToSafeEdge(el) {
       const wrap = els.wrap.getBoundingClientRect();
@@ -898,10 +914,49 @@
       el.style.right = snapLeft ? 'auto' : '12px';
       el.style.top = '12px';
     }
-    $('videoWinMuteBtn').onclick = () => { try { getCall().toggleMute(); } catch (e) {} refresh(); };
-    $('videoWinCamBtn').onclick = () => { try { getCall().toggleCam(); } catch (e) {} };
-    $('videoWinEndBtn').onclick = () => { try { getCall().endWatchCall(); } catch (e) {} restoreMovieAudio(); refresh(); };
-    $('videoWinMinBtn').onclick = () => { videoMinimized = true; refresh(); }; // UI-only — stream keeps playing, no reconnect
+
+    // ── 2C/2D — Runtime pill tap → vertical menu expands/collapses.
+    // 2G — pick up/down automatically based on free space so the menu
+    // never renders under the timeline/bottom nav/Android nav area. ──
+    const VMENU_HEIGHT_ESTIMATE = 210; // 4 buttons + gaps + padding, roughly
+    function positionVMenu() {
+      const winRect = videoWin.getBoundingClientRect();
+      const wrapRect = els.wrap.getBoundingClientRect();
+      const spaceBelow = wrapRect.bottom - winRect.bottom;
+      const spaceAbove = winRect.top - wrapRect.top;
+      const opensUp = spaceBelow < VMENU_HEIGHT_ESTIMATE && spaceAbove > spaceBelow;
+      videoVMenu.classList.toggle('opens-up', opensUp);
+    }
+    videoRuntime.onclick = (e) => {
+      e.stopPropagation();
+      const isOpen = videoVMenu.classList.contains('is-open');
+      if (isOpen) { videoVMenu.classList.remove('is-open'); return; }
+      positionVMenu();
+      videoVMenu.classList.add('is-open');
+    };
+    document.addEventListener('pointerdown', (e) => {
+      if (!videoVMenu.classList.contains('is-open')) return;
+      if (videoVMenu.contains(e.target) || videoRuntime.contains(e.target)) return;
+      videoVMenu.classList.remove('is-open'); // tap outside collapses, never ends the call
+    });
+    $('vmenuMuteBtn').onclick = (e) => { e.stopPropagation(); try { getCall().toggleMute(); } catch (err) {} refresh(); };
+    $('vmenuSpeakerBtn').onclick = (e) => {
+      e.stopPropagation();
+      const Call = getCall();
+      // Only toggle real speaker routing if the call engine actually
+      // exposes it — never fake the icon state if the platform can't
+      // do it (spec 2E/2F: no faking).
+      if (Call && typeof Call.toggleSpeaker === 'function') Call.toggleSpeaker();
+      refresh();
+    };
+    $('vmenuMinBtn').onclick = (e) => { e.stopPropagation(); videoVMenu.classList.remove('is-open'); videoMinimized = true; refresh(); };
+    $('vmenuEndBtn').onclick = (e) => {
+      e.stopPropagation();
+      videoVMenu.classList.remove('is-open');
+      try { getCall().endWatchCall(); } catch (err) {}
+      restoreMovieAudio();
+      refresh();
+    };
 
     // ── Circular bubble: tap restores rectangle, draggable too ──
     let bsx, bsy, box_, boy, bDragging = false, bDragMoved = false;
@@ -987,6 +1042,18 @@
   // shown ABOVE the timeline. Only one message is ever on screen — a
   // burst of messages is queued and shown one-at-a-time so the movie
   // never gets a stacked wall of bubbles.
+  // Fix 4: gap between the message bubble and the timeline must survive
+  // portrait/landscape and any future change to the bottom overlay's own
+  // height, so it's measured live rather than hard-coded.
+  function syncChatGap() {
+    const overlay = $('wtBottomOverlay');
+    if (!overlay) return;
+    const gap = overlay.offsetHeight + 16; // 16px visible breathing room
+    els.wrap.style.setProperty('--wt-chat-gap-bottom', gap + 'px');
+  }
+  window.addEventListener('resize', syncChatGap);
+  window.addEventListener('orientationchange', () => setTimeout(syncChatGap, 150));
+
   const chatQueue = [];
   let chatShowing = false;
   function showChatBubble(name, text, mine) {
@@ -998,6 +1065,7 @@
     const text = chatQueue.shift();
     if (text === undefined) { chatShowing = false; return; }
     chatShowing = true;
+    syncChatGap();
     const layer = $('chatFloatLayer');
     layer.innerHTML = '';
     const b = document.createElement('div');
