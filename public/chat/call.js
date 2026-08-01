@@ -26,6 +26,40 @@ const Call = (function () {
   // AudioManager.setSpeakerphoneOn().
   let isMuted = false, isCamOff = false, isSpeakerOn = false;
 
+  // ─── Watch Together VOICE remote-audio sink ──────────────────────────
+  // ROOT CAUSE of "connects but no two-way audio" for Watch Together
+  // voice calls: pc.ontrack only ever bound remoteStream to
+  // #callRemoteVideo / #callRemoteAudio — both of which only exist when
+  // renderActive() builds the Chat page's fullscreen call overlay. For
+  // callContext === 'watch_together', renderActive() is never called
+  // (by design — presentation lives in movie.js's mini UI instead), so
+  // for a VOICE call there was never any <audio>/<video> element at all
+  // playing the partner's remote audio track back — the media was
+  // negotiated and flowing over the wire, but nothing on either side was
+  // ever asked to play it. (Video calls were unaffected because the
+  // mini rectangle/bubble <video> elements in movie.js are never muted,
+  // so they already play the remote audio track that rides alongside
+  // the video track.) Fix: a small persistent, hidden, UNMUTED <audio>
+  // element created once and reused for every watch voice call.
+  let watchRemoteAudioEl = null;
+  function ensureWatchRemoteAudio() {
+    if (watchRemoteAudioEl && document.body.contains(watchRemoteAudioEl)) return watchRemoteAudioEl;
+    const el = document.createElement('audio');
+    el.id = 'watchCallRemoteAudio';
+    el.autoplay = true;
+    el.playsInline = true;
+    el.muted = false; // the REMOTE side must never be muted — only local previews are
+    el.style.display = 'none';
+    document.body.appendChild(el);
+    watchRemoteAudioEl = el;
+    return el;
+  }
+  function detachWatchRemoteAudio() {
+    if (!watchRemoteAudioEl) return;
+    try { watchRemoteAudioEl.pause(); } catch (e) {}
+    watchRemoteAudioEl.srcObject = null;
+  }
+
   // ─── Native audio routing bridge (Capacitor CallAudio plugin) ───
   // No-ops harmlessly when not running inside the native app (e.g. plain
   // browser testing), since window.Capacitor won't exist there.
@@ -663,7 +697,7 @@ async function initSignalCursor() {
     // convention) — previously inverted, so Speaker looked highlighted
     // while OFF instead of ON.
     setBtnState('speaker', isSpeakerOn ? 'volume-2' : 'volume-1', isSpeakerOn);
-    const audioEl = document.getElementById('callRemoteAudio');
+    const audioEl = document.getElementById('callRemoteAudio') || (callContext === 'watch_together' ? watchRemoteAudioEl : null);
     if (audioEl && audioEl.setSinkId) {
       audioEl.setSinkId(isSpeakerOn ? 'default' : 'communications').catch(() => {});
     }
@@ -1070,14 +1104,43 @@ async function initSignalCursor() {
       });
       if (document.getElementById('callRemoteVideo')) document.getElementById('callRemoteVideo').srcObject = remoteStream;
       if (document.getElementById('callRemoteAudio')) document.getElementById('callRemoteAudio').srcObject = remoteStream;
+      if (callContext === 'watch_together') {
+        console.log('[WatchVoice] remote track received:', e.track.kind, 'streams:', e.streams.length);
+        if (callType === 'voice') {
+          const wa = ensureWatchRemoteAudio();
+          if (wa.srcObject !== remoteStream) wa.srcObject = remoteStream;
+          console.log('[WatchVoice] remote audio stream tracks:', remoteStream.getAudioTracks().length);
+          const p = wa.play();
+          if (p && p.catch) p.catch(err => console.error('[WatchVoice] remote audio play failed:', err));
+        } else {
+          // Upgraded to video (or was video from the start) — the mini
+          // rectangle/bubble <video> elements in movie.js now carry the
+          // audio too. Detach the standalone sink so audio isn't played
+          // through two elements at once.
+          detachWatchRemoteAudio();
+        }
+      }
       window.dispatchEvent(new CustomEvent('uwl:call-stream-changed'));
     };
     pc.onicecandidate = e => { if (e.candidate) pushSignal({ type: 'ice', candidate: e.candidate }); };
+    pc.oniceconnectionstatechange = () => {
+      if (callContext === 'watch_together') console.log('[WatchVoice] iceConnectionState:', pc.iceConnectionState);
+    };
     let disconnectGrace = null;
     pc.onconnectionstatechange = () => {
+      if (callContext === 'watch_together') console.log('[WatchVoice] connectionState:', pc.connectionState);
       if (pc.connectionState === 'connected') {
         if (disconnectGrace) { clearTimeout(disconnectGrace); disconnectGrace = null; }
         clearRingTimeout();
+        // setConnectedAudio() MUST run before renderActive() creates and
+        // starts the <audio autoplay> element (see comment below) — and,
+        // just as importantly, it must ALSO run for Watch Together. It
+        // previously only ran on the `else` (chat) branch below, so a
+        // Watch Together call never switched Android's AudioManager into
+        // MODE_IN_COMMUNICATION at all — the OS stayed in normal media
+        // mode, which is a second, independent reason two-way audio
+        // never worked even once a sink existed for it.
+        setConnectedAudio();
         if (callContext === 'watch_together') {
           // No fullscreen overlay, no PiP, no chat "Connected" screen —
           // just record the ONE authoritative timestamp movie.js's mini
@@ -1097,7 +1160,6 @@ async function initSignalCursor() {
         // audio stream to the new route when that happens mid-stream, so
         // the call was audible on both outputs at once. Setting the route
         // first means the audio element opens directly on the correct one.
-        setConnectedAudio();
         renderActive();
         window.playAppSound?.(callType === 'video' ? 'call.video.connected' : 'call.connected');
       }
@@ -1367,6 +1429,8 @@ async function initSignalCursor() {
         return;
       }
       localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+      console.log('[WatchVoice] local audio tracks:', localStream.getAudioTracks().map(t => ({ enabled: t.enabled, readyState: t.readyState })));
+      console.log('[WatchVoice] audio sender:', pc.getSenders().find(s => s.track && s.track.kind === 'audio') ? 'present' : 'MISSING');
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       if (myToken !== callToken) return;
@@ -1405,6 +1469,8 @@ async function initSignalCursor() {
         return;
       }
       localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+      console.log('[WatchVoice] local audio tracks:', localStream.getAudioTracks().map(t => ({ enabled: t.enabled, readyState: t.readyState })));
+      console.log('[WatchVoice] audio sender:', pc.getSenders().find(s => s.track && s.track.kind === 'audio') ? 'present' : 'MISSING');
       await pc.setRemoteDescription(new RTCSessionDescription(m.sdp));
       for (const cand of iceQueue) { try { await pc.addIceCandidate(cand); } catch (e) {} }
       iceQueue = [];
@@ -1433,6 +1499,7 @@ async function initSignalCursor() {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       await pushSignal({ type: 'watch-upgrade-offer', sdp: offer, context: 'watch_together', watchSessionId, mediaSessionId: watchMediaSessionId });
+      detachWatchRemoteAudio(); // the mini video window's <video> will carry audio from here on
     } catch (e) { toast('Camera permission denied'); }
   }
   async function handleWatchUpgradeOffer(m) {
@@ -1447,6 +1514,7 @@ async function initSignalCursor() {
       await pc.setLocalDescription(answer);
       callType = 'video';
       await pushSignal({ type: 'watch-upgrade-answer', sdp: answer, context: 'watch_together', watchSessionId, mediaSessionId: watchMediaSessionId });
+      detachWatchRemoteAudio();
       window.dispatchEvent(new CustomEvent('uwl:call-stream-changed'));
     } catch (e) { toast('Video upgrade failed'); }
   }
@@ -1455,6 +1523,7 @@ async function initSignalCursor() {
     try {
       await pc.setRemoteDescription(new RTCSessionDescription(m.sdp));
       callType = 'video';
+      detachWatchRemoteAudio();
       window.dispatchEvent(new CustomEvent('uwl:call-stream-changed'));
     } catch (e) {}
   }
@@ -1473,6 +1542,8 @@ async function initSignalCursor() {
     watchMediaSessionId = null;
     watchMediaStartedAt = null;
     callContext = 'chat';
+    detachWatchRemoteAudio();
+    releaseCallAudio();
     window.dispatchEvent(new CustomEvent('uwl:call-stream-changed'));
   }
   function endWatchCall() {

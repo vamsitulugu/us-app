@@ -230,16 +230,24 @@ html, body {
 .wt-seek-num { font-size: 9px; margin-top: -2px; }
 .wt-play-btn { width: 76px; height: 76px; font-size: 30px; background: rgba(0,0,0,0.45); border: 2px solid rgba(255,255,255,0.25); }
 
+/* Fix 5: anchored above the timeline's right end via --wt-reactions-bottom
+   (set live by movie.js off the timeline row's actual position, so it
+   isn't a hard-coded guess and survives portrait/landscape/Fit-Fill-Zoom).
+   column-reverse keeps the 😊 toggle at the BOTTOM of the stack — right
+   above the timeline — while the picker expands UPWARD from it instead
+   of the old fixed screen-center/downward layout. */
 .wt-reactions-col {
-  right: max(10px, env(safe-area-inset-right)); top: 50%; transform: translateY(-50%);
-  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: var(--wt-reactions-bottom, 140px);
+  top: auto; transform: none;
+  display: flex; flex-direction: column-reverse; align-items: center; gap: 10px;
 }
 .wt-reaction-toggle {
   width: 44px; height: 44px; border-radius: 50%; border: none;
   background: rgba(0,0,0,0.35); color: #fff; font-size: 20px;
 }
 .wt-reaction-bar {
-  display: flex; flex-direction: column; gap: 8px;
+  display: flex; flex-direction: column-reverse; gap: 8px;
   background: rgba(0,0,0,0.5); border-radius: 24px; padding: 8px 6px;
 }
 .wt-reaction-bar button {
@@ -437,7 +445,7 @@ html, body {
   max-height: 0; opacity: 0; overflow: hidden; pointer-events: none;
   transition: max-height 220ms ease, opacity 180ms ease, padding 220ms ease;
 }
-.wt-video-vmenu.is-open { max-height: 280px; opacity: 1; padding: 10px 8px; pointer-events: auto; }
+.wt-video-vmenu.is-open { max-height: 330px; opacity: 1; padding: 10px 8px; pointer-events: auto; }
 /* When there isn't enough room below (near the bottom of the screen),
    flip the menu to expand UPWARD above the runtime pill instead. */
 .wt-video-vmenu.opens-up { top: auto; bottom: 100%; margin-top: 0; margin-bottom: 44px; }
@@ -452,11 +460,14 @@ html, body {
 .wt-video-vmenu button.wt-video-vmenu-danger label { color: #fff; }
 .wt-video-vmenu button.is-active { background: rgba(255,180,60,0.25); }
 
-/* Minimized circular live-video bubble (rectangle ⇄ circle — same stream, no reconnect) */
+/* Minimized circular live-video bubble (rectangle ⇄ circle — same stream, no reconnect).
+   ~2× the previous 64px diameter per spec — visual size only, no change
+   to the stream/WebRTC logic that fills it. */
 .wt-video-bubble {
   position: absolute; z-index: 6;
   top: max(10px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right));
-  width: 64px; height: 64px; border-radius: 50%; overflow: hidden;
+  width: 120px; height: 120px; border-radius: 50%; overflow: hidden;
+  aspect-ratio: 1 / 1;
   border: 2px solid rgba(255,255,255,0.5); box-shadow: 0 4px 16px rgba(0,0,0,0.4);
   touch-action: none; cursor: grab; background: #111;
 }

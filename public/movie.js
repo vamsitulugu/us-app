@@ -162,7 +162,7 @@
     document.getElementById('wtPage').classList.toggle('is-watching', name === 'watching');
     if (name === 'setup') els.setup.hidden = false;
     else if (name === 'countdown') els.countdown.hidden = false;
-    else if (name === 'watching') { els.watching.hidden = false; if (typeof syncChatGap === 'function') requestAnimationFrame(syncChatGap); }
+    else if (name === 'watching') { els.watching.hidden = false; if (typeof syncChatGap === 'function') requestAnimationFrame(syncChatGap); if (typeof syncReactionsAnchor === 'function') requestAnimationFrame(syncReactionsAnchor); }
   }
 
   function showSetupSub(sub) {
@@ -741,6 +741,7 @@
       try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch (e) {}
     }
     wakeControls();
+    setTimeout(() => { if (typeof syncChatGap === 'function') syncChatGap(); if (typeof syncReactionsAnchor === 'function') syncReactionsAnchor(); }, 200);
   });
 
   // ═══════════════════════════════════════════════════════
@@ -875,12 +876,14 @@
     setInterval(refresh, 3000);
 
     // ── Voice bar ──
-    $('voiceMuteBtn').onclick = () => { try { getCall().toggleMute(); } catch (e) {} refresh(); };
-    $('voiceSpeakerBtn').onclick = () => { try { getCall().toggleSpeaker(); } catch (e) {} refresh(); };
-    $('voiceEndBtn').onclick = () => { try { getCall().endWatchCall(); } catch (e) {} restoreMovieAudio(); refresh(); };
-    voiceBar.addEventListener('dblclick', () => { voiceCollapsed = true; refresh(); });
-    let voiceBarCollapseTimer = null;
-    voiceBar.addEventListener('pointerdown', () => { clearTimeout(voiceBarCollapseTimer); });
+    $('voiceMuteBtn').onclick = (e) => { e.stopPropagation(); try { getCall().toggleMute(); } catch (err) {} refresh(); };
+    $('voiceSpeakerBtn').onclick = (e) => { e.stopPropagation(); try { getCall().toggleSpeaker(); } catch (err) {} refresh(); };
+    $('voiceEndBtn').onclick = (e) => { e.stopPropagation(); try { getCall().endWatchCall(); } catch (err) {} restoreMovieAudio(); refresh(); };
+    // Fix 2: the WHOLE bar (name, runtime, phone icon, empty background)
+    // collapses it — not a tiny corner hitbox — because the three real
+    // action buttons above already stop the click from ever reaching
+    // this handler.
+    voiceBar.addEventListener('click', () => { voiceCollapsed = true; refresh(); });
     $('wtVoicePill').onclick = () => { voiceCollapsed = false; refresh(); };
 
     // ── Video window: drag repositions (unchanged) ──
@@ -896,7 +899,8 @@
       const dx = e.clientX - vsx, dy = e.clientY - vsy;
       if (Math.abs(dx) > 6 || Math.abs(dy) > 6) vDragMoved = true;
       if (vDragMoved) {
-        videoWin.style.left = Math.max(4, vox + dx) + 'px'; videoWin.style.top = Math.max(4, voy + dy) + 'px';
+        const p = clampDragXY(videoWin, vox + dx, voy + dy);
+        videoWin.style.left = p.left + 'px'; videoWin.style.top = p.top + 'px';
         videoWin.style.right = 'auto'; videoWin.style.bottom = 'auto';
         if (videoVMenu.classList.contains('is-open')) positionVMenu(); // keep it from drifting off-screen mid-drag
       }
@@ -914,11 +918,25 @@
       el.style.right = snapLeft ? 'auto' : '12px';
       el.style.top = '12px';
     }
+    // Fix 3 (2G carried over): clamp using the element's OWN current
+    // size, read live off the DOM — so this keeps working correctly no
+    // matter how large the circular bubble is sized in CSS, without
+    // hard-coding its diameter here. Reserves room at the bottom for the
+    // timeline/reaction stack/bottom nav so a dragged bubble/rectangle
+    // can never end up under them.
+    const DRAG_BOTTOM_RESERVE = 150;
+    function clampDragXY(el, left, top) {
+      const wrap = els.wrap.getBoundingClientRect();
+      const w = el.offsetWidth, h = el.offsetHeight;
+      const minLeft = 4, maxLeft = Math.max(minLeft, wrap.width - w - 4);
+      const minTop = 4, maxTop = Math.max(minTop, wrap.height - h - DRAG_BOTTOM_RESERVE);
+      return { left: Math.min(Math.max(left, minLeft), maxLeft), top: Math.min(Math.max(top, minTop), maxTop) };
+    }
 
     // ── 2C/2D — Runtime pill tap → vertical menu expands/collapses.
     // 2G — pick up/down automatically based on free space so the menu
     // never renders under the timeline/bottom nav/Android nav area. ──
-    const VMENU_HEIGHT_ESTIMATE = 210; // 4 buttons + gaps + padding, roughly
+    const VMENU_HEIGHT_ESTIMATE = 250; // 5 buttons + gaps + padding, roughly
     function positionVMenu() {
       const winRect = videoWin.getBoundingClientRect();
       const wrapRect = els.wrap.getBoundingClientRect();
@@ -950,6 +968,19 @@
       refresh();
     };
     $('vmenuMinBtn').onclick = (e) => { e.stopPropagation(); videoVMenu.classList.remove('is-open'); videoMinimized = true; refresh(); };
+    let isSwitchingCamera = false;
+    $('vmenuSwapBtn').onclick = async (e) => {
+      e.stopPropagation();
+      if (isSwitchingCamera) return; // debounce — flipCamera() already uses replaceTrack() on the
+      isSwitchingCamera = true;      // existing sender, never touches call/signaling/timer
+      const btn = $('vmenuSwapBtn');
+      btn.style.opacity = '0.5';
+      try {
+        const Call = getCall();
+        if (Call && typeof Call.flipCamera === 'function') await Call.flipCamera();
+      } catch (err) { /* rear camera unavailable etc — current camera stays active */ }
+      finally { isSwitchingCamera = false; btn.style.opacity = ''; }
+    };
     $('vmenuEndBtn').onclick = (e) => {
       e.stopPropagation();
       videoVMenu.classList.remove('is-open');
@@ -970,7 +1001,8 @@
       const dx = e.clientX - bsx, dy = e.clientY - bsy;
       if (Math.abs(dx) > 6 || Math.abs(dy) > 6) bDragMoved = true;
       if (bDragMoved) {
-        videoBubble.style.left = Math.max(4, box_ + dx) + 'px'; videoBubble.style.top = Math.max(4, boy + dy) + 'px';
+        const p = clampDragXY(videoBubble, box_ + dx, boy + dy);
+        videoBubble.style.left = p.left + 'px'; videoBubble.style.top = p.top + 'px';
         videoBubble.style.right = 'auto'; videoBubble.style.bottom = 'auto';
       }
     });
@@ -1042,6 +1074,22 @@
   // shown ABOVE the timeline. Only one message is ever on screen — a
   // burst of messages is queued and shown one-at-a-time so the movie
   // never gets a stacked wall of bubbles.
+  // Fix 5: keep the reaction toggle anchored just above the right end of
+  // the timeline — measured live off the timeline row's own position
+  // (not a hard-coded top:50%), so it tracks correctly across
+  // portrait/landscape/fullscreen and Fit/Fill/Zoom.
+  function syncReactionsAnchor() {
+    const timelineRow = document.querySelector('.wt-timeline-row');
+    const overlay = $('wtBottomOverlay');
+    if (!timelineRow || !overlay) return;
+    const wrapRect = els.wrap.getBoundingClientRect();
+    const rowRect = timelineRow.getBoundingClientRect();
+    const gap = (wrapRect.bottom - rowRect.top) + 12; // 12px clearance above the timeline
+    els.wrap.style.setProperty('--wt-reactions-bottom', gap + 'px');
+  }
+  window.addEventListener('resize', syncReactionsAnchor);
+  window.addEventListener('orientationchange', () => setTimeout(syncReactionsAnchor, 150));
+
   // Fix 4: gap between the message bubble and the timeline must survive
   // portrait/landscape and any future change to the bottom overlay's own
   // height, so it's measured live rather than hard-coded.
