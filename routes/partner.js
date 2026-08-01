@@ -96,13 +96,25 @@ router.post('/request', async (req, res) => {
   // Push notification is only a convenience — the database is the source of truth.
   const tPushStart = Date.now();
   console.log(`[partner:request] push start t=${tPushStart}`);
+  // No couple exists yet at this point (that's the whole point of this
+  // request), so the centralized couples-table avatar lookup in
+  // sendFCMToPartner doesn't apply here — fetch the sender's photo
+  // directly from profiles so the receiver sees who's inviting them.
+  let senderAvatar = null;
+  try {
+    const { data: senderProfile } = await supabase
+      .from('profiles').select('avatar_url').eq('id', sender.id).maybeSingle();
+    senderAvatar = senderProfile ? senderProfile.avatar_url : null;
+  } catch (_) {}
   sendPushToUser(receiver.id, {
     title: '💕 New Partner Request',
     body: (sender.name || 'Someone') + ' sent you a partner request. Tap to review and accept.',
     icon: '/icons/icon-192.png',
     tag: 'partner-request',
     requestId: request.id,
-    userId: receiver.id
+    userId: receiver.id,
+    senderName: sender.name || undefined,
+    senderAvatar: senderAvatar || undefined
   }).then(result => {
     console.log(`[partner:request] push done t=${Date.now()} (+${Date.now() - tPushStart}ms) result=${JSON.stringify(result)}`);
   }).catch(err => {
@@ -277,11 +289,25 @@ router.post('/accept', async (req, res) => {
   broadcastEvent(`partner_requests:${senderId}`, 'partner_accepted', { coupleId })
     .then(() => console.log(`[partner:accept] realtime broadcast sent to sender=${senderId}`));
 
+  // The person being notified here is the original requester; the photo
+  // to show is the RECEIVER's (the person who just accepted, i.e. `userId`
+  // from the request body) — fetched directly from profiles since this
+  // fires right as the couple is being created, same reasoning as the
+  // partner-request push above.
+  let receiverAvatar = null;
+  try {
+    const { data: receiverProfile } = await supabase
+      .from('profiles').select('avatar_url').eq('id', userId).maybeSingle();
+    receiverAvatar = receiverProfile ? receiverProfile.avatar_url : null;
+  } catch (_) {}
+
   sendPushToUser(senderId, {
     title: 'Twin Hearts ❤️',
     body: (receiverName || 'Your partner') + ' accepted your connection request!',
     icon: '/icons/icon-192.png',
-    tag: 'partner-accepted'
+    tag: 'partner-accepted',
+    senderName: receiverName || undefined,
+    senderAvatar: receiverAvatar || undefined
   }).then(result => {
     console.log(`[partner:accept] push done result=${JSON.stringify(result)}`);
   }).catch(err => console.error('[partner:accept] push threw unexpectedly:', err.message));

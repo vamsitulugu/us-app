@@ -404,6 +404,30 @@ async function sendFCMToPartner(coupleId, senderRole, payload) {
     return;
   }
   const partnerRole = senderRole === 'user1' ? 'user2' : 'user1';
+
+  // Centralized here on purpose: every feature that sends a push (chat,
+  // calls, dreams, memories, games, reminders, partner requests, touch,
+  // safety — everything) goes through this one function, so resolving
+  // the sender's name/photo HERE means every notification type gets it
+  // automatically, without needing this same lookup duplicated in every
+  // individual route file. Callers can still pass their own
+  // payload.senderName/senderAvatar explicitly (kept as an override) —
+  // this only fills them in when absent.
+  if (payload.senderName === undefined || payload.senderAvatar === undefined) {
+    try {
+      const { data: couple } = await supabase.from('couples')
+        .select('user1_name, user2_name, user1_avatar, user2_avatar').eq('id', coupleId).maybeSingle();
+      if (couple) {
+        if (payload.senderName === undefined) {
+          payload.senderName = senderRole === 'user1' ? couple.user1_name : couple.user2_name;
+        }
+        if (payload.senderAvatar === undefined) {
+          payload.senderAvatar = senderRole === 'user1' ? couple.user1_avatar : couple.user2_avatar;
+        }
+      }
+    } catch (_) {}
+  }
+
   const { data: tokenRow, error: lookupErr } = await supabase.from('fcm_tokens')
     .select('token, updated_at').eq('couple_id', coupleId).eq('role', partnerRole).maybeSingle();
 

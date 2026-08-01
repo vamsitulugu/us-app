@@ -31,6 +31,21 @@ router.get('/turn-creds', async (req, res) => {
 router.post('/notify', async (req, res) => {
   const { coupleId, callerRole, type } = req.body;
   if (!coupleId || !callerRole) return res.status(400).json({ error: 'Missing data' });
+
+  // ROOT CAUSE FIX: this handler never looked up the caller's name or
+  // avatar at all, so the native incoming-call notification always fell
+  // back to "Your partner" with no photo — not an Android limitation,
+  // this payload just never carried the data. Mirrors the same lookup
+  // routes/chat.js already does for chat notifications.
+  let callerName = null;
+  let callerAvatar = null;
+  try {
+    const { data: couple } = await supabase.from('couples')
+      .select('user1_name, user2_name, user1_avatar, user2_avatar').eq('id', coupleId).maybeSingle();
+    callerName = couple ? (callerRole === 'user1' ? couple.user1_name : couple.user2_name) : null;
+    callerAvatar = couple ? (callerRole === 'user1' ? couple.user1_avatar : couple.user2_avatar) : null;
+  } catch (_) {}
+
   const callPayload = {
     title: type === 'video' ? '🎥 Incoming Video Call' : '📞 Incoming Voice Call',
     body: 'Tap to answer',
@@ -38,7 +53,9 @@ router.post('/notify', async (req, res) => {
     tag: 'incoming-call',
     renotify: true,
     url: '/?page=chat',
-    type: type || 'voice'
+    type: type || 'voice',
+    senderName: callerName || undefined,
+    senderAvatar: callerAvatar || undefined
   };
   if (_sendPushToPartner) _sendPushToPartner(coupleId, callerRole, callPayload).catch(() => {});
   if (_sendFCMToPartner) _sendFCMToPartner(coupleId, callerRole, callPayload).catch(() => {});
