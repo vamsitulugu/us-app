@@ -90,6 +90,9 @@
       <!-- Tap catcher for show/hide controls -->
       <div class="wt-tap-catcher" id="tapCatcher"></div>
 
+      <!-- Temporary "Fit / Fill / Zoom" indicator (spec §29) -->
+      <div class="wt-mode-label" id="wtModeLabel" hidden></div>
+
       <!-- Mini VOICE call bar (bridged from existing call system) -->
       <div class="wt-voice-bar" id="wtVoiceBar" hidden>
         <i data-lucide="phone" class="wt-voice-bar-icon"></i>
@@ -106,7 +109,7 @@
 
       <!-- Mini VIDEO call window (bridged from existing call system) -->
       <div class="wt-video-win" id="wtVideoWin" hidden>
-        <video id="wtVideoWinVideo" autoplay playsinline muted></video>
+        <video id="wtVideoWinVideo" autoplay playsinline></video>
         <div class="wt-video-win-avatar-fallback" id="wtVideoWinAvatarFallback" hidden></div>
         <div class="wt-video-win-controls" id="wtVideoWinControls" hidden>
           <button id="videoWinMuteBtn" aria-label="Mute"><i data-lucide="mic"></i></button>
@@ -117,7 +120,7 @@
       </div>
       <!-- Minimized circular live-video bubble -->
       <div class="wt-video-bubble" id="wtVideoBubble" hidden>
-        <video id="wtVideoBubbleVideo" autoplay playsinline muted></video>
+        <video id="wtVideoBubbleVideo" autoplay playsinline></video>
         <div class="wt-video-bubble-avatar-fallback" id="wtVideoBubbleAvatarFallback" hidden></div>
       </div>
 

@@ -133,8 +133,23 @@ html, body { height: 100%; margin: 0; background: #000; }
   position: relative; flex: 1; width: 100%; background: #000;
   overflow: hidden;
 }
-#wtVideo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+#wtVideo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; transition: transform 0.15s ease; }
 .wt-tap-catcher { position: absolute; inset: 0; z-index: 1; }
+
+/* Fit/Fill/Zoom display modes — cycled by repeatedly tapping the
+   fullscreen control while already fullscreen (spec §27–29). */
+.wt-player-wrap.wt-mode-fit #wtVideo { object-fit: contain; transform: none; }
+.wt-player-wrap.wt-mode-fill #wtVideo { object-fit: cover; transform: none; }
+.wt-player-wrap.wt-mode-zoom #wtVideo { object-fit: cover; transform: scale(1.15); }
+
+/* Temporary "Fit / Fill / Zoom" indicator, fades after ~1s. */
+.wt-mode-label {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.65); color: #fff; padding: 7px 18px; border-radius: 20px;
+  font-size: 13px; font-weight: 600; letter-spacing: 0.02em; z-index: 6;
+  pointer-events: none; transition: opacity 0.3s ease;
+}
+.wt-mode-label[hidden] { display: none; }
 
 /* Overlays fade with the .controls-hidden class toggled by JS on playerWrap */
 .wt-top-overlay, .wt-center-controls, .wt-bottom-overlay, .wt-reactions-col {
@@ -214,13 +229,28 @@ html, body { height: 100%; margin: 0; background: #000; }
   flex: 1; -webkit-appearance: none; appearance: none;
   height: 28px; background: transparent; margin: 0;
 }
-#wtTimeline::-webkit-slider-runnable-track { height: 4px; background: rgba(255,255,255,0.25); border-radius: 4px; }
+/* Played portion = red (brand accent), unplayed = dark gray, thumb = red.
+   --wt-progress is kept in sync with playback by movie.js on every
+   timeupdate (0%–100%), so only the ::before-the-thumb section is red. */
+#wtTimeline { --wt-progress: 0%; }
+#wtTimeline::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 4px;
+  background: linear-gradient(to right,
+    var(--accent, #ff3b5c) var(--wt-progress, 0%),
+    rgba(255,255,255,0.25) var(--wt-progress, 0%));
+}
 #wtTimeline::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
   width: 14px; height: 14px; margin-top: -5px; border-radius: 50%;
   background: var(--accent, #ff3b5c); border: 2px solid #fff;
 }
-#wtTimeline::-moz-range-track { height: 4px; background: rgba(255,255,255,0.25); border-radius: 4px; }
+#wtTimeline::-moz-range-track {
+  height: 4px; border-radius: 4px;
+  background: linear-gradient(to right,
+    var(--accent, #ff3b5c) var(--wt-progress, 0%),
+    rgba(255,255,255,0.25) var(--wt-progress, 0%));
+}
+#wtTimeline::-moz-range-progress { height: 4px; border-radius: 4px; background: var(--accent, #ff3b5c); }
 #wtTimeline::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--accent, #ff3b5c); border: 2px solid #fff; }
 
 .wt-secondary-row { display: flex; justify-content: space-between; gap: 4px; }

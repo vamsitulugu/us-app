@@ -111,6 +111,7 @@
   function teardownRealtime() {
     if (_channel && _sb) { try { _sb.removeChannel(_channel); } catch (e) {} _channel = null; }
     clearAllTimers();
+    try { const Call = window.parent.Call; if (Call) Call.clearWatchSession(); } catch (e) {}
   }
 
   // ═══════════════════════════════════════════════════════
@@ -252,7 +253,10 @@
   // ═══════════════════════════════════════════════════════
   function renderFromRoom() {
     const r = state.room;
-    if (!r || r.status === 'idle' || r.status === 'ended') { showState('setup'); showSetupSub('empty'); hideInviteModal(); return; }
+    if (!r || r.status === 'idle' || r.status === 'ended') {
+      if (state.uiState === 'watching') clearWatchCallSession(); // partner ended / reconnect found a dead room — kill any lingering call
+      showState('setup'); showSetupSub('empty'); hideInviteModal(); return;
+    }
 
     if (r.status === 'countdown' && r.scheduled_start_at) {
       hideInviteModal();
@@ -401,11 +405,36 @@
   // ═══════════════════════════════════════════════════════
   // SECTION 8 — Player + clock-based sync engine
   // ═══════════════════════════════════════════════════════
+  // The session id the Watch Together call engine scopes every media
+  // signal to. `scheduled_start_at` is established fresh by the server
+  // on every accept-start (routes/routes-movie.js) — it is stable for the
+  // whole life of ONE movie session and different for every new one, so
+  // it's exactly the "unique per Watch Together session" identifier the
+  // call lifecycle needs (spec §4) without any new server field.
+  function watchSessionIdFor(room) {
+    return (room && room.scheduled_start_at) ? (COUPLE_ID + ':' + room.scheduled_start_at) : null;
+  }
+  function registerWatchCallSession(room) {
+    try {
+      const Call = window.parent.Call;
+      const id = watchSessionIdFor(room);
+      if (Call && id) Call.registerWatchSession(id);
+    } catch (e) {}
+  }
+  function clearWatchCallSession() {
+    try { const Call = window.parent.Call; if (Call) Call.clearWatchSession(); } catch (e) {}
+    // Local mini-UI state must reset too, or a NEW session could briefly
+    // render with a leftover collapsed/minimized presentation choice.
+    if (callTimerInt) { clearInterval(callTimerInt); callTimerInt = null; }
+    callStartedAt = null; restoreMovieAudio(); videoMinimized = false; voiceCollapsed = false;
+  }
+
   function enterWatching(room) {
     if (state.uiState === 'watching') return;
     showState('watching');
     console.info('[WT] PLAYER mounted');
     setupRealtime();
+    registerWatchCallSession(room);
     $('wtNowTitle').textContent = state.myTitle || room[`${ROLE}_movie_title`] || 'Movie';
 
     if (!state.localObjectUrl) {
@@ -491,7 +520,11 @@
   // ("change"), never per-pixel on "input" — spec §Timeline.
   const timelineEl = $('wtTimeline');
   timelineEl.addEventListener('pointerdown', () => { state.scrubbing = true; wakeControls(true); });
+  function setTimelineProgress(frac) {
+    timelineEl.style.setProperty('--wt-progress', (Math.max(0, Math.min(1, frac)) * 100) + '%');
+  }
   timelineEl.addEventListener('input', () => {
+    setTimelineProgress(parseFloat(timelineEl.value) / 1000);
     if (!els.video.duration) return;
     const t = (parseFloat(timelineEl.value) / 1000) * els.video.duration;
     $('wtTimeCur').textContent = fmtTime(t);
@@ -514,6 +547,7 @@
   els.video.addEventListener('timeupdate', () => {
     if (!els.video.duration || state.scrubbing) return;
     timelineEl.value = (els.video.currentTime / els.video.duration) * 1000;
+    setTimelineProgress(els.video.currentTime / els.video.duration);
     $('wtTimeCur').textContent = fmtTime(els.video.currentTime);
     $('wtTimeTotal').textContent = fmtTime(els.video.duration);
   });
@@ -653,15 +687,34 @@
   }
 
   // ═══════════════════════════════════════════════════════
-  // SECTION 11 — Fullscreen
+  // SECTION 11 — Fullscreen + Fit/Fill/Zoom display-mode cycling.
+  // Tapping the control the FIRST time (not fullscreen yet) enters
+  // fullscreen at Fit. While already fullscreen, tapping the SAME
+  // control cycles Fit → Fill → Zoom → Fit instead of exiting — exiting
+  // fullscreen is left to the system back gesture / Escape, which the
+  // browser/WebView already handles via 'fullscreenchange' below.
   // ═══════════════════════════════════════════════════════
+  const DISPLAY_MODES = ['fit', 'fill', 'zoom'];
+  let displayModeIdx = 0;
+  function applyDisplayMode(mode) {
+    els.wrap.classList.remove('wt-mode-fit', 'wt-mode-fill', 'wt-mode-zoom');
+    els.wrap.classList.add('wt-mode-' + mode);
+    const label = $('wtModeLabel');
+    if (!label) return;
+    label.textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
+    label.hidden = false;
+    clearTimeout(applyDisplayMode._t);
+    applyDisplayMode._t = setTimeout(() => { label.hidden = true; }, 1000);
+  }
   $('btnFullscreen').onclick = async () => {
     if (!document.fullscreenElement) {
       await els.wrap.requestFullscreen().catch(() => {});
       try { screen.orientation && screen.orientation.lock && await screen.orientation.lock('landscape'); } catch (e) {}
+      displayModeIdx = 0;
+      applyDisplayMode(DISPLAY_MODES[displayModeIdx]);
     } else {
-      await document.exitFullscreen().catch(() => {});
-      try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch (e) {}
+      displayModeIdx = (displayModeIdx + 1) % DISPLAY_MODES.length;
+      applyDisplayMode(DISPLAY_MODES[displayModeIdx]);
     }
     wakeControls();
   };
@@ -669,21 +722,30 @@
   // this handler is attached exactly once at module scope.
   document.addEventListener('fullscreenchange', () => {
     setIcon($('fullscreenIcon'), document.fullscreenElement ? 'shrink' : 'expand');
+    if (!document.fullscreenElement) {
+      // Leaving fullscreen (system back/Escape) — reset to Fit for next time.
+      displayModeIdx = 0;
+      els.wrap.classList.remove('wt-mode-fill', 'wt-mode-zoom');
+      els.wrap.classList.add('wt-mode-fit');
+      try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch (e) {}
+    }
     wakeControls();
   });
 
   // ═══════════════════════════════════════════════════════
   // SECTION 12 — Mini call UI, bridged to the EXISTING call engine via
-  // window.parent.Call. No new WebRTC/backend is created here — this
-  // only changes PRESENTATION for Watch Together:
+  // window.parent.Call's Watch Together bridge (registerWatchSession /
+  // startWatchCall / endWatchCall / getWatchState / getRemoteStream /
+  // getRemoteCamOn — see public/chat/call.js). No new WebRTC/backend is
+  // created here — Watch Together direct-joins through the SAME engine
+  // Chat calls use, but the fullscreen ringing/incoming/PiP presentation
+  // in call.js is never invoked for it, so this mini UI is the ONLY
+  // thing ever shown:
   //   • VOICE  → compact mini bar (collapsible to a pill)
   //   • VIDEO  → small vertical-rectangle window, minimizable to a
   //              circular live-video bubble (same stream, no reconnect)
-  // Right after start/accept we call Call.minimize(), which is the
-  // app's own existing "collapse the fullscreen call screen" path — we
-  // are not adding a new one — so Watch Together never shows the
-  // fullscreen call UI. The Chat page never calls minimize() itself, so
-  // its own calling behavior is completely unaffected.
+  // The Chat page's own calling behavior is completely unaffected — it
+  // never touches any of the watch-* functions.
   // ═══════════════════════════════════════════════════════
   function getCall() { try { return window.parent.Call; } catch (e) { return null; } }
 
@@ -720,40 +782,58 @@
     const videoWin = $('wtVideoWin'), videoWinVideo = $('wtVideoWinVideo'), videoWinFallback = $('wtVideoWinAvatarFallback'), videoWinControls = $('wtVideoWinControls');
     const videoBubble = $('wtVideoBubble'), videoBubbleVideo = $('wtVideoBubbleVideo'), videoBubbleFallback = $('wtVideoBubbleAvatarFallback');
 
+    // Bind a remote <video> element to `stream` and make sure it actually
+    // starts playing — assigning srcObject alone doesn't guarantee frames
+    // render on every WebView (root cause of the rectangle staying on its
+    // avatar-fallback letter even once a live track exists).
+    function bindRemoteVideo(el, stream) {
+      if (el.srcObject !== stream) el.srcObject = stream;
+      const p = el.play();
+      if (p && p.catch) p.catch(() => {});
+    }
+
     function refresh() {
       const Call = getCall();
-      if (!Call || typeof Call.getRemoteStream !== 'function') {
+      if (!Call || typeof Call.getWatchState !== 'function') {
         voiceBar.hidden = true; voicePill.hidden = true; videoWin.hidden = true; videoBubble.hidden = true;
         if (callTimerInt) { clearInterval(callTimerInt); callTimerInt = null; }
         callStartedAt = null; restoreMovieAudio();
         return;
       }
-      const st = typeof Call.getState === 'function' ? Call.getState() : {};
+      // getWatchState().active is ONLY true for a call tagged
+      // context:'watch_together' belonging to THIS device's currently
+      // registered watch session (see registerWatchSession() calls
+      // below) — a leftover/stale call from a previous session, or a
+      // normal Chat call, can never make this true. This is what stops
+      // the mini call UI from ever auto-appearing on its own.
+      const st = Call.getWatchState();
+      if (!st.active) {
+        voiceBar.hidden = true; voicePill.hidden = true; videoWin.hidden = true; videoBubble.hidden = true;
+        if (callTimerInt) { clearInterval(callTimerInt); callTimerInt = null; }
+        callStartedAt = null; restoreMovieAudio();
+        return;
+      }
       const stream = Call.getRemoteStream();
-      const active = !!stream || st.callType; // connecting or connected
-      if (!active) {
-        voiceBar.hidden = true; voicePill.hidden = true; videoWin.hidden = true; videoBubble.hidden = true;
-        if (callTimerInt) { clearInterval(callTimerInt); callTimerInt = null; }
-        callStartedAt = null; restoreMovieAudio();
-        return;
-      }
-      if (!callStartedAt) {
-        callStartedAt = Date.now();
-        if (!callTimerInt) callTimerInt = setInterval(updateTimers, 1000);
+      if (!callTimerInt) {
         duckMovieAudio();
-        try { Call.minimize(); } catch (e) {} // collapse the existing fullscreen call screen
+        callTimerInt = setInterval(updateTimers, 1000);
       }
+      // The timer ALWAYS comes from the media session's own authoritative
+      // connect timestamp (Call.getWatchState().startedAt), never from a
+      // locally-captured Date.now() — that's what previously let an old
+      // duration silently keep counting into a brand-new movie session.
+      callStartedAt = st.startedAt || null;
 
       if (st.callType === 'video') {
         voiceBar.hidden = true; voicePill.hidden = true;
         const camOn = typeof Call.getRemoteCamOn === 'function' ? Call.getRemoteCamOn() : true;
         if (videoMinimized) {
           videoWin.hidden = true; videoBubble.hidden = false;
-          if (stream && camOn) { videoBubbleVideo.srcObject = stream; videoBubbleVideo.hidden = false; videoBubbleFallback.hidden = true; }
+          if (stream && camOn) { bindRemoteVideo(videoBubbleVideo, stream); videoBubbleVideo.hidden = false; videoBubbleFallback.hidden = true; }
           else { videoBubbleVideo.hidden = true; videoBubbleFallback.hidden = false; videoBubbleFallback.textContent = (ctx && ctx.partnerName ? ctx.partnerName[0] : 'P'); }
         } else {
           videoBubble.hidden = true; videoWin.hidden = false;
-          if (stream && camOn) { videoWinVideo.srcObject = stream; videoWinVideo.hidden = false; videoWinFallback.hidden = true; }
+          if (stream && camOn) { bindRemoteVideo(videoWinVideo, stream); videoWinVideo.hidden = false; videoWinFallback.hidden = true; }
           else { videoWinVideo.hidden = true; videoWinFallback.hidden = false; videoWinFallback.textContent = (ctx && ctx.partnerName ? ctx.partnerName[0] : 'P'); }
         }
       } else {
@@ -777,7 +857,7 @@
     // ── Voice bar ──
     $('voiceMuteBtn').onclick = () => { try { getCall().toggleMute(); } catch (e) {} refresh(); };
     $('voiceSpeakerBtn').onclick = () => { try { getCall().toggleSpeaker(); } catch (e) {} refresh(); };
-    $('voiceEndBtn').onclick = () => { try { getCall().endCall(); } catch (e) {} restoreMovieAudio(); };
+    $('voiceEndBtn').onclick = () => { try { getCall().endWatchCall(); } catch (e) {} restoreMovieAudio(); refresh(); };
     voiceBar.addEventListener('dblclick', () => { voiceCollapsed = true; refresh(); });
     let voiceBarCollapseTimer = null;
     voiceBar.addEventListener('pointerdown', () => { clearTimeout(voiceBarCollapseTimer); });
@@ -820,7 +900,7 @@
     }
     $('videoWinMuteBtn').onclick = () => { try { getCall().toggleMute(); } catch (e) {} refresh(); };
     $('videoWinCamBtn').onclick = () => { try { getCall().toggleCam(); } catch (e) {} };
-    $('videoWinEndBtn').onclick = () => { try { getCall().endCall(); } catch (e) {} restoreMovieAudio(); };
+    $('videoWinEndBtn').onclick = () => { try { getCall().endWatchCall(); } catch (e) {} restoreMovieAudio(); refresh(); };
     $('videoWinMinBtn').onclick = () => { videoMinimized = true; refresh(); }; // UI-only — stream keeps playing, no reconnect
 
     // ── Circular bubble: tap restores rectangle, draggable too ──
@@ -846,13 +926,16 @@
     });
   }
 
-  // Voice / Video call buttons — connect to the EXISTING call system,
-  // no fake UI, no second backend. Watch Together never opens the
-  // fullscreen call screen (see setupCallBridge → Call.minimize()).
+  // Voice / Video call buttons — connect DIRECTLY through the shared call
+  // engine's Watch Together bridge. No outgoing screen is ever rendered:
+  // startWatchCall() creates the offer immediately, and the partner's
+  // handleWatchOffer() auto-joins as soon as it arrives (see call.js) —
+  // this is what makes Watch Together voice/video a direct-join
+  // experience rather than a traditional ring→accept phone call.
   $('btnVoiceCall').onclick = () => {
     try {
       const Call = window.parent.Call;
-      if (Call && typeof Call.startCall === 'function') Call.startCall('audio');
+      if (Call && typeof Call.startWatchCall === 'function') Call.startWatchCall('voice');
       else toast('Call system unavailable.');
     } catch (e) { toast('Call system unavailable.'); }
     wakeControls();
@@ -860,7 +943,7 @@
   $('btnVideoCall').onclick = () => {
     try {
       const Call = window.parent.Call;
-      if (Call && typeof Call.startCall === 'function') Call.startCall('video');
+      if (Call && typeof Call.startWatchCall === 'function') Call.startWatchCall('video');
       else toast('Call system unavailable.');
     } catch (e) { toast('Call system unavailable.'); }
     wakeControls();
@@ -953,10 +1036,20 @@
   $('btnEndMovie').onclick = () => { controlsLocked = true; $('endModalBackdrop').hidden = false; wakeControls(true); };
   $('btnCancelEnd').onclick = () => { $('endModalBackdrop').hidden = true; controlsLocked = false; armHideTimer(); };
   $('btnConfirmEnd').onclick = async () => { $('endModalBackdrop').hidden = true; controlsLocked = false; await endSession(); };
-  $('btnExitWatching').onclick = () => { controlsLocked = true; $('endModalBackdrop').hidden = false; wakeControls(true); };
+  $('btnExitWatching').onclick = () => {
+    // While fullscreen, this button's first job is exiting fullscreen
+    // (spec §28's "clear EXIT FULLSCREEN behavior") — it does NOT also
+    // open the End Movie confirmation in the same tap; tap again
+    // afterward for that.
+    if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); return; }
+    controlsLocked = true; $('endModalBackdrop').hidden = false; wakeControls(true);
+  };
 
   async function endSession() {
     hideBanner();
+    // Mandatory ordering (spec §11): terminate Watch Together media FIRST,
+    // then the movie session — never leave WebRTC running after exit.
+    clearWatchCallSession();
     try {
       const room = await api('POST', `/${COUPLE_ID}/end`, { role: ROLE, movieTitle: state.myTitle, durationSec: state.myDuration });
       broadcastRoom(room);

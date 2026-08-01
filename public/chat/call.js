@@ -4,6 +4,20 @@ const Call = (function () {
   let pc, localStream, remoteStream, callType, isCaller = false;
   let timerInt, seconds = 0;
   let pollInterval;
+  // ─── Watch Together bridge state ───
+  // callContext tags whose PRESENTATION owns the current pc/localStream/
+  // remoteStream: 'chat' renders the existing fullscreen ringing/incoming/
+  // connected overlay + PiP exactly as before; 'watch_together' never
+  // touches any of that — it connects directly and is presented entirely
+  // by public/movie.js's own mini voice/video UI. Both contexts share this
+  // ONE WebRTC engine (pc/localStream/remoteStream/callType) — there is no
+  // second engine — mutual exclusion is enforced by the existing `if (pc)`
+  // guards in startCall()/startWatchCall(), so only one call (of either
+  // kind) can ever be in flight at a time.
+  let callContext = 'chat';
+  let watchSessionId = null;       // which movie session this device is currently inside
+  let watchMediaSessionId = null;  // which specific voice/video call instance is active
+  let watchMediaStartedAt = null;  // authoritative connect timestamp — the ONLY source for the WT call timer
   // Default false (earpiece) — matches how a real phone call starts.
   // setSinkId() below is kept for browsers where it works, but on Android
   // WebView it's a documented no-op for OS-level routing; the actual
@@ -301,6 +315,29 @@ async function initSignalCursor() {
     // decline card + side-by-side UI — it must never trigger the
     // full-screen call overlay here.
     if (m && m.gameCtx) return;
+
+    // ─── Watch Together signals: NEVER touch the Chat fullscreen UI ───
+    // These are routed entirely through the watch-specific handlers,
+    // which validate the sender's watchSessionId against OUR currently
+    // registered session (see registerWatchSession()) before doing
+    // anything — a stale or foreign-session signal is silently ignored
+    // instead of ever being able to auto-open a mic/camera.
+    const isWatch = m && m.context === 'watch_together';
+    if (isWatch) {
+      if (m.type === 'offer') { await handleWatchOffer(m); return; }
+      if (m.type === 'answer' && pc && callContext === 'watch_together') {
+        if (m.watchSessionId !== watchSessionId || m.mediaSessionId !== watchMediaSessionId) return;
+        await pc.setRemoteDescription(new RTCSessionDescription(m.sdp));
+        for (const cand of iceQueue) { try { await pc.addIceCandidate(cand); } catch (e) {} }
+        iceQueue = [];
+        return;
+      }
+      if (m.type === 'end') { if (m.watchSessionId === watchSessionId) cleanupWatchCall(); return; }
+      if (m.type === 'watch-upgrade-offer') { await handleWatchUpgradeOffer(m); return; }
+      if (m.type === 'watch-upgrade-answer') { await handleWatchUpgradeAnswer(m); return; }
+      return; // unknown watch-tagged signal — ignore rather than guess
+    }
+
     if (m.type === 'offer' && !pc) {
       if (m.ts && Date.now() - m.ts > 45000) return; // ignore stale offers
       showIncoming(m);
@@ -312,6 +349,11 @@ async function initSignalCursor() {
       iceQueue = [];
     }
     else if (m.type === 'ice') {
+      // A ice candidate belonging to an ACTIVE WATCH call must be routed
+      // to the shared pc too (both contexts share the one RTCPeerConnection),
+      // regardless of which context originally created it — ICE messages
+      // carry no context tag by design (spec keeps them minimal), so this
+      // always just feeds whichever pc/iceQueue currently exists.
       if (pc && pc.remoteDescription) {
         try { await pc.addIceCandidate(m.candidate); } catch (e) {}
       } else {
@@ -1017,7 +1059,15 @@ async function initSignalCursor() {
     pc = new RTCPeerConnection({ iceServers });
     remoteStream = new MediaStream();
     pc.ontrack = e => {
-      e.streams[0].getTracks().forEach(t => remoteStream.addTrack(t));
+      e.streams[0].getTracks().forEach(t => {
+        remoteStream.addTrack(t);
+        // A video track flips native .muted true/false as frames actually
+        // start/stop arriving — react to that immediately (root cause of
+        // the mini video window sitting on its avatar-fallback letter for
+        // up to 3s after the camera was really already live).
+        t.addEventListener('unmute', () => window.dispatchEvent(new CustomEvent('uwl:call-stream-changed')));
+        t.addEventListener('mute', () => window.dispatchEvent(new CustomEvent('uwl:call-stream-changed')));
+      });
       if (document.getElementById('callRemoteVideo')) document.getElementById('callRemoteVideo').srcObject = remoteStream;
       if (document.getElementById('callRemoteAudio')) document.getElementById('callRemoteAudio').srcObject = remoteStream;
       window.dispatchEvent(new CustomEvent('uwl:call-stream-changed'));
@@ -1028,6 +1078,15 @@ async function initSignalCursor() {
       if (pc.connectionState === 'connected') {
         if (disconnectGrace) { clearTimeout(disconnectGrace); disconnectGrace = null; }
         clearRingTimeout();
+        if (callContext === 'watch_together') {
+          // No fullscreen overlay, no PiP, no chat "Connected" screen —
+          // just record the ONE authoritative timestamp movie.js's mini
+          // UI computes its timer from (spec §25). Never overwritten by
+          // a later reconnect within the same media session.
+          if (!watchMediaStartedAt) watchMediaStartedAt = Date.now();
+          window.dispatchEvent(new CustomEvent('uwl:call-stream-changed'));
+          return;
+        }
         // setConnectedAudio() MUST run before renderActive() creates and
         // starts the <audio autoplay> element, not after. Previously the
         // audio element started playing immediately under whatever mode
@@ -1044,9 +1103,19 @@ async function initSignalCursor() {
       }
       if (pc.connectionState === 'failed') {
         if (disconnectGrace) { clearTimeout(disconnectGrace); disconnectGrace = null; }
+        if (callContext === 'watch_together') { cleanupWatchCall(); return; }
         window.playAppSound?.('call.failed'); toast('Call disconnected'); endCall(true);
       }
       else if (pc.connectionState === 'disconnected') {
+        if (callContext === 'watch_together') {
+          if (disconnectGrace) clearTimeout(disconnectGrace);
+          try { if (typeof pc.restartIce === 'function') pc.restartIce(); } catch (e) {}
+          disconnectGrace = setTimeout(() => {
+            disconnectGrace = null;
+            if (pc && pc.connectionState !== 'connected') cleanupWatchCall();
+          }, 12000);
+          return;
+        }
         window.playAppSound?.('call.network.reconnect');
         toast('Connection lost — reconnecting...');
         // 'disconnected' can recover on its own (brief network blip), but
@@ -1241,6 +1310,182 @@ async function initSignalCursor() {
   }
   function getState() { return { muted: isMuted, camOn: !isCamOff, callType, speakerOn: isSpeakerOn }; }
 
-  return { startCall, acceptCall, declineCall, endCall, toggleMute, toggleCam, toggleSpeaker, flipCamera, minimize, restore, toggleMoreMenu, openChatDuringCall, acceptVideoUpgrade, declineVideoUpgrade, openMap, consumeNativeAnswer, getRemoteStream, getRemoteCamOn, getState };
+  // ══════════════════════════════════════════════════════════════════
+  // WATCH TOGETHER — direct-join media session.
+  //
+  // Same engine (pc/localStream/remoteStream/getUserMedia/signaling) as
+  // the Chat call flow above; ZERO fullscreen ringing/incoming screens,
+  // ZERO PiP, ZERO chat call_log entries. Presentation lives entirely in
+  // public/movie.js's own mini voice/video UI, which polls getWatchState()
+  // /getRemoteStream() and listens for 'uwl:call-stream-changed'.
+  // ══════════════════════════════════════════════════════════════════
+
+  // Called by movie.js when it enters the WATCHING state, with an ID
+  // that is unique per movie session (and changes on every new session,
+  // e.g. the room's scheduled_start_at) — and cleared when that session
+  // ends. This is the single source of truth an incoming watch-call
+  // signal is validated against, so a stale/foreign-session offer can
+  // never auto-open a mic/camera (spec §23–24).
+  function registerWatchSession(id) { watchSessionId = id || null; }
+  function clearWatchSession() {
+    watchSessionId = null;
+    if (callContext === 'watch_together') cleanupWatchCall();
+  }
+
+  function watchState() {
+    return {
+      active: callContext === 'watch_together' && (!!pc || !!localStream),
+      callType, muted: isMuted, camOn: !isCamOff, speakerOn: isSpeakerOn,
+      startedAt: watchMediaStartedAt
+    };
+  }
+
+  // Partner A taps Voice/Video: create the offer immediately, no ringing
+  // screen. If a voice call is already active and Video is tapped, this
+  // upgrades the SAME session instead of starting a second one (spec §20).
+  async function startWatchCall(type) {
+    if (!watchSessionId) return; // never start media outside a real, current watch session
+    if (callContext === 'watch_together' && pc && callType === 'voice' && type === 'video') {
+      return upgradeWatchCallToVideo();
+    }
+    if (pc || callStarting) return; // one live call (chat OR watch) at a time — same engine
+    callStarting = true;
+    callContext = 'watch_together';
+    callType = type; isCaller = true; callLogged = true; // suppress Chat call_log rows for watch calls
+    isMuted = false; isCamOff = false; isSpeakerOn = false;
+    watchMediaSessionId = watchSessionId + ':' + Date.now() + ':' + Math.random().toString(36).slice(2, 7);
+    watchMediaStartedAt = null;
+    const myToken = ++callToken;
+    try {
+      if (!coupleId() || !S.paired) { cleanupWatchCall(); return; }
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
+      if (myToken !== callToken) { localStream.getTracks().forEach(t => t.stop()); localStream = null; return; }
+      await setupPeer();
+      if (myToken !== callToken) {
+        localStream && localStream.getTracks().forEach(t => t.stop()); localStream = null;
+        if (pc) { pc.close(); pc = null; }
+        return;
+      }
+      localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      if (myToken !== callToken) return;
+      await pushSignal({ type: 'offer', sdp: offer, callType: type, ts: Date.now(), context: 'watch_together', watchSessionId, mediaSessionId: watchMediaSessionId });
+      startPolling();
+      window.dispatchEvent(new CustomEvent('uwl:call-stream-changed'));
+    } catch (e) {
+      console.error('startWatchCall failed:', e);
+      toast(e && e.name === 'NotAllowedError' ? 'Camera/mic permission denied' : 'Could not start call');
+      cleanupWatchCall();
+    } finally {
+      callStarting = false;
+    }
+  }
+
+  // Partner B: an offer arrived tagged for OUR current watch session —
+  // auto-join immediately, no incoming screen, no Accept/Decline.
+  async function handleWatchOffer(m) {
+    if (!watchSessionId || m.watchSessionId !== watchSessionId) return; // foreign/stale session — ignore
+    if (m.ts && Date.now() - m.ts > 45000) return; // stale offer — ignore
+    if (pc || callStarting) return; // already in a call
+    callStarting = true;
+    callContext = 'watch_together';
+    callType = m.callType || 'voice'; isCaller = false; callLogged = true;
+    isMuted = false; isCamOff = false; isSpeakerOn = false;
+    watchMediaSessionId = m.mediaSessionId || null;
+    watchMediaStartedAt = null;
+    const myToken = ++callToken;
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: callType === 'video' });
+      if (myToken !== callToken) { localStream.getTracks().forEach(t => t.stop()); localStream = null; return; }
+      await setupPeer();
+      if (myToken !== callToken) {
+        localStream && localStream.getTracks().forEach(t => t.stop()); localStream = null;
+        if (pc) { pc.close(); pc = null; }
+        return;
+      }
+      localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+      await pc.setRemoteDescription(new RTCSessionDescription(m.sdp));
+      for (const cand of iceQueue) { try { await pc.addIceCandidate(cand); } catch (e) {} }
+      iceQueue = [];
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      if (myToken !== callToken) return;
+      await pushSignal({ type: 'answer', sdp: answer, context: 'watch_together', watchSessionId, mediaSessionId: watchMediaSessionId });
+      window.dispatchEvent(new CustomEvent('uwl:call-stream-changed'));
+    } catch (e) {
+      console.error('handleWatchOffer failed:', e);
+      cleanupWatchCall();
+    } finally {
+      callStarting = false;
+    }
+  }
+
+  // Voice → Video upgrade: adds a camera track to the SAME peer
+  // connection/media session instead of starting a second call.
+  async function upgradeWatchCallToVideo() {
+    if (!pc || callType === 'video') return;
+    try {
+      const camStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      const track = camStream.getVideoTracks()[0];
+      localStream.addTrack(track);
+      pc.addTrack(track, localStream);
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await pushSignal({ type: 'watch-upgrade-offer', sdp: offer, context: 'watch_together', watchSessionId, mediaSessionId: watchMediaSessionId });
+    } catch (e) { toast('Camera permission denied'); }
+  }
+  async function handleWatchUpgradeOffer(m) {
+    if (!pc || m.watchSessionId !== watchSessionId || m.mediaSessionId !== watchMediaSessionId) return;
+    try {
+      const camStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      const track = camStream.getVideoTracks()[0];
+      localStream.addTrack(track);
+      pc.addTrack(track, localStream);
+      await pc.setRemoteDescription(new RTCSessionDescription(m.sdp));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      callType = 'video';
+      await pushSignal({ type: 'watch-upgrade-answer', sdp: answer, context: 'watch_together', watchSessionId, mediaSessionId: watchMediaSessionId });
+      window.dispatchEvent(new CustomEvent('uwl:call-stream-changed'));
+    } catch (e) { toast('Video upgrade failed'); }
+  }
+  async function handleWatchUpgradeAnswer(m) {
+    if (!pc || m.watchSessionId !== watchSessionId || m.mediaSessionId !== watchMediaSessionId) return;
+    try {
+      await pc.setRemoteDescription(new RTCSessionDescription(m.sdp));
+      callType = 'video';
+      window.dispatchEvent(new CustomEvent('uwl:call-stream-changed'));
+    } catch (e) {}
+  }
+
+  // ─── Idempotent teardown — safe to call any number of times, from any
+  // of: End button, partner's WATCH_MEDIA_END signal, End Movie, ICE
+  // failure, or losing the watch session. Never touches #callOverlay/PiP
+  // (they were never created for a watch call in the first place). ───
+  function cleanupWatchCall() {
+    callStarting = false;
+    callToken++;
+    if (pc) { try { pc.close(); } catch (e) {} pc = null; }
+    if (localStream) { localStream.getTracks().forEach(t => { try { t.stop(); } catch (e) {} }); localStream = null; }
+    remoteStream = null;
+    iceQueue = [];
+    watchMediaSessionId = null;
+    watchMediaStartedAt = null;
+    callContext = 'chat';
+    window.dispatchEvent(new CustomEvent('uwl:call-stream-changed'));
+  }
+  function endWatchCall() {
+    if (callContext === 'watch_together' && (pc || localStream)) {
+      try { pushSignal({ type: 'end', context: 'watch_together', watchSessionId, mediaSessionId: watchMediaSessionId }); } catch (e) {}
+    }
+    cleanupWatchCall();
+  }
+
+  return {
+    startCall, acceptCall, declineCall, endCall, toggleMute, toggleCam, toggleSpeaker, flipCamera, minimize, restore, toggleMoreMenu, openChatDuringCall, acceptVideoUpgrade, declineVideoUpgrade, openMap, consumeNativeAnswer, getRemoteStream, getRemoteCamOn, getState,
+    // Watch Together bridge — presentation lives in movie.js, not here
+    registerWatchSession, clearWatchSession, startWatchCall, endWatchCall, getWatchState: watchState
+  };
 })();
 window.Call = Call;
