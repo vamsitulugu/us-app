@@ -391,9 +391,24 @@
   function enterWatching(room) {
     if (state.uiState === 'watching') return;
     showState('watching');
+    console.info('[WT] PLAYER mounted');
     setupRealtime();
     $('wtNowTitle').textContent = state.myTitle || room[`${ROLE}_movie_title`] || 'Movie';
-    if (state.localObjectUrl) els.video.src = state.localObjectUrl;
+
+    if (!state.localObjectUrl) {
+      // The in-memory object URL/File reference didn't survive to this
+      // point (most commonly: the page/iframe reloaded between movie
+      // selection and now, e.g. Android backgrounding the WebView).
+      // Surface this clearly instead of silently leaving #wtVideo with
+      // no source (which is what produced the blank/placeholder video).
+      console.warn('[WT] enterWatching: state.localObjectUrl missing — video has no source');
+      showBanner('Your movie file needs to be reselected on this device.', [
+        { label: 'Choose Movie', onClick: () => { showState('setup'); showSetupSub('empty'); hideBanner(); } }
+      ]);
+    } else {
+      els.video.src = state.localObjectUrl;
+      console.info('[WT] VIDEO source assigned');
+    }
 
     // Late-start correction: if this client's clock lands here later
     // than another (backgrounded tab, slow event delivery), compute how
@@ -401,7 +416,7 @@
     const elapsedSinceStart = room.scheduled_start_at ? (Date.now() - new Date(room.scheduled_start_at).getTime()) / 1000 : 0;
     const target = Math.max(0, elapsedSinceStart) + expectedPosition(room);
     els.video.currentTime = target;
-    els.video.play().catch(() => {});
+    els.video.play().then(() => console.info('[WT] play() resolved')).catch((e) => console.warn('[WT] play() rejected:', e && e.message));
     if (!room.playing) {
       // Countdown just finished — this is the moment playback truly begins.
       sendAction(true, target);
@@ -480,6 +495,9 @@
     sendAction(!els.video.paused, els.video.currentTime);
   }
 
+  els.video.addEventListener('loadedmetadata', () => console.info('[WT] VIDEO loadedmetadata, duration=', els.video.duration));
+  els.video.addEventListener('canplay', () => console.info('[WT] VIDEO canplay'));
+  els.video.addEventListener('error', () => console.warn('[WT] VIDEO error', els.video.error));
   els.video.addEventListener('timeupdate', () => {
     if (!els.video.duration || state.scrubbing) return;
     timelineEl.value = (els.video.currentTime / els.video.duration) * 1000;

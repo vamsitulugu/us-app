@@ -5,6 +5,16 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+/* `hidden` must always win over any class's `display:` rule. Without
+   this, an author rule like `.foo { display: flex }` silently beats the
+   browser's own `[hidden] { display: none }` (author CSS always beats
+   user-agent CSS at equal specificity, regardless of source order) —
+   this bit us twice already (wt-modal-backdrop, wt-chat-composer) as
+   "element is visible/blocking taps even though .hidden = true". One
+   rule here closes the whole bug class for every element in this file,
+   current and future. */
+[hidden] { display: none !important; }
+
 html, body { height: 100%; margin: 0; background: #000; }
 
 .wt-page {
@@ -231,7 +241,9 @@ html, body { height: 100%; margin: 0; background: #000; }
   padding: 10px max(12px, env(safe-area-inset-right)) 10px max(12px, env(safe-area-inset-left));
   background: rgba(10,10,10,0.92);
   border-top: 1px solid rgba(255,255,255,0.1);
+  pointer-events: auto;
 }
+.wt-chat-composer[hidden] { display: none !important; pointer-events: none !important; }
 .wt-chat-composer input {
   flex: 1; min-height: 42px; border-radius: 22px; border: 1px solid rgba(255,255,255,0.14);
   background: rgba(255,255,255,0.06); color: #fff; padding: 0 16px; font-size: 14px;
