@@ -112,19 +112,15 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
   // the standard chrome (status-bar smallIcon, setLargeIcon on the right,
   // app name, timestamp, expand affordance) — it only lets our RemoteViews
   // layout (notify_chat_left_avatar.xml) replace the middle content row,
-  // where we place the partner's circular avatar with the tiny Twin
-  // Hearts badge baked into its bottom-right corner. RIGHT-side large
-  // logo stays completely untouched; LEFT now matches the incoming-call
-  // notification's look.
+  // where we place the partner's circular profile photo. RIGHT-side
+  // large logo stays completely untouched.
   private void showChatMessage(Map<String, String> data, String tag, String senderName, String body, String url) {
     Context ctx = getApplicationContext();
     String title = "💬 " + senderName;
 
     // LEFT-side avatar: partner's uploaded profile photo (data["senderAvatar"],
-    // populated by routes/chat.js from couples.user1_avatar/user2_avatar) with
-    // the tiny Twin Hearts logo badge composited onto its bottom-right corner —
-    // same treatment as the incoming-call notification's caller avatar. Falls
-    // back to a plain brand-colored circle if no photo is available/loadable.
+    // populated by routes/chat.js from couples.user1_avatar/user2_avatar).
+    // Falls back to a plain brand-colored circle if no photo is available/loadable.
     Bitmap partnerPhoto = downloadBitmap(data.get("senderAvatar"));
     Bitmap leftAvatar = buildAvatarWithBadge(ctx, partnerPhoto);
     RemoteViews collapsed = buildAvatarRemoteViews(ctx, title, body, leftAvatar);
@@ -189,10 +185,6 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
     return output;
   }
 
-  // Composites a large circular avatar (partner's photo, or a plain
-  // brand-colored circle fallback when no photo is available/loadable)
-  // with the tiny Twin Hearts logo badge overlapping its bottom-right
-  // corner — the same visual treatment as the incoming-call notification.
   // Builds the shared left-avatar RemoteViews content row (title + body +
   // avatar bitmap) used by both showChatMessage() and baseBuilder() —
   // the single place that wires the layout, so the two callers don't
@@ -207,34 +199,22 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
     return views;
   }
 
+  // Left-side avatar: just the sender's circular profile photo now — the
+  // tiny Twin Hearts badge that used to overlap its bottom-right corner
+  // was removed per request. Falls back to a plain brand-colored circle
+  // when no photo is available/loadable, same as before.
   private Bitmap buildAvatarWithBadge(Context ctx, @Nullable Bitmap photo) {
     int avatarSize = 144; // px, downscaled by RemoteViews/Android to the 48dp slot
-    int badgeSize = (int) (avatarSize * 0.38f);
 
-    Bitmap avatarCircle;
     if (photo != null) {
-      avatarCircle = circleCrop(photo, avatarSize);
-    } else {
-      avatarCircle = Bitmap.createBitmap(avatarSize, avatarSize, Bitmap.Config.ARGB_8888);
-      Canvas c = new Canvas(avatarCircle);
-      Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-      p.setColor(Color.parseColor(NotificationRouter.BRAND_ACCENT_COLOR));
-      c.drawCircle(avatarSize / 2f, avatarSize / 2f, avatarSize / 2f, p);
+      return circleCrop(photo, avatarSize);
     }
-
-    Bitmap logo = buildAppLogoBitmap(ctx);
-    if (logo == null) return avatarCircle;
-    Bitmap badge = circleCrop(logo, badgeSize);
-
-    Bitmap composite = Bitmap.createBitmap(avatarSize, avatarSize, Bitmap.Config.ARGB_8888);
-    Canvas canvas = new Canvas(composite);
-    canvas.drawBitmap(avatarCircle, 0, 0, null);
-    Paint ring = new Paint(Paint.ANTI_ALIAS_FLAG);
-    ring.setColor(Color.WHITE);
-    float cx = avatarSize - badgeSize / 2f, cy = avatarSize - badgeSize / 2f;
-    canvas.drawCircle(cx, cy, badgeSize / 2f + 4, ring);
-    canvas.drawBitmap(badge, avatarSize - badgeSize, avatarSize - badgeSize, null);
-    return composite;
+    Bitmap avatarCircle = Bitmap.createBitmap(avatarSize, avatarSize, Bitmap.Config.ARGB_8888);
+    Canvas c = new Canvas(avatarCircle);
+    Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+    p.setColor(Color.parseColor(NotificationRouter.BRAND_ACCENT_COLOR));
+    c.drawCircle(avatarSize / 2f, avatarSize / 2f, avatarSize / 2f, p);
+    return avatarCircle;
   }
 
   // ── Twin Hearts app logo, circle-cropped for the notification's
@@ -310,7 +290,7 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
     notify(ctx, tag, builder);
   }
 
-  // ── Partner requests / games / reminders: avatar+badge left, 2 actions ──
+  // ── Partner requests / games / reminders: avatar left, 2 actions ──
   private void showActionable(Map<String, String> data, String tag, String channelId, String title, String body, String url,
                                String action1Key, String action1Label, String action2Key, String action2Label) {
     Context ctx = getApplicationContext();
@@ -322,7 +302,7 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
     notify(ctx, tag, builder);
   }
 
-  // ── Everything else: avatar+badge left, single tap-to-open ────────
+  // ── Everything else: avatar left, single tap-to-open ────────
   private void showSimple(Map<String, String> data, String tag, String channelId, String title, String body, String url) {
     notify(getApplicationContext(), tag, baseBuilder(getApplicationContext(), channelId, title, body, url, data));
   }
@@ -341,7 +321,7 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
   // Same DecoratedCustomViewStyle treatment as showChatMessage(): Android
   // keeps rendering its own chrome (smallIcon, right-side large logo, app
   // name, timestamp) and only the middle row is replaced by our layout,
-  // which shows the sender's avatar + Twin Hearts badge on the left.
+  // which shows the sender's avatar on the left.
   // data["senderAvatar"] is now populated centrally for every push (see
   // sendFCMToPartner in routes/auth.js), so no per-notification-type
   // lookup is needed here — this one implementation covers all of them.

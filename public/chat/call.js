@@ -352,7 +352,32 @@ async function initSignalCursor() {
   }
 
   function avatarHtml(name, av) {
-    return av ? `<img src="${av}" style="width:100%;height:100%;object-fit:cover">` : (name[0] || 'P');
+    return av
+      ? `<img src="${av}" style="width:100%;height:100%;object-fit:cover;object-position:center;border-radius:50%" onerror="this.remove()">`
+      : (name[0] || 'P').toUpperCase();
+  }
+
+  // ─── Shared icon + labeled-control-button helpers ──────────────────
+  // Every call screen (outgoing, incoming, connected) renders its buttons
+  // through this one path, using the app's existing Lucide icon set
+  // (already loaded globally — see /ui-icons.js) instead of emoji. Icons
+  // are re-rendered explicitly via lucide.createIcons() right after the
+  // HTML is injected, rather than relying on ui-icons.js's debounced
+  // MutationObserver, so a button never flashes empty on first paint.
+  function icoHTML(name) { return `<i data-lucide="${name}"></i>`; }
+  function renderIcons() { window.lucide && window.lucide.createIcons(); }
+
+  function ctrlBtn({ id, icon, label, onclick, active = false, disabled = false, variant = 'sm' }) {
+    const shapeCls = variant === 'end' ? 'call-btn-end' : variant === 'decline' ? 'call-btn-decline'
+      : variant === 'accept' ? 'call-btn-accept' : 'call-btn-sm';
+    return `<div class="ccp-item">
+      <button type="button" class="call-btn ${shapeCls}${active ? ' call-btn-active' : ''}" id="${id}Btn"
+        ${disabled ? 'disabled' : ''} aria-pressed="${active}" aria-label="${label}" title="${label}"
+        onclick="${onclick}">
+        <span class="call-ico-wrap" id="${id}Icon">${icoHTML(icon)}</span>
+      </button>
+      <span class="ccp-label">${label}</span>
+    </div>`;
   }
 
   function signalBarsHtml(level) {
@@ -366,15 +391,17 @@ async function initSignalCursor() {
   function topbarHtml() {
     return `
       <div class="call-topbar-full">
-        <button type="button" class="call-topbar-btn" onclick="Call.minimize()" title="Minimize">🗕</button>
+        <button type="button" class="call-topbar-btn" onclick="Call.minimize()" title="Minimize" aria-label="Minimize call">${icoHTML('chevron-down')}</button>
         <div class="call-topbar-title">
           <div class="call-topbar-name">${esc(window.S.partnerName || 'Partner')}</div>
-          <div class="call-topbar-sub">🔒 <span id="callTopSub">End-to-end encrypted</span></div>
+          <div class="call-topbar-sub">${icoHTML('lock')} <span id="callTopSub">End-to-end encrypted</span></div>
         </div>
-        ${callType === 'video' && !document.getElementById('page-map')?.classList.contains('active')
-          ? `<button type="button" class="call-topbar-btn" onclick="Call.openMap()" title="Open Live Map">🗺️</button>`
-          : ''}
-        <button type="button" class="call-topbar-btn" title="Signal quality">${signalBarsHtml(3)}</button>
+        <div class="call-topbar-right">
+          ${callType === 'video' && !document.getElementById('page-map')?.classList.contains('active')
+            ? `<button type="button" class="call-topbar-btn" onclick="Call.openMap()" title="Open Live Map" aria-label="Open Live Map">${icoHTML('map')}</button>`
+            : ''}
+          <div class="call-topbar-btn call-topbar-signal" title="Signal quality" aria-hidden="true">${signalBarsHtml(3)}</div>
+        </div>
       </div>`;
   }
 
@@ -429,23 +456,44 @@ async function initSignalCursor() {
           <div class="call-avatar">${avatarHtml(name, av)}</div>
         </div>
         <div class="call-partner-name">${esc(name)}</div>
-        <div class="call-sub">${type === 'video' ? '📹 Video call' : '🎙️ Voice call'}</div>
+        <div class="call-sub">${icoHTML(type === 'video' ? 'video' : 'mic')} ${type === 'video' ? 'Video call' : 'Voice call'}</div>
       </div>
+      <div id="callMoreMenuHost"></div>
       ${incoming ? `
-        <div class="call-incoming-labels">
-          <span>Decline</span><span>Accept</span>
-        </div>
         <div class="call-controls call-controls-incoming" style="margin-bottom:max(40px, env(safe-area-inset-bottom))">
-          <button type="button" class="call-btn call-btn-decline" onclick="Call.declineCall()">📞</button>
-          <button type="button" class="call-btn call-btn-accept" onclick="Call.acceptCall()">${type === 'video' ? '📹' : '📞'}</button>
+          ${ctrlBtn({ id: 'decline', icon: 'phone', label: 'Decline', onclick: 'Call.declineCall()', variant: 'decline' })}
+          ${ctrlBtn({ id: 'accept', icon: type === 'video' ? 'video' : 'phone', label: 'Accept', onclick: 'Call.acceptCall()', variant: 'accept' })}
         </div>
-      ` : `
-        <div class="call-controls" style="margin-bottom:max(40px, env(safe-area-inset-bottom))">
-          <button type="button" class="call-btn call-btn-end" onclick="Call.endCall()">📞</button>
-        </div>
-      `}`;
+      ` : outgoingControlsHtml()}`;
+    renderIcons();
     // force layout + open on next frame so opacity transition + pointer-events actually apply
     requestAnimationFrame(() => el.classList.add('open'));
+  }
+
+  // ─── Outgoing (ringing) call controls ───────────────────────────────
+  // Available immediately, before the partner answers — matching the
+  // "controls already visible while ringing" requirement. Mute needs the
+  // local mic stream (grabbed a beat after this renders — see startCall(),
+  // which flips muteBtn back on as soon as it resolves) and Video needs an
+  // active peer connection to negotiate an upgrade through (there isn't
+  // one yet during ringing), so those two start disabled rather than
+  // pretending to work. Speaker and More work immediately.
+  function outgoingControlsHtml() {
+    const items = [
+      ctrlBtn({ id: 'more', icon: 'more-horizontal', label: 'More', onclick: 'Call.toggleMoreMenu()' }),
+      ctrlBtn({ id: 'speaker', icon: isSpeakerOn ? 'volume-2' : 'volume-1', label: 'Speaker', onclick: 'Call.toggleSpeaker()', active: isSpeakerOn }),
+      ctrlBtn({ id: 'cam', icon: 'video', label: 'Video', onclick: 'Call.toggleCam()', disabled: true }),
+      ctrlBtn({ id: 'mute', icon: isMuted ? 'mic-off' : 'mic', label: 'Mute', onclick: 'Call.toggleMute()', active: isMuted, disabled: true }),
+    ];
+    return `<div class="call-control-panel" id="callControlsBar">
+      <div class="ccp-row">${items.join('')}</div>
+      <div class="ccp-item ccp-end-item">
+        <button type="button" class="call-btn call-btn-end" onclick="Call.endCall()" aria-label="End call" title="End call">
+          <span class="call-ico-wrap">${icoHTML('phone')}</span>
+        </button>
+        <span class="ccp-label">End</span>
+      </div>
+    </div>`;
   }
 
   function renderActive() {
@@ -461,6 +509,7 @@ async function initSignalCursor() {
         <video id="callLocalVideo" class="call-local-video" autoplay playsinline muted></video>
         <div id="callMoreMenuHost"></div>
         ${controlsHtml(true)}`;
+      renderIcons();
       document.getElementById('callRemoteVideo').srcObject = remoteStream;
       document.getElementById('callLocalVideo').srcObject = localStream;
       startAutoHide(el);
@@ -479,6 +528,7 @@ async function initSignalCursor() {
         </div>
         <div id="callMoreMenuHost"></div>
         ${controlsHtml(false)}`;
+      renderIcons();
       const remoteAudio = document.createElement('audio');
       remoteAudio.id = 'callRemoteAudio'; remoteAudio.autoplay = true; remoteAudio.srcObject = remoteStream;
       el.appendChild(remoteAudio);
@@ -488,26 +538,39 @@ async function initSignalCursor() {
   }
 
   function controlsHtml(video) {
-    // WhatsApp layout: a row of small toggle icons, with the red end-call
-    // button standing alone, larger, centered beneath it — not crammed
-    // into the same row as the toggles.
-    return `<div class="call-controls-active" id="callControlsBar">
-      <div class="call-controls call-controls-wa">
-        <button type="button" class="call-btn call-btn-sm" onclick="Call.toggleMoreMenu()" title="More">⋯</button>
-        ${video
-          ? `<button type="button" class="call-btn call-btn-sm" id="flipBtn" onclick="Call.flipCamera()" title="Flip camera">🔄</button>`
-          : `<button type="button" class="call-btn call-btn-sm" id="camBtn" onclick="Call.toggleCam()" title="Video">
-               <span id="camIcon">📹</span>
-             </button>`}
-        <button type="button" class="call-btn call-btn-sm${isSpeakerOn ? '' : ' call-btn-active'}" id="speakerBtn" onclick="Call.toggleSpeaker()" title="Speaker">
-          <span id="speakerIcon">${isSpeakerOn ? '🔊' : '🔈'}</span>
+    // Premium control-panel card: a row of labeled toggle buttons (More,
+    // then either Flip-camera-on-video or Video-upgrade-on-voice, then
+    // Speaker, Mute), with the red End button standing alone underneath —
+    // same structure as the outgoing-ringing panel above, so the screen
+    // never jumps to an unrelated layout when the call connects.
+    const items = [
+      ctrlBtn({ id: 'more', icon: 'more-horizontal', label: 'More', onclick: 'Call.toggleMoreMenu()' }),
+      video
+        ? ctrlBtn({ id: 'flip', icon: 'refresh-ccw', label: 'Flip', onclick: 'Call.flipCamera()' })
+        : ctrlBtn({ id: 'cam', icon: isCamOff ? 'video-off' : 'video', label: 'Video', onclick: 'Call.toggleCam()', active: isCamOff }),
+      ctrlBtn({ id: 'speaker', icon: isSpeakerOn ? 'volume-2' : 'volume-1', label: 'Speaker', onclick: 'Call.toggleSpeaker()', active: isSpeakerOn }),
+      ctrlBtn({ id: 'mute', icon: isMuted ? 'mic-off' : 'mic', label: 'Mute', onclick: 'Call.toggleMute()', active: isMuted }),
+    ];
+    return `<div class="call-control-panel${video ? ' ccp-video call-controls-active' : ''}" id="callControlsBar">
+      <div class="ccp-row">${items.join('')}</div>
+      <div class="ccp-item ccp-end-item">
+        <button type="button" class="call-btn call-btn-end" onclick="Call.endCall()" aria-label="End call" title="End call">
+          <span class="call-ico-wrap">${icoHTML('phone')}</span>
         </button>
-        <button type="button" class="call-btn call-btn-sm" id="muteBtn" onclick="Call.toggleMute()" title="Mute">
-          <span id="muteIcon">🎙️</span>
-        </button>
+        <span class="ccp-label">End</span>
       </div>
-      <button type="button" class="call-btn call-btn-end call-btn-end-standalone" onclick="Call.endCall()">📞</button>
     </div>`;
+  }
+
+  // Swaps the icon inside a ctrlBtn's wrapper span and keeps its button's
+  // active/pressed state in sync — the one place all toggle handlers below
+  // update the DOM, so every button (ringing panel or connected panel)
+  // reflects state changes identically regardless of which screen is up.
+  function setBtnState(id, icon, active) {
+    const wrap = document.getElementById(id + 'Icon');
+    if (wrap) { wrap.innerHTML = icoHTML(icon); renderIcons(); }
+    const btn = document.getElementById(id + 'Btn');
+    if (btn) { btn.classList.toggle('call-btn-active', !!active); btn.setAttribute('aria-pressed', !!active); }
   }
 
   function toggleMute() {
@@ -517,13 +580,12 @@ async function initSignalCursor() {
     isMuted = !isMuted;
     window.playAppSound?.(isMuted ? 'call.muted' : 'call.unmuted');
     track.enabled = !isMuted;
-    document.getElementById('muteBtn')?.classList.toggle('call-btn-active', isMuted);
-    const icon = document.getElementById('muteIcon');
-    if (icon) icon.textContent = isMuted ? '🔇' : '🎙️';
+    setBtnState('mute', isMuted ? 'mic-off' : 'mic', isMuted);
     if (pipEl) {
       const existing = pipEl.querySelector('.call-pip-mic-off');
-      if (isMuted && !existing) pipEl.insertAdjacentHTML('beforeend', `<div class="call-pip-mic-off">🔇</div>`);
+      if (isMuted && !existing) pipEl.insertAdjacentHTML('beforeend', `<div class="call-pip-mic-off">${icoHTML('mic-off')}</div>`);
       if (!isMuted && existing) existing.remove();
+      renderIcons();
     }
   }
 
@@ -534,9 +596,7 @@ async function initSignalCursor() {
     isCamOff = !isCamOff;
     window.playAppSound?.(isCamOff ? 'call.camera.off' : 'call.camera.on');
     track.enabled = !isCamOff;
-    document.getElementById('camBtn')?.classList.toggle('call-btn-active', isCamOff);
-    const icon = document.getElementById('camIcon');
-    if (icon) icon.textContent = isCamOff ? '📵' : '📹';
+    setBtnState('cam', isCamOff ? 'video-off' : 'video', isCamOff);
     const localVid = document.getElementById('callLocalVideo');
     if (localVid) localVid.style.opacity = isCamOff ? '0.25' : '1';
   }
@@ -544,9 +604,10 @@ async function initSignalCursor() {
   function toggleSpeaker() {
     isSpeakerOn = !isSpeakerOn;
     window.playAppSound?.(isSpeakerOn ? 'call.speaker.on' : 'call.speaker.off');
-    document.getElementById('speakerBtn')?.classList.toggle('call-btn-active', !isSpeakerOn);
-    const icon = document.getElementById('speakerIcon');
-    if (icon) icon.textContent = isSpeakerOn ? '🔊' : '🔈';
+    // Highlighted when speaker is ON (matches Mute's "highlighted = active"
+    // convention) — previously inverted, so Speaker looked highlighted
+    // while OFF instead of ON.
+    setBtnState('speaker', isSpeakerOn ? 'volume-2' : 'volume-1', isSpeakerOn);
     const audioEl = document.getElementById('callRemoteAudio');
     if (audioEl && audioEl.setSinkId) {
       audioEl.setSinkId(isSpeakerOn ? 'default' : 'communications').catch(() => {});
@@ -613,9 +674,10 @@ async function initSignalCursor() {
     host.innerHTML = `
       <div class="call-more-backdrop" onclick="Call.toggleMoreMenu()"></div>
       <div class="call-more-menu">
-        <button type="button" onclick="Call.openChatDuringCall()">💬 Open chat</button>
-        <button type="button" onclick="Call.toggleMoreMenu(); Call.minimize()">🗕 Minimize call</button>
+        <button type="button" onclick="Call.openChatDuringCall()">${icoHTML('message-circle')} Open chat</button>
+        <button type="button" onclick="Call.toggleMoreMenu(); Call.minimize()">${icoHTML('chevron-down')} Minimize call</button>
       </div>`;
+    renderIcons();
   }
   function openChatDuringCall() {
     toggleMoreMenu();
@@ -652,10 +714,11 @@ async function initSignalCursor() {
     pipEl.innerHTML = callType === 'video' && remoteStream
       ? `<video autoplay playsinline muted id="pipVideo"></video>`
       : (av ? `<img class="call-pip-static" src="${av}">` : `<div class="call-pip-avatar-fallback">${(name[0] || 'P')}</div>`);
-    if (isMuted) pipEl.insertAdjacentHTML('beforeend', `<div class="call-pip-mic-off">🔇</div>`);
+    if (isMuted) pipEl.insertAdjacentHTML('beforeend', `<div class="call-pip-mic-off">${icoHTML('mic-off')}</div>`);
     pipEl.insertAdjacentHTML('beforeend', `<div class="call-pip-timer" id="pipTimer">00:00</div>`);
     pipEl.onclick = (e) => { if (!pipDrag || !pipDrag.moved) restore(); };
     document.body.appendChild(pipEl);
+    renderIcons();
     if (callType === 'video' && remoteStream) {
       const v = document.getElementById('pipVideo');
       if (v) v.srcObject = remoteStream;
@@ -715,12 +778,13 @@ async function initSignalCursor() {
     b.id = 'videoUpgradeBanner';
     b.className = 'call-upgrade-banner';
     b.innerHTML = `
-      <span>📹 Your partner wants to turn on video</span>
+      <span>${icoHTML('video')} Your partner wants to turn on video</span>
       <div class="call-upgrade-actions">
         <button type="button" onclick="Call.declineVideoUpgrade()">Not now</button>
         <button type="button" class="accept" onclick="Call.acceptVideoUpgrade()">Turn on</button>
       </div>`;
     el.appendChild(b);
+    renderIcons();
   }
 
   async function acceptVideoUpgrade() {
@@ -830,6 +894,12 @@ async function initSignalCursor() {
         localStream.getTracks().forEach(t => t.stop()); localStream = null;
         return;
       }
+      // Mic is live — the ringing panel's Mute button can now genuinely do
+      // something, so stop disabling it. Video stays disabled until the
+      // call actually connects (a voice→video upgrade needs a live peer
+      // connection to negotiate through).
+      const muteBtn = document.getElementById('muteBtn');
+      if (muteBtn) muteBtn.disabled = false;
       await setupPeer();
       if (myToken !== callToken) {
         localStream && localStream.getTracks().forEach(t => t.stop()); localStream = null;

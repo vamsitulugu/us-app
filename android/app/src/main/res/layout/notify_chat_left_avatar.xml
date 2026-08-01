@@ -9,8 +9,7 @@
   still draws all its normal chrome around this (status-bar smallIcon, the
   large icon on the right, app name, timestamp, expand affordance) — this
   layout only replaces the middle content row. That's what lets the LEFT
-  side show a circular partner-avatar (with the tiny Twin Hearts badge baked
-  into the bitmap, bottom-right corner) while the RIGHT-side large app logo
+  side show a circular partner-avatar while the RIGHT-side large app logo
   set via NotificationCompat.Builder#setLargeIcon keeps rendering exactly as
   it did before, untouched.
 -->
