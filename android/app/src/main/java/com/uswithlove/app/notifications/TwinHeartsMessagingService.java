@@ -12,10 +12,7 @@ import android.os.Build;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.app.Person;
-import androidx.core.graphics.drawable.IconCompat;
 import androidx.annotation.NonNull;
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.capacitorjs.plugins.pushnotifications.PushNotificationsPlugin;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
@@ -23,8 +20,6 @@ import com.uswithlove.app.MainActivity;
 
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Replaces Capacitor's default MessagingService (see AndroidManifest.xml,
@@ -43,14 +38,6 @@ import java.util.concurrent.Executors;
  * firing exactly as before.
  */
 public class TwinHeartsMessagingService extends FirebaseMessagingService {
-
-  // Single background executor for the (best-effort, non-blocking) avatar
-  // fetch below. The notification always posts immediately with a letter
-  // avatar first, then gets silently swapped to the real photo once it loads.
-  private static final ExecutorService AVATAR_EXECUTOR = Executors.newCachedThreadPool();
-
-  // 46dp — matches the "44-48dp" premium-avatar spec, converted to px at draw time.
-  private static final int AVATAR_SIZE_DP = 46;
 
   @Override
   public void onMessageReceived(@NonNull RemoteMessage remoteMessage) {
@@ -79,22 +66,22 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
         return;
       case PARTNER_REQUEST:
         if ("partner-request".equals(tag)) {
-          showActionable(data, tag, category.channelId, title, body, url, senderName,
+          showActionable(data, tag, category.channelId, title, body, url,
               "ACCEPT_PARTNER", "✅ Accept", "DECLINE_PARTNER", "✖️ Decline");
         } else {
-          showSimple(data, tag, category.channelId, title, body, url, senderName);
+          showSimple(data, tag, category.channelId, title, body, url);
         }
         return;
       case GAME:
-        showActionable(data, tag, category.channelId, title, body, url, senderName,
+        showActionable(data, tag, category.channelId, title, body, url,
             "OPEN", "🎮 Play Now", "DISMISS", "Later");
         return;
       case REMINDER:
-        showActionable(data, tag, category.channelId, title, body, url, senderName,
+        showActionable(data, tag, category.channelId, title, body, url,
             "OPEN", "Open", "DISMISS", "Dismiss");
         return;
       default:
-        showSimple(data, tag, category.channelId, title, body, url, senderName);
+        showSimple(data, tag, category.channelId, title, body, url);
     }
   }
 
@@ -104,67 +91,23 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
     PushNotificationsPlugin.onNewToken(token);
   }
 
-  // ── Shared: post now with a letter-avatar, upgrade to the real photo
-  // once it loads. Used by every notification type below so the partner's
-  // photo shows everywhere, not just chat/calls — never blocks on the
-  // network for the notification to actually appear.
-  private interface AvatarBuilderFactory {
-    NotificationCompat.Builder build(Bitmap avatar);
-  }
-
-  private void notifyWithAvatar(Context ctx, Map<String, String> data, String tag, String senderName, AvatarBuilderFactory factory) {
-    notify(ctx, tag, factory.build(buildLetterAvatarBitmap(ctx, senderName)));
-
-    String avatarUrl = data.get("senderAvatar");
-    if (avatarUrl == null || avatarUrl.trim().isEmpty()) return;
-
-    AVATAR_EXECUTOR.execute(() -> {
-      try {
-        int px = dpToPx(ctx, AVATAR_SIZE_DP);
-        Bitmap real = Glide.with(ctx).asBitmap().load(avatarUrl).transform(new CircleCrop()).submit(px, px).get();
-        if (real != null) notify(ctx, tag, factory.build(real));
-      } catch (Exception ignored) {
-        // Download failed / timed out — letter avatar already posted stands.
-      }
-    });
-  }
-
-  // ── Chat: MessagingStyle, partner's photo as the big left avatar ──
+  // ── Chat: simple style, matching every other notification type ────
   //
-  // MessagingStyle's big avatar circle only exists in the COLLAPSED
-  // preview — Android replaces that whole region with the message thread
-  // once expanded, for every app using this style (WhatsApp/Telegram
-  // included, not fixable via code).
+  // Switched away from MessagingStyle on purpose: MessagingStyle's big
+  // avatar/logo circle only exists in the COLLAPSED preview — Android
+  // replaces that whole region with the conversation thread the moment
+  // it's expanded, for every app that uses this style (WhatsApp/Telegram
+  // included). There's no way to keep a persistent logo there while using
+  // MessagingStyle. Plain BigTextStyle (like showSimple/showActionable)
+  // keeps setLargeIcon() visible in BOTH states, matching RedBus/Rapido —
+  // which is what was chosen here. Trade-off: only one image can occupy
+  // that single large-icon slot, so this shows the Twin Hearts logo
+  // consistently rather than the partner's photo; the sender's name is
+  // still shown in the title text below so it's still clear who it's from.
   private void showChatMessage(Map<String, String> data, String tag, String senderName, String body, String url) {
     Context ctx = getApplicationContext();
-    notifyWithAvatar(ctx, data, tag, senderName,
-        avatar -> buildChatNotification(ctx, data, senderName, body, url, avatar));
-  }
 
-  private NotificationCompat.Builder buildChatNotification(Context ctx, Map<String, String> data, String senderName,
-                                                            String body, String url, Bitmap avatar) {
-    Person sender = new Person.Builder()
-        .setName(senderName)
-        .setIcon(IconCompat.createWithBitmap(avatar))
-        .build();
-
-    NotificationCompat.MessagingStyle style =
-        new NotificationCompat.MessagingStyle(new Person.Builder().setName("You").build())
-            .setConversationTitle(senderName)
-            .addMessage(body, System.currentTimeMillis(), sender);
-
-    Intent openIntent = new Intent(ctx, MainActivity.class);
-    openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-    openIntent.putExtra("deepLinkUrl", url);
-    PendingIntent contentIntent = PendingIntent.getActivity(
-        ctx, new Random().nextInt(), openIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-    return new NotificationCompat.Builder(ctx, NotificationRouter.MESSAGES_CHANNEL_ID)
-        .setSmallIcon(getIconRes(ctx))
-        .setColor(Color.parseColor(NotificationRouter.BRAND_ACCENT_COLOR))
-        .setContentTitle("💬 " + senderName)
-        .setContentText(body)
-        .setStyle(style)
+    NotificationCompat.Builder builder = baseBuilder(ctx, NotificationRouter.MESSAGES_CHANNEL_ID, "💬 " + senderName, body, url, data)
         .addAction(new NotificationCompat.Action.Builder(
             android.R.drawable.ic_menu_send, "Reply", actionPendingIntent(ctx, "REPLY", data, 100))
             .addRemoteInput(new androidx.core.app.RemoteInput.Builder(NotificationActionReceiver.KEY_REPLY_TEXT)
@@ -174,57 +117,47 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
         .addAction(new NotificationCompat.Action.Builder(
             android.R.drawable.ic_menu_view, "Mark as Read", actionPendingIntent(ctx, "MARK_READ", data, 101))
             .build())
-        .setGroup("chat_" + data.getOrDefault("coupleId", "default"))
-        .setAutoCancel(true)
-        .setContentIntent(contentIntent)
-        .setPriority(NotificationCompat.PRIORITY_HIGH);
+        .setGroup("chat_" + data.getOrDefault("coupleId", "default"));
+
+    notify(ctx, tag, builder);
   }
 
-  // ── Circular letter-avatar fallback (drawn instantly, no I/O) ──────
-  private Bitmap buildLetterAvatarBitmap(Context ctx, String senderName) {
-    int px = dpToPx(ctx, AVATAR_SIZE_DP);
-    Bitmap bitmap = Bitmap.createBitmap(px, px, Bitmap.Config.ARGB_8888);
-    Canvas canvas = new Canvas(bitmap);
+  // ── Twin Hearts app logo, circle-cropped for the notification's
+  // large icon (the crisp branding shown on the right, RedBus-style) ──
+  //
+  // NOTE: this deliberately does NOT read the "ic_launcher" mipmap.
+  // On API 26+ that identifier resolves to mipmap-anydpi-v26/ic_launcher.xml
+  // — an <adaptive-icon> XML, not a raster image. BitmapFactory.decodeResource()
+  // can't decode XML drawables, so it silently returned null here, which
+  // is why the large icon never actually appeared on real devices (Android
+  // just omits it rather than crashing). ic_notification_logo is a plain
+  // PNG in res/drawable-nodpi/ built from resources/icon.png specifically
+  // so this always decodes to a real Bitmap.
+  private Bitmap buildAppLogoBitmap(Context ctx) {
+    int logoResId = ctx.getResources().getIdentifier("ic_notification_logo", "drawable", ctx.getPackageName());
+    Bitmap source = android.graphics.BitmapFactory.decodeResource(ctx.getResources(), logoResId);
+    if (source == null) return null;
 
-    Paint circlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    circlePaint.setColor(Color.parseColor(NotificationRouter.BRAND_ACCENT_COLOR));
-    canvas.drawCircle(px / 2f, px / 2f, px / 2f, circlePaint);
-
-    String initial = (senderName == null || senderName.trim().isEmpty())
-        ? "?" : senderName.trim().substring(0, 1).toUpperCase();
-
-    Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    textPaint.setColor(Color.WHITE);
-    textPaint.setTextSize(px * 0.46f);
-    textPaint.setTextAlign(Paint.Align.CENTER);
-    textPaint.setFakeBoldText(true);
-    float textY = (px / 2f) - ((textPaint.descent() + textPaint.ascent()) / 2f);
-    canvas.drawText(initial, px / 2f, textY, textPaint);
-
-    return bitmap;
-  }
-
-  private int dpToPx(Context ctx, int dp) {
-    float density = ctx.getResources().getDisplayMetrics().density;
-    return Math.round(dp * density);
+    int size = Math.min(source.getWidth(), source.getHeight());
+    Bitmap output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+    Canvas canvas = new Canvas(output);
+    Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    paint.setShader(new android.graphics.BitmapShader(source, android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP));
+    canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint);
+    return output;
   }
 
   // ── Calls: CallStyle + full-screen intent, like a real phone call ──
   private void showIncomingCall(Map<String, String> data, String tag, String title, String callerName, String url) {
     Context ctx = getApplicationContext();
-    notifyWithAvatar(ctx, data, tag, callerName,
-        avatar -> buildIncomingCallNotification(ctx, data, title, callerName, url, avatar));
-  }
 
-  private NotificationCompat.Builder buildIncomingCallNotification(Context ctx, Map<String, String> data, String title,
-                                                                    String callerName, String url, Bitmap avatar) {
     Intent fullScreenIntent = new Intent(ctx, MainActivity.class);
     fullScreenIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
     fullScreenIntent.putExtra("deepLinkUrl", url);
     PendingIntent fullScreenPendingIntent = PendingIntent.getActivity(
         ctx, 200, fullScreenIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-    Person caller = new Person.Builder().setName(callerName).setIcon(IconCompat.createWithBitmap(avatar)).build();
+    Person caller = new Person.Builder().setName(callerName).build();
     PendingIntent answer = actionPendingIntent(ctx, "ANSWER_CALL", data, 201);
     PendingIntent decline = actionPendingIntent(ctx, "DECLINE_CALL", data, 202);
 
@@ -249,29 +182,27 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
       builder.addAction(new NotificationCompat.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel, "Decline", decline).build());
     }
 
-    return builder;
+    notify(ctx, tag, builder);
   }
 
-  // ── Partner requests / games / reminders: BigTextStyle + partner photo + 2 actions ──
+  // ── Partner requests / games / reminders: BigTextStyle + 2 actions ──
   private void showActionable(Map<String, String> data, String tag, String channelId, String title, String body, String url,
-                               String senderName, String action1Key, String action1Label, String action2Key, String action2Label) {
+                               String action1Key, String action1Label, String action2Key, String action2Label) {
     Context ctx = getApplicationContext();
-    notifyWithAvatar(ctx, data, tag, senderName, avatar ->
-        baseBuilder(ctx, channelId, title, body, url, data, avatar)
-            .addAction(new NotificationCompat.Action.Builder(android.R.drawable.ic_menu_send, action1Label,
-                actionPendingIntent(ctx, action1Key, data, 300)).build())
-            .addAction(new NotificationCompat.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel, action2Label,
-                actionPendingIntent(ctx, action2Key, data, 301)).build()));
+    NotificationCompat.Builder builder = baseBuilder(ctx, channelId, title, body, url, data)
+        .addAction(new NotificationCompat.Action.Builder(android.R.drawable.ic_menu_send, action1Label,
+            actionPendingIntent(ctx, action1Key, data, 300)).build())
+        .addAction(new NotificationCompat.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel, action2Label,
+            actionPendingIntent(ctx, action2Key, data, 301)).build());
+    notify(ctx, tag, builder);
   }
 
-  // ── Everything else: BigTextStyle + partner photo, single tap-to-open ──
-  private void showSimple(Map<String, String> data, String tag, String channelId, String title, String body, String url, String senderName) {
-    Context ctx = getApplicationContext();
-    notifyWithAvatar(ctx, data, tag, senderName, avatar -> baseBuilder(ctx, channelId, title, body, url, data, avatar));
+  // ── Everything else: clean BigTextStyle, single tap-to-open ────────
+  private void showSimple(Map<String, String> data, String tag, String channelId, String title, String body, String url) {
+    notify(getApplicationContext(), tag, baseBuilder(getApplicationContext(), channelId, title, body, url, data));
   }
 
-  private NotificationCompat.Builder baseBuilder(Context ctx, String channelId, String title, String body, String url,
-                                                  Map<String, String> data, Bitmap avatar) {
+  private NotificationCompat.Builder baseBuilder(Context ctx, String channelId, String title, String body, String url, Map<String, String> data) {
     Intent openIntent = new Intent(ctx, MainActivity.class);
     openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
     openIntent.putExtra("deepLinkUrl", url);
@@ -284,7 +215,11 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
         .setContentTitle(title)
         .setContentText(body)
         .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
-        .setLargeIcon(avatar) // partner's photo (or letter-avatar fallback), every notification type now
+        .setLargeIcon(buildAppLogoBitmap(ctx)) // Twin Hearts branding, right side —
+        // BigTextStyle (unlike MessagingStyle) keeps this visible in BOTH the
+        // collapsed and expanded states, so every non-chat notification
+        // (dreams, memories, games, reminders, partner requests) now shows
+        // the logo consistently, the way RedBus/Rapido always do.
         .setAutoCancel(true)
         .setContentIntent(contentIntent)
         .setPriority(NotificationCompat.PRIORITY_HIGH);
