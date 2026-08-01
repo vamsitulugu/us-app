@@ -106,6 +106,7 @@ app.use('/api/home', require('./routes/home'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/call', require('./routes/call'));
 app.use('/api/music', require('./routes/music'));
+app.use('/api/recordings', require('./routes/recordings'));
 app.use('/api/lyrics', require('./routes/lyrics'));
 app.use('/api/search', require('./routes/search'));
 app.use('/api/presence', require('./routes/presence'));

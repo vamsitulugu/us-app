@@ -142,11 +142,20 @@ router.delete('/delete', async (req, res) => {
 });
 
 // ── POST /api/media/upload-recording ──────────────────
-router.post('/upload-recording', uploadAudio.single('file'), async (req, res) => {
+// Used by both the karaoke solo-recording flow (audio, tied to a track)
+// and the standalone "My Recordings" feature (audio or video, not tied
+// to a track). mediaType defaults to 'audio' so the existing karaoke
+// caller keeps working unchanged.
+const uploadRecordingMedia = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 150 * 1024 * 1024 } // 150MB max — video recordings are larger than audio
+});
+router.post('/upload-recording', uploadRecordingMedia.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file provided' });
-    const { coupleId, trackTitle } = req.body;
+    const { coupleId, trackTitle, mediaType } = req.body;
     if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
 
+    const isVideo = mediaType === 'video';
     const safe  = (trackTitle || 'recording').replace(/[^a-z0-9]/gi, '_').slice(0, 40);
     const name  = `${coupleId}/${Date.now()}_${safe}.webm`;
     const bucket = 'couple-recordings';
@@ -154,14 +163,18 @@ router.post('/upload-recording', uploadAudio.single('file'), async (req, res) =>
     const { error } = await supabase.storage
         .from(bucket)
         .upload(name, req.file.buffer, {
-            contentType: req.file.mimetype || 'audio/webm',
+            contentType: req.file.mimetype || (isVideo ? 'video/webm' : 'audio/webm'),
             upsert: false
         });
     if (error) return res.status(500).json({ error: error.message });
 
+    // "My Recordings" saves these permanently to a library (not just a
+    // transient karaoke stub), so sign for a long window like vault-media
+    // above rather than the original 7 days, which would silently break
+    // playback for anyone revisiting an old recording a week later.
     const { data: signed } = await supabase.storage
         .from(bucket)
-        .createSignedUrl(name, 60 * 60 * 24 * 7);
+        .createSignedUrl(name, 60 * 60 * 24 * 365 * 10);
     return res.json({ url: signed.signedUrl, path: name });
 });
 

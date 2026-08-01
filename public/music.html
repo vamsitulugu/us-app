@@ -428,6 +428,47 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 
 /* ── TOAST ── */
 #mmToast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(12px);background:rgba(15,15,15,0.9);backdrop-filter:blur(16px);color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;z-index:9999;opacity:0;transition:all 0.3s;pointer-events:none;white-space:nowrap;box-shadow:0 6px 24px rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);font-family:var(--ff-sans);font-weight:500}
+/* ── MY RECORDINGS ── */
+.rec-actions{display:flex;gap:10px;padding:0 16px 14px}
+.rec-action-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 10px;border-radius:var(--rs);border:1px solid var(--border);background:var(--g1);color:var(--text);font-family:var(--ff-sans);font-size:13px;font-weight:600;cursor:pointer;transition:0.2s}
+.rec-action-btn:active{transform:scale(0.97)}
+.rec-action-btn.voice{background:linear-gradient(135deg,var(--red),#b00020);border:none;color:#fff;box-shadow:0 6px 18px rgba(248,113,113,0.35)}
+.rec-action-btn.video{background:linear-gradient(135deg,var(--accent2),var(--accent2-d));border:none;color:#fff;box-shadow:0 6px 18px var(--accent2-glow)}
+.rec-filters{display:flex;gap:8px;padding:0 16px 12px;overflow-x:auto}
+.rec-filter{flex-shrink:0;padding:7px 14px;border-radius:16px;border:1px solid var(--border);background:var(--g1);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.rec-filter.active{background:var(--red-bg);border-color:rgba(248,113,113,0.4);color:var(--red)}
+.rec-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:0 16px 20px}
+.rec-card{background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);overflow:hidden;cursor:pointer}
+.rec-card-thumb{width:100%;aspect-ratio:1;background:linear-gradient(135deg,rgba(248,113,113,0.25),rgba(90,0,20,0.5));display:flex;align-items:center;justify-content:center;font-size:34px;position:relative}
+.rec-card-thumb .rec-badge{position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.55);border-radius:10px;padding:2px 7px;font-size:10px;color:#fff}
+.rec-card-body{padding:8px 10px 10px}
+.rec-card-title{font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-card-meta{font-size:10.5px;color:var(--text3);margin-top:2px;display:flex;justify-content:space-between;align-items:center}
+.rec-card-fav{background:none;border:none;font-size:13px;cursor:pointer;opacity:0.6}
+.rec-card-fav.active{opacity:1}
+.rec-empty{padding:40px 20px;text-align:center}
+.rec-empty-ico{font-size:44px;margin-bottom:10px}
+.rec-empty-text{color:var(--text2);font-size:13px;line-height:1.6}
+.rec-empty-btn{margin-top:16px;padding:12px 22px;border-radius:24px;border:none;background:linear-gradient(135deg,var(--red),#b00020);color:#fff;font-weight:700;font-size:13px;cursor:pointer}
+
+/* Recorder / preview overlay */
+.rec-overlay{position:fixed;inset:0;z-index:960;background:rgba(2,2,8,0.92);backdrop-filter:blur(10px);display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.rec-overlay.open{display:flex}
+.rec-panel{width:100%;max-width:360px;background:linear-gradient(160deg,rgba(40,4,12,0.9),rgba(10,2,6,0.96));border:1px solid var(--border);border-radius:20px;padding:22px;text-align:center}
+.rec-panel video{width:100%;border-radius:14px;background:#000;max-height:320px;object-fit:cover}
+.rec-timer{font-size:28px;font-weight:700;color:#fff;font-family:var(--ff-sans);margin:14px 0}
+.rec-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--red);margin-right:8px;animation:recPulse 1s infinite}
+@keyframes recPulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.rec-controls-row{display:flex;justify-content:center;gap:14px;margin-top:10px}
+.rec-ctrl{width:52px;height:52px;border-radius:50%;border:1px solid var(--border);background:var(--g2);color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.rec-ctrl.stop{background:var(--red);border:none}
+.rec-field{margin-top:14px;text-align:left}
+.rec-field label{font-size:11px;color:var(--text3);display:block;margin-bottom:5px}
+.rec-field input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--g1);color:var(--text);font-size:13px;font-family:var(--ff-sans)}
+.rec-save-row{display:flex;gap:10px;margin-top:16px}
+.rec-save-row button{flex:1;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--g2);color:var(--text);font-weight:600;font-size:13px;cursor:pointer}
+.rec-save-row button.primary{background:linear-gradient(135deg,var(--red),#b00020);border:none;color:#fff}
+.rec-close-x{position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.1);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer}
 </style>
 <link rel="stylesheet" href="/theme-burgundy.css">
 <link rel="stylesheet" href="/premium-motion.css">
@@ -475,6 +516,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
     <div class="pl-tab active" onclick="switchPlTab('my',this)">🎵 My Playlist</div>
     <div class="pl-tab" onclick="switchPlTab('partner',this)">💜 Partner Playlist</div>
     <div class="pl-tab" onclick="switchPlTab('karaoke',this)">🎤 Karaoke</div>
+    <div class="pl-tab" onclick="switchPlTab('recordings',this)">🎙 My Recordings</div>
     <div class="pl-tab" onclick="switchPlTab('videos',this)">🎬 Music Videos</div>
     <div class="pl-tab" onclick="switchPlTab('favorites',this)">❤️ Favorites</div>
     <div class="pl-tab" onclick="switchPlTab('recent',this)">🕒 Recently Played</div>
@@ -557,6 +599,29 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
     <div class="track-list" id="karaokeTrackList"></div>
   </div>
 
+  <!-- MY RECORDINGS (individual voice/video, not tied to a track) -->
+  <div id="pl-recordings" style="display:none">
+    <div class="sec-header">
+      <div>
+        <div class="sec-title">🎙 My Recordings</div>
+        <div class="sec-sub" id="recStats">0 recordings</div>
+      </div>
+    </div>
+    <div class="rec-actions">
+      <button class="rec-action-btn voice" onclick="openRecorder('audio')">🎙 Record Voice</button>
+      <button class="rec-action-btn video" onclick="openRecorder('video')">🎥 Record Video</button>
+    </div>
+    <div class="rec-filters">
+      <div class="rec-filter active" data-f="all" onclick="setRecFilter('all',this)">All</div>
+      <div class="rec-filter" data-f="mine" onclick="setRecFilter('mine',this)">Mine</div>
+      <div class="rec-filter" data-f="partner" onclick="setRecFilter('partner',this)">Partner</div>
+      <div class="rec-filter" data-f="audio" onclick="setRecFilter('audio',this)">🎙 Audio</div>
+      <div class="rec-filter" data-f="video" onclick="setRecFilter('video',this)">🎥 Video</div>
+      <div class="rec-filter" data-f="favorites" onclick="setRecFilter('favorites',this)">❤️ Favorites</div>
+    </div>
+    <div class="rec-grid" id="recGrid"></div>
+  </div>
+
   <!-- MUSIC VIDEOS (placeholder — Phase 5) -->
   <div id="pl-videos" style="display:none">
     <div class="sec-header">
@@ -628,6 +693,55 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
       </select>
     </div>
     <button class="sm-save-btn" onclick="confirmSongSave()">✅ Save Song</button>
+  </div>
+</div>
+
+<!-- ══ MY RECORDINGS: RECORD / PREVIEW OVERLAY ══ -->
+<div class="rec-overlay" id="recOverlay">
+  <div class="rec-panel" style="position:relative">
+    <button class="rec-close-x" onclick="closeRecorder()">✕</button>
+    <video id="recVideoPreview" autoplay muted playsinline style="display:none"></video>
+    <div id="recAudioViz" style="font-size:40px;margin:10px 0;display:none">🎙️</div>
+    <div class="rec-timer" id="recTimer">00:00</div>
+    <div id="recCountdown" style="font-size:15px;color:var(--text2);display:none">Starting in <span id="recCountdownNum">3</span>…</div>
+
+    <div class="rec-controls-row" id="recLiveControls" style="display:none">
+      <button class="rec-ctrl" id="recPauseBtn" onclick="recPauseResume()" title="Pause">⏸</button>
+      <button class="rec-ctrl stop" onclick="recStop()" title="Stop">⏹</button>
+      <button class="rec-ctrl" onclick="closeRecorder()" title="Cancel">✕</button>
+    </div>
+
+    <div id="recPreviewBlock" style="display:none">
+      <div class="rec-controls-row">
+        <button class="rec-ctrl" onclick="recPlayPausePreview()" id="recPreviewPlayBtn">▶</button>
+        <button class="rec-ctrl" onclick="recRestart()" title="Retake">↺</button>
+      </div>
+      <div class="rec-field">
+        <label>Song title</label>
+        <input type="text" id="recTitleInput" placeholder="e.g. Perfect" maxlength="80">
+      </div>
+      <div class="rec-field">
+        <label>Note (optional)</label>
+        <input type="text" id="recNoteInput" placeholder="Why this song?" maxlength="140">
+      </div>
+      <div class="rec-save-row">
+        <button onclick="recRestart()">Retake</button>
+        <button class="primary" onclick="recSave()" id="recSaveBtn">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MY RECORDINGS: PLAYBACK OVERLAY ══ -->
+<div class="rec-overlay" id="recPlayOverlay">
+  <div class="rec-panel" style="position:relative">
+    <button class="rec-close-x" onclick="closeRecPlayback()">✕</button>
+    <video id="recPlaybackVideo" controls playsinline style="display:none"></video>
+    <div id="recPlaybackAudioBlock" style="display:none">
+      <div style="font-size:44px;margin:10px 0">🎵</div>
+      <div class="rec-timer" id="recPlaybackTitle" style="font-size:16px"></div>
+      <audio id="recPlaybackAudio" controls style="width:100%;margin-top:10px"></audio>
+    </div>
   </div>
 </div>
 
@@ -968,11 +1082,12 @@ function switchPlTab(tab, el) {
   currentPlTab = tab;
   document.querySelectorAll('.pl-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  ['my','partner','karaoke','videos','favorites','recent'].forEach(id => {
+  ['my','partner','karaoke','recordings','videos','favorites','recent'].forEach(id => {
     const sec = document.getElementById('pl-'+id);
     if (sec) sec.style.display = (tab===id) ? 'block' : 'none';
   });
   if (tab==='favorites' || tab==='recent' || tab==='karaoke') renderMusicTracks();
+  if (tab==='recordings') loadMyRecordings();
 }
 
 // ══════════════════════════════════════
@@ -1990,6 +2105,333 @@ function deleteRecording(id) {
   renderKaraokeHistory();
   showMMToast('Recording deleted');
 }
+
+// ══════════════════════════════════════
+// MY RECORDINGS — individual voice/video, not tied to a track
+// ══════════════════════════════════════
+const RecState = {
+  mediaType: null, stream: null, mediaRecorder: null, chunks: [],
+  blob: null, blobUrl: null, durationSec: 0, timerInt: null,
+  startTime: 0, elapsedMs: 0, paused: false, previewEl: null
+};
+let myRecordingsCache = [];
+let recFilter = 'all';
+let _recChannel = null;
+
+function _recFmtTimer(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60), sec = s % 60;
+  return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+}
+
+async function openRecorder(mediaType) {
+  const ctx = getMusicCoupleCtx();
+  if (!ctx) { showMMToast('Not connected — try again'); return; }
+  RecState.mediaType = mediaType;
+  RecState.chunks = []; RecState.blob = null; RecState.blobUrl = null;
+  RecState.elapsedMs = 0; RecState.paused = false;
+
+  document.getElementById('recOverlay').classList.add('open');
+  document.getElementById('recPreviewBlock').style.display = 'none';
+  document.getElementById('recLiveControls').style.display = 'none';
+  document.getElementById('recVideoPreview').style.display = mediaType === 'video' ? 'block' : 'none';
+  document.getElementById('recAudioViz').style.display = mediaType === 'audio' ? 'block' : 'none';
+  document.getElementById('recTimer').textContent = '00:00';
+
+  const countdownEl = document.getElementById('recCountdown');
+  const numEl = document.getElementById('recCountdownNum');
+  countdownEl.style.display = 'block';
+  for (let n = 3; n >= 1; n--) {
+    numEl.textContent = n;
+    await new Promise(r => setTimeout(r, 1000));
+    if (!document.getElementById('recOverlay').classList.contains('open')) return; // cancelled
+  }
+  countdownEl.style.display = 'none';
+
+  try {
+    const constraints = mediaType === 'video'
+      ? { video: { facingMode: RecState.facing || 'user' }, audio: true }
+      : { audio: true };
+    RecState.stream = await navigator.mediaDevices.getUserMedia(constraints);
+  } catch (e) {
+    showMMToast('Could not access ' + (mediaType === 'video' ? 'camera/microphone' : 'microphone') + ' — check permissions');
+    closeRecorder();
+    return;
+  }
+  if (mediaType === 'video') document.getElementById('recVideoPreview').srcObject = RecState.stream;
+
+  const mime = mediaType === 'video' ? 'video/webm;codecs=vp8,opus' : 'audio/webm';
+  try {
+    RecState.mediaRecorder = new MediaRecorder(RecState.stream, MediaRecorder.isTypeSupported(mime) ? { mimeType: mime } : undefined);
+  } catch (e) {
+    showMMToast('Recording not supported on this device');
+    closeRecorder();
+    return;
+  }
+  RecState.mediaRecorder.ondataavailable = e => { if (e.data.size) RecState.chunks.push(e.data); };
+  RecState.mediaRecorder.onstop = _recOnStop;
+  RecState.mediaRecorder.start();
+  RecState.startTime = Date.now();
+  document.getElementById('recLiveControls').style.display = 'flex';
+  document.getElementById('recPauseBtn').textContent = '⏸';
+  RecState.timerInt = setInterval(() => {
+    const ms = RecState.elapsedMs + (RecState.paused ? 0 : Date.now() - RecState.startTime);
+    document.getElementById('recTimer').textContent = _recFmtTimer(ms);
+  }, 250);
+}
+
+function recPauseResume() {
+  const mr = RecState.mediaRecorder; if (!mr) return;
+  if (!RecState.paused) {
+    mr.pause();
+    RecState.elapsedMs += Date.now() - RecState.startTime;
+    RecState.paused = true;
+    document.getElementById('recPauseBtn').textContent = '▶';
+  } else {
+    mr.resume();
+    RecState.startTime = Date.now();
+    RecState.paused = false;
+    document.getElementById('recPauseBtn').textContent = '⏸';
+  }
+}
+
+function recStop() {
+  const mr = RecState.mediaRecorder; if (!mr) return;
+  if (!RecState.paused) RecState.elapsedMs += Date.now() - RecState.startTime;
+  RecState.durationSec = Math.round(RecState.elapsedMs / 1000);
+  try { mr.stop(); } catch (e) {}
+  if (RecState.timerInt) clearInterval(RecState.timerInt);
+  // Stop all tracks — never leave camera/mic active after recording ends.
+  if (RecState.stream) { RecState.stream.getTracks().forEach(t => t.stop()); RecState.stream = null; }
+  document.getElementById('recLiveControls').style.display = 'none';
+}
+
+function _recOnStop() {
+  const mime = RecState.mediaType === 'video' ? 'video/webm' : 'audio/webm';
+  RecState.blob = new Blob(RecState.chunks, { type: mime });
+  RecState.blobUrl = URL.createObjectURL(RecState.blob);
+  document.getElementById('recPreviewBlock').style.display = 'block';
+  document.getElementById('recTitleInput').value = '';
+  document.getElementById('recNoteInput').value = '';
+  if (RecState.mediaType === 'video') {
+    const v = document.getElementById('recVideoPreview');
+    v.srcObject = null; v.muted = false; v.controls = true; v.src = RecState.blobUrl;
+  } else {
+    document.getElementById('recAudioViz').textContent = '✅';
+  }
+}
+
+function recPlayPausePreview() {
+  if (RecState.mediaType === 'video') {
+    const v = document.getElementById('recVideoPreview');
+    if (v.paused) { v.play(); } else { v.pause(); }
+    return;
+  }
+  if (!RecState.blobUrl) return;
+  if (RecState.previewEl) { RecState.previewEl.pause(); RecState.previewEl = null; }
+  RecState.previewEl = new Audio(RecState.blobUrl);
+  RecState.previewEl.play().catch(() => showMMToast('Cannot play preview'));
+  document.getElementById('recPreviewPlayBtn').textContent = '⏸';
+  RecState.previewEl.onended = () => { document.getElementById('recPreviewPlayBtn').textContent = '▶'; };
+}
+
+function recRestart() {
+  if (RecState.blobUrl) URL.revokeObjectURL(RecState.blobUrl);
+  const type = RecState.mediaType;
+  closeRecorder(true);
+  openRecorder(type);
+}
+
+function closeRecorder(silent) {
+  if (RecState.timerInt) clearInterval(RecState.timerInt);
+  if (RecState.mediaRecorder && RecState.mediaRecorder.state !== 'inactive') {
+    try { RecState.mediaRecorder.stop(); } catch (e) {}
+  }
+  if (RecState.stream) { RecState.stream.getTracks().forEach(t => t.stop()); RecState.stream = null; }
+  if (RecState.previewEl) { RecState.previewEl.pause(); RecState.previewEl = null; }
+  if (RecState.blobUrl && !silent) { URL.revokeObjectURL(RecState.blobUrl); RecState.blobUrl = null; }
+  const v = document.getElementById('recVideoPreview');
+  v.srcObject = null; v.src = '';
+  if (!silent) document.getElementById('recOverlay').classList.remove('open');
+}
+
+async function recSave() {
+  if (!RecState.blob) return;
+  const ctx = getMusicCoupleCtx();
+  if (!ctx) { showMMToast('Not connected'); return; }
+  const title = document.getElementById('recTitleInput').value.trim() || 'Untitled';
+  const note = document.getElementById('recNoteInput').value.trim();
+  const saveBtn = document.getElementById('recSaveBtn');
+  saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+
+  try {
+    const formData = new FormData();
+    formData.append('file', RecState.blob, RecState.mediaType === 'video' ? 'recording.webm' : 'recording.webm');
+    formData.append('coupleId', ctx.coupleId);
+    formData.append('trackTitle', title);
+    formData.append('mediaType', RecState.mediaType);
+    const upRes = await fetch(MUSIC_API + '/api/media/upload-recording', { method: 'POST', body: formData });
+    const upData = await upRes.json();
+    if (!upRes.ok || !upData.url) throw new Error(upData.error || 'Upload failed');
+
+    await musicApi('POST', '/api/recordings', {
+      coupleId: ctx.coupleId, userId: ctx.role, title, note,
+      mediaType: RecState.mediaType, mediaUrl: upData.url, storagePath: upData.path,
+      durationSec: RecState.durationSec
+    });
+
+    showMMToast('✓ Saved to My Recordings');
+    closeRecorder();
+    loadMyRecordings();
+    pingRecordingsChanged();
+  } catch (e) {
+    showMMToast('Upload failed — tap Save to retry');
+    saveBtn.disabled = false; saveBtn.textContent = 'Save';
+    return;
+  }
+  saveBtn.disabled = false; saveBtn.textContent = 'Save';
+}
+
+async function loadMyRecordings() {
+  const ctx = getMusicCoupleCtx();
+  if (!ctx) return;
+  try {
+    myRecordingsCache = await musicApi('GET', '/api/recordings/' + ctx.coupleId);
+  } catch (e) { myRecordingsCache = []; }
+  renderRecGrid();
+  setupRecordingsRealtime(ctx);
+}
+
+function setRecFilter(f, el) {
+  recFilter = f;
+  document.querySelectorAll('.rec-filter').forEach(x => x.classList.remove('active'));
+  el.classList.add('active');
+  renderRecGrid();
+}
+
+function renderRecGrid() {
+  const ctx = getMusicCoupleCtx();
+  const grid = document.getElementById('recGrid');
+  const stats = document.getElementById('recStats');
+  if (!grid) return;
+  stats.textContent = myRecordingsCache.length + ' recording' + (myRecordingsCache.length === 1 ? '' : 's');
+
+  let list = myRecordingsCache;
+  if (recFilter === 'mine') list = list.filter(r => ctx && r.user_id === ctx.role);
+  else if (recFilter === 'partner') list = list.filter(r => ctx && r.user_id !== ctx.role);
+  else if (recFilter === 'audio') list = list.filter(r => r.media_type === 'audio');
+  else if (recFilter === 'video') list = list.filter(r => r.media_type === 'video');
+  else if (recFilter === 'favorites') list = list.filter(r => r.is_favorite);
+
+  if (!list.length) {
+    grid.innerHTML = `<div class="rec-empty" style="grid-column:1/-1">
+      <div class="rec-empty-ico">🎙️</div>
+      <div class="rec-empty-text">No songs yet<br>Record your first song and start building your private music memories together.</div>
+      <button class="rec-empty-btn" onclick="openRecorder('audio')">🎙 Record Our First Song</button>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(r => {
+    const mine = ctx && r.user_id === ctx.role;
+    const who = mine ? 'You' : (ctx ? ctx.partnerName : 'Partner');
+    return `<div class="rec-card" onclick="openRecPlayback('${r.id}')">
+      <div class="rec-card-thumb">
+        ${r.media_type === 'video' ? '🎥' : '🎙️'}
+        <span class="rec-badge">${r.duration_sec ? fmtTime(r.duration_sec) : ''}</span>
+      </div>
+      <div class="rec-card-body">
+        <div class="rec-card-title">${escH(r.title)}</div>
+        <div class="rec-card-meta">
+          <span>${escH(who)}</span>
+          <span>
+            <button class="rec-card-fav${r.is_favorite ? ' active' : ''}" onclick="event.stopPropagation();toggleRecFavorite('${r.id}')">${r.is_favorite ? '❤️' : '🤍'}</button>
+            ${mine ? `<button class="rec-card-fav" onclick="event.stopPropagation();deleteRecordingItem('${r.id}')" title="Delete">🗑️</button>` : ''}
+          </span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function toggleRecFavorite(id) {
+  const ctx = getMusicCoupleCtx(); if (!ctx) return;
+  const rec = myRecordingsCache.find(r => r.id === id); if (!rec) return;
+  const next = !rec.is_favorite;
+  rec.is_favorite = next; renderRecGrid(); // optimistic
+  try {
+    await musicApi('PATCH', '/api/recordings/' + id, { coupleId: ctx.coupleId, isFavorite: next });
+    pingRecordingsChanged();
+  } catch (e) {
+    rec.is_favorite = !next; renderRecGrid();
+    showMMToast('Could not update favorite');
+  }
+}
+
+function openRecPlayback(id) {
+  const rec = myRecordingsCache.find(r => r.id === id); if (!rec) return;
+  document.getElementById('recPlayOverlay').classList.add('open');
+  const videoEl = document.getElementById('recPlaybackVideo');
+  const audioBlock = document.getElementById('recPlaybackAudioBlock');
+  const audioEl = document.getElementById('recPlaybackAudio');
+  if (rec.media_type === 'video') {
+    audioBlock.style.display = 'none';
+    videoEl.style.display = 'block';
+    videoEl.src = rec.media_url;
+    videoEl.play().catch(() => {});
+  } else {
+    videoEl.style.display = 'none';
+    audioBlock.style.display = 'block';
+    document.getElementById('recPlaybackTitle').textContent = rec.title;
+    audioEl.src = rec.media_url;
+    audioEl.play().catch(() => {});
+  }
+}
+
+function closeRecPlayback() {
+  document.getElementById('recPlayOverlay').classList.remove('open');
+  const v = document.getElementById('recPlaybackVideo'); v.pause(); v.src = '';
+  const a = document.getElementById('recPlaybackAudio'); a.pause(); a.src = '';
+}
+
+async function deleteRecordingItem(id) {
+  const ctx = getMusicCoupleCtx(); if (!ctx) return;
+  const rec = myRecordingsCache.find(r => r.id === id); if (!rec) return;
+  if (rec.user_id !== ctx.role) { showMMToast('You can only delete your own recordings'); return; }
+  if (!confirm(`Delete "${rec.title}"? This will remove this recording from My Recordings.`)) return;
+  try {
+    const result = await musicApi('DELETE', '/api/recordings/' + id, { coupleId: ctx.coupleId, userId: ctx.role });
+    if (result.storagePath) {
+      await fetch(MUSIC_API + '/api/media/delete-recording', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: result.storagePath, coupleId: ctx.coupleId })
+      }).catch(() => {});
+    }
+    loadMyRecordings();
+    pingRecordingsChanged();
+    showMMToast('Recording deleted');
+  } catch (e) { showMMToast('Delete failed'); }
+}
+
+// Realtime — same broadcast-ping pattern as setupMusicRealtime, own channel
+function setupRecordingsRealtime(ctx) {
+  if (_recChannel) return;
+  const sb = _getMusicSupabase();
+  if (!sb) return;
+  try {
+    _recChannel = sb.channel('recordings_sync:' + ctx.coupleId, { config: { broadcast: { self: false } } })
+      .on('broadcast', { event: 'recordings_changed' }, () => { loadMyRecordings(); })
+      .subscribe();
+  } catch (e) { _recChannel = null; }
+}
+function pingRecordingsChanged() {
+  if (!_recChannel) return;
+  try { _recChannel.send({ type: 'broadcast', event: 'recordings_changed', payload: {} }); } catch (e) {}
+}
+window.addEventListener('pagehide', () => {
+  if (_recChannel) { try { _getMusicSupabase().removeChannel(_recChannel); } catch (e) {} _recChannel = null; }
+  closeRecorder();
+});
 
 // ── Recordings persistence (meta + blob split, same pattern as songs) ──
 function saveRecordingsLocal() {

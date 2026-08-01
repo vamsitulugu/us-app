@@ -83,20 +83,78 @@ public class MainActivity extends BridgeActivity {
     handleDeepLink(intent);
   }
 
+  private static final String APP_ORIGIN = "https://twinhearts.vercel.app";
+  private final android.os.Handler pendingLinkHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+  private String pendingDeepLinkTarget = null;
+
   // Notifications built in TwinHeartsMessagingService attach the target
   // in-app path (e.g. "/?page=chat") as a "deepLinkUrl" extra on both the
   // tap-to-open PendingIntent and the Answer-call / quick-action intents.
   // This turns that into an actual in-app navigation instead of just
   // opening to whatever page the WebView happened to be on.
+  //
+  // ROOT CAUSE FIX (see investigation notes):
+  // 1) This used to silently drop the deep link if getBridge().getWebView()
+  //    was still null (cold start, bridge not fully attached yet) — the
+  //    Answer notification action would vanish with no retry, which is why
+  //    tapping Answer while the app was fully closed did nothing until you
+  //    reopened it manually. Now we retry until the WebView exists instead
+  //    of giving up.
+  // 2) This used to call webView.loadUrl() unconditionally, even when the
+  //    WebView was already showing the live app (app open/backgrounded) —
+  //    a full page reload that re-ran the entire skeleton/init sequence
+  //    just to deliver a notification tap. Now, if the WebView is already
+  //    on our origin, we hand the action straight to the running JS via
+  //    evaluateJavascript instead of reloading anything.
   private void handleDeepLink(android.content.Intent intent) {
     if (intent == null) return;
     String path = intent.getStringExtra("deepLinkUrl");
     if (path == null || path.isEmpty()) return;
+    String target = path.startsWith("http") ? path : APP_ORIGIN + path;
+    boolean isCallAnswer = path.contains("pendingAction=answer");
+
     android.webkit.WebView webView = getBridge() != null ? getBridge().getWebView() : null;
-    if (webView == null) return;
-    String origin = "https://twinhearts.vercel.app";
-    String target = path.startsWith("http") ? path : origin + path;
-    webView.post(() -> webView.loadUrl(target));
+
+    if (webView != null && webView.getUrl() != null && webView.getUrl().startsWith(APP_ORIGIN)) {
+      // App runtime is already warm — never reload it. That reload is what
+      // caused the skeleton flash on Answer taps while the app was already
+      // open or backgrounded.
+      if (isCallAnswer) {
+        webView.post(() -> webView.evaluateJavascript(
+            "window.Call && window.Call.consumeNativeAnswer && window.Call.consumeNativeAnswer();", null));
+      } else {
+        webView.post(() -> webView.loadUrl(target));
+      }
+      return;
+    }
+
+    // WebView not attached yet (cold/sleeping app). Don't drop the action —
+    // keep the target and retry shortly until the bridge is ready, then
+    // deliver it as a normal navigation (call.js's consumePendingCallAction()
+    // picks up ?pendingAction=answer on load, same as before).
+    pendingDeepLinkTarget = target;
+    retryPendingDeepLink();
+  }
+
+  private void retryPendingDeepLink() {
+    if (pendingDeepLinkTarget == null) return;
+    android.webkit.WebView webView = getBridge() != null ? getBridge().getWebView() : null;
+    if (webView != null) {
+      String target = pendingDeepLinkTarget;
+      pendingDeepLinkTarget = null;
+      webView.post(() -> webView.loadUrl(target));
+      return;
+    }
+    // Bridge/WebView still not ready — try again shortly. Bounded implicitly
+    // by well under the 30s ring timeout in call.js so a genuinely broken
+    // bridge doesn't retry forever in practice.
+    pendingLinkHandler.postDelayed(this::retryPendingDeepLink, 150);
+  }
+
+  @Override
+  protected void onDestroy() {
+    pendingLinkHandler.removeCallbacksAndMessages(null);
+    super.onDestroy();
   }
 
   // Shared creator for every channel that doesn't need a custom sound

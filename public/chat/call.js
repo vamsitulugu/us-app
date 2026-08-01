@@ -1146,22 +1146,12 @@ async function initSignalCursor() {
   // app with ?pendingAction=answer on the URL, and this consumes that
   // flag once the runtime is ready and the matching offer has arrived
   // over polling/realtime — then calls the SAME acceptCall() the in-app
-  // Answer button uses. `consumed` guards against firing twice (e.g. a
-  // duplicate DOMContentLoaded-adjacent call, or the query string
-  // surviving an SPA navigation).
+  // Answer button uses. `pendingActionConsumed` guards against firing
+  // twice — this now matters for TWO separate entry points (see below),
+  // not just a duplicate DOMContentLoaded call.
   let pendingActionConsumed = false;
-  function consumePendingCallAction() {
-    if (pendingActionConsumed) return;
-    let action = null;
-    try { action = new URLSearchParams(window.location.search).get('pendingAction'); } catch (e) {}
-    if (action !== 'answer') return;
-    pendingActionConsumed = true;
-    // Strip the param so a later reload/back-nav doesn't re-trigger it.
-    try {
-      const u = new URL(window.location.href);
-      u.searchParams.delete('pendingAction');
-      window.history.replaceState({}, '', u.toString());
-    } catch (e) {}
+
+  function waitForOfferAndAccept() {
     // The offer may not have arrived yet (poll cadence / realtime not up
     // yet) — wait for it rather than assuming it's already there. Give
     // up after 25s (just under the 30s ring timeout) so a stale/expired
@@ -1175,6 +1165,51 @@ async function initSignalCursor() {
     })();
   }
 
+  // Entry point 1: cold/background launch. MainActivity appends
+  // ?pendingAction=answer to the URL it loads; this reads it off the URL
+  // once the page has parsed.
+  function consumePendingCallAction() {
+    if (pendingActionConsumed) return;
+    let action = null;
+    try { action = new URLSearchParams(window.location.search).get('pendingAction'); } catch (e) {}
+    if (action !== 'answer') return;
+    pendingActionConsumed = true;
+    // Strip the param so a later reload/back-nav doesn't re-trigger it.
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.delete('pendingAction');
+      window.history.replaceState({}, '', u.toString());
+    } catch (e) {}
+    waitForOfferAndAccept();
+  }
+
+  // Entry point 2: app already warm (foreground or backgrounded with the
+  // WebView already loaded). MainActivity now skips the URL/reload path
+  // entirely in this case and calls this directly via evaluateJavascript,
+  // so there's no page load and therefore no skeleton to bypass — this
+  // just needs to reuse the same guarded accept flow.
+  window.__uwl_consumeNativeAnswerCalled = false;
+  function consumeNativeAnswer() {
+    if (pendingActionConsumed) return;
+    pendingActionConsumed = true;
+    waitForOfferAndAccept();
+  }
+
+  // As early as possible (before the normal init chain below), detect a
+  // notification-driven cold launch and skip the dashboard skeleton —
+  // AppLoader.forceHide() is the existing escape hatch used for
+  // network-failure retries; reusing it here means no skeleton changes
+  // were needed. The ringing/"Connecting…" UI (renderRinging/onConnecting,
+  // both pre-existing) becomes the visible foreground state instead.
+  (function skipSkeletonIfCallEntry() {
+    try {
+      if (new URLSearchParams(window.location.search).get('pendingAction') === 'answer'
+          && window.AppLoader && window.AppLoader.forceHide) {
+        window.AppLoader.forceHide();
+      }
+    } catch (e) {}
+  })();
+
   document.addEventListener('DOMContentLoaded', async () => {
     await initSignalCursor();
     setTimeout(startPolling, 1500);
@@ -1186,6 +1221,6 @@ async function initSignalCursor() {
   });
   window.addEventListener('focus', () => pollSignal());
   window.addEventListener('pageshow', () => pollSignal());
-  return { startCall, acceptCall, declineCall, endCall, toggleMute, toggleCam, toggleSpeaker, flipCamera, minimize, restore, toggleMoreMenu, openChatDuringCall, acceptVideoUpgrade, declineVideoUpgrade, openMap };
+  return { startCall, acceptCall, declineCall, endCall, toggleMute, toggleCam, toggleSpeaker, flipCamera, minimize, restore, toggleMoreMenu, openChatDuringCall, acceptVideoUpgrade, declineVideoUpgrade, openMap, consumeNativeAnswer };
 })();
 window.Call = Call;
