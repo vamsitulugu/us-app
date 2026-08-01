@@ -1,7 +1,12 @@
-/* public/movie.js — "Watch Together"
+/* public/movie.js — "Watch Together" V2
    Loaded inside an iframe from index.html (same pattern as music.html /
    games.html). The movie file itself NEVER leaves this device — only
    tiny JSON room state goes through the API + Supabase Realtime.
+
+   STATE MACHINE (single source of truth — UI is a pure function of this):
+   SETUP → START_REQUESTED (mine) → COUNTDOWN → WATCHING → ENDED
+   The invited partner sees an INVITATION modal layered on SETUP, then
+   also moves to COUNTDOWN once they accept.
 */
 (function () {
   'use strict';
@@ -44,12 +49,18 @@
     if (!r.ok) throw new Error((data && data.error) || 'Request failed');
     return data;
   }
+  // Raw chat backend — reused as-is, no second messaging system created.
+  async function chatApi(method, path, body) {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(API + path, opts);
+    const data = await r.json().catch(() => null);
+    if (!r.ok) throw new Error((data && data.error) || 'Request failed');
+    return data;
+  }
 
   // ═══════════════════════════════════════════════════════
-  // SECTION 2 — Supabase Realtime (broadcast-only channel, same anon
-  // key pattern as music.html's setupMusicRealtime — small payloads go
-  // straight over the wire, no need to fetch-on-ping here since the
-  // events themselves already carry the state).
+  // SECTION 2 — Supabase Realtime (broadcast-only channel)
   // ═══════════════════════════════════════════════════════
   const WT_SUPABASE_URL = 'https://jmhsyhpmuszyphwjfcuk.supabase.co';
   const WT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptaHN5aHBtdXN6eXBod2pmY3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5NzAzODIsImV4cCI6MjA5OTU0NjM4Mn0.hXmVIoESJ5SkbhIaN-UyWLbJ4XdvZD_dd7U2WzFfvNI';
@@ -69,6 +80,7 @@
       config: { broadcast: { self: false }, presence: { key: ROLE } }
     })
       .on('broadcast', { event: 'wt_state' }, (msg) => applyRemoteState(msg.payload))
+      .on('broadcast', { event: 'wt_room' }, (msg) => applyRemoteRoom(msg.payload))
       .on('broadcast', { event: 'wt_reaction' }, (msg) => showReaction(msg.payload.emoji, false))
       .on('presence', { event: 'sync' }, () => {
         const st = _channel.presenceState();
@@ -83,6 +95,12 @@
   function broadcastState(partialPayload) {
     if (!_channel) return;
     try { _channel.send({ type: 'broadcast', event: 'wt_state', payload: partialPayload }); } catch (e) {}
+  }
+  // Full-room broadcasts (request-start / accept / cancel / end) so the
+  // partner reacts INSTANTLY instead of waiting on a poll.
+  function broadcastRoom(room) {
+    if (!_channel) return;
+    try { _channel.send({ type: 'broadcast', event: 'wt_room', payload: room }); } catch (e) {}
   }
   function broadcastReaction(emoji) {
     if (!_channel) return;
@@ -105,24 +123,40 @@
     myDuration: null,
     myTitle: null,
     lastActionSeq: 0,
-    applyingRemote: false,   // guard flag so our own listeners don't
-                             // re-broadcast a change we just applied
-                             // remotely (breaks feedback loops, spec §10)
+    applyingRemote: false,
     countdownTimer: null,
     driftTimer: null,
-    reconnectPending: false
+    hideTimer: null,
+    chatPollTimer: null,
+    lastChatTs: null,
+    reconnectPending: false,
+    scrubbing: false,
+    uiState: 'boot' // setup | countdown | watching | ended
   };
 
   const $ = (id) => document.getElementById(id);
   const els = {
-    empty: $('stateEmpty'), lobby: $('stateLobby'), countdown: $('stateCountdown'), watching: $('stateWatching'),
-    fileInput: $('movieFileInput'), video: $('wtVideo'),
+    setup: $('stateSetup'), countdown: $('stateCountdown'), watching: $('stateWatching'),
+    empty: $('wtEmptyCard'), lobby: $('wtLobby'), waiting: $('waitingBlock'),
+    fileInput: $('movieFileInput'), video: $('wtVideo'), wrap: $('playerWrap'),
     toast: $('wtToast'), banner: $('wtBanner'), bannerText: $('wtBannerText'), bannerActions: $('wtBannerActions')
   };
 
   function showState(name) {
-    [els.empty, els.lobby, els.countdown, els.watching].forEach(el => { if (el) el.hidden = true; });
-    ({ empty: els.empty, lobby: els.lobby, countdown: els.countdown, watching: els.watching })[name].hidden = false;
+    state.uiState = name;
+    [els.setup, els.countdown, els.watching].forEach(el => { if (el) el.hidden = true; });
+    document.getElementById('wtPage').classList.toggle('is-watching', name === 'watching');
+    if (name === 'setup') els.setup.hidden = false;
+    else if (name === 'countdown') els.countdown.hidden = false;
+    else if (name === 'watching') els.watching.hidden = false;
+  }
+
+  function showSetupSub(sub) {
+    // sub: 'empty' | 'lobby' | 'waiting'
+    els.empty.hidden = sub !== 'empty';
+    els.lobby.hidden = sub === 'empty';
+    els.waiting.hidden = sub !== 'waiting';
+    $('bothReadyBlock').hidden = sub === 'waiting' || $('bothReadyBlock').hidden;
   }
 
   function fmtTime(sec) {
@@ -149,15 +183,18 @@
   }
   function hideBanner() { els.banner.hidden = true; }
 
+  function setStatusPill(text, kind) {
+    const pill = $('statusPill');
+    if (!text) { pill.hidden = true; return; }
+    pill.hidden = false;
+    pill.textContent = text;
+    pill.className = 'wt-status-pill' + (kind ? ' is-' + kind : '');
+    clearTimeout(setStatusPill._t);
+    if (kind !== 'warn') setStatusPill._t = setTimeout(() => { pill.hidden = true; }, 2200);
+  }
+
   // ═══════════════════════════════════════════════════════
-  // SECTION 4 — Local movie selection. A plain <input type=file> is
-  // the safest choice here: it triggers Android's system document/file
-  // picker, which is what supports Scoped Storage / SAF content URIs
-  // without requesting broad storage permissions. We only ever use the
-  // File object / a blob: object URL created from it — never a raw
-  // filesystem path — and that URL is revoked when we're done. If the
-  // app is killed and relaunched, the File reference is gone (a real
-  // Android/browser limitation) — the user is asked to reselect (§33).
+  // SECTION 4 — Local movie selection
   // ═══════════════════════════════════════════════════════
   $('btnChooseMovie').onclick = () => els.fileInput.click();
   $('btnChangeMovie').onclick = () => els.fileInput.click();
@@ -181,7 +218,7 @@
       renderMyMovieCard(state.myTitle, state.myDuration, file.type, sizeGb);
       try {
         state.room = await api('POST', `/${COUPLE_ID}/movie`, { role: ROLE, title: state.myTitle, durationSec: state.myDuration });
-        renderLobby();
+        renderFromRoom();
       } catch (err) { toast('Could not save selection — check your connection.'); }
     };
     probe.onerror = () => toast("This video format may not be supported by your device's player.");
@@ -194,17 +231,50 @@
   }
 
   // ═══════════════════════════════════════════════════════
-  // SECTION 5 — Lobby rendering (compatibility check + ready system)
+  // SECTION 5 — Central room → UI dispatcher. This is the ONLY place
+  // that decides which top-level state (+ setup sub-state) is shown, so
+  // behavior stays deterministic instead of inferred from scattered
+  // hidden/shown DOM flags (per spec's "no dozens of unrelated elements"
+  // requirement).
   // ═══════════════════════════════════════════════════════
-  function renderLobby() {
+  function renderFromRoom() {
     const r = state.room;
-    if (!r) { showState('empty'); return; }
-    showState('lobby');
+    if (!r || r.status === 'idle' || r.status === 'ended') { showState('setup'); showSetupSub('empty'); hideInviteModal(); return; }
 
+    if (r.status === 'countdown' && r.scheduled_start_at) {
+      hideInviteModal();
+      runCountdown(r.scheduled_start_at);
+      return;
+    }
+    if (r.status === 'watching') { hideInviteModal(); enterWatching(r); return; }
+
+    // Non-watching statuses render inside the SETUP state.
+    showState('setup');
+
+    if (r.status === 'start_requested') {
+      if (r.start_requested_by === ROLE) {
+        showSetupSub('waiting');
+      } else {
+        showSetupSub('lobby'); // stays on lobby underneath the modal
+        showInviteModal(r);
+      }
+      return;
+    }
+    hideInviteModal();
+
+    const mine = ROLE === 'user1' ? r.user1_duration_sec : r.user2_duration_sec;
+    if (!mine) { showSetupSub('empty'); return; }
+    showSetupSub('lobby');
+    renderLobby(r);
+  }
+
+  function renderLobby(r) {
     const mine = ROLE === 'user1' ? r.user1_duration_sec : r.user2_duration_sec;
     const theirs = ROLE === 'user1' ? r.user2_duration_sec : r.user1_duration_sec;
     const myReady = ROLE === 'user1' ? r.user1_ready : r.user2_ready;
     const theirReady = ROLE === 'user1' ? r.user2_ready : r.user1_ready;
+
+    if (mine) renderMyMovieCard(r[`${ROLE}_movie_title`] || state.myTitle || 'Selected movie', mine, 'video/mp4', '—');
 
     if (mine && theirs) {
       const banner = $('matchBanner'); banner.hidden = false;
@@ -232,9 +302,6 @@
 
     const bothReady = r.movies_match && r.user1_ready && r.user2_ready;
     $('bothReadyBlock').hidden = !bothReady;
-
-    if (r.status === 'countdown' && r.scheduled_start_at) runCountdown(r.scheduled_start_at);
-    else if (r.status === 'watching') enterWatching(r);
   }
 
   $('btnReady').onclick = async () => {
@@ -242,22 +309,68 @@
     const currentlyReady = ROLE === 'user1' ? r.user1_ready : r.user2_ready;
     try {
       state.room = await api('POST', `/${COUPLE_ID}/ready`, { role: ROLE, ready: !currentlyReady });
-      renderLobby();
+      renderFromRoom();
     } catch (e) { toast('Could not update ready state.'); }
   };
 
+  // ═══════════════════════════════════════════════════════
+  // SECTION 6 — Start request / accept / cancel flow. B never has to
+  // manually press Start after accepting — accept-start alone schedules
+  // the shared countdown for BOTH clients.
+  // ═══════════════════════════════════════════════════════
   $('btnStart').onclick = async () => {
     try {
-      state.room = await api('POST', `/${COUPLE_ID}/start`, { role: ROLE, countdownMs: 3500 });
-      runCountdown(state.room.scheduled_start_at);
+      state.room = await api('POST', `/${COUPLE_ID}/request-start`, { role: ROLE });
+      broadcastRoom(state.room);
+      renderFromRoom();
     } catch (e) { toast('Could not start session.'); }
   };
 
+  $('btnCancelStart').onclick = async () => {
+    try {
+      state.room = await api('POST', `/${COUPLE_ID}/cancel-start`, { role: ROLE });
+      broadcastRoom(state.room);
+      renderFromRoom();
+    } catch (e) { toast('Could not cancel.'); }
+  };
+
+  function showInviteModal(r) {
+    $('inviteMovieName').textContent = r[`${OTHER_ROLE}_movie_title`] || state.myTitle || 'Selected movie';
+    $('inviteModalBackdrop').hidden = false;
+  }
+  function hideInviteModal() { $('inviteModalBackdrop').hidden = true; }
+
+  $('btnDeclineInvite').onclick = async () => {
+    hideInviteModal();
+    try {
+      state.room = await api('POST', `/${COUPLE_ID}/cancel-start`, { role: ROLE });
+      broadcastRoom(state.room);
+    } catch (e) {}
+  };
+  $('btnAcceptInvite').onclick = async () => {
+    hideInviteModal();
+    try {
+      state.room = await api('POST', `/${COUPLE_ID}/accept-start`, { role: ROLE, countdownMs: 4000 });
+      broadcastRoom(state.room);
+      runCountdown(state.room.scheduled_start_at);
+    } catch (e) { toast('Could not accept.'); }
+  };
+
+  // Instant partner-side reaction to a room-level broadcast (request /
+  // accept / cancel / end) without waiting on the next poll.
+  function applyRemoteRoom(room) {
+    if (!room) return;
+    if (room.action_seq && state.room && room.action_seq <= (state.room.action_seq || 0)) return;
+    state.room = room;
+    renderFromRoom();
+  }
+
   // ═══════════════════════════════════════════════════════
-  // SECTION 6 — Countdown (shared future timestamp, not two local
-  // timers, so latency can't let one device start noticeably early)
+  // SECTION 7 — Countdown (shared future timestamp)
   // ═══════════════════════════════════════════════════════
   function runCountdown(startAtIso) {
+    if (state.uiState === 'countdown' && state._countdownFor === startAtIso) return; // already running this one
+    state._countdownFor = startAtIso;
     showState('countdown');
     const startAt = new Date(startAtIso).getTime();
     clearInterval(state.countdownTimer);
@@ -265,25 +378,39 @@
       const secLeft = Math.ceil((startAt - Date.now()) / 1000);
       if (secLeft <= 0) {
         clearInterval(state.countdownTimer);
-        $('countdownNum').textContent = '❤️';
-        setTimeout(() => enterWatching(state.room), 400);
+        setTimeout(() => enterWatching(state.room), 150);
       } else {
-        $('countdownNum').textContent = String(secLeft);
+        $('countdownNum').textContent = String(Math.min(3, secLeft));
       }
     }, 200);
   }
 
   // ═══════════════════════════════════════════════════════
-  // SECTION 7 — Player + clock-based sync engine
+  // SECTION 8 — Player + clock-based sync engine
   // ═══════════════════════════════════════════════════════
   function enterWatching(room) {
+    if (state.uiState === 'watching') return;
     showState('watching');
     setupRealtime();
+    $('wtNowTitle').textContent = state.myTitle || room[`${ROLE}_movie_title`] || 'Movie';
     if (state.localObjectUrl) els.video.src = state.localObjectUrl;
-    els.video.currentTime = expectedPosition(room);
-    if (room.playing) els.video.play().catch(() => {});
+
+    // Late-start correction: if this client's clock lands here later
+    // than another (backgrounded tab, slow event delivery), compute how
+    // far into playback we already are rather than starting from 0.
+    const elapsedSinceStart = room.scheduled_start_at ? (Date.now() - new Date(room.scheduled_start_at).getTime()) / 1000 : 0;
+    const target = Math.max(0, elapsedSinceStart) + expectedPosition(room);
+    els.video.currentTime = target;
+    els.video.play().catch(() => {});
+    if (!room.playing) {
+      // Countdown just finished — this is the moment playback truly begins.
+      sendAction(true, target);
+    }
     startDriftLoop();
     setupCallBridge();
+    setupControlsAutoHide();
+    startChatPolling();
+    updatePlayPauseIcon();
   }
 
   function expectedPosition(room) {
@@ -298,13 +425,13 @@
   async function sendAction(playing, positionSec) {
     const seq = nextSeq();
     const payload = { role: ROLE, playing, positionSec, actionSeq: seq, updated_at: new Date().toISOString(), updated_by: ROLE };
-    broadcastState(payload); // instant path for a partner who's online right now
+    broadcastState(payload);
     try { state.room = await api('PATCH', `/${COUPLE_ID}/state`, { role: ROLE, playing, positionSec, actionSeq: seq }); }
     catch (e) { /* durable write failed; broadcast may still have reached partner — reconciled on next reconnect */ }
   }
 
   function applyRemoteState(payload) {
-    if (!payload || payload.actionSeq <= state.lastActionSeq) return; // stale/out-of-order — ignore (§25)
+    if (!payload || payload.actionSeq <= state.lastActionSeq) return; // stale/out-of-order — ignore
     state.lastActionSeq = payload.actionSeq;
     state.room = { ...(state.room || {}), playing: payload.playing, position_sec: payload.positionSec, updated_at: payload.updated_at };
 
@@ -315,19 +442,38 @@
     setTimeout(() => { state.applyingRemote = false; }, 250);
 
     updatePlayPauseIcon();
+    if (!payload.playing) setStatusPill(payload.updated_by === ROLE ? 'Paused' : 'Paused by Partner', 'warn');
+    else setStatusPill(null);
+    wakeControls();
   }
 
-  function updatePlayPauseIcon() { $('btnPlayPause').textContent = els.video.paused ? '▶' : '⏸'; }
+  function updatePlayPauseIcon() { $('playIcon').textContent = els.video.paused ? '▶' : '⏸'; }
 
   $('btnPlayPause').onclick = () => {
     if (state.applyingRemote) return;
-    if (els.video.paused) { els.video.play(); sendAction(true, els.video.currentTime); }
-    else { els.video.pause(); sendAction(false, els.video.currentTime); }
+    if (els.video.paused) { els.video.play(); sendAction(true, els.video.currentTime); setStatusPill(null); }
+    else { els.video.pause(); sendAction(false, els.video.currentTime); setStatusPill('Paused', 'warn'); }
     updatePlayPauseIcon();
+    wakeControls();
   };
-  $('btnSeekBack').onclick = () => userSeek(els.video.currentTime - 10);
-  $('btnSeekFwd').onclick = () => userSeek(els.video.currentTime + 10);
-  $('wtTimeline').addEventListener('change', (e) => userSeek(parseFloat(e.target.value) / 100 * (els.video.duration || 0)));
+  $('btnSeekBack').onclick = () => { userSeek(els.video.currentTime - 10); wakeControls(); };
+  $('btnSeekFwd').onclick = () => { userSeek(els.video.currentTime + 10); wakeControls(); };
+
+  // Timeline: only sync to partner once the user finishes dragging
+  // ("change"), never per-pixel on "input" — spec §Timeline.
+  const timelineEl = $('wtTimeline');
+  timelineEl.addEventListener('pointerdown', () => { state.scrubbing = true; wakeControls(true); });
+  timelineEl.addEventListener('input', () => {
+    if (!els.video.duration) return;
+    const t = (parseFloat(timelineEl.value) / 1000) * els.video.duration;
+    $('wtTimeCur').textContent = fmtTime(t);
+  });
+  timelineEl.addEventListener('change', (e) => {
+    state.scrubbing = false;
+    if (!els.video.duration) return;
+    const t = (parseFloat(e.target.value) / 1000) * els.video.duration;
+    userSeek(t);
+  });
   function userSeek(t) {
     if (state.applyingRemote) return;
     els.video.currentTime = Math.max(0, t);
@@ -335,9 +481,10 @@
   }
 
   els.video.addEventListener('timeupdate', () => {
-    if (!els.video.duration) return;
-    $('wtTimeline').value = (els.video.currentTime / els.video.duration) * 100;
-    $('wtTimeLabel').textContent = `${fmtTime(els.video.currentTime)} / ${fmtTime(els.video.duration)}`;
+    if (!els.video.duration || state.scrubbing) return;
+    timelineEl.value = (els.video.currentTime / els.video.duration) * 1000;
+    $('wtTimeCur').textContent = fmtTime(els.video.currentTime);
+    $('wtTimeTotal').textContent = fmtTime(els.video.duration);
   });
   els.video.addEventListener('ended', async () => {
     try {
@@ -346,44 +493,94 @@
     toast('Movie finished ❤️');
   });
 
-  // ── Periodic drift correction (§12) — this only READS the local
-  // clock-derived expected position and nudges local playback; nothing
-  // is written to the server on this loop. ──
+  // ── Periodic drift correction — reads only, never writes to server ──
   function startDriftLoop() {
     clearInterval(state.driftTimer);
     state.driftTimer = setInterval(() => {
-      if (!state.room || !state.room.playing || state.applyingRemote || document.hidden) return;
+      if (!state.room || !state.room.playing || state.applyingRemote || document.hidden || state.scrubbing) return;
       const expected = expectedPosition(state.room);
       const diff = expected - els.video.currentTime;
       const abs = Math.abs(diff);
       if (abs < 0.5) {
         els.video.playbackRate = 1;
-        $('syncStatus').textContent = '✓ In sync';
       } else if (abs < 2) {
-        // Gentle correction. Flagged risk: playback-rate nudging can
-        // behave inconsistently on some Android decoders — simplify to
-        // hard-seek-only here if that proves true in testing.
         els.video.playbackRate = diff > 0 ? 1.03 : 0.97;
-        $('syncStatus').textContent = `Sync difference: ${abs.toFixed(1)}s`;
       } else {
         els.video.playbackRate = 1;
         els.video.currentTime = expected;
-        $('syncStatus').textContent = 'Resyncing…';
       }
     }, 1000);
   }
 
-  $('btnSync').onclick = () => {
+  // FIXED SYNC: compute the authoritative expected position (accounting
+  // for elapsed time since the last state write) and hard-seek to it
+  // WITHOUT pausing or re-broadcasting — this is what was silently
+  // failing before because there was no visible confirmation and the
+  // 1s drift loop and the manual sync could visually fight each other.
+  $('btnSync').onclick = async () => {
     if (!state.room) return;
-    els.video.currentTime = expectedPosition(state.room);
-    toast('Synced ✓');
+    try {
+      // Pull the authoritative row first so Sync also fixes a stale
+      // local copy, not just clock drift on an already-fresh one.
+      const fresh = await api('GET', `/${COUPLE_ID}`);
+      if (fresh) state.room = { ...state.room, ...fresh };
+    } catch (e) { /* fall back to local state.room if offline */ }
+    const wasPlaying = !els.video.paused;
+    const target = expectedPosition(state.room);
+    els.video.currentTime = target;
+    els.video.playbackRate = 1;
+    if (wasPlaying) els.video.play().catch(() => {}); // never leave it paused
+    setStatusPill('✓ In Sync', 'good');
+    wakeControls();
   };
 
-  function clearAllTimers() { clearInterval(state.countdownTimer); clearInterval(state.driftTimer); }
+  function clearAllTimers() { clearInterval(state.countdownTimer); clearInterval(state.driftTimer); clearTimeout(state.hideTimer); clearInterval(state.chatPollTimer); }
 
   // ═══════════════════════════════════════════════════════
-  // SECTION 8 — Reactions (ephemeral only — never written to the DB)
+  // SECTION 9 — Auto-hiding controls. Single timer, single source of
+  // truth (playerWrap.controls-hidden class), no competing timers.
   // ═══════════════════════════════════════════════════════
+  let controlsLocked = false; // true while paused-needs-controls, dragging, chat/call open, or a modal is up
+  function setupControlsAutoHide() {
+    clearTimeout(state.hideTimer);
+    els.wrap.classList.remove('controls-hidden');
+    $('tapCatcher').onclick = onPlayerTap;
+    ['pointerdown', 'touchstart'].forEach(evt => els.wrap.addEventListener(evt, () => wakeControls()));
+    armHideTimer();
+  }
+  function onPlayerTap() {
+    if (els.wrap.classList.contains('controls-hidden')) wakeControls();
+    else if (!controlsLocked) hideControlsNow();
+    else wakeControls();
+  }
+  function wakeControls(forceLock) {
+    els.wrap.classList.remove('controls-hidden');
+    if (forceLock) return;
+    armHideTimer();
+  }
+  function hideControlsNow() {
+    if (controlsLocked) return;
+    els.wrap.classList.add('controls-hidden');
+  }
+  function armHideTimer() {
+    clearTimeout(state.hideTimer);
+    state.hideTimer = setTimeout(() => {
+      const paused = els.video.paused;
+      const chatOpen = !$('chatComposer').hidden;
+      const modalOpen = !$('endModalBackdrop').hidden || !$('inviteModalBackdrop').hidden;
+      if (paused || chatOpen || modalOpen || controlsLocked || state.scrubbing) return;
+      hideControlsNow();
+    }, 3000);
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // SECTION 10 — Reactions (ephemeral only — never written to the DB)
+  // ═══════════════════════════════════════════════════════
+  $('reactionToggle').onclick = () => {
+    const bar = $('reactionBar');
+    bar.hidden = !bar.hidden;
+    wakeControls(!bar.hidden);
+  };
   document.querySelectorAll('#reactionBar button').forEach(btn => {
     btn.onclick = () => { const emoji = btn.dataset.r; showReaction(emoji, true); broadcastReaction(emoji); };
   });
@@ -397,28 +594,30 @@
   }
 
   // ═══════════════════════════════════════════════════════
-  // SECTION 9 — Fullscreen
+  // SECTION 11 — Fullscreen
   // ═══════════════════════════════════════════════════════
   $('btnFullscreen').onclick = async () => {
-    const wrap = $('playerWrap');
     if (!document.fullscreenElement) {
-      await wrap.requestFullscreen().catch(() => {});
+      await els.wrap.requestFullscreen().catch(() => {});
       try { screen.orientation && screen.orientation.lock && await screen.orientation.lock('landscape'); } catch (e) {}
     } else {
       await document.exitFullscreen().catch(() => {});
       try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch (e) {}
     }
+    wakeControls();
   };
+  // Fullscreen/orientation changes must never duplicate listeners —
+  // this handler is attached exactly once at module scope.
+  document.addEventListener('fullscreenchange', () => wakeControls());
 
   // ═══════════════════════════════════════════════════════
-  // SECTION 10 — Partner video PiP bridge. Reuses the EXISTING call
-  // system in public/chat/call.js, which lives in the PARENT window,
-  // not this iframe — bridged via window.parent.Call rather than a
-  // second WebRTC implementation. Requires one small additive patch to
-  // call.js (getRemoteStream()/getState() + a change event) — see the
-  // report. Nothing about the call's own logic is touched.
+  // SECTION 12 — Partner video PiP bridge (existing call system, bridged
+  // via window.parent.Call — NOT a second WebRTC implementation).
   // ═══════════════════════════════════════════════════════
+  let callBridgeSetup = false;
   function setupCallBridge() {
+    if (callBridgeSetup) return; // guard against duplicate listeners across rerenders/fullscreen toggles
+    callBridgeSetup = true;
     const pip = $('wtPip'), pipVideo = $('wtPipVideo'), fallback = $('wtPipAvatarFallback'), badge = $('wtPipBadge');
     let expanded = false, dragMoved = false;
 
@@ -428,7 +627,7 @@
       if (!Call || typeof Call.getRemoteStream !== 'function') { pip.hidden = true; $('wtPipControls').hidden = true; return; }
       const stream = Call.getRemoteStream();
       const camOn = typeof Call.getRemoteCamOn === 'function' ? Call.getRemoteCamOn() : true;
-      if (!stream) { pip.hidden = true; return; }
+      if (!stream) { pip.hidden = true; $('wtPipControls').hidden = true; return; }
       pip.hidden = false;
       if (camOn) {
         pipVideo.srcObject = stream; pipVideo.hidden = false; fallback.hidden = true;
@@ -440,11 +639,10 @@
     }
     try { window.parent.addEventListener('uwl:call-stream-changed', refresh); } catch (e) {}
     refresh();
-    setInterval(refresh, 4000); // cheap fallback poll in case the event bridge isn't wired up yet
+    setInterval(refresh, 4000);
 
-    pip.onclick = () => { if (dragMoved) { dragMoved = false; return; } expanded = !expanded; pip.classList.toggle('expanded', expanded); $('wtPipControls').hidden = !expanded; };
+    pip.onclick = () => { if (dragMoved) { dragMoved = false; return; } expanded = !expanded; pip.classList.toggle('expanded', expanded); $('wtPipControls').hidden = !expanded; wakeControls(); };
 
-    // Draggable, snaps to nearest corner, stays within the visible movie area
     let sx, sy, ox, oy, dragging = false;
     pip.addEventListener('pointerdown', (e) => { dragging = true; dragMoved = false; sx = e.clientX; sy = e.clientY; const r = pip.getBoundingClientRect(); ox = r.left; oy = r.top; pip.setPointerCapture(e.pointerId); });
     pip.addEventListener('pointermove', (e) => {
@@ -456,7 +654,7 @@
     });
     pip.addEventListener('pointerup', () => {
       dragging = false;
-      const wrap = $('playerWrap').getBoundingClientRect();
+      const wrap = els.wrap.getBoundingClientRect();
       const r = pip.getBoundingClientRect();
       const snapLeft = (r.left - wrap.left) < (wrap.width / 2);
       const snapTop = (r.top - wrap.top) < (wrap.height / 2);
@@ -464,7 +662,7 @@
       pip.style.left = snapLeft ? '16px' : 'auto';
       pip.style.right = snapLeft ? 'auto' : '16px';
       pip.style.top = snapTop ? '16px' : 'auto';
-      pip.style.bottom = snapTop ? 'auto' : '90px'; // stay clear of the controls bar
+      pip.style.bottom = snapTop ? 'auto' : '90px';
     });
 
     $('pipMuteBtn').onclick = () => { try { window.parent.Call.toggleMute(); } catch (e) {} };
@@ -472,18 +670,127 @@
     $('pipEndBtn').onclick = () => { try { window.parent.Call.endCall(); } catch (e) {} };
   }
 
-  // ═══════════════════════════════════════════════════════
-  // SECTION 11 — Chat overlay (reuse existing chat system — ask the
-  // parent window to open its existing chat drawer over this page)
-  // ═══════════════════════════════════════════════════════
-  $('btnChat').onclick = () => { try { window.parent.postMessage({ type: 'uwl:open-chat-overlay' }, '*'); } catch (e) {} };
+  // Voice / Video call buttons — connect to the EXISTING call system,
+  // no fake UI, no second backend.
+  $('btnVoiceCall').onclick = () => {
+    try {
+      const Call = window.parent.Call;
+      if (Call && typeof Call.startCall === 'function') Call.startCall('audio');
+      else toast('Call system unavailable.');
+    } catch (e) { toast('Call system unavailable.'); }
+    wakeControls();
+  };
+  $('btnVideoCall').onclick = () => {
+    try {
+      const Call = window.parent.Call;
+      if (Call && typeof Call.startCall === 'function') Call.startCall('video');
+      else toast('Call system unavailable.');
+    } catch (e) { toast('Call system unavailable.'); }
+    wakeControls();
+  };
 
   // ═══════════════════════════════════════════════════════
-  // SECTION 12 — Partner presence / left-room handling
+  // SECTION 13 — Movie-chat: a lightweight composer over the player that
+  // reuses the EXISTING /api/chat backend (same table/rows real Chat
+  // messages use) instead of a second messaging system.
+  // ═══════════════════════════════════════════════════════
+  const composer = $('chatComposer'), composerInput = $('chatComposerInput');
+  $('btnChat').onclick = () => {
+    composer.hidden = false;
+    controlsLocked = true;
+    wakeControls(true);
+    setTimeout(() => composerInput.focus(), 50); // let layout settle before opening keyboard
+  };
+  $('chatComposerClose').onclick = closeComposer;
+  function closeComposer() {
+    composer.hidden = true;
+    composerInput.blur();
+    controlsLocked = false;
+    armHideTimer();
+  }
+  async function sendMovieChat() {
+    const text = composerInput.value.trim();
+    if (!text || !COUPLE_ID) return;
+    composerInput.value = '';
+    showChatBubble(ctx && ctx.myName ? ctx.myName : 'You', text, true);
+    try {
+      await chatApi('POST', '/api/chat', {
+        coupleId: COUPLE_ID, clientId: 'wt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+        senderRole: ROLE, type: 'text', text
+      });
+    } catch (e) { toast('Message failed to send.'); }
+  }
+  $('chatComposerSend').onclick = sendMovieChat;
+  composerInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMovieChat(); });
+
+  function showChatBubble(name, text, mine) {
+    const layer = $('chatFloatLayer');
+    const b = document.createElement('div');
+    b.className = 'wt-chat-bubble' + (mine ? ' mine' : '');
+    const nameEl = document.createElement('b'); nameEl.textContent = mine ? 'You' : name;
+    const txtEl = document.createElement('div'); txtEl.textContent = text;
+    b.appendChild(nameEl); b.appendChild(txtEl);
+    layer.appendChild(b);
+    // Cap visible bubbles so a burst of messages never becomes an
+    // unreadable stack over the movie.
+    while (layer.children.length > 3) layer.removeChild(layer.firstChild);
+    setTimeout(() => { b.classList.add('fading'); setTimeout(() => b.remove(), 650); }, 4200);
+    if (!mine) wakeControls();
+  }
+
+  function startChatPolling() {
+    clearInterval(state.chatPollTimer);
+    state.lastChatTs = new Date().toISOString(); // only show messages sent after entering watch mode
+    state.chatPollTimer = setInterval(async () => {
+      if (document.hidden || !COUPLE_ID) return;
+      try {
+        const q = state.lastChatTs ? '?after=' + encodeURIComponent(state.lastChatTs) : '?limit=5';
+        const rows = await chatApi('GET', '/api/chat/' + COUPLE_ID + q);
+        if (rows && rows.length) {
+          rows.forEach(r => {
+            state.lastChatTs = r.created_at;
+            if (r.sender_role !== ROLE && r.type === 'text') showChatBubble(ctx && ctx.partnerName ? ctx.partnerName : 'Partner', r.text, false);
+          });
+        }
+      } catch (e) {}
+    }, 2500);
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // SECTION 14 — End movie (with confirmation)
+  // ═══════════════════════════════════════════════════════
+  $('btnEndMovie').onclick = () => { $('endModalBackdrop').hidden = false; wakeControls(true); };
+  $('btnCancelEnd').onclick = () => { $('endModalBackdrop').hidden = true; armHideTimer(); };
+  $('btnConfirmEnd').onclick = async () => { $('endModalBackdrop').hidden = true; await endSession(); };
+  $('btnExitWatching').onclick = () => { $('endModalBackdrop').hidden = false; wakeControls(true); };
+
+  async function endSession() {
+    hideBanner();
+    try {
+      const room = await api('POST', `/${COUPLE_ID}/end`, { role: ROLE, movieTitle: state.myTitle, durationSec: state.myDuration });
+      broadcastRoom(room);
+      state.room = room;
+    } catch (e) {}
+
+    // Full cleanup — spec §End Movie 1–10.
+    clearAllTimers();
+    els.video.pause();
+    els.video.removeAttribute('src'); els.video.load();
+    if (state.localObjectUrl) { URL.revokeObjectURL(state.localObjectUrl); state.localObjectUrl = null; }
+    composer.hidden = true; controlsLocked = false;
+    if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch (e) {} }
+    try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch (e) {}
+
+    state.myTitle = null; state.myDuration = null; state.localFile = null;
+    showState('setup'); showSetupSub('empty');
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // SECTION 15 — Partner presence / left-room handling
   // ═══════════════════════════════════════════════════════
   function updatePartnerPresenceUI() {
-    if (!els.watching.hidden) {
-      $('partnerOverlay').textContent = _presenceState.partnerOnline ? '❤️ Partner Watching' : 'Partner • Reconnecting…';
+    if (state.uiState === 'watching') {
+      setStatusPill(_presenceState.partnerOnline ? null : 'Partner reconnecting…', _presenceState.partnerOnline ? null : 'warn');
     }
     if (!_presenceState.partnerOnline && state.room && state.room.status === 'watching') {
       showBanner('Partner left the room.', [
@@ -495,16 +802,9 @@
       hideBanner();
     }
   }
-  async function endSession() {
-    hideBanner();
-    try { state.room = await api('POST', `/${COUPLE_ID}/end`, { role: ROLE, movieTitle: state.myTitle, durationSec: state.myDuration }); } catch (e) {}
-    showState('empty');
-  }
 
   // ═══════════════════════════════════════════════════════
-  // SECTION 13 — Reconnect handling (network + app resume). On resume:
-  // fetch authoritative state, recompute expected position, reconcile —
-  // never trust JS timers that may have been frozen while backgrounded.
+  // SECTION 16 — Reconnect handling (network + app resume)
   // ═══════════════════════════════════════════════════════
   async function reconcile() {
     if (!COUPLE_ID || state.reconnectPending) return;
@@ -515,17 +815,18 @@
       if (!room) return;
       state.room = room;
       if (room.action_seq && room.action_seq > state.lastActionSeq) state.lastActionSeq = room.action_seq;
-      if (!els.watching.hidden) {
+      if (state.uiState === 'watching') {
         const target = expectedPosition(room);
         if (Math.abs(els.video.currentTime - target) > 1) els.video.currentTime = target;
         if (room.playing) els.video.play().catch(() => {}); else els.video.pause();
+        updatePlayPauseIcon();
       } else {
-        renderLobby();
+        renderFromRoom();
       }
       hideBanner();
     } catch (e) {
       state.reconnectPending = false;
-      if (!els.watching.hidden) showBanner('⚠️ Connection lost. Trying to reconnect…', []);
+      if (state.uiState === 'watching') showBanner('⚠️ Connection lost. Trying to reconnect…', []);
     }
   }
   window.addEventListener('online', reconcile);
@@ -534,21 +835,19 @@
   window.addEventListener('focus', reconcile);
 
   // ═══════════════════════════════════════════════════════
-  // SECTION 14 — Boot
+  // SECTION 17 — Boot
   // ═══════════════════════════════════════════════════════
   $('wtBack').onclick = () => { try { window.parent.postMessage({ type: 'uwl:close-watch-together' }, '*'); } catch (e) {} };
 
   (async function init() {
-    if (!COUPLE_ID) { toast('Could not find your couple pairing.'); return; }
+    if (!COUPLE_ID) { toast('Could not find your couple pairing.'); showState('setup'); showSetupSub('empty'); return; }
     setupRealtime();
     try {
       const room = await api('GET', `/${COUPLE_ID}`);
       state.room = room;
-      if (!room || room.status === 'idle' || room.status === 'ended') showState('empty');
-      else if (room.status === 'watching') enterWatching(room);
-      else if (room.status === 'countdown' && room.scheduled_start_at) runCountdown(room.scheduled_start_at);
-      else renderLobby();
-    } catch (e) { showState('empty'); }
+      if (room && room.action_seq) state.lastActionSeq = room.action_seq;
+      renderFromRoom();
+    } catch (e) { showState('setup'); showSetupSub('empty'); }
   })();
 
 })();

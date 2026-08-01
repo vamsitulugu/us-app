@@ -12,8 +12,8 @@
 
 <div class="wt-page" id="wtPage">
 
-  <!-- Header -->
-  <header class="wt-header">
+  <!-- Header — hidden during WATCHING (cinema mode) -->
+  <header class="wt-header" id="wtHeader">
     <button class="wt-back" id="wtBack" aria-label="Back">‹</button>
     <div class="wt-title-wrap">
       <h1>🎬 Watch Together</h1>
@@ -22,51 +22,62 @@
     <button class="wt-history-btn" id="wtHistoryBtn" aria-label="History">🕘</button>
   </header>
 
-  <!-- ══════ STATE: EMPTY / SELECT MOVIE ══════ -->
-  <section class="wt-state" id="stateEmpty">
-    <div class="wt-empty-card">
+  <!-- ══════ STATE: SETUP (empty + lobby merged into one state) ══════ -->
+  <section class="wt-state" id="stateSetup">
+
+    <!-- Sub-state: nothing picked yet -->
+    <div class="wt-empty-card" id="wtEmptyCard">
       <div class="wt-empty-icon">🎬</div>
       <h2>Pick a movie from your phone</h2>
       <p class="wt-hint">Nothing gets uploaded — your movie stays completely on your device.</p>
       <button class="wt-btn wt-btn-primary" id="btnChooseMovie">Choose Movie From Device</button>
       <input type="file" id="movieFileInput" accept="video/mp4,video/webm,video/x-m4v,video/*" hidden>
     </div>
-  </section>
 
-  <!-- ══════ STATE: MOVIE SELECTED / WAITING / READY ══════ -->
-  <section class="wt-state" id="stateLobby" hidden>
-    <div class="wt-movie-card" id="myMovieCard" hidden>
-      <div class="wt-movie-icon">🎞️</div>
-      <div class="wt-movie-info">
-        <div class="wt-movie-title" id="myMovieTitle">—</div>
-        <div class="wt-movie-meta" id="myMovieMeta">—</div>
+    <!-- Sub-state: movie picked → lobby -->
+    <div class="wt-lobby" id="wtLobby" hidden>
+      <div class="wt-movie-card" id="myMovieCard" hidden>
+        <div class="wt-movie-icon">🎞️</div>
+        <div class="wt-movie-info">
+          <div class="wt-movie-title" id="myMovieTitle">—</div>
+          <div class="wt-movie-meta" id="myMovieMeta">—</div>
+        </div>
+        <button class="wt-chip-btn" id="btnChangeMovie">Change</button>
       </div>
-      <button class="wt-chip-btn" id="btnChangeMovie">Change</button>
-    </div>
 
-    <div class="wt-match-banner" id="matchBanner" hidden></div>
+      <div class="wt-match-banner" id="matchBanner" hidden></div>
 
-    <div class="wt-partners-row">
-      <div class="wt-partner-chip" id="chipMe">
-        <span class="wt-partner-name">You</span>
-        <span class="wt-partner-state" id="stateMe">Selecting…</span>
+      <div class="wt-partners-row">
+        <div class="wt-partner-chip" id="chipMe">
+          <span class="wt-partner-name">You</span>
+          <span class="wt-partner-state" id="stateMe">Selecting…</span>
+        </div>
+        <div class="wt-partner-chip" id="chipPartner">
+          <span class="wt-partner-name" id="partnerNameLabel">Partner</span>
+          <span class="wt-partner-state" id="statePartner">Waiting…</span>
+        </div>
       </div>
-      <div class="wt-partner-chip" id="chipPartner">
-        <span class="wt-partner-name" id="partnerNameLabel">Partner</span>
-        <span class="wt-partner-state" id="statePartner">Waiting…</span>
+
+      <button class="wt-btn wt-btn-ready" id="btnReady" hidden>I'M READY</button>
+
+      <div class="wt-both-ready" id="bothReadyBlock" hidden>
+        <p>❤️ Both Ready</p>
+        <button class="wt-btn wt-btn-start" id="btnStart">START TOGETHER</button>
       </div>
-    </div>
 
-    <button class="wt-btn wt-btn-ready" id="btnReady" hidden>I'M READY</button>
-
-    <div class="wt-both-ready" id="bothReadyBlock" hidden>
-      <p>❤️ Both Ready</p>
-      <button class="wt-btn wt-btn-start" id="btnStart">START TOGETHER</button>
+      <!-- Sub-state: I requested start, waiting on partner -->
+      <div class="wt-waiting-block" id="waitingBlock" hidden>
+        <div class="wt-waiting-pulse">❤️</div>
+        <p class="wt-waiting-title">Waiting for Partner…</p>
+        <p class="wt-hint">Waiting for your partner to join the movie</p>
+        <button class="wt-btn wt-btn-ghost" id="btnCancelStart">Cancel</button>
+      </div>
     </div>
   </section>
 
   <!-- ══════ STATE: COUNTDOWN ══════ -->
   <section class="wt-state wt-countdown" id="stateCountdown" hidden>
+    <p class="wt-countdown-label">Starting together</p>
     <div class="wt-countdown-num" id="countdownNum">3</div>
   </section>
 
@@ -75,6 +86,9 @@
     <div class="wt-player-wrap" id="playerWrap">
       <video id="wtVideo" playsinline></video>
 
+      <!-- Tap catcher for show/hide controls -->
+      <div class="wt-tap-catcher" id="tapCatcher"></div>
+
       <!-- Floating partner PiP bubble (bridged from existing call system) -->
       <div class="wt-pip" id="wtPip" hidden>
         <video id="wtPipVideo" autoplay playsinline muted></video>
@@ -82,44 +96,102 @@
         <div class="wt-pip-badge" id="wtPipBadge">●</div>
       </div>
       <div class="wt-pip-controls" id="wtPipControls" hidden>
-        <button id="pipMuteBtn">🎙️</button>
-        <button id="pipCamBtn">📹</button>
-        <button id="pipEndBtn">☎</button>
+        <button id="pipMuteBtn" aria-label="Mute">🎙️</button>
+        <button id="pipCamBtn" aria-label="Camera">📹</button>
+        <button id="pipEndBtn" aria-label="End call">☎</button>
       </div>
 
-      <!-- Partner status overlay -->
-      <div class="wt-partner-overlay" id="partnerOverlay">❤️ Partner Watching</div>
+      <!-- ── TOP OVERLAY: title / status / minimal actions ── -->
+      <div class="wt-top-overlay" id="wtTopOverlay">
+        <button class="wt-icon-btn" id="btnExitWatching" aria-label="Exit">‹</button>
+        <div class="wt-top-status">
+          <span class="wt-movie-name" id="wtNowTitle">—</span>
+          <span class="wt-status-pill" id="statusPill" hidden></span>
+        </div>
+        <button class="wt-icon-btn" id="btnFullscreen" aria-label="Fullscreen">⛶</button>
+      </div>
 
-      <!-- Reactions layer -->
+      <!-- ── CENTER: playback controls ── -->
+      <div class="wt-center-controls" id="wtCenterControls">
+        <button class="wt-center-btn wt-seek-btn" id="btnSeekBack" aria-label="Back 10 seconds">
+          <span class="wt-seek-icon">↺</span><span class="wt-seek-num">10</span>
+        </button>
+        <button class="wt-center-btn wt-play-btn" id="btnPlayPause" aria-label="Play/Pause">
+          <span id="playIcon">▶</span>
+        </button>
+        <button class="wt-center-btn wt-seek-btn" id="btnSeekFwd" aria-label="Forward 10 seconds">
+          <span class="wt-seek-icon">↻</span><span class="wt-seek-num">10</span>
+        </button>
+      </div>
+
+      <!-- ── RIGHT EDGE: reactions ── -->
+      <div class="wt-reactions-col" id="wtReactionsCol">
+        <button class="wt-reaction-toggle" id="reactionToggle" aria-label="Reactions">😊</button>
+        <div class="wt-reaction-bar" id="reactionBar" hidden>
+          <button data-r="❤️">❤️</button>
+          <button data-r="😂">😂</button>
+          <button data-r="🥺">🥺</button>
+          <button data-r="😱">😱</button>
+          <button data-r="😘">😘</button>
+        </div>
+      </div>
       <div class="wt-reactions-layer" id="reactionsLayer"></div>
 
-      <!-- Controls -->
-      <div class="wt-controls" id="wtControls">
+      <!-- ── MOVIE-CHAT bubbles (float above timeline, fade out) ── -->
+      <div class="wt-chat-float-layer" id="chatFloatLayer"></div>
+
+      <!-- ── BOTTOM: timeline + secondary action row ── -->
+      <div class="wt-bottom-overlay" id="wtBottomOverlay">
         <div class="wt-timeline-row">
-          <input type="range" id="wtTimeline" min="0" max="100" value="0" step="0.1">
+          <span class="wt-time-cur" id="wtTimeCur">0:00</span>
+          <input type="range" id="wtTimeline" min="0" max="1000" value="0" step="1">
+          <span class="wt-time-total" id="wtTimeTotal">0:00</span>
         </div>
-        <div class="wt-controls-row">
-          <button id="btnSeekBack">↶10</button>
-          <button id="btnPlayPause">▶</button>
-          <button id="btnSeekFwd">↷10</button>
-          <span class="wt-time-label" id="wtTimeLabel">00:00 / 00:00</span>
-          <span class="wt-spacer"></span>
-          <button id="btnSync" title="Sync now">🔄</button>
-          <button id="btnChat" title="Chat">💬</button>
-          <button id="btnFullscreen" title="Fullscreen">⛶</button>
+        <div class="wt-secondary-row">
+          <button class="wt-sec-btn" id="btnSync" title="Sync now"><span>🔄</span><label>Sync</label></button>
+          <button class="wt-sec-btn" id="btnChat" title="Message"><span>💬</span><label>Message</label></button>
+          <button class="wt-sec-btn" id="btnVoiceCall" title="Voice call"><span>🎙️</span><label>Voice</label></button>
+          <button class="wt-sec-btn" id="btnVideoCall" title="Video call"><span>📹</span><label>Video</label></button>
+          <button class="wt-sec-btn wt-sec-btn-end" id="btnEndMovie" title="End movie"><span>⏹</span><label>End</label></button>
         </div>
-        <div class="wt-sync-status" id="syncStatus">✓ In sync</div>
       </div>
 
-      <div class="wt-reaction-bar" id="reactionBar">
-        <button data-r="❤️">❤️</button>
-        <button data-r="😂">😂</button>
-        <button data-r="🥺">🥺</button>
-        <button data-r="😱">😱</button>
-        <button data-r="😘">😘</button>
+      <!-- Movie-chat composer (opens above keyboard, over the bottom overlay) -->
+      <div class="wt-chat-composer" id="chatComposer" hidden>
+        <input type="text" id="chatComposerInput" placeholder="Message your partner…" maxlength="500">
+        <button id="chatComposerSend" aria-label="Send">➤</button>
+        <button id="chatComposerClose" aria-label="Close" class="wt-chat-composer-close">✕</button>
       </div>
     </div>
   </section>
+
+  <!-- ══════ MODAL: Watch invitation (shown to the invited partner) ══════ -->
+  <div class="wt-modal-backdrop" id="inviteModalBackdrop" hidden>
+    <div class="wt-modal wt-invite-modal">
+      <div class="wt-invite-icon">🎬</div>
+      <h2>MOVIE NIGHT</h2>
+      <p class="wt-invite-sub">Your partner wants to start the movie.</p>
+      <p class="wt-invite-question">"Ready to watch together?"</p>
+      <div class="wt-invite-movie" id="inviteMovieName">—</div>
+      <p class="wt-invite-match">Both versions match ✓</p>
+      <div class="wt-modal-actions">
+        <button class="wt-btn wt-btn-ghost" id="btnDeclineInvite">NOT NOW</button>
+        <button class="wt-btn wt-btn-primary" id="btnAcceptInvite">❤️ ACCEPT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ MODAL: End movie confirmation ══════ -->
+  <div class="wt-modal-backdrop" id="endModalBackdrop" hidden>
+    <div class="wt-modal">
+      <h2>End Watch Together?</h2>
+      <p class="wt-invite-sub">This will end the current movie session for both of you.</p>
+      <div class="wt-modal-actions">
+        <button class="wt-btn wt-btn-ghost" id="btnCancelEnd">CANCEL</button>
+        <button class="wt-btn wt-btn-danger" id="btnConfirmEnd">END MOVIE</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Non-blocking toast / banners for connection & partner-left states -->
   <div class="wt-toast" id="wtToast" hidden></div>

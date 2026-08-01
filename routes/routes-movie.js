@@ -77,12 +77,61 @@ router.post('/:coupleId/ready', async (req, res) => {
   return res.json(data);
 });
 
-// POST /api/movie/:coupleId/start — begin the shared countdown
-// body: { role, countdownMs }  -> sets scheduled_start_at = now + countdownMs
-router.post('/:coupleId/start', async (req, res) => {
+// POST /api/movie/:coupleId/request-start — the initiating partner asks
+// to begin. Does NOT start anything yet — flips status to
+// 'start_requested' and waits for the partner to accept. This replaces
+// the old immediate-start behavior that caused each partner to have to
+// press Start independently.
+// body: { role }
+router.post('/:coupleId/request-start', async (req, res) => {
+  const { coupleId } = req.params;
+  const { role } = req.body;
+  if (!role) return res.status(400).json({ error: 'Missing role' });
+
+  const { data: existing, error: fErr } = await supabase.from('watch_sessions').select('*').eq('couple_id', coupleId).maybeSingle();
+  if (fErr) return res.status(500).json({ error: fErr.message });
+  if (!existing) return res.status(404).json({ error: 'No room yet' });
+
+  const { data, error } = await supabase.from('watch_sessions').update({
+    status: 'start_requested',
+    start_requested_by: role,
+    action_seq: (existing.action_seq || 0) + 1,
+    updated_by: role,
+    updated_at: new Date().toISOString()
+  }).eq('couple_id', coupleId).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json(data);
+});
+
+// POST /api/movie/:coupleId/cancel-start — initiator cancels while
+// waiting, or partner declines ("NOT NOW"). Returns to 'ready'.
+// body: { role }
+router.post('/:coupleId/cancel-start', async (req, res) => {
+  const { coupleId } = req.params;
+  const { role } = req.body;
+
+  const { data: existing } = await supabase.from('watch_sessions').select('action_seq').eq('couple_id', coupleId).maybeSingle();
+
+  const { data, error } = await supabase.from('watch_sessions').update({
+    status: 'ready',
+    start_requested_by: null,
+    action_seq: (existing?.action_seq || 0) + 1,
+    updated_by: role,
+    updated_at: new Date().toISOString()
+  }).eq('couple_id', coupleId).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json(data);
+});
+
+// POST /api/movie/:coupleId/accept-start — the invited partner accepts.
+// Establishes ONE authoritative scheduled_start_at that both clients
+// count down against, so network delivery jitter can't let one phone
+// start meaningfully earlier than the other.
+// body: { role, countdownMs }
+router.post('/:coupleId/accept-start', async (req, res) => {
   const { coupleId } = req.params;
   const { role, countdownMs } = req.body;
-  const startAt = new Date(Date.now() + (countdownMs || 3500)).toISOString();
+  const startAt = new Date(Date.now() + (countdownMs || 4000)).toISOString();
 
   const { data: existing } = await supabase.from('watch_sessions').select('action_seq').eq('couple_id', coupleId).maybeSingle();
 
@@ -92,6 +141,7 @@ router.post('/:coupleId/start', async (req, res) => {
       scheduled_start_at: startAt,
       playing: false,
       position_sec: 0,
+      start_requested_by: null,
       action_seq: (existing?.action_seq || 0) + 1,
       updated_by: role,
       updated_at: new Date().toISOString()
