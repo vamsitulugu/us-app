@@ -323,7 +323,7 @@
       state.room = await api('POST', `/${COUPLE_ID}/request-start`, { role: ROLE });
       broadcastRoom(state.room);
       renderFromRoom();
-    } catch (e) { toast('Could not start session.'); }
+    } catch (e) { toast('Could not start session: ' + e.message); }
   };
 
   $('btnCancelStart').onclick = async () => {
