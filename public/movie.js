@@ -774,17 +774,17 @@
     return String(m).padStart(2, '0') + ':' + String(r).padStart(2, '0');
   }
 
-  function duckMovieAudio() {
-    if (callDucked) return;
-    callDucked = true;
-    prevVolume = els.video.volume;
-    els.video.volume = Math.min(prevVolume, 0.15);
-  }
-  function restoreMovieAudio() {
-    if (!callDucked) return;
-    callDucked = false;
-    els.video.volume = prevVolume;
-  }
+  // NOTE: this used to force els.video.volume down to 0.15 whenever a
+  // Watch Together voice/video call connected (and restore it on call
+  // end). That was intentional app-level audio ducking, but it made the
+  // movie nearly inaudible during a call, which isn't the desired
+  // experience — Watch Together calls are meant to let both the movie
+  // and partner audio play together. These are now no-ops kept in place
+  // (rather than removing every call site) so the rest of the call-bridge
+  // logic below doesn't need to change. Movie volume is left exactly as
+  // the user set it, before, during, and after a call.
+  function duckMovieAudio() {}
+  function restoreMovieAudio() {}
 
   function setupCallBridge() {
     if (callBridgeSetup) return; // guard against duplicate listeners across rerenders/fullscreen toggles

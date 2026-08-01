@@ -435,11 +435,22 @@ function reanchorAfterImages() {
       <div class="voice-dur">${Math.floor(dur/60)}:${String(dur%60).padStart(2,'0')}</div>
     </div>`;
   }
+  let _activeVoiceEl = null;
   function toggleVoicePlay(el, url) {
     let audio = el._audio;
-    if (!audio) { audio = new Audio(url); el._audio = audio; audio.onended = () => { el.querySelector('.voice-waveform').classList.remove('playing'); el.querySelector('.voice-play').textContent = '▶'; }; }
-    if (audio.paused) { audio.play(); el.querySelector('.voice-waveform').classList.add('playing'); el.querySelector('.voice-play').textContent = '⏸'; }
-    else { audio.pause(); el.querySelector('.voice-waveform').classList.remove('playing'); el.querySelector('.voice-play').textContent = '▶'; }
+    if (!audio) { audio = new Audio(url); el._audio = audio; audio.onended = () => { el.querySelector('.voice-waveform').classList.remove('playing'); el.querySelector('.voice-play').textContent = '▶'; if (_activeVoiceEl === el) _activeVoiceEl = null; }; }
+    if (audio.paused) {
+      // Only one voice message plays at a time — pause whichever one
+      // (if any) was already playing before starting this one.
+      if (_activeVoiceEl && _activeVoiceEl !== el && _activeVoiceEl._audio) {
+        _activeVoiceEl._audio.pause();
+        _activeVoiceEl.querySelector('.voice-waveform')?.classList.remove('playing');
+        const btn = _activeVoiceEl.querySelector('.voice-play'); if (btn) btn.textContent = '▶';
+      }
+      _activeVoiceEl = el;
+      audio.play(); el.querySelector('.voice-waveform').classList.add('playing'); el.querySelector('.voice-play').textContent = '⏸';
+    }
+    else { audio.pause(); el.querySelector('.voice-waveform').classList.remove('playing'); el.querySelector('.voice-play').textContent = '▶'; if (_activeVoiceEl === el) _activeVoiceEl = null; }
   }
 
   function renderPinned() {
@@ -594,35 +605,69 @@ function reanchorAfterImages() {
   }
 
   // ─── VOICE RECORD ────────────────────────────────────
+  // Picks the first MIME type the current browser/WebView's MediaRecorder
+  // actually supports, instead of assuming one format works everywhere —
+  // Chrome/most Android WebViews support audio/webm;codecs=opus, but not
+  // every environment does, and Safari/iOS typically only supports
+  // audio/mp4. Recording with an unsupported type either throws in the
+  // MediaRecorder constructor or silently produces an empty/corrupt blob.
+  const VOICE_MIME_CANDIDATES = [
+    'audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus', 'audio/ogg'
+  ];
+  function pickVoiceMimeType() {
+    if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return '';
+    return VOICE_MIME_CANDIDATES.find(t => MediaRecorder.isTypeSupported(t)) || '';
+  }
   async function toggleRecord() {
     if (recording) { stopRecording(); return; }
+    if (_activeVoiceEl && _activeVoiceEl._audio && !_activeVoiceEl._audio.paused) {
+      _activeVoiceEl._audio.pause();
+      _activeVoiceEl.querySelector('.voice-waveform')?.classList.remove('playing');
+      const btn = _activeVoiceEl.querySelector('.voice-play'); if (btn) btn.textContent = '▶';
+      _activeVoiceEl = null;
+    }
+    if (typeof MediaRecorder === 'undefined') { toast('Voice recording isn\'t supported on this device'); return; }
+    let stream;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream);
-      recChunks = [];
-      mediaRecorder.ondataavailable = e => recChunks.push(e.data);
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop());
-        if (recCancelled) { recCancelled = false; return; }
-        const blob = new Blob(recChunks, { type: 'audio/webm' });
-        const dur = Math.round((Date.now() - recStart) / 1000);
-        try {
-          const url = await uploadChatMedia(blob, 'voice.webm');
-          sendMessage({ type: 'voice', mediaUrl: url, mediaMeta: { duration: dur } });
-        } catch (e) { toast('Voice message upload failed — please try again'); }
-      };
-      mediaRecorder.start();
-      recording = true; recStart = Date.now();
-      document.getElementById('chatRecTimer').style.display = 'inline';
-      document.getElementById('chatStopRecBtn').style.display = 'flex';
-      document.getElementById('chatCancelRecBtn').style.display = 'flex';
-      document.getElementById('chatMoreBtn').style.display = 'none';
-      document.getElementById('chatSendBtn').style.display = 'none';
-      recTimerInt = setInterval(() => {
-        const s = Math.floor((Date.now() - recStart) / 1000);
-        document.getElementById('chatRecTimer').textContent = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
-      }, 500);
-    } catch (e) { toast('Mic permission denied'); }
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) { toast('Mic permission denied'); return; }
+    const mimeType = pickVoiceMimeType();
+    try {
+      mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+    } catch (e) {
+      stream.getTracks().forEach(t => t.stop());
+      toast('Voice recording isn\'t supported on this device');
+      return;
+    }
+    const actualMimeType = mediaRecorder.mimeType || mimeType || 'audio/webm';
+    recChunks = [];
+    mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) recChunks.push(e.data); };
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      if (recCancelled) { recCancelled = false; return; }
+      const dur = Math.round((Date.now() - recStart) / 1000);
+      const blob = new Blob(recChunks, { type: actualMimeType });
+      console.log('[voice] recorded', { mimeType: actualMimeType, size: blob.size, durationSec: dur });
+      if (!blob || blob.size === 0) { toast('Recording was empty — please try again'); return; }
+      try {
+        const uploaded = await uploadVoiceMessage(blob, actualMimeType);
+        sendMessage({ type: 'voice', mediaUrl: uploaded.url, mediaMeta: { duration: dur, path: uploaded.path, contentType: actualMimeType } });
+      } catch (e) {
+        console.error('[voice] upload failed:', e);
+        toast('Voice message upload failed — ' + (e.message || 'please try again'));
+      }
+    };
+    mediaRecorder.start();
+    recording = true; recStart = Date.now();
+    document.getElementById('chatRecTimer').style.display = 'inline';
+    document.getElementById('chatStopRecBtn').style.display = 'flex';
+    document.getElementById('chatCancelRecBtn').style.display = 'flex';
+    document.getElementById('chatMoreBtn').style.display = 'none';
+    document.getElementById('chatSendBtn').style.display = 'none';
+    recTimerInt = setInterval(() => {
+      const s = Math.floor((Date.now() - recStart) / 1000);
+      document.getElementById('chatRecTimer').textContent = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+    }, 500);
   }
   function stopRecording() {
     recording = false;
@@ -638,6 +683,25 @@ function reanchorAfterImages() {
     recCancelled = true;
     stopRecording();
     toast('Recording discarded');
+  }
+  // Dedicated voice-message upload — separate from uploadChatMedia()
+  // because /api/media/upload's fileFilter only allows image/video
+  // mimetypes; audio needs /api/media/upload-voice, which allows
+  // audio/* and returns the storage path alongside the URL so it can be
+  // saved in media_meta.path for later cleanup (see routes/chat.js
+  // DELETE handler).
+  async function uploadVoiceMessage(blob, mimeType) {
+    const extFromMime = { 'audio/webm': 'webm', 'audio/ogg': 'ogg', 'audio/mp4': 'm4a', 'audio/mpeg': 'mp3' };
+    const baseMime = (mimeType || '').split(';')[0].trim().toLowerCase();
+    const ext = extFromMime[baseMime] || 'webm';
+    const form = new FormData();
+    form.append('file', blob, `voice.${ext}`);
+    form.append('coupleId', coupleId());
+    form.append('senderRole', myRole());
+    const r = await fetch(API + '/api/media/upload-voice', { method: 'POST', body: form });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || 'Upload failed');
+    return data;
   }
 
   // ─── BUBBLE ACTIONS / LONG-PRESS MENU ───────────────

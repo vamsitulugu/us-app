@@ -187,6 +187,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <link rel="stylesheet" href="/premium-states.css">
   <link rel="stylesheet" href="/responsive-fix.css">
   <script src="/js/scroll-reset.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -243,14 +244,55 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <audio id="voiceAudio" preload="auto"></audio>
 
 <script>
+// Reuse the same API base + coupleId/role lookup pattern already used by
+// music.html — read from the parent frame's window.S (or localStorage
+// fallback), never re-invent a separate identity scheme for this page.
+const COL_API = (function() {
+  try { return window.parent.API || 'https://us-app-av6d.onrender.com'; }
+  catch(e) { return 'https://us-app-av6d.onrender.com'; }
+})();
+async function colApi(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(COL_API + path, opts);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+function getColCoupleCtx() {
+  try {
+    const parentS = window.parent.S;
+    if (parentS && parentS.coupleId) {
+      return { coupleId: parentS.coupleId, role: parentS.role || 'user1',
+        myName: parentS.myName || 'You', partnerName: parentS.partnerName || 'Partner' };
+    }
+  } catch(e) {}
+  try {
+    const raw = localStorage.getItem('uwl_v5');
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (d.coupleId) return { coupleId: d.coupleId, role: d.role || 'user1',
+        myName: d.myName || 'You', partnerName: d.partnerName || 'Partner' };
+    }
+  } catch(e) {}
+  return null;
+}
+
 let colState = {
-  voices: [],   // extracted from parent chatMessages
+  voices: [],   // loaded from the real chat_messages table via /api/chat — same
+                // data Chat itself renders, not a separate/stale copy
   library: [],  // exported voice messages — persist independently of chat
   photos: [],   // extracted from parent photos
   myName: 'You',
   partnerName: 'Partner',
   role: 'user1',
-  voiceFavs: JSON.parse(localStorage.getItem('col_voice_favs') || '[]'),
+  coupleId: null,
+  // Voice-tab favorites mirror chat_messages.starred_by (the same shared,
+  // persisted mechanism Chat's own star button uses) — recomputed after
+  // every load, never stored separately. Library-tab favorites are a
+  // local-only concept since Library entries are local export copies.
+  voiceFavs: [],
+  libraryFavs: JSON.parse(localStorage.getItem('col_voice_favs') || '[]'),
   photoFavs: JSON.parse(localStorage.getItem('col_photo_favs') || '[]'),
 };
 let currentTab = 'voice';
@@ -301,19 +343,7 @@ function loadFromParent() {
     colState.myName = ps.myName || 'You';
     colState.partnerName = ps.partnerName || 'Partner';
     colState.role = ps.role || 'user1';
-
-    // Extract voice messages from chat
-    colState.voices = (ps.chatMessages || [])
-      .filter(m => m.type === 'voice' && m.audioData && !m._deleted)
-      .map((m, i) => ({
-        id: m.id || i,
-        audioData: m.audioData,
-        duration: m.duration || '0:00',
-        date: m.date || '',
-        time: m.time || '',
-        by: m.by || (m.me ? 'user1' : 'user2'),
-        durationSec: parseDuration(m.duration || '0:00'),
-      })).sort((a,b) => (b.date + b.time).localeCompare(a.date + a.time));
+    colState.coupleId = ps.coupleId || colState.coupleId;
 
     // Extract photos
     colState.photos = (ps.photos || [])
@@ -340,6 +370,53 @@ function loadFromParent() {
   } catch(e) { console.warn('colLoad:', e); }
 }
 
+// ── VOICE MESSAGES — real data, one source of truth ──
+// Reads the SAME chat_messages rows Chat itself renders (via the same
+// GET /api/chat/:coupleId endpoint chat.js uses), instead of a stale
+// copy. No separate voice-message system, no duplicate records.
+function fmtDurationLabel(sec) {
+  sec = Math.max(0, Math.round(sec || 0));
+  return Math.floor(sec/60) + ':' + String(sec%60).padStart(2,'0');
+}
+function chatMsgToVoice(m) {
+  const d = new Date(m.created_at);
+  const durSec = (m.media_meta && m.media_meta.duration) || 0;
+  return {
+    id: m.id,
+    audioData: m.media_url,           // hosted/signed URL — <audio>/fetch both accept a URL same as a data URI
+    duration: fmtDurationLabel(durSec),
+    durationSec: durSec,
+    date: isNaN(d) ? '' : d.toISOString().slice(0,10),
+    time: isNaN(d) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    createdAt: m.created_at,
+    by: m.sender_role,
+    starredBy: m.starred_by || [],
+    path: (m.media_meta && m.media_meta.path) || null,
+  };
+}
+let voicesLoadFailed = false;
+async function loadVoices() {
+  const ctx = getColCoupleCtx();
+  if (!ctx || !ctx.coupleId) { voicesLoadFailed = true; return; }
+  colState.coupleId = ctx.coupleId;
+  colState.role = ctx.role;
+  colState.myName = ctx.myName;
+  colState.partnerName = ctx.partnerName;
+  try {
+    const rows = await colApi('GET', '/api/chat/' + ctx.coupleId + '?limit=300');
+    voicesLoadFailed = false;
+    colState.voices = (rows || [])
+      .filter(m => m.type === 'voice' && m.media_url && !m.deleted
+        && !((m.deleted_for || '').split(',').includes(ctx.role)))
+      .map(chatMsgToVoice)
+      .sort((a,b) => (b.createdAt||'').localeCompare(a.createdAt||''));
+    colState.voiceFavs = colState.voices.filter(v => v.starredBy.includes(ctx.role)).map(v => v.id);
+  } catch (e) {
+    console.warn('loadVoices failed:', e);
+    voicesLoadFailed = true;
+  }
+}
+
 function parseDuration(s) {
   if (!s) return 0;
   const parts = s.split(':');
@@ -355,7 +432,13 @@ function todayStr(){return new Date().toISOString().slice(0,10)}
 function totalVoiceDuration(){
   return colState.voices.reduce((s,v)=>s+v.durationSec,0);
 }
-function fmtTotalDur(sec){ const m=Math.floor(sec/60); return m>0?m+'m':'<1m'; }
+function fmtTotalDur(sec){
+  sec = Math.max(0, Math.round(sec||0));
+  const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
+  if (h > 0) return h + 'h ' + String(m).padStart(2,'0') + 'm';
+  if (m > 0) return s > 0 ? (m + 'm ' + s + 's') : (m + 'm');
+  return s + 's';
+}
 
 function renderHero() {
   const totalSec = totalVoiceDuration();
@@ -370,7 +453,7 @@ function renderHero() {
   } else if (currentTab === 'library') {
     document.getElementById('colHero').innerHTML = `
     <div class="col-stat"><div class="col-stat-n">${colState.library.length}</div><div class="col-stat-l">Saved</div></div>
-    <div class="col-stat"><div class="col-stat-n" style="color:var(--yellow)">${colState.library.filter(v=>colState.voiceFavs.includes(v.id)).length}</div><div class="col-stat-l">Favorites</div></div>
+    <div class="col-stat"><div class="col-stat-n" style="color:var(--yellow)">${colState.library.filter(v=>colState.libraryFavs.includes(v.id)).length}</div><div class="col-stat-l">Favorites</div></div>
     <div class="col-stat"><div class="col-stat-n" style="color:var(--accent)">${fmtTotalDur(colState.library.reduce((s,v)=>s+(v.durationSec||0),0))}</div><div class="col-stat-l">Total Duration</div></div>
     <div class="col-stat"><div class="col-stat-n" style="color:var(--accent2)">${colState.library.filter(v=>v.by===colState.role).length}</div><div class="col-stat-l">Mine</div></div>`;
   } else {
@@ -397,7 +480,8 @@ function renderToolbar() {
     <select class="col-sort-select" onchange="setSort(this.value)">
       <option value="newest" ${voiceSort==='newest'?'selected':''}>Sort: Newest</option>
       <option value="oldest" ${voiceSort==='oldest'?'selected':''}>Sort: Oldest</option>
-      <option value="duration" ${voiceSort==='duration'?'selected':''}>Sort: Duration</option>
+      <option value="duration" ${voiceSort==='duration'?'selected':''}>Sort: Longest</option>
+      <option value="shortest" ${voiceSort==='shortest'?'selected':''}>Sort: Shortest</option>
       <option value="favorites" ${voiceSort==='favorites'?'selected':''}>Sort: Favorites</option>
     </select>
     <div class="voice-select-toggle ${selectMode?'on':''}" onclick="toggleSelectMode()">${selectMode?'✓ Selecting':'☑ Select'}</div>
@@ -426,24 +510,24 @@ function toggleSelect(id) {
   const row = document.querySelector(`[data-vid="${id}"] .voice-select-chk`);
   if (row) row.classList.toggle('checked', selectedIds.has(id));
 }
-function applySortFilterSearch(list, q) {
+function applySortFilterSearch(list, q, isLibrary) {
+  const favs = isLibrary ? colState.libraryFavs : colState.voiceFavs;
   let out = list.filter(v => {
     const senderName = (v.by === colState.role ? colState.myName : colState.partnerName).toLowerCase();
-    if (q && !v.date.includes(q) && !v.time.includes(q) && !senderName.includes(q) && !(v.duration||'').includes(q)) return false;
+    if (q && !v.date.includes(q) && !v.time.toLowerCase().includes(q) && !senderName.includes(q) && !(v.duration||'').includes(q)) return false;
     if (voiceFilter === 'me') return v.by === colState.role;
     if (voiceFilter === 'partner') return v.by !== colState.role;
-    if (voiceFilter === 'fav') return colState.voiceFavs.includes(v.id);
-    if (voiceFilter === 'recent') return true; // filtered further after sort
-    if (voiceFilter === 'longest') return true;
+    if (voiceFilter === 'fav') return favs.includes(v.id);
     return true;
   });
-  if (voiceFilter === 'recent') out = out.slice().sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).slice(0,20);
+  if (voiceFilter === 'recent') out = out.slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')).slice(0,20);
   if (voiceFilter === 'longest') out = out.slice().sort((a,b)=>b.durationSec-a.durationSec).slice(0,20);
 
-  if (voiceSort === 'newest') out.sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
-  else if (voiceSort === 'oldest') out.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  if (voiceSort === 'newest') out.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  else if (voiceSort === 'oldest') out.sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||''));
   else if (voiceSort === 'duration') out.sort((a,b)=>b.durationSec-a.durationSec);
-  else if (voiceSort === 'favorites') out.sort((a,b)=>(colState.voiceFavs.includes(b.id)?1:0)-(colState.voiceFavs.includes(a.id)?1:0));
+  else if (voiceSort === 'shortest') out.sort((a,b)=>a.durationSec-b.durationSec);
+  else if (voiceSort === 'favorites') out.sort((a,b)=>(favs.includes(b.id)?1:0)-(favs.includes(a.id)?1:0));
   return out;
 }
 

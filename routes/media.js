@@ -5,6 +5,7 @@
 // ═══════════════════════════════════════════════════════
 const express  = require('express');
 const multer   = require('multer');
+const crypto   = require('crypto');
 const supabase = require('../middleware/supabase');
 const router   = express.Router();
 
@@ -190,6 +191,78 @@ router.delete('/delete-recording', async (req, res) => {
         return res.status(403).json({ error: 'Not authorized to delete this file' });
     }
     await supabase.storage.from('couple-recordings').remove([path]);
+    return res.json({ ok: true });
+});
+
+// ── POST /api/media/upload-voice ───────────────────────
+// Used by Chat's voice-message recorder. Separate from the generic
+// /upload endpoint above on purpose: that endpoint's fileFilter only
+// allows image/video mimetypes (ALLOWED_MEDIA_MIME has no audio/* entry
+// at all), so any voice-message blob posted there was always rejected
+// by multer with "Unsupported file type" — the exact root cause of the
+// "Voice message upload failed" error. Audio gets its own filter/bucket
+// instead of loosening the photo/video endpoint's allowlist.
+const ALLOWED_VOICE_MIME = /^audio\//i;
+function voiceFileFilter(req, file, cb) {
+    if (!ALLOWED_VOICE_MIME.test(file.mimetype)) {
+        return cb(new Error('Unsupported audio format: ' + file.mimetype));
+    }
+    cb(null, true);
+}
+const uploadVoice = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 15 * 1024 * 1024 }, // 15MB — plenty for a chat voice note
+    fileFilter: voiceFileFilter
+});
+router.post('/upload-voice', uploadVoice.single('file'), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No file provided' });
+    if (!req.file.size) return res.status(400).json({ error: 'Empty recording — no audio data received' });
+    const { coupleId, senderRole } = req.body;
+    if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
+
+    // Extension follows the ACTUAL recorded mimetype (webm/mp4/ogg — whichever
+    // the browser's MediaRecorder actually produced) instead of being
+    // hardcoded, so the stored contentType always matches the real bytes.
+    const extFromMime = {
+        'audio/webm': 'webm', 'audio/ogg': 'ogg', 'audio/mp4': 'm4a',
+        'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'audio/x-wav': 'wav'
+    };
+    const baseMime = (req.file.mimetype || '').split(';')[0].trim().toLowerCase();
+    const ext = extFromMime[baseMime] || 'webm';
+    const uuid = crypto.randomUUID();
+    const name = `${coupleId}/${senderRole || 'unknown'}/${Date.now()}-${uuid}.${ext}`;
+    const bucket = 'voice-messages';
+
+    const { error } = await supabase.storage
+        .from(bucket)
+        .upload(name, req.file.buffer, {
+            contentType: req.file.mimetype || 'audio/webm',
+            upsert: false
+        });
+    if (error) return res.status(500).json({ error: error.message });
+
+    // Private couple data — signed URL rather than a public bucket, long
+    // window so old voice messages keep playing (same reasoning as
+    // vault-media/couple-recordings above).
+    const { data: signed, error: signError } =
+        await supabase.storage.from(bucket).createSignedUrl(name, 60 * 60 * 24 * 365 * 10);
+    if (signError) return res.status(500).json({ error: signError.message });
+    return res.json({ url: signed.signedUrl, path: name, bucket, contentType: req.file.mimetype });
+});
+
+// ── DELETE /api/media/delete-voice ─────────────────────
+router.delete('/delete-voice', async (req, res) => {
+    const { path, coupleId } = req.body;
+    if (!path) return res.status(400).json({ error: 'path required' });
+    if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
+    if (path.includes('..') || path.startsWith('/')) {
+        return res.status(400).json({ error: 'Invalid path' });
+    }
+    if (!path.startsWith(`${coupleId}/`)) {
+        return res.status(403).json({ error: 'Not authorized to delete this file' });
+    }
+    const { error } = await supabase.storage.from('voice-messages').remove([path]);
+    if (error) return res.status(500).json({ error: error.message });
     return res.json({ ok: true });
 });
 

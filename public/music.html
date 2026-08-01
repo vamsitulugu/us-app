@@ -46,6 +46,10 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 .main-tab:hover{color:var(--white)}
 .main-tab.active{color:var(--white);border-bottom-color:var(--accent)}
 .main-tab.movies-tab.active{border-bottom-color:var(--accent2)}
+@media(max-width:700px){
+  .main-tabs{padding:0}
+  .main-tab{flex:1 1 0;text-align:center;padding:14px 6px;font-size:12.5px}
+}
 
 /* ── NOW PLAYING BAR ── */
 .now-playing-bar{
@@ -79,9 +83,9 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 .nc-btn.active{color:var(--accent)}
 
 /* ── PLAYLIST SECTION TABS ── */
-.pl-tabs{display:flex;border-bottom:1px solid var(--border);padding:0 16px;overflow-x:auto;scrollbar-width:none}
+.pl-tabs{display:flex;flex-wrap:nowrap;border-bottom:1px solid var(--border);padding:0 16px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
 .pl-tabs::-webkit-scrollbar{display:none}
-.pl-tab{padding:12px 18px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:var(--t);margin-bottom:-1px}
+.pl-tab{flex:0 0 auto;flex-shrink:0;padding:12px 18px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:var(--t);margin-bottom:-1px}
 .pl-tab:hover{color:var(--white)}
 .pl-tab.active{color:var(--white);border-bottom-color:var(--accent)}
 
@@ -482,6 +486,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <div class="main-tabs">
   <div class="main-tab active" onclick="switchMainTab('music',this)">🎵 Music</div>
   <div class="main-tab movies-tab" onclick="switchMainTab('movies',this)">🎬 Movies</div>
+  <div class="main-tab recordings-tab" onclick="switchMainTab('recordings',this)">🎙 My Recordings</div>
 </div>
 
 <!-- ══════════════════════════════════════
@@ -516,7 +521,6 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
     <div class="pl-tab active" onclick="switchPlTab('my',this)">🎵 My Playlist</div>
     <div class="pl-tab" onclick="switchPlTab('partner',this)">💜 Partner Playlist</div>
     <div class="pl-tab" onclick="switchPlTab('karaoke',this)">🎤 Karaoke</div>
-    <div class="pl-tab" onclick="switchPlTab('recordings',this)">🎙 My Recordings</div>
     <div class="pl-tab" onclick="switchPlTab('videos',this)">🎬 Music Videos</div>
     <div class="pl-tab" onclick="switchPlTab('favorites',this)">❤️ Favorites</div>
     <div class="pl-tab" onclick="switchPlTab('recent',this)">🕒 Recently Played</div>
@@ -599,29 +603,6 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
     <div class="track-list" id="karaokeTrackList"></div>
   </div>
 
-  <!-- MY RECORDINGS (individual voice/video, not tied to a track) -->
-  <div id="pl-recordings" style="display:none">
-    <div class="sec-header">
-      <div>
-        <div class="sec-title">🎙 My Recordings</div>
-        <div class="sec-sub" id="recStats">0 recordings</div>
-      </div>
-    </div>
-    <div class="rec-actions">
-      <button class="rec-action-btn voice" onclick="openRecorder('audio')">🎙 Record Voice</button>
-      <button class="rec-action-btn video" onclick="openRecorder('video')">🎥 Record Video</button>
-    </div>
-    <div class="rec-filters">
-      <div class="rec-filter active" data-f="all" onclick="setRecFilter('all',this)">All</div>
-      <div class="rec-filter" data-f="mine" onclick="setRecFilter('mine',this)">Mine</div>
-      <div class="rec-filter" data-f="partner" onclick="setRecFilter('partner',this)">Partner</div>
-      <div class="rec-filter" data-f="audio" onclick="setRecFilter('audio',this)">🎙 Audio</div>
-      <div class="rec-filter" data-f="video" onclick="setRecFilter('video',this)">🎥 Video</div>
-      <div class="rec-filter" data-f="favorites" onclick="setRecFilter('favorites',this)">❤️ Favorites</div>
-    </div>
-    <div class="rec-grid" id="recGrid"></div>
-  </div>
-
   <!-- MUSIC VIDEOS (placeholder — Phase 5) -->
   <div id="pl-videos" style="display:none">
     <div class="sec-header">
@@ -663,6 +644,36 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
   <div class="movie-grid" id="movieGrid"></div>
 
 </div><!-- /section-movies -->
+
+<!-- ══════════════════════════════════════
+     MY RECORDINGS SECTION (promoted from Music secondary tabs)
+══════════════════════════════════════ -->
+<div id="section-recordings" style="display:none">
+
+  <!-- MY RECORDINGS (individual voice/video, not tied to a track) -->
+  <div id="pl-recordings">
+    <div class="sec-header">
+      <div>
+        <div class="sec-title">🎙 My Recordings</div>
+        <div class="sec-sub" id="recStats">0 recordings</div>
+      </div>
+    </div>
+    <div class="rec-actions">
+      <button class="rec-action-btn voice" onclick="openRecorder('audio')">🎙 Record Voice</button>
+      <button class="rec-action-btn video" onclick="openRecorder('video')">🎥 Record Video</button>
+    </div>
+    <div class="rec-filters">
+      <div class="rec-filter active" data-f="all" onclick="setRecFilter('all',this)">All</div>
+      <div class="rec-filter" data-f="mine" onclick="setRecFilter('mine',this)">Mine</div>
+      <div class="rec-filter" data-f="partner" onclick="setRecFilter('partner',this)">Partner</div>
+      <div class="rec-filter" data-f="audio" onclick="setRecFilter('audio',this)">🎙 Audio</div>
+      <div class="rec-filter" data-f="video" onclick="setRecFilter('video',this)">🎥 Video</div>
+      <div class="rec-filter" data-f="favorites" onclick="setRecFilter('favorites',this)">❤️ Favorites</div>
+    </div>
+    <div class="rec-grid" id="recGrid"></div>
+  </div>
+
+</div><!-- /section-recordings -->
 
 <!-- ══ SONG DETAILS MODAL ══ -->
 <div class="song-modal-bg" id="songModal">
@@ -1076,18 +1087,24 @@ function switchMainTab(tab, el) {
   el.classList.add('active');
   document.getElementById('section-music').style.display = tab==='music' ? 'block' : 'none';
   document.getElementById('section-movies').style.display = tab==='movies' ? 'block' : 'none';
+  document.getElementById('section-recordings').style.display = tab==='recordings' ? 'block' : 'none';
   if (tab === 'movies') { renderMovieStats(); renderMovies(); }
+  if (tab === 'recordings') { loadMyRecordings(); }
 }
 function switchPlTab(tab, el) {
   currentPlTab = tab;
   document.querySelectorAll('.pl-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  ['my','partner','karaoke','recordings','videos','favorites','recent'].forEach(id => {
+  ['my','partner','karaoke','videos','favorites','recent'].forEach(id => {
     const sec = document.getElementById('pl-'+id);
     if (sec) sec.style.display = (tab===id) ? 'block' : 'none';
   });
   if (tab==='favorites' || tab==='recent' || tab==='karaoke') renderMusicTracks();
-  if (tab==='recordings') loadMyRecordings();
+  // Keep the tapped tab fully visible within the horizontally-scrolling
+  // row without moving the page itself.
+  if (el && el.scrollIntoView) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }
 }
 
 // ══════════════════════════════════════

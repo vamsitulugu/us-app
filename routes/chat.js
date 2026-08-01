@@ -177,13 +177,20 @@ router.delete('/:id', async (req, res) => {
 
   if (mode === 'everyone') {
     const { data: msg } = await supabase.from('chat_messages')
-      .select('sender_role').eq('id', req.params.id).eq('couple_id', coupleId).maybeSingle();
+      .select('sender_role, type, media_meta').eq('id', req.params.id).eq('couple_id', coupleId).maybeSingle();
     if (!msg) return res.status(404).json({ error: 'Not found' });
     if (msg.sender_role !== senderRole) return res.status(403).json({ error: 'Not your message' });
     const { error } = await supabase.from('chat_messages')
       .update({ deleted: true, deleted_for: 'everyone', text: null, media_url: null })
       .eq('id', req.params.id);
     if (error) return res.status(500).json({ error: error.message });
+    // Voice messages store their storage path in media_meta.path (set at
+    // send time) — remove the audio file itself now that no message
+    // references it, instead of leaving it orphaned in the bucket.
+    if (msg.type === 'voice' && msg.media_meta && msg.media_meta.path) {
+      supabase.storage.from('voice-messages').remove([msg.media_meta.path])
+        .then(({ error: rmErr }) => { if (rmErr) console.error('voice storage cleanup failed:', rmErr.message); });
+    }
   } else {
     // delete-for-me: append role to deleted_for (comma list stored in deleted_for as csv)
     const { data: msg } = await supabase.from('chat_messages')
