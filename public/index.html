@@ -2242,6 +2242,18 @@
       color: var(--white)
     }
 
+    .modal-close {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-close svg {
+      width: 18px;
+      height: 18px;
+      stroke-width: 2;
+    }
+
     /* ════ TOAST ════ */
     .toast {
       position: fixed;
@@ -2676,6 +2688,18 @@
     .del-btn:hover {
       background: var(--red-bg);
       color: var(--red)
+    }
+
+    .del-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .del-btn svg {
+      width: 13px;
+      height: 13px;
+      stroke-width: 2;
     }
 
     .sep {
@@ -6148,7 +6172,7 @@ select option { background: #0D0D0D; color: #fff; }
 <!-- ADD PLACE MODAL -->
 <div class="modal-bg" id="lmPlaceModal">
   <div class="modal">
-    <div class="modal-title">📌 Add Important Place<button class="modal-close" onclick="closeM('lmPlaceModal')">✕</button></div>
+    <div class="modal-title">📌 Add Important Place<button class="modal-close" onclick="closeM('lmPlaceModal')"><i data-lucide="x"></i></button></div>
     <div class="field"><label>Category</label>
       <select id="lmPlaceCat" onchange="LiveMap.onCatChange()">
         <option value="Home">🏠 Home</option>
@@ -6188,7 +6212,7 @@ select option { background: #0D0D0D; color: #fff; }
   <div class="modal">
     <div class="modal-title">🛣️ Daily Route
       <button class="modal-close" style="right:44px" title="Route History privacy settings" onclick="LiveMap.toggleRouteSettingsPanel()">⚙️</button>
-      <button class="modal-close" onclick="closeM('lmRouteModal')">✕</button>
+      <button class="modal-close" onclick="closeM('lmRouteModal')"><i data-lucide="x"></i></button>
     </div>
 
     <!-- Phase 4: privacy — off by default, each person controls only their own recording -->
@@ -6223,7 +6247,7 @@ select option { background: #0D0D0D; color: #fff; }
 <!-- PHASE 2: STREET VIEW MODAL (Mapillary, graceful Google Maps fallback) -->
 <div class="modal-bg" id="lmStreetViewModal">
   <div class="modal">
-    <div class="modal-title">👁 Street View<button class="modal-close" onclick="closeM('lmStreetViewModal')">✕</button></div>
+    <div class="modal-title">👁 Street View<button class="modal-close" onclick="closeM('lmStreetViewModal')"><i data-lucide="x"></i></button></div>
     <div id="lmStreetViewBody"><div class="empty">Loading…</div></div>
   </div>
 </div>
@@ -6644,7 +6668,7 @@ select option { background: #0D0D0D; color: #fff; }
       <!-- ════════ MODALS ════════ -->
       <div class="modal-bg" id="bucketModal">
         <div class="modal">
-          <div class="modal-title">🌟 Add a Dream<button class="modal-close" onclick="closeM('bucketModal')">✕</button>
+          <div class="modal-title">🌟 Add a Dream<button class="modal-close" onclick="closeM('bucketModal')"><i data-lucide="x"></i></button>
           </div>
           <div class="field"><label>Dream / Goal</label><input type="text" id="bucketTitle"
               placeholder="e.g. Travel to Paris together"></div>
@@ -6670,7 +6694,7 @@ select option { background: #0D0D0D; color: #fff; }
       <div class="modal-bg" id="dreamModal">
         <div class="modal">
           <div class="modal-title">🏡 Add Dream Idea<button class="modal-close"
-              onclick="closeM('dreamModal')">✕</button></div>
+              onclick="closeM('dreamModal')"><i data-lucide="x"></i></button></div>
           <div class="field"><label>Category</label><select id="dreamCat">
               <option value="House">🏠 House</option>
               <option value="Furniture">🛋️ Furniture</option>
@@ -6690,7 +6714,7 @@ select option { background: #0D0D0D; color: #fff; }
       <div class="modal-bg" id="surpriseModal">
         <div class="modal">
           <div class="modal-title">🎁 New Surprise<button class="modal-close"
-              onclick="closeM('surpriseModal')">✕</button></div>
+              onclick="closeM('surpriseModal')"><i data-lucide="x"></i></button></div>
           <div class="field"><label>Type</label><select id="surType">
               <option value="🎁">🎁 Gift idea</option>
               <option value="💌">💌 Letter</option>
@@ -6710,7 +6734,7 @@ select option { background: #0D0D0D; color: #fff; }
       </div>
       <div class="modal-bg" id="placeModal">
         <div class="modal">
-          <div class="modal-title">📌 Add Place<button class="modal-close" onclick="closeM('placeModal')">✕</button>
+          <div class="modal-title">📌 Add Place<button class="modal-close" onclick="closeM('placeModal')"><i data-lucide="x"></i></button>
           </div>
           <div class="field"><label>Label</label><select id="placeLabel">
               <option value="Home">🏠 Home</option>
@@ -6730,7 +6754,7 @@ select option { background: #0D0D0D; color: #fff; }
       </div>
       <div class="modal-bg" id="eventModal">
         <div class="modal">
-          <div class="modal-title">📅 Add Event<button class="modal-close" onclick="closeM('eventModal')">✕</button>
+          <div class="modal-title">📅 Add Event<button class="modal-close" onclick="closeM('eventModal')"><i data-lucide="x"></i></button>
           </div>
           <div class="field"><label>Event Name</label><input type="text" id="evTitle"
               placeholder="e.g. Anniversary Dinner"></div>
@@ -6761,7 +6785,7 @@ select option { background: #0D0D0D; color: #fff; }
       <div class="modal-bg" id="moneyModal">
         <div class="modal">
           <div class="modal-title">💰 Add Transaction<button class="modal-close"
-              onclick="closeM('moneyModal')">✕</button></div>
+              onclick="closeM('moneyModal')"><i data-lucide="x"></i></button></div>
           <div class="field"><label>Type</label><select id="moneyType">
               <option value="expense">💸 Expense</option>
               <option value="income">💰 Income</option>
@@ -6781,7 +6805,7 @@ select option { background: #0D0D0D; color: #fff; }
 
       <div class="modal-bg" id="habitModal">
         <div class="modal">
-          <div class="modal-title">✅ Add Habit<button class="modal-close" onclick="closeM('habitModal')">✕</button>
+          <div class="modal-title">✅ Add Habit<button class="modal-close" onclick="closeM('habitModal')"><i data-lucide="x"></i></button>
           </div>
           <div class="field"><label>Habit Name</label><input type="text" id="habitName" placeholder="e.g. Morning walk">
           </div>
@@ -6798,7 +6822,7 @@ select option { background: #0D0D0D; color: #fff; }
       <div class="modal-bg" id="milestoneModal">
         <div class="modal">
           <div class="modal-title">💫 Add Milestone<button class="modal-close"
-              onclick="closeM('milestoneModal')">✕</button></div>
+              onclick="closeM('milestoneModal')"><i data-lucide="x"></i></button></div>
           <div class="field"><label>Milestone</label><input type="text" id="msTitle"
               placeholder="e.g. First trip together"></div>
           <div class="field"><label>Type</label><select id="msType">
@@ -6819,7 +6843,7 @@ select option { background: #0D0D0D; color: #fff; }
 
       <div class="modal-bg" id="periodModal">
         <div class="modal">
-          <div class="modal-title">🩷 Log Period<button class="modal-close" onclick="closeM('periodModal')">✕</button>
+          <div class="modal-title">🩷 Log Period<button class="modal-close" onclick="closeM('periodModal')"><i data-lucide="x"></i></button>
           </div>
           <div class="field"><label>Period Start Date</label><input type="date" id="periodStart"></div>
           <div class="row2">
@@ -6836,7 +6860,7 @@ select option { background: #0D0D0D; color: #fff; }
 
       <div class="modal-bg" id="fightModal">
         <div class="modal">
-          <div class="modal-title">⚡ Log a Fight<button class="modal-close" onclick="closeM('fightModal')">✕</button>
+          <div class="modal-title">⚡ Log a Fight<button class="modal-close" onclick="closeM('fightModal')"><i data-lucide="x"></i></button>
           </div>
           <div class="field"><label>What was the fight about?</label><input type="text" id="fightTitle"
               placeholder="e.g. Communication, plans, jealousy..."></div>
@@ -6861,7 +6885,7 @@ select option { background: #0D0D0D; color: #fff; }
       <div class="modal-bg" id="studySubjectModal">
         <div class="modal">
           <div class="modal-title">📚 Add Subject<button class="modal-close"
-              onclick="closeM('studySubjectModal')">✕</button></div>
+              onclick="closeM('studySubjectModal')"><i data-lucide="x"></i></button></div>
           <div class="field"><label>Subject Name</label><input type="text" id="subjName" placeholder="e.g. Mathematics">
           </div>
           <div class="row2">
@@ -6878,7 +6902,7 @@ select option { background: #0D0D0D; color: #fff; }
       <div class="modal-bg" id="studySlotModal">
         <div class="modal">
           <div class="modal-title">🗓️ Add Timetable Slot<button class="modal-close"
-              onclick="closeM('studySlotModal')">✕</button></div>
+              onclick="closeM('studySlotModal')"><i data-lucide="x"></i></button></div>
           <div class="field"><label>Day</label><select id="slotDay">
               <option>Monday</option>
               <option>Tuesday</option>
@@ -8773,12 +8797,12 @@ const p = await Notification.requestPermission();
         </div>
         ${m.note ? `<div class="ml-card-note">${esc(m.note)}</div>` : ''}
         ${gapHtml}
-        <button class="del-btn" style="margin-top:6px" onclick="delMilestone(${m.id})">✕</button>
+        <button class="del-btn" style="margin-top:6px" onclick="delMilestone(${m.id})"><i data-lucide="trash-2"></i></button>
       </div>
     </div>`;
           });
           el.innerHTML = `<div class="ml-timeline">${html}</div>`;
-        }
+         if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }}
         function delMilestone(id) { confirmDelete({ itemType: 'milestone', message: 'This milestone will be permanently deleted.', onConfirm: () => { S.milestones = (S.milestones||[]).filter(m=>m.id!==id); renderMilestones(); scheduleSave(); toast('Removed'); } }); }
         function renderTimelineStories() {
           const el = document.getElementById('timelineStories'); if (!el) return;
@@ -8849,10 +8873,10 @@ const p = await Notification.requestPermission();
           <div style="font-size:11px;color:var(--text3);margin-top:3px">Flow: ${p.flow} days · Cycle: ${p.cycle} days</div>
           ${p.note ? `<div style="font-size:12px;color:var(--text2);margin-top:4px">${esc(p.note)}</div>` : ''}
         </div>
-        <button class="del-btn" onclick="delPeriod(${p.id})">✕</button>
+        <button class="del-btn" onclick="delPeriod(${p.id})"><i data-lucide="trash-2"></i></button>
       </div>
     </div>`).join('');
-        }
+         if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }}
         function renderPeriodAnalytics() {
           const insEl = document.getElementById('periodInsightCard'), cycleEl = document.getElementById('periodCycleCard'), symEl = document.getElementById('periodSymptomCard');
           if (!insEl && !cycleEl && !symEl) return;
@@ -9112,10 +9136,10 @@ const p = await Notification.requestPermission();
         function renderStudyPage() {
           const mySubjEl = document.getElementById('myStudySubjects');
           if (!S.mySubjects || !S.mySubjects.length) { PS.empty(mySubjEl, { icon: 'book', title: 'No subjects yet', desc: 'Add a subject to start tracking chapters and progress.', actionLabel: 'Add Subject', onAction: () => openM('studySubjectModal'), compact: true }); }
-          else { mySubjEl.innerHTML = S.mySubjects.map(s => { const p = s.total > 0 ? Math.round(s.done / s.total * 100) : 0; return `<div style="margin-bottom:11px;padding:12px;background:var(--g1);border-radius:var(--rs);border:1px solid var(--border)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:13px;color:var(--white);font-weight:500">${esc(s.emoji)} ${esc(s.name)}</div><div style="font-size:10px;color:var(--text3)">${s.done}/${s.total} ch</div></div><div class="study-progress"><div class="study-fill" style="width:${p}%"></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px"><div style="font-size:10px;color:var(--text3)">${p}%</div><div style="display:flex;gap:5px"><button class="btn btn-glass btn-xs" onclick="updateSubjectProgress(${s.id},-1)">−</button><button class="btn btn-accent btn-xs" onclick="updateSubjectProgress(${s.id},1)">+1 ✓</button><button class="del-btn" onclick="delSubject(${s.id})">✕</button></div></div></div>`; }).join(''); }
+          else { mySubjEl.innerHTML = S.mySubjects.map(s => { const p = s.total > 0 ? Math.round(s.done / s.total * 100) : 0; return `<div style="margin-bottom:11px;padding:12px;background:var(--g1);border-radius:var(--rs);border:1px solid var(--border)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:13px;color:var(--white);font-weight:500">${esc(s.emoji)} ${esc(s.name)}</div><div style="font-size:10px;color:var(--text3)">${s.done}/${s.total} ch</div></div><div class="study-progress"><div class="study-fill" style="width:${p}%"></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px"><div style="font-size:10px;color:var(--text3)">${p}%</div><div style="display:flex;gap:5px"><button class="btn btn-glass btn-xs" onclick="updateSubjectProgress(${s.id},-1)">−</button><button class="btn btn-accent btn-xs" onclick="updateSubjectProgress(${s.id},1)">+1 ✓</button><button class="del-btn" onclick="delSubject(${s.id})"><i data-lucide="trash-2"></i></button></div></div></div>`; }).join(''); }
           const myTTEl = document.getElementById('myTimetable');
           if (!S.myTimetable || !S.myTimetable.length) { PS.empty(myTTEl, { icon: 'generic', title: 'No slots yet', desc: "Block out study time so you both know when the other's focused.", actionLabel: 'Add Slot', onAction: () => openM('studySlotModal'), compact: true }); }
-          else { const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']; let html = ''; days.forEach(day => { const slots = (S.myTimetable || []).filter(s => s.day === day).sort((a, b) => a.start.localeCompare(b.start)); if (slots.length) { html += `<div style="font-size:10px;color:var(--text3);font-weight:700;margin:9px 0 4px;text-transform:uppercase;letter-spacing:0.5px">${day}</div>`; slots.forEach(s => { html += `<div class="slot${s.done ? ' done-slot' : ''}"><div class="slot-time">${s.start || '—'} – ${s.end || '—'}</div><div style="font-size:12px;flex:1;color:var(--text)">${esc(s.subject)}</div><div style="display:flex;gap:5px"><div class="hc${s.done ? ' done' : ''}" style="width:20px;height:20px;font-size:10px" onclick="toggleStudySlot(${s.id})">${s.done ? '✓' : ''}</div><button class="del-btn" onclick="delStudySlot(${s.id})">✕</button></div></div>`; }); } }); myTTEl.innerHTML = html || '<div class="empty" style="padding:8px 0">No slots</div>'; }
+          else { const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']; let html = ''; days.forEach(day => { const slots = (S.myTimetable || []).filter(s => s.day === day).sort((a, b) => a.start.localeCompare(b.start)); if (slots.length) { html += `<div style="font-size:10px;color:var(--text3);font-weight:700;margin:9px 0 4px;text-transform:uppercase;letter-spacing:0.5px">${day}</div>`; slots.forEach(s => { html += `<div class="slot${s.done ? ' done-slot' : ''}"><div class="slot-time">${s.start || '—'} – ${s.end || '—'}</div><div style="font-size:12px;flex:1;color:var(--text)">${esc(s.subject)}</div><div style="display:flex;gap:5px"><div class="hc${s.done ? ' done' : ''}" style="width:20px;height:20px;font-size:10px" onclick="toggleStudySlot(${s.id})">${s.done ? '✓' : ''}</div><button class="del-btn" onclick="delStudySlot(${s.id})"><i data-lucide="trash-2"></i></button></div></div>`; }); } }); myTTEl.innerHTML = html || '<div class="empty" style="padding:8px 0">No slots</div>'; }
           const ptSubjEl = document.getElementById('ptStudySubjects'), ptTTEl = document.getElementById('ptTimetable');
           if (!S.paired) { if (ptSubjEl) ptSubjEl.innerHTML = '<div class="empty" style="padding:10px 0;font-size:12px">Partner joins to see their study</div>'; if (ptTTEl) ptTTEl.innerHTML = '<div class="empty" style="padding:8px 0;font-size:12px">Partner joins to see timetable</div>'; }
           else { if (!S.ptSubjects || !S.ptSubjects.length) { if (ptSubjEl) ptSubjEl.innerHTML = '<div class="empty" style="padding:10px 0;font-size:12px">Partner hasn\'t added subjects yet</div>'; } else { ptSubjEl.innerHTML = S.ptSubjects.map(s => { const p = s.total > 0 ? Math.round(s.done / s.total * 100) : 0; return `<div style="margin-bottom:11px;padding:12px;background:var(--g1);border-radius:var(--rs);border:1px solid var(--border)"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><div style="font-size:13px;color:var(--white);font-weight:500">${esc(s.emoji)} ${esc(s.name)}</div><div style="font-size:10px;color:var(--text3)">${s.done}/${s.total}</div></div><div class="study-progress"><div class="study-fill" style="width:${p}%"></div></div><div style="font-size:10px;color:var(--text3);margin-top:4px">${p}% complete</div></div>`; }).join(''); } if (!S.ptTimetable || !S.ptTimetable.length) { if (ptTTEl) ptTTEl.innerHTML = '<div class="empty" style="padding:8px 0;font-size:12px">Partner hasn\'t added slots yet</div>'; } else { const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']; let html = ''; days.forEach(day => { const slots = (S.ptTimetable || []).filter(sl => sl.day === day).sort((a, b) => a.start.localeCompare(b.start)); if (slots.length) { html += `<div style="font-size:10px;color:var(--text3);font-weight:700;margin:9px 0 4px;text-transform:uppercase">${day}</div>`; slots.forEach(sl => { html += `<div class="slot${sl.done ? ' done-slot' : ''}"><div class="slot-time">${sl.start || '—'} – ${sl.end || '—'}</div><div style="font-size:12px;flex:1;color:var(--text)">${esc(sl.subject)}</div></div>`; }); } }); if (ptTTEl) ptTTEl.innerHTML = html || '<div class="empty" style="padding:8px 0;font-size:12px">No slots</div>'; } }
@@ -9264,7 +9288,7 @@ const p = await Notification.requestPermission();
           const vis = document.getElementById('journalVisibility')?.value || 'self';
           S.journal.unshift({ id: Date.now(), date: todayStr(), mood: S.selectedMood, body, visibility: vis, by: S.role }); document.getElementById('journalBody').value = ''; renderJournal(); scheduleSave(); toast('Journal saved! 📖'); spawnPetals(4);
         }
-        function renderJournal() { const el = document.getElementById('myJournalEntries'); if (!S.journal.length) { PS.empty(el, { icon: 'book', title: "No entries yet", desc: "Write down today's memory \u2014 a feeling, a moment, anything worth keeping.", actionLabel: 'Write First Entry', onAction: () => document.getElementById('journalBody')?.focus() }); return; } el.innerHTML = S.journal.map((e) => `<div class="sd-selectable" data-journal-id="${e.id}" style="background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;position:relative;transition:var(--t)"><div class="sd-check"><i data-lucide="check"></i></div><div style="font-size:10px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">${fmtDate(e.date)}</div>${e.mood ? `<div style="display:inline-block;font-size:11px;background:var(--g2);color:var(--text);border-radius:10px;padding:2px 8px;margin-bottom:7px;border:1px solid var(--border)">${esc(e.mood)}</div>` : ''}<div style="font-size:13px;color:var(--text2);line-height:1.65">${esc(e.body)}</div><button class="del-btn" onclick="delJournal(${e.id})" style="position:absolute;top:12px;right:12px">✕</button></div>`).join(''); if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } journalWireSelection(); }
+        function renderJournal() { const el = document.getElementById('myJournalEntries'); if (!S.journal.length) { PS.empty(el, { icon: 'book', title: "No entries yet", desc: "Write down today's memory \u2014 a feeling, a moment, anything worth keeping.", actionLabel: 'Write First Entry', onAction: () => document.getElementById('journalBody')?.focus() }); return; } el.innerHTML = S.journal.map((e) => `<div class="sd-selectable" data-journal-id="${e.id}" style="background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;position:relative;transition:var(--t)"><div class="sd-check"><i data-lucide="check"></i></div><div style="font-size:10px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">${fmtDate(e.date)}</div>${e.mood ? `<div style="display:inline-block;font-size:11px;background:var(--g2);color:var(--text);border-radius:10px;padding:2px 8px;margin-bottom:7px;border:1px solid var(--border)">${esc(e.mood)}</div>` : ''}<div style="font-size:13px;color:var(--text2);line-height:1.65">${esc(e.body)}</div><button class="del-btn" onclick="delJournal(${e.id})" style="position:absolute;top:12px;right:12px"><i data-lucide="trash-2"></i></button></div>`).join(''); if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } journalWireSelection(); }
         function delJournal(id) { confirmDelete({ itemType: 'journal entry', message: 'This journal entry will be permanently deleted.', onConfirm: () => { S.journal = S.journal.filter(e => e.id !== id); renderJournal(); scheduleSave(); } }); }
 
         /* ── Long-press multi-select for Journal (page-scoped) ── */
@@ -9335,7 +9359,7 @@ const p = await Notification.requestPermission();
         function toggleHabit(id) { const h = S.habits.find(x => x.id === id); if (!h) return; const today = todayStr(); if (!h.doneToday) { h.doneToday = true; if (!h.doneDates) h.doneDates = []; if (!h.doneDates.includes(today)) h.doneDates.push(today); h.streak = calcStreak(h.doneDates); spawnPetals(3); addXP(5); } else { h.doneToday = false; h.doneDates = (h.doneDates || []).filter(d => d !== today); h.streak = calcStreak(h.doneDates); } renderHabits(); scheduleSave(); }
         function calcStreak(dates) { if (!dates || !dates.length) return 0; let streak = 0, cur = new Date(); if (!dates.includes(todayStr())) cur.setDate(cur.getDate() - 1); for (let i = 0; i < 365; i++) { const d = cur.toISOString().slice(0, 10); if (dates.includes(d)) { streak++; cur.setDate(cur.getDate() - 1); } else break; } return streak; }
         function delHabit(id) { confirmDelete({ itemType: 'habit', message: 'This habit and its streak history will be permanently deleted.', onConfirm: () => { S.habits = S.habits.filter(h => h.id !== id); renderHabits(); scheduleSave(); } }); }
-        function renderHabits() { const el = document.getElementById('myHabitsList'); if (!S.habits.length) { PS.empty(el, { icon: 'generic', title: 'No habits yet', desc: 'Track small daily habits together and build streaks.', actionLabel: 'Add Habit', onAction: () => openM('habitModal'), compact: true }); renderHabitAnalytics(); return; } const today = todayStr(); S.habits.forEach(h => h.doneToday = (h.doneDates || []).includes(today)); el.innerHTML = S.habits.map(h => `<div class="habit-row sd-selectable" data-habit-id="${h.id}"><div class="sd-check"><i data-lucide="check"></i></div><div class="hc${h.doneToday ? ' done' : ''}" onclick="toggleHabit(${h.id})">${h.doneToday ? '✓' : ''}</div><span style="font-size:16px">${esc(h.emoji)}</span><span style="font-size:13px;flex:1;color:var(--text)">${esc(h.name)}</span><span class="streak-badge">${h.streak}🔥</span><button class="del-btn" onclick="delHabit(${h.id})">✕</button></div>`).join(''); const max = Math.max(0, ...S.habits.map(h => h.streak || 0)); document.getElementById('habitStreak').textContent = max + '🔥'; renderHabitAnalytics(); if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } habitsWireSelection(); }
+        function renderHabits() { const el = document.getElementById('myHabitsList'); if (!S.habits.length) { PS.empty(el, { icon: 'generic', title: 'No habits yet', desc: 'Track small daily habits together and build streaks.', actionLabel: 'Add Habit', onAction: () => openM('habitModal'), compact: true }); renderHabitAnalytics(); return; } const today = todayStr(); S.habits.forEach(h => h.doneToday = (h.doneDates || []).includes(today)); el.innerHTML = S.habits.map(h => `<div class="habit-row sd-selectable" data-habit-id="${h.id}"><div class="sd-check"><i data-lucide="check"></i></div><div class="hc${h.doneToday ? ' done' : ''}" onclick="toggleHabit(${h.id})">${h.doneToday ? '✓' : ''}</div><span style="font-size:16px">${esc(h.emoji)}</span><span style="font-size:13px;flex:1;color:var(--text)">${esc(h.name)}</span><span class="streak-badge">${h.streak}🔥</span><button class="del-btn" onclick="delHabit(${h.id})"><i data-lucide="trash-2"></i></button></div>`).join(''); const max = Math.max(0, ...S.habits.map(h => h.streak || 0)); document.getElementById('habitStreak').textContent = max + '🔥'; renderHabitAnalytics(); if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } habitsWireSelection(); }
 
         /* ── Long-press multi-select for Habits (page-scoped) ── */
         let habitsSelection = null;
@@ -9480,7 +9504,7 @@ const p = await Notification.requestPermission();
         function renderNotes() {
           const el = document.getElementById('notesGrid'); if (!S.notes.length) { el.style.gridColumn = '1/-1'; PS.empty(el, { icon: 'heart', title: 'No notes yet', desc: 'Write something sweet \u2014 it\u2019ll show up here for both of you.', actionLabel: 'Write a Note', onAction: () => document.getElementById('noteIn')?.focus() }); return; } const visibleNotes = S.notes.filter(n => canSeeItem(n));
           el.innerHTML = visibleNotes.map((n) => {
-            return `<div class="note-card sd-selectable" data-note-id="${n.id}" style="background:${n.color}"><div class="sd-check"><i data-lucide="check"></i></div><div style="font-size:10px;color:var(--text3);margin-bottom:5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap">${privBadgeHtml(n.visibility)}<span>${n.me ? esc(S.myName) : esc(S.partnerName)} · ${fmtDateShort(n.date)}</span></div><div style="font-size:13px;color:var(--text)">${esc(n.text)}</div>${n.reminderDate ? `<div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--yellow-bg);color:var(--yellow);border-radius:8px;padding:3px 7px;margin-top:6px;border:1px solid rgba(251,191,36,0.3)">🔔 ${fmtDateShort(n.reminderDate)} ${n.reminderTime || ''}</div>` : ''}<button class="del-btn" onclick="delNote(${n.id})" style="position:absolute;top:9px;right:9px">✕</button></div>`;}).join('');
+            return `<div class="note-card sd-selectable" data-note-id="${n.id}" style="background:${n.color}"><div class="sd-check"><i data-lucide="check"></i></div><div style="font-size:10px;color:var(--text3);margin-bottom:5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap">${privBadgeHtml(n.visibility)}<span>${n.me ? esc(S.myName) : esc(S.partnerName)} · ${fmtDateShort(n.date)}</span></div><div style="font-size:13px;color:var(--text)">${esc(n.text)}</div>${n.reminderDate ? `<div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--yellow-bg);color:var(--yellow);border-radius:8px;padding:3px 7px;margin-top:6px;border:1px solid rgba(251,191,36,0.3)">🔔 ${fmtDateShort(n.reminderDate)} ${n.reminderTime || ''}</div>` : ''}<button class="del-btn" onclick="delNote(${n.id})" style="position:absolute;top:9px;right:9px"><i data-lucide="trash-2"></i></button></div>`;}).join('');
           if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
           notesWireSelection();
         }
@@ -9546,7 +9570,7 @@ const p = await Notification.requestPermission();
             }
           });
         }
-        function renderReminders() { const el = document.getElementById('remindersList'); if (!el) return; if (!S.reminders || !S.reminders.length) { PS.empty(el, { icon: 'generic', title: 'No reminders yet', desc: 'Set an alarm for something you don\u2019t want to forget.', actionLabel: 'Set a Reminder', onAction: () => document.getElementById('remTitle')?.focus() }); return; } const sorted = [...S.reminders].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)); el.innerHTML = sorted.map(r => `<div class="card" style="margin-bottom:9px;padding:13px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:4px">🔔 ${esc(r.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(r.date)} at ${r.time || '—'}</div><div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--blue-bg);color:var(--blue);border-radius:7px;padding:2px 7px;margin-top:5px;border:1px solid rgba(96,165,250,0.3)">📣 ${r.forWhom === 'both' ? 'Both of us' : r.forWhom === 'self' ? 'Just me' : 'Partner only'}</div>${r.note ? `<div style="font-size:11px;color:var(--text3);margin-top:5px">${esc(r.note)}</div>` : ''}</div><button class="del-btn" onclick="delReminder(${r.id})">✕</button></div></div>`).join('');}
+        function renderReminders() { const el = document.getElementById('remindersList'); if (!el) return; if (!S.reminders || !S.reminders.length) { PS.empty(el, { icon: 'generic', title: 'No reminders yet', desc: 'Set an alarm for something you don\u2019t want to forget.', actionLabel: 'Set a Reminder', onAction: () => document.getElementById('remTitle')?.focus() }); return; } const sorted = [...S.reminders].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)); el.innerHTML = sorted.map(r => `<div class="card" style="margin-bottom:9px;padding:13px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:4px">🔔 ${esc(r.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(r.date)} at ${r.time || '—'}</div><div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--blue-bg);color:var(--blue);border-radius:7px;padding:2px 7px;margin-top:5px;border:1px solid rgba(96,165,250,0.3)">📣 ${r.forWhom === 'both' ? 'Both of us' : r.forWhom === 'self' ? 'Just me' : 'Partner only'}</div>${r.note ? `<div style="font-size:11px;color:var(--text3);margin-top:5px">${esc(r.note)}</div>` : ''}</div><button class="del-btn" onclick="delReminder(${r.id})"><i data-lucide="trash-2"></i></button></div></div>`).join('');}
 
       
         // ─── REMINDERS & ALARMS ──────────────────────────────────
@@ -9644,7 +9668,7 @@ const p = await Notification.requestPermission();
             }
           });
         }
-        function renderBucket() { const el = document.getElementById('bucketList'); const done = S.bucket.filter(b => b.done).length; document.getElementById('bucketTag').textContent = done + '/' + S.bucket.length; document.getElementById('bucketCount').textContent = S.bucket.length; if (!S.bucket.length) { PS.empty(el, { icon: 'dream', title: 'Nothing on the list yet', desc: 'Add your first dream together \u2014 a trip, an experience, anything you want to chase as a team.', actionLabel: 'Add Dream', onAction: () => openM('bucketModal') }); return; } const ce = { Travel: '✈️', Experience: '🎭', Achievement: '🏆', Home: '🏠', Romance: '💕', Adventure: '🏔️', Other: '💫' }; el.innerHTML = S.bucket.filter(b => canSeeItem(b)).map(b => `<div class="bucket-row sd-selectable" data-bucket-id="${b.id}"><div class="sd-check"><i data-lucide="check"></i></div><div class="bc${b.done ? ' done' : ''}" onclick="toggleBucket(${b.id})">${b.done ? '✓' : ''}</div><div class="bt${b.done ? ' done' : ''}"><span style="margin-right:6px">${ce[b.cat] || '💫'}</span>${esc(b.title)}${privBadgeHtml(b.visibility)}</div>${b.date ? `<span style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDateShort(b.date)}</span>` : ''}<button class="del-btn" onclick="delBucket(${b.id})">✕</button></div>`).join(''); if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } bucketWireSelection(); }
+        function renderBucket() { const el = document.getElementById('bucketList'); const done = S.bucket.filter(b => b.done).length; document.getElementById('bucketTag').textContent = done + '/' + S.bucket.length; document.getElementById('bucketCount').textContent = S.bucket.length; if (!S.bucket.length) { PS.empty(el, { icon: 'dream', title: 'Nothing on the list yet', desc: 'Add your first dream together \u2014 a trip, an experience, anything you want to chase as a team.', actionLabel: 'Add Dream', onAction: () => openM('bucketModal') }); return; } const ce = { Travel: '✈️', Experience: '🎭', Achievement: '🏆', Home: '🏠', Romance: '💕', Adventure: '🏔️', Other: '💫' }; el.innerHTML = S.bucket.filter(b => canSeeItem(b)).map(b => `<div class="bucket-row sd-selectable" data-bucket-id="${b.id}"><div class="sd-check"><i data-lucide="check"></i></div><div class="bc${b.done ? ' done' : ''}" onclick="toggleBucket(${b.id})">${b.done ? '✓' : ''}</div><div class="bt${b.done ? ' done' : ''}"><span style="margin-right:6px">${ce[b.cat] || '💫'}</span>${esc(b.title)}${privBadgeHtml(b.visibility)}</div>${b.date ? `<span style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDateShort(b.date)}</span>` : ''}<button class="del-btn" onclick="delBucket(${b.id})"><i data-lucide="trash-2"></i></button></div>`).join(''); if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } bucketWireSelection(); }
 
         /* ── Long-press multi-select for Bucket List (page-scoped) ── */
         let bucketSelection = null;
@@ -9739,7 +9763,7 @@ const p = await Notification.requestPermission();
           const today2 = todayStr(); const up = S.events.filter(e => e.date >= today2).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 10);
           const evEl = document.getElementById('eventList'); const ce = { 'Anniversary': '💕', 'Date': '🌹', 'Birthday': '🎂', 'Trip': '✈️', 'Special': '⭐', 'Study': '📚', 'Other': '📌' };
           if (!up.length) { PS.empty(evEl, { icon: 'generic', title: 'No upcoming events', desc: 'Add a date so you both know what\u2019s coming up.', actionLabel: 'Add Event', onAction: () => openM('eventModal'), compact: true }); renderDashEvents(); return; }
-          evEl.innerHTML = up.map(e => `<div class="bucket-row sd-selectable" data-event-id="${e.id}"><div class="sd-check"><i data-lucide="check"></i></div><div style="font-size:17px">${ce[e.cat] || '📌'}</div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--white)">${esc(e.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(e.date)}${e.time ? ' · ' + esc(e.time) : ''}${e.alarm ? ' · 🔔' : ''}</div></div><button class="del-btn" onclick="delEvent(${e.id})">✕</button></div>`).join('');
+          evEl.innerHTML = up.map(e => `<div class="bucket-row sd-selectable" data-event-id="${e.id}"><div class="sd-check"><i data-lucide="check"></i></div><div style="font-size:17px">${ce[e.cat] || '📌'}</div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--white)">${esc(e.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(e.date)}${e.time ? ' · ' + esc(e.time) : ''}${e.alarm ? ' · 🔔' : ''}</div></div><button class="del-btn" onclick="delEvent(${e.id})"><i data-lucide="trash-2"></i></button></div>`).join('');
           if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
           calWireSelection();
           renderDashEvents();
@@ -9845,7 +9869,7 @@ const p = await Notification.requestPermission();
           const el = document.getElementById('transList');
           if (!S.transactions.length) { PS.empty(el, { icon: 'wallet', title: 'No transactions yet', desc: 'Log your shared spending here to track income, expenses, and savings together.', actionLabel: 'Add First Expense', onAction: () => openM('moneyModal') }); renderFinanceSplit(); return; }
           const ce = { 'Food': '🍽️', 'Transport': '🚗', 'Entertainment': '🎬', 'Shopping': '🛒', 'Travel': '✈️', 'Health': '💊', 'Date': '🌹', 'Other': '💳' };
-          el.innerHTML = S.transactions.slice(0, 60).map(t => `<div class="money-row"><div class="money-ic ${t.type === 'income' ? 'inc' : 'exp'}">${ce[t.category] || (t.type === 'income' ? '💰' : '💳')}</div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--white)">${esc(t.desc)}</div><div style="font-size:10px;color:var(--text3)">${esc(t.category)} · ${fmtDateShort(t.date)}</div></div><span class="${t.type === 'income' ? 'inc-amt' : 'exp-amt'}">${t.type === 'income' ? '+' : '-'}₹${t.amt.toLocaleString('en-IN')}</span><button class="del-btn" style="margin-left:5px" onclick="delTransaction(${t.id})">✕</button></div>`).join('');
+          el.innerHTML = S.transactions.slice(0, 60).map(t => `<div class="money-row"><div class="money-ic ${t.type === 'income' ? 'inc' : 'exp'}">${ce[t.category] || (t.type === 'income' ? '💰' : '💳')}</div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--white)">${esc(t.desc)}</div><div style="font-size:10px;color:var(--text3)">${esc(t.category)} · ${fmtDateShort(t.date)}</div></div><span class="${t.type === 'income' ? 'inc-amt' : 'exp-amt'}">${t.type === 'income' ? '+' : '-'}₹${t.amt.toLocaleString('en-IN')}</span><button class="del-btn" style="margin-left:5px" onclick="delTransaction(${t.id})"><i data-lucide="trash-2"></i></button></div>`).join('');
           renderFinanceSplit();
         }
 
@@ -10292,6 +10316,7 @@ function logOut() {
           const t = todayStr();
           ['bucketDate', 'evDate', 'moneyDate', 'msDate', 'periodStart'].forEach(id => { const el = document.getElementById(id); if (el && !el.value) el.value = t; });
           if (S.theme) { setTheme(S.theme, true); }
+          if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
         }
 
         // ─── MODAL CLOSE ON BG CLICK OR ✕ BUTTON (delegated — survives any
@@ -10721,7 +10746,7 @@ function startSyncLoop() {
       <div style="font-size:10px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
         <span style="background:var(--g2);padding:2px 8px;border-radius:8px;border:1px solid var(--border);font-weight:600">${esc(s.label || 'Music')}</span>
         <span>${fmtDateShort(s.date)} · ${s.by === S.role ? 'You' : (S.partnerName || 'Partner')}</span>
-        <button class="del-btn" style="margin-left:auto" onclick="delSong(${s.id})">✕</button>
+        <button class="del-btn" style="margin-left:auto" onclick="delSong(${s.id})"><i data-lucide="trash-2"></i></button>
       </div>
       ${mediaHtml}
       <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:8px">
@@ -10729,7 +10754,7 @@ function startSyncLoop() {
       </div>
     </div>`;
   }).join('');
-}
+ if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }}
         function addCapsule() {
           const msg = document.getElementById('capsuleMsg').value.trim(), date = document.getElementById('capsuleDate').value;
           if (!msg || !date) { toast('Write a message and pick a date'); return; }
@@ -10770,7 +10795,7 @@ function startSyncLoop() {
       </div>
     </div>`;
           }).join('');
-        }
+         if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }}
         function addSurprise() {
           const title = document.getElementById('surTitle').value.trim(), date = document.getElementById('surDate').value;
           if (!title || !date) { toast('Title and unlock date required'); return; }
@@ -10803,13 +10828,13 @@ function renderSurprises() {
     return `<div class="fight-card" style="background:var(--g1);border-color:var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span class="fight-status ${locked ? 'fight-open' : 'fight-resolved'}">${locked ? '🔒 Locked (yours)' : '🔓 Unlocked'}</span>
-        <button class="del-btn" onclick="delSurprise(${s.id})">✕</button>
+        <button class="del-btn" onclick="delSurprise(${s.id})"><i data-lucide="trash-2"></i></button>
       </div>
       <div style="font-size:13px;font-weight:600;color:var(--white);margin:7px 0 3px">${esc(s.type)} ${esc(s.title)}</div>
       ${!locked ? `${s.msg ? `<div style="font-size:12px;color:var(--text2);margin-bottom:6px">${esc(s.msg)}</div>` : ''}${s.mediaUrl ? (s.mediaUrl.startsWith('data:video') ? `<video src="${s.mediaUrl}" controls style="width:100%;border-radius:10px"></video>` : s.mediaUrl.startsWith('data:audio') ? `<audio src="${s.mediaUrl}" controls style="width:100%"></audio>` : `<img src="${s.mediaUrl}" style="width:100%;border-radius:10px" loading="lazy" decoding="async" onclick="openImgViewer('${s.mediaUrl}')">`) : ''}` : `<div style="font-size:11px;color:var(--text3)">Opens ${fmtDate(s.unlock)}</div>`}
     </div>`;
   }).join('');
-}
+ if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }}
         function saveFinGoal() {
           if (!S.finGoals) S.finGoals = {};
           S.finGoals[S.role] = parseFloat(document.getElementById('myFinGoal').value) || 0;
@@ -10903,8 +10928,8 @@ function renderSurprises() {
           const el = document.getElementById('dreamBoardGrid'); if (!el) return;
           const items = (S.dreamBoard || []).filter(d => d.cat === dreamCurTab);
           if (!items.length) { el.innerHTML = '<div class="empty" style="grid-column:1/-1">No ideas yet in this category</div>'; return; }
-          el.innerHTML = items.map(d => `<div class="note-card" style="background:var(--g1)"><div style="font-size:10px;color:var(--text3);margin-bottom:5px;text-transform:uppercase;font-weight:600">${d.by === S.role ? esc(S.myName) : esc(S.partnerName)}</div><div style="font-size:13px;font-weight:600;color:var(--white)">${esc(d.title)}</div>${d.note ? `<div style="font-size:12px;color:var(--text2);margin-top:5px">${esc(d.note)}</div>` : ''}<button class="del-btn" onclick="delDream(${d.id})" style="position:absolute;top:9px;right:9px">✕</button></div>`).join('');
-        }
+          el.innerHTML = items.map(d => `<div class="note-card" style="background:var(--g1)"><div style="font-size:10px;color:var(--text3);margin-bottom:5px;text-transform:uppercase;font-weight:600">${d.by === S.role ? esc(S.myName) : esc(S.partnerName)}</div><div style="font-size:13px;font-weight:600;color:var(--white)">${esc(d.title)}</div>${d.note ? `<div style="font-size:12px;color:var(--text2);margin-top:5px">${esc(d.note)}</div>` : ''}<button class="del-btn" onclick="delDream(${d.id})" style="position:absolute;top:9px;right:9px"><i data-lucide="trash-2"></i></button></div>`).join('');
+         if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }}
         // ─── PRIVACY / VISIBILITY SYSTEM ─────────────────────────
         const PRIV_LABELS = { both: '👥 Both', self: '🙋 Only Me', partner: '💌 Partner Only' };
         const PRIV_CLASS = { both: 'priv-both', self: 'priv-self', partner: 'priv-partner' };

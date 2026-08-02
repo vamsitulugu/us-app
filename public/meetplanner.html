@@ -315,7 +315,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <!-- ═══ VIEW SAVED ROUTE MODAL ═══ -->
 <div class="mp-modal-bg" id="mpViewModal">
   <div class="mp-modal" style="max-width:520px">
-    <div class="mp-modal-title"><span id="mpViewTitle">Meetup</span><button class="mp-modal-close" onclick="mpCloseModal('mpViewModal')">✕</button></div>
+    <div class="mp-modal-title"><span id="mpViewTitle">Meetup</span><button class="mp-modal-close" onclick="mpCloseModal('mpViewModal')"><i data-lucide="x"></i></button></div>
     <div class="mp-map-wrap" id="mpViewMap" style="height:240px"></div>
     <div id="mpViewStops" style="margin-top:12px"></div>
   </div>
@@ -324,7 +324,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <!-- ═══ COMPLETE MEETUP MODAL ═══ -->
 <div class="mp-modal-bg" id="mpCompleteModal">
   <div class="mp-modal">
-    <div class="mp-modal-title">🎉 Mark Meetup Complete<button class="mp-modal-close" onclick="mpCloseModal('mpCompleteModal')">✕</button></div>
+    <div class="mp-modal-title">🎉 Mark Meetup Complete<button class="mp-modal-close" onclick="mpCloseModal('mpCompleteModal')"><i data-lucide="x"></i></button></div>
     <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">This will create a memory in your Memory Globe 🌍 with your itinerary.</div>
     <div class="mp-field"><label>How did it feel? (mood)</label>
       <div class="mp-mood-picker" id="mpCompleteMoodPicker"></div>
@@ -343,7 +343,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <!-- ═══ EDIT PLAN MODAL ═══ -->
 <div class="mp-modal-bg" id="mpEditModal">
   <div class="mp-modal">
-    <div class="mp-modal-title">✏️ Edit Meetup<button class="mp-modal-close" onclick="mpCloseModal('mpEditModal')">✕</button></div>
+    <div class="mp-modal-title">✏️ Edit Meetup<button class="mp-modal-close" onclick="mpCloseModal('mpEditModal')"><i data-lucide="x"></i></button></div>
     <div class="mp-field"><label>Title</label><input type="text" id="mpEditTitle"></div>
     <div class="mp-row2">
       <div class="mp-field"><label>Date</label><input type="date" id="mpEditDate"></div>
@@ -370,6 +370,14 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <script src="/search/photon-service.js?v=2"></script>
 <script src="/search/search-service.js?v=2"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>
+  (function(){
+    function _initLucideIcons(){ if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } }
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', _initLucideIcons); }
+    else { _initLucideIcons(); }
+    window.__refreshLucideIcons = _initLucideIcons;
+  })();
+</script>
 <script src="/ui-icons.js"></script>
 <!-- Premium Sound System (additive, non-invasive) -->
 <script src="/js/audio/sound-engine.js"></script>

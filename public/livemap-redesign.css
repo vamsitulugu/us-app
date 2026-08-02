@@ -149,6 +149,7 @@
   cursor:pointer;border:1px solid var(--lm2-border);
   transition:transform var(--lm2-anim),background var(--lm2-anim);
 }
+.lm2-icon-btn svg{width:18px;height:18px;stroke-width:2}
 .lm2-icon-btn:hover{transform:translateY(-2px) scale(1.04);background:#2b2b2b}
 .lm2-icon-btn.active{box-shadow:0 0 0 1px rgba(255,32,32,.6) inset,0 4px 14px rgba(255,32,32,.35)}
 .lm2-sync-dot{width:8px;height:8px;border-radius:50%;background:#3ddc84;box-shadow:0 0 8px #3ddc84}

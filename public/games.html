@@ -570,7 +570,7 @@ button{font-family:inherit;cursor:pointer}
         <div class="gv-controls">
           <button class="gv-ctrl-btn" id="gvMuteBtn" onclick="GameVideo.toggleMute()">🎤</button>
           <button class="gv-ctrl-btn" id="gvCamBtn" onclick="GameVideo.toggleCam()">📷</button>
-          <button class="gv-ctrl-btn end" onclick="GameVideo.stop()">✕</button>
+          <button class="gv-ctrl-btn end" onclick="GameVideo.stop()"><i data-lucide="x"></i></button>
         </div>
       </div>
     </div>
@@ -3315,6 +3315,14 @@ Hub.init();
 <script src="/premium-motion.js"></script>
 <script src="/premium-states.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>
+  (function(){
+    function _initLucideIcons(){ if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } }
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', _initLucideIcons); }
+    else { _initLucideIcons(); }
+    window.__refreshLucideIcons = _initLucideIcons;
+  })();
+</script>
 <script src="/ui-icons.js"></script>
 <script src="/js/audio/sound-engine.js"></script>
 <script src="/js/audio/sound-library.js"></script>

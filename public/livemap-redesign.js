@@ -56,7 +56,7 @@
       <div class="lm2-header-actions">
         <div class="lm2-icon-btn lm2-scale-tap" title="Search" id="lm2HdrSearchBtn">🔍</div>
         <div class="lm2-icon-btn lm2-scale-tap" title="Layers / map style" id="lm2HdrLayersBtn">🗺️</div>
-        <div class="lm2-icon-btn lm2-scale-tap" title="Follow me — camera stays centered on your live position" id="lm2HdrFollowBtn">🧭</div>
+        <div class="lm2-icon-btn lm2-scale-tap" title="Follow me — camera stays centered on your live position" id="lm2HdrFollowBtn"><i data-lucide="navigation"></i></div>
         <div class="lm2-icon-btn lm2-scale-tap" title="Locate me" id="lm2HdrLocateBtn">📍</div>
         <div class="lm2-icon-btn lm2-scale-tap" title="Live tracking on/off" id="lm2HdrTrackWrap"></div>
       </div>`;
@@ -201,7 +201,7 @@
     // & nav panels / place details card / video-call+love-note row / period
     // stats exactly as they already are in the markup, right after the map —
     // nothing here empties it out, so don't remove it.
-  }
+   if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }}
 
   /* Close the floating search-results dropdown when the user taps
      anywhere outside it or the search input. Selecting a result or
@@ -566,10 +566,10 @@
             </div>
           </div>
           <button class="btn btn-glass btn-xs lm2-scale-tap" onclick="LiveMap.flyTo(${p.lat},${p.lon})">View</button>
-          <button class="btn btn-accent btn-xs lm2-scale-tap" onclick="LiveMap.navigateToPoint(${p.lat},${p.lon},'${esc(p.name || t.label).replace(/'/g, "\\'")}')">🧭</button>
+          <button class="btn btn-accent btn-xs lm2-scale-tap" onclick="LiveMap.navigateToPoint(${p.lat},${p.lon},'${esc(p.name || t.label).replace(/'/g, "\\'")}')"><i data-lucide="navigation"></i></button>
         </div>`;
       }).join('');
-  }
+   if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }}
 
   /* ════════════════════════════════════════════════════════════════
      E. VIDEO CALL SPLIT VIEW — while a call is active on the Live Map

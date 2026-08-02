@@ -409,7 +409,9 @@
 
 
 .chat-rec-timer{font-size:11px;color:var(--red-status);font-weight:700}
-.chat-row{display:flex;margin:2px 0;position:relative;padding:4px 8px;border-radius:10px;transition:background-color .15s ease}
+.chat-row{display:flex;margin:2px 0;position:relative;padding:4px 8px;border-radius:10px;transition:background-color .15s ease;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.chat-row .msg-bubble,.chat-row .msg-text{-webkit-user-select:text;user-select:text}
+#chatMsgs.selecting .chat-row .msg-bubble,#chatMsgs.selecting .chat-row .msg-text{-webkit-user-select:none;user-select:none}
 .chat-row.me{justify-content:flex-end}
 .chat-bubble{max-width:82%;padding:8px 12px;border-radius:16px;font-size:13.5px;line-height:1.5;position:relative;cursor:pointer;transition:transform .1s}
 .chat-bubble.mine{background:#161616;color:#fff;border:1px solid rgba(255,255,255,.08);border-radius:16px 4px 16px 16px}

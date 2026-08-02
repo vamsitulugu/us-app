@@ -23,9 +23,14 @@ function mediaFileFilter(req, file, cb) {
     cb(null, true);
 }
 
+// 20MB was sized for photos only. Real phone videos routinely exceed that
+// (even a short 15-20s clip is commonly 25-80MB), so videos were being
+// rejected by multer's fileSize limit while photos kept working fine —
+// which is exactly what looked like "video upload doesn't work" from the
+// UI. 150MB comfortably covers a few minutes of phone video.
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 20 * 1024 * 1024 }, // 20MB max
+    limits: { fileSize: 150 * 1024 * 1024 }, // 150MB max (covers photos + real phone videos)
     fileFilter: mediaFileFilter
 });
 const uploadAudio = multer({
@@ -33,8 +38,28 @@ const uploadAudio = multer({
     limits: { fileSize: 60 * 1024 * 1024 } // 60MB max for songs
 });
 
+// Multer errors (oversized file, rejected mime type) previously fell through
+// to the app's generic global error handler, which replies with a vague
+// "Internal server error" — the frontend then shows a plain "Upload failed"
+// toast with no indication of why. Handling multer's error here means the
+// real reason (too large / wrong type) reaches the toast instead.
+function handleUploadErrors(uploadMiddleware) {
+    return (req, res, next) => {
+        uploadMiddleware(req, res, (err) => {
+            if (!err) return next();
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(413).json({ error: 'That file is too large to upload (max 150MB).' });
+            }
+            if (err.message === 'Unsupported file type') {
+                return res.status(415).json({ error: 'That file type isn\'t supported — please choose a photo or video.' });
+            }
+            return res.status(400).json({ error: err.message || 'Upload failed' });
+        });
+    };
+}
+
 // ── POST /api/media/upload ─────────────────────────────
-router.post('/upload', upload.single('file'), async (req, res) => {
+router.post('/upload', handleUploadErrors(upload.single('file')), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file provided' });
     const { coupleId, type } = req.body;
     if (!coupleId) return res.status(400).json({ error: 'coupleId required' });

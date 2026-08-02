@@ -921,7 +921,7 @@ const LiveMap = (() => {
           <div style="font-size:10px;color:var(--text3)">${p.address ? esc(p.address) + ' · ' : ''}${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}</div>
         </div>
         <button class="btn btn-glass btn-xs" onclick="LiveMap.flyTo(${p.lat},${p.lng})">View</button>
-        ${deletable ? `<button class="del-btn" onclick="LiveMap.deletePlace('${p.id}')">✕</button>` : ''}
+        ${deletable ? `<button class="del-btn" onclick="LiveMap.deletePlace('${p.id}')"><i data-lucide="trash-2"></i></button>` : ''}
       </div>`;
     const myEl = document.getElementById('myPlacesList');
     if (myEl) {
@@ -932,7 +932,7 @@ const LiveMap = (() => {
     const ptEl = document.getElementById('ptPlacesList');
     if (ptEl) ptEl.innerHTML = theirs.length ? theirs.map(p => rowHtml(p, false)).join('') : '<div class="empty">Synced once your partner adds places</div>';
     _renderPlaceMarkers();
-  }
+   if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }}
 
   // ── Issue 3 fix: Locate Me / Locate Partner / Meeting Point / Favorite
   // Place / Daily Route / View Place all update the map's camera or
@@ -1249,10 +1249,10 @@ const LiveMap = (() => {
           <span style="cursor:${i === favs.length - 1 ? 'default' : 'pointer'};opacity:${i === favs.length - 1 ? 0.25 : 0.7};font-size:11px;line-height:1" onclick="${i === favs.length - 1 ? '' : `LiveMap.moveFavorite(${i},1)`}">▼</span>
         </div>
         <button class="btn btn-glass btn-xs" onclick="LiveMap.openFavorite(${i})">Open</button>
-        <button class="del-btn" onclick="LiveMap.removeFavorite(${i})">✕</button>
+        <button class="del-btn" onclick="LiveMap.removeFavorite(${i})"><i data-lucide="trash-2"></i></button>
       </div>`;
     }).join('');
-  }
+   if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }}
   /** Reorders a favorite by swapping it with its neighbor (dir: -1 up, +1
       down). Buttons rather than drag-and-drop keep this reliable on touch
       without a drag library, and persist via the same scheduleSave() path. */
@@ -1936,7 +1936,7 @@ const LiveMap = (() => {
           <div style="font-size:10px;color:var(--text3)">${p._distKm.toFixed(1)} km away</div>
         </div>
         <button class="btn btn-glass btn-xs" onclick="LiveMap.flyTo(${p.lat},${p.lon})">View</button>
-        <button class="btn btn-accent btn-xs" onclick="LiveMap.navigateToPoint(${p.lat},${p.lon},'${esc(name).replace(/'/g, "\\'")}')">🧭</button>
+        <button class="btn btn-accent btn-xs" onclick="LiveMap.navigateToPoint(${p.lat},${p.lon},'${esc(name).replace(/'/g, "\\'")}')"><i data-lucide="navigation"></i></button>
       </div>`;
     }).join('');
     places.forEach(p => {
@@ -1944,7 +1944,7 @@ const LiveMap = (() => {
       const m = L.marker([p.lat, p.lon], { icon: mIcon }).addTo(st.map).bindPopup(esc(p.tags?.name || t.label));
       st.routePoiMarkers.push(m);
     });
-  }
+   if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }}
   async function navigateToPartner(mode) {
     _navMode = mode || _navMode;
     const panel = document.getElementById('lmNavPanel');
@@ -2345,7 +2345,7 @@ const LiveMap = (() => {
             <div style="font-size:10px;color:var(--text3)">You: ${myD.toFixed(1)} km (~${Math.round(myD/40*60)} min) · ${esc(S.partnerName || 'Partner')}: ${ptD.toFixed(1)} km (~${Math.round(ptD/40*60)} min)</div>
           </div>
           <button class="btn btn-glass btn-xs" onclick="LiveMap.flyTo(${p.lat},${p.lon})">View</button>
-          <button class="btn btn-accent btn-xs" onclick="LiveMap.navigateToPoint(${p.lat},${p.lon},'${esc(name).replace(/'/g, "\\'")}')">🧭</button>
+          <button class="btn btn-accent btn-xs" onclick="LiveMap.navigateToPoint(${p.lat},${p.lon},'${esc(name).replace(/'/g, "\\'")}')"><i data-lucide="navigation"></i></button>
         </div>`;
       }).join('');
       places.forEach(p => {
@@ -2362,7 +2362,7 @@ const LiveMap = (() => {
     } catch (e) {
       panel.innerHTML = '<div class="empty">Couldn\'t reach the places lookup right now — showing just the midpoint above.</div>';
     }
-  }
+   if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }}
   /* ══════════════════════════════════════════════════════════
      PHASE 2 — STREET VIEW (Mapillary iframe, graceful fallback)
      No API key required for the public Mapillary embed viewer.
@@ -2809,7 +2809,7 @@ const LiveMap = (() => {
           <div style="font-size:10px;color:var(--text3)">${new Date(s.arrivedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${new Date(s.leftAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
         </div>
         <button class="btn btn-glass btn-xs" onclick="LiveMap.flyTo(${s.lat},${s.lng})">View</button>
-        <button class="btn btn-glass btn-xs" onclick="LiveMap.openStreetView(${s.lat},${s.lng})">👁</button>
+        <button class="btn btn-glass btn-xs" onclick="LiveMap.openStreetView(${s.lat},${s.lng})"><i data-lucide="eye"></i></button>
       </div>`;
     }).join('');
     stops.forEach(s => {
@@ -2817,7 +2817,7 @@ const LiveMap = (() => {
       const m = L.marker([s.lat, s.lng], { icon }).addTo(st.map).bindPopup(`Stopped ${s.minutes} min`);
       st.routeStopMarkers.push(m);
     });
-  }
+   if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }}
   function _fmtClock(sec) {
     sec = Math.max(0, Math.round(sec));
     const m = Math.floor(sec / 60), s = sec % 60;

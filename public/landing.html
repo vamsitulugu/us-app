@@ -292,6 +292,7 @@ body.native-auth-only #authModal .modal-close{display:none}
 .mcard{background:rgba(9,6,6,.96);backdrop-filter:blur(30px);border:1px solid var(--border2);border-radius:26px;padding:36px 32px;width:100%;max-width:460px;color:var(--white);box-shadow:0 30px 90px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.06);animation:popIn .35s cubic-bezier(.34,1.56,.64,1);position:relative;max-height:88vh;overflow-y:auto}
 @keyframes popIn{from{opacity:0;transform:scale(.88) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
 .modal-close{position:absolute;top:16px;right:18px;background:var(--g1);border:1px solid var(--border);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:16px;transition:all .2s}
+.modal-close svg{width:16px;height:16px;stroke-width:2}
 .modal-close:hover{background:var(--g2);color:var(--white)}
 .auth-logo-row{display:flex;flex-direction:column;align-items:center;margin-bottom:22px}
 .auth-logo-row img{height:52px;filter:drop-shadow(0 0 14px rgba(207,50,71,.65));margin-bottom:9px}
@@ -322,6 +323,15 @@ body.native-auth-only #authModal .modal-close{display:none}
 </style>
   <script src="/js/scroll-reset.js"></script>
   <script src="/js/session-manager.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script>
+    (function(){
+      function _initLucideIcons(){ if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } }
+      if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', _initLucideIcons); }
+      else { _initLucideIcons(); }
+      window.__refreshLucideIcons = _initLucideIcons;
+    })();
+  </script>
 </head>
 <body>
 
@@ -469,7 +479,7 @@ body.native-auth-only #authModal .modal-close{display:none}
 <!-- ═══ Auth modal (unchanged functionality — only restyled) ═══ -->
 <div class="modal-bg" id="authModal">
   <div class="mcard">
-    <button class="modal-close" onclick="closeAuth()">✕</button>
+    <button class="modal-close" onclick="closeAuth()"><i data-lucide="x"></i></button>
     <div class="auth-logo-row">
       <img src="/icons/icon-512.png" alt="Twin Hearts">
       <span class="brand-name">Twin Hearts</span>
@@ -544,7 +554,7 @@ body.native-auth-only #authModal .modal-close{display:none}
 <!-- ═══ Desktop "Coming Soon" modal ═══ -->
 <div class="modal-bg" id="comingSoonModal">
   <div class="mcard">
-    <button class="modal-close" onclick="closeModal('comingSoonModal')">✕</button>
+    <button class="modal-close" onclick="closeModal('comingSoonModal')"><i data-lucide="x"></i></button>
     <div class="modal-ico">🖥️</div>
     <div class="auth-logo-row" style="margin-bottom:8px"><span class="brand-name">Desktop app is on the way</span></div>
     <div class="modal-headline">We're building a native Twin Hearts app for <b id="csPlatformName">your platform</b>. Until it's ready, the web app gives you the full experience — right in your browser, no install needed.</div>
@@ -556,7 +566,7 @@ body.native-auth-only #authModal .modal-close{display:none}
 <!-- ═══ iOS "Add to Home Screen" guide ═══ -->
 <div class="modal-bg" id="iosGuideModal">
   <div class="mcard">
-    <button class="modal-close" onclick="closeModal('iosGuideModal')">✕</button>
+    <button class="modal-close" onclick="closeModal('iosGuideModal')"><i data-lucide="x"></i></button>
     <div class="modal-ico">📲</div>
     <div class="auth-logo-row" style="margin-bottom:8px"><span class="brand-name">Add Twin Hearts to your Home Screen</span></div>
     <div class="modal-headline">Installs like a real app — full screen, no address bar, right from your Home Screen.</div>
@@ -572,7 +582,7 @@ body.native-auth-only #authModal .modal-close{display:none}
 <!-- ═══ Android APK install guide ═══ -->
 <div class="modal-bg" id="apkGuideModal">
   <div class="mcard">
-    <button class="modal-close" onclick="closeModal('apkGuideModal')">✕</button>
+    <button class="modal-close" onclick="closeModal('apkGuideModal')"><i data-lucide="x"></i></button>
     <div class="modal-ico">✅</div>
     <div class="auth-logo-row" style="margin-bottom:8px"><span class="brand-name">Your download has started</span></div>
     <div class="modal-headline">Here's how to finish installing Twin Hearts on Android:</div>

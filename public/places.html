@@ -183,7 +183,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <!-- ADD/EDIT MODAL -->
 <div class="pm-modal-bg" id="pmModal">
   <div class="pm-modal">
-    <div class="pm-modal-title"><span id="pmModalTitle">🗺️ New Place</span><button class="pm-modal-close" onclick="closePmModal()">✕</button></div>
+    <div class="pm-modal-title"><span id="pmModalTitle">🗺️ New Place</span><button class="pm-modal-close" onclick="closePmModal()"><i data-lucide="x"></i></button></div>
     <div class="pm-field"><label>Place Name *</label><input type="text" id="pmName" placeholder="e.g. Goa Beach Trip"></div>
     <div class="pm-row2">
       <div class="pm-field"><label>Location</label><input type="text" id="pmLocation" placeholder="e.g. Goa, India"></div>
@@ -258,7 +258,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 
 <!-- LIGHTBOX -->
 <div class="pm-lightbox" id="pmLightbox">
-  <button class="pm-lightbox-close" onclick="closePmLightbox()">✕</button>
+  <button class="pm-lightbox-close" onclick="closePmLightbox()"><i data-lucide="x"></i></button>
   <button class="pm-lightbox-del" onclick="deleteLightboxPhoto()">🗑️ Remove</button>
   <img id="pmLightboxImg" src="" alt="">
 </div>
@@ -422,8 +422,9 @@ function loadPmPhotos(input){
 }
 function renderPmPhotoThumbs(){
   document.getElementById('pmPhotoThumbs').innerHTML = pmPendingPhotos.map((p,i)=>`
-    <div class="pm-photo-thumb">${p === 'uploading' ? '⏳' : `<img src="${p}" alt="Uploaded photo">`}<button onclick="pmPendingPhotos.splice(${i},1);renderPmPhotoThumbs()">✕</button></div>
+    <div class="pm-photo-thumb">${p === 'uploading' ? '⏳' : `<img src="${p}" alt="Uploaded photo">`}<button onclick="pmPendingPhotos.splice(${i},1);renderPmPhotoThumbs()"><i data-lucide="x"></i></button></div>
   `).join('');
+  if (window.__refreshLucideIcons) window.__refreshLucideIcons();
 }
 function usePmCurrentLocation(){
   if(!navigator.geolocation){ showPmToast('Geolocation not supported'); return; }
@@ -464,7 +465,7 @@ function openPmDetail(id){
   const p=pmPlaces.find(x=>x.id===id); if(!p) return;
   document.getElementById('pmDetailBanner').innerHTML = `
     ${p.banner?`<img src="${p.banner}" alt="${escHtml(p.name)}">`:''}
-    <button class="pm-detail-close" onclick="closePmDetail()">✕</button>
+    <button class="pm-detail-close" onclick="closePmDetail()"><i data-lucide="x"></i></button>
     <button class="pm-detail-fav ${p.favorite?'on':''}" id="pmDetailFav" onclick="togglePmDetailFav()">${p.favorite?'⭐':'☆'}</button>
     <div class="pm-detail-info">
       <div class="pm-detail-name">${escHtml(p.name)}</div>
@@ -606,6 +607,14 @@ renderGrid();
 <script src="/premium-motion.js"></script>
 <script src="/premium-states.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>
+  (function(){
+    function _initLucideIcons(){ if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } }
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', _initLucideIcons); }
+    else { _initLucideIcons(); }
+    window.__refreshLucideIcons = _initLucideIcons;
+  })();
+</script>
 <script src="/ui-icons.js"></script>
 <!-- Premium Sound System (additive, non-invasive) -->
 <script src="/js/audio/sound-engine.js"></script>

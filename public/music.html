@@ -685,7 +685,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <!-- ══ SONG DETAILS MODAL ══ -->
 <div class="song-modal-bg" id="songModal">
   <div class="song-modal">
-    <div class="sm-title">🎵 Song Details <button class="sm-close" onclick="closeSongModal()">✕</button></div>
+    <div class="sm-title">🎵 Song Details <button class="sm-close" onclick="closeSongModal()"><i data-lucide="x"></i></button></div>
     <div class="sm-field">
       <label>Title</label>
       <input type="text" id="smTitle" placeholder="Song title...">
@@ -717,7 +717,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <!-- ══ MY RECORDINGS: RECORD / PREVIEW OVERLAY ══ -->
 <div class="rec-overlay" id="recOverlay">
   <div class="rec-panel" style="position:relative">
-    <button class="rec-close-x" onclick="closeRecorder()">✕</button>
+    <button class="rec-close-x" onclick="closeRecorder()"><i data-lucide="x"></i></button>
     <video id="recVideoPreview" autoplay muted playsinline style="display:none"></video>
     <div id="recAudioViz" style="font-size:40px;margin:10px 0;display:none">🎙️</div>
     <div class="rec-timer" id="recTimer">00:00</div>
@@ -726,7 +726,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
     <div class="rec-controls-row" id="recLiveControls" style="display:none">
       <button class="rec-ctrl" id="recPauseBtn" onclick="recPauseResume()" title="Pause">⏸</button>
       <button class="rec-ctrl stop" onclick="recStop()" title="Stop">⏹</button>
-      <button class="rec-ctrl" onclick="closeRecorder()" title="Cancel">✕</button>
+      <button class="rec-ctrl" onclick="closeRecorder()" title="Cancel"><i data-lucide="x"></i></button>
     </div>
 
     <div id="recPreviewBlock" style="display:none">
@@ -753,7 +753,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <!-- ══ MY RECORDINGS: PLAYBACK OVERLAY ══ -->
 <div class="rec-overlay" id="recPlayOverlay">
   <div class="rec-panel" style="position:relative">
-    <button class="rec-close-x" onclick="closeRecPlayback()">✕</button>
+    <button class="rec-close-x" onclick="closeRecPlayback()"><i data-lucide="x"></i></button>
     <video id="recPlaybackVideo" controls playsinline style="display:none"></video>
     <div id="recPlaybackAudioBlock" style="display:none">
       <div style="font-size:44px;margin:10px 0">🎵</div>
@@ -768,7 +768,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
   <div class="mm-modal">
     <div class="mm-header">
       <div class="mm-title" id="movieModalTitle">🎬 Add Movie</div>
-      <button class="mm-close" onclick="closeMovieModal()">✕</button>
+      <button class="mm-close" onclick="closeMovieModal()"><i data-lucide="x"></i></button>
     </div>
     <div class="mm-body">
       <div class="mm-field" style="text-align:center;margin-bottom:16px">
@@ -853,7 +853,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <div class="mv-detail-bg" id="mvDetailBg">
   <div class="mv-detail-wrap">
     <div class="mv-banner" id="mvDetailBanner">
-      <button class="mv-banner-close" onclick="closeMvDetail()">✕</button>
+      <button class="mv-banner-close" onclick="closeMvDetail()"><i data-lucide="x"></i></button>
       <div class="mv-banner-actions">
         <button class="mv-banner-btn edit" onclick="editCurrentMovie()">✏️ Edit</button>
         <button class="mv-banner-btn delete" onclick="deleteCurrentMovie()">🗑️</button>
@@ -871,7 +871,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 
 <div class="song-modal-bg" id="lyricsModal">
   <div class="song-modal">
-    <div class="sm-title">📜 Lyrics <button class="sm-close" onclick="closeLyricsModal()">✕</button></div>
+    <div class="sm-title">📜 Lyrics <button class="sm-close" onclick="closeLyricsModal()"><i data-lucide="x"></i></button></div>
     <div class="sm-field">
       <label>Paste lyrics (one line per line)</label>
       <textarea id="lyricsText" rows="8" style="width:100%;background:var(--g1);border:1px solid var(--border);border-radius:9px;padding:9px 12px;font-size:13px;color:var(--white);font-family:var(--ff-sans);outline:none;resize:vertical"></textarea>
@@ -886,7 +886,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
     <div class="karaoke-bgfx" id="karaokeBgFx"></div>
 
     <div class="karaoke-topbar">
-      <button class="karaoke-close" onclick="closeKaraokeMode()">✕</button>
+      <button class="karaoke-close" onclick="closeKaraokeMode()"><i data-lucide="x"></i></button>
       <div class="karaoke-mode-label">🎤 Karaoke</div>
       <div style="display:flex;gap:6px;align-items:center">
         <button class="karaoke-fx-btn" id="karaokeOpenFx" onclick="openFxRack()">🎛 FX</button>
@@ -1029,7 +1029,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <!-- ══ ACHIEVEMENTS MODAL ══ -->
 <div class="song-modal-bg" id="achievementsModal">
   <div class="song-modal" style="max-width:460px">
-    <div class="sm-title">🏅 Music Achievements <button class="sm-close" onclick="closeAchievementsModal()">✕</button></div>
+    <div class="sm-title">🏅 Music Achievements <button class="sm-close" onclick="closeAchievementsModal()"><i data-lucide="x"></i></button></div>
     <div id="achievementsGrid" class="ach-grid"></div>
   </div>
 </div>
@@ -1723,7 +1723,7 @@ function openMvDetail(id) {
   banner.innerHTML = `
     ${m.poster?`<img src="${m.poster}" alt="${escH(m.title)}">`:''}
     <div class="mv-banner-poster">${m.poster?`<img src="${m.poster}" alt="">`:`<div class="mv-banner-poster-placeholder">${GENRE_EMOJIS[m.genre]||'🎬'}</div>`}</div>
-    <button class="mv-banner-close" onclick="closeMvDetail()">✕</button>
+    <button class="mv-banner-close" onclick="closeMvDetail()"><i data-lucide="x"></i></button>
     <div class="mv-banner-actions">
       <button class="mv-banner-btn edit" onclick="editCurrentMovie()">✏️ Edit</button>
       <button class="mv-banner-btn delete" onclick="deleteCurrentMovie()">🗑️</button>
@@ -2100,7 +2100,7 @@ function renderKaraokeHistory() {
   const t = (karaokeState.pl!=null) ? musicState[karaokeState.pl][karaokeState.idx] : null;
   const recs = (musicState.recordings||[]).filter(r => !t || r.trackId === t.id);
   if (!recs.length) { panel.innerHTML = `<div class="empty-pl" style="padding:18px"><div class="empty-pl-ico">📼</div><div class="empty-pl-text">No recordings yet for this song</div></div>`; return; }
-  panel.innerHTML = `<div style="text-align:right;margin-bottom:10px"><button class="karaoke-icon-btn sm" onclick="toggleKaraokeHistory()">✕</button></div>` +
+  panel.innerHTML = `<div style="text-align:right;margin-bottom:10px"><button class="karaoke-icon-btn sm" onclick="toggleKaraokeHistory()"><i data-lucide="x"></i></button></div>` +
     recs.map(r => `<div class="karaoke-history-row">
       <div class="khr-info"><div class="khr-title">${escH(r.trackTitle)}</div><div class="khr-meta">${r.durationFmt||''} · ${r.date}</div></div>
       <div class="khr-actions">

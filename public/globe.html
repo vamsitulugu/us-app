@@ -478,7 +478,7 @@
   <div class="glass-panel" id="cityPanel">
     <div class="panel-header">
       <div class="drag-handle"></div>
-      <div class="panel-title"><span id="cityPanelTitle">City Memories</span><button class="panel-close" onclick="closeCityPanel()">✕</button></div>
+      <div class="panel-title"><span id="cityPanelTitle">City Memories</span><button class="panel-close" onclick="closeCityPanel()"><i data-lucide="x"></i></button></div>
     </div>
     <div class="panel-body" id="cityPanelBody"></div>
   </div>
@@ -488,7 +488,7 @@
       <div class="drag-handle"></div>
       <div class="panel-title">
         <button class="panel-close" onclick="closeDetailPanel()" style="color:var(--text2);font-size:14px">← Back</button>
-        <button class="panel-close" onclick="closeAllPanels()">✕</button>
+        <button class="panel-close" onclick="closeAllPanels()"><i data-lucide="x"></i></button>
       </div>
     </div>
     <div class="panel-body" id="detailPanelBody"></div>
@@ -497,14 +497,14 @@
   <div class="glass-panel" id="addPanel">
     <div class="panel-header">
       <div class="drag-handle"></div>
-      <div class="panel-title"><span id="addPanelTitle">📍 Pin a Memory</span><button class="panel-close" onclick="closeAddPanel()">✕</button></div>
+      <div class="panel-title"><span id="addPanelTitle">📍 Pin a Memory</span><button class="panel-close" onclick="closeAddPanel()"><i data-lucide="x"></i></button></div>
     </div>
     <div class="panel-body" id="addPanelBody"></div>
   </div>
 
   <div id="statsView">
     <div class="stats-header">
-      <button class="ic-btn" onclick="closeStats()">✕</button>
+      <button class="ic-btn" onclick="closeStats()"><i data-lucide="x"></i></button>
       <div style="font-family:var(--ff-serif);font-size:20px;color:var(--white)">📊 Travel Stats</div>
     </div>
     <div class="stats-content" id="statsContent"></div>
@@ -525,7 +525,7 @@
   </div>
 
   <div class="img-viewer" id="imgViewer">
-    <button class="img-viewer-close" onclick="closeViewer()">✕</button>
+    <button class="img-viewer-close" onclick="closeViewer()"><i data-lucide="x"></i></button>
     <img id="viewerImg" src="" alt="" style="display:none">
     <video id="viewerVid" src="" controls style="display:none"></video>
   </div>
@@ -1415,13 +1415,13 @@ function openMemoryDetail(id) {
     ${m.notes ? `<div class="detail-section"><div class="detail-section-title">Notes</div><div class="journal-entry">${esc(m.notes)}</div></div>` : ''}
     ${m.favorite_moment ? `<div class="detail-section"><div class="detail-section-title">⭐ Favorite Moment</div><div class="journal-entry" style="border-color:var(--yellow)">${esc(m.favorite_moment)}</div></div>` : ''}
     ${photos.length ? `<div class="detail-section"><div class="detail-section-title">📸 Photos (${photos.length})</div><div class="media-grid">
-      ${photos.map(p => `<div class="mg-item" onclick="openViewer('${esc(p.url||p.data_url)}','photo')"><img src="${esc(p.url||p.data_url)}" alt="" loading="lazy"><button class="mg-del" onclick="event.stopPropagation();deleteMedia('${esc(p.id)}','${esc(m.id)}')">✕</button></div>`).join('')}
+      ${photos.map(p => `<div class="mg-item" onclick="openViewer('${esc(p.url||p.data_url)}','photo')"><img src="${esc(p.url||p.data_url)}" alt="" loading="lazy"><button class="mg-del" onclick="event.stopPropagation();deleteMedia('${esc(p.id)}','${esc(m.id)}')"><i data-lucide="trash-2"></i></button></div>`).join('')}
     </div></div>` : ''}
     ${videos.length ? `<div class="detail-section"><div class="detail-section-title">🎬 Videos (${videos.length})</div><div class="media-grid">
-      ${videos.map(v => `<div class="mg-item" onclick="openViewer('${esc(v.url||v.data_url)}','video')"><video src="${esc(v.url||v.data_url)}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video><button class="mg-del" onclick="event.stopPropagation();deleteMedia('${esc(v.id)}','${esc(m.id)}')">✕</button></div>`).join('')}
+      ${videos.map(v => `<div class="mg-item" onclick="openViewer('${esc(v.url||v.data_url)}','video')"><video src="${esc(v.url||v.data_url)}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video><button class="mg-del" onclick="event.stopPropagation();deleteMedia('${esc(v.id)}','${esc(m.id)}')"><i data-lucide="trash-2"></i></button></div>`).join('')}
     </div></div>` : ''}
     ${voices.length ? `<div class="detail-section"><div class="detail-section-title">🎙️ Voice Notes (${voices.length})</div>
-      ${voices.map((v, i) => `<div class="voice-item"><button class="voice-play-btn" onclick="playVoice('${esc(v.data_url||v.url)}', this)">▶</button><div style="flex:1"><div style="font-size:12px;color:var(--white)">Voice note ${i+1}</div><div style="font-size:10px;color:var(--text3)">${v.duration || ''}</div></div><button class="btn btn-danger btn-xs" onclick="deleteMedia('${esc(v.id)}','${esc(m.id)}')">✕</button></div>`).join('')}
+      ${voices.map((v, i) => `<div class="voice-item"><button class="voice-play-btn" onclick="playVoice('${esc(v.data_url||v.url)}', this)">▶</button><div style="flex:1"><div style="font-size:12px;color:var(--white)">Voice note ${i+1}</div><div style="font-size:10px;color:var(--text3)">${v.duration || ''}</div></div><button class="btn btn-danger btn-xs" onclick="deleteMedia('${esc(v.id)}','${esc(m.id)}')"><i data-lucide="trash-2"></i></button></div>`).join('')}
     </div>` : ''}
     ${journals.length ? `<div class="detail-section"><div class="detail-section-title">📖 Journal (${journals.length})</div>${journals.map(j => `<div class="journal-entry">${esc(j.journal_text || '')}</div>`).join('')}</div>` : ''}
     ${m.restaurants?.length ? `<div class="detail-section"><div class="detail-section-title">🍽️ Restaurants</div><div style="display:flex;flex-wrap:wrap;gap:6px">${m.restaurants.map(r => `<span class="mc-tag" style="font-size:12px">${esc(r)}</span>`).join('')}</div></div>` : ''}
@@ -1442,7 +1442,7 @@ function openMemoryDetail(id) {
     </div>
   `;
   document.getElementById('detailPanel').classList.add('open');
-}
+ if (window.__refreshLucideIcons) window.__refreshLucideIcons();}
 function closeDetailPanel() { document.getElementById('detailPanel').classList.remove('open'); }
 function closeAllPanels() { closeCityPanel(); closeDetailPanel(); closeAddPanel(); }
 
@@ -1559,7 +1559,7 @@ function selectMood(el, mood) {
   document.getElementById('formMood').value = mood;
 }
 function renderChips(type) {
-  return addFormChips[type].map((v, i) => `<div class="chip">${esc(v)}<button onclick="removeChip('${type}',${i})">✕</button></div>`).join('');
+  return addFormChips[type].map((v, i) => `<div class="chip">${esc(v)}<button onclick="removeChip('${type}',${i})"><i data-lucide="x"></i></button></div>`).join('');
 }
 function addChip(type, inputId) {
   const inp = document.getElementById(inputId);
@@ -1569,11 +1569,13 @@ function addChip(type, inputId) {
   inp.value = '';
   const chipElId = type === 'restaurants' ? 'restChips' : type === 'hotels' ? 'hotelChips' : 'giftChips';
   document.getElementById(chipElId).innerHTML = renderChips(type);
+  if (window.__refreshLucideIcons) window.__refreshLucideIcons();
 }
 function removeChip(type, idx) {
   addFormChips[type].splice(idx, 1);
   const chipElId = type === 'restaurants' ? 'restChips' : type === 'hotels' ? 'hotelChips' : 'giftChips';
   document.getElementById(chipElId).innerHTML = renderChips(type);
+  if (window.__refreshLucideIcons) window.__refreshLucideIcons();
 }
 
 // ── Location search via Nominatim — unchanged ──
@@ -2114,6 +2116,14 @@ document.addEventListener('click', e => {
 <script src="/premium-motion.js"></script>
 <script src="/premium-states.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>
+  (function(){
+    function _initLucideIcons(){ if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } }
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', _initLucideIcons); }
+    else { _initLucideIcons(); }
+    window.__refreshLucideIcons = _initLucideIcons;
+  })();
+</script>
 <script src="/ui-icons.js"></script>
 <script src="/js/audio/sound-engine.js"></script>
 <script src="/js/audio/sound-library.js"></script>
