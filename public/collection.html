@@ -217,7 +217,9 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <link rel="stylesheet" href="/premium-motion.css">
 <link rel="stylesheet" href="/premium-states.css">
   <link rel="stylesheet" href="/responsive-fix.css">
+  <link rel="stylesheet" href="/safe-delete.css">
   <script src="/js/scroll-reset.js"></script>
+  <script src="/safe-delete.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -889,32 +891,40 @@ async function downloadVoice(audioData) {
   }
 }
 function deleteVoice(id, isLibrary) {
-  if (!confirm('Delete this voice message?')) return;
-  if (isLibrary) {
-    colState.library = colState.library.filter(v => v.id !== id);
-    saveLibraryLocal(); pushLibraryToParent();
-    renderCurrentTab(); renderHero();
-    showColToast('Removed from library');
-    return;
-  }
-  // Real chat voice messages live in chat_messages (Supabase), not in any
-  // in-memory parent array — deleting must go through the same DELETE
-  // /api/chat/:id endpoint Chat itself uses, so Collection and Chat never
-  // disagree on what's deleted (Part 15/23). Ownership rule mirrors the
-  // server: only the sender can delete "for everyone"; the other partner
-  // can only delete-for-me (hide on their own device, shared audio stays).
-  const v = colState.voices.find(x => x.id === id);
-  const mode = (v && v.by === colState.role) ? 'everyone' : 'me';
-  colApi('DELETE', '/api/chat/' + id, { coupleId: colState.coupleId, senderRole: colState.role, mode })
-    .then(() => showColToast(mode === 'everyone' ? 'Voice message deleted' : 'Removed from your view'))
-    .catch(e => {
-      showColToast('Delete failed: ' + e.message);
-      // Re-sync from server since the optimistic local removal below may
-      // now be wrong (e.g. a 403 for trying to delete a partner's message)
-      loadVoices().then(() => { renderCurrentTab(); renderHero(); });
-    });
-  colState.voices = colState.voices.filter(x => x.id !== id);
-  renderCurrentTab(); renderHero();
+  confirmDelete({
+    itemType: isLibrary ? 'library item' : 'voice message',
+    message: isLibrary
+      ? 'This will only remove it from your Library — the original message in Chat is untouched.'
+      : 'This voice message will be permanently deleted.',
+    onConfirm: async () => {
+      if (isLibrary) {
+        colState.library = colState.library.filter(v => v.id !== id);
+        saveLibraryLocal(); pushLibraryToParent();
+        renderCurrentTab(); renderHero();
+        showColToast('Removed from library');
+        return;
+      }
+      // Real chat voice messages live in chat_messages (Supabase), not in any
+      // in-memory parent array — deleting must go through the same DELETE
+      // /api/chat/:id endpoint Chat itself uses, so Collection and Chat never
+      // disagree on what's deleted (Part 15/23). Ownership rule mirrors the
+      // server: only the sender can delete "for everyone"; the other partner
+      // can only delete-for-me (hide on their own device, shared audio stays).
+      const v = colState.voices.find(x => x.id === id);
+      const mode = (v && v.by === colState.role) ? 'everyone' : 'me';
+      try {
+        await colApi('DELETE', '/api/chat/' + id, { coupleId: colState.coupleId, senderRole: colState.role, mode });
+        colState.voices = colState.voices.filter(x => x.id !== id);
+        renderCurrentTab(); renderHero();
+        showColToast(mode === 'everyone' ? 'Voice message deleted' : 'Removed from your view');
+      } catch (e) {
+        // Re-sync from server since the local list may now be stale
+        // (e.g. a 403 for trying to delete a partner's message).
+        await loadVoices(); renderCurrentTab(); renderHero();
+        throw e; // let the modal show the error and stay open
+      }
+    }
+  });
 }
 
 // ── EXPORT TO LIBRARY (copy, chat history stays untouched) ──
@@ -942,32 +952,42 @@ function bulkExportToLibrary() {
 }
 function bulkDelete() {
   if (!selectedIds.size) return;
-  if (!confirm('Delete ' + selectedIds.size + ' selected voice message(s)?')) return;
   const isLib = currentTab === 'library';
   const idsToDelete = Array.from(selectedIds);
-  if (isLib) {
-    idsToDelete.forEach(id => { colState.library = colState.library.filter(v => v.id !== id); });
-    saveLibraryLocal(); pushLibraryToParent();
-    showColToast('Deleted ' + idsToDelete.length + ' message(s)');
-    exitSelectMode();
-    return;
-  }
-  // Same server-backed deletion as single-item deleteVoice — fire the
-  // real DELETE per message so Chat and Collection can never disagree,
-  // then re-sync from the server rather than trusting local removal.
-  Promise.allSettled(idsToDelete.map(id => {
-    const v = colState.voices.find(x => x.id === id);
-    const mode = (v && v.by === colState.role) ? 'everyone' : 'me';
-    return colApi('DELETE', '/api/chat/' + id, { coupleId: colState.coupleId, senderRole: colState.role, mode });
-  })).then(results => {
-    const failed = results.filter(r => r.status === 'rejected').length;
-    showColToast(failed
-      ? `Deleted ${idsToDelete.length - failed}, ${failed} failed`
-      : 'Deleted ' + idsToDelete.length + ' message(s)');
-    loadVoices().then(() => { renderCurrentTab(); renderHero(); });
+  confirmDelete({
+    itemType: isLib ? 'library item' : 'voice message',
+    count: idsToDelete.length,
+    message: isLib
+      ? 'These will only be removed from your Library — the original messages in Chat are untouched.'
+      : 'These voice messages will be permanently deleted.',
+    onConfirm: async () => {
+      if (isLib) {
+        idsToDelete.forEach(id => { colState.library = colState.library.filter(v => v.id !== id); });
+        saveLibraryLocal(); pushLibraryToParent();
+        renderCurrentTab();
+        showColToast('Deleted ' + idsToDelete.length + ' message(s)');
+        exitSelectMode();
+        return;
+      }
+      // Same server-backed deletion as single-item deleteVoice — fire the
+      // real DELETE per message so Chat and Collection can never disagree.
+      // Only remove from local state (and report success) for the ones
+      // that actually confirmed on the server — never lose track of
+      // partial failures (Part 17).
+      const { succeeded, failed } = await runBulkDelete(idsToDelete, (id) => {
+        const v = colState.voices.find(x => x.id === id);
+        const mode = (v && v.by === colState.role) ? 'everyone' : 'me';
+        return colApi('DELETE', '/api/chat/' + id, { coupleId: colState.coupleId, senderRole: colState.role, mode });
+      });
+      colState.voices = colState.voices.filter(v => !succeeded.includes(v.id));
+      exitSelectMode();
+      await loadVoices();
+      renderCurrentTab(); renderHero();
+      showColToast(failed.length
+        ? `${succeeded.length} deleted. ${failed.length} couldn't be deleted.`
+        : 'Deleted ' + succeeded.length + ' message(s)');
+    }
   });
-  colState.voices = colState.voices.filter(v => !selectedIds.has(v.id));
-  exitSelectMode();
 }
 
 // ── PHOTO RENDER ──
@@ -1065,19 +1085,25 @@ function lbDownload() {
 }
 function lbDelete() {
   const p = colState.photos[lbCurrentIdx];
-  if (!p || !confirm('Delete this photo?')) return;
-  colState.photos.splice(lbCurrentIdx, 1);
-  try {
-    const ps = window.parent?.S;
-    if (ps?.photos) {
-      ps.photos = ps.photos.filter(x => x.id !== p.id);
-      window.parent.scheduleSave?.();
-      window.parent.renderPhotos?.();
+  if (!p) return;
+  confirmDelete({
+    itemType: p.type === 'video' ? 'video' : 'photo',
+    message: 'This will be permanently deleted from your Memories.',
+    onConfirm: async () => {
+      colState.photos.splice(lbCurrentIdx, 1);
+      try {
+        const ps = window.parent?.S;
+        if (ps?.photos) {
+          ps.photos = ps.photos.filter(x => x.id !== p.id);
+          window.parent.scheduleSave?.();
+          window.parent.renderPhotos?.();
+        }
+      } catch(e) {}
+      closeLightbox();
+      renderPhotos(); renderHero();
+      showColToast((p.type === 'video' ? 'Video' : 'Photo') + ' deleted');
     }
-  } catch(e) {}
-  closeLightbox();
-  renderPhotos(); renderHero();
-  showColToast('Photo deleted');
+  });
 }
 function togglePhotoFav(id) {
   const idx = colState.photoFavs.indexOf(id);
