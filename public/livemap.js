@@ -771,7 +771,7 @@ const LiveMap = (() => {
   // real moving person/vehicle, not an abstract dot" readability.
   const name = who === 'my' ? (S.myName || 'U') : (S.partnerName || 'P');
   const badgeInner = avatar
-    ? `<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${offline ? 'filter:grayscale(1)' : ''}">`
+    ? `<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${offline ? 'filter:grayscale(1)' : ''}" onerror="this.onerror=null;this.outerHTML='<span style=&quot;font-size:9px;font-weight:700;color:#fff&quot;>'+${JSON.stringify(name.slice(0,1).toUpperCase())}+'</span>';">`
     : `<span style="font-size:9px;font-weight:700;color:#fff">${esc(name.slice(0, 1).toUpperCase())}</span>`;
   const badge = `<div style="position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);width:16px;height:16px;border-radius:50%;background:${color};border:2px solid #fff;display:flex;align-items:center;justify-content:center;overflow:hidden">${badgeInner}</div>`;
   const offlineBadge = offline

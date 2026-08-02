@@ -1,0 +1,193 @@
+From 1ff6d7905117cbf277bdab2d0c16663c4cd4ee94 Mon Sep 17 00:00:00 2001
+From: Vamsi <vamsi@jvunique.local>
+Date: Sun, 2 Aug 2026 07:38:46 +0000
+Subject: [PATCH] UI cleanup: remove Space from bottom nav, simplify sidebar
+ Quick Mood, add global default avatar fallback
+
+- Bottom nav: removed Space item only (still fully accessible via sidebar/My Space)
+- Sidebar Quick Mood: reduced from 6 moods to Happy/Sad/Angry, mood-update flow untouched
+- Avatar system: centralized default silhouette fallback (setAvText/setAvImg in index.html,
+  avatar-system.js, chat/call.js, games.html, livemap.js) with image-load-error handling,
+  replacing inconsistent initials/blank/broken-image states. Notification icon logic (sw.js)
+  and Watch Together in-call camera-off placeholder left untouched.
+---
+ public/chat/call.js        |  9 +++++---
+ public/games.html          |  3 ++-
+ public/index.html          | 44 +++++++++++++++++++++++++-------------
+ public/js/avatar-system.js | 11 +++++-----
+ public/livemap.js          |  2 +-
+ 5 files changed, 44 insertions(+), 25 deletions(-)
+
+diff --git a/public/chat/call.js b/public/chat/call.js
+index 032d3bb..b2374bf 100644
+--- a/public/chat/call.js
++++ b/public/chat/call.js
+@@ -440,10 +440,13 @@ async function initSignalCursor() {
+     document.querySelectorAll('#callOverlay').forEach(el => { el.classList.remove('open'); el.remove(); });
+   }
+ 
++  const DEFAULT_AVATAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:60%;height:60%;color:rgba(255,255,255,0.92)"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
++  window.__avatarImgFallback = function (img) { img.onerror = null; if (img.parentNode) img.parentNode.innerHTML = DEFAULT_AVATAR_SVG; };
++  window.__pipAvatarFallback = function (img) { img.onerror = null; if (img.parentNode) img.parentNode.innerHTML = `<div class="call-pip-avatar-fallback">${DEFAULT_AVATAR_SVG}</div>`; };
+   function avatarHtml(name, av) {
+     return av
+-      ? `<img src="${av}" style="width:100%;height:100%;object-fit:cover;object-position:center;border-radius:50%" onerror="this.remove()">`
+-      : (name[0] || 'P').toUpperCase();
++      ? `<img src="${av}" style="width:100%;height:100%;object-fit:cover;object-position:center;border-radius:50%" onerror="window.__avatarImgFallback(this)">`
++      : DEFAULT_AVATAR_SVG;
+   }
+ 
+   // ─── Shared icon + labeled-control-button helpers ──────────────────
+@@ -802,7 +805,7 @@ async function initSignalCursor() {
+     pipEl.style.right = '16px';
+     pipEl.innerHTML = callType === 'video' && remoteStream
+       ? `<video autoplay playsinline muted id="pipVideo"></video>`
+-      : (av ? `<img class="call-pip-static" src="${av}">` : `<div class="call-pip-avatar-fallback">${(name[0] || 'P')}</div>`);
++      : (av ? `<img class="call-pip-static" src="${av}" onerror="window.__pipAvatarFallback && window.__pipAvatarFallback(this)">` : `<div class="call-pip-avatar-fallback">${DEFAULT_AVATAR_SVG}</div>`);
+     if (isMuted) pipEl.insertAdjacentHTML('beforeend', `<div class="call-pip-mic-off">${icoHTML('mic-off')}</div>`);
+     pipEl.insertAdjacentHTML('beforeend', `<div class="call-pip-timer" id="pipTimer">00:00</div>`);
+     pipEl.onclick = (e) => { if (!pipDrag || !pipDrag.moved) restore(); };
+diff --git a/public/games.html b/public/games.html
+index 44ac484..af53516 100644
+--- a/public/games.html
++++ b/public/games.html
+@@ -644,7 +644,8 @@ const Snd = (function(){
+ })();
+ 
+ function toast(msg,dur){ const t=document.getElementById('gToast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),dur||2600); }
+-function avHtml(av,name){ return av ? `<img src="${av}" alt="${esc(name)}">` : esc((name||'?')[0]||'?'); }
++const DEFAULT_AVATAR_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:60%;height:60%;color:rgba(255,255,255,0.92)"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
++function avHtml(av,name){ return av ? `<img src="${av}" alt="${esc(name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.onerror=null;this.parentNode.innerHTML=DEFAULT_AVATAR_SVG;">` : DEFAULT_AVATAR_SVG; }
+ function showReward(ico,title,items){
+   document.getElementById('rewardIco').textContent=ico;
+   document.getElementById('rewardTitle').textContent=title;
+diff --git a/public/index.html b/public/index.html
+index 5523998..67f5e1d 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -4753,13 +4753,10 @@ select option { background: #0D0D0D; color: #fff; }
+       <div class="ni active" data-page="dashboard"><span class="ico">🏠</span>Dashboard</div>
+       <div class="card" style="margin-bottom:16px;pointer-events:auto;cursor:default">
+         <div class="card-title">💭 Quick Mood Check-in</div>
+-        <div class="mood-row" id="dashMoodRow" style="margin-bottom:0">
+-          <div class="mood" onclick="quickMood(this,'😊 Happy')">😊</div>
+-          <div class="mood" onclick="quickMood(this,'🥰 Loved')">🥰</div>
+-          <div class="mood" onclick="quickMood(this,'😌 Peaceful')">😌</div>
+-          <div class="mood" onclick="quickMood(this,'😔 Sad')">😔</div>
+-          <div class="mood" onclick="quickMood(this,'😤 Stressed')">😤</div>
+-          <div class="mood" onclick="quickMood(this,'🤩 Excited')">🤩</div>
++        <div class="mood-row" id="dashMoodRow" style="margin-bottom:0;flex-wrap:nowrap;gap:6px">
++          <div class="mood" style="flex:1;text-align:center;padding:8px 4px" onclick="quickMood(this,'😊 Happy')">😊<br>Happy</div>
++          <div class="mood" style="flex:1;text-align:center;padding:8px 4px" onclick="quickMood(this,'😢 Sad')">😢<br>Sad</div>
++          <div class="mood" style="flex:1;text-align:center;padding:8px 4px" onclick="quickMood(this,'😡 Angry')">😡<br>Angry</div>
+         </div>
+       </div>
+       <div class="ni" data-page="chat"><span class="ico">💬</span>Chat<span data-chat-badge></span></div>
+@@ -6325,7 +6322,6 @@ select option { background: #0D0D0D; color: #fff; }
+       <nav class="bot-nav" id="botNav">
+         <div class="bot-ni active" data-page="dashboard"><span class="ico">🏠</span>Home</div>
+ <div class="bot-ni" data-page="chat"><span class="ico">💬</span>Chat<span data-chat-badge></span></div>
+-<div class="bot-ni" data-page="myspace"><span class="ico">🌸</span>Space</div>
+ <div class="bot-ni" data-page="ai"><span class="ico">🤖</span>AI</div>
+ <div class="bot-ni" data-page="globe"><span class="ico">🌍</span>Globe</div>
+ <div class="bot-ni" data-page="games"><span class="ico">🎮</span>Games</div>
+@@ -7505,20 +7501,38 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
+           ['jAv2', 'hAv2', 'studyAv2'].forEach(id => setAvText(id, p[0] || 'P'));
+           setAvText('profAv1', m[0] || 'U'); setAvText('profAv2', p[0] || 'P');
+           setAvText('settingsAv1', m[0] || 'U');
++          setAvText('chatHeaderAv', p[0] || 'P');
+           if (S.myAvatar) { ['sbAv1', 'profAv1', 'settingsAv1'].forEach(id => setAvImg(id, S.myAvatar)); }
+-          if (S.partnerAvatar) { ['sbAv2', 'profAv2'].forEach(id => setAvImg(id, S.partnerAvatar)); }
++          if (S.partnerAvatar) { ['sbAv2', 'profAv2', 'chatHeaderAv'].forEach(id => setAvImg(id, S.partnerAvatar)); }
+           const el1 = document.getElementById('profMyName'); if (el1) el1.textContent = m;
+           const el2 = document.getElementById('profPtName'); if (el2) el2.textContent = p;
+           ['studyMyName', 'studyMyNameTT'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = m + "'s"; });
+           ['studyPtName', 'studyPtNameTT'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = p + "'s"; });
+           const tpn = document.getElementById('touchPartnerName'); if (tpn) tpn.textContent = p + "'ll";
+         }
+-        function setAvText(id, t) { const el = document.getElementById(id); if (!el) return; if (!el.querySelector('img')) el.textContent = t; }
++        // Single reusable default-avatar renderer — a professional neutral
++        // person silhouette (Lucide "user" glyph) drawn over the existing
++        // .av1/.av2 accent-gradient circle. Replaces inconsistent initials
++        // so every avatar location (sidebar, journal, hugs, study, profile,
++        // settings, live map, etc) shows the same fallback.
++        function renderDefaultAvatar(el) {
++          if (!el) return;
++          el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
++            'stroke-linecap="round" stroke-linejoin="round" style="width:60%;height:60%;color:rgba(255,255,255,0.92)">' +
++            '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
++        }
++        // Kept name for compatibility with existing call sites (previously
++        // rendered initials text); now always renders the default avatar,
++        // unless a real photo <img> is already mounted in that slot.
++        function setAvText(id) { const el = document.getElementById(id); if (!el) return; if (!el.querySelector('img')) renderDefaultAvatar(el); }
+         function setAvImg(id, src) {
+           const el = document.getElementById(id); if (!el) return;
+-          el.textContent = ''; let img = el.querySelector('img');
+-          if (!img) { img = document.createElement('img'); el.appendChild(img); }
+-          img.src = src; img.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:50%';
++          if (!src) { renderDefaultAvatar(el); return; }
++          let img = el.querySelector('img');
++          if (!img) { el.innerHTML = ''; img = document.createElement('img'); el.appendChild(img); }
++          img.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:50%';
++          img.onerror = () => { img.onerror = null; if (img.parentNode) img.parentNode.removeChild(img); renderDefaultAvatar(el); };
++          img.src = src;
+         }
+         // Ownership rule (root-cause fix): pickAvatar() can ONLY ever
+         // open the picker for the current user. There is no code path
+@@ -9375,7 +9389,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
+             ProfileStore.init(S.userId).then(() => {
+               const mine = ProfileStore.get('me'), theirs = ProfileStore.get('partner');
+               if (mine && mine.avatar_url) { S.myAvatar = mine.avatar_url; ['sbAv1','profAv1','settingsAv1'].forEach(id => setAvImg(id, S.myAvatar)); }
+-              if (theirs && theirs.avatar_url) { S.partnerAvatar = theirs.avatar_url; ['sbAv2','profAv2'].forEach(id => setAvImg(id, S.partnerAvatar)); }
++              if (theirs && theirs.avatar_url) { S.partnerAvatar = theirs.avatar_url; ['sbAv2','profAv2','chatHeaderAv'].forEach(id => setAvImg(id, S.partnerAvatar)); }
+             }).catch(e => console.warn('[ProfileStore] init failed', e));
+             // Keep every mounted Avatar-component instance and the legacy
+             // setAvImg() ids in sync automatically, forever, with no
+@@ -9383,7 +9397,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
+             ProfileStore.onChange((owner, profile) => {
+               if (!profile) return;
+               if (owner === 'me') { S.myAvatar = profile.avatar_url || S.myAvatar; ['sbAv1','profAv1','settingsAv1'].forEach(id => setAvImg(id, S.myAvatar)); }
+-              else { S.partnerAvatar = profile.avatar_url || S.partnerAvatar; ['sbAv2','profAv2'].forEach(id => setAvImg(id, S.partnerAvatar)); }
++              else { S.partnerAvatar = profile.avatar_url || S.partnerAvatar; ['sbAv2','profAv2','chatHeaderAv'].forEach(id => setAvImg(id, S.partnerAvatar)); }
+             });
+           }
+           checkIncomingTouch();
+diff --git a/public/js/avatar-system.js b/public/js/avatar-system.js
+index 30a7e78..33c90e0 100644
+--- a/public/js/avatar-system.js
++++ b/public/js/avatar-system.js
+@@ -201,11 +201,12 @@
+   }
+ 
+   function renderInitials(el, profile, opts) {
+-    el.innerHTML = '';
+-    const span = document.createElement('span');
+-    span.textContent = initialFor(profile, opts.fallbackName);
+-    span.style.cssText = 'font-weight:600;';
+-    el.appendChild(span);
++    // Professional neutral silhouette default avatar (matches the
++    // fallback used by index.html's setAvImg/setAvText), rather than
++    // initials — kept as one consistent default across the app.
++    el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
++      'stroke-linecap="round" stroke-linejoin="round" style="width:60%;height:60%;color:rgba(255,255,255,0.92)">' +
++      '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+   }
+ 
+   const Avatar = {
+diff --git a/public/livemap.js b/public/livemap.js
+index e3dd21a..d05005f 100644
+--- a/public/livemap.js
++++ b/public/livemap.js
+@@ -771,7 +771,7 @@ const LiveMap = (() => {
+   // real moving person/vehicle, not an abstract dot" readability.
+   const name = who === 'my' ? (S.myName || 'U') : (S.partnerName || 'P');
+   const badgeInner = avatar
+-    ? `<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${offline ? 'filter:grayscale(1)' : ''}">`
++    ? `<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${offline ? 'filter:grayscale(1)' : ''}" onerror="this.onerror=null;this.outerHTML='<span style=&quot;font-size:9px;font-weight:700;color:#fff&quot;>'+${JSON.stringify(name.slice(0,1).toUpperCase())}+'</span>';">`
+     : `<span style="font-size:9px;font-weight:700;color:#fff">${esc(name.slice(0, 1).toUpperCase())}</span>`;
+   const badge = `<div style="position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);width:16px;height:16px;border-radius:50%;background:${color};border:2px solid #fff;display:flex;align-items:center;justify-content:center;overflow:hidden">${badgeInner}</div>`;
+   const offlineBadge = offline
+-- 
+2.43.0
+

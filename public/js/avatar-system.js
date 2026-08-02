@@ -201,11 +201,12 @@
   }
 
   function renderInitials(el, profile, opts) {
-    el.innerHTML = '';
-    const span = document.createElement('span');
-    span.textContent = initialFor(profile, opts.fallbackName);
-    span.style.cssText = 'font-weight:600;';
-    el.appendChild(span);
+    // Professional neutral silhouette default avatar (matches the
+    // fallback used by index.html's setAvImg/setAvText), rather than
+    // initials — kept as one consistent default across the app.
+    el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+      'stroke-linecap="round" stroke-linejoin="round" style="width:60%;height:60%;color:rgba(255,255,255,0.92)">' +
+      '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
   }
 
   const Avatar = {

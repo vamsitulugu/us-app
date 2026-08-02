@@ -440,10 +440,13 @@ async function initSignalCursor() {
     document.querySelectorAll('#callOverlay').forEach(el => { el.classList.remove('open'); el.remove(); });
   }
 
+  const DEFAULT_AVATAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:60%;height:60%;color:rgba(255,255,255,0.92)"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+  window.__avatarImgFallback = function (img) { img.onerror = null; if (img.parentNode) img.parentNode.innerHTML = DEFAULT_AVATAR_SVG; };
+  window.__pipAvatarFallback = function (img) { img.onerror = null; if (img.parentNode) img.parentNode.innerHTML = `<div class="call-pip-avatar-fallback">${DEFAULT_AVATAR_SVG}</div>`; };
   function avatarHtml(name, av) {
     return av
-      ? `<img src="${av}" style="width:100%;height:100%;object-fit:cover;object-position:center;border-radius:50%" onerror="this.remove()">`
-      : (name[0] || 'P').toUpperCase();
+      ? `<img src="${av}" style="width:100%;height:100%;object-fit:cover;object-position:center;border-radius:50%" onerror="window.__avatarImgFallback(this)">`
+      : DEFAULT_AVATAR_SVG;
   }
 
   // ─── Shared icon + labeled-control-button helpers ──────────────────
@@ -802,7 +805,7 @@ async function initSignalCursor() {
     pipEl.style.right = '16px';
     pipEl.innerHTML = callType === 'video' && remoteStream
       ? `<video autoplay playsinline muted id="pipVideo"></video>`
-      : (av ? `<img class="call-pip-static" src="${av}">` : `<div class="call-pip-avatar-fallback">${(name[0] || 'P')}</div>`);
+      : (av ? `<img class="call-pip-static" src="${av}" onerror="window.__pipAvatarFallback && window.__pipAvatarFallback(this)">` : `<div class="call-pip-avatar-fallback">${DEFAULT_AVATAR_SVG}</div>`);
     if (isMuted) pipEl.insertAdjacentHTML('beforeend', `<div class="call-pip-mic-off">${icoHTML('mic-off')}</div>`);
     pipEl.insertAdjacentHTML('beforeend', `<div class="call-pip-timer" id="pipTimer">00:00</div>`);
     pipEl.onclick = (e) => { if (!pipDrag || !pipDrag.moved) restore(); };

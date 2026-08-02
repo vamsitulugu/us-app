@@ -4753,13 +4753,10 @@ select option { background: #0D0D0D; color: #fff; }
       <div class="ni active" data-page="dashboard"><span class="ico">🏠</span>Dashboard</div>
       <div class="card" style="margin-bottom:16px;pointer-events:auto;cursor:default">
         <div class="card-title">💭 Quick Mood Check-in</div>
-        <div class="mood-row" id="dashMoodRow" style="margin-bottom:0">
-          <div class="mood" onclick="quickMood(this,'😊 Happy')">😊</div>
-          <div class="mood" onclick="quickMood(this,'🥰 Loved')">🥰</div>
-          <div class="mood" onclick="quickMood(this,'😌 Peaceful')">😌</div>
-          <div class="mood" onclick="quickMood(this,'😔 Sad')">😔</div>
-          <div class="mood" onclick="quickMood(this,'😤 Stressed')">😤</div>
-          <div class="mood" onclick="quickMood(this,'🤩 Excited')">🤩</div>
+        <div class="mood-row" id="dashMoodRow" style="margin-bottom:0;flex-wrap:nowrap;gap:6px">
+          <div class="mood" style="flex:1;text-align:center;padding:8px 4px" onclick="quickMood(this,'😊 Happy')">😊<br>Happy</div>
+          <div class="mood" style="flex:1;text-align:center;padding:8px 4px" onclick="quickMood(this,'😢 Sad')">😢<br>Sad</div>
+          <div class="mood" style="flex:1;text-align:center;padding:8px 4px" onclick="quickMood(this,'😡 Angry')">😡<br>Angry</div>
         </div>
       </div>
       <div class="ni" data-page="chat"><span class="ico">💬</span>Chat<span data-chat-badge></span></div>
@@ -6325,7 +6322,6 @@ select option { background: #0D0D0D; color: #fff; }
       <nav class="bot-nav" id="botNav">
         <div class="bot-ni active" data-page="dashboard"><span class="ico">🏠</span>Home</div>
 <div class="bot-ni" data-page="chat"><span class="ico">💬</span>Chat<span data-chat-badge></span></div>
-<div class="bot-ni" data-page="myspace"><span class="ico">🌸</span>Space</div>
 <div class="bot-ni" data-page="ai"><span class="ico">🤖</span>AI</div>
 <div class="bot-ni" data-page="globe"><span class="ico">🌍</span>Globe</div>
 <div class="bot-ni" data-page="games"><span class="ico">🎮</span>Games</div>
@@ -7505,20 +7501,38 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
           ['jAv2', 'hAv2', 'studyAv2'].forEach(id => setAvText(id, p[0] || 'P'));
           setAvText('profAv1', m[0] || 'U'); setAvText('profAv2', p[0] || 'P');
           setAvText('settingsAv1', m[0] || 'U');
+          setAvText('chatHeaderAv', p[0] || 'P');
           if (S.myAvatar) { ['sbAv1', 'profAv1', 'settingsAv1'].forEach(id => setAvImg(id, S.myAvatar)); }
-          if (S.partnerAvatar) { ['sbAv2', 'profAv2'].forEach(id => setAvImg(id, S.partnerAvatar)); }
+          if (S.partnerAvatar) { ['sbAv2', 'profAv2', 'chatHeaderAv'].forEach(id => setAvImg(id, S.partnerAvatar)); }
           const el1 = document.getElementById('profMyName'); if (el1) el1.textContent = m;
           const el2 = document.getElementById('profPtName'); if (el2) el2.textContent = p;
           ['studyMyName', 'studyMyNameTT'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = m + "'s"; });
           ['studyPtName', 'studyPtNameTT'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = p + "'s"; });
           const tpn = document.getElementById('touchPartnerName'); if (tpn) tpn.textContent = p + "'ll";
         }
-        function setAvText(id, t) { const el = document.getElementById(id); if (!el) return; if (!el.querySelector('img')) el.textContent = t; }
+        // Single reusable default-avatar renderer — a professional neutral
+        // person silhouette (Lucide "user" glyph) drawn over the existing
+        // .av1/.av2 accent-gradient circle. Replaces inconsistent initials
+        // so every avatar location (sidebar, journal, hugs, study, profile,
+        // settings, live map, etc) shows the same fallback.
+        function renderDefaultAvatar(el) {
+          if (!el) return;
+          el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+            'stroke-linecap="round" stroke-linejoin="round" style="width:60%;height:60%;color:rgba(255,255,255,0.92)">' +
+            '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+        }
+        // Kept name for compatibility with existing call sites (previously
+        // rendered initials text); now always renders the default avatar,
+        // unless a real photo <img> is already mounted in that slot.
+        function setAvText(id) { const el = document.getElementById(id); if (!el) return; if (!el.querySelector('img')) renderDefaultAvatar(el); }
         function setAvImg(id, src) {
           const el = document.getElementById(id); if (!el) return;
-          el.textContent = ''; let img = el.querySelector('img');
-          if (!img) { img = document.createElement('img'); el.appendChild(img); }
-          img.src = src; img.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:50%';
+          if (!src) { renderDefaultAvatar(el); return; }
+          let img = el.querySelector('img');
+          if (!img) { el.innerHTML = ''; img = document.createElement('img'); el.appendChild(img); }
+          img.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:50%';
+          img.onerror = () => { img.onerror = null; if (img.parentNode) img.parentNode.removeChild(img); renderDefaultAvatar(el); };
+          img.src = src;
         }
         // Ownership rule (root-cause fix): pickAvatar() can ONLY ever
         // open the picker for the current user. There is no code path
@@ -9375,7 +9389,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
             ProfileStore.init(S.userId).then(() => {
               const mine = ProfileStore.get('me'), theirs = ProfileStore.get('partner');
               if (mine && mine.avatar_url) { S.myAvatar = mine.avatar_url; ['sbAv1','profAv1','settingsAv1'].forEach(id => setAvImg(id, S.myAvatar)); }
-              if (theirs && theirs.avatar_url) { S.partnerAvatar = theirs.avatar_url; ['sbAv2','profAv2'].forEach(id => setAvImg(id, S.partnerAvatar)); }
+              if (theirs && theirs.avatar_url) { S.partnerAvatar = theirs.avatar_url; ['sbAv2','profAv2','chatHeaderAv'].forEach(id => setAvImg(id, S.partnerAvatar)); }
             }).catch(e => console.warn('[ProfileStore] init failed', e));
             // Keep every mounted Avatar-component instance and the legacy
             // setAvImg() ids in sync automatically, forever, with no
@@ -9383,7 +9397,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
             ProfileStore.onChange((owner, profile) => {
               if (!profile) return;
               if (owner === 'me') { S.myAvatar = profile.avatar_url || S.myAvatar; ['sbAv1','profAv1','settingsAv1'].forEach(id => setAvImg(id, S.myAvatar)); }
-              else { S.partnerAvatar = profile.avatar_url || S.partnerAvatar; ['sbAv2','profAv2'].forEach(id => setAvImg(id, S.partnerAvatar)); }
+              else { S.partnerAvatar = profile.avatar_url || S.partnerAvatar; ['sbAv2','profAv2','chatHeaderAv'].forEach(id => setAvImg(id, S.partnerAvatar)); }
             });
           }
           checkIncomingTouch();
