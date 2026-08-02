@@ -2537,6 +2537,25 @@
       padding: 6px 16px 10px
     }
 
+    .mem-detail-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 16px;
+      border-top: 1px solid var(--border);
+      font-size: 13px
+    }
+
+    .mem-detail-row span:first-child {
+      color: var(--muted)
+    }
+
+    .mem-detail-row span:last-child {
+      color: #fff;
+      text-align: right;
+      word-break: break-word
+    }
+
     /* ════ ALARM RING ════ */
     .alarm-ring {
       position: fixed;
@@ -7716,6 +7735,15 @@ function setJustPairedAt(ts) {
               // 0.1) An open safe-delete confirmation sheet takes priority — close it only.
               const openConfirm = document.querySelector('.sd-overlay.show');
               if (openConfirm) { openConfirm.classList.remove('show'); return; }
+              // 0.2) Memories gallery viewer's own overlays take priority over
+              //      closing the viewer itself — details sheet, then more sheet.
+              const openDetails = document.getElementById('memDetailsSheet');
+              if (openDetails && openDetails.classList.contains('show')) { memViewerCloseDetails(); return; }
+              const openMore = document.getElementById('memMoreSheet');
+              if (openMore && openMore.classList.contains('show')) { memViewerCloseMore(); return; }
+              // 0.3) Memories gallery viewer open — close it, stay on Our Memories.
+              const openMemViewerEl = document.getElementById('memViewer');
+              if (openMemViewerEl && openMemViewerEl.classList.contains('open')) { closeMemViewer(); return; }
               // 0.5) Memories selection mode active — exit selection, don't navigate.
               if (typeof memSelectMode !== 'undefined' && memSelectMode) { memExitSelectMode(); return; }
               // 1) An open modal takes priority — just close it.
@@ -8268,10 +8296,6 @@ const p = await Notification.requestPermission();
         <div class="sd-check"><i data-lucide="check"></i></div>
         ${p.type === 'video' ? `<video src="${p.url}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>` : `<img src="${p.url}" alt="memory" loading="lazy">`}
       </div>
-      <div class="pt-footer">
-        <button type="button" class="pt-fav-btn${p.favorite ? ' active' : ''}" onclick="toggleFavoritePhoto('${p.id}')" aria-label="Favorite">${p.favorite ? '❤️' : '🤍'}</button>
-        <button type="button" class="pt-del-btn" onclick="deletePhoto('${p.id}')" aria-label="Delete">🗑️</button>
-      </div>
     </div>`).join('');
           if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
           memWireSelection();
@@ -8310,11 +8334,9 @@ const p = await Notification.requestPermission();
             // only show its View/Delete buttons on hover — but that overlay
             // still intercepted every touch everywhere on the card, which
             // silently ate every long-press before its timer could start.
-            // Now the card is just the thumb (tappable/long-press-able) plus
-            // a real, always-visible footer, so only .pt-footer needs to be
-            // excluded from the long-press gesture.
+            // Now the card is just the thumb: quick tap opens the gallery
+            // viewer, long-press enters selection mode. No overlay to exclude.
             attachLongPress(card, {
-              ignoreSelector: '.pt-footer',
               onPressStart: () => card.classList.add('sd-pressing'),
               onPressCancel: () => card.classList.remove('sd-pressing'),
               onLongPress: () => {
@@ -8328,8 +8350,7 @@ const p = await Notification.requestPermission();
                   const nowSelected = memSelection.toggle(id);
                   card.classList.toggle('sd-selected', nowSelected);
                 } else {
-                  const p = S.photos.find(x => String(x.id) === String(id));
-                  if (p) openImgViewer(p.url);
+                  openMemViewer(id);
                 }
               }
             });
@@ -8424,6 +8445,167 @@ const p = await Notification.requestPermission();
             }
           });
         }
+
+        /* ── Memories full-screen gallery viewer ─────────────────────
+           Reuses S.photos as the single source of truth (no duplicate
+           data model) and the existing favorite/delete/share functions
+           above — this only adds the presentation layer + navigation. */
+        let memViewerIndex = -1;
+
+        function memViewerList() { return S.photos || []; }
+
+        function openMemViewer(id) {
+          const list = memViewerList();
+          const idx = list.findIndex(p => String(p.id) === String(id));
+          if (idx === -1) return;
+          memViewerIndex = idx;
+          document.getElementById('memViewer').classList.add('open');
+          document.getElementById('memViewer').classList.remove('controls-hidden');
+          memViewerRender();
+        }
+
+        function closeMemViewer() {
+          document.getElementById('memViewer').classList.remove('open');
+          const v = document.getElementById('memViewerVideo');
+          if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
+          memViewerIndex = -1;
+        }
+
+        function memViewerCurrent() {
+          const list = memViewerList();
+          return memViewerIndex >= 0 && memViewerIndex < list.length ? list[memViewerIndex] : null;
+        }
+
+        function memViewerRender() {
+          const p = memViewerCurrent();
+          if (!p) { closeMemViewer(); return; }
+          const list = memViewerList();
+          const img = document.getElementById('memViewerImg');
+          const vid = document.getElementById('memViewerVideo');
+          if (p.type === 'video') {
+            img.style.display = 'none'; img.src = '';
+            vid.style.display = '';
+            if (vid.src !== p.url) { vid.src = p.url; }
+          } else {
+            vid.pause(); vid.style.display = 'none'; vid.removeAttribute('src'); vid.load();
+            img.style.display = '';
+            img.src = p.url;
+          }
+          document.getElementById('memViewerCounter').textContent = (memViewerIndex + 1) + ' / ' + list.length;
+          document.getElementById('memViewerPrevBtn').style.visibility = memViewerIndex > 0 ? 'visible' : 'hidden';
+          document.getElementById('memViewerNextBtn').style.visibility = memViewerIndex < list.length - 1 ? 'visible' : 'hidden';
+          const favIcon = document.getElementById('memViewerFavIcon');
+          favIcon.textContent = p.favorite ? '❤️' : '🤍';
+          document.getElementById('memViewerFavBtn').classList.toggle('active', !!p.favorite);
+        }
+
+        function memViewerPrev() { if (memViewerIndex > 0) { memViewerIndex--; memViewerRender(); } }
+        function memViewerNext() { const list = memViewerList(); if (memViewerIndex < list.length - 1) { memViewerIndex++; memViewerRender(); } }
+
+        function memViewerToggleFav() {
+          const p = memViewerCurrent();
+          if (!p) return;
+          toggleFavoritePhoto(p.id); // updates S.photos, re-renders grid, saves
+          memViewerRender();
+        }
+
+        function memViewerDeleteCurrent() {
+          const p = memViewerCurrent();
+          if (!p) return;
+          const id = p.id;
+          confirmDelete({
+            itemType: p.type === 'video' ? 'video' : 'photo',
+            message: `This ${p.type === 'video' ? 'video' : 'photo'} will be permanently removed from your shared memories.`,
+            onConfirm: async () => {
+              await deletePhotoStorage(p);
+              S.photos = S.photos.filter(x => String(x.id) !== String(id));
+              renderPhotos(); scheduleSave();
+              // Only close/advance after the delete actually succeeded —
+              // confirmDelete keeps the sheet open and shows an error if
+              // deletePhotoStorage() throws, so we never get here on failure.
+              const list = memViewerList();
+              if (!list.length) { closeMemViewer(); return; }
+              if (memViewerIndex >= list.length) memViewerIndex = list.length - 1;
+              memViewerRender();
+            }
+          });
+        }
+
+        async function memViewerShare() {
+          const p = memViewerCurrent();
+          if (!p) return;
+          try {
+            if (navigator.share) {
+              await navigator.share({ title: 'Our Memory', url: p.url });
+            } else if (navigator.clipboard) {
+              await navigator.clipboard.writeText(p.url);
+              toast('Link copied to clipboard 🔗');
+            } else {
+              toast('Sharing isn\'t supported on this browser');
+            }
+          } catch (e) { if (e.name !== 'AbortError') toast('Share failed'); }
+        }
+
+        function memViewerOpenMore() { document.getElementById('memMoreSheet').classList.add('show'); }
+        function memViewerCloseMore() { document.getElementById('memMoreSheet').classList.remove('show'); }
+
+        function memViewerDownload() {
+          const p = memViewerCurrent();
+          memViewerCloseMore();
+          if (!p) return;
+          const a = document.createElement('a');
+          a.href = p.url; a.download = p.name || ('memory.' + (p.type === 'video' ? 'mp4' : 'jpg'));
+          a.target = '_blank'; a.rel = 'noopener';
+          document.body.appendChild(a); a.click(); a.remove();
+        }
+
+        function memViewerShowDetails() {
+          const p = memViewerCurrent();
+          if (!p) return;
+          memViewerCloseMore();
+          const rows = [];
+          rows.push(['Date added', p.date ? fmtDate(p.date) : '—']);
+          rows.push(['Type', p.type === 'video' ? 'Video' : 'Photo']);
+          if (p.name) rows.push(['File name', esc(p.name)]);
+          document.getElementById('memDetailsBody').innerHTML = rows.map(([k, v]) =>
+            `<div class="mem-detail-row"><span>${k}</span><span>${v}</span></div>`).join('');
+          document.getElementById('memDetailsSheet').classList.add('show');
+        }
+        function memViewerCloseDetails() { document.getElementById('memDetailsSheet').classList.remove('show'); }
+
+        // Tap the photo itself to hide/show the top bar + bottom action bar
+        // (immersive mode) — but never when the tap lands on an actual button.
+        document.getElementById('memViewerStage').addEventListener('click', function (e) {
+          if (e.target.closest('.mem-viewer-nav')) return;
+          document.getElementById('memViewer').classList.toggle('controls-hidden');
+        });
+
+        // Swipe left/right between memories, isolated from vertical scroll.
+        (function () {
+          const stage = document.getElementById('memViewerStage');
+          let sx = 0, sy = 0, tracking = false;
+          stage.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('.mem-viewer-nav')) return;
+            sx = e.clientX; sy = e.clientY; tracking = true;
+          });
+          stage.addEventListener('pointerup', (e) => {
+            if (!tracking) return; tracking = false;
+            const dx = e.clientX - sx, dy = e.clientY - sy;
+            if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+              if (dx < 0) memViewerNext(); else memViewerPrev();
+            }
+          });
+          stage.addEventListener('pointercancel', () => { tracking = false; });
+        })();
+
+        // Desktop keyboard navigation.
+        document.addEventListener('keydown', (e) => {
+          if (!document.getElementById('memViewer').classList.contains('open')) return;
+          if (e.key === 'ArrowLeft') memViewerPrev();
+          else if (e.key === 'ArrowRight') memViewerNext();
+          else if (e.key === 'Escape') closeMemViewer();
+        });
+
         function renderMemoryAnalytics() {
           const insEl = document.getElementById('memInsightCard'), monEl = document.getElementById('memMonthCard');
           if (!insEl && !monEl) return;
