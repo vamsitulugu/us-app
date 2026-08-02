@@ -720,6 +720,11 @@ function reanchorAfterImages() {
   }
   function endLongPress() { clearTimeout(lpTimer); }
   function openMenu(id, ev) {
+  // If selection mode is already active, long-press / right-click on
+  // another message just adds it to the selection instead of popping
+  // the action menu again — this is what makes multi-select feel
+  // smooth (select first message, then long-press or tap the rest).
+  if (selectMode) { toggleSelect(id); return; }
   const m = msgs.find(x => x.id === id); if (!m) return;
   document.getElementById('chatMsgMenu')?.remove();
   const isDesktop = window.innerWidth > 700 && ev && ev.clientX;
@@ -740,6 +745,7 @@ function reanchorAfterImages() {
 function menuItemsHtml(m, id) {
   const mine = isMine(m);
   return `
+    <div class="ctx-item" onclick="Chat.enterSelectMode('${id}')">☑️ Select</div>
     <div class="ctx-item" onclick="Chat.reactTo('${id}','❤️')">❤️ React</div>
     <div class="ctx-item" onclick="Chat.replyTo('${id}')">↩️ Reply</div>
     <div class="ctx-item" onclick="Chat.forwardMsg('${id}')">↪️ Forward</div>
@@ -748,8 +754,8 @@ function menuItemsHtml(m, id) {
     <div class="ctx-item" onclick="Chat.toggleStar('${id}')">⭐ Star</div>
     ${mine && m.type === 'text' ? `<div class="ctx-item" onclick="Chat.editMsg('${id}')">✏️ Edit</div>` : ''}
     <div class="ctx-item" onclick="Chat.infoMsg('${id}')">ℹ️ Info</div>
-    ${mine ? `<div class="ctx-item danger" onclick="Chat.deleteMsg('${id}','everyone')">🗑️ Delete for everyone</div>` : ''}
-    <div class="ctx-item danger" onclick="Chat.deleteMsg('${id}','me')">🗑️ Delete for me</div>`;
+    ${mine ? `<div class="ctx-item danger" onclick="Chat.confirmDeleteMsg('${id}','everyone')">🗑️ Delete for everyone</div>` : ''}
+    <div class="ctx-item danger" onclick="Chat.confirmDeleteMsg('${id}','me')">🗑️ Delete for me</div>`;
 }
   async function reactTo(id, emoji) {
     document.getElementById('chatMsgMenu')?.remove();
@@ -834,14 +840,33 @@ function menuItemsHtml(m, id) {
     if (!starred.length) { toast('No starred messages'); return; }
     toast(starred.length + ' starred message(s)');
   }
+  const deletingIds = new Set(); // guards against rapid double-tap firing two DELETE requests for the same message
   async function deleteMsg(id, mode) {
     document.getElementById('chatMsgMenu')?.remove();
+    if (deletingIds.has(id)) return; // already in flight
+    deletingIds.add(id);
     try {
       await api('DELETE', '/api/chat/' + id, { coupleId: coupleId(), senderRole: myRole(), mode });
       if (mode === 'everyone') { const idx = msgs.findIndex(x => x.id == id); if (idx > -1) { msgs[idx].deleted = true; } }
       else { const idx = msgs.findIndex(x => x.id == id); if (idx > -1) { msgs[idx].deleted_for = (msgs[idx].deleted_for || '') + ',' + myRole(); } }
       render();
-    } catch (e) { toast('Delete failed'); }
+    } finally { deletingIds.delete(id); }
+  }
+  // Menu-driven single delete — shows the shared confirm sheet first, wording
+  // clearly stating the consequence ("for me" vs "for everyone" are genuinely
+  // different outcomes here, so both get their own explicit message).
+  function confirmDeleteMsg(id, mode) {
+    document.getElementById('chatMsgMenu')?.remove();
+    const everyone = mode === 'everyone';
+    confirmDelete({
+      title: everyone ? 'Delete for everyone?' : 'Delete for me?',
+      itemType: 'message',
+      message: everyone
+        ? 'This message will be permanently removed for both of you.'
+        : 'This message will be removed from your chat only — your partner will still see it.',
+      destructiveLabel: everyone ? 'Delete for Everyone' : 'Delete for Me',
+      onConfirm: () => deleteMsg(id, mode)
+    });
   }
 
   // ─── SELECT MODE ─────────────────────────────────────
@@ -857,9 +882,31 @@ function menuItemsHtml(m, id) {
   }
   function updateSelectCount() { document.getElementById('chatSelectCount').textContent = selectedIds.size + ' selected'; }
   function exitSelectMode() { selectMode = false; selectedIds.clear(); document.getElementById('chatSelectToolbar').classList.remove('show'); }
+  // Bulk delete always deletes "for me" — safe regardless of whether the
+  // selection mixes your own and your partner's messages (deleting a
+  // partner's message "for everyone" isn't something you're allowed to do,
+  // and the backend would reject it per-message anyway). Reports partial
+  // failures instead of silently claiming everything was removed.
   async function deleteSelected() {
-    for (const id of selectedIds) await deleteMsg(id, 'me');
-    exitSelectMode();
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    confirmDelete({
+      title: `Delete ${ids.length} selected message${ids.length > 1 ? 's' : ''}?`,
+      count: ids.length,
+      itemType: 'message',
+      message: 'These messages will be removed from your chat only — your partner will still see their copies.',
+      onConfirm: async () => {
+        const trashBtn = document.getElementById('chatSelectTrashBtn');
+        if (trashBtn) trashBtn.disabled = true;
+        const { succeeded, failed } = await runBulkDelete(ids, (id) => deleteMsg(id, 'me'));
+        if (trashBtn) trashBtn.disabled = false;
+        selectedIds = new Set(failed.map(f => f.id)); // keep failed ones selected/visible
+        if (!selectedIds.size) exitSelectMode();
+        else updateSelectCount();
+        if (failed.length) toast(`${succeeded.length} deleted. ${failed.length} couldn't be deleted.`);
+        else toast(succeeded.length > 1 ? `${succeeded.length} messages deleted` : 'Deleted');
+      }
+    });
   }
 
   // ─── SEARCH ──────────────────────────────────────────
@@ -1268,10 +1315,18 @@ function menuItemsHtml(m, id) {
   }
   document.addEventListener('DOMContentLoaded', () => setTimeout(init, 500));
 
+  function isSelecting() { return selectMode; }
+  function closeMsgMenuIfOpen() {
+    const el = document.getElementById('chatMsgMenu');
+    if (el) { el.remove(); return true; }
+    return false;
+  }
+
   return {
     onChatScroll, scrollToBottom, sendText, onTypingInput, onImagePick, toggleRecord,
     onBubbleClick, openMenu, reactTo, replyTo, closeBanner, togglePin, toggleStar,
-    openStarred, deleteMsg, enterSelectMode, deleteSelected, exitSelectMode,
+    openStarred, deleteMsg, confirmDeleteMsg, enterSelectMode, deleteSelected, exitSelectMode,
+    isSelecting, closeMsgMenuIfOpen,
     openSearch, closeSearch, runSearch, scrollToMsg, sendGif, sendEmoji, sendEmojiTap,
     openEmojiPanel, switchEmojiTab, filterEmoji, openGifPanel, searchGifs, markRead, init, openSheet, closeSheet,
     forwardMsg, copyMsg, editMsg, cancelEdit, infoMsg, cancelRecording, startLongPress, endLongPress,

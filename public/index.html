@@ -5248,7 +5248,7 @@ select option { background: #0D0D0D; color: #fff; }
     <div class="chat-select-toolbar" id="chatSelectToolbar">
       <button onclick="Chat.exitSelectMode()">✕</button>
       <div class="cnt" id="chatSelectCount">1 selected</div>
-      <button onclick="Chat.deleteSelected()">🗑️ Delete</button>
+      <button id="chatSelectTrashBtn" onclick="Chat.deleteSelected()">🗑️ Delete</button>
     </div>
 
     <div class="chat-header">
@@ -7765,6 +7765,9 @@ function setJustPairedAt(ts) {
               if (typeof calSelectMode !== 'undefined' && calSelectMode) { calExitSelectMode(); return; }
               // 0.56) Bucket List selection mode active — exit selection, don't navigate.
               if (typeof bucketSelectMode !== 'undefined' && bucketSelectMode) { bucketExitSelectMode(); return; }
+              // 0.57) Chat's own message action-menu / selection mode take priority.
+              if (window.Chat && typeof window.Chat.closeMsgMenuIfOpen === 'function' && window.Chat.closeMsgMenuIfOpen()) { return; }
+              if (window.Chat && typeof window.Chat.isSelecting === 'function' && window.Chat.isSelecting()) { window.Chat.exitSelectMode(); return; }
               // 0.6) Dream Goals lives in its own same-origin iframe with its own
               //      safe-delete confirm sheet + selection mode — check those
               //      before falling through to page navigation.
