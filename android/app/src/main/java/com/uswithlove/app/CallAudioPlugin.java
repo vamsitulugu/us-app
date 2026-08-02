@@ -101,6 +101,15 @@ public class CallAudioPlugin extends Plugin {
     boolean speakerOn = call.getBoolean("speakerOn", false);
     AudioManager am = audioManager();
     if (am != null) {
+      // Clear any stale Bluetooth SCO route left over from a previous call
+      // and take explicit focus on the voice-call stream BEFORE entering
+      // communication mode — without this, some OEM audio HALs keep
+      // routing to whatever output was last active (often the speaker,
+      // since setRinging() forces it on for the ringback) even after
+      // setSpeakerphoneOn(false) is called.
+      am.stopBluetoothSco();
+      am.setBluetoothScoOn(false);
+      am.requestAudioFocus(null, AudioManager.STREAM_VOICE_CALL, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
       am.setMode(AudioManager.MODE_IN_COMMUNICATION);
       am.setSpeakerphoneOn(speakerOn);
     }
@@ -113,6 +122,7 @@ public class CallAudioPlugin extends Plugin {
     boolean speakerOn = call.getBoolean("speakerOn", false);
     AudioManager am = audioManager();
     if (am != null) {
+      if (!speakerOn) { am.stopBluetoothSco(); am.setBluetoothScoOn(false); }
       am.setSpeakerphoneOn(speakerOn);
     }
     call.resolve();

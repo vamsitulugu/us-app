@@ -184,6 +184,7 @@
         <div class="wt-secondary-row">
           <button class="wt-sec-btn" id="btnSync" title="Sync now"><i data-lucide="refresh-cw"></i><label>Sync</label></button>
           <button class="wt-sec-btn" id="btnChat" title="Message"><i data-lucide="message-circle"></i><label>Message</label></button>
+          <button class="wt-sec-btn" id="btnMovieChatLog" title="Movie Chat"><i data-lucide="list"></i><label>Log</label></button>
           <button class="wt-sec-btn" id="btnVoiceCall" title="Voice call"><i data-lucide="phone"></i><label>Voice</label></button>
           <button class="wt-sec-btn" id="btnVideoCall" title="Video call"><i data-lucide="video"></i><label>Video</label></button>
           <button class="wt-sec-btn wt-sec-btn-end" id="btnEndMovie" title="End movie"><i data-lucide="square"></i><label>End</label></button>
@@ -224,6 +225,28 @@
         <button class="wt-btn wt-btn-ghost" id="btnCancelEnd">CANCEL</button>
         <button class="wt-btn wt-btn-danger" id="btnConfirmEnd">END MOVIE</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ══════ PANEL: Movie Chat log (Task 4) — this session's messages ══════ -->
+  <div class="wt-modal-backdrop" id="movieChatLogBackdrop" hidden>
+    <div class="wt-modal wt-sheet-tall">
+      <div class="wt-sheet-header">
+        <h2>Movie Chat</h2>
+        <button class="wt-sheet-close" id="btnMovieChatLogClose" aria-label="Close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="wt-chatlog-list" id="movieChatLogList"></div>
+    </div>
+  </div>
+
+  <!-- ══════ PANEL: Watch History (Task 5) ══════ -->
+  <div class="wt-modal-backdrop" id="historyBackdrop" hidden>
+    <div class="wt-modal wt-sheet-tall">
+      <div class="wt-sheet-header">
+        <h2>Watch History</h2>
+        <button class="wt-sheet-close" id="btnHistoryClose" aria-label="Close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="wt-history-list" id="historyList"></div>
     </div>
   </div>
 

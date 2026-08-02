@@ -49,6 +49,44 @@
     if (!r.ok) throw new Error((data && data.error) || 'Request failed');
     return data;
   }
+
+  // ═══════════════════════════════════════════════════════
+  // Clock sync — see root-cause note on serverNow() below. offsetMs is
+  // (serverClock - myDeviceClock); add it to Date.now() to get an estimate
+  // of the CURRENT shared server time, which both devices agree on
+  // (unlike each device's own Date.now(), which can differ by 1-2s+).
+  // ═══════════════════════════════════════════════════════
+  let clockOffsetMs = 0;
+  let clockSynced = false;
+  async function syncClockOnce() {
+    const t0 = Date.now();
+    let r;
+    try { r = await fetch(API + '/api/movie/time'); } catch (e) { return null; }
+    const t1 = Date.now();
+    const rtt = t1 - t0;
+    let body;
+    try { body = await r.json(); } catch (e) { return null; }
+    if (!body || typeof body.now !== 'number') return null;
+    // Best estimate of "server time at t1" assumes the request and response
+    // legs took roughly equal time: serverAtT1 ≈ body.now + rtt/2.
+    const estOffset = (body.now + rtt / 2) - t1;
+    return { offset: estOffset, rtt };
+  }
+  // Take several samples and keep the one with the lowest round-trip time
+  // (least network jitter = most accurate offset estimate), a standard
+  // NTP-style approach — cheap enough to redo before every countdown.
+  async function syncClock(samples) {
+    let best = null;
+    for (let i = 0; i < (samples || 3); i++) {
+      const s = await syncClockOnce();
+      if (s && (!best || s.rtt < best.rtt)) best = s;
+    }
+    if (best) { clockOffsetMs = best.offset; clockSynced = true; }
+    return clockSynced;
+  }
+  function serverNow() { return Date.now() + clockOffsetMs; }
+  // Sync as early as possible so it's ready before the first countdown.
+  syncClock(3);
   // Raw chat backend — reused as-is, no second messaging system created.
   async function chatApi(method, path, body) {
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
@@ -121,6 +159,7 @@
     room: null,
     localFile: null,
     localObjectUrl: null,
+    pendingResumeSec: null,
     myDuration: null,
     myTitle: null,
     lastActionSeq: 0,
@@ -391,15 +430,22 @@
     showState('countdown');
     const startAt = new Date(startAtIso).getTime();
     clearInterval(state.countdownTimer);
-    state.countdownTimer = setInterval(() => {
-      const secLeft = Math.ceil((startAt - Date.now()) / 1000);
+    // Re-sync right before the countdown that actually matters — accuracy
+    // here is what determines whether playback starts in lockstep.
+    syncClock(3).then(() => tickCountdown());
+    function tickCountdown() {
+      // secLeft is derived from serverNow(), the ONE shared clock both
+      // devices agree on — not from each device's own Date.now(), which
+      // is the root cause this replaces (see clock-sync note above).
+      const secLeft = Math.ceil((startAt - serverNow()) / 1000);
       if (secLeft <= 0) {
         clearInterval(state.countdownTimer);
         setTimeout(() => enterWatching(state.room), 150);
       } else {
         $('countdownNum').textContent = String(Math.min(3, secLeft));
       }
-    }, 200);
+    }
+    state.countdownTimer = setInterval(tickCountdown, 200);
   }
 
   // ═══════════════════════════════════════════════════════
@@ -455,10 +501,19 @@
     // Late-start correction: if this client's clock lands here later
     // than another (backgrounded tab, slow event delivery), compute how
     // far into playback we already are rather than starting from 0.
-    const elapsedSinceStart = room.scheduled_start_at ? (Date.now() - new Date(room.scheduled_start_at).getTime()) / 1000 : 0;
+    const elapsedSinceStart = room.scheduled_start_at ? (serverNow() - new Date(room.scheduled_start_at).getTime()) / 1000 : 0;
     const target = Math.max(0, elapsedSinceStart) + expectedPosition(room);
     els.video.currentTime = target;
     els.video.play().then(() => console.info('[WT] play() resolved')).catch((e) => console.warn('[WT] play() rejected:', e && e.message));
+    if (state.pendingResumeSec != null && state.localObjectUrl) {
+      // Task 5 "Continue Watching": local-file architecture means we can't
+      // silently resume from a saved file handle across a restart — the
+      // user just reselected the file via the History panel, so honor
+      // their saved position now, once, and never again for this session.
+      els.video.currentTime = state.pendingResumeSec;
+      toast('Resumed from your last position');
+      state.pendingResumeSec = null;
+    }
     if (!room.playing) {
       // Countdown just finished — this is the moment playback truly begins.
       sendAction(true, target);
@@ -468,12 +523,21 @@
     setupControlsAutoHide();
     startChatPolling();
     updatePlayPauseIcon();
+    // Load this session's prior movie-chat messages (e.g. reconnect
+    // mid-session) so the log panel isn't empty until a NEW message
+    // arrives.
+    if (room.scheduled_start_at) {
+      movieChatLog.length = 0;
+      api('GET', `/${COUPLE_ID}/chat?sessionKey=` + encodeURIComponent(room.scheduled_start_at) + '&limit=200')
+        .then(rows => { (rows || []).forEach(r => movieChatLog.push({ role: r.sender_role, text: r.text, posSec: r.playback_position_sec, createdAtIso: r.created_at })); renderMovieChatLog(); })
+        .catch(() => {});
+    }
   }
 
   function expectedPosition(room) {
     if (!room) return 0;
     if (!room.playing) return room.position_sec || 0;
-    const elapsed = (Date.now() - new Date(room.updated_at).getTime()) / 1000;
+    const elapsed = (serverNow() - new Date(room.updated_at).getTime()) / 1000;
     return (room.position_sec || 0) + Math.max(0, elapsed);
   }
 
@@ -543,7 +607,15 @@
 
   els.video.addEventListener('loadedmetadata', () => console.info('[WT] VIDEO loadedmetadata, duration=', els.video.duration));
   els.video.addEventListener('canplay', () => console.info('[WT] VIDEO canplay'));
-  els.video.addEventListener('error', () => console.warn('[WT] VIDEO error', els.video.error));
+  els.video.addEventListener('error', () => {
+    console.warn('[WT] VIDEO error', els.video.error);
+    // Previously silent — the screen just sat there with no video and no
+    // explanation. Surface it with the same Error/retry pattern already
+    // used when localObjectUrl is missing entirely.
+    showBanner('This movie file couldn\u2019t be played. Please reselect it.', [
+      { label: 'Choose Movie', onClick: () => { showState('setup'); showSetupSub('empty'); hideBanner(); } }
+    ]);
+  });
   els.video.addEventListener('timeupdate', () => {
     if (!els.video.duration || state.scrubbing) return;
     timelineEl.value = (els.video.currentTime / els.video.duration) * 1000;
@@ -553,7 +625,7 @@
   });
   els.video.addEventListener('ended', async () => {
     try {
-      state.room = await api('POST', `/${COUPLE_ID}/end`, { role: ROLE, movieTitle: state.myTitle, durationSec: state.myDuration, completedPct: 100 });
+      state.room = await api('POST', `/${COUPLE_ID}/end`, { role: ROLE, movieTitle: state.myTitle, durationSec: state.myDuration, completedPct: 100, sessionKey: state.room && state.room.scheduled_start_at, positionSec: Math.round(els.video.currentTime || 0) });
     } catch (e) {}
     toast('Movie finished ❤️');
   });
@@ -1057,13 +1129,18 @@
   }
   async function sendMovieChat() {
     const text = composerInput.value.trim();
-    if (!text || !COUPLE_ID) return;
+    if (!text || !COUPLE_ID || !state.room) return;
+    const sessionKey = state.room.scheduled_start_at;
+    if (!sessionKey) return; // no active watch session to attach this message to
     composerInput.value = '';
+    const posSec = Math.round(els.video.currentTime || 0);
     showChatBubble(ctx && ctx.myName ? ctx.myName : 'You', text, true);
+    addMovieChatToLog(ROLE, text, posSec, new Date().toISOString());
     try {
-      await chatApi('POST', '/api/chat', {
-        coupleId: COUPLE_ID, clientId: 'wt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-        senderRole: ROLE, type: 'text', text
+      // Dedicated movie_chat_messages table/endpoint — deliberately separate
+      // from /api/chat (normal Chat) so these never mix (Task 4).
+      await api('POST', `/${COUPLE_ID}/chat`, {
+        role: ROLE, sessionKey, movieTitle: state.myTitle || null, text, positionSec: posSec
       });
     } catch (e) { toast('Message failed to send.'); }
   }
@@ -1132,19 +1209,130 @@
     clearInterval(state.chatPollTimer);
     state.lastChatTs = new Date().toISOString(); // only show messages sent after entering watch mode
     state.chatPollTimer = setInterval(async () => {
-      if (document.hidden || !COUPLE_ID) return;
+      if (document.hidden || !COUPLE_ID || !state.room || !state.room.scheduled_start_at) return;
       try {
-        const q = state.lastChatTs ? '?after=' + encodeURIComponent(state.lastChatTs) : '?limit=5';
-        const rows = await chatApi('GET', '/api/chat/' + COUPLE_ID + q);
+        const sessionKey = state.room.scheduled_start_at;
+        const q = '?sessionKey=' + encodeURIComponent(sessionKey) + '&after=' + encodeURIComponent(state.lastChatTs);
+        const rows = await api('GET', `/${COUPLE_ID}/chat` + q);
         if (rows && rows.length) {
           rows.forEach(r => {
             state.lastChatTs = r.created_at;
-            if (r.sender_role !== ROLE && r.type === 'text') showChatBubble(ctx && ctx.partnerName ? ctx.partnerName : 'Partner', r.text, false);
+            if (r.sender_role !== ROLE) {
+              showChatBubble(ctx && ctx.partnerName ? ctx.partnerName : 'Partner', r.text, false);
+              addMovieChatToLog(r.sender_role, r.text, r.playback_position_sec, r.created_at);
+            }
           });
         }
       } catch (e) {}
     }, 2500);
   }
+
+  // ── Movie Chat history panel (Task 4) — compact bottom sheet showing
+  // this session's message log with sender/text/timestamp/movie-time,
+  // separate from both the floating subtitle toasts above and from
+  // normal Chat. Reuses the existing .wt-modal-backdrop/.wt-modal sheet
+  // component already used by the invite/end modals — no new visual
+  // language introduced.
+  const movieChatLog = [];
+  function addMovieChatToLog(role, text, posSec, createdAtIso) {
+    movieChatLog.push({ role, text, posSec, createdAtIso });
+    if (!$('movieChatLogBackdrop').hidden) renderMovieChatLog();
+  }
+  function renderMovieChatLog() {
+    const list = $('movieChatLogList');
+    if (!list) return;
+    if (!movieChatLog.length) {
+      list.innerHTML = '<div class="wt-chatlog-empty">No messages yet in this session.</div>';
+      return;
+    }
+    list.innerHTML = movieChatLog.map(m => {
+      const name = m.role === ROLE ? (ctx && ctx.myName ? ctx.myName : 'You') : (ctx && ctx.partnerName ? ctx.partnerName : 'Partner');
+      const sentAt = m.createdAtIso ? new Date(m.createdAtIso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+      const movieTime = (typeof m.posSec === 'number') ? fmtTime(m.posSec) : null;
+      return `<div class="wt-chatlog-row ${m.role === ROLE ? 'mine' : ''}">
+        <div class="wt-chatlog-name">${escapeHtml(name)}</div>
+        <div class="wt-chatlog-text">${escapeHtml(m.text)}</div>
+        <div class="wt-chatlog-meta">${movieTime ? 'Movie time: ' + movieTime + ' · ' : ''}Sent: ${sentAt}</div>
+      </div>`;
+    }).join('');
+    list.scrollTop = list.scrollHeight;
+  }
+  function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+  const btnMovieChatLog = $('btnMovieChatLog');
+  if (btnMovieChatLog) {
+    btnMovieChatLog.onclick = () => { $('movieChatLogBackdrop').hidden = false; renderMovieChatLog(); };
+  }
+  const btnMovieChatLogClose = $('btnMovieChatLogClose');
+  if (btnMovieChatLogClose) btnMovieChatLogClose.onclick = () => { $('movieChatLogBackdrop').hidden = true; };
+
+  // ═══════════════════════════════════════════════════════
+  // Watch History panel (Task 5) — the header clock/history icon
+  // (wtHistoryBtn) previously did nothing; wired up here.
+  // ═══════════════════════════════════════════════════════
+  function groupHistoryLabel(watchedAtIso) {
+    if (!watchedAtIso) return 'Earlier';
+    const d = new Date(watchedAtIso), now = new Date();
+    const startOfDay = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+    const diffDays = Math.round((startOfDay(now) - startOfDay(d)) / 86400000);
+    if (diffDays <= 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    return 'Earlier';
+  }
+  async function renderHistoryPanel() {
+    const list = $('historyList');
+    if (!list) return;
+    list.innerHTML = '<div class="wt-history-empty">Loading…</div>';
+    let rows;
+    try { rows = await api('GET', `/${COUPLE_ID}/history`); }
+    catch (e) { list.innerHTML = '<div class="wt-history-empty">Could not load history.</div>'; return; }
+    if (!rows || !rows.length) {
+      list.innerHTML = '<div class="wt-history-empty">No movies watched together yet.</div>';
+      return;
+    }
+    let html = '';
+    let lastGroup = null;
+    rows.forEach(r => {
+      const group = groupHistoryLabel(r.watched_at);
+      if (group !== lastGroup) { html += `<div class="wt-history-group-label">${escapeHtml(group)}</div>`; lastGroup = group; }
+      const when = r.watched_at ? new Date(r.watched_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+      const pct = r.completed_pct || 0;
+      const isComplete = pct >= 95;
+      const durationLabel = r.duration_sec ? fmtTime(r.duration_sec) : null;
+      const watchedLabel = (r.last_position_sec != null && durationLabel) ? `${fmtTime(r.last_position_sec)} / ${durationLabel}` : (durationLabel || null);
+      // Continue Watching only makes sense for an unfinished movie where
+      // we actually have a saved position AND the same session's local
+      // file can plausibly be reselected — never pretend the browser
+      // still has a handle to the original file.
+      const canContinue = !isComplete && r.last_position_sec != null && r.last_position_sec > 5;
+      html += `<div class="wt-history-row">
+        <div class="wt-history-row-top">
+          <div class="wt-history-title">${escapeHtml(r.movie_title || 'Untitled movie')}</div>
+          <div class="wt-history-time">${escapeHtml(when)}</div>
+        </div>
+        <div class="wt-history-meta">
+          ${r.watched_together ? '<span class="wt-history-badge">👥 Watched together</span>' : ''}
+          <span class="wt-history-badge ${isComplete ? 'is-complete' : 'is-partial'}">${isComplete ? '✓ Completed' : pct + '% watched'}</span>
+          ${watchedLabel ? `<span class="wt-history-badge">${escapeHtml(watchedLabel)}</span>` : ''}
+          ${r.chat_count ? `<span class="wt-history-badge">💬 ${r.chat_count}</span>` : ''}
+        </div>
+        ${canContinue ? `<button class="wt-history-continue" data-resume="${r.last_position_sec}" data-title="${escapeHtml(r.movie_title || '')}">Continue Watching</button>` : ''}
+      </div>`;
+    });
+    list.innerHTML = html;
+    list.querySelectorAll('.wt-history-continue').forEach(btn => {
+      btn.onclick = () => {
+        state.pendingResumeSec = Number(btn.getAttribute('data-resume')) || 0;
+        const title = btn.getAttribute('data-title');
+        $('historyBackdrop').hidden = true;
+        showState('setup'); showSetupSub('empty');
+        toast(title ? `Select "${title}" again to resume` : 'Select the same movie again to resume');
+      };
+    });
+  }
+  const wtHistoryBtn = $('wtHistoryBtn');
+  if (wtHistoryBtn) wtHistoryBtn.onclick = () => { $('historyBackdrop').hidden = false; renderHistoryPanel(); };
+  const btnHistoryClose = $('btnHistoryClose');
+  if (btnHistoryClose) btnHistoryClose.onclick = () => { $('historyBackdrop').hidden = true; };
 
   // ═══════════════════════════════════════════════════════
   // SECTION 14 — End movie (with confirmation)
@@ -1167,7 +1355,9 @@
     // then the movie session — never leave WebRTC running after exit.
     clearWatchCallSession();
     try {
-      const room = await api('POST', `/${COUPLE_ID}/end`, { role: ROLE, movieTitle: state.myTitle, durationSec: state.myDuration });
+      const posSec = Math.round(els.video.currentTime || 0);
+      const completedPct = (state.myDuration && posSec) ? Math.min(100, Math.round((posSec / state.myDuration) * 100)) : 0;
+      const room = await api('POST', `/${COUPLE_ID}/end`, { role: ROLE, movieTitle: state.myTitle, durationSec: state.myDuration, completedPct, sessionKey: state.room && state.room.scheduled_start_at, positionSec: posSec });
       broadcastRoom(room);
       state.room = room;
     } catch (e) {}
@@ -1182,6 +1372,8 @@
     try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch (e) {}
 
     state.myTitle = null; state.myDuration = null; state.localFile = null;
+    movieChatLog.length = 0;
+    if ($('movieChatLogBackdrop')) $('movieChatLogBackdrop').hidden = true;
     showState('setup'); showSetupSub('empty');
   }
 

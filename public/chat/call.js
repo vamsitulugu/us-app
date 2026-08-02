@@ -1414,7 +1414,10 @@ async function initSignalCursor() {
     callStarting = true;
     callContext = 'watch_together';
     callType = type; isCaller = true; callLogged = true; // suppress Chat call_log rows for watch calls
-    isMuted = false; isCamOff = false; isSpeakerOn = false;
+    // Watch Together default = loudspeaker (movie audio + partner audio both
+    // need to be comfortably audible at once) — unlike a normal chat call,
+    // which defaults to the earpiece. See setConnectedAudio()/CallAudio plugin.
+    isMuted = false; isCamOff = false; isSpeakerOn = true;
     watchMediaSessionId = watchSessionId + ':' + Date.now() + ':' + Math.random().toString(36).slice(2, 7);
     watchMediaStartedAt = null;
     const myToken = ++callToken;
@@ -1455,7 +1458,8 @@ async function initSignalCursor() {
     callStarting = true;
     callContext = 'watch_together';
     callType = m.callType || 'voice'; isCaller = false; callLogged = true;
-    isMuted = false; isCamOff = false; isSpeakerOn = false;
+    // Same Watch Together default-to-loudspeaker rule as startWatchCall().
+    isMuted = false; isCamOff = false; isSpeakerOn = true;
     watchMediaSessionId = m.mediaSessionId || null;
     watchMediaStartedAt = null;
     const myToken = ++callToken;

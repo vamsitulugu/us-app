@@ -524,6 +524,34 @@ html, body {
 }
 .wt-banner-actions button.secondary { background: rgba(255,255,255,0.08); color: #fff; }
 
+/* ═══ Movie Chat log + Watch History sheets (Task 4 / Task 5) ═══
+   Reuse .wt-modal exactly — just taller, scrollable, with a header row. */
+.wt-sheet-tall { max-height: 78vh; display: flex; flex-direction: column; text-align: left; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+.wt-sheet-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.wt-sheet-header h2 { margin: 0; font-size: 17px; letter-spacing: 0.03em; }
+.wt-sheet-close { width: 32px; height: 32px; border-radius: 50%; border: none; background: rgba(255,255,255,0.08); color: #fff; display: flex; align-items: center; justify-content: center; }
+
+.wt-chatlog-list { overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 2px; }
+.wt-chatlog-empty { color: #9a9a9a; font-size: 13px; text-align: center; padding: 30px 0; }
+.wt-chatlog-row { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 10px 12px; }
+.wt-chatlog-row.mine { background: rgba(255,59,92,0.08); border-color: rgba(255,59,92,0.25); }
+.wt-chatlog-name { font-size: 12px; font-weight: 700; color: var(--accent, #ff3b5c); margin-bottom: 2px; }
+.wt-chatlog-text { font-size: 14px; color: #fff; margin-bottom: 4px; word-break: break-word; }
+.wt-chatlog-meta { font-size: 11px; color: #9a9a9a; }
+
+.wt-history-list { overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+.wt-history-group-label { font-size: 12px; font-weight: 700; color: #9a9a9a; text-transform: uppercase; letter-spacing: 0.06em; margin: 4px 0 -4px; }
+.wt-history-row { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.wt-history-row-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.wt-history-title { font-weight: 700; font-size: 14px; color: #fff; }
+.wt-history-time { font-size: 11px; color: #9a9a9a; white-space: nowrap; }
+.wt-history-meta { font-size: 12px; color: #bbb; display: flex; flex-wrap: wrap; gap: 6px 10px; }
+.wt-history-badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: rgba(255,255,255,0.08); color: #ddd; }
+.wt-history-badge.is-complete { background: rgba(52,211,153,0.15); color: #34d399; }
+.wt-history-badge.is-partial { background: rgba(255,180,60,0.15); color: #ffb43c; }
+.wt-history-continue { align-self: flex-start; margin-top: 2px; min-height: 34px; padding: 0 14px; border-radius: 10px; border: none; background: var(--accent, #ff3b5c); color: #fff; font-size: 12px; font-weight: 700; }
+.wt-history-empty { color: #9a9a9a; font-size: 13px; text-align: center; padding: 40px 0; }
+
 /* ═══ Landscape / fullscreen tuning ═══ */
 @media (orientation: landscape) {
   .wt-center-controls { gap: 40px; }

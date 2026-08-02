@@ -21,6 +21,12 @@ function computeMatch(row) {
   return Math.abs(row.user1_duration_sec - row.user2_duration_sec) <= DURATION_TOLERANCE_SEC;
 }
 
+// GET /api/movie/time — authoritative server clock, used by movie.js to
+// compute each device's clock offset so the Start Together countdown and
+// playback-start timestamp are measured against ONE shared clock instead
+// of each device's own (frequently skewed by 1-2s) system clock.
+router.get('/time', (req, res) => { res.json({ now: Date.now() }); });
+
 // GET /api/movie/:coupleId — fetch current room (used on load + reconnect)
 router.get('/:coupleId', async (req, res) => {
   const { data, error } = await supabase
@@ -187,17 +193,51 @@ router.patch('/:coupleId/state', async (req, res) => {
   return res.json(data);
 });
 
+// ── Movie Chat (Task 4) — deliberately a SEPARATE table/endpoint from
+// /api/chat so these messages can never mix with the normal Chat page. ──
+
+// POST /api/movie/:coupleId/chat — send a movie-session message.
+// body: { role, sessionKey, movieTitle, text, positionSec }
+router.post('/:coupleId/chat', async (req, res) => {
+  const { coupleId } = req.params;
+  const { role, sessionKey, movieTitle, text, positionSec } = req.body;
+  if (!role || !sessionKey || !text) return res.status(400).json({ error: 'Missing role/sessionKey/text' });
+  const { data, error } = await supabase.from('movie_chat_messages').insert({
+    couple_id: coupleId, session_key: sessionKey, movie_title: movieTitle || null,
+    sender_role: role, text, playback_position_sec: positionSec ?? null
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json(data);
+});
+
+// GET /api/movie/:coupleId/chat?sessionKey=...&after=ISO — messages for
+// ONE watch session (never returns messages from other sessions or from
+// normal Chat).
+router.get('/:coupleId/chat', async (req, res) => {
+  const { coupleId } = req.params;
+  const { sessionKey, after, limit } = req.query;
+  if (!sessionKey) return res.status(400).json({ error: 'Missing sessionKey' });
+  let q = supabase.from('movie_chat_messages').select('*')
+    .eq('couple_id', coupleId).eq('session_key', sessionKey)
+    .order('created_at', { ascending: true });
+  q = after ? q.gt('created_at', after) : q.limit(Number(limit) || 50);
+  const { data, error } = await q;
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json(data || []);
+});
+
 // POST /api/movie/:coupleId/end — end session (movie finished, or a
 // partner chose "End Session"). Resets to idle so the room can be reused.
 router.post('/:coupleId/end', async (req, res) => {
   const { coupleId } = req.params;
-  const { role, movieTitle, durationSec, completedPct } = req.body;
+  const { role, movieTitle, durationSec, completedPct, sessionKey, positionSec } = req.body;
 
   if (movieTitle) {
     try {
       await supabase.from('watch_history').insert({
         couple_id: coupleId, movie_title: movieTitle,
-        duration_sec: durationSec || null, completed_pct: completedPct || 0
+        duration_sec: durationSec || null, completed_pct: completedPct || 0,
+        session_key: sessionKey || null, last_position_sec: positionSec ?? null
       });
     } catch (_) {}
   }
@@ -223,7 +263,23 @@ router.get('/:coupleId/history', async (req, res) => {
     .select('*').eq('couple_id', req.params.coupleId)
     .order('watched_at', { ascending: false }).limit(30);
   if (error) return res.status(500).json({ error: error.message });
-  return res.json(data || []);
+  const rows = data || [];
+
+  // Attach a chat-message count per session (Task 5's "movie chat
+  // indicator") in one extra query instead of one per row.
+  const sessionKeys = rows.map(r => r.session_key).filter(Boolean);
+  if (sessionKeys.length) {
+    try {
+      const { data: chatRows } = await supabase.from('movie_chat_messages')
+        .select('session_key').eq('couple_id', req.params.coupleId).in('session_key', sessionKeys);
+      const counts = {};
+      (chatRows || []).forEach(c => { counts[c.session_key] = (counts[c.session_key] || 0) + 1; });
+      rows.forEach(r => { r.chat_count = r.session_key ? (counts[r.session_key] || 0) : 0; });
+    } catch (_) { rows.forEach(r => { r.chat_count = 0; }); }
+  } else {
+    rows.forEach(r => { r.chat_count = 0; });
+  }
+  return res.json(rows);
 });
 
 module.exports = router;
