@@ -201,7 +201,9 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <link rel="stylesheet" href="/premium-motion.css">
 <link rel="stylesheet" href="/premium-states.css">
   <link rel="stylesheet" href="/responsive-fix.css">
+  <link rel="stylesheet" href="/safe-delete.css">
   <script src="/js/scroll-reset.js"></script>
+  <script src="/js/safe-delete.js"></script>
 </head>
 <body>
 
@@ -302,6 +304,11 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 
 <!-- ═══════════ TAB 3: SAVED MEETUPS ═══════════ -->
 <div class="mp-sec" id="mp-sec-saved">
+  <div class="sd-select-toolbar" id="mpSelectToolbar">
+    <button type="button" class="sd-select-exit" onclick="mpExitSelectMode()" aria-label="Exit selection"><i data-lucide="x"></i></button>
+    <div class="sd-select-count" id="mpSelectCount">0 selected</div>
+    <button type="button" class="sd-select-trash" id="mpSelectTrashBtn" onclick="mpBulkDeletePlans()" aria-label="Delete selected"><i data-lucide="trash-2"></i></button>
+  </div>
   <div id="mpSavedList"></div>
 </div>
 

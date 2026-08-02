@@ -468,7 +468,8 @@ async function mpLoadSavedPlans() {
     el.innerHTML = MP.savedPlans.map(p => {
       const stops = Array.isArray(p.stops) ? [...p.stops].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [];
       const routeText = stops.length ? stops.map(s => (s.icon || '📍') + ' ' + s.name).join(' → ') : (p.mid_city || p.city_name || '');
-      return `<div class="mp-plan-card" onclick="mpViewPlan('${p.id}')">
+      return `<div class="mp-plan-card sd-selectable" data-plan-id="${p.id}">
+        <div class="sd-check"><i data-lucide="check"></i></div>
         <div class="mp-plan-top">
           <div class="mp-plan-title">${esc(p.title)}</div>
           <div class="mp-plan-status ${p.status}">${p.status === 'completed' ? '✅ Completed' : '📅 Planned'}</div>
@@ -487,7 +488,98 @@ async function mpLoadSavedPlans() {
         </div>
       </div>`;
     }).join('');
+    if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
+    mpWireSelection();
   } catch (e) { el.innerHTML = `<div class="mp-empty"><div class="mp-empty-ico">⚠️</div><div class="mp-empty-text">Couldn't load saved meetups.<br>${esc(e.message)}</div></div>`; }
+}
+
+/* ── Long-press multi-select for saved plans (page-scoped) ─────── */
+let mpSelection = null;
+let mpSelectMode = false;
+
+function mpWireSelection() {
+  if (!mpSelection) {
+    mpSelection = createSelectionController({
+      onChange: (ids) => {
+        document.getElementById('mpSelectCount').textContent = ids.size + ' selected';
+        document.getElementById('mpSelectTrashBtn').disabled = ids.size === 0;
+        if (ids.size === 0 && mpSelectMode) mpExitSelectMode();
+      }
+    });
+  }
+  document.querySelectorAll('#mpSavedList .mp-plan-card').forEach(card => {
+    const id = card.dataset.planId;
+    const actionsEl = card.querySelector('.mp-plan-actions');
+    attachLongPress(card, {
+      onLongPress: (e) => {
+        if (actionsEl && actionsEl.contains(e.target)) return;
+        if (!mpSelectMode) mpEnterSelectMode();
+        mpSelection.select(id);
+        card.classList.add('sd-selected');
+      },
+      onTap: (e) => {
+        if (actionsEl && actionsEl.contains(e.target)) return; // let the button's own onclick handle it
+        if (mpSelectMode) {
+          const nowSelected = mpSelection.toggle(id);
+          card.classList.toggle('sd-selected', nowSelected);
+        } else {
+          mpViewPlan(id);
+        }
+      }
+    });
+  });
+}
+
+function mpEnterSelectMode() {
+  mpSelectMode = true;
+  document.getElementById('mpSavedList').classList.add('sd-select-mode');
+  document.getElementById('mpSelectToolbar').classList.add('show');
+}
+
+function mpExitSelectMode() {
+  mpSelectMode = false;
+  if (mpSelection) mpSelection.clear();
+  document.querySelectorAll('#mpSavedList .mp-plan-card.sd-selected').forEach(c => c.classList.remove('sd-selected'));
+  document.getElementById('mpSavedList').classList.remove('sd-select-mode');
+  document.getElementById('mpSelectToolbar').classList.remove('show');
+}
+
+// Android hardware back button: this page had no listener before, so
+// Capacitor's default behavior (webView.goBack()) was in effect. We only
+// need to intercept it for the two transient states this feature adds —
+// the confirm sheet and selection mode — and fall through to the
+// original default for everything else, so normal page navigation is
+// unchanged (Part 26 of the delete-safety spec).
+if (window.Capacitor?.isNativePlatform?.()) {
+  const CapApp = window.Capacitor.Plugins?.App;
+  if (CapApp && typeof CapApp.addListener === 'function') {
+    CapApp.addListener('backButton', () => {
+      const openConfirm = document.querySelector('.sd-overlay.show');
+      if (openConfirm) { openConfirm.classList.remove('show'); return; }
+      if (mpSelectMode) { mpExitSelectMode(); return; }
+      history.back();
+    });
+  }
+}
+
+async function mpBulkDeletePlans() {
+  if (!mpSelection || !mpSelection.size) return;
+  const ids = mpSelection.all();
+  confirmDelete({
+    itemType: 'meetup plan',
+    count: ids.length,
+    message: `These meetup plans and their saved routes will be permanently deleted.`,
+    onConfirm: async () => {
+      const { succeeded, failed } = await runBulkDelete(ids, (id) => api('DELETE', '/api/meetplanner/' + id, { coupleId }));
+      mpExitSelectMode();
+      await mpLoadSavedPlans();
+      if (failed.length) {
+        toast(`${succeeded.length} deleted. ${failed.length} couldn't be deleted.`);
+      } else {
+        toast(succeeded.length > 1 ? `${succeeded.length} meetups deleted` : 'Deleted');
+      }
+    }
+  });
 }
 
 function mpViewPlan(id) {
@@ -542,10 +634,16 @@ async function mpSaveEdit() {
     mpCloseModal('mpEditModal'); toast('Updated ✏️'); mpLoadSavedPlans();
   } catch (e) { toast('Update failed: ' + e.message); }
 }
-async function mpDeletePlan(id) {
-  if (!confirm('Delete this meetup plan?')) return;
-  try { await api('DELETE', '/api/meetplanner/' + id, { coupleId }); toast('Deleted'); mpLoadSavedPlans(); }
-  catch (e) { toast('Delete failed: ' + e.message); }
+function mpDeletePlan(id) {
+  confirmDelete({
+    itemType: 'meetup plan',
+    message: 'This meetup plan and its saved route will be permanently deleted.',
+    onConfirm: async () => {
+      await api('DELETE', '/api/meetplanner/' + id, { coupleId });
+      toast('Deleted');
+      await mpLoadSavedPlans();
+    }
+  });
 }
 
 /* ── COMPLETE → MEMORY GLOBE ──────────────────────────────── */
