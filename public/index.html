@@ -2800,54 +2800,66 @@
     }
 
     .pt {
-      aspect-ratio: 1;
       border-radius: 14px;
       background: var(--g1);
       position: relative;
       overflow: hidden;
-      cursor: pointer;
+      display: flex;
+      flex-direction: column;
       transition: var(--t);
       border: 1px solid var(--border)
     }
 
-    .pt:hover {
-      transform: scale(1.02)
+    .pt-thumb {
+      position: relative;
+      aspect-ratio: 1;
+      cursor: pointer;
+      overflow: hidden
     }
 
-    .pt img,
-    .pt video {
+    .pt-thumb img,
+    .pt-thumb video {
       width: 100%;
       height: 100%;
-      object-fit: cover
+      object-fit: cover;
+      display: block
     }
 
-    .pt-actions {
-      position: absolute;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.5);
+    .pt-footer {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      opacity: 0;
-      transition: var(--t);
-      border-radius: 14px
+      gap: 10px;
+      padding: 6px 4px;
+      background: var(--g2);
+      border-top: 1px solid var(--border)
     }
 
-    .pt:hover .pt-actions {
-      opacity: 1
-    }
-
-    .pt-btn {
-      background: rgba(255, 255, 255, 0.9);
+    .pt-fav-btn,
+    .pt-del-btn {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      border-radius: 50%;
       border: none;
-      border-radius: 8px;
-      padding: 6px 12px;
-      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
       cursor: pointer;
-      font-weight: 600;
-      font-family: var(--ff-sans);
-      color: #333
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text2);
+      transition: var(--t)
+    }
+
+    .pt-fav-btn.active {
+      background: rgba(255, 60, 90, 0.18);
+      color: #ff5c72
+    }
+
+    .pt-del-btn:active {
+      background: rgba(193, 18, 31, 0.25);
+      color: #ff6b5d
     }
 
     .pt-add {
@@ -5123,6 +5135,7 @@ select option { background: #0D0D0D; color: #fff; }
           <div class="sd-select-toolbar" id="memSelectToolbar">
             <button type="button" class="sd-select-exit" onclick="memExitSelectMode()" aria-label="Exit selection"><i data-lucide="x"></i></button>
             <div class="sd-select-count" id="memSelectCount">0 selected</div>
+            <button type="button" class="sd-select-share" id="memSelectShareBtn" onclick="memShareSelected()" aria-label="Share selected"><i data-lucide="share-2"></i></button>
             <button type="button" class="sd-select-trash" id="memSelectTrashBtn" onclick="memBulkDeletePhotos()" aria-label="Delete selected"><i data-lucide="trash-2"></i></button>
           </div>
           <div class="card-title">💝 Our Memories <span class="tag" id="photoCountTag">0</span></div>
@@ -7965,19 +7978,33 @@ const p = await Notification.requestPermission();
             } catch (e) { toast('Upload failed — please try again'); }
           }, 'image/jpeg', 0.85);
         }
-        function uploadPhotos(input) {
-          Array.from(input.files).forEach(async (file) => {
+        async function uploadPhotos(input) {
+          const files = Array.from(input.files || []);
+          if (!files.length) return;
+          input.value = ''; // allow re-selecting the same file(s) again if a retry is needed
+          let ok = 0, fail = 0;
+          for (let i = 0; i < files.length; i++) {
+            const file = files[i];
             const type = file.type.startsWith('video') ? 'video' : 'image';
-            toast('Uploading ' + (type === 'video' ? 'video' : 'photo') + '… 📤');
+            if (files.length > 1) toast(`Uploading ${i + 1} of ${files.length}… 📤`);
+            else toast('Uploading ' + (type === 'video' ? 'video' : 'photo') + '… 📤');
             try {
               const media = await uploadMediaFile(file, file.name, type);
               savePhoto(media.url, file.name, type, media.path);
-            } catch (e) { toast('Upload failed for ' + file.name); }
-          });
+              ok++;
+            } catch (e) { fail++; }
+          }
+          if (files.length > 1) {
+            if (fail) toast(`${ok} uploaded. ${fail} couldn't upload — try adding those again.`);
+            else toast(`${ok} memories uploaded! 💕`);
+          } else if (fail) {
+            toast('Upload failed for ' + files[0].name);
+          }
         }
         async function uploadVideo(input) {
           if (!input.files[0]) return;
           const file = input.files[0];
+          input.value = '';
           toast('Uploading video… 📤');
           try {
             const media = await uploadMediaFile(file, file.name, 'video');
@@ -7992,12 +8019,13 @@ const p = await Notification.requestPermission();
           const add = '<label class="pt pt-add"><span>+</span><span style="font-size:10px">Add</span><input type="file" accept="image/*,video/*" multiple style="display:none" onchange="uploadPhotos(this)"></label>';
           grid.innerHTML = add + S.photos.map((p) => `
     <div class="pt sd-selectable" data-photo-id="${p.id}">
-      <div class="sd-check"><i data-lucide="check"></i></div>
-      ${p.type === 'video' ? `<video src="${p.url}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>` : `<img src="${p.url}" alt="memory" loading="lazy">`}
-      <div class="pt-actions">
-        <button class="pt-btn" onclick="openImgViewer('${p.url}')">🔍 View</button>
-        
-        <button class="pt-btn" style="color:#A32D2D" onclick="deletePhoto('${p.id}')">Delete</button>
+      <div class="pt-thumb">
+        <div class="sd-check"><i data-lucide="check"></i></div>
+        ${p.type === 'video' ? `<video src="${p.url}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>` : `<img src="${p.url}" alt="memory" loading="lazy">`}
+      </div>
+      <div class="pt-footer">
+        <button type="button" class="pt-fav-btn${p.favorite ? ' active' : ''}" onclick="toggleFavoritePhoto('${p.id}')" aria-label="Favorite">${p.favorite ? '❤️' : '🤍'}</button>
+        <button type="button" class="pt-del-btn" onclick="deletePhoto('${p.id}')" aria-label="Delete">🗑️</button>
       </div>
     </div>`).join('');
           if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
@@ -8015,14 +8043,23 @@ const p = await Notification.requestPermission();
               onChange: (ids) => {
                 document.getElementById('memSelectCount').textContent = ids.size + ' selected';
                 document.getElementById('memSelectTrashBtn').disabled = ids.size === 0;
+                document.getElementById('memSelectShareBtn').disabled = ids.size === 0;
                 if (ids.size === 0 && memSelectMode) memExitSelectMode();
               }
             });
           }
           document.querySelectorAll('#photoGrid .pt.sd-selectable').forEach(card => {
             const id = card.dataset.photoId;
+            // Previously the whole card had an invisible full-card overlay
+            // (.pt-actions, opacity:0 but still covering inset:0) meant to
+            // only show its View/Delete buttons on hover — but that overlay
+            // still intercepted every touch everywhere on the card, which
+            // silently ate every long-press before its timer could start.
+            // Now the card is just the thumb (tappable/long-press-able) plus
+            // a real, always-visible footer, so only .pt-footer needs to be
+            // excluded from the long-press gesture.
             attachLongPress(card, {
-              ignoreSelector: '.pt-actions',
+              ignoreSelector: '.pt-footer',
               onPressStart: () => card.classList.add('sd-pressing'),
               onPressCancel: () => card.classList.remove('sd-pressing'),
               onLongPress: () => {
@@ -8035,13 +8072,37 @@ const p = await Notification.requestPermission();
                 if (memSelectMode) {
                   const nowSelected = memSelection.toggle(id);
                   card.classList.toggle('sd-selected', nowSelected);
+                } else {
+                  const p = S.photos.find(x => String(x.id) === String(id));
+                  if (p) openImgViewer(p.url);
                 }
-                // when not in select mode, quick tap does nothing extra here —
-                // the existing 🔍 View / Delete buttons inside .pt-actions
-                // (ignored by long-press) keep handling normal taps
               }
             });
           });
+        }
+
+        function toggleFavoritePhoto(id) {
+          const p = S.photos.find(x => String(x.id) === String(id));
+          if (!p) return;
+          p.favorite = !p.favorite;
+          renderPhotos(); scheduleSave();
+        }
+
+        async function memShareSelected() {
+          if (!memSelection || !memSelection.size) return;
+          const items = memSelection.all().map(id => S.photos.find(p => String(p.id) === String(id))).filter(Boolean);
+          if (!items.length) return;
+          try {
+            if (navigator.share) {
+              if (items.length === 1) await navigator.share({ title: 'Our Memory', url: items[0].url });
+              else await navigator.share({ title: 'Our Memories', text: items.map(p => p.url).join('\n') });
+            } else if (navigator.clipboard) {
+              await navigator.clipboard.writeText(items.map(p => p.url).join('\n'));
+              toast('Link' + (items.length > 1 ? 's' : '') + ' copied to clipboard 🔗');
+            } else {
+              toast('Sharing isn\'t supported on this browser');
+            }
+          } catch (e) { if (e.name !== 'AbortError') toast('Share failed'); }
         }
 
         function memEnterSelectMode() {
