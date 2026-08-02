@@ -1227,6 +1227,11 @@
       transition: var(--t);
     }
 
+    .bucket-row.sd-selectable {
+      position: relative;
+      touch-action: pan-y;
+    }
+
     .bucket-row:last-child {
       border-bottom: none
     }
@@ -5875,6 +5880,11 @@ select option { background: #0D0D0D; color: #fff; }
         <div class="card">
           <div class="card-title">🌟 Our Bucket List <span class="tag" id="bucketTag">0/0</span><button
               class="btn btn-accent btn-sm" onclick="openM('bucketModal')">+ Add Dream</button></div>
+          <div class="sd-select-toolbar" id="bucketSelectToolbar">
+            <button type="button" class="sd-select-exit" onclick="bucketExitSelectMode()" aria-label="Exit selection"><i data-lucide="x"></i></button>
+            <span class="sd-select-count" id="bucketSelectCount">0 selected</span>
+            <button type="button" class="sd-select-trash" id="bucketSelectTrashBtn" onclick="bucketBulkDeleteSelected()" disabled aria-label="Delete selected"><i data-lucide="trash-2"></i></button>
+          </div>
           <div id="bucketList">
             <div class="empty">
               <div class="empty-ico">🌟</div>Add your first dream together!
@@ -5908,6 +5918,11 @@ select option { background: #0D0D0D; color: #fff; }
         </div>
         <div class="card">
           <div class="card-title">Upcoming Events</div>
+          <div class="sd-select-toolbar" id="calSelectToolbar">
+            <button type="button" class="sd-select-exit" onclick="calExitSelectMode()" aria-label="Exit selection"><i data-lucide="x"></i></button>
+            <span class="sd-select-count" id="calSelectCount">0 selected</span>
+            <button type="button" class="sd-select-trash" id="calSelectTrashBtn" onclick="calBulkDeleteSelected()" disabled aria-label="Delete selected"><i data-lucide="trash-2"></i></button>
+          </div>
           <div id="eventList">
             <div class="empty">No upcoming events</div>
           </div>
@@ -7746,6 +7761,10 @@ function setJustPairedAt(ts) {
               if (openMemViewerEl && openMemViewerEl.classList.contains('open')) { closeMemViewer(); return; }
               // 0.5) Memories selection mode active — exit selection, don't navigate.
               if (typeof memSelectMode !== 'undefined' && memSelectMode) { memExitSelectMode(); return; }
+              // 0.55) Calendar selection mode active — exit selection, don't navigate.
+              if (typeof calSelectMode !== 'undefined' && calSelectMode) { calExitSelectMode(); return; }
+              // 0.56) Bucket List selection mode active — exit selection, don't navigate.
+              if (typeof bucketSelectMode !== 'undefined' && bucketSelectMode) { bucketExitSelectMode(); return; }
               // 0.6) Dream Goals lives in its own same-origin iframe with its own
               //      safe-delete confirm sheet + selection mode — check those
               //      before falling through to page navigation.
@@ -9384,8 +9403,85 @@ const p = await Notification.requestPermission();
           S.bucket.push({ id: Date.now(), title, done: false, date: document.getElementById('bucketDate').value, cat: document.getElementById('bucketCat').value, visibility: bVis, by: S.role }); document.getElementById('bucketTitle').value = ''; document.getElementById('bucketDate').value = ''; closeM('bucketModal'); renderBucket(); scheduleSave(); toast('Dream added! 🌟'); spawnPetals(8);
         }
         function toggleBucket(id) { const b = S.bucket.find(x => x.id === id); if (b) { b.done = !b.done; renderBucket(); scheduleSave(); if (b.done) { spawnPetals(12); addXP(8); } } }
-        function delBucket(id) { S.bucket = S.bucket.filter(b => b.id !== id); renderBucket(); scheduleSave(); }
-        function renderBucket() { const el = document.getElementById('bucketList'); const done = S.bucket.filter(b => b.done).length; document.getElementById('bucketTag').textContent = done + '/' + S.bucket.length; document.getElementById('bucketCount').textContent = S.bucket.length; if (!S.bucket.length) { PS.empty(el, { icon: 'dream', title: 'Nothing on the list yet', desc: 'Add your first dream together \u2014 a trip, an experience, anything you want to chase as a team.', actionLabel: 'Add Dream', onAction: () => openM('bucketModal') }); return; } const ce = { Travel: '✈️', Experience: '🎭', Achievement: '🏆', Home: '🏠', Romance: '💕', Adventure: '🏔️', Other: '💫' }; el.innerHTML = S.bucket.filter(b => canSeeItem(b)).map(b => `<div class="bucket-row"><div class="bc${b.done ? ' done' : ''}" onclick="toggleBucket(${b.id})">${b.done ? '✓' : ''}</div><div class="bt${b.done ? ' done' : ''}"><span style="margin-right:6px">${ce[b.cat] || '💫'}</span>${esc(b.title)}${privBadgeHtml(b.visibility)}</div>${b.date ? `<span style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDateShort(b.date)}</span>` : ''}<button class="del-btn" onclick="delBucket(${b.id})">✕</button></div>`).join(''); }
+        function delBucket(id) {
+          const b = S.bucket.find(x => x.id === id);
+          confirmDelete({
+            itemType: 'dream',
+            message: b ? `"${b.title}" will be permanently deleted.` : 'This dream will be permanently deleted.',
+            onConfirm: async () => {
+              S.bucket = S.bucket.filter(x => x.id !== id);
+              renderBucket(); scheduleSave();
+            }
+          });
+        }
+        function renderBucket() { const el = document.getElementById('bucketList'); const done = S.bucket.filter(b => b.done).length; document.getElementById('bucketTag').textContent = done + '/' + S.bucket.length; document.getElementById('bucketCount').textContent = S.bucket.length; if (!S.bucket.length) { PS.empty(el, { icon: 'dream', title: 'Nothing on the list yet', desc: 'Add your first dream together \u2014 a trip, an experience, anything you want to chase as a team.', actionLabel: 'Add Dream', onAction: () => openM('bucketModal') }); return; } const ce = { Travel: '✈️', Experience: '🎭', Achievement: '🏆', Home: '🏠', Romance: '💕', Adventure: '🏔️', Other: '💫' }; el.innerHTML = S.bucket.filter(b => canSeeItem(b)).map(b => `<div class="bucket-row sd-selectable" data-bucket-id="${b.id}"><div class="sd-check"><i data-lucide="check"></i></div><div class="bc${b.done ? ' done' : ''}" onclick="toggleBucket(${b.id})">${b.done ? '✓' : ''}</div><div class="bt${b.done ? ' done' : ''}"><span style="margin-right:6px">${ce[b.cat] || '💫'}</span>${esc(b.title)}${privBadgeHtml(b.visibility)}</div>${b.date ? `<span style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDateShort(b.date)}</span>` : ''}<button class="del-btn" onclick="delBucket(${b.id})">✕</button></div>`).join(''); if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } bucketWireSelection(); }
+
+        /* ── Long-press multi-select for Bucket List (page-scoped) ── */
+        let bucketSelection = null;
+        let bucketSelectMode = false;
+
+        function bucketWireSelection() {
+          if (!bucketSelection) {
+            bucketSelection = createSelectionController({
+              onChange: (ids) => {
+                document.getElementById('bucketSelectCount').textContent = ids.size + ' selected';
+                document.getElementById('bucketSelectTrashBtn').disabled = ids.size === 0;
+                if (ids.size === 0 && bucketSelectMode) bucketExitSelectMode();
+              }
+            });
+          }
+          document.getElementById('bucketList').classList.toggle('sd-select-mode', bucketSelectMode);
+          document.querySelectorAll('#bucketList .bucket-row.sd-selectable').forEach(row => {
+            const id = row.dataset.bucketId;
+            if (bucketSelectMode && bucketSelection.has(id)) row.classList.add('sd-selected');
+            attachLongPress(row, {
+              ignoreSelector: '.del-btn, .bc',
+              onPressStart: () => row.classList.add('sd-pressing'),
+              onPressCancel: () => row.classList.remove('sd-pressing'),
+              onLongPress: () => {
+                row.classList.remove('sd-pressing');
+                if (!bucketSelectMode) bucketEnterSelectMode();
+                bucketSelection.select(id);
+                row.classList.add('sd-selected');
+              },
+              onTap: () => {
+                if (bucketSelectMode) {
+                  const nowSelected = bucketSelection.toggle(id);
+                  row.classList.toggle('sd-selected', nowSelected);
+                }
+              }
+            });
+          });
+        }
+
+        function bucketEnterSelectMode() {
+          bucketSelectMode = true;
+          document.getElementById('bucketList').classList.add('sd-select-mode');
+          document.getElementById('bucketSelectToolbar').classList.add('show');
+        }
+
+        function bucketExitSelectMode() {
+          bucketSelectMode = false;
+          if (bucketSelection) bucketSelection.clear();
+          document.querySelectorAll('#bucketList .sd-selected').forEach(r => r.classList.remove('sd-selected'));
+          document.getElementById('bucketList').classList.remove('sd-select-mode');
+          document.getElementById('bucketSelectToolbar').classList.remove('show');
+        }
+
+        function bucketBulkDeleteSelected() {
+          if (!bucketSelection || !bucketSelection.size) return;
+          const ids = bucketSelection.all();
+          confirmDelete({
+            title: `Delete ${ids.length} selected dream${ids.length > 1 ? 's' : ''}?`,
+            count: ids.length,
+            message: 'These dreams will be permanently deleted.',
+            onConfirm: async () => {
+              S.bucket = S.bucket.filter(b => !ids.some(id => String(id) === String(b.id)));
+              bucketExitSelectMode();
+              renderBucket(); scheduleSave();
+            }
+          });
+        }
 
         // ─── CALENDAR ────────────────────────────────────────────
         function calNav(d) { S.calMonth += d; if (S.calMonth > 11) { S.calMonth = 0; S.calYear++; } if (S.calMonth < 0) { S.calMonth = 11; S.calYear--; } renderCalendar(); }
@@ -9413,11 +9509,90 @@ const p = await Notification.requestPermission();
           const today2 = todayStr(); const up = S.events.filter(e => e.date >= today2).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 10);
           const evEl = document.getElementById('eventList'); const ce = { 'Anniversary': '💕', 'Date': '🌹', 'Birthday': '🎂', 'Trip': '✈️', 'Special': '⭐', 'Study': '📚', 'Other': '📌' };
           if (!up.length) { PS.empty(evEl, { icon: 'generic', title: 'No upcoming events', desc: 'Add a date so you both know what\u2019s coming up.', actionLabel: 'Add Event', onAction: () => openM('eventModal'), compact: true }); renderDashEvents(); return; }
-          evEl.innerHTML = up.map(e => `<div class="bucket-row"><div style="font-size:17px">${ce[e.cat] || '📌'}</div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--white)">${esc(e.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(e.date)}${e.time ? ' · ' + esc(e.time) : ''}${e.alarm ? ' · 🔔' : ''}</div></div><button class="del-btn" onclick="delEvent(${e.id})">✕</button></div>`).join('');
+          evEl.innerHTML = up.map(e => `<div class="bucket-row sd-selectable" data-event-id="${e.id}"><div class="sd-check"><i data-lucide="check"></i></div><div style="font-size:17px">${ce[e.cat] || '📌'}</div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--white)">${esc(e.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(e.date)}${e.time ? ' · ' + esc(e.time) : ''}${e.alarm ? ' · 🔔' : ''}</div></div><button class="del-btn" onclick="delEvent(${e.id})">✕</button></div>`).join('');
+          if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
+          calWireSelection();
           renderDashEvents();
         }
         function showDayEvents(date) { const evs = S.events.filter(e => e.date === date); if (!evs.length) { toast('No events on ' + fmtDateShort(date)); return; } toast(evs.map(e => e.title + (e.time ? ' ' + e.time : '')).join(' · '), 3500); }
-        function delEvent(id) { S.events = S.events.filter(e => e.id !== id); renderCalendar(); scheduleSave(); }
+        function delEvent(id) {
+          const ev = S.events.find(e => e.id === id);
+          confirmDelete({
+            itemType: 'event',
+            message: ev ? `"${ev.title}" will be permanently deleted.` : 'This event will be permanently deleted.',
+            onConfirm: async () => {
+              S.events = S.events.filter(e => e.id !== id);
+              renderCalendar(); scheduleSave();
+            }
+          });
+        }
+
+        /* ── Long-press multi-select for Calendar events (page-scoped) ── */
+        let calSelection = null;
+        let calSelectMode = false;
+
+        function calWireSelection() {
+          if (!calSelection) {
+            calSelection = createSelectionController({
+              onChange: (ids) => {
+                document.getElementById('calSelectCount').textContent = ids.size + ' selected';
+                document.getElementById('calSelectTrashBtn').disabled = ids.size === 0;
+                if (ids.size === 0 && calSelectMode) calExitSelectMode();
+              }
+            });
+          }
+          document.getElementById('eventList').classList.toggle('sd-select-mode', calSelectMode);
+          document.querySelectorAll('#eventList .bucket-row.sd-selectable').forEach(row => {
+            const id = row.dataset.eventId;
+            if (calSelectMode && calSelection.has(id)) row.classList.add('sd-selected');
+            attachLongPress(row, {
+              ignoreSelector: '.del-btn',
+              onPressStart: () => row.classList.add('sd-pressing'),
+              onPressCancel: () => row.classList.remove('sd-pressing'),
+              onLongPress: () => {
+                row.classList.remove('sd-pressing');
+                if (!calSelectMode) calEnterSelectMode();
+                calSelection.select(id);
+                row.classList.add('sd-selected');
+              },
+              onTap: () => {
+                if (calSelectMode) {
+                  const nowSelected = calSelection.toggle(id);
+                  row.classList.toggle('sd-selected', nowSelected);
+                }
+              }
+            });
+          });
+        }
+
+        function calEnterSelectMode() {
+          calSelectMode = true;
+          document.getElementById('eventList').classList.add('sd-select-mode');
+          document.getElementById('calSelectToolbar').classList.add('show');
+        }
+
+        function calExitSelectMode() {
+          calSelectMode = false;
+          if (calSelection) calSelection.clear();
+          document.querySelectorAll('#eventList .sd-selected').forEach(r => r.classList.remove('sd-selected'));
+          document.getElementById('eventList').classList.remove('sd-select-mode');
+          document.getElementById('calSelectToolbar').classList.remove('show');
+        }
+
+        function calBulkDeleteSelected() {
+          if (!calSelection || !calSelection.size) return;
+          const ids = calSelection.all();
+          confirmDelete({
+            title: `Delete ${ids.length} selected event${ids.length > 1 ? 's' : ''}?`,
+            count: ids.length,
+            message: 'These events will be permanently deleted.',
+            onConfirm: async () => {
+              S.events = S.events.filter(e => !ids.some(id => String(id) === String(e.id)));
+              calExitSelectMode();
+              renderCalendar(); scheduleSave();
+            }
+          });
+        }
 
         // ─── MONEY ───────────────────────────────────────────────
         function addTransaction() { const desc = document.getElementById('moneyDesc').value.trim(); const amt = parseFloat(document.getElementById('moneyAmt').value); if (!desc || isNaN(amt)) { toast('Fill in description and amount'); return; } S.transactions.unshift({ id: Date.now(), type: document.getElementById('moneyType').value, desc, amt, by: S.role, category: document.getElementById('moneyCategory').value || 'Other', date: document.getElementById('moneyDate').value || todayStr() });['moneyDesc', 'moneyAmt', 'moneyCategory', 'moneyDate'].forEach(id => document.getElementById(id).value = ''); closeM('moneyModal'); renderMoney(); scheduleSave(); toast('Transaction added! 💰'); }
