@@ -4431,8 +4431,10 @@ select option { background: #0D0D0D; color: #fff; }
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <link rel="stylesheet" href="/responsive-fix.css">
+  <link rel="stylesheet" href="/safe-delete.css">
   <script src="/js/scroll-reset.js"></script>
   <script src="/js/session-manager.js"></script>
+  <script src="/safe-delete.js"></script>
 </head>
 
 <body class="t-blue">
@@ -5118,6 +5120,11 @@ select option { background: #0D0D0D; color: #fff; }
           <div class="mem-month-row" id="memMonthCard"></div>
         </div>
         <div class="card">
+          <div class="sd-select-toolbar" id="memSelectToolbar">
+            <button type="button" class="sd-select-exit" onclick="memExitSelectMode()" aria-label="Exit selection"><i data-lucide="x"></i></button>
+            <div class="sd-select-count" id="memSelectCount">0 selected</div>
+            <button type="button" class="sd-select-trash" id="memSelectTrashBtn" onclick="memBulkDeletePhotos()" aria-label="Delete selected"><i data-lucide="trash-2"></i></button>
+          </div>
           <div class="card-title">💝 Our Memories <span class="tag" id="photoCountTag">0</span></div>
           <div class="photo-grid" id="photoGrid">
             <label class="pt pt-add"><span>+</span><span style="font-size:10px">Add</span><input type="file"
@@ -7448,6 +7455,11 @@ function setJustPairedAt(ts) {
           const CapApp = window.Capacitor.Plugins?.App;
           if (CapApp && typeof CapApp.addListener === 'function') {
             CapApp.addListener('backButton', () => {
+              // 0) An open safe-delete confirmation sheet takes priority — close it only.
+              const openConfirm = document.querySelector('.sd-overlay.show');
+              if (openConfirm) { openConfirm.classList.remove('show'); return; }
+              // 0.5) Memories selection mode active — exit selection, don't navigate.
+              if (typeof memSelectMode !== 'undefined' && memSelectMode) { memExitSelectMode(); return; }
               // 1) An open modal takes priority — just close it.
               const openModal = document.querySelector('.modal-bg.open');
               if (openModal) { openModal.classList.remove('open'); return; }
@@ -7939,7 +7951,7 @@ const p = await Notification.requestPermission();
           const r = await fetch(API + '/api/media/upload', { method: 'POST', body: form });
           const data = await r.json().catch(() => ({}));
           if (!r.ok) throw new Error(data.error || 'Upload failed');
-          return data.url;
+          return data; // { url, path } — path is needed later to delete the Storage object safely
         }
         async function snapPhoto() {
           const vid = document.getElementById('camVid'); if (!camStream) { toast('Start camera first!'); return; }
@@ -7948,8 +7960,8 @@ const p = await Notification.requestPermission();
           toast('Uploading photo… 📸');
           c.toBlob(async (blob) => {
             try {
-              const url = await uploadMediaFile(blob, 'camera.jpg', 'image');
-              savePhoto(url, 'camera', 'image'); toast('Captured! 📸'); spawnPetals(6);
+              const media = await uploadMediaFile(blob, 'camera.jpg', 'image');
+              savePhoto(media.url, 'camera', 'image', media.path); toast('Captured! 📸'); spawnPetals(6);
             } catch (e) { toast('Upload failed — please try again'); }
           }, 'image/jpeg', 0.85);
         }
@@ -7958,8 +7970,8 @@ const p = await Notification.requestPermission();
             const type = file.type.startsWith('video') ? 'video' : 'image';
             toast('Uploading ' + (type === 'video' ? 'video' : 'photo') + '… 📤');
             try {
-              const url = await uploadMediaFile(file, file.name, type);
-              savePhoto(url, file.name, type);
+              const media = await uploadMediaFile(file, file.name, type);
+              savePhoto(media.url, file.name, type, media.path);
             } catch (e) { toast('Upload failed for ' + file.name); }
           });
         }
@@ -7968,26 +7980,133 @@ const p = await Notification.requestPermission();
           const file = input.files[0];
           toast('Uploading video… 📤');
           try {
-            const url = await uploadMediaFile(file, file.name, 'video');
-            savePhoto(url, file.name, 'video');
+            const media = await uploadMediaFile(file, file.name, 'video');
+            savePhoto(media.url, file.name, 'video', media.path);
           } catch (e) { toast('Upload failed for ' + file.name); }
         }
-        function savePhoto(url, name, type) { S.photos.push({ id: Date.now(), url, name, type: type || 'image', date: todayStr() }); renderPhotos(); scheduleSave(); }
+        function savePhoto(url, name, type, path) { S.photos.push({ id: Date.now() + '_' + Math.random().toString(36).slice(2, 7), url, name, type: type || 'image', date: todayStr(), path: path || null }); renderPhotos(); scheduleSave(); }
         function renderPhotos() {
           const grid = document.getElementById('photoGrid');
           document.getElementById('photoCountTag').textContent = S.photos.length;
           document.getElementById('memCount').textContent = S.photos.length;
           const add = '<label class="pt pt-add"><span>+</span><span style="font-size:10px">Add</span><input type="file" accept="image/*,video/*" multiple style="display:none" onchange="uploadPhotos(this)"></label>';
-          grid.innerHTML = add + S.photos.map((p, i) => `
-    <div class="pt">
+          grid.innerHTML = add + S.photos.map((p) => `
+    <div class="pt sd-selectable" data-photo-id="${p.id}">
+      <div class="sd-check"><i data-lucide="check"></i></div>
       ${p.type === 'video' ? `<video src="${p.url}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>` : `<img src="${p.url}" alt="memory" loading="lazy">`}
       <div class="pt-actions">
         <button class="pt-btn" onclick="openImgViewer('${p.url}')">🔍 View</button>
         
-        <button class="pt-btn" style="color:#A32D2D" onclick="delPhoto(${i})">Delete</button>
+        <button class="pt-btn" style="color:#A32D2D" onclick="deletePhoto('${p.id}')">Delete</button>
       </div>
     </div>`).join('');
+          if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
+          memWireSelection();
           renderMemoryAnalytics();
+        }
+
+        /* ── Long-press multi-select for Memories (page-scoped) ─────── */
+        let memSelection = null;
+        let memSelectMode = false;
+
+        function memWireSelection() {
+          if (!memSelection) {
+            memSelection = createSelectionController({
+              onChange: (ids) => {
+                document.getElementById('memSelectCount').textContent = ids.size + ' selected';
+                document.getElementById('memSelectTrashBtn').disabled = ids.size === 0;
+                if (ids.size === 0 && memSelectMode) memExitSelectMode();
+              }
+            });
+          }
+          document.querySelectorAll('#photoGrid .pt.sd-selectable').forEach(card => {
+            const id = card.dataset.photoId;
+            attachLongPress(card, {
+              ignoreSelector: '.pt-actions',
+              onPressStart: () => card.classList.add('sd-pressing'),
+              onPressCancel: () => card.classList.remove('sd-pressing'),
+              onLongPress: () => {
+                card.classList.remove('sd-pressing');
+                if (!memSelectMode) memEnterSelectMode();
+                memSelection.select(id);
+                card.classList.add('sd-selected');
+              },
+              onTap: () => {
+                if (memSelectMode) {
+                  const nowSelected = memSelection.toggle(id);
+                  card.classList.toggle('sd-selected', nowSelected);
+                }
+                // when not in select mode, quick tap does nothing extra here —
+                // the existing 🔍 View / Delete buttons inside .pt-actions
+                // (ignored by long-press) keep handling normal taps
+              }
+            });
+          });
+        }
+
+        function memEnterSelectMode() {
+          memSelectMode = true;
+          document.getElementById('photoGrid').classList.add('sd-select-mode');
+          document.getElementById('memSelectToolbar').classList.add('show');
+        }
+
+        function memExitSelectMode() {
+          memSelectMode = false;
+          if (memSelection) memSelection.clear();
+          document.querySelectorAll('#photoGrid .pt.sd-selected').forEach(c => c.classList.remove('sd-selected'));
+          document.getElementById('photoGrid').classList.remove('sd-select-mode');
+          document.getElementById('memSelectToolbar').classList.remove('show');
+        }
+
+        // Deletes the Storage object for one photo/video if it has a known
+        // path (older items saved before Storage-backed uploads existed
+        // won't have one — for those we only need to drop them from the
+        // app_state blob). Never throws on missing path; only throws if a
+        // path exists but the backend delete itself fails, so bulk/partial
+        // failure reporting stays accurate.
+        async function deletePhotoStorage(p) {
+          if (!p || !p.path) return;
+          const r = await fetch(API + '/api/media/delete', {
+            method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: p.path, bucket: 'couple-photos', coupleId: S.coupleId })
+          });
+          if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.error || 'Storage delete failed'); }
+        }
+
+        function deletePhoto(id) {
+          const p = S.photos.find(x => String(x.id) === String(id));
+          if (!p) return;
+          confirmDelete({
+            itemType: p.type === 'video' ? 'video' : 'photo',
+            message: `This ${p.type === 'video' ? 'video' : 'photo'} will be permanently deleted.`,
+            onConfirm: async () => {
+              await deletePhotoStorage(p);
+              S.photos = S.photos.filter(x => String(x.id) !== String(id));
+              renderPhotos(); scheduleSave();
+            }
+          });
+        }
+
+        function memBulkDeletePhotos() {
+          if (!memSelection || !memSelection.size) return;
+          const ids = memSelection.all();
+          const anyVideo = ids.some(id => { const p = S.photos.find(x => String(x.id) === String(id)); return p && p.type === 'video'; });
+          confirmDelete({
+            title: anyVideo ? `Delete ${ids.length} selected memories?` : `Delete ${ids.length} selected photos?`,
+            count: ids.length,
+            message: `These memories will be permanently deleted, including any videos.`,
+            onConfirm: async () => {
+              const { succeeded, failed } = await runBulkDelete(ids, async (id) => {
+                const p = S.photos.find(x => String(x.id) === String(id));
+                await deletePhotoStorage(p);
+              });
+              S.photos = S.photos.filter(x => !succeeded.some(sid => String(sid) === String(x.id)));
+              memExitSelectMode();
+              renderPhotos(); scheduleSave();
+              if (failed.length) toast(`${succeeded.length} deleted. ${failed.length} couldn't be deleted.`);
+              else toast(succeeded.length > 1 ? `${succeeded.length} memories deleted` : 'Deleted');
+            }
+          });
         }
         function renderMemoryAnalytics() {
           const insEl = document.getElementById('memInsightCard'), monEl = document.getElementById('memMonthCard');
@@ -8023,7 +8142,6 @@ const p = await Notification.requestPermission();
             }
           }
         }
-        function delPhoto(i) { S.photos.splice(i, 1); renderPhotos(); scheduleSave(); }
 
         // ─── PROFILE ─────────────────────────────────────────────
         function renderProfile() {
