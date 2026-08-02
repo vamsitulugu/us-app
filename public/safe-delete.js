@@ -92,14 +92,19 @@
 
 /* ── Long-press helper (pointer events, scroll-safe) ─────────── */
 /**
- * attachLongPress(el, { onLongPress, onTap, threshold=500, moveTolerance=10 })
+ * attachLongPress(el, { onLongPress, onTap, onPressStart, onPressCancel, threshold=380, moveTolerance=14 })
  * - Quick tap  -> onTap(e)
  * - Hold ~threshold ms without moving more than moveTolerance px -> onLongPress(e)
+ * - onPressStart fires immediately on touch/mouse-down (before the long-press
+ *   fires) so the UI can give instant feedback that the press registered,
+ *   instead of feeling dead until the timer completes.
+ * - onPressCancel fires if the press is released/cancelled before the
+ *   long-press threshold (covers both a quick tap and a scroll-cancel).
  * - Any scroll/drag movement cancels the long-press timer so scrolling
  *   long lists is never interrupted.
  */
 window.attachLongPress = function (el, opts) {
-  const { onLongPress, onTap, threshold = 500, moveTolerance = 10 } = opts || {};
+  const { onLongPress, onTap, onPressStart, onPressCancel, threshold = 380, moveTolerance = 14 } = opts || {};
   let timer = null, startX = 0, startY = 0, longPressed = false, active = false;
 
   function clearTimer() { if (timer) { clearTimeout(timer); timer = null; } }
@@ -110,6 +115,7 @@ window.attachLongPress = function (el, opts) {
     longPressed = false;
     startX = e.clientX; startY = e.clientY;
     clearTimer();
+    onPressStart && onPressStart(e);
     timer = setTimeout(() => {
       if (!active) return;
       longPressed = true;
@@ -122,19 +128,23 @@ window.attachLongPress = function (el, opts) {
   function onMove(e) {
     if (!active || !timer) return;
     const dx = Math.abs(e.clientX - startX), dy = Math.abs(e.clientY - startY);
-    if (dx > moveTolerance || dy > moveTolerance) clearTimer(); // treat as scroll/drag
+    if (dx > moveTolerance || dy > moveTolerance) { clearTimer(); onPressCancel && onPressCancel(e); } // treat as scroll/drag
   }
 
   function onUp(e) {
     if (!active) return;
     active = false;
     const wasLongPress = longPressed;
+    const hadTimer = !!timer;
     clearTimer();
     longPressed = false;
-    if (!wasLongPress) onTap && onTap(e);
+    if (!wasLongPress) {
+      if (hadTimer) onPressCancel && onPressCancel(e);
+      onTap && onTap(e);
+    }
   }
 
-  function onCancel() { active = false; longPressed = false; clearTimer(); }
+  function onCancel(e) { const had = active || timer; active = false; longPressed = false; clearTimer(); if (had) onPressCancel && onPressCancel(e); }
 
   el.addEventListener('pointerdown', onDown, { passive: true });
   el.addEventListener('pointermove', onMove, { passive: true });

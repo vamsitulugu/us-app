@@ -511,7 +511,13 @@ function mpWireSelection() {
     const id = card.dataset.planId;
     const actionsEl = card.querySelector('.mp-plan-actions');
     attachLongPress(card, {
+      onPressStart: (e) => {
+        if (actionsEl && actionsEl.contains(e.target)) return;
+        card.classList.add('sd-pressing');
+      },
+      onPressCancel: () => card.classList.remove('sd-pressing'),
       onLongPress: (e) => {
+        card.classList.remove('sd-pressing');
         if (actionsEl && actionsEl.contains(e.target)) return;
         if (!mpSelectMode) mpEnterSelectMode();
         mpSelection.select(id);
