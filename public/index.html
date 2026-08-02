@@ -10284,6 +10284,10 @@ document.addEventListener('keydown', e => {
           if (e.data && e.data.type === 'placesmemory') { S.placesMemories = e.data.places || []; scheduleSave(); }
           if (e.data && e.data.type === 'uwl:close-watch-together') { goto('dashboard'); }
           if (e.data && e.data.type === 'uwl:open-chat-overlay') { goto('chat'); }
+          if (e.data && e.data.type === 'uwl:open-chat-message' && e.data.messageId) {
+            goto('chat');
+            setTimeout(() => { window.Chat?.scrollToMsg?.(e.data.messageId); }, 300);
+          }
         });
         // Patch setTheme to sync iframes
         const _origST = window.setTheme;

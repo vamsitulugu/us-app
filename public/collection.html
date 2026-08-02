@@ -351,22 +351,6 @@ function loadFromParent() {
       .sort((a,b) => (b.date||'').localeCompare(a.date||''));
 
     pullLibraryFromParent();
-
-    // Also grab photos from chat
-    const chatPhotos = (ps.chatMessages || [])
-      .filter(m => m.mediaUrl && !m._deleted)
-      .map(m => ({
-        id: 'chat_' + m.id,
-        url: m.mediaUrl,
-        type: 'image',
-        date: m.date || '',
-        name: 'Chat photo',
-        fromChat: true,
-      }));
-    // Merge, deduplicate
-    const existIds = new Set(colState.photos.map(p => p.id));
-    chatPhotos.forEach(p => { if (!existIds.has(p.id)) colState.photos.push(p); });
-    colState.photos.sort((a,b) => (b.date||'').localeCompare(a.date||''));
   } catch(e) { console.warn('colLoad:', e); }
 }
 
@@ -395,6 +379,16 @@ function chatMsgToVoice(m) {
   };
 }
 let voicesLoadFailed = false;
+function chatMsgToPhoto(m) {
+  return {
+    id: 'chat_' + m.id,
+    url: m.media_url,
+    type: m.type === 'gif' ? 'image' : m.type, // gifs render fine as <img>, same as image
+    date: (m.created_at || '').slice(0, 10),
+    name: 'Chat photo',
+    fromChat: true,
+  };
+}
 async function loadVoices() {
   const ctx = getColCoupleCtx();
   if (!ctx || !ctx.coupleId) { voicesLoadFailed = true; return; }
@@ -405,12 +399,22 @@ async function loadVoices() {
   try {
     const rows = await colApi('GET', '/api/chat/' + ctx.coupleId + '?limit=300');
     voicesLoadFailed = false;
-    colState.voices = (rows || [])
-      .filter(m => m.type === 'voice' && m.media_url && !m.deleted
-        && !((m.deleted_for || '').split(',').includes(ctx.role)))
+    const visible = (rows || []).filter(m => !m.deleted && !((m.deleted_for || '').split(',').includes(ctx.role)));
+    colState.voices = visible
+      .filter(m => m.type === 'voice' && m.media_url)
       .map(chatMsgToVoice)
       .sort((a,b) => (b.createdAt||'').localeCompare(a.createdAt||''));
     colState.voiceFavs = colState.voices.filter(v => v.starredBy.includes(ctx.role)).map(v => v.id);
+
+    // Merge real chat photos/gifs into colState.photos (parent S.photos,
+    // populated separately by loadFromParent, are non-chat album uploads —
+    // additive, not a replacement).
+    const chatPhotos = visible
+      .filter(m => (m.type === 'image' || m.type === 'gif') && m.media_url)
+      .map(chatMsgToPhoto);
+    const existIds = new Set(colState.photos.filter(p => !p.fromChat).map(p => p.id));
+    colState.photos = colState.photos.filter(p => !p.fromChat).concat(chatPhotos.filter(p => !existIds.has(p.id)));
+    colState.photos.sort((a,b) => (b.date||'').localeCompare(a.date||''));
   } catch (e) {
     console.warn('loadVoices failed:', e);
     voicesLoadFailed = true;
@@ -597,6 +601,7 @@ function renderVoiceListInto(elId, voices, isLibrary) {
         <div class="voice-actions">
           <button class="voice-action-btn fav${isFav?' fav':''}" title="Favorite" onclick="event.stopPropagation();toggleVoiceFav(${JSON.stringify(v.id)})">${isFav?'⭐':'☆'}</button>
           ${!isLibrary ? `<button class="voice-action-btn" title="Export to Library" onclick="event.stopPropagation();exportToLibrary(${JSON.stringify(v.id)})">💾</button>` : ''}
+          ${!isLibrary ? `<button class="voice-action-btn" title="Open in Chat" onclick="event.stopPropagation();openInChat(${JSON.stringify(v.id)})">💬</button>` : ''}
           <button class="voice-action-btn" title="Export / Download" onclick="event.stopPropagation();downloadVoice(${JSON.stringify(v.audioData||'')})">⬇️</button>
           <button class="voice-action-btn del" title="Delete" onclick="event.stopPropagation();deleteVoice(${JSON.stringify(v.id)},${isLibrary})">🗑️</button>
         </div>
@@ -707,12 +712,39 @@ voiceAudio.addEventListener('ended', () => {
   if (currentPlayingIdx !== -1) { updateVoiceItem(currentPlayingIdx, false); currentPlayingIdx = -1; stopSeekLoop(); }
 });
 
-function toggleVoiceFav(id) {
+async function toggleVoiceFav(id) {
+  // Voice favorites are server-backed via chat_messages.starred_by (the
+  // same column/endpoint Chat's own star button uses) — NOT localStorage.
+  // Previously this only mutated a local array + localStorage, so the
+  // very next loadVoices() (which recomputes voiceFavs from the server's
+  // starredBy field) silently reverted every favorite on refresh/restart.
   const idx = colState.voiceFavs.indexOf(id);
-  if (idx > -1) colState.voiceFavs.splice(idx, 1);
+  const wasFav = idx > -1;
+  if (wasFav) colState.voiceFavs.splice(idx, 1);
   else colState.voiceFavs.push(id);
-  localStorage.setItem('col_voice_favs', JSON.stringify(colState.voiceFavs));
   renderCurrentTab(); renderHero();
+  try {
+    await colApi('POST', '/api/chat/' + id + '/star', { coupleId: colState.coupleId, role: colState.role });
+    const v = colState.voices.find(x => x.id === id);
+    if (v) v.starredBy = wasFav ? v.starredBy.filter(r => r !== colState.role) : [...v.starredBy, colState.role];
+  } catch (e) {
+    const idx2 = colState.voiceFavs.indexOf(id);
+    if (wasFav && idx2 === -1) colState.voiceFavs.push(id);
+    else if (!wasFav && idx2 > -1) colState.voiceFavs.splice(idx2, 1);
+    renderCurrentTab(); renderHero();
+    showColToast('Could not update favorite: ' + e.message);
+  }
+}
+function openInChat(id) {
+  // Collection lives in an iframe; Chat is inline in the parent window
+  // (public/index.html), which already has a goto()/Chat.scrollToMsg()
+  // pair used by its own in-chat search feature — reuse that same path
+  // instead of building a second navigation mechanism.
+  try {
+    window.parent.postMessage({ type: 'uwl:open-chat-message', messageId: id }, window.location.origin);
+  } catch (e) {
+    showColToast('Could not open in Chat');
+  }
 }
 function downloadVoice(audioData) {
   if (!audioData) return;
@@ -731,18 +763,24 @@ function deleteVoice(id, isLibrary) {
     showColToast('Removed from library');
     return;
   }
-  colState.voices = colState.voices.filter(v => v.id !== id);
-  // Also delete from parent state if possible (chat-sourced items only)
-  try {
-    const ps = window.parent?.S;
-    if (ps?.chatMessages) {
-      const m = ps.chatMessages.find(m => m.id === id);
-      if (m) { m._deleted = true; m.audioData = null; m.type = 'deleted'; }
-      window.parent.scheduleSave?.();
-    }
-  } catch(e) {}
+  // Real chat voice messages live in chat_messages (Supabase), not in any
+  // in-memory parent array — deleting must go through the same DELETE
+  // /api/chat/:id endpoint Chat itself uses, so Collection and Chat never
+  // disagree on what's deleted (Part 15/23). Ownership rule mirrors the
+  // server: only the sender can delete "for everyone"; the other partner
+  // can only delete-for-me (hide on their own device, shared audio stays).
+  const v = colState.voices.find(x => x.id === id);
+  const mode = (v && v.by === colState.role) ? 'everyone' : 'me';
+  colApi('DELETE', '/api/chat/' + id, { coupleId: colState.coupleId, senderRole: colState.role, mode })
+    .then(() => showColToast(mode === 'everyone' ? 'Voice message deleted' : 'Removed from your view'))
+    .catch(e => {
+      showColToast('Delete failed: ' + e.message);
+      // Re-sync from server since the optimistic local removal below may
+      // now be wrong (e.g. a 403 for trying to delete a partner's message)
+      loadVoices().then(() => { renderCurrentTab(); renderHero(); });
+    });
+  colState.voices = colState.voices.filter(x => x.id !== id);
   renderCurrentTab(); renderHero();
-  showColToast('Voice message deleted');
 }
 
 // ── EXPORT TO LIBRARY (copy, chat history stays untouched) ──
@@ -772,20 +810,29 @@ function bulkDelete() {
   if (!selectedIds.size) return;
   if (!confirm('Delete ' + selectedIds.size + ' selected voice message(s)?')) return;
   const isLib = currentTab === 'library';
-  selectedIds.forEach(id => {
-    if (isLib) colState.library = colState.library.filter(v => v.id !== id);
-    else {
-      colState.voices = colState.voices.filter(v => v.id !== id);
-      try {
-        const ps = window.parent?.S;
-        const m = ps?.chatMessages?.find(m => m.id === id);
-        if (m) { m._deleted = true; m.audioData = null; m.type = 'deleted'; }
-      } catch(e) {}
-    }
+  const idsToDelete = Array.from(selectedIds);
+  if (isLib) {
+    idsToDelete.forEach(id => { colState.library = colState.library.filter(v => v.id !== id); });
+    saveLibraryLocal(); pushLibraryToParent();
+    showColToast('Deleted ' + idsToDelete.length + ' message(s)');
+    exitSelectMode();
+    return;
+  }
+  // Same server-backed deletion as single-item deleteVoice — fire the
+  // real DELETE per message so Chat and Collection can never disagree,
+  // then re-sync from the server rather than trusting local removal.
+  Promise.allSettled(idsToDelete.map(id => {
+    const v = colState.voices.find(x => x.id === id);
+    const mode = (v && v.by === colState.role) ? 'everyone' : 'me';
+    return colApi('DELETE', '/api/chat/' + id, { coupleId: colState.coupleId, senderRole: colState.role, mode });
+  })).then(results => {
+    const failed = results.filter(r => r.status === 'rejected').length;
+    showColToast(failed
+      ? `Deleted ${idsToDelete.length - failed}, ${failed} failed`
+      : 'Deleted ' + idsToDelete.length + ' message(s)');
+    loadVoices().then(() => { renderCurrentTab(); renderHero(); });
   });
-  if (isLib) { saveLibraryLocal(); pushLibraryToParent(); }
-  else { try { window.parent.scheduleSave?.(); } catch(e) {} }
-  showColToast('Deleted ' + selectedIds.size + ' message(s)');
+  colState.voices = colState.voices.filter(v => !selectedIds.has(v.id));
   exitSelectMode();
 }
 
@@ -939,8 +986,7 @@ function startColSync() {
   if (colSyncInterval) return;
   colSyncInterval = setInterval(() => {
     loadFromParent();
-    renderHero();
-    renderCurrentTab();
+    loadVoices().then(() => { renderHero(); renderCurrentTab(); });
   }, 4000);
 }
 
@@ -963,10 +1009,13 @@ window.addEventListener('message', e => {
 });
 
 // ── INIT ──
-function init() {
+async function init() {
   loadLibraryLocal();
   loadFromParent();
   renderToolbar();
+  renderHero();
+  renderCurrentTab();
+  await loadVoices();
   renderHero();
   renderCurrentTab();
   startColSync();
