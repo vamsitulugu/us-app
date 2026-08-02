@@ -720,7 +720,13 @@ function reanchorAfterImages() {
     lpTimer = setTimeout(() => {
       lpFired = true;
       if (navigator.vibrate) navigator.vibrate(30);
-      openMenu(id);
+      // WhatsApp-style: long-press selects the message immediately.
+      // If a selection is already in progress, add/toggle this one;
+      // otherwise start selection mode with this message selected.
+      // (The full action menu — React/Reply/Forward/etc. — is still
+      // reachable via right-click on desktop, or the toolbar's ⋮
+      // button once exactly one message is selected.)
+      if (selectMode) toggleSelect(id); else enterSelectMode(id);
     }, 450);
   }
   function moveLongPress(ev) {
@@ -745,19 +751,19 @@ function reanchorAfterImages() {
   if (isDesktop) {
     sheet.className = 'msg-ctx-bg';
     sheet.innerHTML = `<div class="msg-ctx-menu open" style="left:${ev.clientX}px;top:${ev.clientY}px">
-      ${menuItemsHtml(m, id)}
+      ${menuItemsHtml(m, id, true)}
     </div>`;
   } else {
     sheet.className = 'chat-sheet-overlay';
-    sheet.innerHTML = `<div class="chat-sheet">${menuItemsHtml(m, id)}</div>`;
+    sheet.innerHTML = `<div class="chat-sheet">${menuItemsHtml(m, id, true)}</div>`;
   }
   sheet.onclick = e => { if (e.target === sheet) sheet.remove(); };
   document.body.appendChild(sheet);
 }
-function menuItemsHtml(m, id) {
+function menuItemsHtml(m, id, includeSelect) {
   const mine = isMine(m);
   return `
-    <div class="ctx-item" onclick="Chat.enterSelectMode('${id}')">☑️ Select</div>
+    ${includeSelect ? `<div class="ctx-item" onclick="Chat.enterSelectMode('${id}')">☑️ Select</div>` : ''}
     <div class="ctx-item" onclick="Chat.reactTo('${id}','❤️')">❤️ React</div>
     <div class="ctx-item" onclick="Chat.replyTo('${id}')">↩️ Reply</div>
     <div class="ctx-item" onclick="Chat.forwardMsg('${id}')">↪️ Forward</div>
@@ -769,6 +775,32 @@ function menuItemsHtml(m, id) {
     ${mine ? `<div class="ctx-item danger" onclick="Chat.confirmDeleteMsg('${id}','everyone')">🗑️ Delete for everyone</div>` : ''}
     <div class="ctx-item danger" onclick="Chat.confirmDeleteMsg('${id}','me')">🗑️ Delete for me</div>`;
 }
+  // Opens the same action menu (React/Reply/Forward/Copy/Pin/Star/Edit/Info)
+  // for the single currently-selected message. Long-press now selects
+  // directly (WhatsApp-style) instead of popping this menu, so this is
+  // the way to reach those actions while in selection mode — tap the
+  // toolbar's ⋮ button, which is only shown when exactly one message
+  // is selected.
+  function openSelectedMsgMenu(ev) {
+    if (selectedIds.size !== 1) return;
+    const id = Array.from(selectedIds)[0];
+    const m = msgs.find(x => x.id === id); if (!m) return;
+    document.getElementById('chatMsgMenu')?.remove();
+    const isDesktop = window.innerWidth > 700 && ev && ev.clientX;
+    const sheet = document.createElement('div');
+    sheet.id = 'chatMsgMenu';
+    if (isDesktop) {
+      sheet.className = 'msg-ctx-bg';
+      sheet.innerHTML = `<div class="msg-ctx-menu open" style="left:${ev.clientX}px;top:${ev.clientY}px">
+        ${menuItemsHtml(m, id, false)}
+      </div>`;
+    } else {
+      sheet.className = 'chat-sheet-overlay';
+      sheet.innerHTML = `<div class="chat-sheet">${menuItemsHtml(m, id, false)}</div>`;
+    }
+    sheet.onclick = e => { if (e.target === sheet) sheet.remove(); };
+    document.body.appendChild(sheet);
+  }
   async function reactTo(id, emoji) {
     document.getElementById('chatMsgMenu')?.remove();
     try {
@@ -892,7 +924,11 @@ function menuItemsHtml(m, id) {
     if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
     if (!selectedIds.size) exitSelectMode(); else updateSelectCount();
   }
-  function updateSelectCount() { document.getElementById('chatSelectCount').textContent = selectedIds.size + ' selected'; }
+  function updateSelectCount() {
+    document.getElementById('chatSelectCount').textContent = selectedIds.size + ' selected';
+    const moreBtn = document.getElementById('chatSelectMoreBtn');
+    if (moreBtn) moreBtn.style.display = selectedIds.size === 1 ? '' : 'none';
+  }
   function exitSelectMode() { selectMode = false; selectedIds.clear(); document.getElementById('chatSelectToolbar').classList.remove('show'); }
   // Bulk delete always deletes "for me" — safe regardless of whether the
   // selection mixes your own and your partner's messages (deleting a
@@ -1341,7 +1377,7 @@ function menuItemsHtml(m, id) {
     isSelecting, closeMsgMenuIfOpen,
     openSearch, closeSearch, runSearch, scrollToMsg, sendGif, sendEmoji, sendEmojiTap,
     openEmojiPanel, switchEmojiTab, filterEmoji, openGifPanel, searchGifs, markRead, init, openSheet, closeSheet,
-    forwardMsg, copyMsg, editMsg, cancelEdit, infoMsg, cancelRecording, startLongPress, endLongPress, moveLongPress,
+    forwardMsg, copyMsg, editMsg, cancelEdit, infoMsg, cancelRecording, startLongPress, endLongPress, moveLongPress, openSelectedMsgMenu,
     onAudioPick, sendLocation, openGiftPanel, sendGift, toggleVoicePlay,
     openStickerPanel, sendSticker, sendContactCard, openContactCard, openMemories, openPollComposer, submitPoll, votePoll,
     destroyPanels

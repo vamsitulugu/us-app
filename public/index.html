@@ -5248,6 +5248,7 @@ select option { background: #0D0D0D; color: #fff; }
     <div class="chat-select-toolbar" id="chatSelectToolbar">
       <button onclick="Chat.exitSelectMode()">✕</button>
       <div class="cnt" id="chatSelectCount">1 selected</div>
+      <button id="chatSelectMoreBtn" onclick="Chat.openSelectedMsgMenu(event)" style="display:none">⋮</button>
       <button id="chatSelectTrashBtn" onclick="Chat.deleteSelected()">🗑️ Delete</button>
     </div>
 
