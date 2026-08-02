@@ -105,7 +105,8 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 .voice-date{font-size:10.5px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .voice-waveform{
   display:flex;align-items:center;gap:2px;height:26px;
-  flex:0 1 72px;min-width:36px;max-width:100px;cursor:pointer;position:relative;
+  flex:1 1 auto;min-width:0;max-width:100px;cursor:pointer;position:relative;
+  overflow:hidden;
 }
 .voice-waveform span{display:inline-block;border-radius:3px;background:rgba(255,255,255,0.25);width:3px;transition:background 0.2s;flex-shrink:0}
 .voice-item.playing .voice-waveform span.wf-played{background:var(--accent)}
@@ -859,13 +860,33 @@ function openVoiceMenu(ev, id, isLibrary) {
   setTimeout(() => document.addEventListener('click', closeVoiceMenu, true), 0);
 }
 
-function downloadVoice(audioData) {
+async function downloadVoice(audioData) {
   if (!audioData) return;
-  const a = document.createElement('a');
-  a.href = audioData;
-  a.download = 'voice-' + Date.now() + '.webm';
-  a.click();
-  showColToast('Downloading... ⬇️');
+  const filename = 'voice-' + Date.now() + '.webm';
+  try {
+    // audioData is a cross-origin Supabase Storage URL — the anchor
+    // `download` attribute is silently ignored by browsers for cross-origin
+    // URLs, so a direct a.href=audioData click just navigates the page to
+    // it (the "black native audio player" bug). Fetching it as a Blob and
+    // downloading that blob: URL instead never navigates away.
+    showColToast('Downloading... ⬇️');
+    const response = await fetch(audioData);
+    if (!response.ok) throw new Error('Fetch failed: ' + response.status);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    showColToast('Saved ✅');
+  } catch (err) {
+    console.error('Voice download failed:', err);
+    showColToast('Download failed ⚠️');
+  }
 }
 function deleteVoice(id, isLibrary) {
   if (!confirm('Delete this voice message?')) return;

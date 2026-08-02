@@ -7455,10 +7455,13 @@ function setJustPairedAt(ts) {
               // 1) An open modal takes priority — just close it.
               const openModal = document.querySelector('.modal-bg.open');
               if (openModal) { openModal.classList.remove('open'); return; }
-              // 2) Not on the dashboard — go there (uses the existing
-              //    router so page teardown/render logic still runs).
+              // 2) Not on the dashboard — step back ONE entry through the
+              //    real navigation stack (same stack goto() has been
+              //    pushing to all along), not straight to Dashboard.
+              //    history.back() triggers the existing popstate handler,
+              //    which reads e.state.page and restores exactly that page.
               const onDashboard = document.getElementById('page-dashboard')?.classList.contains('active');
-              if (!onDashboard) { goto('dashboard'); return; }
+              if (!onDashboard) { history.back(); return; }
               // 3) Already at the dashboard (top level) — minimize
               //    instead of exiting or falling through to landing.html.
               CapApp.minimizeApp?.();
