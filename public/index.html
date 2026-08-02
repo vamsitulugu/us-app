@@ -5696,6 +5696,11 @@ select option { background: #0D0D0D; color: #fff; }
           <div
             style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--white);text-transform:uppercase;letter-spacing:0.5px">
             Your Entries</div>
+          <div class="sd-select-toolbar" id="journalSelectToolbar">
+            <button type="button" class="sd-select-exit" onclick="journalExitSelectMode()" aria-label="Exit selection"><i data-lucide="x"></i></button>
+            <span class="sd-select-count" id="journalSelectCount">0 selected</span>
+            <button type="button" class="sd-select-trash" id="journalSelectTrashBtn" onclick="journalBulkDeleteSelected()" disabled aria-label="Delete selected"><i data-lucide="trash-2"></i></button>
+          </div>
           <div id="myJournalEntries">
             <div class="empty">
               <div class="empty-ico">📖</div>No entries yet. Write your first!
@@ -5723,6 +5728,11 @@ select option { background: #0D0D0D; color: #fff; }
               <div class="user-block-head">
                 <div class="av av1" style="width:24px;height:24px;font-size:9px" id="hAv1">U</div><span
                   id="hMyName">Your</span> Habits
+              </div>
+              <div class="sd-select-toolbar" id="habitsSelectToolbar">
+                <button type="button" class="sd-select-exit" onclick="habitsExitSelectMode()" aria-label="Exit selection"><i data-lucide="x"></i></button>
+                <span class="sd-select-count" id="habitsSelectCount">0 selected</span>
+                <button type="button" class="sd-select-trash" id="habitsSelectTrashBtn" onclick="habitsBulkDeleteSelected()" disabled aria-label="Delete selected"><i data-lucide="trash-2"></i></button>
               </div>
               <div id="myHabitsList">
                 <div class="empty" style="padding:8px 0">No habits yet</div>
@@ -5760,6 +5770,11 @@ select option { background: #0D0D0D; color: #fff; }
               <input type="date" id="noteReminderDate">
               <input type="time" id="noteReminderTime">
             </div>
+          </div>
+          <div class="sd-select-toolbar" id="notesSelectToolbar">
+            <button type="button" class="sd-select-exit" onclick="notesExitSelectMode()" aria-label="Exit selection"><i data-lucide="x"></i></button>
+            <span class="sd-select-count" id="notesSelectCount">0 selected</span>
+            <button type="button" class="sd-select-trash" id="notesSelectTrashBtn" onclick="notesBulkDeleteSelected()" disabled aria-label="Delete selected"><i data-lucide="trash-2"></i></button>
           </div>
           <div class="note-grid" id="notesGrid">
             <div class="empty" style="grid-column:1/-1">No notes yet. Write something sweet!</div>
@@ -5813,6 +5828,11 @@ select option { background: #0D0D0D; color: #fff; }
             <div class="field"><label>Note (optional)</label><input type="text" id="remNote"
                 placeholder="Any details..."></div>
             <button class="btn btn-accent btn-sm" onclick="addReminder()">🔔 Add Alarm</button>
+          </div>
+          <div class="sd-select-toolbar" id="remindersSelectToolbar">
+            <button type="button" class="sd-select-exit" onclick="remindersExitSelectMode()" aria-label="Exit selection"><i data-lucide="x"></i></button>
+            <span class="sd-select-count" id="remindersSelectCount">0 selected</span>
+            <button type="button" class="sd-select-trash" id="remindersSelectTrashBtn" onclick="remindersBulkDeleteSelected()" disabled aria-label="Delete selected"><i data-lucide="trash-2"></i></button>
           </div>
           <div id="remindersList">
             <div class="empty">
@@ -8759,7 +8779,7 @@ const p = await Notification.requestPermission();
           });
           el.innerHTML = `<div class="ml-timeline">${html}</div>`;
         }
-        function delMilestone(id) { S.milestones = (S.milestones||[]).filter(m=>m.id!==id); renderMilestones(); scheduleSave(); toast('Removed'); }
+        function delMilestone(id) { confirmDelete({ itemType: 'milestone', message: 'This milestone will be permanently deleted.', onConfirm: () => { S.milestones = (S.milestones||[]).filter(m=>m.id!==id); renderMilestones(); scheduleSave(); toast('Removed'); } }); }
         function renderTimelineStories() {
           const el = document.getElementById('timelineStories'); if (!el) return;
           const all = [...(S.milestones || [])].sort((a, b) => a.date.localeCompare(b.date));
@@ -8829,7 +8849,7 @@ const p = await Notification.requestPermission();
           <div style="font-size:11px;color:var(--text3);margin-top:3px">Flow: ${p.flow} days · Cycle: ${p.cycle} days</div>
           ${p.note ? `<div style="font-size:12px;color:var(--text2);margin-top:4px">${esc(p.note)}</div>` : ''}
         </div>
-        <button class="del-btn" onclick="delPeriod(${i})">✕</button>
+        <button class="del-btn" onclick="delPeriod(${p.id})">✕</button>
       </div>
     </div>`).join('');
         }
@@ -8891,7 +8911,7 @@ const p = await Notification.requestPermission();
             }
           }
         }
-        function delPeriod(i) { S.periods.splice(i, 1); renderPeriodPage(); scheduleSave(); }
+        function delPeriod(id) { confirmDelete({ itemType: 'period entry', message: 'This period entry will be permanently deleted.', onConfirm: () => { S.periods = (S.periods || []).filter(p => p.id !== id); renderPeriodPage(); scheduleSave(); } }); }
         function renderPeriodCalendar() {
           const calEl = document.getElementById('periodCalDays'); if (!calEl) return;
           const now = new Date(); const year = now.getFullYear(); const month = now.getMonth();
@@ -8926,7 +8946,7 @@ const p = await Notification.requestPermission();
           closeM('fightModal'); renderFights(); scheduleSave(); toast('Fight logged. Remember: you both love each other 💕');
         }
         function resolveFight(id) { const f = (S.fights || []).find(x => x.id === id); if (f) { f.status = 'resolved'; f.resolvedDate = todayStr(); } renderFights(); scheduleSave(); toast('Fight resolved! 💚'); spawnPetals(10); addXP(6); }
-        function delFight(id) { S.fights = (S.fights || []).filter(f => f.id !== id); renderFights(); scheduleSave(); }
+        function delFight(id) { confirmDelete({ itemType: 'entry', message: 'This entry will be permanently deleted.', onConfirm: () => { S.fights = (S.fights || []).filter(f => f.id !== id); renderFights(); scheduleSave(); } }); }
         const ACTIVITIES = [
           { e: '🎯', t: 'Mirror Exercise', d: 'Sit facing each other. One speaks for 2 minutes uninterrupted about their feelings. The other mirrors back what they heard. Then switch. This builds deep empathy.' },
           { e: '✍️', t: 'Letter Exchange', d: 'Each write a letter explaining your perspective and what you need. Swap and read without interrupting. Understanding grows through words.' },
@@ -9075,7 +9095,7 @@ const p = await Notification.requestPermission();
           closeM('studySubjectModal'); renderStudyPage(); scheduleSave(); toast('Subject added! 📚');
         }
         function updateSubjectProgress(id, delta) { const s = (S.mySubjects || []).find(x => x.id === id); if (!s) return; s.done = Math.max(0, Math.min(s.total, s.done + delta)); renderStudyPage(); scheduleSave(); }
-        function delSubject(id) { S.mySubjects = (S.mySubjects || []).filter(s => s.id !== id); renderStudyPage(); scheduleSave(); }
+        function delSubject(id) { confirmDelete({ itemType: 'subject', message: 'This subject and its progress will be permanently deleted.', onConfirm: () => { S.mySubjects = (S.mySubjects || []).filter(s => s.id !== id); renderStudyPage(); scheduleSave(); } }); }
         function addStudySlot() {
           const subject = document.getElementById('slotSubject').value.trim(); if (!subject) { toast('Enter subject'); return; }
           if (!S.myTimetable) S.myTimetable = [];
@@ -9088,7 +9108,7 @@ const p = await Notification.requestPermission();
           closeM('studySlotModal'); renderStudyPage(); scheduleSave(); toast('Slot added! 📚');
         }
         function toggleStudySlot(id) { const s = (S.myTimetable || []).find(x => x.id === id); if (!s) return; s.done = !s.done; renderStudyPage(); scheduleSave(); if (s.done) spawnPetals(5); }
-        function delStudySlot(id) { S.myTimetable = (S.myTimetable || []).filter(s => s.id !== id); renderStudyPage(); scheduleSave(); }
+        function delStudySlot(id) { confirmDelete({ itemType: 'study slot', message: 'This study slot will be permanently deleted.', onConfirm: () => { S.myTimetable = (S.myTimetable || []).filter(s => s.id !== id); renderStudyPage(); scheduleSave(); } }); }
         function renderStudyPage() {
           const mySubjEl = document.getElementById('myStudySubjects');
           if (!S.mySubjects || !S.mySubjects.length) { PS.empty(mySubjEl, { icon: 'book', title: 'No subjects yet', desc: 'Add a subject to start tracking chapters and progress.', actionLabel: 'Add Subject', onAction: () => openM('studySubjectModal'), compact: true }); }
@@ -9203,8 +9223,27 @@ const p = await Notification.requestPermission();
           }
           toast(type === 'video' ? 'Video added 🎬' : 'Photo added 📷');
         }
-        function renderVault() { const g = document.getElementById('vaultGrid'), empty = document.getElementById('vaultEmpty'); if (!S.vault.length) { g.innerHTML = ''; empty.style.display = 'block'; return; } empty.style.display = 'none'; g.innerHTML = S.vault.map((v, i) => `<div class="vt">${v.type === 'video' ? `<video src="${v.url}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>` : `<img src="${v.url}" alt="vault" loading="lazy" onclick="openImgViewer('${v.url}')">`}<button class="vt-del" onclick="delVault(${i})">🗑️</button></div>`).join(''); }
-        function delVault(i) { S.vault.splice(i, 1); renderVault(); scheduleSave(); }
+        function renderVault() { const g = document.getElementById('vaultGrid'), empty = document.getElementById('vaultEmpty'); if (!S.vault.length) { g.innerHTML = ''; empty.style.display = 'block'; return; } empty.style.display = 'none'; g.innerHTML = S.vault.map((v, i) => `<div class="vt">${v.type === 'video' ? `<video src="${v.url}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>` : `<img src="${v.url}" alt="vault" loading="lazy" onclick="openImgViewer('${v.url}')">`}<button class="vt-del" onclick="delVault(${v.id})">🗑️</button></div>`).join(''); }
+        async function deleteVaultStorage(v) {
+          if (!v || !v.path) return;
+          const r = await fetch(API + '/api/media/delete', {
+            method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: v.path, bucket: 'vault-media', coupleId: S.coupleId })
+          });
+          if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.error || 'Storage delete failed'); }
+        }
+        function delVault(id) {
+          const v = S.vault.find(x => x.id === id); if (!v) return;
+          confirmDelete({
+            itemType: v.type === 'video' ? 'video' : 'photo',
+            message: `This ${v.type === 'video' ? 'video' : 'photo'} will be permanently deleted from your vault.`,
+            onConfirm: async () => {
+              await deleteVaultStorage(v);
+              S.vault = S.vault.filter(x => x.id !== id);
+              renderVault(); scheduleSave();
+            }
+          });
+        }
         async function changePin() {
           const cur = document.getElementById('curPin').value, np = document.getElementById('newPin').value;
           const re = document.getElementById('pinChangeResult');
@@ -9225,16 +9264,140 @@ const p = await Notification.requestPermission();
           const vis = document.getElementById('journalVisibility')?.value || 'self';
           S.journal.unshift({ id: Date.now(), date: todayStr(), mood: S.selectedMood, body, visibility: vis, by: S.role }); document.getElementById('journalBody').value = ''; renderJournal(); scheduleSave(); toast('Journal saved! 📖'); spawnPetals(4);
         }
-        function renderJournal() { const el = document.getElementById('myJournalEntries'); if (!S.journal.length) { PS.empty(el, { icon: 'book', title: "No entries yet", desc: "Write down today's memory \u2014 a feeling, a moment, anything worth keeping.", actionLabel: 'Write First Entry', onAction: () => document.getElementById('journalBody')?.focus() }); return; } el.innerHTML = S.journal.map((e, i) => `<div style="background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;position:relative;transition:var(--t)"><div style="font-size:10px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">${fmtDate(e.date)}</div>${e.mood ? `<div style="display:inline-block;font-size:11px;background:var(--g2);color:var(--text);border-radius:10px;padding:2px 8px;margin-bottom:7px;border:1px solid var(--border)">${esc(e.mood)}</div>` : ''}<div style="font-size:13px;color:var(--text2);line-height:1.65">${esc(e.body)}</div><button class="del-btn" onclick="delJournal(${i})" style="position:absolute;top:12px;right:12px">✕</button></div>`).join(''); }
-        function delJournal(i) { S.journal.splice(i, 1); renderJournal(); scheduleSave(); }
+        function renderJournal() { const el = document.getElementById('myJournalEntries'); if (!S.journal.length) { PS.empty(el, { icon: 'book', title: "No entries yet", desc: "Write down today's memory \u2014 a feeling, a moment, anything worth keeping.", actionLabel: 'Write First Entry', onAction: () => document.getElementById('journalBody')?.focus() }); return; } el.innerHTML = S.journal.map((e) => `<div class="sd-selectable" data-journal-id="${e.id}" style="background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;position:relative;transition:var(--t)"><div class="sd-check"><i data-lucide="check"></i></div><div style="font-size:10px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">${fmtDate(e.date)}</div>${e.mood ? `<div style="display:inline-block;font-size:11px;background:var(--g2);color:var(--text);border-radius:10px;padding:2px 8px;margin-bottom:7px;border:1px solid var(--border)">${esc(e.mood)}</div>` : ''}<div style="font-size:13px;color:var(--text2);line-height:1.65">${esc(e.body)}</div><button class="del-btn" onclick="delJournal(${e.id})" style="position:absolute;top:12px;right:12px">✕</button></div>`).join(''); if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } journalWireSelection(); }
+        function delJournal(id) { confirmDelete({ itemType: 'journal entry', message: 'This journal entry will be permanently deleted.', onConfirm: () => { S.journal = S.journal.filter(e => e.id !== id); renderJournal(); scheduleSave(); } }); }
+
+        /* ── Long-press multi-select for Journal (page-scoped) ── */
+        let journalSelection = null;
+        let journalSelectMode = false;
+        function journalWireSelection() {
+          if (!journalSelection) {
+            journalSelection = createSelectionController({
+              onChange: (ids) => {
+                document.getElementById('journalSelectCount').textContent = ids.size + ' selected';
+                document.getElementById('journalSelectTrashBtn').disabled = ids.size === 0;
+                if (ids.size === 0 && journalSelectMode) journalExitSelectMode();
+              }
+            });
+          }
+          document.getElementById('myJournalEntries').classList.toggle('sd-select-mode', journalSelectMode);
+          document.querySelectorAll('#myJournalEntries .sd-selectable').forEach(row => {
+            const id = row.dataset.journalId;
+            if (journalSelectMode && journalSelection.has(id)) row.classList.add('sd-selected');
+            attachLongPress(row, {
+              ignoreSelector: '.del-btn',
+              onPressStart: () => row.classList.add('sd-pressing'),
+              onPressCancel: () => row.classList.remove('sd-pressing'),
+              onLongPress: () => {
+                row.classList.remove('sd-pressing');
+                if (!journalSelectMode) journalEnterSelectMode();
+                journalSelection.select(id);
+                row.classList.add('sd-selected');
+              },
+              onTap: () => {
+                if (journalSelectMode) {
+                  const nowSelected = journalSelection.toggle(id);
+                  row.classList.toggle('sd-selected', nowSelected);
+                }
+              }
+            });
+          });
+        }
+        function journalEnterSelectMode() {
+          journalSelectMode = true;
+          document.getElementById('myJournalEntries').classList.add('sd-select-mode');
+          document.getElementById('journalSelectToolbar').classList.add('show');
+        }
+        function journalExitSelectMode() {
+          journalSelectMode = false;
+          if (journalSelection) journalSelection.clear();
+          document.querySelectorAll('#myJournalEntries .sd-selected').forEach(r => r.classList.remove('sd-selected'));
+          document.getElementById('myJournalEntries').classList.remove('sd-select-mode');
+          document.getElementById('journalSelectToolbar').classList.remove('show');
+        }
+        function journalBulkDeleteSelected() {
+          if (!journalSelection || !journalSelection.size) return;
+          const ids = journalSelection.all();
+          confirmDelete({
+            title: `Delete ${ids.length} selected journal entries?`, count: ids.length,
+            message: 'These journal entries will be permanently deleted.',
+            onConfirm: async () => {
+              S.journal = S.journal.filter(e => !ids.some(id => String(id) === String(e.id)));
+              journalExitSelectMode();
+              renderJournal(); scheduleSave();
+            }
+          });
+        }
         document.getElementById('moodRow').addEventListener('click', e => { const m = e.target.closest('.mood'); if (!m) return; document.querySelectorAll('.mood').forEach(x => x.classList.remove('sel')); m.classList.add('sel'); S.selectedMood = m.dataset.mood; });
 
         // ─── HABITS ──────────────────────────────────────────────
         function addHabit() { const name = document.getElementById('habitName').value.trim(); if (!name) { toast('Enter habit name'); return; } S.habits.push({ id: Date.now(), name, emoji: document.getElementById('habitEmoji').value || '✅', goal: parseInt(document.getElementById('habitGoal').value) || 1, streak: 0, doneToday: false, doneDates: [] }); document.getElementById('habitName').value = ''; document.getElementById('habitEmoji').value = ''; document.getElementById('habitGoal').value = ''; closeM('habitModal'); renderHabits(); scheduleSave(); toast('Habit added! ✅'); }
         function toggleHabit(id) { const h = S.habits.find(x => x.id === id); if (!h) return; const today = todayStr(); if (!h.doneToday) { h.doneToday = true; if (!h.doneDates) h.doneDates = []; if (!h.doneDates.includes(today)) h.doneDates.push(today); h.streak = calcStreak(h.doneDates); spawnPetals(3); addXP(5); } else { h.doneToday = false; h.doneDates = (h.doneDates || []).filter(d => d !== today); h.streak = calcStreak(h.doneDates); } renderHabits(); scheduleSave(); }
         function calcStreak(dates) { if (!dates || !dates.length) return 0; let streak = 0, cur = new Date(); if (!dates.includes(todayStr())) cur.setDate(cur.getDate() - 1); for (let i = 0; i < 365; i++) { const d = cur.toISOString().slice(0, 10); if (dates.includes(d)) { streak++; cur.setDate(cur.getDate() - 1); } else break; } return streak; }
-        function delHabit(id) { S.habits = S.habits.filter(h => h.id !== id); renderHabits(); scheduleSave(); }
-        function renderHabits() { const el = document.getElementById('myHabitsList'); if (!S.habits.length) { PS.empty(el, { icon: 'generic', title: 'No habits yet', desc: 'Track small daily habits together and build streaks.', actionLabel: 'Add Habit', onAction: () => openM('habitModal'), compact: true }); renderHabitAnalytics(); return; } const today = todayStr(); S.habits.forEach(h => h.doneToday = (h.doneDates || []).includes(today)); el.innerHTML = S.habits.map(h => `<div class="habit-row"><div class="hc${h.doneToday ? ' done' : ''}" onclick="toggleHabit(${h.id})">${h.doneToday ? '✓' : ''}</div><span style="font-size:16px">${esc(h.emoji)}</span><span style="font-size:13px;flex:1;color:var(--text)">${esc(h.name)}</span><span class="streak-badge">${h.streak}🔥</span><button class="del-btn" onclick="delHabit(${h.id})">✕</button></div>`).join(''); const max = Math.max(0, ...S.habits.map(h => h.streak || 0)); document.getElementById('habitStreak').textContent = max + '🔥'; renderHabitAnalytics(); }
+        function delHabit(id) { confirmDelete({ itemType: 'habit', message: 'This habit and its streak history will be permanently deleted.', onConfirm: () => { S.habits = S.habits.filter(h => h.id !== id); renderHabits(); scheduleSave(); } }); }
+        function renderHabits() { const el = document.getElementById('myHabitsList'); if (!S.habits.length) { PS.empty(el, { icon: 'generic', title: 'No habits yet', desc: 'Track small daily habits together and build streaks.', actionLabel: 'Add Habit', onAction: () => openM('habitModal'), compact: true }); renderHabitAnalytics(); return; } const today = todayStr(); S.habits.forEach(h => h.doneToday = (h.doneDates || []).includes(today)); el.innerHTML = S.habits.map(h => `<div class="habit-row sd-selectable" data-habit-id="${h.id}"><div class="sd-check"><i data-lucide="check"></i></div><div class="hc${h.doneToday ? ' done' : ''}" onclick="toggleHabit(${h.id})">${h.doneToday ? '✓' : ''}</div><span style="font-size:16px">${esc(h.emoji)}</span><span style="font-size:13px;flex:1;color:var(--text)">${esc(h.name)}</span><span class="streak-badge">${h.streak}🔥</span><button class="del-btn" onclick="delHabit(${h.id})">✕</button></div>`).join(''); const max = Math.max(0, ...S.habits.map(h => h.streak || 0)); document.getElementById('habitStreak').textContent = max + '🔥'; renderHabitAnalytics(); if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } habitsWireSelection(); }
+
+        /* ── Long-press multi-select for Habits (page-scoped) ── */
+        let habitsSelection = null;
+        let habitsSelectMode = false;
+        function habitsWireSelection() {
+          if (!habitsSelection) {
+            habitsSelection = createSelectionController({
+              onChange: (ids) => {
+                document.getElementById('habitsSelectCount').textContent = ids.size + ' selected';
+                document.getElementById('habitsSelectTrashBtn').disabled = ids.size === 0;
+                if (ids.size === 0 && habitsSelectMode) habitsExitSelectMode();
+              }
+            });
+          }
+          document.getElementById('myHabitsList').classList.toggle('sd-select-mode', habitsSelectMode);
+          document.querySelectorAll('#myHabitsList .sd-selectable').forEach(row => {
+            const id = row.dataset.habitId;
+            if (habitsSelectMode && habitsSelection.has(id)) row.classList.add('sd-selected');
+            attachLongPress(row, {
+              ignoreSelector: '.del-btn, .hc',
+              onPressStart: () => row.classList.add('sd-pressing'),
+              onPressCancel: () => row.classList.remove('sd-pressing'),
+              onLongPress: () => {
+                row.classList.remove('sd-pressing');
+                if (!habitsSelectMode) habitsEnterSelectMode();
+                habitsSelection.select(id);
+                row.classList.add('sd-selected');
+              },
+              onTap: () => {
+                if (habitsSelectMode) {
+                  const nowSelected = habitsSelection.toggle(id);
+                  row.classList.toggle('sd-selected', nowSelected);
+                }
+              }
+            });
+          });
+        }
+        function habitsEnterSelectMode() {
+          habitsSelectMode = true;
+          document.getElementById('myHabitsList').classList.add('sd-select-mode');
+          document.getElementById('habitsSelectToolbar').classList.add('show');
+        }
+        function habitsExitSelectMode() {
+          habitsSelectMode = false;
+          if (habitsSelection) habitsSelection.clear();
+          document.querySelectorAll('#myHabitsList .sd-selected').forEach(r => r.classList.remove('sd-selected'));
+          document.getElementById('myHabitsList').classList.remove('sd-select-mode');
+          document.getElementById('habitsSelectToolbar').classList.remove('show');
+        }
+        function habitsBulkDeleteSelected() {
+          if (!habitsSelection || !habitsSelection.size) return;
+          const ids = habitsSelection.all();
+          confirmDelete({
+            title: `Delete ${ids.length} selected habits?`, count: ids.length,
+            message: 'These habits and their streak history will be permanently deleted.',
+            onConfirm: async () => {
+              S.habits = S.habits.filter(h => !ids.some(id => String(id) === String(h.id)));
+              habitsExitSelectMode();
+              renderHabits(); scheduleSave();
+            }
+          });
+        }
 
         function renderHabitAnalytics() {
           const heroEl = document.getElementById('habitHeroCard'), insEl = document.getElementById('habitInsightCard'), heatEl = document.getElementById('habitHeatmap');
@@ -9313,12 +9476,75 @@ const p = await Notification.requestPermission();
           const vis = document.getElementById('noteVisibility')?.value || 'both';
           const note = { id: Date.now(), text: v, date: todayStr(), color: noteColors[S.notes.length % noteColors.length], me: true, visibility: vis, by: S.role }; if (rd) { note.reminderDate = rd; note.reminderTime = rt || '09:00'; note.alarmed = false; } S.notes.unshift(note); document.getElementById('noteIn').value = ''; document.getElementById('noteReminderDate').value = ''; document.getElementById('noteReminderTime').value = ''; renderNotes(); scheduleSave(); toast('Note added! ✨');
         }
-        function delNote(i) { S.notes.splice(i, 1); renderNotes(); scheduleSave(); }
+        function delNote(id) { confirmDelete({ itemType: 'note', message: 'This note will be permanently deleted.', onConfirm: () => { S.notes = S.notes.filter(n => n.id !== id); renderNotes(); scheduleSave(); } }); }
         function renderNotes() {
           const el = document.getElementById('notesGrid'); if (!S.notes.length) { el.style.gridColumn = '1/-1'; PS.empty(el, { icon: 'heart', title: 'No notes yet', desc: 'Write something sweet \u2014 it\u2019ll show up here for both of you.', actionLabel: 'Write a Note', onAction: () => document.getElementById('noteIn')?.focus() }); return; } const visibleNotes = S.notes.filter(n => canSeeItem(n));
-          el.innerHTML = visibleNotes.map((n, i) => {
-           const realIdx = S.notes.indexOf(n);
-            return `<div class="note-card" style="background:${n.color}"><div style="font-size:10px;color:var(--text3);margin-bottom:5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap">${privBadgeHtml(n.visibility)}<span>${n.me ? esc(S.myName) : esc(S.partnerName)} · ${fmtDateShort(n.date)}</span></div><div style="font-size:13px;color:var(--text)">${esc(n.text)}</div>${n.reminderDate ? `<div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--yellow-bg);color:var(--yellow);border-radius:8px;padding:3px 7px;margin-top:6px;border:1px solid rgba(251,191,36,0.3)">🔔 ${fmtDateShort(n.reminderDate)} ${n.reminderTime || ''}</div>` : ''}<button class="del-btn" onclick="delNote(${realIdx})" style="position:absolute;top:9px;right:9px">✕</button></div>`;}).join('');
+          el.innerHTML = visibleNotes.map((n) => {
+            return `<div class="note-card sd-selectable" data-note-id="${n.id}" style="background:${n.color}"><div class="sd-check"><i data-lucide="check"></i></div><div style="font-size:10px;color:var(--text3);margin-bottom:5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap">${privBadgeHtml(n.visibility)}<span>${n.me ? esc(S.myName) : esc(S.partnerName)} · ${fmtDateShort(n.date)}</span></div><div style="font-size:13px;color:var(--text)">${esc(n.text)}</div>${n.reminderDate ? `<div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--yellow-bg);color:var(--yellow);border-radius:8px;padding:3px 7px;margin-top:6px;border:1px solid rgba(251,191,36,0.3)">🔔 ${fmtDateShort(n.reminderDate)} ${n.reminderTime || ''}</div>` : ''}<button class="del-btn" onclick="delNote(${n.id})" style="position:absolute;top:9px;right:9px">✕</button></div>`;}).join('');
+          if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
+          notesWireSelection();
+        }
+
+        /* ── Long-press multi-select for Notes (page-scoped) ── */
+        let notesSelection = null;
+        let notesSelectMode = false;
+        function notesWireSelection() {
+          if (!notesSelection) {
+            notesSelection = createSelectionController({
+              onChange: (ids) => {
+                document.getElementById('notesSelectCount').textContent = ids.size + ' selected';
+                document.getElementById('notesSelectTrashBtn').disabled = ids.size === 0;
+                if (ids.size === 0 && notesSelectMode) notesExitSelectMode();
+              }
+            });
+          }
+          document.getElementById('notesGrid').classList.toggle('sd-select-mode', notesSelectMode);
+          document.querySelectorAll('#notesGrid .sd-selectable').forEach(card => {
+            const id = card.dataset.noteId;
+            if (notesSelectMode && notesSelection.has(id)) card.classList.add('sd-selected');
+            attachLongPress(card, {
+              ignoreSelector: '.del-btn',
+              onPressStart: () => card.classList.add('sd-pressing'),
+              onPressCancel: () => card.classList.remove('sd-pressing'),
+              onLongPress: () => {
+                card.classList.remove('sd-pressing');
+                if (!notesSelectMode) notesEnterSelectMode();
+                notesSelection.select(id);
+                card.classList.add('sd-selected');
+              },
+              onTap: () => {
+                if (notesSelectMode) {
+                  const nowSelected = notesSelection.toggle(id);
+                  card.classList.toggle('sd-selected', nowSelected);
+                }
+              }
+            });
+          });
+        }
+        function notesEnterSelectMode() {
+          notesSelectMode = true;
+          document.getElementById('notesGrid').classList.add('sd-select-mode');
+          document.getElementById('notesSelectToolbar').classList.add('show');
+        }
+        function notesExitSelectMode() {
+          notesSelectMode = false;
+          if (notesSelection) notesSelection.clear();
+          document.querySelectorAll('#notesGrid .sd-selected').forEach(r => r.classList.remove('sd-selected'));
+          document.getElementById('notesGrid').classList.remove('sd-select-mode');
+          document.getElementById('notesSelectToolbar').classList.remove('show');
+        }
+        function notesBulkDeleteSelected() {
+          if (!notesSelection || !notesSelection.size) return;
+          const ids = notesSelection.all();
+          confirmDelete({
+            title: `Delete ${ids.length} selected notes?`, count: ids.length,
+            message: 'These notes will be permanently deleted.',
+            onConfirm: async () => {
+              S.notes = S.notes.filter(n => !ids.some(id => String(id) === String(n.id)));
+              notesExitSelectMode();
+              renderNotes(); scheduleSave();
+            }
+          });
         }
         function renderReminders() { const el = document.getElementById('remindersList'); if (!el) return; if (!S.reminders || !S.reminders.length) { PS.empty(el, { icon: 'generic', title: 'No reminders yet', desc: 'Set an alarm for something you don\u2019t want to forget.', actionLabel: 'Set a Reminder', onAction: () => document.getElementById('remTitle')?.focus() }); return; } const sorted = [...S.reminders].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)); el.innerHTML = sorted.map(r => `<div class="card" style="margin-bottom:9px;padding:13px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:4px">🔔 ${esc(r.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(r.date)} at ${r.time || '—'}</div><div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--blue-bg);color:var(--blue);border-radius:7px;padding:2px 7px;margin-top:5px;border:1px solid rgba(96,165,250,0.3)">📣 ${r.forWhom === 'both' ? 'Both of us' : r.forWhom === 'self' ? 'Just me' : 'Partner only'}</div>${r.note ? `<div style="font-size:11px;color:var(--text3);margin-top:5px">${esc(r.note)}</div>` : ''}</div><button class="del-btn" onclick="delReminder(${r.id})">✕</button></div></div>`).join('');}
 
@@ -9600,7 +9826,7 @@ const p = await Notification.requestPermission();
 
         // ─── MONEY ───────────────────────────────────────────────
         function addTransaction() { const desc = document.getElementById('moneyDesc').value.trim(); const amt = parseFloat(document.getElementById('moneyAmt').value); if (!desc || isNaN(amt)) { toast('Fill in description and amount'); return; } S.transactions.unshift({ id: Date.now(), type: document.getElementById('moneyType').value, desc, amt, by: S.role, category: document.getElementById('moneyCategory').value || 'Other', date: document.getElementById('moneyDate').value || todayStr() });['moneyDesc', 'moneyAmt', 'moneyCategory', 'moneyDate'].forEach(id => document.getElementById(id).value = ''); closeM('moneyModal'); renderMoney(); scheduleSave(); toast('Transaction added! 💰'); }
-        function delTransaction(id) { S.transactions = S.transactions.filter(t => t.id !== id); renderMoney(); scheduleSave(); }
+        function delTransaction(id) { const t = S.transactions.find(x => x.id === id); confirmDelete({ itemType: 'transaction', message: t ? `This ${t.type === 'income' ? 'income' : 'expense'} entry (₹${t.amt}) will be permanently deleted.` : 'This transaction will be permanently deleted.', onConfirm: () => { S.transactions = S.transactions.filter(t => t.id !== id); renderMoney(); scheduleSave(); } }); }
         function renderMoney() {
           const ms = new Date(); ms.setDate(1); const mss = ms.toISOString().slice(0, 10);
           const tm = S.transactions.filter(t => t.date >= mss);
@@ -10456,7 +10682,7 @@ function startSyncLoop() {
   document.getElementById('spotifyLinkIn').value = '';
   renderSongs(); scheduleSave(); addXP(5); toast('Song shared! 🎵');
 }
-        function delSong(id) { S.sharedSongs = (S.sharedSongs || []).filter(s => s.id !== id); renderSongs(); scheduleSave(); }
+        function delSong(id) { confirmDelete({ itemType: 'song', message: 'This song will be removed from your shared list.', onConfirm: () => { S.sharedSongs = (S.sharedSongs || []).filter(s => s.id !== id); renderSongs(); scheduleSave(); } }); }
         
         function renderSongs() {
   const el = document.getElementById('songsList'); if (!el) return;
@@ -10517,7 +10743,7 @@ function startSyncLoop() {
           if (todayStr() < c.unlock) { toast('🔒 Still locked until ' + fmtDate(c.unlock)); return; }
           c.opened = true; renderCapsules(); scheduleSave(); spawnPetals(10); toast('💌 ' + c.msg, 6000);
         }
-        function delCapsule(id) { S.capsules = (S.capsules || []).filter(c => c.id !== id); renderCapsules(); scheduleSave(); }
+        function delCapsule(id) { confirmDelete({ itemType: 'capsule', message: 'This time capsule will be permanently deleted.', onConfirm: () => { S.capsules = (S.capsules || []).filter(c => c.id !== id); renderCapsules(); scheduleSave(); } }); }
         function renderCapsules() {
           const el = document.getElementById('capsuleList'); if (!el) return;
           if (!S.capsules || !S.capsules.length) {
@@ -10567,7 +10793,7 @@ function startSyncLoop() {
     PM.giftOpened(box);
   });
 }
-function delSurprise(id) { S.surprises = (S.surprises || []).filter(s => s.id !== id); renderSurprises(); scheduleSave(); }
+function delSurprise(id) { confirmDelete({ itemType: 'surprise', message: 'This surprise will be permanently deleted.', onConfirm: () => { S.surprises = (S.surprises || []).filter(s => s.id !== id); renderSurprises(); scheduleSave(); } }); }
 function renderSurprises() {
   const el = document.getElementById('surpriseList'); if (!el) return;
   if (!S.surprises || !S.surprises.length) { PS.empty(el, { icon: 'capsule', title: 'No surprises yet', desc: 'Hide a message, photo, or note for a future date \u2014 they\u2019ll only see it once it unlocks.', actionLabel: 'New Surprise', onAction: () => openM('surpriseModal') }); return; }
@@ -10672,7 +10898,7 @@ function renderSurprises() {
           ['dreamTitle', 'dreamNote'].forEach(id => document.getElementById(id).value = '');
           closeM('dreamModal'); renderDreamHome(); scheduleSave(); toast('Added to your dream board! 🏡'); spawnPetals(5);
         }
-        function delDream(id) { S.dreamBoard = (S.dreamBoard || []).filter(d => d.id !== id); renderDreamHome(); scheduleSave(); }
+        function delDream(id) { confirmDelete({ itemType: 'dream idea', message: 'This dream board idea will be permanently deleted.', onConfirm: () => { S.dreamBoard = (S.dreamBoard || []).filter(d => d.id !== id); renderDreamHome(); scheduleSave(); } }); }
         function renderDreamHome() {
           const el = document.getElementById('dreamBoardGrid'); if (!el) return;
           const items = (S.dreamBoard || []).filter(d => d.cat === dreamCurTab);

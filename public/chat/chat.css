@@ -409,12 +409,31 @@
 
 
 .chat-rec-timer{font-size:11px;color:var(--red-status);font-weight:700}
-.chat-row{display:flex;margin:2px 0;position:relative}
+.chat-row{display:flex;margin:2px 0;position:relative;padding:4px 8px;border-radius:10px;transition:background-color .15s ease}
 .chat-row.me{justify-content:flex-end}
 .chat-bubble{max-width:82%;padding:8px 12px;border-radius:16px;font-size:13.5px;line-height:1.5;position:relative;cursor:pointer;transition:transform .1s}
 .chat-bubble.mine{background:#161616;color:#fff;border:1px solid rgba(255,255,255,.08);border-radius:16px 4px 16px 16px}
 .chat-bubble.theirs{background:#0e0e0e;color:var(--white);border:1px solid var(--border);border-radius:4px 16px 16px 16px}
 .chat-bubble:active{transform:scale(.98)}
+
+/* Selection mode (WhatsApp-style): selected rows get a red/burgundy
+   fade across the full row width (not just the bubble), plus a
+   check-circle. Unselected rows show an empty outline circle while
+   selection mode is active, so it's obvious which ones aren't picked
+   yet — same pattern WhatsApp uses. */
+#chatMsgs.selecting .chat-row{ padding-left:38px; cursor:pointer; }
+#chatMsgs.selecting .chat-row.me{ padding-left:8px; padding-right:38px; }
+.chat-row.sel-selected{ background:linear-gradient(90deg, rgba(160,20,40,.35), rgba(160,20,40,.12) 60%, transparent); }
+.chat-row.me.sel-selected{ background:linear-gradient(270deg, rgba(160,20,40,.35), rgba(160,20,40,.12) 60%, transparent); }
+.chat-row .sel-check{
+  position:absolute; left:6px; top:50%; transform:translateY(-50%) scale(.6);
+  width:22px; height:22px; border-radius:50%; display:none; align-items:center; justify-content:center;
+  border:2px solid rgba(255,255,255,.35); background:rgba(0,0,0,.25); opacity:0;
+  transition:opacity .15s ease, transform .15s ease; font-size:13px; color:#fff; line-height:1;
+}
+.chat-row.me .sel-check{ left:auto; right:6px; }
+#chatMsgs.selecting .chat-row .sel-check{ display:flex; opacity:1; transform:translateY(-50%) scale(1); }
+.chat-row.sel-selected .sel-check{ background:var(--red); border-color:var(--red); }
 
 /* Swipe-to-reply (WhatsApp-style): drag a bubble right to reply */
 .chat-swipe-reply-icon{

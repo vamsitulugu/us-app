@@ -478,7 +478,9 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <link rel="stylesheet" href="/premium-motion.css">
 <link rel="stylesheet" href="/premium-states.css">
   <link rel="stylesheet" href="/responsive-fix.css">
+  <link rel="stylesheet" href="/safe-delete.css">
   <script src="/js/scroll-reset.js"></script>
+  <script src="/safe-delete.js"></script>
 </head>
 <body>
 
@@ -669,6 +671,11 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
       <div class="rec-filter" data-f="audio" onclick="setRecFilter('audio',this)">🎙 Audio</div>
       <div class="rec-filter" data-f="video" onclick="setRecFilter('video',this)">🎥 Video</div>
       <div class="rec-filter" data-f="favorites" onclick="setRecFilter('favorites',this)">❤️ Favorites</div>
+    </div>
+    <div class="sd-select-toolbar" id="recSelectToolbar">
+      <button type="button" class="sd-select-exit" onclick="recExitSelectMode()" aria-label="Exit selection"><i data-lucide="x"></i></button>
+      <span class="sd-select-count" id="recSelectCount">0 selected</span>
+      <button type="button" class="sd-select-trash" id="recSelectTrashBtn" onclick="recBulkDeleteSelected()" disabled aria-label="Delete selected"><i data-lucide="trash-2"></i></button>
     </div>
     <div class="rec-grid" id="recGrid"></div>
   </div>
@@ -1743,10 +1750,15 @@ function openMvDetail(id) {
 function closeMvDetail() { document.getElementById('mvDetailBg').classList.remove('open'); }
 function editCurrentMovie() { closeMvDetail(); openMovieModal(movieState.detailId); }
 function deleteCurrentMovie() {
-  if (!confirm('Delete this movie?')) return;
-  movieState.movies = movieState.movies.filter(x=>x.id!==movieState.detailId);
-  saveMovieLocal(); closeMvDetail(); renderMovies(); renderMovieStats();
-  showMMToast('Movie deleted');
+  confirmDelete({
+    itemType: 'movie',
+    message: 'This movie will be permanently removed from your list.',
+    onConfirm: () => {
+      movieState.movies = movieState.movies.filter(x=>x.id!==movieState.detailId);
+      saveMovieLocal(); closeMvDetail(); renderMovies(); renderMovieStats();
+      showMMToast('Movie deleted');
+    }
+  });
 }
 
 // ══════════════════════════════════════
@@ -2115,12 +2127,17 @@ function exportRecording(id) {
   a.click();
 }
 function deleteRecording(id) {
-  if (!confirm('Delete this recording?')) return;
-  try { localStorage.removeItem('us_rec_'+id); } catch(e){}
-  musicState.recordings = (musicState.recordings||[]).filter(r=>r.id!==id);
-  saveRecordingsLocal();
-  renderKaraokeHistory();
-  showMMToast('Recording deleted');
+  confirmDelete({
+    itemType: 'recording',
+    message: 'This karaoke recording will be permanently deleted.',
+    onConfirm: () => {
+      try { localStorage.removeItem('us_rec_'+id); } catch(e){}
+      musicState.recordings = (musicState.recordings||[]).filter(r=>r.id!==id);
+      saveRecordingsLocal();
+      renderKaraokeHistory();
+      showMMToast('Recording deleted');
+    }
+  });
 }
 
 // ══════════════════════════════════════
@@ -2352,7 +2369,8 @@ function renderRecGrid() {
   grid.innerHTML = list.map(r => {
     const mine = ctx && r.user_id === ctx.role;
     const who = mine ? 'You' : (ctx ? ctx.partnerName : 'Partner');
-    return `<div class="rec-card" onclick="openRecPlayback('${r.id}')">
+    return `<div class="rec-card sd-selectable" data-rec-id="${r.id}" onclick="recCardClick('${r.id}')">
+      <div class="sd-check"><i data-lucide="check"></i></div>
       <div class="rec-card-thumb">
         ${r.media_type === 'video' ? '🎥' : '🎙️'}
         <span class="rec-badge">${r.duration_sec ? fmtTime(r.duration_sec) : ''}</span>
@@ -2369,6 +2387,92 @@ function renderRecGrid() {
       </div>
     </div>`;
   }).join('');
+  if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
+  recWireSelection();
+}
+
+// Card body's own onclick opens playback, but while in selection mode a
+// plain tap should toggle selection instead — mirrors chat.js's
+// onBubbleClick pattern so long-press and tap share one code path.
+function recCardClick(id) {
+  if (recSelectMode) { const row = document.querySelector(`.rec-card[data-rec-id="${id}"]`); if (row) { const now = recSelection.toggle(id); row.classList.toggle('sd-selected', now); } return; }
+  openRecPlayback(id);
+}
+
+/* ── Long-press multi-select for My Recordings (page-scoped) ── */
+let recSelection = null;
+let recSelectMode = false;
+function recWireSelection() {
+  if (!recSelection) {
+    recSelection = createSelectionController({
+      onChange: (ids) => {
+        document.getElementById('recSelectCount').textContent = ids.size + ' selected';
+        document.getElementById('recSelectTrashBtn').disabled = ids.size === 0;
+        if (ids.size === 0 && recSelectMode) recExitSelectMode();
+      }
+    });
+  }
+  document.getElementById('recGrid').classList.toggle('sd-select-mode', recSelectMode);
+  document.querySelectorAll('#recGrid .sd-selectable').forEach(card => {
+    const id = card.dataset.recId;
+    if (recSelectMode && recSelection.has(id)) card.classList.add('sd-selected');
+    attachLongPress(card, {
+      ignoreSelector: '.rec-card-fav',
+      onPressStart: () => card.classList.add('sd-pressing'),
+      onPressCancel: () => card.classList.remove('sd-pressing'),
+      onLongPress: () => {
+        card.classList.remove('sd-pressing');
+        if (!recSelectMode) recEnterSelectMode();
+        recSelection.select(id);
+        card.classList.add('sd-selected');
+      }
+      // Tap while already selecting is handled by recCardClick (called via
+      // the card's own onclick) so a normal tap still opens playback outside
+      // selection mode instead of being swallowed here.
+    });
+  });
+}
+function recEnterSelectMode() {
+  recSelectMode = true;
+  document.getElementById('recGrid').classList.add('sd-select-mode');
+  document.getElementById('recSelectToolbar').classList.add('show');
+}
+function recExitSelectMode() {
+  recSelectMode = false;
+  if (recSelection) recSelection.clear();
+  document.querySelectorAll('#recGrid .sd-selected').forEach(r => r.classList.remove('sd-selected'));
+  document.getElementById('recGrid').classList.remove('sd-select-mode');
+  document.getElementById('recSelectToolbar').classList.remove('show');
+}
+function recBulkDeleteSelected() {
+  if (!recSelection || !recSelection.size) return;
+  const ctx = getMusicCoupleCtx(); if (!ctx) return;
+  // Only the current user's own recordings can be bulk-deleted — mirrors
+  // the single-delete ownership check in deleteRecordingItem.
+  const ids = recSelection.all().filter(id => { const r = myRecordingsCache.find(x => x.id === id); return r && r.user_id === ctx.role; });
+  if (!ids.length) { showMMToast('You can only delete your own recordings'); return; }
+  confirmDelete({
+    title: `Delete ${ids.length} selected recording${ids.length > 1 ? 's' : ''}?`, count: ids.length,
+    message: 'These recordings will be permanently deleted.',
+    onConfirm: async () => {
+      const { succeeded, failed } = await runBulkDelete(ids, async (id) => {
+        const rec = myRecordingsCache.find(r => r.id === id); if (!rec) throw new Error('not found');
+        const result = await musicApi('DELETE', '/api/recordings/' + id, { coupleId: ctx.coupleId, userId: ctx.role });
+        if (result.storagePath) {
+          await fetch(MUSIC_API + '/api/media/delete-recording', {
+            method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: result.storagePath, coupleId: ctx.coupleId })
+          }).catch(() => {});
+        }
+      });
+      myRecordingsCache = myRecordingsCache.filter(r => !succeeded.some(sid => sid === r.id));
+      recExitSelectMode();
+      renderRecGrid();
+      pingRecordingsChanged();
+      if (failed.length) showMMToast(`${succeeded.length} deleted. ${failed.length} couldn't be deleted.`);
+      else showMMToast(succeeded.length > 1 ? `${succeeded.length} recordings deleted` : 'Recording deleted');
+    }
+  });
 }
 
 async function toggleRecFavorite(id) {
@@ -2415,19 +2519,25 @@ async function deleteRecordingItem(id) {
   const ctx = getMusicCoupleCtx(); if (!ctx) return;
   const rec = myRecordingsCache.find(r => r.id === id); if (!rec) return;
   if (rec.user_id !== ctx.role) { showMMToast('You can only delete your own recordings'); return; }
-  if (!confirm(`Delete "${rec.title}"? This will remove this recording from My Recordings.`)) return;
-  try {
-    const result = await musicApi('DELETE', '/api/recordings/' + id, { coupleId: ctx.coupleId, userId: ctx.role });
-    if (result.storagePath) {
-      await fetch(MUSIC_API + '/api/media/delete-recording', {
-        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: result.storagePath, coupleId: ctx.coupleId })
-      }).catch(() => {});
+  confirmDelete({
+    itemType: rec.media_type === 'video' ? 'video recording' : 'recording',
+    message: `"${rec.title}" will be permanently removed from My Recordings.`,
+    onConfirm: async () => {
+      try {
+        const result = await musicApi('DELETE', '/api/recordings/' + id, { coupleId: ctx.coupleId, userId: ctx.role });
+        if (result.storagePath) {
+          await fetch(MUSIC_API + '/api/media/delete-recording', {
+            method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: result.storagePath, coupleId: ctx.coupleId })
+          }).catch(() => {});
+        }
+        myRecordingsCache = myRecordingsCache.filter(r => r.id !== id);
+        renderRecGrid();
+        pingRecordingsChanged();
+        showMMToast('Recording deleted');
+      } catch (e) { throw e; }
     }
-    loadMyRecordings();
-    pingRecordingsChanged();
-    showMMToast('Recording deleted');
-  } catch (e) { showMMToast('Delete failed'); }
+  });
 }
 
 // Realtime — same broadcast-ping pattern as setupMusicRealtime, own channel

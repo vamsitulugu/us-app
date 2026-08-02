@@ -388,7 +388,8 @@ function reanchorAfterImages() {
 
     const quoted = m.reply_to ? renderQuote(m.reply_to) : '';
 
-    return `<div class="chat-row ${mine ? 'me' : 'them'}${isNew ? ' msg-pop-in' : ''}" data-id="${m.id}" onclick="Chat.onBubbleClick('${m.id}', event)" oncontextmenu="Chat.openMenu('${m.id}', event); return false;" ontouchstart="Chat.startLongPress('${m.id}', event)" ontouchend="Chat.endLongPress()" ontouchcancel="Chat.endLongPress()" ontouchmove="Chat.moveLongPress(event)">
+    return `<div class="chat-row ${mine ? 'me' : 'them'}${isNew ? ' msg-pop-in' : ''}${selectMode && selectedIds.has(m.id) ? ' sel-selected' : ''}" data-id="${m.id}" onclick="Chat.onBubbleClick('${m.id}', event)" oncontextmenu="Chat.openMenu('${m.id}', event); return false;" ontouchstart="Chat.startLongPress('${m.id}', event)" ontouchend="Chat.endLongPress()" ontouchcancel="Chat.endLongPress()" ontouchmove="Chat.moveLongPress(event)">
+      <div class="sel-check">${selectedIds.has(m.id) ? '✓' : ''}</div>
       <div class="chat-swipe-reply-icon">↩️</div>
       <div class="chat-bubble ${mine ? 'mine' : 'theirs'}">
         ${quoted}
@@ -914,14 +915,24 @@ function menuItemsHtml(m, id, includeSelect) {
   }
 
   // ─── SELECT MODE ─────────────────────────────────────
+  function markRowSelected(id, on) {
+    const row = document.querySelector(`.chat-row[data-id="${id}"]`);
+    if (!row) return;
+    row.classList.toggle('sel-selected', on);
+    const chk = row.querySelector('.sel-check');
+    if (chk) chk.textContent = on ? '✓' : '';
+  }
   function enterSelectMode(id) {
     document.getElementById('chatMsgMenu')?.remove();
     selectMode = true; selectedIds = new Set([id]);
+    document.getElementById('chatMsgs')?.classList.add('selecting');
     document.getElementById('chatSelectToolbar').classList.add('show');
+    markRowSelected(id, true);
     updateSelectCount();
   }
   function toggleSelect(id) {
     if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
+    markRowSelected(id, selectedIds.has(id));
     if (!selectedIds.size) exitSelectMode(); else updateSelectCount();
   }
   function updateSelectCount() {
@@ -929,7 +940,12 @@ function menuItemsHtml(m, id, includeSelect) {
     const moreBtn = document.getElementById('chatSelectMoreBtn');
     if (moreBtn) moreBtn.style.display = selectedIds.size === 1 ? '' : 'none';
   }
-  function exitSelectMode() { selectMode = false; selectedIds.clear(); document.getElementById('chatSelectToolbar').classList.remove('show'); }
+  function exitSelectMode() {
+    selectMode = false; selectedIds.clear();
+    document.getElementById('chatMsgs')?.classList.remove('selecting');
+    document.querySelectorAll('.chat-row.sel-selected').forEach(r => { r.classList.remove('sel-selected'); const c = r.querySelector('.sel-check'); if (c) c.textContent = ''; });
+    document.getElementById('chatSelectToolbar').classList.remove('show');
+  }
   // Bulk delete always deletes "for me" — safe regardless of whether the
   // selection mixes your own and your partner's messages (deleting a
   // partner's message "for everyone" isn't something you're allowed to do,
