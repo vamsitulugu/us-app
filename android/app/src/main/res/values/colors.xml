@@ -21,4 +21,14 @@
     <!-- Matches capacitor.config.json plugins.SplashScreen.backgroundColor,
          used by the responsive launch-screen background (splash_centered.xml). -->
     <color name="splashBackground">#1a0010</color>
+
+    <!-- Notification (notify_chat_left_avatar.xml) title/body text colors.
+         This is a CUSTOM RemoteViews layout, so Android's automatic
+         light/dark notification-shade text styling does NOT apply to it —
+         hardcoding a literal hex here (as before) always renders that
+         exact color regardless of shade theme. These are the light-shade
+         values (Material "black high/medium emphasis"); values-night/colors.xml
+         overrides them with light text for a dark notification shade. -->
+    <color name="notif_text_primary">#DE000000</color>
+    <color name="notif_text_secondary">#99000000</color>
 </resources>

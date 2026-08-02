@@ -36,7 +36,7 @@
         android:layout_marginStart="12dp"
         android:textStyle="bold"
         android:textSize="14sp"
-        android:textColor="#DE000000"
+        android:textColor="@color/notif_text_primary"
         android:maxLines="1"
         android:ellipsize="end" />
 
@@ -48,7 +48,7 @@
         android:layout_below="@id/notif_title"
         android:layout_marginStart="12dp"
         android:textSize="13sp"
-        android:textColor="#99000000"
+        android:textColor="@color/notif_text_secondary"
         android:maxLines="4"
         android:ellipsize="end" />
 

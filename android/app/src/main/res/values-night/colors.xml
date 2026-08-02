@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark-shade override for notify_chat_left_avatar.xml's title/body
+         text (see values/colors.xml for the light-shade defaults and full
+         explanation). Near-white, matching Material "white high/medium
+         emphasis" text-on-dark conventions, so title and body stay clearly
+         readable against a dark notification background. -->
+    <color name="notif_text_primary">#DEFFFFFF</color>
+    <color name="notif_text_secondary">#99FFFFFF</color>
+</resources>

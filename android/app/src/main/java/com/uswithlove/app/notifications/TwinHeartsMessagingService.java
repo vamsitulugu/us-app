@@ -218,7 +218,7 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
 
   // ── Shared default person-avatar bitmap: brand-accent circular
   // background + a clean white neutral person silhouette (head + shoulder
-  // arc), drawn entirely in code so it never depends on a missing/XML-only
+  // dome), drawn entirely in code so it never depends on a missing/XML-only
   // drawable resource. Deliberately mirrors the in-app SVG fallback
   // (public/js: renderDefaultAvatar — circle head + rounded shoulder arc)
   // so the notification and in-app UI show the same default. Used both for
@@ -226,26 +226,64 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
   // the incoming-call Person icon (showIncomingCall) — the two places a
   // sender/profile avatar is ever rendered in a notification. Never used
   // for the separate Twin Hearts app/logo large icon (buildAppLogoBitmap).
+  //
+  // Sizing: the red background is a circle INSCRIBED in the size×size
+  // bitmap — it only touches the square's edges at the four midpoints, so
+  // there's empty (transparent) space in the four corners between the
+  // circle and the bitmap edge. The previous version clipped the shoulder
+  // shape to a plain RECTANGLE, not the circle itself, so white pixels
+  // painted into those corners were never actually cut off — that's what
+  // made the body look like it "extended outside" the red circle. Fixed
+  // by (a) clipping all foreground drawing to the exact same circular
+  // path as the background, as a safety net, and (b) sizing/positioning
+  // the head + shoulders so the whole silhouette — including its widest
+  // point, the shoulder corners — sits well inside that circle with
+  // margin to spare, verified below by distance-from-center math rather
+  // than by eyeballing the source drawable.
   private Bitmap buildDefaultAvatarBitmap(int size) {
     Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
     Canvas c = new Canvas(bmp);
 
+    float cx = size / 2f, cy = size / 2f, r = size / 2f;
+
     Paint bg = new Paint(Paint.ANTI_ALIAS_FLAG);
     bg.setColor(Color.parseColor(NotificationRouter.BRAND_ACCENT_COLOR));
-    c.drawCircle(size / 2f, size / 2f, size / 2f, bg);
+    c.drawCircle(cx, cy, r, bg);
+
+    // Safety clip to the exact circular boundary — nothing drawn below can
+    // ever bleed past the red circle, even if this geometry changes later.
+    android.graphics.Path circleClip = new android.graphics.Path();
+    circleClip.addCircle(cx, cy, r, android.graphics.Path.Direction.CW);
+    c.save();
+    c.clipPath(circleClip);
 
     Paint fg = new Paint(Paint.ANTI_ALIAS_FLAG);
     fg.setColor(Color.parseColor("#EBFFFFFF")); // near-white silhouette, matches in-app opacity
 
-    // Head
-    c.drawCircle(size / 2f, size * 0.37f, size * 0.15f, fg);
+    // Head — simple filled circle, positioned above center.
+    float headR = size * 0.13f;
+    float headCy = cy - size * 0.14f;
+    c.drawCircle(cx, headCy, headR, fg);
 
-    // Shoulders — bottom arc of a circle, clipped so only the lower part shows
-    c.save();
-    c.clipRect(0, size * 0.60f, size, (float) size);
-    c.drawCircle(size / 2f, size * 0.86f, size * 0.26f, fg);
+    // Shoulders — the top half of an oval ("dome"), NOT a full circle
+    // clipped by a rectangle. drawArc(..., 180, 180, true, ...) fills
+    // exactly the upper half of the oval, so the shape's flat bottom edge
+    // (its widest points, the "shoulder corners") is fixed and known —
+    // unlike a rect-clipped circle, there's no way for this to extend
+    // past where we explicitly put it.
+    float bodyRadiusX = size * 0.25f;
+    float bodyRadiusY = size * 0.17f;
+    float bodyBaseY = cy + size * 0.16f; // flat edge / widest point of the dome
+    android.graphics.RectF bodyOval = new android.graphics.RectF(
+        cx - bodyRadiusX, bodyBaseY - bodyRadiusY, cx + bodyRadiusX, bodyBaseY + bodyRadiusY);
+    c.drawArc(bodyOval, 180, 180, true, fg);
+    // Sanity check (design-time): the shoulder corners (cx±bodyRadiusX, bodyBaseY)
+    // are the silhouette's farthest points from center. At the sizes used here
+    // (144px avatar / 256px call icon) that distance is ~42px / ~75px against a
+    // circle radius of 72px / 128px — roughly 59% of the radius, leaving ~41%
+    // margin on all sides, comfortably inside the 55–65%-of-diameter target.
+
     c.restore();
-
     return bmp;
   }
 
