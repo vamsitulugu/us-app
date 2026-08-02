@@ -388,7 +388,7 @@ function reanchorAfterImages() {
 
     const quoted = m.reply_to ? renderQuote(m.reply_to) : '';
 
-    return `<div class="chat-row ${mine ? 'me' : 'them'}${isNew ? ' msg-pop-in' : ''}" data-id="${m.id}" onclick="Chat.onBubbleClick('${m.id}', event)" oncontextmenu="Chat.openMenu('${m.id}', event); return false;" ontouchstart="Chat.startLongPress('${m.id}')" ontouchend="Chat.endLongPress()" ontouchmove="Chat.endLongPress()">
+    return `<div class="chat-row ${mine ? 'me' : 'them'}${isNew ? ' msg-pop-in' : ''}" data-id="${m.id}" onclick="Chat.onBubbleClick('${m.id}', event)" oncontextmenu="Chat.openMenu('${m.id}', event); return false;" ontouchstart="Chat.startLongPress('${m.id}', event)" ontouchend="Chat.endLongPress()" ontouchcancel="Chat.endLongPress()" ontouchmove="Chat.moveLongPress(event)">
       <div class="chat-swipe-reply-icon">↩️</div>
       <div class="chat-bubble ${mine ? 'mine' : 'theirs'}">
         ${quoted}
@@ -709,16 +709,28 @@ function reanchorAfterImages() {
     if (lpFired) { lpFired = false; return; }
     if (selectMode) { toggleSelect(id); return; }
   }
-  function startLongPress(id) {
+  let lpStartX = 0, lpStartY = 0;
+  const LP_MOVE_TOLERANCE = 12; // px — real fingers jitter slightly during a hold; only cancel on real movement
+  function startLongPress(id, ev) {
     lpFired = false;
     clearTimeout(lpTimer);
+    const p = ev && ev.touches ? ev.touches[0] : ev;
+    lpStartX = p ? p.clientX : 0;
+    lpStartY = p ? p.clientY : 0;
     lpTimer = setTimeout(() => {
       lpFired = true;
       if (navigator.vibrate) navigator.vibrate(30);
       openMenu(id);
     }, 450);
   }
-  function endLongPress() { clearTimeout(lpTimer); }
+  function moveLongPress(ev) {
+    if (!lpTimer) return;
+    const p = ev && ev.touches ? ev.touches[0] : ev;
+    if (!p) return;
+    const dx = Math.abs(p.clientX - lpStartX), dy = Math.abs(p.clientY - lpStartY);
+    if (dx > LP_MOVE_TOLERANCE || dy > LP_MOVE_TOLERANCE) endLongPress();
+  }
+  function endLongPress() { clearTimeout(lpTimer); lpTimer = null; }
   function openMenu(id, ev) {
   // If selection mode is already active, long-press / right-click on
   // another message just adds it to the selection instead of popping
@@ -1329,7 +1341,7 @@ function menuItemsHtml(m, id) {
     isSelecting, closeMsgMenuIfOpen,
     openSearch, closeSearch, runSearch, scrollToMsg, sendGif, sendEmoji, sendEmojiTap,
     openEmojiPanel, switchEmojiTab, filterEmoji, openGifPanel, searchGifs, markRead, init, openSheet, closeSheet,
-    forwardMsg, copyMsg, editMsg, cancelEdit, infoMsg, cancelRecording, startLongPress, endLongPress,
+    forwardMsg, copyMsg, editMsg, cancelEdit, infoMsg, cancelRecording, startLongPress, endLongPress, moveLongPress,
     onAudioPick, sendLocation, openGiftPanel, sendGift, toggleVoicePlay,
     openStickerPanel, sendSticker, sendContactCard, openContactCard, openMemories, openPollComposer, submitPoll, votePoll,
     destroyPanels
