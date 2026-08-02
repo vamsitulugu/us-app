@@ -395,7 +395,7 @@ function chatMsgToVoice(m) {
   const d = new Date(m.created_at);
   const durSec = (m.media_meta && m.media_meta.duration) || 0;
   return {
-    id: m.id,
+    id: String(m.id),
     audioData: m.media_url,           // hosted/signed URL — <audio>/fetch both accept a URL same as a data URI
     duration: fmtDurationLabel(durSec),
     durationSec: durSec,
@@ -612,28 +612,29 @@ function renderVoiceListInto(elId, voices, isLibrary) {
       const name = isMe ? colState.myName : colState.partnerName;
       const initial = name[0] || '?';
       const inLibrary = colState.library.some(x => x.id === v.id);
-      return `<div class="voice-item${isPlaying?' playing':''}${isFav?' favorited':''}" id="vi-${v.id}" data-vid="${v.id}" onclick="voiceRowClick(event,${JSON.stringify(v.id)},${isLibrary})">
-        <div class="voice-select-chk ${isChecked?'checked':''}" onclick="event.stopPropagation();toggleSelect(${JSON.stringify(v.id)})">${isChecked?'✓':''}</div>
+      const idAttr = escHtml(String(v.id));
+      return `<div class="voice-item${isPlaying?' playing':''}${isFav?' favorited':''}" id="vi-${v.id}" data-vid="${idAttr}" data-action="row" data-id="${idAttr}" data-lib="${isLibrary?'1':'0'}">
+        <div class="voice-select-chk ${isChecked?'checked':''}" data-action="select" data-id="${idAttr}">${isChecked?'✓':''}</div>
         <div class="voice-av ${isMe?'me':'partner'}">${initial}</div>
-        <button class="voice-play-btn${isPlaying?' playing':''}" onclick="event.stopPropagation();playVoice(${JSON.stringify(v.id)},${JSON.stringify(v.audioData||'')})">
+        <button class="voice-play-btn${isPlaying?' playing':''}" data-action="play" data-id="${idAttr}" data-lib="${isLibrary?'1':'0'}">
           ${isPlaying ? '⏸' : '▶'}
         </button>
         <div class="voice-info">
           <div class="voice-sender">${escHtml(name)}${!isLibrary && inLibrary ? ' <span class="voice-lib-badge">SAVED</span>' : ''}</div>
           <div class="voice-date">${v.time || ''}</div>
         </div>
-        <div class="voice-waveform" id="wf-${v.id}" onclick="event.stopPropagation();seekWaveform(event,${JSON.stringify(v.id)})">
+        <div class="voice-waveform" id="wf-${v.id}" data-action="seek" data-id="${idAttr}">
           <div class="voice-seek-fill" id="wfseek-${v.id}" style="width:0%"></div>
           ${renderWaveBars(v)}
         </div>
         <div class="voice-dur">${v.duration}</div>
         <div class="voice-actions">
-          <button class="voice-action-btn fav voice-act-inline${isFav?' fav':''}" title="Favorite" onclick="event.stopPropagation();toggleVoiceFav(${JSON.stringify(v.id)})">${isFav?'⭐':'☆'}</button>
-          ${!isLibrary ? `<button class="voice-action-btn voice-act-inline" title="Save to Library" onclick="event.stopPropagation();exportToLibrary(${JSON.stringify(v.id)})">💾</button>` : ''}
-          ${!isLibrary ? `<button class="voice-action-btn voice-act-inline" title="Open in Chat" onclick="event.stopPropagation();openInChat(${JSON.stringify(v.id)})">💬</button>` : ''}
-          <button class="voice-action-btn voice-act-inline" title="Download" onclick="event.stopPropagation();downloadVoice(${JSON.stringify(v.audioData||'')})">⬇️</button>
-          <button class="voice-action-btn del voice-act-inline" title="Delete" onclick="event.stopPropagation();deleteVoice(${JSON.stringify(v.id)},${isLibrary})">🗑️</button>
-          <button class="voice-action-btn voice-act-kebab" title="More" onclick="event.stopPropagation();openVoiceMenu(event,${JSON.stringify(v.id)},${isLibrary})">⋮</button>
+          <button class="voice-action-btn fav voice-act-inline${isFav?' fav':''}" title="Favorite" data-action="fav" data-id="${idAttr}">${isFav?'⭐':'☆'}</button>
+          ${!isLibrary ? `<button class="voice-action-btn voice-act-inline" title="Save to Library" data-action="save" data-id="${idAttr}">💾</button>` : ''}
+          ${!isLibrary ? `<button class="voice-action-btn voice-act-inline" title="Open in Chat" data-action="chat" data-id="${idAttr}">💬</button>` : ''}
+          <button class="voice-action-btn voice-act-inline" title="Download" data-action="download" data-id="${idAttr}" data-lib="${isLibrary?'1':'0'}">⬇️</button>
+          <button class="voice-action-btn del voice-act-inline" title="Delete" data-action="delete" data-id="${idAttr}" data-lib="${isLibrary?'1':'0'}">🗑️</button>
+          <button class="voice-action-btn voice-act-kebab" title="More" data-action="menu" data-id="${idAttr}" data-lib="${isLibrary?'1':'0'}">⋮</button>
         </div>
       </div>`;
     }).join('')}
@@ -642,6 +643,43 @@ function renderVoiceListInto(elId, voices, isLibrary) {
   // Kick off real-waveform generation for any items missing cached peaks
   voices.forEach(v => { if (v.audioData && !waveformCache[v.id]) generateRealWaveform(v.id, v.audioData); });
 }
+
+// ── EVENT DELEGATION — bound ONCE per container, survives every re-render ──
+// (innerHTML re-renders on every play/favorite/filter/sort/search change;
+// delegated listeners on the stable parent container don't need rebinding.)
+// ids off chat_messages may be numeric (bigint) or a uuid string; coerce
+// to string for lookups since dataset values are always strings.
+function findVoiceByAnyId(id, isLibrary) {
+  const list = isLibrary ? colState.library : colState.voices;
+  return list.find(x => String(x.id) === String(id));
+}
+function bindVoiceListDelegation(elId) {
+  const el = document.getElementById(elId);
+  if (!el || el.dataset.delegated) return;
+  el.dataset.delegated = '1';
+  el.addEventListener('click', (event) => {
+    const control = event.target.closest('[data-action]');
+    if (!control) return;
+    const action = control.dataset.action;
+    const id = control.dataset.id;
+    const isLibrary = control.dataset.lib === '1';
+    if (action !== 'row') event.stopPropagation();
+    switch (action) {
+      case 'play': { const v = findVoiceByAnyId(id, isLibrary); playVoice(id, v ? v.audioData : ''); break; }
+      case 'seek': seekWaveform(event, id); break;
+      case 'select': toggleSelect(id); break;
+      case 'fav': toggleVoiceFav(id); break;
+      case 'save': exportToLibrary(id); break;
+      case 'chat': openInChat(id); break;
+      case 'download': { const v = findVoiceByAnyId(id, isLibrary); downloadVoice(v ? v.audioData : ''); break; }
+      case 'delete': deleteVoice(id, isLibrary); break;
+      case 'menu': openVoiceMenu(event, id, isLibrary); break;
+      case 'row': voiceRowClick(event, id, isLibrary); break;
+    }
+  });
+}
+bindVoiceListDelegation('voiceList');
+bindVoiceListDelegation('libraryList');
 
 function voiceRowClick(e, id, isLibrary) {
   if (selectMode) toggleSelect(id);
@@ -787,22 +825,36 @@ function openVoiceMenu(ev, id, isLibrary) {
   if (!v) return;
   const isFav = colState.voiceFavs.includes(id);
   const items = [];
-  items.push({ label: isFav ? 'Unfavorite' : 'Favorite', ico: isFav ? '⭐' : '☆', fn: `toggleVoiceFav(${JSON.stringify(id)})` });
+  items.push({ label: isFav ? 'Unfavorite' : 'Favorite', ico: isFav ? '⭐' : '☆', run: () => toggleVoiceFav(id) });
   if (!isLibrary) {
-    items.push({ label: 'Save to Library', ico: '💾', fn: `exportToLibrary(${JSON.stringify(id)})` });
-    items.push({ label: 'Open in Chat', ico: '💬', fn: `openInChat(${JSON.stringify(id)})` });
+    items.push({ label: 'Save to Library', ico: '💾', run: () => exportToLibrary(id) });
+    items.push({ label: 'Open in Chat', ico: '💬', run: () => openInChat(id) });
   }
-  items.push({ label: 'Download', ico: '⬇️', fn: `downloadVoice(${JSON.stringify(v.audioData||'')})` });
-  items.push({ label: isLibrary ? 'Remove from Library' : 'Delete', ico: '🗑️', fn: `deleteVoice(${JSON.stringify(id)},${isLibrary})`, danger: true });
+  items.push({ label: 'Download', ico: '⬇️', run: () => downloadVoice(v.audioData || '') });
+  items.push({ label: isLibrary ? 'Remove from Library' : 'Delete', ico: '🗑️', run: () => deleteVoice(id, isLibrary), danger: true });
 
   const sheet = document.createElement('div');
   sheet.id = 'voiceActionSheet';
   sheet.className = 'voice-action-sheet';
-  sheet.innerHTML = `<div class="voice-action-sheet-backdrop" onclick="closeVoiceMenu()"></div>
-    <div class="voice-action-sheet-panel">
-      ${items.map(it => `<button class="voice-sheet-item${it.danger?' danger':''}" onclick="closeVoiceMenu();${it.fn}">${it.ico} ${it.label}</button>`).join('')}
-      <button class="voice-sheet-item voice-sheet-cancel" onclick="closeVoiceMenu()">Cancel</button>
-    </div>`;
+  const backdrop = document.createElement('div');
+  backdrop.className = 'voice-action-sheet-backdrop';
+  backdrop.addEventListener('click', closeVoiceMenu);
+  const panel = document.createElement('div');
+  panel.className = 'voice-action-sheet-panel';
+  items.forEach(it => {
+    const btn = document.createElement('button');
+    btn.className = 'voice-sheet-item' + (it.danger ? ' danger' : '');
+    btn.textContent = it.ico + ' ' + it.label;
+    btn.addEventListener('click', () => { closeVoiceMenu(); it.run(); });
+    panel.appendChild(btn);
+  });
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'voice-sheet-item voice-sheet-cancel';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', closeVoiceMenu);
+  panel.appendChild(cancelBtn);
+  sheet.appendChild(backdrop);
+  sheet.appendChild(panel);
   document.body.appendChild(sheet);
   setTimeout(() => document.addEventListener('click', closeVoiceMenu, true), 0);
 }
@@ -938,8 +990,8 @@ function renderPhotos() {
           ${isFav ? '<div class="photo-fav-badge">⭐</div>' : ''}
           <div class="photo-overlay"><div class="photo-overlay-date">${p.date||''}</div></div>
           <div class="photo-action-row">
-            <button class="pa-btn" onclick="event.stopPropagation();togglePhotoFav(${JSON.stringify(p.id)})">${isFav?'★':'☆'}</button>
-            <button class="pa-btn" onclick="event.stopPropagation();downloadPhoto(${JSON.stringify(p.url||'')})">⬇</button>
+            <button class="pa-btn" onclick='event.stopPropagation();togglePhotoFav(${JSON.stringify(p.id)})'>${isFav?'★':'☆'}</button>
+            <button class="pa-btn" onclick='event.stopPropagation();downloadPhoto(${JSON.stringify(p.url||'')})'>⬇</button>
           </div>
         </div>`;
       }).join('')}
