@@ -248,6 +248,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <link rel="stylesheet" href="/premium-states.css">
   <link rel="stylesheet" href="/responsive-fix.css">
   <script src="/js/scroll-reset.js"></script>
+<link rel="stylesheet" href="/safe-delete.css">
 </head>
 <body>
 
@@ -264,6 +265,13 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
   <div class="dg-tab active" onclick="switchDGTab('my',this)">❤️ My Dreams</div>
   <div class="dg-tab partner-tab" onclick="switchDGTab('partner',this)">💜 Partner's Dreams</div>
   <div class="dg-tab" onclick="switchDGTab('shared',this)">✨ Shared Goals</div>
+</div>
+
+<!-- ═══ SELECTION TOOLBAR (long-press multi-select) ═══ -->
+<div class="sd-select-toolbar" id="dgSelectToolbar" style="margin:0 16px 12px">
+  <button type="button" class="sd-select-exit" onclick="dgExitSelectMode()" aria-label="Exit selection"><i data-lucide="x"></i></button>
+  <span class="sd-select-count" id="dgSelectCount">0 selected</span>
+  <button type="button" class="sd-select-trash" id="dgSelectTrashBtn" onclick="dgBulkDeleteSelected()" disabled aria-label="Delete selected"><i data-lucide="trash-2"></i></button>
 </div>
 
 <!-- ═══ SECTIONS ═══ -->
@@ -430,6 +438,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
      header comment) and is called synchronously by renderAll() below on first
      load, so it must be loaded before that inline script, not after it. -->
 <script src="/premium-states.js"></script>
+<script src="/safe-delete.js"></script>
 <script>
 // ══ STATE ══
 let dgState = {
@@ -618,6 +627,8 @@ function renderGrid(gridId, dreams, section) {
   }
   el.style.gridColumn='';
   el.innerHTML=dreams.map(d=>renderDreamCard(d,section)).join('');
+  if (window.lucide) { try { lucide.createIcons(); } catch(e) {} }
+  dgWireSelection();
 }
 
 function renderDreamCard(d, section) {
@@ -627,7 +638,8 @@ function renderDreamCard(d, section) {
   const progColor=prog>=100?'var(--green)':prog>=60?'var(--accent)':prog>=30?'var(--yellow)':'var(--red)';
   const gradient=CAT_GRADIENTS[d.category]||CAT_GRADIENTS.Other;
 
-  return `<div class="dream-card${isComplete?' completed':''}" style="--card-accent:${gradient}">
+  return `<div class="dream-card sd-selectable${isComplete?' completed':''}" data-dream-id="${d.id}" style="--card-accent:${gradient}">
+    <div class="sd-check"><i data-lucide="check"></i></div>
     <div class="dc-top">
       <div class="dc-emoji" style="background:${gradient}">${d.emoji||CATS[d.category]||'🌟'}</div>
       <div class="dc-meta">
@@ -665,6 +677,78 @@ function renderDreamCard(d, section) {
     </div>
   </div>`;
 }
+
+// ══ LONG-PRESS MULTI-SELECT (page-scoped) ══
+let dgSelection = null;
+let dgSelectMode = false;
+
+function dgWireSelection() {
+  if (!dgSelection) {
+    dgSelection = createSelectionController({
+      onChange: (ids) => {
+        document.getElementById('dgSelectCount').textContent = ids.size + ' selected';
+        document.getElementById('dgSelectTrashBtn').disabled = ids.size === 0;
+        if (ids.size === 0 && dgSelectMode) dgExitSelectMode();
+      }
+    });
+  }
+  document.querySelectorAll('.dream-card.sd-selectable').forEach(card => {
+    if (card.dataset.dgWired) return; // avoid double-binding on re-render
+    card.dataset.dgWired = '1';
+    const id = card.dataset.dreamId;
+    if (dgSelectMode && dgSelection.has(id)) card.classList.add('sd-selected');
+    attachLongPress(card, {
+      ignoreSelector: '.dc-actions, .dc-progress-bar',
+      onPressStart: () => card.classList.add('sd-pressing'),
+      onPressCancel: () => card.classList.remove('sd-pressing'),
+      onLongPress: () => {
+        card.classList.remove('sd-pressing');
+        if (!dgSelectMode) dgEnterSelectMode();
+        dgSelection.select(id);
+        card.classList.add('sd-selected');
+      },
+      onTap: () => {
+        if (dgSelectMode) {
+          const nowSelected = dgSelection.toggle(id);
+          card.classList.toggle('sd-selected', nowSelected);
+        }
+        // Outside selection mode, a plain tap on the card body does nothing —
+        // the card's own buttons (Progress/Done/Edit/Delete) already handle taps.
+      }
+    });
+  });
+}
+
+function dgEnterSelectMode() {
+  dgSelectMode = true;
+  document.getElementById('dgSelectToolbar').classList.add('show');
+}
+
+function dgExitSelectMode() {
+  dgSelectMode = false;
+  if (dgSelection) dgSelection.clear();
+  document.querySelectorAll('.dream-card.sd-selected').forEach(c => c.classList.remove('sd-selected'));
+  document.getElementById('dgSelectToolbar').classList.remove('show');
+}
+
+function dgBulkDeleteSelected() {
+  if (!dgSelection || !dgSelection.size) return;
+  const ids = dgSelection.all();
+  confirmDelete({
+    title: `Delete ${ids.length} selected dream${ids.length > 1 ? 's' : ''}?`,
+    count: ids.length,
+    message: 'These dreams will be permanently removed.',
+    onConfirm: async () => {
+      dgState.dreams = dgState.dreams.filter(d => !ids.some(id => String(id) === String(d.id)));
+      saveDGState();
+      renderSection(currentDGTab); renderStats();
+      dgExitSelectMode();
+      showDGToast(ids.length > 1 ? `${ids.length} dreams removed` : 'Dream removed');
+    }
+  });
+}
+window.dgExitSelectMode = dgExitSelectMode;
+window.dgBulkDeleteSelected = dgBulkDeleteSelected;
 
 function escHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function fmtDate(s){try{return new Date(s+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});}catch(e){return s}}
@@ -791,11 +875,16 @@ window.markComplete=markComplete;
 
 // ══ DELETE ══
 function deleteDream(id) {
-  if(!confirm('Delete this dream?')) return;
-  dgState.dreams=dgState.dreams.filter(d=>d.id!==id);
-  saveDGState();
-  renderSection(currentDGTab);renderStats();
-  showDGToast('Dream removed');
+  confirmDelete({
+    itemType: 'dream',
+    message: 'This dream will be permanently removed.',
+    onConfirm: async () => {
+      dgState.dreams=dgState.dreams.filter(d=>d.id!==id);
+      saveDGState();
+      renderSection(currentDGTab);renderStats();
+      showDGToast('Dream removed');
+    }
+  });
 }
 window.deleteDream=deleteDream;
 

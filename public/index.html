@@ -7746,6 +7746,17 @@ function setJustPairedAt(ts) {
               if (openMemViewerEl && openMemViewerEl.classList.contains('open')) { closeMemViewer(); return; }
               // 0.5) Memories selection mode active — exit selection, don't navigate.
               if (typeof memSelectMode !== 'undefined' && memSelectMode) { memExitSelectMode(); return; }
+              // 0.6) Dream Goals lives in its own same-origin iframe with its own
+              //      safe-delete confirm sheet + selection mode — check those
+              //      before falling through to page navigation.
+              if (document.getElementById('page-dreamgoals')?.classList.contains('active')) {
+                const dgWin = document.getElementById('dreamgoalsFrame')?.contentWindow;
+                try {
+                  const dgConfirm = dgWin?.document.querySelector('.sd-overlay.show');
+                  if (dgConfirm) { dgConfirm.classList.remove('show'); return; }
+                  if (dgWin?.dgSelectMode) { dgWin.dgExitSelectMode(); return; }
+                } catch (e) {}
+              }
               // 1) An open modal takes priority — just close it.
               const openModal = document.querySelector('.modal-bg.open');
               if (openModal) { openModal.classList.remove('open'); return; }
