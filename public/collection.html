@@ -645,6 +645,42 @@ function renderVoiceListInto(elId, voices, isLibrary) {
 
   // Kick off real-waveform generation for any items missing cached peaks
   voices.forEach(v => { if (v.audioData && !waveformCache[v.id]) generateRealWaveform(v.id, v.audioData); });
+
+  wireVoiceLongPress(el);
+}
+
+// Long-press ANY row (outside the waveform / action buttons / checkbox,
+// which each already own their own gesture — drag-to-seek, play, fav,
+// etc.) to enter the SAME selectMode/selectedIds/toggleSelect system the
+// existing "☑ Select" button already drives, so this is one selection
+// system, not two competing ones (Part 15/24). Re-wired after every
+// render since innerHTML replaces the row elements each time.
+const COL_LONGPRESS_IGNORE = '.voice-waveform, .voice-actions, .voice-select-chk, .voice-play-btn';
+function wireVoiceLongPress(container) {
+  container.querySelectorAll('.voice-item').forEach(row => {
+    if (row.dataset.lpWired) return;
+    row.dataset.lpWired = '1';
+    row.classList.add('sd-selectable');
+    const id = row.dataset.id;
+    attachLongPress(row, {
+      ignoreSelector: COL_LONGPRESS_IGNORE,
+      threshold: 380,
+      onPressStart: () => row.classList.add('sd-pressing'),
+      onPressCancel: () => row.classList.remove('sd-pressing'),
+      onLongPress: () => {
+        row.classList.remove('sd-pressing');
+        if (!selectMode) {
+          selectMode = true;
+          document.getElementById('voiceList')?.classList.add('col-select-mode');
+          document.getElementById('libraryList')?.classList.add('col-select-mode');
+          renderToolbar();
+          updateBulkBar();
+        }
+        toggleSelect(id);
+      },
+      onTap: () => { /* existing delegated click handler on the container already handles taps (play, row-select-when-in-selectMode, etc.) */ }
+    });
+  });
 }
 
 // ── EVENT DELEGATION — bound ONCE per container, survives every re-render ──

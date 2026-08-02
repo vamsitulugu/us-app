@@ -92,7 +92,8 @@
 
 /* ── Long-press helper (pointer events, scroll-safe) ─────────── */
 /**
- * attachLongPress(el, { onLongPress, onTap, onPressStart, onPressCancel, threshold=380, moveTolerance=14 })
+ * attachLongPress(el, { onLongPress, onTap, onPressStart, onPressCancel,
+ *   threshold=380, moveTolerance=14, ignoreSelector })
  * - Quick tap  -> onTap(e)
  * - Hold ~threshold ms without moving more than moveTolerance px -> onLongPress(e)
  * - onPressStart fires immediately on touch/mouse-down (before the long-press
@@ -100,17 +101,24 @@
  *   instead of feeling dead until the timer completes.
  * - onPressCancel fires if the press is released/cancelled before the
  *   long-press threshold (covers both a quick tap and a scroll-cancel).
+ * - ignoreSelector: if the press started on an element matching this
+ *   selector (e.g. a waveform that has its own drag-to-seek, or action
+ *   buttons), the long-press timer never starts at all and the normal
+ *   tap/click on that sub-element behaves exactly as before — this is
+ *   what makes it safe to attach long-press to a whole card/row that
+ *   already has other gestures living inside it.
  * - Any scroll/drag movement cancels the long-press timer so scrolling
  *   long lists is never interrupted.
  */
 window.attachLongPress = function (el, opts) {
-  const { onLongPress, onTap, onPressStart, onPressCancel, threshold = 380, moveTolerance = 14 } = opts || {};
+  const { onLongPress, onTap, onPressStart, onPressCancel, threshold = 380, moveTolerance = 14, ignoreSelector } = opts || {};
   let timer = null, startX = 0, startY = 0, longPressed = false, active = false;
 
   function clearTimer() { if (timer) { clearTimeout(timer); timer = null; } }
 
   function onDown(e) {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (ignoreSelector && e.target.closest(ignoreSelector)) return; // let that sub-element's own gesture (drag-seek, button tap) own this touch entirely
     active = true;
     longPressed = false;
     startX = e.clientX; startY = e.clientY;
