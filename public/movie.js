@@ -1457,6 +1457,7 @@
   // ═══════════════════════════════════════════════════════
   $('wtBack').onclick = () => { try { window.parent.postMessage({ type: 'uwl:close-watch-together' }, '*'); } catch (e) {} };
 
+  
   // lucide.js is loaded with `defer`, so it finishes after this
   // synchronous script runs — wait for DOMContentLoaded (which fires
   // after all defer scripts) before the first icon render.
@@ -1471,7 +1472,9 @@
       state.room = room;
       if (room && room.action_seq) state.lastActionSeq = room.action_seq;
       renderFromRoom();
+
     } catch (e) { showState('setup'); showSetupSub('empty'); }
   })();
+
 
 })();
