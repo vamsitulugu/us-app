@@ -5270,10 +5270,10 @@ select option { background: #0D0D0D; color: #fff; }
 <div class="page" id="page-chat">
   <div class="chat-page-wrap">
     <div class="chat-select-toolbar" id="chatSelectToolbar">
-      <button onclick="Chat.exitSelectMode()">✕</button>
-      <div class="cnt" id="chatSelectCount">1 selected</div>
-      <button id="chatSelectMoreBtn" onclick="Chat.openSelectedMsgMenu(event)" style="display:none">⋮</button>
-      <button id="chatSelectTrashBtn" onclick="Chat.deleteSelected()">🗑️ Delete</button>
+      <button type="button" class="cst-btn cst-back" onclick="Chat.exitSelectMode()" aria-label="Cancel selection"><i data-lucide="arrow-left"></i></button>
+      <div class="cnt" id="chatSelectCount">1</div>
+      <div class="cst-actions" id="chatSelectActions"></div>
+      <button type="button" class="cst-btn cst-more" id="chatSelectMoreBtn" onclick="Chat.openToolbarOverflow(event)" style="display:none" aria-label="More actions"><i data-lucide="more-vertical"></i></button>
     </div>
 
     <div class="chat-header">

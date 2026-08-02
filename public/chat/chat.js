@@ -325,6 +325,7 @@ function reanchorAfterImages() {
   box.innerHTML = html || `<div class="empty" style="padding:60px 20px"><div class="empty-ico">💬</div>Say hello 👋</div>`;
   _renderedSigs = currentSigs;
   _renderedLastDate = lastDate;
+  pruneMissingSelection();
   renderPinned();
 
   if (wasNearBottom) {
@@ -389,7 +390,6 @@ function reanchorAfterImages() {
     const quoted = m.reply_to ? renderQuote(m.reply_to) : '';
 
     return `<div class="chat-row ${mine ? 'me' : 'them'}${isNew ? ' msg-pop-in' : ''}${selectMode && selectedIds.has(m.id) ? ' sel-selected' : ''}" data-id="${m.id}" onclick="Chat.onBubbleClick('${m.id}', event)" oncontextmenu="Chat.openMenu('${m.id}', event); return false;" ontouchstart="Chat.startLongPress('${m.id}', event)" ontouchend="Chat.endLongPress()" ontouchcancel="Chat.endLongPress()" ontouchmove="Chat.moveLongPress(event)">
-      <div class="sel-check">${selectedIds.has(m.id) ? '✓' : ''}</div>
       <div class="chat-swipe-reply-icon">↩️</div>
       <div class="chat-bubble ${mine ? 'mine' : 'theirs'}">
         ${quoted}
@@ -776,32 +776,6 @@ function menuItemsHtml(m, id, includeSelect) {
     ${mine ? `<div class="ctx-item danger" onclick="Chat.confirmDeleteMsg('${id}','everyone')">🗑️ Delete for everyone</div>` : ''}
     <div class="ctx-item danger" onclick="Chat.confirmDeleteMsg('${id}','me')">🗑️ Delete for me</div>`;
 }
-  // Opens the same action menu (React/Reply/Forward/Copy/Pin/Star/Edit/Info)
-  // for the single currently-selected message. Long-press now selects
-  // directly (WhatsApp-style) instead of popping this menu, so this is
-  // the way to reach those actions while in selection mode — tap the
-  // toolbar's ⋮ button, which is only shown when exactly one message
-  // is selected.
-  function openSelectedMsgMenu(ev) {
-    if (selectedIds.size !== 1) return;
-    const id = Array.from(selectedIds)[0];
-    const m = msgs.find(x => x.id === id); if (!m) return;
-    document.getElementById('chatMsgMenu')?.remove();
-    const isDesktop = window.innerWidth > 700 && ev && ev.clientX;
-    const sheet = document.createElement('div');
-    sheet.id = 'chatMsgMenu';
-    if (isDesktop) {
-      sheet.className = 'msg-ctx-bg';
-      sheet.innerHTML = `<div class="msg-ctx-menu open" style="left:${ev.clientX}px;top:${ev.clientY}px">
-        ${menuItemsHtml(m, id, false)}
-      </div>`;
-    } else {
-      sheet.className = 'chat-sheet-overlay';
-      sheet.innerHTML = `<div class="chat-sheet">${menuItemsHtml(m, id, false)}</div>`;
-    }
-    sheet.onclick = e => { if (e.target === sheet) sheet.remove(); };
-    document.body.appendChild(sheet);
-  }
   async function reactTo(id, emoji) {
     document.getElementById('chatMsgMenu')?.remove();
     try {
@@ -821,8 +795,8 @@ function menuItemsHtml(m, id, includeSelect) {
     document.getElementById('chatIn').focus();
   }
   function closeBanner() { const b = document.getElementById('chatComposerBanner'); if (b) { b.style.display = 'none'; b.innerHTML = ''; } replyingTo = null; editingId = null; }
-  async function togglePin(id) {
-    document.getElementById('chatMsgMenu')?.remove();
+  async function togglePin(id, silent) {
+    if (!silent) document.getElementById('chatMsgMenu')?.remove();
     const m = msgs.find(x => x.id === id); if (!m) return;
     try {
       const data = await api('POST', '/api/chat/' + id + '/pin', { coupleId: coupleId(), pinned: !m.pinned });
@@ -830,12 +804,13 @@ function menuItemsHtml(m, id, includeSelect) {
       render();
     } catch (e) {}
   }
-  async function toggleStar(id) {
-    document.getElementById('chatMsgMenu')?.remove();
+  async function toggleStar(id, silent) {
+    if (!silent) document.getElementById('chatMsgMenu')?.remove();
     try {
       const data = await api('POST', '/api/chat/' + id + '/star', { coupleId: coupleId(), role: myRole() });
       const idx = msgs.findIndex(x => x.id === id); if (idx > -1) msgs[idx] = data;
-      render(); toast('Updated ⭐');
+      render();
+      if (!silent) toast('Updated ⭐');
     } catch (e) {}
   }
   function forwardMsg(id) {
@@ -914,37 +889,262 @@ function menuItemsHtml(m, id, includeSelect) {
     });
   }
 
-  // ─── SELECT MODE ─────────────────────────────────────
+  // ─── SELECT MODE (WhatsApp-style: row-highlight only, no circles) ──
+  // Selection state lives entirely in `selectedIds` (a Set of message
+  // IDs — never DOM position), so realtime re-renders, insertions, and
+  // deletions can never desync the selection from what's on screen.
   function markRowSelected(id, on) {
     const row = document.querySelector(`.chat-row[data-id="${id}"]`);
     if (!row) return;
     row.classList.toggle('sel-selected', on);
-    const chk = row.querySelector('.sel-check');
-    if (chk) chk.textContent = on ? '✓' : '';
   }
   function enterSelectMode(id) {
     document.getElementById('chatMsgMenu')?.remove();
     selectMode = true; selectedIds = new Set([id]);
     document.getElementById('chatMsgs')?.classList.add('selecting');
-    document.getElementById('chatSelectToolbar').classList.add('show');
+    document.getElementById('chatSelectToolbar')?.classList.add('show');
     markRowSelected(id, true);
-    updateSelectCount();
+    renderSelectToolbar();
   }
   function toggleSelect(id) {
     if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
     markRowSelected(id, selectedIds.has(id));
-    if (!selectedIds.size) exitSelectMode(); else updateSelectCount();
-  }
-  function updateSelectCount() {
-    document.getElementById('chatSelectCount').textContent = selectedIds.size + ' selected';
-    const moreBtn = document.getElementById('chatSelectMoreBtn');
-    if (moreBtn) moreBtn.style.display = selectedIds.size === 1 ? '' : 'none';
+    if (!selectedIds.size) exitSelectMode(); else renderSelectToolbar();
   }
   function exitSelectMode() {
     selectMode = false; selectedIds.clear();
     document.getElementById('chatMsgs')?.classList.remove('selecting');
-    document.querySelectorAll('.chat-row.sel-selected').forEach(r => { r.classList.remove('sel-selected'); const c = r.querySelector('.sel-check'); if (c) c.textContent = ''; });
-    document.getElementById('chatSelectToolbar').classList.remove('show');
+    document.querySelectorAll('.chat-row.sel-selected').forEach(r => r.classList.remove('sel-selected'));
+    document.getElementById('chatSelectToolbar')?.classList.remove('show');
+    closeToolbarOverflow();
+  }
+  // Realtime safety: if a selected message is deleted/vanishes from `msgs`
+  // (remote delete, sync), drop its id from the selection instead of
+  // leaving a phantom entry in the count / bulk-action list.
+  function pruneMissingSelection() {
+    if (!selectMode) return;
+    let changed = false;
+    selectedIds.forEach(id => { if (!msgs.some(m => m.id === id)) { selectedIds.delete(id); changed = true; } });
+    if (changed) { if (!selectedIds.size) exitSelectMode(); else renderSelectToolbar(); }
+  }
+
+  // ─── SELECTION TOOLBAR (context-aware, Lucide icons, responsive) ──
+  function selectedMsgs() {
+    return Array.from(selectedIds).map(id => msgs.find(m => m.id === id)).filter(Boolean);
+  }
+  function hasDownloadableMedia(m) {
+    return !!m.media_url && ['image', 'gif', 'voice', 'audio'].includes(m.type);
+  }
+  const TOOLBAR_ACTIONS = [
+    { key: 'reply', icon: 'reply', label: 'Reply',
+      show: (ms) => ms.length === 1 && ms[0].type !== 'call_log',
+      run: () => { replyTo(Array.from(selectedIds)[0]); exitSelectMode(); } },
+    { key: 'react', icon: 'smile-plus', label: 'React',
+      show: (ms) => ms.length === 1 && ms[0].type !== 'call_log',
+      run: (ev) => openReactionPicker(ev) },
+    { key: 'star', icon: 'star', label: 'Star',
+      show: (ms) => ms.length > 0 && ms.every(m => m.type !== 'call_log'),
+      run: () => starSelected() },
+    { key: 'pin', icon: 'pin', label: 'Pin',
+      show: (ms) => ms.length > 0 && ms.every(m => m.type !== 'call_log'),
+      run: () => pinSelected() },
+    { key: 'copy', icon: 'copy', label: 'Copy',
+      show: (ms) => ms.length > 0 && ms.every(m => !!m.text),
+      run: () => copySelected() },
+    { key: 'download', icon: 'download', label: 'Download',
+      show: (ms) => ms.some(hasDownloadableMedia),
+      run: () => downloadSelected() },
+    { key: 'share', icon: 'share-2', label: 'Share',
+      show: (ms) => ms.length > 0,
+      run: () => shareSelected() },
+    { key: 'delete', icon: 'trash-2', label: 'Delete',
+      show: (ms) => ms.length > 0,
+      run: () => deleteSelected() }
+  ];
+  function renderSelectToolbar() {
+    const bar = document.getElementById('chatSelectToolbar');
+    if (!bar) return;
+    const countEl = document.getElementById('chatSelectCount');
+    if (countEl) countEl.textContent = String(selectedIds.size);
+    const ms = selectedMsgs();
+    const active = TOOLBAR_ACTIONS.filter(a => a.show(ms));
+    const actionsEl = document.getElementById('chatSelectActions');
+    const moreBtn = document.getElementById('chatSelectMoreBtn');
+    if (!actionsEl) return;
+    actionsEl.innerHTML = active.map((a, i) =>
+      `<button type="button" class="cst-btn" data-action="${a.key}" data-idx="${i}" title="${a.label}" aria-label="${a.label}"><i data-lucide="${a.icon}"></i></button>`
+    ).join('');
+    if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
+    actionsEl.querySelectorAll('.cst-btn').forEach(btn => {
+      btn.addEventListener('click', (ev) => {
+        const def = active.find(a => a.key === btn.dataset.action);
+        closeToolbarOverflow();
+        if (def) def.run(ev);
+      });
+    });
+    if (moreBtn) moreBtn.style.display = 'none'; // shown only if collapseOverflow finds hidden actions
+    requestAnimationFrame(() => collapseToolbarOverflow(active));
+  }
+  // Fits as many action buttons as the header width allows, in priority
+  // order, and moves whatever doesn't fit into the ⋮ overflow menu —
+  // this is what makes the toolbar adapt to phone vs desktop widths
+  // instead of squeezing 8 tiny icons into a narrow header.
+  function collapseToolbarOverflow(active) {
+    const bar = document.getElementById('chatSelectToolbar');
+    const actionsEl = document.getElementById('chatSelectActions');
+    const moreBtn = document.getElementById('chatSelectMoreBtn');
+    if (!bar || !actionsEl || !moreBtn) return;
+    const buttons = Array.from(actionsEl.querySelectorAll('.cst-btn'));
+    if (!buttons.length) return;
+    // Reset to fully visible, then measure.
+    buttons.forEach(b => { b.style.display = ''; });
+    moreBtn.style.display = 'none';
+    const barRect = bar.getBoundingClientRect();
+    const reserved = 44 /* back btn */ + 34 /* count */ + 16 /* padding/gaps */;
+    const available = barRect.width - reserved;
+    const btnWidth = 40; // measured footprint incl. gap for each icon button
+    const maxFit = Math.max(1, Math.floor(available / btnWidth));
+    if (buttons.length > maxFit) {
+      // Reserve one slot for the ⋮ overflow button itself.
+      const keep = Math.max(1, maxFit - 1);
+      buttons.forEach((b, i) => { if (i >= keep) b.style.display = 'none'; });
+      moreBtn.style.display = 'flex';
+      moreBtn._overflowActions = active.slice(keep);
+    } else {
+      moreBtn._overflowActions = [];
+    }
+  }
+  window.addEventListener('resize', () => { if (selectMode) renderSelectToolbar(); });
+  function openToolbarOverflow(ev) {
+    ev && ev.stopPropagation();
+    const moreBtn = document.getElementById('chatSelectMoreBtn');
+    const list = (moreBtn && moreBtn._overflowActions) || [];
+    closeToolbarOverflow();
+    if (!list.length) return;
+    const menu = document.createElement('div');
+    menu.id = 'chatToolbarOverflowMenu';
+    menu.className = 'msg-ctx-bg';
+    const rect = moreBtn.getBoundingClientRect();
+    menu.innerHTML = `<div class="msg-ctx-menu open" style="right:8px;left:auto;top:${rect.bottom + 6}px">
+      ${list.map(a => `<div class="ctx-item" data-action="${a.key}"><i data-lucide="${a.icon}" style="width:15px;height:15px;vertical-align:-3px;margin-right:8px"></i>${a.label}</div>`).join('')}
+    </div>`;
+    menu.onclick = (e) => {
+      if (e.target === menu) { menu.remove(); return; }
+      const item = e.target.closest('.ctx-item');
+      if (item) { menu.remove(); const def = list.find(a => a.key === item.dataset.action); if (def) def.run(e); }
+    };
+    document.body.appendChild(menu);
+    if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
+  }
+  function closeToolbarOverflow() { document.getElementById('chatToolbarOverflowMenu')?.remove(); }
+
+  // ─── React (single selection) — reuses the same reactTo()/API used
+  // elsewhere; this only adds a small emoji-picker UI, not a second
+  // reactions system. ──
+  const QUICK_REACTIONS = ['❤️', '😂', '😮', '😢', '🙏', '👍'];
+  function openReactionPicker(ev) {
+    if (selectedIds.size !== 1) return;
+    const id = Array.from(selectedIds)[0];
+    document.getElementById('chatReactionPicker')?.remove();
+    const wrap = document.createElement('div');
+    wrap.id = 'chatReactionPicker';
+    wrap.className = 'msg-ctx-bg';
+    wrap.innerHTML = `<div class="chat-reaction-picker">
+      ${QUICK_REACTIONS.map(e => `<span class="ctx-emoji" data-emoji="${e}">${e}</span>`).join('')}
+    </div>`;
+    wrap.onclick = (e) => {
+      if (e.target === wrap) { wrap.remove(); return; }
+      const span = e.target.closest('[data-emoji]');
+      if (span) { wrap.remove(); reactTo(id, span.dataset.emoji); exitSelectMode(); }
+    };
+    document.body.appendChild(wrap);
+  }
+
+  // ─── Bulk star / pin — toggle-as-a-group: if every selected message
+  // is already starred/pinned, the action unstars/unpins all of them;
+  // otherwise it stars/pins only the ones that aren't yet, so a mixed
+  // selection converges to "all on" in one tap rather than flipping
+  // each message individually. Reuses the existing per-message
+  // /star and /pin endpoints — no new backend/table involved. ──
+  async function starSelected() {
+    const ms = selectedMsgs(); if (!ms.length) return;
+    const allStarred = ms.every(m => (m.starred_by || []).includes(myRole()));
+    for (const m of ms) {
+      const isStarred = (m.starred_by || []).includes(myRole());
+      if (allStarred ? isStarred : !isStarred) await toggleStar(m.id, true);
+    }
+    toast(allStarred ? 'Unstarred' : (ms.length > 1 ? `${ms.length} messages starred` : 'Starred'));
+    exitSelectMode();
+  }
+  async function pinSelected() {
+    const ms = selectedMsgs(); if (!ms.length) return;
+    const allPinned = ms.every(m => !!m.pinned);
+    for (const m of ms) {
+      if (allPinned ? m.pinned : !m.pinned) await togglePin(m.id, true);
+    }
+    toast(allPinned ? 'Unpinned' : (ms.length > 1 ? `${ms.length} messages pinned` : 'Pinned'));
+    exitSelectMode();
+  }
+  function copySelected() {
+    const ms = selectedMsgs().slice().sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const text = ms.map(m => m.text).filter(Boolean).join('\n');
+    if (!text) { toast('Nothing to copy'); return; }
+    navigator.clipboard?.writeText(text).then(() => toast('Copied')).catch(() => toast('Copy failed'));
+    exitSelectMode();
+  }
+  // Reuses the existing media_url / storage architecture — just fetches
+  // each selected media message's file and triggers a browser download.
+  // Falls back to opening the URL directly if the fetch is blocked
+  // (e.g. cross-origin storage host without permissive CORS).
+  async function downloadOne(m) {
+    const url = m.media_url;
+    const name = (m.media_meta && m.media_meta.name) || url.split('/').pop().split('?')[0] || 'file';
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    } catch (e) { window.open(url, '_blank'); }
+  }
+  async function downloadSelected() {
+    const ms = selectedMsgs().filter(hasDownloadableMedia);
+    if (!ms.length) { toast('Nothing downloadable in this selection'); return; }
+    toast(ms.length > 1 ? `Downloading ${ms.length} files…` : 'Downloading…');
+    for (const m of ms) await downloadOne(m);
+    exitSelectMode();
+  }
+  // Uses the Web Share API where supported (native share sheet); falls
+  // back to copying text / opening the media link when unavailable.
+  async function shareSelected() {
+    const ms = selectedMsgs();
+    if (!ms.length) return;
+    const mediaMs = ms.filter(hasDownloadableMedia);
+    try {
+      if (navigator.share) {
+        if (mediaMs.length && navigator.canShare) {
+          const files = [];
+          for (const m of mediaMs) {
+            try {
+              const res = await fetch(m.media_url);
+              const blob = await res.blob();
+              const name = (m.media_meta && m.media_meta.name) || m.media_url.split('/').pop().split('?')[0] || 'file';
+              files.push(new File([blob], name, { type: blob.type || 'application/octet-stream' }));
+            } catch (_) {}
+          }
+          if (files.length && navigator.canShare({ files })) { await navigator.share({ files }); exitSelectMode(); return; }
+        }
+        const text = ms.map(m => m.text).filter(Boolean).join('\n') || mediaMs.map(m => m.media_url).join('\n');
+        if (text) { await navigator.share({ text }); exitSelectMode(); return; }
+      }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+    // Fallback: copy whatever we can, or open media in a new tab.
+    const text = ms.map(m => m.text).filter(Boolean).join('\n');
+    if (text) { navigator.clipboard?.writeText(text); toast('Share not supported — copied instead'); }
+    else if (mediaMs.length) { mediaMs.forEach(m => window.open(m.media_url, '_blank')); }
+    exitSelectMode();
   }
   // Bulk delete always deletes "for me" — safe regardless of whether the
   // selection mixes your own and your partner's messages (deleting a
@@ -960,13 +1160,13 @@ function menuItemsHtml(m, id, includeSelect) {
       itemType: 'message',
       message: 'These messages will be removed from your chat only — your partner will still see their copies.',
       onConfirm: async () => {
-        const trashBtn = document.getElementById('chatSelectTrashBtn');
+        const trashBtn = document.querySelector('#chatSelectActions .cst-btn[data-action="delete"]');
         if (trashBtn) trashBtn.disabled = true;
         const { succeeded, failed } = await runBulkDelete(ids, (id) => deleteMsg(id, 'me'));
         if (trashBtn) trashBtn.disabled = false;
         selectedIds = new Set(failed.map(f => f.id)); // keep failed ones selected/visible
         if (!selectedIds.size) exitSelectMode();
-        else updateSelectCount();
+        else renderSelectToolbar();
         if (failed.length) toast(`${succeeded.length} deleted. ${failed.length} couldn't be deleted.`);
         else toast(succeeded.length > 1 ? `${succeeded.length} messages deleted` : 'Deleted');
       }
@@ -1390,10 +1590,10 @@ function menuItemsHtml(m, id, includeSelect) {
     onChatScroll, scrollToBottom, sendText, onTypingInput, onImagePick, toggleRecord,
     onBubbleClick, openMenu, reactTo, replyTo, closeBanner, togglePin, toggleStar,
     openStarred, deleteMsg, confirmDeleteMsg, enterSelectMode, deleteSelected, exitSelectMode,
-    isSelecting, closeMsgMenuIfOpen,
+    isSelecting, closeMsgMenuIfOpen, openToolbarOverflow,
     openSearch, closeSearch, runSearch, scrollToMsg, sendGif, sendEmoji, sendEmojiTap,
     openEmojiPanel, switchEmojiTab, filterEmoji, openGifPanel, searchGifs, markRead, init, openSheet, closeSheet,
-    forwardMsg, copyMsg, editMsg, cancelEdit, infoMsg, cancelRecording, startLongPress, endLongPress, moveLongPress, openSelectedMsgMenu,
+    forwardMsg, copyMsg, editMsg, cancelEdit, infoMsg, cancelRecording, startLongPress, endLongPress, moveLongPress,
     onAudioPick, sendLocation, openGiftPanel, sendGift, toggleVoicePlay,
     openStickerPanel, sendSticker, sendContactCard, openContactCard, openMemories, openPollComposer, submitPoll, votePoll,
     destroyPanels
