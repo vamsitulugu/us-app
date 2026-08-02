@@ -2289,7 +2289,7 @@
 
     .img-viewer-close {
       position: absolute;
-      top: 18px;
+      top: calc(18px + env(safe-area-inset-top, 0px));
       right: 22px;
       color: var(--white);
       font-size: 24px;
@@ -2302,11 +2302,239 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: var(--t)
+      transition: var(--t);
+      z-index: 1
     }
 
     .img-viewer-close:hover {
       background: rgba(255, 255, 255, 0.25)
+    }
+
+    /* ════ MEMORIES GALLERY VIEWER ════
+       Dedicated full-screen viewer for the Memories page only — separate
+       from the shared .img-viewer above (which Chat/Vault/etc. still use
+       unchanged via openImgViewer()). Gives Memories its own gallery-style
+       chrome: top bar, swipeable stage, bottom action bar, more-sheet and
+       details panel. */
+    .mem-viewer {
+      position: fixed;
+      inset: 0;
+      z-index: 9990;
+      background: #000;
+      display: none;
+      flex-direction: column;
+    }
+
+    .mem-viewer.open {
+      display: flex
+    }
+
+    .mem-viewer-top {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent);
+      transition: opacity .2s ease, transform .2s ease
+    }
+
+    .mem-viewer.controls-hidden .mem-viewer-top {
+      opacity: 0;
+      transform: translateY(-8px);
+      pointer-events: none
+    }
+
+    .mem-viewer-back {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer
+    }
+
+    .mem-viewer-counter {
+      color: #eee;
+      font-size: 13px;
+      font-weight: 600
+    }
+
+    .mem-viewer-stage {
+      position: relative;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      touch-action: pan-y
+    }
+
+    .mem-viewer-stage img,
+    .mem-viewer-stage video {
+      max-width: 96vw;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 0;
+      user-select: none;
+      -webkit-user-drag: none
+    }
+
+    .mem-viewer-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      display: none
+    }
+
+    @media (min-width:900px) {
+      .mem-viewer-nav {
+        display: flex
+      }
+    }
+
+    .mem-viewer-nav.prev {
+      left: 16px
+    }
+
+    .mem-viewer-nav.next {
+      right: 16px
+    }
+
+    .mem-viewer-bar {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 10px 8px calc(10px + env(safe-area-inset-bottom, 0px));
+      background: linear-gradient(0deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.15));
+      transition: opacity .2s ease, transform .2s ease
+    }
+
+    .mem-viewer.controls-hidden .mem-viewer-bar {
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none
+    }
+
+    .mem-viewer-action {
+      background: none;
+      border: none;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 10.5px;
+      font-family: var(--ff-sans);
+      cursor: pointer;
+      padding: 6px 10px;
+      min-width: 52px;
+      min-height: 44px;
+      border-radius: 12px
+    }
+
+    .mem-viewer-action:active {
+      background: rgba(255, 255, 255, 0.1)
+    }
+
+    .mem-viewer-action .ico {
+      font-size: 19px;
+      line-height: 1
+    }
+
+    .mem-viewer-action.fav.active .ico {
+      color: #ff5c72
+    }
+
+    /* Bottom sheet used by both "More" (actions) and "Details" (metadata) */
+    .mem-sheet-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9995;
+      background: rgba(0, 0, 0, 0.55);
+      display: none;
+      align-items: flex-end;
+      justify-content: center
+    }
+
+    .mem-sheet-overlay.show {
+      display: flex
+    }
+
+    .mem-sheet {
+      width: 100%;
+      max-width: 420px;
+      background: linear-gradient(180deg, #1a1414, #100c0c);
+      border: 1px solid rgba(193, 18, 31, 0.25);
+      border-radius: 18px 18px 0 0;
+      padding: 10px 6px calc(14px + env(safe-area-inset-bottom, 0px))
+    }
+
+    .mem-sheet-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 13px 16px;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 14.5px;
+      font-family: var(--ff-sans);
+      text-align: left;
+      cursor: pointer;
+      border-radius: 10px
+    }
+
+    .mem-sheet-item:active {
+      background: rgba(255, 255, 255, 0.06)
+    }
+
+    .mem-details-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06)
+    }
+
+    .mem-details-row:last-child {
+      border-bottom: none
+    }
+
+    .mem-details-row .k {
+      color: #9b8a8c
+    }
+
+    .mem-details-row .v {
+      color: #fff;
+      text-align: right;
+      max-width: 65%;
+      word-break: break-word
+    }
+
+    .mem-details-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      padding: 6px 16px 10px
     }
 
     /* ════ ALARM RING ════ */
@@ -2800,19 +3028,20 @@
     }
 
     .pt {
+      aspect-ratio: 1;
       border-radius: 14px;
       background: var(--g1);
       position: relative;
       overflow: hidden;
-      display: flex;
-      flex-direction: column;
+      cursor: pointer;
       transition: var(--t);
       border: 1px solid var(--border)
     }
 
     .pt-thumb {
       position: relative;
-      aspect-ratio: 1;
+      width: 100%;
+      height: 100%;
       cursor: pointer;
       overflow: hidden
     }
@@ -2823,43 +3052,6 @@
       height: 100%;
       object-fit: cover;
       display: block
-    }
-
-    .pt-footer {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      padding: 6px 4px;
-      background: var(--g2);
-      border-top: 1px solid var(--border)
-    }
-
-    .pt-fav-btn,
-    .pt-del-btn {
-      width: 32px;
-      height: 32px;
-      min-width: 32px;
-      border-radius: 50%;
-      border: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      cursor: pointer;
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text2);
-      transition: var(--t)
-    }
-
-    .pt-fav-btn.active {
-      background: rgba(255, 60, 90, 0.18);
-      color: #ff5c72
-    }
-
-    .pt-del-btn:active {
-      background: rgba(193, 18, 31, 0.25);
-      color: #ff6b5d
     }
 
     .pt-add {
@@ -4625,6 +4817,51 @@ select option { background: #0D0D0D; color: #fff; }
   <div class="img-viewer" id="imgViewer">
     <button class="img-viewer-close" onclick="closeImgViewer()">✕</button>
     <img id="imgViewerImg" src="" alt="">
+  </div>
+
+  <!-- MEMORIES GALLERY VIEWER (dedicated to the Memories page — see Part below) -->
+  <div class="mem-viewer" id="memViewer">
+    <div class="mem-viewer-top" id="memViewerTop">
+      <button type="button" class="mem-viewer-back" onclick="closeMemViewer()" aria-label="Close"><i data-lucide="x"></i></button>
+      <div class="mem-viewer-counter" id="memViewerCounter"></div>
+      <div style="width:42px"></div>
+    </div>
+    <div class="mem-viewer-stage" id="memViewerStage">
+      <img id="memViewerImg" src="" alt="memory" style="display:none">
+      <video id="memViewerVideo" controls playsinline style="display:none"></video>
+      <button type="button" class="mem-viewer-nav prev" id="memViewerPrevBtn" onclick="memViewerPrev()" aria-label="Previous"><i data-lucide="chevron-left"></i></button>
+      <button type="button" class="mem-viewer-nav next" id="memViewerNextBtn" onclick="memViewerNext()" aria-label="Next"><i data-lucide="chevron-right"></i></button>
+    </div>
+    <div class="mem-viewer-bar" id="memViewerBar">
+      <button type="button" class="mem-viewer-action fav" id="memViewerFavBtn" onclick="memViewerToggleFav()">
+        <span class="ico" id="memViewerFavIcon">🤍</span><span>Favorite</span>
+      </button>
+      <button type="button" class="mem-viewer-action" onclick="memViewerShare()">
+        <span class="ico">↗️</span><span>Share</span>
+      </button>
+      <button type="button" class="mem-viewer-action" onclick="memViewerDeleteCurrent()">
+        <span class="ico">🗑️</span><span>Delete</span>
+      </button>
+      <button type="button" class="mem-viewer-action" onclick="memViewerOpenMore()">
+        <span class="ico">⋮</span><span>More</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Memories viewer: "More" actions sheet -->
+  <div class="mem-sheet-overlay" id="memMoreSheet" onclick="if(event.target===this)memViewerCloseMore()">
+    <div class="mem-sheet">
+      <button type="button" class="mem-sheet-item" onclick="memViewerDownload()"><i data-lucide="download"></i> Download / Save</button>
+      <button type="button" class="mem-sheet-item" onclick="memViewerShowDetails()"><i data-lucide="info"></i> View Details</button>
+    </div>
+  </div>
+
+  <!-- Memories viewer: photo details panel -->
+  <div class="mem-sheet-overlay" id="memDetailsSheet" onclick="if(event.target===this)memViewerCloseDetails()">
+    <div class="mem-sheet">
+      <div class="mem-details-title">Memory Details</div>
+      <div id="memDetailsBody"></div>
+    </div>
   </div>
   <!-- TOUCH RIPPLE -->
   <div id="touchRipple"><span>💓</span></div>
@@ -7468,7 +7705,15 @@ function setJustPairedAt(ts) {
           const CapApp = window.Capacitor.Plugins?.App;
           if (CapApp && typeof CapApp.addListener === 'function') {
             CapApp.addListener('backButton', () => {
-              // 0) An open safe-delete confirmation sheet takes priority — close it only.
+              // 0) The fullscreen photo/video viewer takes top priority —
+              //    close it only. Previously this wasn't checked at all, so
+              //    back (or Android's edge-swipe-back gesture, which fires
+              //    the same 'backButton' event) fell straight through to
+              //    page navigation or minimizeApp() while the viewer stayed
+              //    stuck on top — which looked like the app itself closing.
+              const openViewer = document.getElementById('imgViewer');
+              if (openViewer && openViewer.classList.contains('open')) { closeImgViewer(); return; }
+              // 0.1) An open safe-delete confirmation sheet takes priority — close it only.
               const openConfirm = document.querySelector('.sd-overlay.show');
               if (openConfirm) { openConfirm.classList.remove('show'); return; }
               // 0.5) Memories selection mode active — exit selection, don't navigate.
@@ -8048,8 +8293,18 @@ const p = await Notification.requestPermission();
               }
             });
           }
+          document.getElementById('photoGrid').classList.toggle('sd-select-mode', memSelectMode);
           document.querySelectorAll('#photoGrid .pt.sd-selectable').forEach(card => {
             const id = card.dataset.photoId;
+            // Re-apply current selection state to freshly-rendered cards —
+            // needed because renderPhotos() gets called again by the
+            // background cloud-sync loop (every ~5-20s) while selection
+            // mode is still open, rebuilding the grid's DOM nodes from
+            // scratch each time. Without this, the toolbar's "N selected"
+            // count stayed correct (memSelection itself was never touched)
+            // but every card's visual checkmark/outline silently reset,
+            // which looked exactly like items were "auto-deselecting".
+            if (memSelectMode && memSelection.has(id)) card.classList.add('sd-selected');
             // Previously the whole card had an invisible full-card overlay
             // (.pt-actions, opacity:0 but still covering inset:0) meant to
             // only show its View/Delete buttons on hover — but that overlay
