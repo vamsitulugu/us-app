@@ -68,54 +68,84 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 /* ── VOICE LIST ── */
 .voice-list{padding:0 16px;display:flex;flex-direction:column;gap:8px}
 .voice-item{
-  display:flex;align-items:center;gap:12px;
-  padding:14px 16px;border-radius:16px;
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:16px;
   background:var(--g1);border:1px solid var(--border);
   transition:var(--t);position:relative;overflow:hidden;
+  min-height:64px;
 }
 .voice-item:hover{background:var(--g2);border-color:var(--border2)}
 .voice-item.playing{background:hsla(var(--h),100%,62%,0.1);border-color:hsla(var(--h),100%,62%,0.3)}
 .voice-item.favorited{border-color:rgba(251,191,36,0.3);background:rgba(251,191,36,0.05)}
 .voice-av{
-  width:42px;height:42px;border-radius:50%;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;
+  width:38px;height:38px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;
   position:relative;overflow:hidden;border:2px solid rgba(255,255,255,0.2);
 }
 .voice-av.me{background:linear-gradient(135deg,var(--accent),var(--accent-d))}
 .voice-av.partner{background:linear-gradient(135deg,var(--accent2),var(--accent2-d))}
 .voice-play-btn{
-  width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;font-size:15px;
+  width:34px;height:34px;border-radius:50%;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
   background:linear-gradient(135deg,var(--accent),var(--accent-d));
   color:#fff;box-shadow:0 4px 12px var(--accent-glow);transition:var(--t-spring);flex-shrink:0;
 }
 .voice-play-btn:hover{transform:scale(1.08)}
 .voice-play-btn:active{transform:scale(0.95)}
 .voice-play-btn.playing{background:linear-gradient(135deg,var(--accent2),var(--accent2-d));box-shadow:0 4px 12px var(--accent2-glow)}
-.voice-info{flex:1;min-width:0}
-.voice-sender{font-size:12px;font-weight:700;color:var(--white)}
-.voice-date{font-size:11px;color:var(--text3);margin-top:1px}
-.voice-waveform{
-  display:flex;align-items:center;gap:2px;height:28px;flex:1;max-width:120px;cursor:pointer;position:relative;
+/* min-width:0 lets this shrink inside the flex row, but flex-basis (via
+   the "1 1 56px" shorthand) guarantees it never gets squeezed to ~0px by
+   its sibling — that collapse-to-nothing is what forced the sender name
+   into a single-character-per-line vertical stack. */
+.voice-info{flex:1 1 56px;min-width:0}
+.voice-sender{
+  font-size:12.5px;font-weight:700;color:var(--white);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.voice-waveform span{display:inline-block;border-radius:3px;background:rgba(255,255,255,0.25);width:3px;transition:background 0.2s}
+.voice-date{font-size:10.5px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.voice-waveform{
+  display:flex;align-items:center;gap:2px;height:26px;
+  flex:0 1 72px;min-width:36px;max-width:100px;cursor:pointer;position:relative;
+}
+.voice-waveform span{display:inline-block;border-radius:3px;background:rgba(255,255,255,0.25);width:3px;transition:background 0.2s;flex-shrink:0}
 .voice-item.playing .voice-waveform span.wf-played{background:var(--accent)}
 .voice-item.playing .voice-waveform span.wf-active-anim{animation:waveAnim 0.6s ease-in-out infinite alternate}
 .voice-item.playing .voice-waveform span:nth-child(2n).wf-active-anim{animation-delay:0.1s}
 .voice-item.playing .voice-waveform span:nth-child(3n).wf-active-anim{animation-delay:0.2s}
 @keyframes waveAnim{from{transform:scaleY(0.4)}to{transform:scaleY(1.0)}}
-.voice-dur{font-size:11px;color:var(--text3);font-weight:600;white-space:nowrap}
-.voice-actions{display:flex;gap:5px;flex-shrink:0}
-.voice-action-btn{width:30px;height:30px;border-radius:8px;border:none;cursor:pointer;background:var(--g2);color:var(--text2);font-size:13px;display:flex;align-items:center;justify-content:center;transition:var(--t)}
+.voice-dur{font-size:10.5px;color:var(--text3);font-weight:600;white-space:nowrap;flex-shrink:0}
+.voice-actions{display:flex;gap:4px;flex-shrink:0;align-items:center}
+.voice-action-btn{width:30px;height:30px;min-width:30px;border-radius:8px;border:none;cursor:pointer;background:var(--g2);color:var(--text2);font-size:13px;display:flex;align-items:center;justify-content:center;transition:var(--t)}
 .voice-action-btn:hover{background:var(--g3);color:var(--white)}
 .voice-action-btn.fav{color:var(--yellow)}
 .voice-action-btn.del:hover{background:var(--red-bg);color:var(--red)}
+/* Mobile: the 4-5 inline buttons don't fit next to avatar+play+name+
+   waveform+duration on a ~360-390px screen — that overflow (inside an
+   overflow:hidden card) is what clipped the rightmost buttons out of
+   the clickable area. Collapse to one kebab; keep everything inline
+   on wider screens where there's room. */
+.voice-act-kebab{display:none}
+@media(max-width:640px){
+  .voice-act-inline{display:none}
+  .voice-act-kebab{display:flex;width:36px;height:36px;min-width:36px;font-size:18px}
+}
 .voice-lib-badge{font-size:9px;font-weight:700;background:hsla(var(--h),100%,62%,0.18);color:var(--accent);border:1px solid hsla(var(--h),100%,62%,0.3);border-radius:8px;padding:2px 6px;flex-shrink:0}
 .voice-seek-wrap{position:relative;flex:1;max-width:120px}
 .voice-seek-fill{position:absolute;top:0;left:0;bottom:0;background:hsla(var(--h),100%,62%,0.18);border-radius:6px;pointer-events:none;transition:width 0.1s linear;z-index:0}
 .voice-waveform{position:relative;z-index:1}
 .voice-select-toggle{padding:6px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--g1);color:var(--text2);white-space:nowrap;transition:var(--t)}
 .voice-select-toggle.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* ── VOICE KEBAB ACTION SHEET ── */
+.voice-action-sheet{position:fixed;inset:0;z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.voice-action-sheet-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(2px)}
+.voice-action-sheet-panel{position:relative;width:100%;max-width:420px;background:#181022;border:1px solid var(--border2);border-radius:20px 20px 0 0;padding:10px;display:flex;flex-direction:column;gap:2px;animation:sheetUp 0.22s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.voice-sheet-item{display:flex;align-items:center;gap:10px;padding:13px 14px;border-radius:12px;border:none;background:transparent;color:var(--white);font-size:14px;font-family:var(--ff-sans);text-align:left;cursor:pointer;width:100%}
+.voice-sheet-item:hover, .voice-sheet-item:active{background:var(--g2)}
+.voice-sheet-item.danger{color:var(--red)}
+.voice-sheet-cancel{margin-top:4px;justify-content:center;color:var(--text2);font-weight:600;border-top:1px solid var(--border);padding-top:14px;border-radius:0}
+@media(min-width:641px){.voice-action-sheet-panel{max-width:280px;margin:0 24px 24px 0;border-radius:16px}}
 
 /* Bulk select bar */
 .col-bulkbar{display:none;align-items:center;gap:10px;padding:9px 16px;background:hsla(var(--h),100%,62%,0.1);border-top:1px solid hsla(var(--h),100%,62%,0.25);border-bottom:1px solid hsla(var(--h),100%,62%,0.25);font-size:12px;color:var(--text2);position:sticky;top:0;z-index:5}
@@ -292,7 +322,6 @@ let colState = {
   // every load, never stored separately. Library-tab favorites are a
   // local-only concept since Library entries are local export copies.
   voiceFavs: [],
-  libraryFavs: JSON.parse(localStorage.getItem('col_voice_favs') || '[]'),
   photoFavs: JSON.parse(localStorage.getItem('col_photo_favs') || '[]'),
 };
 let currentTab = 'voice';
@@ -457,7 +486,7 @@ function renderHero() {
   } else if (currentTab === 'library') {
     document.getElementById('colHero').innerHTML = `
     <div class="col-stat"><div class="col-stat-n">${colState.library.length}</div><div class="col-stat-l">Saved</div></div>
-    <div class="col-stat"><div class="col-stat-n" style="color:var(--yellow)">${colState.library.filter(v=>colState.libraryFavs.includes(v.id)).length}</div><div class="col-stat-l">Favorites</div></div>
+    <div class="col-stat"><div class="col-stat-n" style="color:var(--yellow)">${colState.library.filter(v=>colState.voiceFavs.includes(v.id)).length}</div><div class="col-stat-l">Favorites</div></div>
     <div class="col-stat"><div class="col-stat-n" style="color:var(--accent)">${fmtTotalDur(colState.library.reduce((s,v)=>s+(v.durationSec||0),0))}</div><div class="col-stat-l">Total Duration</div></div>
     <div class="col-stat"><div class="col-stat-n" style="color:var(--accent2)">${colState.library.filter(v=>v.by===colState.role).length}</div><div class="col-stat-l">Mine</div></div>`;
   } else {
@@ -515,7 +544,7 @@ function toggleSelect(id) {
   if (row) row.classList.toggle('checked', selectedIds.has(id));
 }
 function applySortFilterSearch(list, q, isLibrary) {
-  const favs = isLibrary ? colState.libraryFavs : colState.voiceFavs;
+  const favs = colState.voiceFavs;
   let out = list.filter(v => {
     const senderName = (v.by === colState.role ? colState.myName : colState.partnerName).toLowerCase();
     if (q && !v.date.includes(q) && !v.time.toLowerCase().includes(q) && !senderName.includes(q) && !(v.duration||'').includes(q)) return false;
@@ -590,7 +619,7 @@ function renderVoiceListInto(elId, voices, isLibrary) {
           ${isPlaying ? '⏸' : '▶'}
         </button>
         <div class="voice-info">
-          <div class="voice-sender">${escHtml(name)} ${!isLibrary && inLibrary ? '<span class="voice-lib-badge">SAVED</span>' : ''}</div>
+          <div class="voice-sender">${escHtml(name)}${!isLibrary && inLibrary ? ' <span class="voice-lib-badge">SAVED</span>' : ''}</div>
           <div class="voice-date">${v.time || ''}</div>
         </div>
         <div class="voice-waveform" id="wf-${v.id}" onclick="event.stopPropagation();seekWaveform(event,${JSON.stringify(v.id)})">
@@ -599,11 +628,12 @@ function renderVoiceListInto(elId, voices, isLibrary) {
         </div>
         <div class="voice-dur">${v.duration}</div>
         <div class="voice-actions">
-          <button class="voice-action-btn fav${isFav?' fav':''}" title="Favorite" onclick="event.stopPropagation();toggleVoiceFav(${JSON.stringify(v.id)})">${isFav?'⭐':'☆'}</button>
-          ${!isLibrary ? `<button class="voice-action-btn" title="Export to Library" onclick="event.stopPropagation();exportToLibrary(${JSON.stringify(v.id)})">💾</button>` : ''}
-          ${!isLibrary ? `<button class="voice-action-btn" title="Open in Chat" onclick="event.stopPropagation();openInChat(${JSON.stringify(v.id)})">💬</button>` : ''}
-          <button class="voice-action-btn" title="Export / Download" onclick="event.stopPropagation();downloadVoice(${JSON.stringify(v.audioData||'')})">⬇️</button>
-          <button class="voice-action-btn del" title="Delete" onclick="event.stopPropagation();deleteVoice(${JSON.stringify(v.id)},${isLibrary})">🗑️</button>
+          <button class="voice-action-btn fav voice-act-inline${isFav?' fav':''}" title="Favorite" onclick="event.stopPropagation();toggleVoiceFav(${JSON.stringify(v.id)})">${isFav?'⭐':'☆'}</button>
+          ${!isLibrary ? `<button class="voice-action-btn voice-act-inline" title="Save to Library" onclick="event.stopPropagation();exportToLibrary(${JSON.stringify(v.id)})">💾</button>` : ''}
+          ${!isLibrary ? `<button class="voice-action-btn voice-act-inline" title="Open in Chat" onclick="event.stopPropagation();openInChat(${JSON.stringify(v.id)})">💬</button>` : ''}
+          <button class="voice-action-btn voice-act-inline" title="Download" onclick="event.stopPropagation();downloadVoice(${JSON.stringify(v.audioData||'')})">⬇️</button>
+          <button class="voice-action-btn del voice-act-inline" title="Delete" onclick="event.stopPropagation();deleteVoice(${JSON.stringify(v.id)},${isLibrary})">🗑️</button>
+          <button class="voice-action-btn voice-act-kebab" title="More" onclick="event.stopPropagation();openVoiceMenu(event,${JSON.stringify(v.id)},${isLibrary})">⋮</button>
         </div>
       </div>`;
     }).join('')}
@@ -746,6 +776,37 @@ function openInChat(id) {
     showColToast('Could not open in Chat');
   }
 }
+// ── KEBAB MENU (mobile) — real actions, not a decorative popup ──
+function closeVoiceMenu() {
+  document.getElementById('voiceActionSheet')?.remove();
+  document.removeEventListener('click', closeVoiceMenu, true);
+}
+function openVoiceMenu(ev, id, isLibrary) {
+  closeVoiceMenu();
+  const v = (isLibrary ? colState.library : colState.voices).find(x => x.id === id);
+  if (!v) return;
+  const isFav = colState.voiceFavs.includes(id);
+  const items = [];
+  items.push({ label: isFav ? 'Unfavorite' : 'Favorite', ico: isFav ? '⭐' : '☆', fn: `toggleVoiceFav(${JSON.stringify(id)})` });
+  if (!isLibrary) {
+    items.push({ label: 'Save to Library', ico: '💾', fn: `exportToLibrary(${JSON.stringify(id)})` });
+    items.push({ label: 'Open in Chat', ico: '💬', fn: `openInChat(${JSON.stringify(id)})` });
+  }
+  items.push({ label: 'Download', ico: '⬇️', fn: `downloadVoice(${JSON.stringify(v.audioData||'')})` });
+  items.push({ label: isLibrary ? 'Remove from Library' : 'Delete', ico: '🗑️', fn: `deleteVoice(${JSON.stringify(id)},${isLibrary})`, danger: true });
+
+  const sheet = document.createElement('div');
+  sheet.id = 'voiceActionSheet';
+  sheet.className = 'voice-action-sheet';
+  sheet.innerHTML = `<div class="voice-action-sheet-backdrop" onclick="closeVoiceMenu()"></div>
+    <div class="voice-action-sheet-panel">
+      ${items.map(it => `<button class="voice-sheet-item${it.danger?' danger':''}" onclick="closeVoiceMenu();${it.fn}">${it.ico} ${it.label}</button>`).join('')}
+      <button class="voice-sheet-item voice-sheet-cancel" onclick="closeVoiceMenu()">Cancel</button>
+    </div>`;
+  document.body.appendChild(sheet);
+  setTimeout(() => document.addEventListener('click', closeVoiceMenu, true), 0);
+}
+
 function downloadVoice(audioData) {
   if (!audioData) return;
   const a = document.createElement('a');
