@@ -257,6 +257,33 @@ router.post('/:coupleId/reset', async (req, res) => {
   return res.json({ ok: true });
 });
 
+// DELETE /api/movie/:coupleId/history/:id — delete ONE history entry.
+// Also removes that session's movie chat messages so nothing orphaned is
+// left behind once the history entry referencing it is gone.
+router.delete('/:coupleId/history/:id', async (req, res) => {
+  const { coupleId, id } = req.params;
+  const { data: row } = await supabase.from('watch_history')
+    .select('session_key').eq('couple_id', coupleId).eq('id', id).maybeSingle();
+  const { error } = await supabase.from('watch_history').delete().eq('couple_id', coupleId).eq('id', id);
+  if (error) return res.status(500).json({ error: error.message });
+  if (row && row.session_key) {
+    try { await supabase.from('movie_chat_messages').delete().eq('couple_id', coupleId).eq('session_key', row.session_key); } catch (_) {}
+  }
+  return res.json({ ok: true });
+});
+
+// DELETE /api/movie/:coupleId/history — clear ALL history for this couple
+// (their explicit "delete all" action). Also clears all movie chat
+// messages for this couple, since every one of them belongs to a
+// session that no longer has a history entry after this.
+router.delete('/:coupleId/history', async (req, res) => {
+  const { coupleId } = req.params;
+  const { error } = await supabase.from('watch_history').delete().eq('couple_id', coupleId);
+  if (error) return res.status(500).json({ error: error.message });
+  try { await supabase.from('movie_chat_messages').delete().eq('couple_id', coupleId); } catch (_) {}
+  return res.json({ ok: true });
+});
+
 // GET /api/movie/:coupleId/history — lightweight watch history
 router.get('/:coupleId/history', async (req, res) => {
   const { data, error } = await supabase.from('watch_history')

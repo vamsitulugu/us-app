@@ -1316,9 +1316,23 @@
           ${r.chat_count ? `<span class="wt-history-badge">💬 ${r.chat_count}</span>` : ''}
         </div>
         ${canContinue ? `<button class="wt-history-continue" data-resume="${r.last_position_sec}" data-title="${escapeHtml(r.movie_title || '')}">Continue Watching</button>` : ''}
+        <div class="wt-history-row-actions">
+          <button class="wt-history-delete" data-delete-id="${r.id}">Delete</button>
+        </div>
       </div>`;
     });
     list.innerHTML = html;
+    list.querySelectorAll('.wt-history-delete').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.getAttribute('data-delete-id');
+        if (!id || !confirm('Delete this history entry? This cannot be undone.')) return;
+        btn.disabled = true;
+        try {
+          await api('DELETE', `/${COUPLE_ID}/history/${id}`);
+          renderHistoryPanel();
+        } catch (e) { toast('Could not delete — check your connection.'); btn.disabled = false; }
+      };
+    });
     list.querySelectorAll('.wt-history-continue').forEach(btn => {
       btn.onclick = () => {
         state.pendingResumeSec = Number(btn.getAttribute('data-resume')) || 0;
@@ -1333,6 +1347,18 @@
   if (wtHistoryBtn) wtHistoryBtn.onclick = () => { $('historyBackdrop').hidden = false; renderHistoryPanel(); };
   const btnHistoryClose = $('btnHistoryClose');
   if (btnHistoryClose) btnHistoryClose.onclick = () => { $('historyBackdrop').hidden = true; };
+  const btnHistoryClearAll = $('btnHistoryClearAll');
+  if (btnHistoryClearAll) {
+    btnHistoryClearAll.onclick = async () => {
+      if (!confirm('Delete ALL watch history? This also deletes all movie chat messages tied to it. This cannot be undone.')) return;
+      btnHistoryClearAll.disabled = true;
+      try {
+        await api('DELETE', `/${COUPLE_ID}/history`);
+        renderHistoryPanel();
+      } catch (e) { toast('Could not clear history — check your connection.'); }
+      btnHistoryClearAll.disabled = false;
+    };
+  }
 
   // ═══════════════════════════════════════════════════════
   // SECTION 14 — End movie (with confirmation)

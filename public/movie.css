@@ -539,6 +539,11 @@ html, body {
 .wt-chatlog-text { font-size: 14px; color: #fff; margin-bottom: 4px; word-break: break-word; }
 .wt-chatlog-meta { font-size: 11px; color: #9a9a9a; }
 
+.wt-sheet-header-actions { display: flex; align-items: center; gap: 8px; }
+.wt-sheet-clear { min-height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid rgba(255,59,92,0.35); background: rgba(255,59,92,0.1); color: #ff6b81; font-size: 11px; font-weight: 700; }
+.wt-history-row-actions { display: flex; justify-content: flex-end; }
+.wt-history-delete { min-height: 30px; padding: 0 10px; border-radius: 8px; border: none; background: rgba(255,255,255,0.06); color: #ff6b81; font-size: 11px; font-weight: 600; }
+
 .wt-history-list { overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
 .wt-history-group-label { font-size: 12px; font-weight: 700; color: #9a9a9a; text-transform: uppercase; letter-spacing: 0.06em; margin: 4px 0 -4px; }
 .wt-history-row { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
