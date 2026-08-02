@@ -120,7 +120,7 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
 
     // LEFT-side avatar: partner's uploaded profile photo (data["senderAvatar"],
     // populated by routes/chat.js from couples.user1_avatar/user2_avatar).
-    // Falls back to a plain brand-colored circle if no photo is available/loadable.
+    // Falls back to the default person-avatar bitmap if no photo is available/loadable.
     Bitmap partnerPhoto = downloadBitmap(data.get("senderAvatar"));
     Bitmap leftAvatar = buildAvatarWithBadge(ctx, partnerPhoto);
     RemoteViews collapsed = buildAvatarRemoteViews(ctx, title, body, leftAvatar);
@@ -201,20 +201,52 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
 
   // Left-side avatar: just the sender's circular profile photo now — the
   // tiny Twin Hearts badge that used to overlap its bottom-right corner
-  // was removed per request. Falls back to a plain brand-colored circle
-  // when no photo is available/loadable, same as before.
+  // was removed per request. Falls back to the shared default person
+  // avatar (see buildDefaultAvatarBitmap) when no photo is available/loadable
+  // — previously this fell back to a PLAIN BRAND-COLOR CIRCLE with nothing
+  // drawn on it, which is the "blank red circle" bug. This is the one and
+  // only place that produced it (baseBuilder()/showChatMessage() both call
+  // through here), so fixing it here fixes every notification type at once.
   private Bitmap buildAvatarWithBadge(Context ctx, @Nullable Bitmap photo) {
     int avatarSize = 144; // px, downscaled by RemoteViews/Android to the 48dp slot
 
     if (photo != null) {
       return circleCrop(photo, avatarSize);
     }
-    Bitmap avatarCircle = Bitmap.createBitmap(avatarSize, avatarSize, Bitmap.Config.ARGB_8888);
-    Canvas c = new Canvas(avatarCircle);
-    Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-    p.setColor(Color.parseColor(NotificationRouter.BRAND_ACCENT_COLOR));
-    c.drawCircle(avatarSize / 2f, avatarSize / 2f, avatarSize / 2f, p);
-    return avatarCircle;
+    return buildDefaultAvatarBitmap(avatarSize);
+  }
+
+  // ── Shared default person-avatar bitmap: brand-accent circular
+  // background + a clean white neutral person silhouette (head + shoulder
+  // arc), drawn entirely in code so it never depends on a missing/XML-only
+  // drawable resource. Deliberately mirrors the in-app SVG fallback
+  // (public/js: renderDefaultAvatar — circle head + rounded shoulder arc)
+  // so the notification and in-app UI show the same default. Used both for
+  // the chat/general notification left-avatar (buildAvatarWithBadge) and
+  // the incoming-call Person icon (showIncomingCall) — the two places a
+  // sender/profile avatar is ever rendered in a notification. Never used
+  // for the separate Twin Hearts app/logo large icon (buildAppLogoBitmap).
+  private Bitmap buildDefaultAvatarBitmap(int size) {
+    Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+    Canvas c = new Canvas(bmp);
+
+    Paint bg = new Paint(Paint.ANTI_ALIAS_FLAG);
+    bg.setColor(Color.parseColor(NotificationRouter.BRAND_ACCENT_COLOR));
+    c.drawCircle(size / 2f, size / 2f, size / 2f, bg);
+
+    Paint fg = new Paint(Paint.ANTI_ALIAS_FLAG);
+    fg.setColor(Color.parseColor("#EBFFFFFF")); // near-white silhouette, matches in-app opacity
+
+    // Head
+    c.drawCircle(size / 2f, size * 0.37f, size * 0.15f, fg);
+
+    // Shoulders — bottom arc of a circle, clipped so only the lower part shows
+    c.save();
+    c.clipRect(0, size * 0.60f, size, (float) size);
+    c.drawCircle(size / 2f, size * 0.86f, size * 0.26f, fg);
+    c.restore();
+
+    return bmp;
   }
 
   // ── Twin Hearts app logo, circle-cropped for the notification's
@@ -257,11 +289,14 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
     // it never actually tried to load the partner's uploaded photo. data
     // now carries "senderAvatar" (see routes/call.js), same field/shape as
     // chat notifications, so we download and attach it here the same way.
+    // When there's no photo (or it fails to load), attach the same brand
+    // default-avatar bitmap used elsewhere, instead of leaving the icon
+    // unset — keeps the incoming-call screen visually consistent with
+    // every other notification's fallback rather than an OS-generic icon.
     Person.Builder callerBuilder = new Person.Builder().setName(callerName);
     Bitmap callerPhoto = downloadBitmap(data.get("senderAvatar"));
-    if (callerPhoto != null) {
-      callerBuilder.setIcon(IconCompat.createWithBitmap(circleCrop(callerPhoto, 256)));
-    }
+    Bitmap callerIconBitmap = callerPhoto != null ? circleCrop(callerPhoto, 256) : buildDefaultAvatarBitmap(256);
+    callerBuilder.setIcon(IconCompat.createWithBitmap(callerIconBitmap));
     Person caller = callerBuilder.build();
     PendingIntent answer = actionPendingIntent(ctx, "ANSWER_CALL", data, 201);
     PendingIntent decline = actionPendingIntent(ctx, "DECLINE_CALL", data, 202);
