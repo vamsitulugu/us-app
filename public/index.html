@@ -4360,6 +4360,135 @@
 .ai-sugg-ico { font-size: 18px; flex-shrink: 0; }
 .ai-sugg-txt { font-size: 12px; color: var(--text2); line-height: 1.4; }
 
+/* ════════════════════════════════════════════
+   TWIN — animated orb + dock (Phase 1)
+   Original visual identity: layered radial-gradient
+   core + rotating conic "energy" layer + soft aura.
+   Pure CSS/SVG, no images, no extra deps.
+════════════════════════════════════════════ */
+.twin-orb {
+  --orb-size: 76px;
+  position: relative;
+  width: var(--orb-size); height: var(--orb-size);
+  flex-shrink: 0;
+}
+.twin-orb .to-aura {
+  position: absolute; inset: -14px; border-radius: 50%;
+  background: radial-gradient(circle, var(--accent-glow), transparent 70%);
+  opacity: .55; filter: blur(2px);
+  animation: twinAuraBreathe 3.6s ease-in-out infinite;
+  transition: opacity .4s ease;
+}
+.twin-orb .to-core {
+  position: absolute; inset: 0; border-radius: 50%;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255,255,255,0.35), transparent 40%),
+    radial-gradient(circle at 65% 70%, var(--accent2), transparent 60%),
+    radial-gradient(circle at 40% 55%, var(--accent), var(--accent-d) 70%, #1a0505 100%);
+  box-shadow:
+    inset 0 -6px 14px rgba(0,0,0,0.45),
+    inset 0 4px 10px rgba(255,255,255,0.10),
+    0 6px 22px rgba(0,0,0,0.5);
+  animation: twinCoreBreathe 3.2s ease-in-out infinite;
+}
+.twin-orb .to-energy {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(255,120,110,0.55) 60deg, transparent 140deg, rgba(224,53,91,0.5) 220deg, transparent 320deg);
+  mix-blend-mode: screen;
+  animation: twinEnergySpin 6s linear infinite;
+  opacity: .8;
+}
+.twin-orb .to-highlight {
+  position: absolute; top: 12%; left: 22%; width: 30%; height: 22%; border-radius: 50%;
+  background: rgba(255,255,255,0.5); filter: blur(4px);
+  opacity: .6;
+}
+@keyframes twinAuraBreathe { 0%,100% { transform: scale(1); opacity: .45; } 50% { transform: scale(1.12); opacity: .65; } }
+@keyframes twinCoreBreathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.045); } }
+@keyframes twinEnergySpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* THINKING — energy speeds up & intensifies, core pulses faster */
+.twin-orb.is-thinking .to-energy { animation-duration: 1.4s; opacity: 1; }
+.twin-orb.is-thinking .to-core { animation-duration: 1.1s; }
+.twin-orb.is-thinking .to-aura { animation-duration: 1.3s; opacity: .75; }
+
+/* RESPONDING — brief settle pulse back toward idle */
+.twin-orb.is-responding .to-energy { animation-duration: 3s; }
+.twin-orb.is-responding .to-core { animation-duration: 2s; }
+
+/* ERROR — restrained red flash, then returns to idle via JS */
+.twin-orb.is-error .to-core {
+  animation: twinErrorPulse .5s ease 2;
+}
+.twin-orb.is-error .to-aura { background: radial-gradient(circle, rgba(248,113,113,0.5), transparent 70%); }
+@keyframes twinErrorPulse { 0%,100% { filter: none; } 50% { filter: brightness(1.5) saturate(1.3); } }
+
+/* OFFLINE — energy stops, aura dims */
+.twin-orb.is-offline .to-energy, .twin-orb.is-offline .to-aura { animation: none; opacity: .15; }
+.twin-orb.is-offline .to-core { animation: none; filter: saturate(.4) brightness(.7); }
+
+@media (prefers-reduced-motion: reduce) {
+  .twin-orb .to-aura, .twin-orb .to-core, .twin-orb .to-energy { animation: none !important; }
+}
+
+.twin-msg-av { background: transparent; }
+.twin-msg-av .twin-orb { width: 26px; height: 26px; }
+.twin-msg-av .twin-orb .to-core { animation: none; }
+
+/* Tiny static nav glyph — intentionally not animated (perf + avoids a
+   distracting pulse sitting in the nav rail at all times). */
+.nav-twin-ico { display: inline-flex; align-items: center; justify-content: center; }
+.nav-twin-ico .twin-orb { width: 16px; height: 16px; }
+.nav-twin-ico .twin-orb .to-core { animation: none; }
+
+/* Twin welcome screen */
+.twin-welcome-orb-wrap { width: 84px; height: 84px; margin: 0 auto 16px; }
+.twin-welcome-orb-wrap .twin-orb { --orb-size: 84px; }
+.twin-welcome-title { font-family: var(--ff-serif); font-size: 22px; color: var(--white); margin-bottom: 2px; }
+.twin-welcome-sub { font-size: 13px; color: var(--text3); }
+
+/* Compact horizontally scrollable suggestion chips (replaces the old
+   stacked grid cards) — collapses once a conversation starts since the
+   whole #aiWelcome block is removed by askAI(). */
+.twin-sugg-row {
+  display: flex; gap: 8px; overflow-x: auto; padding: 4px 4px 2px;
+  margin-top: 18px; max-width: 100%;
+  scrollbar-width: none;
+}
+.twin-sugg-row::-webkit-scrollbar { display: none; }
+.twin-sugg-chip {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 6px;
+  padding: 9px 14px; border-radius: 20px;
+  background: var(--g1); border: 1px solid var(--border);
+  font-size: 12px; color: var(--text2); white-space: nowrap;
+  cursor: pointer; transition: var(--t);
+}
+.twin-sugg-chip:hover { background: var(--g2); border-color: var(--border2); color: var(--white); }
+.twin-sugg-chip:active { transform: scale(.96); }
+
+/* Premium floating Twin dock — the composer bar restyled so a smaller
+   orb can visually overlap its top-center edge. */
+.twin-dock-wrap { position: relative; flex-shrink: 0; }
+.twin-dock-orb {
+  position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
+  width: 36px; height: 36px; z-index: 2; pointer-events: none;
+}
+.twin-dock-orb .twin-orb { --orb-size: 36px; }
+.twin-dock {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 12px max(14px, env(safe-area-inset-bottom)) 12px;
+  padding: 10px 10px 10px 14px;
+  border-radius: 28px;
+  background: rgba(20,10,12,0.55);
+  border: 1px solid var(--border2);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.02) inset;
+}
+@supports (backdrop-filter: blur(1px)) {
+  .twin-dock { backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%); }
+}
+.twin-mic-btn { opacity: .55; }
+
 /* Thinking indicator */
 .ai-thinking-wave {
   display: inline-flex; align-items: center; gap: 4px; height: 16px;
@@ -5210,7 +5339,7 @@ select option { background: #0D0D0D; color: #fff; }
 
     <div class="nav-group">
       <div class="nav-label">AI & Tools</div>
-      <div class="ni" data-page="ai"><span class="ico">🤖</span>AI Love Guide</div>
+      <div class="ni" data-page="ai"><span class="ico nav-twin-ico"><span class="twin-orb"><span class="to-core"></span></span></span>Twin</div>
     </div>
     <div class="sb-foot">
       <div class="ni" data-page="settings" style="margin:0"><span class="ico">⚙️</span>Settings</div>
@@ -6385,44 +6514,37 @@ select option { background: #0D0D0D; color: #fff; }
         <div class="ai-wrap">
           <div class="ai-msgs" id="aiMsgs">
             <div class="ai-welcome" id="aiWelcome">
-              <div class="ai-welcome-orb">🤖</div>
-              <div class="ai-welcome-title">AI Love Guide</div>
-              <div class="ai-welcome-sub">Relationship advice, date ideas, love letters, and communication tips — just for you two 💕</div>
-              <div class="ai-welcome-suggest">
-                <div class="ai-sugg-card" onclick="askAI('Give us 5 creative and romantic date night ideas for tonight')"><span class="ai-sugg-ico">💑</span><span class="ai-sugg-txt">Plan a date night</span></div>
-                <div class="ai-sugg-card" onclick="askAI('How can we improve communication as a couple? Be specific and practical')"><span class="ai-sugg-ico">🗣️</span><span class="ai-sugg-txt">Improve communication</span></div>
-                <div class="ai-sugg-card" onclick="askAI('Write a heartfelt, poetic love letter from me to my partner')"><span class="ai-sugg-ico">💌</span><span class="ai-sugg-txt">Write a love letter</span></div>
-                <div class="ai-sugg-card" onclick="askAI('Give us 5 deep conversation questions to learn more about each other')"><span class="ai-sugg-ico">💭</span><span class="ai-sugg-txt">Deep talk questions</span></div>
+              <div class="twin-welcome-orb-wrap">
+                <div class="twin-orb" id="twinOrb"><span class="to-aura"></span><span class="to-core"></span><span class="to-energy"></span><span class="to-highlight"></span></div>
+              </div>
+              <div class="twin-welcome-title">Hey, I'm Twin.</div>
+              <div class="twin-welcome-sub">What's on your mind?</div>
+              <div class="twin-sugg-row">
+                <div class="twin-sugg-chip" onclick="askAI('Give us 5 creative and romantic date night ideas for tonight')">💑 Plan a date</div>
+                <div class="twin-sugg-chip" onclick="askAI('We had a fight. Give us a step-by-step guide to talk it through with love')">💬 We argued</div>
+                <div class="twin-sugg-chip" onclick="askAI('Write a heartfelt, poetic love letter from me to my partner')">💌 Write something sweet</div>
+                <div class="twin-sugg-chip" onclick="askAI('Give us 5 deep conversation questions to learn more about each other')">💭 Deep talk</div>
+                <div class="twin-sugg-chip" onclick="askAI('Plan a romantic surprise — give me 3 detailed and thoughtful options')">🎁 Surprise idea</div>
               </div>
             </div>
           </div>
-          <div class="uc-chips">
-            <div class="uc-chip" onclick="askAI('Give us 5 creative and romantic date night ideas for tonight')">💑 Date
-              ideas</div>
-            <div class="uc-chip"
-              onclick="askAI('We had a fight. Give us a step-by-step guide to talk it through with love')">💬 We argued
+          <div class="twin-dock-wrap">
+            <div class="twin-dock-orb"><div class="twin-orb" id="twinDockOrb"><span class="to-aura"></span><span class="to-core"></span><span class="to-energy"></span><span class="to-highlight"></span></div></div>
+            <div class="twin-dock">
+              <div class="uc-composer uc-composer--ai" style="padding:0;flex:1">
+                <div class="uc-input-wrap">
+                  <textarea class="uc-input" id="aiIn" rows="1" placeholder="Ask Twin anything..."
+                    oninput="this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,110)+'px'; document.getElementById('aiSendBtn').classList.toggle('is-ready', this.value.trim().length>0)"
+                    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"></textarea>
+                </div>
+                <button class="uc-btn twin-mic-btn" id="twinMicBtn" onclick="twinMicTap()" title="Voice (coming soon)">
+                  <span class="uc-mic-ico">🎙️</span>
+                </button>
+                <button class="uc-btn uc-btn--send" id="aiSendBtn" onclick="sendAI()" title="Send">
+                  <span class="ai-send-ico">➤</span>
+                </button>
+              </div>
             </div>
-            <div class="uc-chip"
-              onclick="askAI('How can we improve communication as a couple? Be specific and practical')">🗣️
-              Communication</div>
-            <div class="uc-chip" onclick="askAI('Plan a romantic surprise — give me 3 detailed and thoughtful options')">🎁
-              Surprise</div>
-            <div class="uc-chip" onclick="askAI('Write a heartfelt, poetic love letter from me to my partner')">💌 Love
-              letter</div>
-            <div class="uc-chip" onclick="askAI('What are 10 fun things couples can do at home to reconnect?')">🏠 Home fun
-            </div>
-            <div class="uc-chip" onclick="askAI('Give us 5 deep conversation questions to learn more about each other')">💭
-              Deep talk</div>
-          </div>
-          <div class="uc-composer uc-composer--ai">
-            <div class="uc-input-wrap">
-              <textarea class="uc-input" id="aiIn" rows="1" placeholder="Ask anything about your relationship..."
-                oninput="this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,110)+'px'; document.getElementById('aiSendBtn').classList.toggle('is-ready', this.value.trim().length>0)"
-                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"></textarea>
-            </div>
-            <button class="uc-btn uc-btn--send" id="aiSendBtn" onclick="sendAI()" title="Send">
-              <span class="ai-send-ico">➤</span>
-            </button>
           </div>
         </div>
       </div>
@@ -6607,7 +6729,7 @@ select option { background: #0D0D0D; color: #fff; }
 
         <!-- AI SETTINGS -->
         <div class="settings-group">
-          <div class="settings-group-header">🤖 AI Love Guide</div>
+          <div class="settings-group-header">✨ Twin</div>
           <div class="settings-row" style="cursor:default">
             <div class="settings-row-ico">✨</div>
             <div class="settings-row-content">
@@ -6771,7 +6893,7 @@ select option { background: #0D0D0D; color: #fff; }
       <nav class="bot-nav" id="botNav">
         <div class="bot-ni active" data-page="dashboard"><span class="ico">🏠</span>Home</div>
 <div class="bot-ni" data-page="chat"><span class="ico">💬</span>Chat<span data-chat-badge></span></div>
-<div class="bot-ni" data-page="ai"><span class="ico">🤖</span>AI</div>
+<div class="bot-ni" data-page="ai"><span class="ico nav-twin-ico"><span class="twin-orb"><span class="to-core"></span></span></span>Twin</div>
 <div class="bot-ni" data-page="globe"><span class="ico">🌍</span>Globe</div>
 <div class="bot-ni" data-page="games"><span class="ico">🎮</span>Games</div>
 <div class="bot-ni" data-page="movie"><span class="ico">🎬</span>Watch</div>
@@ -7703,7 +7825,7 @@ function setJustPairedAt(ts) {
           dashboard: 'Dashboard',  camera: 'Our Memories',
           vault: 'Secret Vault', myspace: 'My Space', bucket: 'Bucket List',
           profile: 'Our Profile', calendar: 'Calendar', money: 'Money',
-          ai: 'AI Love Guide',lovecounter: 'Love Counter ',
+          ai: 'Twin',lovecounter: 'Love Counter ',
           collection: 'Collection ', settings: 'Settings', period: 'Period Tracker',
           fights: 'Fight Log', study: 'Study Together', map: 'Live Map ',
           music: 'Music ', capsule: 'Love Capsule ', surprise: 'Surprises ',chat: 'Chat ',
@@ -10146,9 +10268,41 @@ const p = await Notification.requestPermission();
             </div>`).join('');
         }
 
-        // ─── AI LOVE GUIDE 2.0 ───────────────────────────────────
+        // ─── TWIN (AI Love Guide 2.0) ────────────────────────────
         let aiStreaming = false;
         let aiLastQuestion = '';
+
+        // Orb state machine. Phase 1 states: idle / thinking / responding /
+        // error / offline. Phase 2 will add listening/speaking on top of
+        // this same setter without touching callers.
+        let twinState = 'idle';
+        let twinErrorTimer = null;
+        function setTwinState(state) {
+          twinState = state;
+          const orbs = [document.getElementById('twinOrb'), document.getElementById('twinDockOrb')];
+          clearTimeout(twinErrorTimer);
+          orbs.forEach(o => {
+            if (!o) return;
+            o.classList.remove('is-thinking', 'is-responding', 'is-error', 'is-offline');
+            if (state !== 'idle') o.classList.add('is-' + state);
+          });
+          if (state === 'error') {
+            // Restrained error pulse, then settle back to idle automatically
+            // rather than leaving Twin stuck in an error visual.
+            twinErrorTimer = setTimeout(() => setTwinState('idle'), 1400);
+          }
+          if (state === 'responding') {
+            // Brief settle animation, then back to idle.
+            twinErrorTimer = setTimeout(() => { if (twinState === 'responding') setTwinState('idle'); }, 900);
+          }
+        }
+        function twinMicTap() {
+          // Phase 1: mic is visually present but not wired to real voice
+          // functionality yet (Phase 2). No fake recording animation.
+          toast('Voice mode is coming soon 🎙️');
+        }
+        window.addEventListener('online', () => { if (twinState === 'offline') setTwinState('idle'); });
+        window.addEventListener('offline', () => setTwinState('offline'));
 
         async function sendAI() {
           if (aiStreaming) return;
@@ -10263,7 +10417,8 @@ const p = await Notification.requestPermission();
           bubbleEl.className = 'ai-bubble ai-bubble-loading';
           bubbleEl.innerHTML = `<span class="ai-thinking-wave"><span></span><span></span><span></span></span><span class="ai-thinking-label">Thinking...</span>`;
           wrapDiv.appendChild(bubbleEl);
-          const avDiv = document.createElement('div'); avDiv.className = 'ai-av'; avDiv.textContent = '🤖';
+          const avDiv = document.createElement('div'); avDiv.className = 'ai-av twin-msg-av';
+          avDiv.innerHTML = '<span class="twin-orb"><span class="to-core"></span></span>';
           ld.appendChild(avDiv); ld.appendChild(wrapDiv);
           msgsEl.appendChild(ld);
           trimAiHistoryDom(msgsEl);
@@ -10272,6 +10427,7 @@ const p = await Notification.requestPermission();
           aiStreaming = true;
           sendBtn?.classList.add('is-sending');
           sendBtn?.setAttribute('disabled', 'disabled');
+          setTwinState('thinking');
 
           let full = '';
           let gotFirstToken = false;
@@ -10342,6 +10498,7 @@ const p = await Notification.requestPermission();
             const tsEl = document.createElement('div'); tsEl.className = 'ai-msg-time'; tsEl.textContent = nowTimeShort();
             wrapDiv.appendChild(tsEl);
             spawnPetals(3);
+            setTwinState('responding');
           } catch (e) {
             // Fall back to the non-streaming endpoint with a progressive
             // reveal so it never feels instant/robotic even without SSE.
@@ -10354,6 +10511,7 @@ const p = await Notification.requestPermission();
               const tsEl = document.createElement('div'); tsEl.className = 'ai-msg-time'; tsEl.textContent = nowTimeShort();
               wrapDiv.appendChild(tsEl);
               spawnPetals(3);
+              setTwinState('responding');
             } catch (e2) {
               bubbleEl.classList.remove('ai-bubble-loading');
               bubbleEl.style.background = 'var(--red-bg)'; bubbleEl.style.color = 'var(--red)';
@@ -10362,6 +10520,7 @@ const p = await Notification.requestPermission();
               retryBtn.className = 'btn btn-glass btn-xs'; retryBtn.style.marginTop = '8px';
               retryBtn.textContent = '🔄 Retry'; retryBtn.onclick = () => askAI(question, true);
               wrapDiv.appendChild(retryBtn);
+              setTwinState('error');
             }
           }
           aiStreaming = false;
