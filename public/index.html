@@ -4867,7 +4867,7 @@ select option { background: #0D0D0D; color: #fff; }
 (function () {
   const READY_KEYS = ['css', 'fonts', 'theme', 'auth', 'data', 'icons'];
   const state = { css: false, fonts: false, theme: false, auth: false, data: false, icons: false };
-  const SAFETY_TIMEOUT_MS = 6000; // never block the app forever
+  const SAFETY_TIMEOUT_MS = 3000; // never block the app forever
   let settled = false;
  
   const overlay = document.getElementById('appLoader');
