@@ -106,19 +106,20 @@ let _cityDebounce;
 function mpSearchCity(q) {
   clearTimeout(_cityDebounce);
   const box = document.getElementById('mpCityResults');
-  if (!q || q.trim().length < 2) { box.classList.remove('show'); return; }
+  if (!q || q.trim().length < 2) { box.classList.remove('show'); document.getElementById('mpCityCard').classList.remove('mp-elevated'); return; }
   _cityDebounce = setTimeout(async () => {
     try {
       const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&featureType=city&q=${encodeURIComponent(q)}`;
       const r = await fetch(url, { headers: { 'Accept-Language': 'en' } });
       const data = await r.json();
-      if (!data.length) { box.innerHTML = '<div class="mp-loc-result-item">No cities found</div>'; box.classList.add('show'); return; }
+      if (!data.length) { box.innerHTML = '<div class="mp-loc-result-item">No cities found</div>'; box.classList.add('show'); document.getElementById('mpCityCard').classList.add('mp-elevated'); return; }
       box.innerHTML = data.map((d, i) => `
         <div class="mp-loc-result-item" onclick="mpPickCity(${i})">
           <div class="nm">${esc(d.display_name.split(',')[0])}</div>
           <div class="sb">${esc(d.display_name)}</div>
         </div>`).join('');
       box.classList.add('show');
+      document.getElementById('mpCityCard').classList.add('mp-elevated');
       window._mpCityCandidates = data;
     } catch (e) { toast('City search failed — check connection'); }
   }, 350);
@@ -132,8 +133,16 @@ function mpPickCity(i) {
     bbox: d.boundingbox ? d.boundingbox.map(parseFloat) : null // [south,north,west,east]
   });
   document.getElementById('mpCityResults').classList.remove('show');
+  document.getElementById('mpCityCard').classList.remove('mp-elevated');
   document.getElementById('mpCityInput').value = '';
 }
+document.addEventListener('click', (e) => {
+  const card = document.getElementById('mpCityCard');
+  if (card && !card.contains(e.target)) {
+    document.getElementById('mpCityResults')?.classList.remove('show');
+    card.classList.remove('mp-elevated');
+  }
+});
 function mpUseGeoForCity() {
   if (!navigator.geolocation) { toast('Geolocation not supported'); return; }
   toast('Getting your location...');
@@ -195,7 +204,12 @@ async function mpSearchPOI() {
     }
   } catch (e) {
     console.warn('[meetplanner] POI search failed:', e.message);
-    listEl.innerHTML = '<div class="mp-loc-result-item">Search failed — try again or use custom search</div>';
+    // Now that overpass-service.js distinguishes "genuinely nothing
+    // nearby" from "the live search itself failed" (see its searchNearby
+    // fix), this catch actually fires for real failures — point people
+    // straight at the manual search box, which uses Nominatim/Photon
+    // directly and isn't affected by Overpass mirrors being down.
+    listEl.innerHTML = '<div class="mp-loc-result-item">⚠️ Category search is temporarily unavailable — try the "Or search anything" box below instead.</div>';
   }
 }
 async function mpCustomSearch() {
@@ -483,6 +497,7 @@ async function mpLoadSavedPlans() {
         <div class="mp-plan-route">${esc(routeText.slice(0, 140))}${routeText.length > 140 ? '…' : ''}</div>
         <div class="mp-plan-actions" onclick="event.stopPropagation()">
           ${p.status !== 'completed' ? `<button class="mp-btn mp-btn-accent mp-btn-sm" onclick="mpOpenComplete('${p.id}')">🎉 Mark Complete</button>` : ''}
+          ${p.status === 'completed' && p.globe_memory_id ? `<button class="mp-btn mp-btn-glass mp-btn-sm" onclick="mpViewPlanPhotos('${p.id}')">📷 View Photos</button>` : ''}
           <button class="mp-btn mp-btn-glass mp-btn-sm" onclick="mpOpenEdit('${p.id}')">✏️ Edit</button>
           <button class="mp-btn mp-btn-danger mp-btn-sm" onclick="mpDeletePlan('${p.id}')">🗑️ Delete</button>
         </div>
@@ -655,6 +670,61 @@ function mpDeletePlan(id) {
 /* ── COMPLETE → MEMORY GLOBE ──────────────────────────────── */
 const MOODS = ['😍 Amazing', '🥰 Sweet', '😂 Fun', '😌 Relaxing', '🥹 Emotional', '🎉 Exciting'];
 let _completePhotos = [];
+
+// Shared GalleryEngine (same engine used on Places/Vault/Globe) mounted
+// once for this page. Handles both: (a) the "about to save" preview
+// thumbs in the completion form, and (b) a saved plan's already-uploaded
+// photos, tapped straight from its card in the saved-plans list.
+let _mpLbEngine = null;
+function _mpLbGetEngine() {
+  if (_mpLbEngine) return _mpLbEngine;
+  _mpLbEngine = new GalleryEngine(document.getElementById('mpLightboxStage'), {
+    renderItem(item) {
+      const img = document.createElement('img');
+      img.src = item.url; img.alt = 'Meetup photo';
+      return img;
+    },
+    onIndexChange(i) {
+      const counter = document.getElementById('mpLightboxCounter');
+      if (counter) counter.textContent = _mpLbEngine.items.length > 1 ? (i + 1) + ' / ' + _mpLbEngine.items.length : '';
+    },
+    onEscape() { closeMpLightbox(); },
+    onDismiss() { closeMpLightbox(); },
+    onDragProgress(t) {
+      const el = document.getElementById('mpLightbox');
+      if (el) el.style.setProperty('--gve-backdrop-fade', String(1 - t * 0.85));
+    }
+  });
+  return _mpLbEngine;
+}
+function openMpLightbox(urls, index) {
+  if (!urls || !urls.length) return;
+  _mpLbGetEngine().open(urls.map(url => ({ url, type: 'photo' })), index || 0);
+  document.getElementById('mpLightbox').classList.add('open');
+}
+function closeMpLightbox() {
+  document.getElementById('mpLightbox').classList.remove('open');
+  if (_mpLbEngine) _mpLbEngine.close();
+}
+// Saved-plan card tap → swipeable view of that plan's photos. The
+// photos were written to globe_memory_media on completion (see
+// routes/meetplanner.js's /complete endpoint), NOT onto the plan row
+// itself, so this fetches them from the Globe API by globe_memory_id
+// rather than assuming a `plan.photos` field that doesn't exist.
+async function mpViewPlanPhotos(planId) {
+  const plan = MP.savedPlans.find(p => p.id === planId);
+  if (!plan || !plan.globe_memory_id) return;
+  try {
+    const memories = await api('GET', '/api/globe/' + coupleId);
+    const list = Array.isArray(memories) ? memories : (Array.isArray(memories?.data) ? memories.data : []);
+    const memory = list.find(m => m.id === plan.globe_memory_id);
+    const media = Array.isArray(memory?.globe_memory_media) ? memory.globe_memory_media : [];
+    const photoUrls = media.filter(m => m.type === 'photo').map(m => m.url);
+    if (!photoUrls.length) { toast('No photos saved for this meetup.'); return; }
+    openMpLightbox(photoUrls, 0);
+  } catch (e) { toast('Could not load photos: ' + e.message); }
+}
+
 function mpOpenComplete(id) {
   document.getElementById('mpCompletePlanId').value = id;
   document.getElementById('mpCompleteMood').value = '';
@@ -690,7 +760,16 @@ function mpLoadCompletePhotos(input) {
 }
 function _renderCompleteThumbs() {
   document.getElementById('mpCompletePhotoThumbs').innerHTML = _completePhotos.map((p, i) => `
-    <div class="mp-photo-thumb">${p.uploading ? '⏳' : `<img src="${p.url}" loading="lazy" decoding="async">`}<button onclick="mpRemoveCompletePhoto(${i})">✕</button></div>`).join('');
+    <div class="mp-photo-thumb" ${p.uploading ? '' : `onclick="mpViewCompletePreview(${i})"`}>${p.uploading ? '⏳' : `<img src="${p.url}" loading="lazy" decoding="async">`}<button onclick="event.stopPropagation();mpRemoveCompletePhoto(${i})">✕</button></div>`).join('');
+}
+// Tapping a not-yet-saved preview thumb opens the same swipeable
+// fullscreen viewer, over just the photos that finished uploading so
+// far (uploading placeholders are skipped since there's nothing to show).
+function mpViewCompletePreview(i) {
+  const ready = _completePhotos.filter(p => p.url);
+  const tappedUrl = _completePhotos[i] && _completePhotos[i].url;
+  const idx = Math.max(0, ready.findIndex(p => p.url === tappedUrl));
+  openMpLightbox(ready.map(p => p.url), idx);
 }
 function mpRemoveCompletePhoto(i) { _completePhotos.splice(i, 1); _renderCompleteThumbs(); }
 async function mpConfirmComplete() {

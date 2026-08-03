@@ -70,6 +70,14 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 .mp-geo-btn:hover{background:var(--g3)}
 .mp-loc-results{position:absolute;top:100%;left:0;right:0;background:rgba(10,10,25,0.97);border:1px solid var(--border2);border-radius:var(--rs);margin-top:4px;max-height:240px;overflow-y:auto;z-index:50;display:none;box-shadow:0 8px 28px rgba(0,0,0,0.45)}
 .mp-loc-results.show{display:block}
+/* FIX: .mp-card uses backdrop-filter, which creates its own stacking
+   context — a z-index on .mp-loc-results (a descendant) can never
+   escape that context to paint above the NEXT sibling .mp-card, no
+   matter how high it's set. This class bumps the whole card's own
+   stacking position above later siblings only while its dropdown is
+   actually open, so the results list stops getting hidden under the
+   "Meetup Details" card underneath it. */
+.mp-card.mp-elevated{position:relative;z-index:60}
 .mp-loc-result-item{padding:10px 13px;cursor:pointer;font-size:13px;color:var(--text2);transition:var(--t);border-bottom:1px solid var(--border)}
 .mp-loc-result-item:last-child{border-bottom:none}
 .mp-loc-result-item:hover{background:var(--g2);color:var(--white)}
@@ -187,9 +195,19 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 .mp-mood-opt:hover{background:var(--g2);color:var(--white)}
 .mp-mood-opt.sel{background:var(--accent);color:#fff;border-color:var(--accent)}
 .mp-photo-thumbs{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
-.mp-photo-thumb{width:56px;height:56px;border-radius:10px;overflow:hidden;position:relative;border:1px solid var(--border)}
+.mp-photo-thumb{width:56px;height:56px;border-radius:10px;overflow:hidden;position:relative;border:1px solid var(--border);cursor:pointer}
 .mp-photo-thumb img{width:100%;height:100%;object-fit:cover}
 .mp-photo-thumb button{position:absolute;top:1px;right:1px;background:rgba(0,0,0,0.6);border:none;color:#fff;font-size:9px;width:16px;height:16px;border-radius:50%;cursor:pointer;line-height:1}
+/* ── MEETUP PHOTO LIGHTBOX (shared GalleryEngine, same as Places/Vault/Globe) ── */
+.mp-lightbox{position:fixed;inset:0;z-index:9200;--gve-backdrop-fade:1;background:rgba(0,0,0,calc(0.95 * var(--gve-backdrop-fade)));display:none}
+.mp-lightbox.open{display:block}
+.mp-lightbox-stage{position:absolute;inset:0;overflow:hidden}
+.mp-lightbox-counter{position:absolute;top:calc(18px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:2;color:rgba(255,255,255,0.85);font-size:13px;font-weight:600;pointer-events:none}
+.mp-lightbox-close{position:absolute;top:calc(18px + env(safe-area-inset-top,0px));right:22px;z-index:3;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.gve-track{position:relative;width:100%;height:100%;will-change:transform}
+.gve-slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;will-change:transform}
+.gve-content{display:flex;align-items:center;justify-content:center;width:100%;height:100%;will-change:transform;touch-action:none}
+.gve-content img{max-width:92vw;max-height:88vh;object-fit:contain;border-radius:10px;user-select:none;-webkit-user-drag:none;pointer-events:none}
 .mp-upload-btn{display:inline-block;padding:9px 13px;background:var(--g2);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:12px;color:var(--text2);font-family:var(--ff-sans)}
 
 .mp-spinner{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,0.25);border-top-color:#fff;animation:mpSpin 0.7s linear infinite;display:inline-block}
@@ -203,6 +221,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
   <link rel="stylesheet" href="/responsive-fix.css">
   <link rel="stylesheet" href="/safe-delete.css">
   <script src="/js/scroll-reset.js"></script>
+  <script src="/js/gallery-viewer.js"></script>
   <script src="/safe-delete.js"></script>
 </head>
 <body>
@@ -218,7 +237,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 <!-- ═══════════ TAB 1: PLAN NEW — city + destination search ═══════════ -->
 <div class="mp-sec active" id="mp-sec-plan">
 
-  <div class="mp-card">
+  <div class="mp-card" id="mpCityCard">
     <div class="mp-card-title">🏙️ Which city will you meet in?</div>
     <div class="mp-loc-field">
       <label>City</label>
@@ -356,6 +375,12 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 </div>
 
 <div id="mpToast"></div>
+
+<div class="mp-lightbox" id="mpLightbox">
+  <div class="mp-lightbox-stage" id="mpLightboxStage"></div>
+  <div class="mp-lightbox-counter" id="mpLightboxCounter"></div>
+  <button class="mp-lightbox-close" onclick="closeMpLightbox()"><i data-lucide="x"></i></button>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="/premium-motion.js"></script>

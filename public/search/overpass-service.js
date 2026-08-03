@@ -169,6 +169,8 @@
     const catList = Array.isArray(catIds) ? catIds : [catIds];
     const results = [];
     let anySucceeded = false;
+    let anyErrored = false;
+    let lastError = null;
 
     for (const catId of catList) {
       const query = buildQuery([catId], lat, lng, radiusM, limit);
@@ -182,12 +184,28 @@
         if (normalized.length && global.IDBCache) global.IDBCache.set(cacheKey, normalized);
       } catch (e) {
         if (e.name === 'AbortError') throw e;
+        anyErrored = true;
+        lastError = e;
         console.warn(`[overpass-service] category "${catId}" failed live, trying offline cache:`, e.message);
         if (global.IDBCache) {
           const cached = await global.IDBCache.get(cacheKey);
           if (cached?.length) results.push(...cached.map(r => ({ ...r, fromOfflineCache: true })));
         }
       }
+    }
+
+    // FIX: previously this always resolved successfully, even when every
+    // single category request actually failed (proxy down, every mirror
+    // CORS-blocked) and there was no offline cache to fall back on — the
+    // caller had no way to tell "genuinely zero venues here" apart from
+    // "the search itself never ran," so the UI showed a misleading
+    // "No results nearby" instead of a real error. Now: if nothing
+    // succeeded live AND nothing came from cache AND at least one
+    // category actually threw, surface that as a real failure so the UI
+    // can tell the person the search failed instead of lying that the
+    // area has nothing in it.
+    if (!results.length && anyErrored && !anySucceeded) {
+      throw lastError || new Error('Overpass search failed for all categories');
     }
 
     return { results: results.sort((a, b) => (a.distKm ?? 0) - (b.distKm ?? 0)).slice(0, limit), live: anySucceeded };
