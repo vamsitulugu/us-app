@@ -4428,6 +4428,32 @@
 .twin-orb.is-offline .to-energy, .twin-orb.is-offline .to-aura { animation: none; opacity: .15; }
 .twin-orb.is-offline .to-core { animation: none; filter: saturate(.4) brightness(.7); }
 
+/* LISTENING (Phase 2) — calm baseline; real mic amplitude (--mic-level,
+   0..1, written from the AnalyserNode loop) subtly scales the core/aura
+   on top of this so the orb visibly responds to voice without ever
+   relying on fake/random motion. */
+.twin-orb.is-listening { --mic-level: 0; }
+.twin-orb.is-listening .to-aura {
+  animation: none;
+  transform: scale(calc(1 + var(--mic-level) * 0.22));
+  opacity: calc(0.5 + var(--mic-level) * 0.35);
+  transition: transform .08s ease-out, opacity .08s ease-out;
+}
+.twin-orb.is-listening .to-core {
+  animation: none;
+  transform: scale(calc(1 + var(--mic-level) * 0.09));
+  transition: transform .08s ease-out;
+}
+.twin-orb.is-listening .to-energy { animation-duration: 5s; opacity: .6; }
+
+/* SPEAKING (Phase 2) — steady active energy while Twin talks. Browser TTS
+   doesn't expose output amplitude, so this is a restrained, non-random
+   lifecycle animation rather than pretend audio-reactivity. */
+.twin-orb.is-speaking .to-energy { animation-duration: 2s; opacity: .95; }
+.twin-orb.is-speaking .to-core { animation: twinSpeakPulse 1.1s ease-in-out infinite; }
+.twin-orb.is-speaking .to-aura { animation-duration: 1.6s; opacity: .65; }
+@keyframes twinSpeakPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.035); } }
+
 @media (prefers-reduced-motion: reduce) {
   .twin-orb .to-aura, .twin-orb .to-core, .twin-orb .to-energy { animation: none !important; }
 }
@@ -4488,6 +4514,49 @@
   .twin-dock { backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%); }
 }
 .twin-mic-btn { opacity: .55; }
+.twin-mic-btn.is-live { opacity: 1; color: var(--accent); }
+
+/* ════════════════════════════════════════════
+   TWIN VOICE MODE (Phase 2) — full-bleed overlay
+   inside .ai-wrap. Reuses the same twin-orb/theme
+   tokens as Phase 1; the underlying chat/dock stay
+   mounted underneath and simply get hidden.
+════════════════════════════════════════════ */
+.twin-voice {
+  position: absolute; inset: 0; z-index: 5;
+  display: none;
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px; padding: 24px max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  background: radial-gradient(circle at 50% 38%, rgba(60,10,16,0.55), #0a0607 72%);
+}
+.twin-voice.active { display: flex; }
+.twin-voice-orb-wrap { width: 168px; height: 168px; }
+.twin-voice-orb-wrap .twin-orb { --orb-size: 168px; }
+.twin-voice-status {
+  font-family: var(--ff-serif); font-size: 20px; color: var(--white);
+  min-height: 26px; text-align: center; letter-spacing: .2px;
+}
+.twin-voice-transcript {
+  font-size: 13px; color: var(--text3); text-align: center; max-width: 340px;
+  min-height: 20px; line-height: 1.5; padding: 0 12px;
+}
+.twin-voice-transcript .tv-interim { opacity: .6; font-style: italic; }
+.twin-voice-controls {
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  margin-top: 6px;
+}
+.twin-voice-btn {
+  width: 54px; height: 54px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--g1); border: 1px solid var(--border2); color: var(--white);
+  cursor: pointer; transition: var(--t); font-size: 20px;
+}
+.twin-voice-btn:hover { background: var(--g2); transform: translateY(-1px); }
+.twin-voice-btn:active { transform: scale(.94); }
+.twin-voice-btn.tv-mute.is-muted { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+.twin-voice-btn.tv-end { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+.twin-voice-btn.tv-end:hover { background: var(--red); color: var(--white); }
+.twin-voice-hint { font-size: 11px; color: var(--text3); text-align: center; margin-top: -4px; }
 
 /* Thinking indicator */
 .ai-thinking-wave {
@@ -6537,7 +6606,7 @@ select option { background: #0D0D0D; color: #fff; }
                     oninput="this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,110)+'px'; document.getElementById('aiSendBtn').classList.toggle('is-ready', this.value.trim().length>0)"
                     onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"></textarea>
                 </div>
-                <button class="uc-btn twin-mic-btn" id="twinMicBtn" onclick="twinMicTap()" title="Voice (coming soon)">
+                <button class="uc-btn twin-mic-btn" id="twinMicBtn" onclick="twinMicTap()" title="Talk to Twin">
                   <span class="uc-mic-ico">🎙️</span>
                 </button>
                 <button class="uc-btn uc-btn--send" id="aiSendBtn" onclick="sendAI()" title="Send">
@@ -6545,6 +6614,20 @@ select option { background: #0D0D0D; color: #fff; }
                 </button>
               </div>
             </div>
+          </div>
+
+          <!-- TWIN VOICE MODE (Phase 2) -->
+          <div class="twin-voice" id="twinVoice">
+            <div class="twin-voice-orb-wrap">
+              <div class="twin-orb" id="twinVoiceOrb"><span class="to-aura"></span><span class="to-core"></span><span class="to-energy"></span><span class="to-highlight"></span></div>
+            </div>
+            <div class="twin-voice-status" id="twinVoiceStatus">Listening...</div>
+            <div class="twin-voice-transcript" id="twinVoiceTranscript"></div>
+            <div class="twin-voice-controls">
+              <button class="twin-voice-btn tv-mute" id="twinVoiceMuteBtn" onclick="TwinVoice.toggleMute()" title="Mute microphone">🎙️</button>
+              <button class="twin-voice-btn tv-end" onclick="TwinVoice.exit()" title="End voice mode">✕</button>
+            </div>
+            <div class="twin-voice-hint" id="twinVoiceHint">Tap the mic to speak</div>
           </div>
         </div>
       </div>
@@ -7883,6 +7966,10 @@ function setJustPairedAt(ts) {
               API + '/api/presence/view',
               new Blob([JSON.stringify({ coupleId: S.coupleId, role: S.role, page: null })], { type: 'application/json' })
             );
+            // App backgrounded/locked while Twin's mic or speech is live —
+            // never leave the microphone capturing or Twin talking while
+            // the user isn't looking at the screen.
+            if (window.TwinVoice) TwinVoice.exit(true);
           } else if (window.PageManager?.currentPage) {
             reportPresence(window.PageManager.currentPage);
           }
@@ -7942,6 +8029,7 @@ function setJustPairedAt(ts) {
             }
           })();
           if (page !== 'camera' && camStream) stopCamera();
+          if (page !== 'ai' && window.TwinVoice) TwinVoice.exit(true);
           if (pushHistory) {
     history.pushState({ page }, '', '#' + page);
   }
@@ -10271,6 +10359,8 @@ const p = await Notification.requestPermission();
         // ─── TWIN (AI Love Guide 2.0) ────────────────────────────
         let aiStreaming = false;
         let aiLastQuestion = '';
+        let aiLastReplyText = ''; // latest Twin reply, plain text — read by the voice-mode TTS and the text-chat speak button
+        let aiLastFailed = false; // set on request failure so voice mode doesn't re-speak a stale reply
 
         // Orb state machine. Phase 1 states: idle / thinking / responding /
         // error / offline. Phase 2 will add listening/speaking on top of
@@ -10296,13 +10386,285 @@ const p = await Notification.requestPermission();
             twinErrorTimer = setTimeout(() => { if (twinState === 'responding') setTwinState('idle'); }, 900);
           }
         }
-        function twinMicTap() {
-          // Phase 1: mic is visually present but not wired to real voice
-          // functionality yet (Phase 2). No fake recording animation.
-          toast('Voice mode is coming soon 🎙️');
-        }
+        function twinMicTap() { TwinVoice.open(); }
         window.addEventListener('online', () => { if (twinState === 'offline') setTwinState('idle'); });
         window.addEventListener('offline', () => setTwinState('offline'));
+
+        // ─── TWIN VOICE (Phase 2) ─────────────────────────────────
+        // Real speech-in / speech-out layered on top of the existing Twin
+        // state machine and the existing askAI() pipeline — no separate
+        // backend, no fake transcripts, no fake amplitude.
+        //
+        // STT: Web Speech API (SpeechRecognition / webkitSpeechRecognition)
+        //   — same free/native mechanism already used elsewhere in this
+        //   app (games.html voiceInput()). Tap-to-speak per utterance
+        //   (recognition.continuous = false): reliable across Android
+        //   WebView, no risk of the recognizer picking up Twin's own
+        //   speaker output mid-sentence.
+        // TTS: SpeechSynthesis / SpeechSynthesisUtterance — same mechanism
+        //   already used by livemap.js voice guidance and games.html
+        //   speakCard(). No paid voice API introduced.
+        // Mic amplitude: real getUserMedia MediaStream → AudioContext →
+        //   AnalyserNode, smoothed and written to --mic-level on the orb.
+        const TwinVoice = (function () {
+          let recognition = null;
+          let recognitionActive = false;
+          let manualStop = false;         // user tapped mute/end — suppress auto-restart/error toast
+          let micStream = null;
+          let audioCtx = null;
+          let analyser = null;
+          let rafId = null;
+          let smoothedLevel = 0;
+          let muted = false;
+          let mode = 'idle';              // idle | listening | thinking | speaking
+          let sessionOpen = false;
+          let finalTranscript = '';
+
+          const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+          const hasTTS = 'speechSynthesis' in window;
+
+          function els() {
+            return {
+              wrap: document.getElementById('twinVoice'),
+              orb: document.getElementById('twinVoiceOrb'),
+              status: document.getElementById('twinVoiceStatus'),
+              transcript: document.getElementById('twinVoiceTranscript'),
+              muteBtn: document.getElementById('twinVoiceMuteBtn'),
+              hint: document.getElementById('twinVoiceHint'),
+              micBtn: document.getElementById('twinMicBtn')
+            };
+          }
+
+          function setStatus(text, hint) {
+            const { status, hint: hintEl } = els();
+            if (status) status.textContent = text;
+            if (hintEl) hintEl.textContent = hint || '';
+          }
+
+          function setTranscript(finalText, interimText) {
+            const { transcript } = els();
+            if (!transcript) return;
+            const f = finalText ? esc(finalText) : '';
+            const i = interimText ? '<span class="tv-interim">' + esc(interimText) + '</span>' : '';
+            transcript.innerHTML = f && i ? f + ' ' + i : (f || i);
+          }
+
+          function setMode(next) {
+            mode = next;
+            const { orb, muteBtn } = els();
+            [orb, document.getElementById('twinOrb'), document.getElementById('twinDockOrb')].forEach(o => {
+              if (!o) return;
+              o.classList.remove('is-listening', 'is-speaking', 'is-thinking', 'is-responding', 'is-error');
+              if (next === 'listening') o.classList.add('is-listening');
+              else if (next === 'speaking') o.classList.add('is-speaking');
+              else if (next === 'thinking') o.classList.add('is-thinking');
+            });
+            twinState = next === 'idle' ? 'idle' : next;
+            if (next === 'listening') { setStatus('Listening...'); setMicIcon(muted); }
+            else if (next === 'thinking') { setStatus('Thinking...', ''); }
+            else if (next === 'speaking') { setStatus('Speaking...', 'Tap the mic to interrupt'); }
+          }
+
+          function setMicIcon(isMuted) {
+            const { muteBtn } = els();
+            if (!muteBtn) return;
+            muteBtn.classList.toggle('is-muted', isMuted);
+            muteBtn.innerHTML = window.uiIcon ? window.uiIcon(isMuted ? 'mic-off' : 'mic') : (isMuted ? '🔇' : '🎙️');
+            if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
+          }
+
+          // ── Mic amplitude (real AnalyserNode data, smoothed) ──
+          async function startLevelMeter() {
+            try {
+              micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            } catch (e) {
+              micStream = null; // level meter is a nice-to-have; recognition can still work without it
+              return;
+            }
+            try {
+              const AC = window.AudioContext || window.webkitAudioContext;
+              audioCtx = new AC();
+              const src = audioCtx.createMediaStreamSource(micStream);
+              analyser = audioCtx.createAnalyser();
+              analyser.fftSize = 256;
+              analyser.smoothingTimeConstant = 0.6;
+              src.connect(analyser);
+              const data = new Uint8Array(analyser.frequencyBinCount);
+              const loop = () => {
+                if (!analyser) return;
+                analyser.getByteFrequencyData(data);
+                let sum = 0;
+                for (let i = 0; i < data.length; i++) sum += data[i];
+                const avg = sum / data.length / 255; // 0..1
+                smoothedLevel = smoothedLevel * 0.75 + avg * 0.25;
+                const { orb } = els();
+                [orb, document.getElementById('twinOrb'), document.getElementById('twinDockOrb')].forEach(o => {
+                  if (o) o.style.setProperty('--mic-level', Math.min(1, smoothedLevel * 2.2).toFixed(3));
+                });
+                rafId = requestAnimationFrame(loop);
+              };
+              loop();
+            } catch (e) {
+              stopLevelMeter();
+            }
+          }
+          function stopLevelMeter() {
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = null;
+            if (micStream) micStream.getTracks().forEach(t => t.stop());
+            micStream = null; analyser = null;
+            if (audioCtx && audioCtx.state !== 'closed') { try { audioCtx.close(); } catch (e) {} }
+            audioCtx = null;
+            smoothedLevel = 0;
+          }
+
+          // ── Speech recognition (tap-to-speak per utterance) ──
+          function startListening() {
+            if (!Rec) { setStatus('Voice input isn\'t supported on this device', 'You can still type to Twin'); return; }
+            if (recognitionActive || muted) return;
+            manualStop = false;
+            finalTranscript = '';
+            setTranscript('', '');
+            recognition = new Rec();
+            recognition.lang = 'en-US';
+            recognition.interimResults = true;
+            recognition.continuous = false;
+            recognition.onstart = () => { recognitionActive = true; setMode('listening'); };
+            recognition.onresult = (e) => {
+              let interim = '';
+              for (let i = e.resultIndex; i < e.results.length; i++) {
+                const t = e.results[i][0].transcript;
+                if (e.results[i].isFinal) finalTranscript += t;
+                else interim += t;
+              }
+              setTranscript(finalTranscript, interim);
+            };
+            recognition.onerror = (e) => {
+              recognitionActive = false;
+              if (manualStop) return;
+              if (e.error === 'no-speech') { setStatus('I couldn\'t hear that', 'Tap the mic to try again'); setMode('idle'); return; }
+              if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+                setStatus('Microphone access is needed to talk with Twin', 'You can still type below');
+                setMode('idle');
+                return;
+              }
+              setStatus('I couldn\'t hear that', 'Tap the mic to try again');
+              setMode('idle');
+            };
+            recognition.onend = () => {
+              recognitionActive = false;
+              if (manualStop) return;
+              const q = finalTranscript.trim();
+              if (q) submitVoiceQuestion(q);
+              else if (sessionOpen) { setMode('idle'); setStatus('Ready', 'Tap the mic to speak'); }
+            };
+            try { recognition.start(); } catch (e) { setStatus('Couldn\'t start listening', 'Tap the mic to try again'); }
+          }
+          function stopListening(isManual) {
+            manualStop = !!isManual;
+            if (recognition && recognitionActive) { try { recognition.stop(); } catch (e) {} }
+            recognitionActive = false;
+          }
+
+          // ── Send the recognized speech through the EXISTING Twin AI
+          // pipeline (askAI) — same conversation, same backend, same
+          // history. Voice never talks to a separate AI system. ──
+          async function submitVoiceQuestion(question) {
+            setMode('thinking');
+            setTranscript(question, '');
+            cancelSpeaking();
+            await askAI(question);
+            if (!sessionOpen) return; // user exited while the AI request was in flight
+            if (aiLastFailed) {
+              setStatus("Twin couldn't respond. Try again.", 'Tap the mic to retry');
+              setMode('idle');
+              return;
+            }
+            speakLastReply();
+          }
+
+          // ── Text-to-speech of Twin's latest reply, reused by both Voice
+          // Mode and the text-chat "speak" button (#15). ──
+          function speak(text) {
+            if (!hasTTS || !text) { setMode('idle'); return; }
+            speechSynthesis.cancel();
+            const plain = text.replace(/[*_`#>]/g, '').replace(/\n{2,}/g, '. ');
+            const u = new SpeechSynthesisUtterance(plain);
+            u.rate = 0.98; u.pitch = 1.0;
+            const voices = speechSynthesis.getVoices();
+            const preferred = voices.find(v => /en-US|en_US/.test(v.lang) && /female|Samantha|Google US English/i.test(v.name))
+              || voices.find(v => /^en/.test(v.lang));
+            if (preferred) u.voice = preferred;
+            u.onstart = () => setMode('speaking');
+            u.onend = () => {
+              document.querySelectorAll('.twin-speak-btn.is-speaking').forEach(b => { b.classList.remove('is-speaking'); b.innerHTML = '🔊 Listen'; });
+              if (!sessionOpen) { setTwinState('idle'); return; }
+              if (!muted) startListening();
+              else { setMode('idle'); setStatus('Ready', 'Tap the mic to speak'); }
+            };
+            u.onerror = () => {
+              document.querySelectorAll('.twin-speak-btn.is-speaking').forEach(b => { b.classList.remove('is-speaking'); b.innerHTML = '🔊 Listen'; });
+              if (sessionOpen) { setMode('idle'); setStatus('Ready', 'Tap the mic to speak'); }
+              else setTwinState('idle');
+            };
+            speechSynthesis.speak(u);
+          }
+          function speakLastReply() {
+            if (aiLastReplyText) speak(aiLastReplyText);
+            else if (sessionOpen) { setMode('idle'); setStatus('Ready', 'Tap the mic to speak'); }
+          }
+          function cancelSpeaking() {
+            if (hasTTS) speechSynthesis.cancel();
+            document.querySelectorAll('.twin-speak-btn.is-speaking').forEach(b => b.classList.remove('is-speaking'));
+          }
+
+          // ── Lifecycle ──
+          function open() {
+            if (!navigator.mediaDevices?.getUserMedia && !Rec) {
+              toast('Voice isn\'t supported in this browser');
+              return;
+            }
+            const { wrap } = els();
+            if (!wrap) return;
+            sessionOpen = true; muted = false;
+            wrap.classList.add('active');
+            const { micBtn } = els();
+            if (micBtn) micBtn.classList.add('is-live');
+            setMode('idle'); setStatus('Getting ready...', '');
+            startLevelMeter();
+            startListening();
+          }
+          function exit(quiet) {
+            if (!sessionOpen) return;
+            sessionOpen = false;
+            manualStop = true;
+            stopListening(true);
+            cancelSpeaking();
+            stopLevelMeter();
+            const { wrap, micBtn } = els();
+            if (wrap) wrap.classList.remove('active');
+            if (micBtn) micBtn.classList.remove('is-live');
+            setTwinState('idle');
+            [document.getElementById('twinOrb'), document.getElementById('twinDockOrb')].forEach(o => {
+              if (o) o.classList.remove('is-listening', 'is-speaking');
+            });
+          }
+          function toggleMute() {
+            muted = !muted;
+            setMicIcon(muted);
+            if (muted) {
+              stopListening(true);
+              cancelSpeaking();
+              setStatus('Muted', 'Tap the mic to resume');
+              setMode('idle');
+            } else if (sessionOpen) {
+              startListening();
+            }
+          }
+
+          return { open, exit, toggleMute, speak, cancelSpeaking };
+        })();
+        window.TwinVoice = TwinVoice;
 
         async function sendAI() {
           if (aiStreaming) return;
@@ -10377,8 +10739,22 @@ const p = await Notification.requestPermission();
           tb.className = 'ai-msg-toolbar';
           tb.innerHTML = `
             <button class="ai-tb-btn ai-copy-btn">📋 Copy</button>
-            <button class="ai-tb-btn" onclick="regenerateAi()">🔄 Regenerate</button>`;
+            <button class="ai-tb-btn" onclick="regenerateAi()">🔄 Regenerate</button>
+            <button class="ai-tb-btn twin-speak-btn">🔊 Listen</button>`;
           tb.querySelector('.ai-copy-btn').onclick = (e) => copyAiMessage(e.target, rawTextGetter());
+          const speakBtn = tb.querySelector('.twin-speak-btn');
+          speakBtn.onclick = () => {
+            if (speakBtn.classList.contains('is-speaking')) {
+              TwinVoice.cancelSpeaking();
+              speakBtn.classList.remove('is-speaking');
+              speakBtn.innerHTML = '🔊 Listen';
+              return;
+            }
+            document.querySelectorAll('.twin-speak-btn.is-speaking').forEach(b => { b.classList.remove('is-speaking'); b.innerHTML = '🔊 Listen'; });
+            speakBtn.classList.add('is-speaking');
+            speakBtn.innerHTML = '⏹️ Stop';
+            TwinVoice.speak(rawTextGetter());
+          };
           wrapDiv.appendChild(tb);
         }
 
@@ -10425,6 +10801,7 @@ const p = await Notification.requestPermission();
           msgsEl.scrollTop = msgsEl.scrollHeight;
 
           aiStreaming = true;
+          aiLastFailed = false;
           sendBtn?.classList.add('is-sending');
           sendBtn?.setAttribute('disabled', 'disabled');
           setTwinState('thinking');
@@ -10498,6 +10875,7 @@ const p = await Notification.requestPermission();
             const tsEl = document.createElement('div'); tsEl.className = 'ai-msg-time'; tsEl.textContent = nowTimeShort();
             wrapDiv.appendChild(tsEl);
             spawnPetals(3);
+            aiLastReplyText = full;
             setTwinState('responding');
           } catch (e) {
             // Fall back to the non-streaming endpoint with a progressive
@@ -10511,6 +10889,7 @@ const p = await Notification.requestPermission();
               const tsEl = document.createElement('div'); tsEl.className = 'ai-msg-time'; tsEl.textContent = nowTimeShort();
               wrapDiv.appendChild(tsEl);
               spawnPetals(3);
+              aiLastReplyText = full;
               setTwinState('responding');
             } catch (e2) {
               bubbleEl.classList.remove('ai-bubble-loading');
@@ -10520,6 +10899,7 @@ const p = await Notification.requestPermission();
               retryBtn.className = 'btn btn-glass btn-xs'; retryBtn.style.marginTop = '8px';
               retryBtn.textContent = '🔄 Retry'; retryBtn.onclick = () => askAI(question, true);
               wrapDiv.appendChild(retryBtn);
+              aiLastFailed = true;
               setTwinState('error');
             }
           }
