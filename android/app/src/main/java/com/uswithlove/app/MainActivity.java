@@ -103,9 +103,17 @@ public class MainActivity extends BridgeActivity {
   // 2) This used to call webView.loadUrl() unconditionally, even when the
   //    WebView was already showing the live app (app open/backgrounded) —
   //    a full page reload that re-ran the entire skeleton/init sequence
-  //    just to deliver a notification tap. Now, if the WebView is already
-  //    on our origin, we hand the action straight to the running JS via
-  //    evaluateJavascript instead of reloading anything.
+  //    just to deliver a notification tap. This was originally only fixed
+  //    for call notifications, but EVERY notification type (chat message,
+  //    touch, miss-you, hug, music, globe memory, meet planner, virtual
+  //    home, paired, missed-call — see routes/*.js, they all tag their
+  //    push url as /?page=<name>) hit the exact same reload+skeleton-flash
+  //    bug when tapped while the app was already warm. Now, if the
+  //    WebView is already on our origin, ANY /?page=<name> deep link is
+  //    handed to the running JS's existing client-side router
+  //    (window.goto, see index.html) via evaluateJavascript instead of
+  //    reloading the page — the skeleton now only ever appears on a
+  //    genuine cold app launch, never on a notification tap while running.
   private void handleDeepLink(android.content.Intent intent) {
     if (intent == null) return;
     String path = intent.getStringExtra("deepLinkUrl");
@@ -120,13 +128,14 @@ public class MainActivity extends BridgeActivity {
     // that down and force the entire skeleton/init pipeline to run
     // again just to show a call that's already active.
     boolean isCallLaunch = isCallAnswer || path.contains("launch=call");
+    String pageParam = extractQueryParam(path, "page");
 
     android.webkit.WebView webView = getBridge() != null ? getBridge().getWebView() : null;
 
     if (webView != null && webView.getUrl() != null && webView.getUrl().startsWith(APP_ORIGIN)) {
-      // App runtime is already warm — never reload it. That reload is what
-      // caused the skeleton flash on Answer taps while the app was already
-      // open or backgrounded.
+      // App runtime is already warm — never reload it for a notification
+      // tap. Reloading is what caused the skeleton flash, on ANY
+      // notification type, not just calls.
       if (isCallAnswer) {
         webView.post(() -> webView.evaluateJavascript(
             "window.Call && window.Call.consumeNativeAnswer && window.Call.consumeNativeAnswer();", null));
@@ -135,7 +144,17 @@ public class MainActivity extends BridgeActivity {
         // UI lives) is the visible page, without reloading anything.
         webView.post(() -> webView.evaluateJavascript(
             "window.goto && window.goto('chat');", null));
+      } else if (pageParam != null) {
+        // General notification fast path: every other notification type
+        // (message, touch, hug, miss-you, music, globe, meet planner,
+        // virtual home, missed-call, paired) just needs its page shown —
+        // route through the app's own client-side router instead of a
+        // full document reload.
+        final String page = pageParam;
+        webView.post(() -> webView.evaluateJavascript(
+            "window.goto && window.goto('" + page.replace("'", "") + "');", null));
       } else {
+        // Unrecognized/no page param — fall back to the old safe behavior.
         webView.post(() -> webView.loadUrl(target));
       }
       return;
@@ -147,6 +166,23 @@ public class MainActivity extends BridgeActivity {
     // picks up ?pendingAction=answer on load, same as before).
     pendingDeepLinkTarget = target;
     retryPendingDeepLink();
+  }
+
+  // Tiny helper — Intent deep links here are always simple "/?a=b&c=d"
+  // strings we control ourselves (see routes/*.js), so a full URI parser
+  // is unnecessary; this just needs to pull one known param out safely.
+  private String extractQueryParam(String path, String key) {
+    int q = path.indexOf('?');
+    if (q < 0) return null;
+    String query = path.substring(q + 1);
+    for (String pair : query.split("&")) {
+      int eq = pair.indexOf('=');
+      if (eq < 0) continue;
+      String k = pair.substring(0, eq);
+      String v = pair.substring(eq + 1);
+      if (key.equals(k) && !v.isEmpty()) return v;
+    }
+    return null;
   }
 
   private void retryPendingDeepLink() {
