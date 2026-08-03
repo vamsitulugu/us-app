@@ -53,7 +53,11 @@ router.post('/notify', async (req, res) => {
     icon: '/icons/icon-192.png',
     tag: 'incoming-call',
     renotify: true,
-    url: '/?page=chat',
+    // launch=call is read synchronously at the very top of index.html's
+    // bootstrap (before any auth/session network calls) so the client
+    // can take the call fast-path instead of the normal full-app
+    // startup pipeline. See CALL FAST PATH in index.html.
+    url: '/?page=chat&launch=call&ct=' + (type || 'voice'),
     type: type || 'voice',
     senderName: callerName || undefined,
     senderAvatar: callerAvatar || undefined

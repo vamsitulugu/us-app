@@ -112,6 +112,14 @@ public class MainActivity extends BridgeActivity {
     if (path == null || path.isEmpty()) return;
     String target = path.startsWith("http") ? path : APP_ORIGIN + path;
     boolean isCallAnswer = path.contains("pendingAction=answer");
+    // CALL FAST PATH: a plain tap on the incoming-call notification body
+    // (routes/call.js tags the url with launch=call) is just as
+    // reload-sensitive as the explicit Answer action — the call is
+    // already ringing inside the running JS via call.js's realtime
+    // channel/poll loop, so a full webView.loadUrl() here would tear
+    // that down and force the entire skeleton/init pipeline to run
+    // again just to show a call that's already active.
+    boolean isCallLaunch = isCallAnswer || path.contains("launch=call");
 
     android.webkit.WebView webView = getBridge() != null ? getBridge().getWebView() : null;
 
@@ -122,6 +130,11 @@ public class MainActivity extends BridgeActivity {
       if (isCallAnswer) {
         webView.post(() -> webView.evaluateJavascript(
             "window.Call && window.Call.consumeNativeAnswer && window.Call.consumeNativeAnswer();", null));
+      } else if (isCallLaunch) {
+        // Not an auto-answer — just make sure Chat (where the incoming-call
+        // UI lives) is the visible page, without reloading anything.
+        webView.post(() -> webView.evaluateJavascript(
+            "window.goto && window.goto('chat');", null));
       } else {
         webView.post(() -> webView.loadUrl(target));
       }

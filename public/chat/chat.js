@@ -349,8 +349,8 @@ function reanchorAfterImages() {
     const mine = isMine(m);
     const time = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     let body = '';
-    if (m.type === 'image') body = `<img src="${esc(m.media_url)}" class="chat-img" onclick="openImgViewer('${esc(m.media_url)}')" loading="lazy">`;
-    else if (m.type === 'gif') body = `<img src="${esc(m.media_url)}" class="chat-img chat-gif" onclick="openImgViewer('${esc(m.media_url)}')" loading="lazy">`;
+    if (m.type === 'image') body = `<img src="${esc(m.media_url)}" class="chat-img" onclick="Chat.openMediaViewer('${m.id}')" loading="lazy">`;
+    else if (m.type === 'gif') body = `<img src="${esc(m.media_url)}" class="chat-img chat-gif" onclick="Chat.openMediaViewer('${m.id}')" loading="lazy">`;
     else if (m.type === 'voice') body = renderVoice(m);
     else if (m.type === 'audio') body = `<audio controls src="${esc(m.media_url)}" style="max-width:220px"></audio>`;
     else if (m.type === 'location') {
@@ -430,14 +430,32 @@ function reanchorAfterImages() {
 
   function renderVoice(m) {
     const dur = (m.media_meta && m.media_meta.duration) || 0;
-    return `<div class="voice-msg" onclick="event.stopPropagation();Chat.toggleVoicePlay(this,'${esc(m.media_url)}')">
-      <button class="voice-play">▶</button>
+    // IMPORTANT: playback must only be triggered by the play/pause button
+    // itself. The outer .voice-msg container intentionally has NO click
+    // handler of its own — a click anywhere else (waveform, duration,
+    // padding) is left to bubble up to the normal .chat-row bubble click
+    // handler (Chat.onBubbleClick), which drives selection-mode
+    // tap-to-select and does nothing in normal mode. This is what stops
+    // "tap bubble -> plays audio" while still letting long-press/selection
+    // work anywhere on the bubble, including the waveform.
+    return `<div class="voice-msg">
+      <button type="button" class="voice-play" aria-label="Play voice message" onclick="event.stopPropagation();Chat.toggleVoicePlay(this.parentElement,'${esc(m.media_url)}')">▶</button>
       <div class="voice-waveform">${Array.from({length:18}).map((_,i)=>`<span style="height:${8+Math.random()*16}px"></span>`).join('')}</div>
       <div class="voice-dur">${Math.floor(dur/60)}:${String(dur%60).padStart(2,'0')}</div>
     </div>`;
   }
   let _activeVoiceEl = null;
   function toggleVoicePlay(el, url) {
+    // Selection mode takes priority: tapping Play while in WhatsApp-style
+    // multi-select mode must select/deselect the message rather than
+    // start audio (the click never reaches onBubbleClick because it's
+    // stopped in the inline handler above, so replicate the toggle here).
+    if (selectMode) {
+      const row = el.closest('.chat-row');
+      const id = row && row.getAttribute('data-id');
+      if (id != null) toggleSelect(id);
+      return;
+    }
     let audio = el._audio;
     if (!audio) { audio = new Audio(url); el._audio = audio; audio.onended = () => { el.querySelector('.voice-waveform').classList.remove('playing'); el.querySelector('.voice-play').textContent = '▶'; if (_activeVoiceEl === el) _activeVoiceEl = null; }; }
     if (audio.paused) {
@@ -452,6 +470,18 @@ function reanchorAfterImages() {
       audio.play(); el.querySelector('.voice-waveform').classList.add('playing'); el.querySelector('.voice-play').textContent = '⏸';
     }
     else { audio.pause(); el.querySelector('.voice-waveform').classList.remove('playing'); el.querySelector('.voice-play').textContent = '▶'; if (_activeVoiceEl === el) _activeVoiceEl = null; }
+  }
+
+  // Opens the app-wide gallery viewer (public/js/gallery-viewer.js via
+  // openImgViewer in index.html) scoped to this chat's photos/gifs —
+  // swiping moves between the actual photos in the conversation,
+  // starting at whichever one was tapped, not always photo #1.
+  function openMediaViewer(id) {
+    const media = msgs.filter(m => !m.deleted && (m.type === 'image' || m.type === 'gif'));
+    const idx = media.findIndex(m => String(m.id) === String(id));
+    if (idx === -1) return;
+    const collection = media.map(m => ({ url: m.media_url, type: 'image' }));
+    if (window.openImgViewer) window.openImgViewer(media[idx].media_url, collection, idx);
   }
 
   function renderPinned() {
@@ -1590,7 +1620,7 @@ function menuItemsHtml(m, id, includeSelect) {
     onChatScroll, scrollToBottom, sendText, onTypingInput, onImagePick, toggleRecord,
     onBubbleClick, openMenu, reactTo, replyTo, closeBanner, togglePin, toggleStar,
     openStarred, deleteMsg, confirmDeleteMsg, enterSelectMode, deleteSelected, exitSelectMode,
-    isSelecting, closeMsgMenuIfOpen, openToolbarOverflow,
+    isSelecting, closeMsgMenuIfOpen, openToolbarOverflow, openMediaViewer,
     openSearch, closeSearch, runSearch, scrollToMsg, sendGif, sendEmoji, sendEmojiTap,
     openEmojiPanel, switchEmojiTab, filterEmoji, openGifPanel, searchGifs, markRead, init, openSheet, closeSheet,
     forwardMsg, copyMsg, editMsg, cancelEdit, infoMsg, cancelRecording, startLongPress, endLongPress, moveLongPress,
