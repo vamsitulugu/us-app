@@ -799,6 +799,7 @@
     .content {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior-y: none;
   padding: var(--space);
   padding-bottom: calc(var(--space) + 70px);
   scroll-behavior: smooth
@@ -4979,6 +4980,8 @@ select option { background: #0D0D0D; color: #fff; }
   <script src="/js/scroll-reset.js"></script>
   <script src="/js/session-manager.js"></script>
   <script src="/js/gallery-viewer.js"></script>
+  <script src="/js/upload-queue.js"></script>
+  <script src="/js/upload-progress-ui.js"></script>
   <script src="/safe-delete.js"></script>
 </head>
 
@@ -8709,27 +8712,46 @@ const p = await Notification.requestPermission();
             } catch (e) { toast('Upload failed — please try again'); }
           }, 'image/jpeg', 0.85);
         }
+        // Bulk photo upload — uses a bounded-concurrency queue (see
+        // /js/upload-queue.js) instead of uploading one file at a time.
+        // Each file still goes through the same uploadMediaFile() /
+        // savePhoto() calls as before (same storage path, same DB
+        // insert, same UI update per photo) — only the scheduling
+        // changed, so nothing about where/how a photo is stored is
+        // different.
         async function uploadPhotos(input) {
           const files = Array.from(input.files || []);
           if (!files.length) return;
           input.value = ''; // allow re-selecting the same file(s) again if a retry is needed
-          let ok = 0, fail = 0;
-          for (let i = 0; i < files.length; i++) {
-            const file = files[i];
+          await runPhotoUploadBatch(files);
+        }
+        async function runPhotoUploadBatch(files) {
+          if (!files.length) return;
+          const single = files.length === 1;
+          const ui = !single && window.UploadProgressUI ? UploadProgressUI.create('Uploading memories') : null;
+          if (single) toast('Uploading ' + (files[0].type.startsWith('video') ? 'video' : 'photo') + '… 📤');
+          if (ui) ui.update({ completed: 0, total: files.length });
+
+          const result = await UploadQueue.run(files, async (file) => {
             const type = file.type.startsWith('video') ? 'video' : 'image';
-            if (files.length > 1) toast(`Uploading ${i + 1} of ${files.length}… 📤`);
-            else toast('Uploading ' + (type === 'video' ? 'video' : 'photo') + '… 📤');
-            try {
-              const media = await uploadMediaFile(file, file.name, type);
-              savePhoto(media.url, file.name, type, media.path);
-              ok++;
-            } catch (e) { fail++; }
-          }
-          if (files.length > 1) {
-            if (fail) toast(`${ok} uploaded. ${fail} couldn't upload — try adding those again.`);
-            else toast(`${ok} memories uploaded! 💕`);
-          } else if (fail) {
-            toast('Upload failed for ' + files[0].name);
+            const media = await uploadMediaFile(file, file.name, type);
+            savePhoto(media.url, file.name, type, media.path);
+            return media;
+          }, {
+            onProgress: (state) => { if (ui) ui.update(state); }
+          });
+
+          const ok = result.succeeded.length, fail = result.failed.length;
+          if (single) {
+            if (fail) toast('Upload failed for ' + files[0].name);
+          } else if (ui) {
+            ui.showFailures(fail, fail ? () => {
+              ui.showFailures(0);
+              runPhotoUploadBatch(result.failed.map((f) => f.file));
+            } : null);
+            ui.finish(fail ? 3500 : 1400);
+            if (!fail) toast(`${ok} memories uploaded! 💕`);
+            else toast(`${ok} uploaded. ${fail} couldn't upload — tap Retry.`);
           }
         }
         async function uploadVideo(input) {

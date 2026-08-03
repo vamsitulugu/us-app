@@ -332,7 +332,7 @@
     .timeline-item:last-child { border-bottom: none; }
     .tl-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 4px; box-shadow: 0 0 0 3px var(--accent-glow); }
 
-    .img-viewer { position: fixed; inset: 0; z-index: 9999; --gve-backdrop-fade: 1; background: rgba(0,0,0,calc(0.96 * var(--gve-backdrop-fade))); display: none; backdrop-filter: blur(calc(4px * var(--gve-backdrop-fade))); }
+    .img-viewer { position: fixed; inset: 0; z-index: 9999; --gve-backdrop-fade: 1; background: rgba(0,0,0,var(--gve-backdrop-fade)); display: none; }
     .img-viewer.open { display: block; }
     .img-viewer-stage { position: absolute; inset: 0; overflow: hidden; }
     /* Fixed UI overlay — a sibling of .img-viewer-stage, positioned
@@ -413,6 +413,8 @@
 <link href="https://cesium.com/downloads/cesiumjs/releases/1.121/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
   <script src="/js/scroll-reset.js"></script>
   <script src="/js/gallery-viewer.js"></script>
+  <script src="/js/upload-queue.js"></script>
+  <script src="/js/upload-progress-ui.js"></script>
 </head>
 <body>
 <div id="app">
@@ -1758,15 +1760,53 @@ async function saveMemory() {
 // ═══════════════════════════════════════════
 // MEDIA MANAGEMENT — unchanged
 // ═══════════════════════════════════════════
+// Bulk-add photos to an existing memory. Previously this only ever
+// read input.files[0] (silently dropping every other file from a
+// multi-select) and did a full loadMemories() + re-render after each
+// single photo. Now every selected file uploads concurrently (bounded
+// queue), all resulting media rows are inserted in one batched request,
+// and the memory list only refreshes once at the end.
 async function addMediaToMemory(input, memoryId, type) {
-  if (!input.files[0]) return;
-  try {
-    const url = await uploadGlobeMedia(input.files[0], input.files[0].name);
-    await fetch(`${API}/api/globe/${memoryId}/media`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ coupleId, media: { type, url } }) });
-    toast('Added! 📸');
-    await loadMemories();
-    openMemoryDetail(memoryId);
-  } catch(err) { toast('Upload failed'); }
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+  input.value = '';
+
+  const single = files.length === 1;
+  const ui = !single && window.UploadProgressUI ? UploadProgressUI.create('Uploading photos') : null;
+  if (ui) ui.update({ completed: 0, total: files.length });
+  if (single) toast('Uploading… 📤');
+
+  const result = await UploadQueue.run(files, async (file) => {
+    const url = await uploadGlobeMedia(file, file.name);
+    return { type, url };
+  }, {
+    onProgress: (state) => { if (ui) ui.update(state); }
+  });
+
+  if (result.succeeded.length) {
+    try {
+      const mediaList = result.succeeded.map((s) => s.value);
+      await fetch(`${API}/api/globe/${memoryId}/media`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coupleId, mediaList })
+      });
+    } catch (e) { result.failed = result.failed.concat(result.succeeded.map((s) => ({ file: s.file }))); result.succeeded = []; }
+  }
+
+  const ok = result.succeeded.length, fail = result.failed.length;
+  if (single) {
+    toast(fail ? 'Upload failed' : 'Added! 📸');
+  } else if (ui) {
+    ui.showFailures(fail, fail ? () => {
+      ui.showFailures(0);
+      const retryInput = { files: result.failed.map((f) => f.file) };
+      addMediaToMemory(retryInput, memoryId, type);
+    } : null);
+    ui.finish(fail ? 3500 : 1400);
+    toast(fail ? `${ok} added, ${fail} failed — tap Retry` : `${ok} photos added! 📸`);
+  }
+
+  if (ok) { await loadMemories(); openMemoryDetail(memoryId); }
 }
 async function recordVoiceForMemory(memoryId) {
   try {

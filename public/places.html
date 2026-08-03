@@ -39,7 +39,7 @@
   --t-spring: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:transparent;line-height:1.5}
+body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:100dvh;overscroll-behavior-y:none;background:transparent;line-height:1.5}
 
 .pm-hero{padding:20px 16px 0;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
 .pm-stat{background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:14px 10px;text-align:center;backdrop-filter:var(--blur);transition:var(--t)}
@@ -134,7 +134,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 .pm-gallery-add:hover{background:var(--g1);border-color:var(--accent)}
 .pm-gallery-add span{font-size:10px}
 
-.pm-lightbox{position:fixed;inset:0;z-index:900;--gve-backdrop-fade:1;background:rgba(0,0,0,calc(0.95 * var(--gve-backdrop-fade)));display:none}
+.pm-lightbox{position:fixed;inset:0;z-index:900;--gve-backdrop-fade:1;background:rgba(0,0,0,var(--gve-backdrop-fade));display:none}
 .pm-lightbox.open{display:block}
 .pm-lightbox-stage{position:absolute;inset:0;overflow:hidden}
 .pm-lightbox-counter{position:absolute;top:calc(18px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:2;color:rgba(255,255,255,0.85);font-size:13px;font-weight:600;pointer-events:none}
@@ -273,6 +273,8 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;background:tr
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="/js/gallery-viewer.js"></script>
+<script src="/js/upload-queue.js"></script>
+<script src="/js/upload-progress-ui.js"></script>
 <script>
 let pmPlaces = [];
 let pmFavFilterOn = false;
@@ -417,14 +419,20 @@ function renderBannerPreview(){
     : (pmPendingBanner ? `<img src="${pmPendingBanner}" alt="Banner preview">` : 'No banner yet');
 }
 function loadPmPhotos(input){
-  Array.from(input.files).forEach(file => {
-    const idx = pmPendingPhotos.push('uploading') - 1;
-    renderPmPhotoThumbs();
-    uploadPmMedia(file, file.name).then(url => {
-      pmPendingPhotos[idx] = url; renderPmPhotoThumbs();
-    }).catch(() => {
-      pmPendingPhotos.splice(idx, 1); renderPmPhotoThumbs(); showPmToast('Photo upload failed');
-    });
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+  const placeholders = files.map(() => pmPendingPhotos.push('uploading') - 1);
+  renderPmPhotoThumbs();
+  UploadQueue.run(files, (file, i) => uploadPmMedia(file, file.name).then((url) => {
+    pmPendingPhotos[placeholders[i]] = url; renderPmPhotoThumbs();
+  }).catch((err) => {
+    pmPendingPhotos[placeholders[i]] = null; renderPmPhotoThumbs(); throw err;
+  })).then((result) => {
+    if (result.failed.length) {
+      pmPendingPhotos = pmPendingPhotos.filter((v) => v !== null);
+      renderPmPhotoThumbs();
+      showPmToast(result.failed.length + ' photo(s) failed to upload');
+    }
   });
 }
 function renderPmPhotoThumbs(){
@@ -516,13 +524,49 @@ function renderPmGallery(p){
   el.innerHTML = photos.map((ph,i)=>`<div class="pm-gallery-item" onclick="openPmLightbox(${i})"><img src="${ph}" loading="lazy" alt="Place photo"></div>`).join('')
     + `<label class="pm-gallery-add">+<span>Add</span><input type="file" accept="image/*" multiple style="display:none" onchange="addGalleryPhotos(this)"></label>`;
 }
+// Adds photos to an existing place's gallery. This used to read each
+// file as base64 (FileReader.readAsDataURL) directly into app state
+// and call savePmState() — a full JSON.stringify + postMessage of the
+// entire places list — once per photo, and never actually uploaded
+// anything to storage. Now it reuses the same uploadPmMedia() upload
+// path the "new place" form already uses, with bounded concurrency,
+// and saves state once per batch instead of once per photo.
 function addGalleryPhotos(input){
   const p=pmPlaces.find(x=>x.id===pmCurrentDetailId); if(!p) return;
-  Array.from(input.files).forEach(file=>{
-    const r=new FileReader();
-    r.onload=e=>{ if(!p.photos) p.photos=[]; p.photos.push(e.target.result); savePmState(); renderPmGallery(p); renderPmHero(); };
-    r.readAsDataURL(file);
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+  input.value = '';
+  runGalleryPhotoBatch(p, files);
+}
+async function runGalleryPhotoBatch(p, files){
+  const single = files.length === 1;
+  const ui = !single && window.UploadProgressUI ? UploadProgressUI.create('Uploading photos') : null;
+  if (ui) ui.update({ completed: 0, total: files.length });
+  if (single) showPmToast('Uploading photo… 📤');
+
+  const result = await UploadQueue.run(files, (file) => uploadPmMedia(file, file.name), {
+    onProgress: (state) => { if (ui) ui.update(state); }
   });
+
+  if (result.succeeded.length) {
+    if (!p.photos) p.photos = [];
+    result.succeeded.forEach((s) => p.photos.push(s.value));
+    savePmState();
+    renderPmGallery(p);
+    renderPmHero();
+  }
+
+  const ok = result.succeeded.length, fail = result.failed.length;
+  if (single) {
+    if (fail) showPmToast('Photo upload failed');
+  } else if (ui) {
+    ui.showFailures(fail, fail ? () => {
+      ui.showFailures(0);
+      runGalleryPhotoBatch(p, result.failed.map((f) => f.file));
+    } : null);
+    ui.finish(fail ? 3500 : 1400);
+    if (fail) showPmToast(`${ok} uploaded, ${fail} failed — tap Retry`);
+  }
 }
 let _pmLbEngine = null;
 function _pmLbGetEngine(){
