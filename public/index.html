@@ -2312,9 +2312,10 @@
       position: fixed;
       inset: 0;
       z-index: 9998;
-      background: rgba(0, 0, 0, 0.95);
+      --gve-backdrop-fade: 1;
+      background: rgba(0, 0, 0, calc(0.95 * var(--gve-backdrop-fade)));
       display: none;
-      backdrop-filter: blur(4px)
+      backdrop-filter: blur(calc(4px * var(--gve-backdrop-fade)))
     }
 
     .img-viewer.open {
@@ -2427,7 +2428,8 @@
       position: fixed;
       inset: 0;
       z-index: 9990;
-      background: #000;
+      --gve-backdrop-fade: 1;
+      background: rgba(0, 0, 0, var(--gve-backdrop-fade));
       display: none;
       flex-direction: column;
     }
@@ -8008,7 +8010,12 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
               const counter = document.getElementById('imgViewerCounter');
               counter.textContent = list.length > 1 ? (i + 1) + ' / ' + list.length : '';
             },
-            onEscape() { closeImgViewer(); }
+            onEscape() { closeImgViewer(); },
+            onDismiss() { closeImgViewer(); },
+            onDragProgress(t) {
+              const el = document.getElementById('imgViewer');
+              if (el) el.style.setProperty('--gve-backdrop-fade', String(1 - t * 0.85));
+            }
           });
           return _imgViewerEngine;
         }
@@ -8710,7 +8717,15 @@ const p = await Notification.requestPermission();
               return img;
             },
             onIndexChange(i) { memViewerIndex = i; memViewerSyncChrome(); },
-            onEscape() { closeMemViewer(); }
+            onEscape() { closeMemViewer(); },
+            onDismiss() { closeMemViewer(); },
+            onDragProgress(t) {
+              const el = document.getElementById('memViewer');
+              if (el) el.style.setProperty('--gve-backdrop-fade', String(1 - t * 0.85));
+              // Hide the top/bottom chrome while dragging so it doesn't
+              // float over the shrinking photo mid-gesture.
+              if (el) el.classList.toggle('controls-hidden', t > 0.05);
+            }
           });
           return _memViewerEngine;
         }

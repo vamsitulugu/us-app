@@ -332,11 +332,20 @@
     .timeline-item:last-child { border-bottom: none; }
     .tl-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 4px; box-shadow: 0 0 0 3px var(--accent-glow); }
 
-    .img-viewer { position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.96); display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-    .img-viewer.open { display: flex; }
-    .img-viewer img, .img-viewer video { max-width: 94vw; max-height: 92dvh; object-fit: contain; border-radius: 10px; }
-    .img-viewer-close { position: absolute; top: 16px; right: 18px; background: rgba(255,255,255,0.12); border: none; color: #fff; font-size: 22px; width: 42px; height: 42px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: var(--t); }
+    .img-viewer { position: fixed; inset: 0; z-index: 9999; --gve-backdrop-fade: 1; background: rgba(0,0,0,calc(0.96 * var(--gve-backdrop-fade))); display: none; backdrop-filter: blur(calc(4px * var(--gve-backdrop-fade))); }
+    .img-viewer.open { display: block; }
+    .img-viewer-stage { position: absolute; inset: 0; overflow: hidden; }
+    /* Fixed UI overlay — a sibling of .img-viewer-stage, positioned
+       relative to the viewport, never touched by the stage's swipe/
+       zoom/pan/dismiss transform (see gallery-viewer.js). */
+    .img-viewer-counter { position: absolute; top: calc(16px + env(safe-area-inset-top,0px)); left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 600; z-index: 2; pointer-events: none; }
+    .img-viewer-close { position: absolute; top: calc(16px + env(safe-area-inset-top,0px)); right: 18px; z-index: 3; background: rgba(255,255,255,0.12); border: none; color: #fff; font-size: 22px; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: var(--t); }
     .img-viewer-close:hover { background: rgba(255,255,255,0.25); }
+    /* Shared GalleryEngine layers (gallery-viewer.js) */
+    .gve-track { position: relative; width: 100%; height: 100%; will-change: transform; }
+    .gve-slide { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; will-change: transform; }
+    .gve-content { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; will-change: transform; touch-action: none; }
+    .gve-content img, .gve-content video { max-width: 92vw; max-height: 92dvh; object-fit: contain; border-radius: 10px; user-select: none; -webkit-user-drag: none; pointer-events: none; }
 
     .toast {
       position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(12px);
@@ -403,6 +412,7 @@
 <script src="https://cesium.com/downloads/cesiumjs/releases/1.121/Build/Cesium/Cesium.js"></script>
 <link href="https://cesium.com/downloads/cesiumjs/releases/1.121/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
   <script src="/js/scroll-reset.js"></script>
+  <script src="/js/gallery-viewer.js"></script>
 </head>
 <body>
 <div id="app">
@@ -525,9 +535,9 @@
   </div>
 
   <div class="img-viewer" id="imgViewer">
+    <div class="img-viewer-stage" id="imgViewerStage"></div>
+    <div class="img-viewer-counter" id="imgViewerCounter"></div>
     <button class="img-viewer-close" onclick="closeViewer()"><i data-lucide="x"></i></button>
-    <img id="viewerImg" src="" alt="" style="display:none">
-    <video id="viewerVid" src="" controls style="display:none"></video>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -1383,6 +1393,11 @@ function openMemoryDetail(id) {
   const voices = (m.globe_memory_media || []).filter(x => x.type === 'voice');
   const journals = (m.globe_memory_media || []).filter(x => x.type === 'journal');
   const heroMedia = photos[0] || videos[0];
+  // One shared swipeable collection for this memory's grid — hero +
+  // photos first, videos after, so tapping any thumbnail (including
+  // the hero) opens the whole set at the tapped item, not just it.
+  window._globeDetailMedia = photos.map(p => ({ url: p.url || p.data_url, type: 'photo' }))
+    .concat(videos.map(v => ({ url: v.url || v.data_url, type: 'video' })));
 
   const el = document.getElementById('detailPanelBody');
   el.innerHTML = `
@@ -1390,7 +1405,7 @@ function openMemoryDetail(id) {
       ${heroMedia
         ? (heroMedia.type === 'video'
           ? `<video src="${esc(heroMedia.url||heroMedia.data_url)}" controls style="width:100%;height:100%;object-fit:cover"></video>`
-          : `<img src="${esc(heroMedia.url||heroMedia.data_url)}" alt="hero" onclick="openViewer('${esc(heroMedia.url||heroMedia.data_url)}','photo')">`)
+          : `<img src="${esc(heroMedia.url||heroMedia.data_url)}" alt="hero" onclick="openViewerGallery(window._globeDetailMedia, 0)">`)
         : `<div class="detail-hero-empty"><div style="font-size:48px">${emoji}</div><div style="font-size:14px">No photos yet</div></div>`
       }
     </div>
@@ -1415,10 +1430,10 @@ function openMemoryDetail(id) {
     ${m.notes ? `<div class="detail-section"><div class="detail-section-title">Notes</div><div class="journal-entry">${esc(m.notes)}</div></div>` : ''}
     ${m.favorite_moment ? `<div class="detail-section"><div class="detail-section-title">⭐ Favorite Moment</div><div class="journal-entry" style="border-color:var(--yellow)">${esc(m.favorite_moment)}</div></div>` : ''}
     ${photos.length ? `<div class="detail-section"><div class="detail-section-title">📸 Photos (${photos.length})</div><div class="media-grid">
-      ${photos.map(p => `<div class="mg-item" onclick="openViewer('${esc(p.url||p.data_url)}','photo')"><img src="${esc(p.url||p.data_url)}" alt="" loading="lazy"><button class="mg-del" onclick="event.stopPropagation();deleteMedia('${esc(p.id)}','${esc(m.id)}')"><i data-lucide="trash-2"></i></button></div>`).join('')}
+      ${photos.map((p, i) => `<div class="mg-item" onclick="openViewerGallery(window._globeDetailMedia, ${i})"><img src="${esc(p.url||p.data_url)}" alt="" loading="lazy"><button class="mg-del" onclick="event.stopPropagation();deleteMedia('${esc(p.id)}','${esc(m.id)}')"><i data-lucide="trash-2"></i></button></div>`).join('')}
     </div></div>` : ''}
     ${videos.length ? `<div class="detail-section"><div class="detail-section-title">🎬 Videos (${videos.length})</div><div class="media-grid">
-      ${videos.map(v => `<div class="mg-item" onclick="openViewer('${esc(v.url||v.data_url)}','video')"><video src="${esc(v.url||v.data_url)}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video><button class="mg-del" onclick="event.stopPropagation();deleteMedia('${esc(v.id)}','${esc(m.id)}')"><i data-lucide="trash-2"></i></button></div>`).join('')}
+      ${videos.map((v, i) => `<div class="mg-item" onclick="openViewerGallery(window._globeDetailMedia, ${photos.length + i})"><video src="${esc(v.url||v.data_url)}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video><button class="mg-del" onclick="event.stopPropagation();deleteMedia('${esc(v.id)}','${esc(m.id)}')"><i data-lucide="trash-2"></i></button></div>`).join('')}
     </div></div>` : ''}
     ${voices.length ? `<div class="detail-section"><div class="detail-section-title">🎙️ Voice Notes (${voices.length})</div>
       ${voices.map((v, i) => `<div class="voice-item"><button class="voice-play-btn" onclick="playVoice('${esc(v.data_url||v.url)}', this)">▶</button><div style="flex:1"><div style="font-size:12px;color:var(--white)">Voice note ${i+1}</div><div style="font-size:10px;color:var(--text3)">${v.duration || ''}</div></div><button class="btn btn-danger btn-xs" onclick="deleteMedia('${esc(v.id)}','${esc(m.id)}')"><i data-lucide="trash-2"></i></button></div>`).join('')}
@@ -1869,18 +1884,58 @@ function renderStats() {
 }
 
 // ═══════════════════════════════════════════
-// IMAGE VIEWER — unchanged
+// IMAGE VIEWER — GalleryEngine-backed swipeable gallery.
+// openViewer(src, type) is kept for back-compat (wraps a single item
+// in a 1-item collection); openViewerGallery(collection, index) is the
+// real entry point used by the memory-detail photo/video grid so
+// tapping any thumbnail opens the whole grid, swipeable, starting at
+// the tapped item — not just that one photo.
 // ═══════════════════════════════════════════
-function openViewer(src, type) {
-  const iv = document.getElementById('imgViewer');
-  const img = document.getElementById('viewerImg');
-  const vid = document.getElementById('viewerVid');
-  if (type === 'video') { img.style.display = 'none'; vid.style.display = 'block'; vid.src = src; }
-  else { vid.style.display = 'none'; img.style.display = 'block'; img.src = src; }
-  iv.classList.add('open');
+let _globeViewerEngine = null;
+function _globeViewerGetEngine() {
+  if (_globeViewerEngine) return _globeViewerEngine;
+  _globeViewerEngine = new GalleryEngine(document.getElementById('imgViewerStage'), {
+    renderItem(item) {
+      if (item.type === 'video') {
+        const v = document.createElement('video');
+        v.src = item.url; v.controls = true; v.playsInline = true;
+        return v;
+      }
+      const img = document.createElement('img');
+      img.src = item.url; img.alt = '';
+      return img;
+    },
+    onIndexChange(i, item) {
+      const list = _globeViewerEngine.items;
+      const counter = document.getElementById('imgViewerCounter');
+      counter.textContent = list.length > 1 ? (i + 1) + ' / ' + list.length : '';
+    },
+    onEscape() { closeViewer(); },
+    onDismiss() { closeViewer(); },
+    onDragProgress(t) {
+      const el = document.getElementById('imgViewer');
+      if (el) el.style.setProperty('--gve-backdrop-fade', String(1 - t * 0.85));
+    }
+  });
+  return _globeViewerEngine;
 }
-function closeViewer() { document.getElementById('imgViewer').classList.remove('open'); document.getElementById('viewerVid').pause(); }
-document.getElementById('imgViewer').addEventListener('click', function(e) { if (e.target === this) closeViewer(); });
+function openViewerGallery(collection, index) {
+  if (!collection || !collection.length) return;
+  _globeViewerGetEngine().open(collection, index || 0);
+  document.getElementById('imgViewer').classList.add('open');
+}
+function openViewer(src, type) {
+  openViewerGallery([{ url: src, type: type || 'photo' }], 0);
+}
+function closeViewer() {
+  document.getElementById('imgViewer').classList.remove('open');
+  if (_globeViewerEngine) _globeViewerEngine.close();
+}
+// Tap the letterboxed background (not the photo itself, not a drag) to
+// close — mirrors the old click-outside-image behavior.
+document.getElementById('imgViewerStage').addEventListener('click', function (e) {
+  if (e.target.classList.contains('gve-content') || e.target.classList.contains('gve-slide') || e.target === this) closeViewer();
+});
 
 // ═══════════════════════════════════════════
 // HELPERS — unchanged

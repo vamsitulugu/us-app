@@ -26,6 +26,14 @@
    - When zoom > 1 for the active slide, horizontal drags pan
      that slide instead of changing the transform of the track,
      so panning can never accidentally flip to the next photo.
+   - Vertical drag (when not zoomed) is a separate axis-locked
+     gesture on the *stage* (not the track): dragging down shrinks
+     + fades the current photo and follows the finger 1:1, like
+     Android/Google Photos "swipe down to dismiss". Crossing a
+     distance/velocity threshold calls opts.onDismiss(); otherwise
+     it springs back. This never fights the horizontal swipe
+     because onMove picks a single axis (x or y) once the drag
+     clears a small deadzone and commits to it for that gesture.
    ============================================================ */
 (function (global) {
   'use strict';
@@ -36,6 +44,11 @@
   const MAX_ZOOM = 4;
   const MIN_ZOOM = 1;
   const DOUBLE_TAP_MS = 280;
+  const DISMISS_MS = 220;                 // matches SWIPE_MS window
+  const DISMISS_COMPLETE_DIST = 0.22;     // fraction of stage height
+  const DISMISS_COMPLETE_VELOCITY = 0.5;  // px/ms
+  const DISMISS_MAX_SHRINK = 0.62;        // never shrink below 62% while dragging
+  const DISMISS_FOLLOW_RANGE = 320;       // px of drag over which shrink/fade ramps up
 
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
@@ -51,6 +64,12 @@
      *   onIndexChange(index, item)
      *   onZoomChange(zoomed:boolean)
      *   renderItem(item) -> HTMLElement (img/video), engine sizes it
+     *   onDismiss() - called once a vertical swipe-down clears the
+     *     threshold. Caller is responsible for actually closing the
+     *     viewer (the engine only animates itself off first).
+     *   onDragProgress(t) - called continuously while a vertical drag
+     *     is in progress, t in [0,1], for the caller to fade its own
+     *     backdrop/chrome (e.g. background-color alpha) in sync.
      */
     constructor(stageEl, opts) {
       this.stage = stageEl;
@@ -152,38 +171,62 @@
         return s && s.zoom > 1.01;
       };
 
+      let lastY = 0, velocityY = 0;
+
       const onDown = (x, y) => {
         if (isZoomed()) return; // let _bindZoomPan handle panning instead
         dragging = true; axisLocked = null;
-        startX = lastX = x; startY = y; lastT = performance.now(); velocity = 0;
+        startX = lastX = x; startY = lastY = y; lastT = performance.now(); velocity = 0; velocityY = 0;
         this.track.style.transition = 'none';
       };
       const onMove = (x, y) => {
         if (!dragging) return;
         const dx = x - startX, dy = y - startY;
         if (axisLocked === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+          // Commit to one axis for the whole gesture: horizontal = swipe
+          // between photos, vertical (downward only) = dismiss.
           axisLocked = Math.abs(dx) > Math.abs(dy) * 1.2 ? 'x' : 'y';
+          if (axisLocked === 'y' && dy < 0) axisLocked = 'y-up'; // swipe up: not a dismiss gesture
         }
-        if (axisLocked !== 'x') return; // vertical drag: ignore, let it fall through (e.g. tap-to-toggle chrome)
         const now = performance.now();
         const dt = Math.max(1, now - lastT);
-        velocity = (x - lastX) / dt;
-        lastX = x; lastT = now;
-        const pct = (dx / this.stage.clientWidth) * 100;
-        this._setTrackX(pct, false);
+        if (axisLocked === 'x') {
+          velocity = (x - lastX) / dt;
+          lastX = x; lastT = now;
+          const pct = (dx / this.stage.clientWidth) * 100;
+          this._setTrackX(pct, false);
+        } else if (axisLocked === 'y') {
+          velocityY = (y - lastY) / dt;
+          lastY = y; lastT = now;
+          this._applyDismissDrag(dy);
+        }
+        // 'y-up' / null: no-op, lets underlying chrome-toggle taps fall through
       };
       const onUp = () => {
         if (!dragging) return;
         dragging = false;
-        if (axisLocked !== 'x') { this._snapBack(); return; }
-        const dx = lastX - startX;
-        const frac = Math.abs(dx) / this.stage.clientWidth;
-        const goingNext = dx < 0;
-        if (frac > SWIPE_COMPLETE_DIST || Math.abs(velocity) > SWIPE_COMPLETE_VELOCITY) {
-          goingNext ? this.next() : this.previous();
-        } else {
-          this._snapBack();
+        if (axisLocked === 'x') {
+          const dx = lastX - startX;
+          const frac = Math.abs(dx) / this.stage.clientWidth;
+          const goingNext = dx < 0;
+          if (frac > SWIPE_COMPLETE_DIST || Math.abs(velocity) > SWIPE_COMPLETE_VELOCITY) {
+            goingNext ? this.next() : this.previous();
+          } else {
+            this._snapBack();
+          }
+          return;
         }
+        if (axisLocked === 'y') {
+          const dy = lastY - startY;
+          const frac = dy / this.stage.clientHeight;
+          if (frac > DISMISS_COMPLETE_DIST || velocityY > DISMISS_COMPLETE_VELOCITY) {
+            this._completeDismiss();
+          } else {
+            this._snapBackDismiss();
+          }
+          return;
+        }
+        this._snapBack();
       };
 
       this.stage.addEventListener('pointerdown', (e) => { if (e.target.closest('.gve-no-drag')) return; onDown(e.clientX, e.clientY); this.stage.setPointerCapture?.(e.pointerId); });
@@ -212,6 +255,30 @@
       this.track.style.transform = `translate3d(${pct}%,0,0)`;
     }
     _snapBack() { this._animateTrackTo(0, SWIPE_MS); }
+
+    // ---- vertical drag-to-dismiss (Android/Google-Photos style) ----
+    _applyDismissDrag(dy) {
+      dy = Math.max(0, dy); // downward only — upward drag does nothing here
+      const t = clamp(dy / DISMISS_FOLLOW_RANGE, 0, 1);
+      const scale = 1 - t * (1 - DISMISS_MAX_SHRINK);
+      this.track.style.transition = 'none';
+      this.track.style.transform = `translate3d(0,${dy}px,0) scale(${scale})`;
+      if (this.opts.onDragProgress) this.opts.onDragProgress(t);
+    }
+    _snapBackDismiss() {
+      this.track.style.transition = `transform ${DISMISS_MS}ms cubic-bezier(.22,.61,.36,1)`;
+      this.track.style.transform = 'translate3d(0,0,0) scale(1)';
+      if (this.opts.onDragProgress) this.opts.onDragProgress(0);
+    }
+    _completeDismiss() {
+      const stageH = this.stage.clientHeight || 600;
+      this.track.style.transition = `transform ${DISMISS_MS}ms cubic-bezier(.22,.61,.36,1)`;
+      this.track.style.transform = `translate3d(0,${stageH}px,0) scale(${DISMISS_MAX_SHRINK})`;
+      if (this.opts.onDragProgress) this.opts.onDragProgress(1);
+      if (this.opts.onDismiss) {
+        setTimeout(() => this.opts.onDismiss(), DISMISS_MS);
+      }
+    }
 
     // ---- per-slide pinch/double-tap zoom + pan ----
     _bindZoomPan(rec) {
