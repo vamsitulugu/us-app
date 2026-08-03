@@ -1245,14 +1245,31 @@
       list.innerHTML = '<div class="wt-chatlog-empty">No messages yet in this session.</div>';
       return;
     }
-    list.innerHTML = movieChatLog.map(m => {
-      const name = m.role === ROLE ? (ctx && ctx.myName ? ctx.myName : 'You') : (ctx && ctx.partnerName ? ctx.partnerName : 'Partner');
+    // Conversational bubble layout (matches the main Chat page's message
+    // language: right/left alignment, compact content-sized bubbles,
+    // grouped consecutive messages) instead of one full-width card per
+    // message. Movie time is kept — it's the one thing normal Chat
+    // doesn't have — but shown as subtle inline metadata next to the
+    // sent time rather than its own labeled row.
+    let lastRole = null;
+    list.innerHTML = movieChatLog.map((m, i) => {
+      const mine = m.role === ROLE;
+      const partnerName = ctx && ctx.partnerName ? ctx.partnerName : 'Partner';
       const sentAt = m.createdAtIso ? new Date(m.createdAtIso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
       const movieTime = (typeof m.posSec === 'number') ? fmtTime(m.posSec) : null;
-      return `<div class="wt-chatlog-row ${m.role === ROLE ? 'mine' : ''}">
-        <div class="wt-chatlog-name">${escapeHtml(name)}</div>
-        <div class="wt-chatlog-text">${escapeHtml(m.text)}</div>
-        <div class="wt-chatlog-meta">${movieTime ? 'Movie time: ' + movieTime + ' · ' : ''}Sent: ${sentAt}</div>
+      // Only label the sender when it's the partner and the previous
+      // message in the log was from someone else — never relabel my own
+      // messages, and never repeat the label down a run of consecutive
+      // messages from the same person.
+      const showName = !mine && m.role !== lastRole;
+      const grouped = m.role === lastRole;
+      lastRole = m.role;
+      return `<div class="wt-chatlog-row ${mine ? 'mine' : 'theirs'}${grouped ? ' grouped' : ''}">
+        <div class="wt-chatlog-bubble">
+          ${showName ? `<div class="wt-chatlog-name">${escapeHtml(partnerName)}</div>` : ''}
+          <div class="wt-chatlog-text">${escapeHtml(m.text)}</div>
+          <div class="wt-chatlog-meta">${movieTime ? `<span class="wt-chatlog-movietime">🎬 ${movieTime}</span>` : ''}<span class="wt-chatlog-sent">${sentAt}</span></div>
+        </div>
       </div>`;
     }).join('');
     list.scrollTop = list.scrollHeight;

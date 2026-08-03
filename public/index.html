@@ -5601,7 +5601,40 @@ select option { background: #0D0D0D; color: #fff; }
   <button class="ic-btn" id="chatVideoCallBtn" style="width:34px;height:34px;font-size:14px" title="Video Call">📹</button>
   <button class="ic-btn" style="width:34px;height:34px;font-size:14px" onclick="Chat.openStarred()" title="Starred">⭐</button>
   <button class="ic-btn" style="width:34px;height:34px;font-size:14px" onclick="Chat.openSearch()" title="Search">🔍</button>
+  <div class="chat-header-menu-wrap">
+    <button class="ic-btn" id="chatMoreMenuBtn" style="width:34px;height:34px;font-size:14px" onclick="Chat.toggleHeaderMenu(event)" title="More" aria-haspopup="true" aria-expanded="false">⋮</button>
+    <div class="chat-header-menu" id="chatHeaderMenu">
+      <div class="chat-header-menu-item" onclick="Chat.openWallpaperModal()"><span class="ico">🖼️</span> Chat wallpaper</div>
+    </div>
+  </div>
 </div>
+    </div>
+
+    <!-- ── Chat wallpaper settings modal ── -->
+    <div class="wp-modal-overlay" id="wpModalOverlay" onclick="if(event.target===this) Chat.closeWallpaperModal()">
+      <div class="wp-modal">
+        <div class="wp-modal-title">Chat wallpaper <span class="wp-modal-close" onclick="Chat.closeWallpaperModal()">✕</span></div>
+        <div class="wp-option-row" onclick="document.getElementById('wpFileInput').click()"><span class="ico">🖼️</span> Choose from device</div>
+        <div class="wp-option-row" onclick="Chat.setDefaultWallpaper()"><span class="ico">↺</span> Default wallpaper</div>
+        <div class="wp-option-row" onclick="Chat.removeWallpaper()"><span class="ico">🗑️</span> Remove wallpaper</div>
+        <div class="wp-swatches" id="wpSwatches"></div>
+        <div class="wp-dim-row">
+          <div class="wp-dim-label"><span>Dimming</span><span id="wpDimVal">0%</span></div>
+          <input type="range" id="wpDimSlider" min="0" max="90" value="0" oninput="Chat.onDimSlider(this.value)">
+        </div>
+        <input type="file" id="wpFileInput" accept="image/*" style="display:none" onchange="Chat.onWallpaperFilePicked(this)">
+      </div>
+    </div>
+
+    <!-- ── Full-screen wallpaper preview before committing ── -->
+    <div class="wp-preview-overlay" id="wpPreviewOverlay">
+      <div class="wp-preview-bg" id="wpPreviewBg">
+        <div class="wp-preview-dim" id="wpPreviewDim"></div>
+      </div>
+      <div class="wp-preview-actions">
+        <button class="wp-preview-cancel" onclick="Chat.cancelWallpaperPreview()">Cancel</button>
+        <button class="wp-preview-set" onclick="Chat.confirmWallpaperPreview()">Set wallpaper</button>
+      </div>
     </div>
 <script>
 // Bound via addEventListener (not inline onclick) so a click can never fail
@@ -5649,7 +5682,11 @@ select option { background: #0D0D0D; color: #fff; }
 
     <div class="chat-pinned-bar" id="chatPinnedBar"></div>
 
-    <div class="chat-msgs" id="chatMsgs" onscroll="Chat.onChatScroll()"></div>
+    <div class="chat-msgs-shell">
+      <div class="chat-wallpaper-layer" id="chatWallpaperLayer"></div>
+      <div class="chat-wallpaper-dim" id="chatWallpaperDim"></div>
+      <div class="chat-msgs" id="chatMsgs" onscroll="Chat.onChatScroll()"></div>
+    </div>
     <button class="chat-jump-btn" id="chatJumpBtn" onclick="Chat.scrollToBottom(true)">
       ⬇<span class="chat-jump-badge" data-chat-badge></span>
     </button>

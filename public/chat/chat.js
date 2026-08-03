@@ -1606,8 +1606,303 @@ function menuItemsHtml(m, id, includeSelect) {
     // No standalone fetchPresence interval here — pollNew() already calls
     // fetchPresence() on every tick (2.5s on the chat page, ~20s elsewhere,
     // paused when backgrounded), so a separate 15s timer was pure duplication.
+    applyWallpaper();
+    initKeyboardFocusFix();
   }
   document.addEventListener('DOMContentLoaded', () => setTimeout(init, 500));
+
+  // ══════════════════════════════════════════════════════════════
+  // CHAT HEADER — 3-DOT MENU
+  // ══════════════════════════════════════════════════════════════
+  let _headerMenuOutsideBound = false;
+  function toggleHeaderMenu(ev) {
+    if (ev) ev.stopPropagation();
+    const menu = document.getElementById('chatHeaderMenu');
+    const btn = document.getElementById('chatMoreMenuBtn');
+    if (!menu) return;
+    const willOpen = !menu.classList.contains('open');
+    menu.classList.toggle('open', willOpen);
+    if (btn) btn.setAttribute('aria-expanded', String(willOpen));
+    if (willOpen && !_headerMenuOutsideBound) {
+      _headerMenuOutsideBound = true;
+      document.addEventListener('click', function onDocClick(e) {
+        const m = document.getElementById('chatHeaderMenu');
+        if (m && !m.contains(e.target) && e.target.id !== 'chatMoreMenuBtn') {
+          m.classList.remove('open');
+          const b = document.getElementById('chatMoreMenuBtn');
+          if (b) b.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // CHAT WALLPAPER
+  // Device-local setting stored per couple+role: the actual image
+  // lives in IndexedDB (never localStorage — a base64 photo string
+  // there would be several MB and blow past storage quotas/limits),
+  // while the small preferences (mode, dimming %) live in localStorage
+  // since they're only a few bytes. This is intentionally device-local
+  // rather than synced through Supabase — no schema change needed for
+  // a per-device UI preference like this.
+  // ══════════════════════════════════════════════════════════════
+  const WP_DB_NAME = 'uwl_wallpaper_db';
+  const WP_STORE = 'wallpapers';
+  const WP_SETTINGS_KEY = 'uwl_wallpaper_settings_v1';
+  const WP_SWATCHES = [
+    { id: 'midnight', css: 'linear-gradient(160deg,#0b0b0f,#1b1420 60%,#241018)' },
+    { id: 'noir', css: 'linear-gradient(160deg,#000,#161616)' },
+    { id: 'wine', css: 'linear-gradient(160deg,#150507,#2a0d12 55%,#120406)' },
+    { id: 'slate', css: 'linear-gradient(160deg,#0d1014,#1a1f26)' }
+  ];
+  let _wpDbPromise = null;
+  let _pendingWallpaperBlob = null;
+
+  function wpKey() { return (coupleId() || 'anon') + '_' + (myRole() || 'u'); }
+
+  function openWpDb() {
+    if (_wpDbPromise) return _wpDbPromise;
+    _wpDbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(WP_DB_NAME, 1);
+      req.onupgradeneeded = () => { req.result.createObjectStore(WP_STORE); };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return _wpDbPromise;
+  }
+  async function wpIdbSet(key, blob) {
+    const db = await openWpDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(WP_STORE, 'readwrite');
+      tx.objectStore(WP_STORE).put(blob, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  async function wpIdbGet(key) {
+    const db = await openWpDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(WP_STORE, 'readonly');
+      const req = tx.objectStore(WP_STORE).get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function wpIdbDelete(key) {
+    const db = await openWpDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(WP_STORE, 'readwrite');
+      tx.objectStore(WP_STORE).delete(key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  function loadWpSettings() {
+    try { return JSON.parse(localStorage.getItem(WP_SETTINGS_KEY) || '{}'); } catch (e) { return {}; }
+  }
+  function saveWpSettings(all) {
+    try { localStorage.setItem(WP_SETTINGS_KEY, JSON.stringify(all)); } catch (e) {}
+  }
+  function getWpSetting() {
+    const all = loadWpSettings();
+    return all[wpKey()] || { mode: 'default', dim: 0, swatch: null };
+  }
+  function setWpSetting(patch) {
+    const all = loadWpSettings();
+    all[wpKey()] = Object.assign({}, all[wpKey()] || { mode: 'default', dim: 0, swatch: null }, patch);
+    saveWpSettings(all);
+    return all[wpKey()];
+  }
+
+  let _wpObjectUrl = null;
+  async function applyWallpaper() {
+    const layer = document.getElementById('chatWallpaperLayer');
+    const dimEl = document.getElementById('chatWallpaperDim');
+    if (!layer || !dimEl) return;
+    const s = getWpSetting();
+    dimEl.style.opacity = String((s.dim || 0) / 100);
+    if (_wpObjectUrl) { URL.revokeObjectURL(_wpObjectUrl); _wpObjectUrl = null; }
+    if (s.mode === 'custom') {
+      try {
+        const blob = await wpIdbGet(wpKey());
+        if (blob) {
+          _wpObjectUrl = URL.createObjectURL(blob);
+          layer.style.backgroundImage = `url("${_wpObjectUrl}")`;
+          return;
+        }
+      } catch (e) { /* fall through to default */ }
+    }
+    if (s.mode === 'swatch' && s.swatch) {
+      const sw = WP_SWATCHES.find(x => x.id === s.swatch);
+      layer.style.backgroundImage = sw ? sw.css : '';
+      return;
+    }
+    // default — restore the app's normal (transparent) chat background
+    layer.style.backgroundImage = '';
+  }
+
+  function renderWpSwatches() {
+    const box = document.getElementById('wpSwatches');
+    if (!box) return;
+    const s = getWpSetting();
+    box.innerHTML = WP_SWATCHES.map(sw =>
+      `<div class="wp-swatch${s.mode === 'swatch' && s.swatch === sw.id ? ' active' : ''}" style="background-image:${sw.css}" onclick="Chat.selectWpSwatch('${sw.id}')"></div>`
+    ).join('');
+  }
+  function selectWpSwatch(id) {
+    setWpSetting({ mode: 'swatch', swatch: id });
+    applyWallpaper();
+    renderWpSwatches();
+  }
+
+  function openWallpaperModal() {
+    document.getElementById('chatHeaderMenu')?.classList.remove('open');
+    const s = getWpSetting();
+    const slider = document.getElementById('wpDimSlider');
+    const val = document.getElementById('wpDimVal');
+    if (slider) slider.value = s.dim || 0;
+    if (val) val.textContent = (s.dim || 0) + '%';
+    renderWpSwatches();
+    document.getElementById('wpModalOverlay')?.classList.add('open');
+  }
+  function closeWallpaperModal() {
+    document.getElementById('wpModalOverlay')?.classList.remove('open');
+  }
+  function onDimSlider(val) {
+    const v = Number(val) || 0;
+    document.getElementById('wpDimVal').textContent = v + '%';
+    document.getElementById('chatWallpaperDim').style.opacity = String(v / 100);
+    setWpSetting({ dim: v });
+  }
+  function setDefaultWallpaper() {
+    setWpSetting({ mode: 'default', swatch: null });
+    applyWallpaper();
+    renderWpSwatches();
+    toast('Default wallpaper restored');
+  }
+  async function removeWallpaper() {
+    try { await wpIdbDelete(wpKey()); } catch (e) {}
+    setWpSetting({ mode: 'default', swatch: null });
+    applyWallpaper();
+    renderWpSwatches();
+    toast('Wallpaper removed');
+  }
+
+  // Downscale + compress before storing — a raw phone-camera photo can be
+  // several MB; this keeps IndexedDB usage small without a visible quality
+  // loss for a background image, and happens once (at pick time) rather
+  // than being recomputed on every load.
+  function resizeImageFile(file, maxDim, quality) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) { height = Math.round(height * (maxDim / width)); width = maxDim; }
+          else { width = Math.round(width * (maxDim / height)); height = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        URL.revokeObjectURL(url);
+        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('toBlob failed')), 'image/jpeg', quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image load failed')); };
+      img.src = url;
+    });
+  }
+
+  async function onWallpaperFilePicked(input) {
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    try {
+      const blob = await resizeImageFile(file, 1440, 0.82);
+      _pendingWallpaperBlob = blob;
+      const url = URL.createObjectURL(blob);
+      const bg = document.getElementById('wpPreviewBg');
+      const dim = document.getElementById('wpPreviewDim');
+      bg.style.backgroundImage = `url("${url}")`;
+      const s = getWpSetting();
+      dim.style.opacity = String((s.dim || 0) / 100);
+      closeWallpaperModal();
+      document.getElementById('wpPreviewOverlay').classList.add('open');
+    } catch (e) {
+      toast('Could not load that image — please try another');
+    }
+  }
+  function cancelWallpaperPreview() {
+    _pendingWallpaperBlob = null;
+    document.getElementById('wpPreviewOverlay')?.classList.remove('open');
+    openWallpaperModal();
+  }
+  async function confirmWallpaperPreview() {
+    if (!_pendingWallpaperBlob) return;
+    try {
+      await wpIdbSet(wpKey(), _pendingWallpaperBlob);
+      setWpSetting({ mode: 'custom' });
+      _pendingWallpaperBlob = null;
+      document.getElementById('wpPreviewOverlay')?.classList.remove('open');
+      await applyWallpaper();
+      toast('Wallpaper set');
+    } catch (e) {
+      toast('Could not save wallpaper — please try again');
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // KEYBOARD FOCUS FIX
+  // Root cause: the Send button (and the attach/camera icon buttons)
+  // are plain focusable <button> elements. On Android/mobile, tapping
+  // any focusable element moves focus to it — nothing in this file ever
+  // called blur() explicitly, the keyboard was closing simply because
+  // focus moved off the textarea onto the button that was tapped. The
+  // fix is to stop that focus hand-off at the source (preventDefault on
+  // pointerdown/mousedown/touchstart, which cancels the browser's default
+  // "focus me" behavior but does NOT cancel the click event that follows,
+  // so sending still works) rather than papering over it with a forced
+  // .focus() call after every send.
+  // ══════════════════════════════════════════════════════════════
+  let _kbFixBound = false;
+  function initKeyboardFocusFix() {
+    if (_kbFixBound) return;
+    _kbFixBound = true;
+    const ids = ['chatSendBtn', 'chatMoreBtn', 'chatCancelRecBtn', 'chatStopRecBtn'];
+    const preventFocusSteal = (e) => {
+      const ta = document.getElementById('chatIn');
+      // Only guard focus when the user was actually mid-typing — if the
+      // input wasn't focused already, let the tap behave normally.
+      if (ta && document.activeElement === ta) e.preventDefault();
+    };
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('pointerdown', preventFocusSteal);
+      el.addEventListener('mousedown', preventFocusSteal);
+    });
+    // Camera button is created inline without an id on the <button> itself
+    document.querySelectorAll('.uc-input-wrap .uc-icon-btn').forEach(el => {
+      el.addEventListener('pointerdown', preventFocusSteal);
+      el.addEventListener('mousedown', preventFocusSteal);
+    });
+
+    // Tap-outside-to-close-keyboard: only when the tap lands on genuinely
+    // empty conversation space (the scroll container or wallpaper layer
+    // itself), never on a message row, action, or control — those all
+    // stop propagation via their own handlers or simply aren't the
+    // container element, so this never fights scrolling/selection/replies.
+    const box = document.getElementById('chatMsgs');
+    if (box) {
+      box.addEventListener('click', (e) => {
+        if (e.target === box) {
+          const ta = document.getElementById('chatIn');
+          if (ta && document.activeElement === ta) ta.blur();
+        }
+      });
+    }
+  }
 
   function isSelecting() { return selectMode; }
   function closeMsgMenuIfOpen() {
@@ -1626,7 +1921,9 @@ function menuItemsHtml(m, id, includeSelect) {
     forwardMsg, copyMsg, editMsg, cancelEdit, infoMsg, cancelRecording, startLongPress, endLongPress, moveLongPress,
     onAudioPick, sendLocation, openGiftPanel, sendGift, toggleVoicePlay,
     openStickerPanel, sendSticker, sendContactCard, openContactCard, openMemories, openPollComposer, submitPoll, votePoll,
-    destroyPanels
+    destroyPanels,
+    toggleHeaderMenu, openWallpaperModal, closeWallpaperModal, onDimSlider, setDefaultWallpaper, removeWallpaper,
+    onWallpaperFilePicked, cancelWallpaperPreview, confirmWallpaperPreview, selectWpSwatch, applyWallpaper
   };
 })();
 window.Chat = Chat;
