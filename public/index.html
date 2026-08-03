@@ -3369,7 +3369,7 @@
       flex-direction: column;
       align-items: center;
       gap: 2px;
-      padding: 6px 12px;
+      padding: 6px 4px;
       cursor: pointer;
       border-radius: 10px;
       color: var(--text3);
@@ -3378,6 +3378,12 @@
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.3px;
+      /* Equal-width flex items (rather than each sizing to its own label)
+         so all 7 destinations stay evenly spaced regardless of label
+         length — this is what actually keeps Twin mathematically centered
+         as item #4 of 7, not just visual luck from space-around. */
+      flex: 1 1 0;
+      min-width: 0;
     }
 
     .bot-ni:hover,
@@ -3388,6 +3394,13 @@
     .bot-ni .ico {
       font-size: 20px
     }
+
+    /* Twin — the centered hero destination. Slightly more visual weight
+       (a hair larger icon slot, a touch bolder label) without changing
+       the navbar's height or turning it into a floating action button —
+       it stays a normal flex item like every other destination. */
+    .bot-ni--twin { font-weight: 700; }
+    .bot-ni--twin .ico { font-size: 22px; }
 
     .hamburger {
       display: flex;
@@ -4468,6 +4481,50 @@
 .nav-twin-ico { display: inline-flex; align-items: center; justify-content: center; }
 .nav-twin-ico .twin-orb { width: 16px; height: 16px; }
 .nav-twin-ico .twin-orb .to-core { animation: none; }
+
+/* ── Mini Twin Orb — bottom nav (Twin is now the centered, hero
+   destination) ──
+   Reuses the exact same .twin-orb layers as the main AI page's orb
+   (to-aura / to-core / to-energy / to-highlight) rather than inventing
+   a second visual identity — only a silver energy-sweep variant and
+   smaller sizing are added on top. Pure CSS (no canvas/WebGL, no JS
+   animation loop), so running it continuously across every page the
+   navbar appears on costs nothing beyond what the rest of the navbar
+   already costs. */
+.nav-twin-ico--mini .twin-orb { width: 22px; height: 22px; }
+.twin-orb--navmini { --orb-size: 22px; }
+.twin-orb--navmini .to-aura { inset: -5px; opacity: .3; animation-duration: 4.5s; }
+.twin-orb--navmini .to-core { animation-duration: 4.5s; }
+.twin-orb--navmini .to-highlight { opacity: .45; }
+/* Silver/soft-white flowing waves — a restrained conic sweep standing in
+   for hand-drawn wave lines: cheap, GPU-composited, and reads as moving
+   light across the sphere rather than a spinning loader (it's slow and
+   the base sphere itself never rotates). */
+.to-energy--silver {
+  background: conic-gradient(from 0deg,
+    transparent 0deg, rgba(235,235,245,0.6) 45deg, transparent 110deg,
+    rgba(255,255,255,0.4) 200deg, transparent 260deg, rgba(210,215,230,0.35) 330deg, transparent 360deg);
+  animation: twinEnergySpin 10s linear infinite;
+  opacity: .5;
+}
+/* Idle breathing — very subtle, must never compete with the currently
+   active page. */
+.bot-ni--twin:not(.active) .twin-orb--navmini { opacity: .82; }
+/* Active Twin — orb becomes visibly "more alive": brighter waves, richer
+   core, slightly larger, one restrained pulse on entry. The normal red
+   active-indicator/label treatment below still applies on top of this,
+   unchanged from every other nav destination. */
+.bot-ni--twin.active .twin-orb--navmini {
+  transform: scale(1.08);
+  animation: twinNavActivate .3s ease;
+}
+.bot-ni--twin.active .to-energy--silver { opacity: .95; animation-duration: 5.5s; }
+.bot-ni--twin.active .to-aura { opacity: .6; animation-duration: 2.6s; }
+.bot-ni--twin.active .to-core { filter: saturate(1.15) brightness(1.08); animation-duration: 2.4s; }
+@keyframes twinNavActivate { 0% { transform: scale(1); } 55% { transform: scale(1.14); } 100% { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) {
+  .twin-orb--navmini .to-aura, .twin-orb--navmini .to-core, .twin-orb--navmini .to-energy { animation: none !important; }
+}
 
 /* Twin welcome screen */
 .twin-welcome-orb-wrap { width: 84px; height: 84px; margin: 0 auto 16px; }
@@ -7016,8 +7073,8 @@ select option { background: #0D0D0D; color: #fff; }
       <nav class="bot-nav" id="botNav">
         <div class="bot-ni active" data-page="dashboard"><span class="ico">🏠</span>Home</div>
 <div class="bot-ni" data-page="chat"><span class="ico">💬</span>Chat<span data-chat-badge></span></div>
-<div class="bot-ni" data-page="ai"><span class="ico nav-twin-ico"><span class="twin-orb"><span class="to-core"></span></span></span>Twin</div>
 <div class="bot-ni" data-page="globe"><span class="ico">🌍</span>Globe</div>
+<div class="bot-ni bot-ni--twin" data-page="ai"><span class="ico nav-twin-ico nav-twin-ico--mini"><span class="twin-orb twin-orb--navmini"><span class="to-aura"></span><span class="to-core"></span><span class="to-energy to-energy--silver"></span><span class="to-highlight"></span></span></span>Twin</div>
 <div class="bot-ni" data-page="games"><span class="ico">🎮</span>Games</div>
 <div class="bot-ni" data-page="movie"><span class="ico">🎬</span>Watch</div>
 <div class="bot-ni" data-page="settings"><span class="ico">⚙️</span>More</div>
@@ -8024,6 +8081,37 @@ function setJustPairedAt(ts) {
           );
         });
 
+        // ── Bottom nav: route is the single source of truth ──
+        // Previously the bottom nav's active/red state was ONLY set by its
+        // own click handler (removeAll-then-add-one on that one element).
+        // goto() — the actual central router, also reachable via internal
+        // links, deep links, notification taps, and popstate/Back — never
+        // touched .bot-ni at all. So any navigation that didn't originate
+        // from tapping the bottom nav left its previous active item red
+        // forever, and the next bottom-nav tap only ever added a new active
+        // item without the stale one ever being cleared first — hence
+        // multiple red destinations accumulating over time. Fixing this
+        // requires goto() itself to own bottom-nav state, not another
+        // click-handler patch.
+        // Only these 7 page ids are actually represented in the bottom
+        // nav; anything else (e.g. Calendar, opened from a dashboard card)
+        // correctly leaves the bottom nav showing no active destination,
+        // matching its own previous state — this list intentionally exists
+        // so any subpage of a bottom-nav destination can map back to its
+        // owner in one place instead of duplicating logic per page.
+        const NAV_ROUTE_MAP = {
+          dashboard: 'dashboard', chat: 'chat', globe: 'globe', ai: 'ai',
+          games: 'games', movie: 'movie', settings: 'settings'
+        };
+        function syncBotNav(page) {
+          const owner = NAV_ROUTE_MAP[page] || null;
+          document.querySelectorAll('.bot-ni').forEach(n => n.classList.remove('active'));
+          if (owner) {
+            const el = document.querySelector('.bot-ni[data-page="' + owner + '"]');
+            if (el) el.classList.add('active');
+          }
+        }
+
         function goto(page, pushHistory = true) {
           if (window.PageManager) PageManager.currentPage = page;
           reportPresence(page);
@@ -8039,6 +8127,7 @@ function setJustPairedAt(ts) {
           const pg = document.getElementById('page-' + page); if (!pg) return;
           pg.classList.add('active');
           const ni = document.querySelector('.ni[data-page="' + page + '"]'); if (ni) ni.classList.add('active');
+          syncBotNav(page);
           document.getElementById('topTitle').textContent = pageTitles[page] || page;
           // Every page must open at the top rather than remembering the
           // previous page's scroll offset. The SPA shell shares a single
@@ -8227,8 +8316,9 @@ function setJustPairedAt(ts) {
 
 document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
   el.addEventListener('click', () => {
-    document.querySelectorAll('.bot-ni').forEach(n => n.classList.remove('active'));
-    el.classList.add('active');
+    // Active state is no longer set here — goto() is the single source of
+    // truth (see syncBotNav) so this stays in sync with every other way
+    // navigation can happen (deep links, Back, internal links), not just taps.
     goto(el.dataset.page);
   });
 });
