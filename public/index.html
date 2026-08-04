@@ -4519,8 +4519,16 @@
   flex-direction: column; align-items: center; justify-content: center;
   gap: 18px; padding: 24px max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
   background: radial-gradient(circle at 50% 38%, rgba(60,10,16,0.55), #0a0607 72%);
+  opacity: 1; transition: opacity .2s ease;
 }
 .twin-voice.active { display: flex; }
+/* Brief fade applied by TwinVoice.exit() just before it removes .active
+   (which is what actually hides the overlay via display:none) — display
+   can't itself transition, so .closing fades opacity out first while
+   still display:flex, then JS drops .active/.closing together ~200ms
+   later. Skipped entirely (instant hide) for "quiet" exits such as
+   navigating away or the app backgrounding. */
+.twin-voice.closing { opacity: 0; pointer-events: none; }
 .twin-voice-orb-wrap { width: 168px; height: 168px; }
 .twin-voice-status {
   font-family: var(--ff-serif); font-size: 20px; color: var(--white);
@@ -10582,6 +10590,9 @@ const p = await Notification.requestPermission();
           let muted = false;
           let mode = 'idle';              // idle | listening | thinking | speaking
           let sessionOpen = false;
+          let speechToken = 0;            // bumped on every new/interrupted utterance so a
+                                           // stale onend/onerror can never act on a session
+                                           // that has already moved on (mic-interrupt race)
           let finalTranscript = '';
 
           const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -10758,21 +10769,41 @@ const p = await Notification.requestPermission();
           async function submitVoiceQuestion(question) {
             setMode('thinking');
             setTranscript(question, '');
+            speechToken++; // any TTS still finishing from a prior turn must not touch this one
             cancelSpeaking();
             await askAI(question);
             if (!sessionOpen) return; // user exited while the AI request was in flight
             if (aiLastFailed) {
-              setStatus("Twin couldn't respond. Try again.", 'Tap the mic to retry');
+              // ERROR CASE — AI request failed. This previously left the
+              // whole voice overlay open forever with no way out but the
+              // manual X. Route it through the same auto-close path used
+              // for silence/no-speech so it always ends the session.
+              setStatus("Twin couldn't respond. Try again.", 'Closing…');
               setMode('idle');
+              scheduleAutoClose(1600);
               return;
             }
             speakLastReply();
           }
 
           // ── Text-to-speech of Twin's latest reply, reused by both Voice
-          // Mode and the text-chat "speak" button (#15). ──
+          // Mode and the text-chat "speak" button (#15). `finish()` is the
+          // single place that decides "TTS is done" — reached via the real
+          // onend/onerror events (never a guessed duration) plus a generous
+          // watchdog that only exists to unstick the rare mobile WebView
+          // that silently drops both events; the watchdog is cancelled the
+          // instant a real event lands and normally never fires. Every path
+          // out of "Twin is speaking" funnels through finish() -> exit(),
+          // so there is exactly one place that closes the voice session. ──
           function speak(text) {
-            if (!hasTTS || !text) { setMode('idle'); return; }
+            if (!hasTTS || !text) {
+              // ERROR CASE — no TTS support or an empty reply. Same rule:
+              // if a voice session is open, it must still close, not sit
+              // there with nothing happening.
+              if (sessionOpen) exit(); else setMode('idle');
+              return;
+            }
+            const myToken = ++speechToken;
             speechSynthesis.cancel();
             const plain = text.replace(/[*_`#>]/g, '').replace(/\n{2,}/g, '. ');
             const u = new SpeechSynthesisUtterance(plain);
@@ -10781,21 +10812,34 @@ const p = await Notification.requestPermission();
             const preferred = voices.find(v => /en-US|en_US/.test(v.lang) && /female|Samantha|Google US English/i.test(v.name))
               || voices.find(v => /^en/.test(v.lang));
             if (preferred) u.voice = preferred;
-            u.onstart = () => setMode('speaking');
-            u.onend = () => {
+
+            let settled = false;
+            let watchdog = null;
+            const finish = () => {
+              if (settled) return;
+              settled = true;
+              clearTimeout(watchdog);
               document.querySelectorAll('.twin-speak-btn.is-speaking').forEach(b => { b.classList.remove('is-speaking'); b.innerHTML = '🔊 Listen'; });
+              // This utterance was superseded (user interrupted, or a
+              // newer question is already speaking) — the newer one owns
+              // closing the session, so this stale callback does nothing.
+              if (myToken !== speechToken) return;
               if (!sessionOpen) { setTwinState('idle'); return; }
               // State-flow: SPEECH END -> ORB CLOSE -> BACK TO IDLE. The
               // voice session is single-shot per tap — once Twin finishes
-              // speaking the reply, the orb closes itself rather than
-              // silently reopening the mic for another turn.
+              // speaking the reply, the entire voice overlay closes itself
+              // rather than silently reopening the mic for another turn.
               exit();
             };
-            u.onerror = () => {
-              document.querySelectorAll('.twin-speak-btn.is-speaking').forEach(b => { b.classList.remove('is-speaking'); b.innerHTML = '🔊 Listen'; });
-              if (sessionOpen) exit();
-              else setTwinState('idle');
-            };
+            u.onstart = () => setMode('speaking');
+            u.onend = finish;
+            u.onerror = finish;
+            // Safety net only, not the primary signal — some mobile
+            // WebViews are known to occasionally drop TTS end/error events
+            // outright, which would otherwise leave the overlay stuck open
+            // forever. Generous on purpose (never fires during normal
+            // playback) and cleared immediately once onend/onerror do fire.
+            watchdog = setTimeout(finish, Math.max(4000, plain.length * 120));
             speechSynthesis.speak(u);
           }
           function speakLastReply() {
@@ -10808,6 +10852,25 @@ const p = await Notification.requestPermission();
           }
 
           // ── Lifecycle ──
+          let voiceCloseTimer = null;
+          // The one function that opens/closes the actual overlay panel
+          // (status text, transcript, mic/X buttons, "Tap the mic to
+          // interrupt" hint) — everything in #twinVoice lives or dies with
+          // its .active class. `instant` skips the fade for quiet exits
+          // (navigating away, app backgrounded) where there's no point
+          // animating something the person can no longer see anyway.
+          function setVoiceOverlay(open, instant) {
+            const { wrap } = els();
+            if (!wrap) return;
+            clearTimeout(voiceCloseTimer); voiceCloseTimer = null;
+            if (open) { wrap.classList.remove('closing'); wrap.classList.add('active'); return; }
+            if (instant) { wrap.classList.remove('active', 'closing'); return; }
+            wrap.classList.add('closing');
+            voiceCloseTimer = setTimeout(() => {
+              voiceCloseTimer = null;
+              wrap.classList.remove('active', 'closing');
+            }, 220);
+          }
           function open() {
             if (!navigator.mediaDevices?.getUserMedia && !Rec) {
               toast('Voice isn\'t supported in this browser');
@@ -10816,7 +10879,7 @@ const p = await Notification.requestPermission();
             const { wrap } = els();
             if (!wrap) return;
             sessionOpen = true; muted = false;
-            wrap.classList.add('active');
+            setVoiceOverlay(true);
             const { micBtn } = els();
             if (micBtn) micBtn.classList.add('is-live');
             // The SAME orb travels into the voice overlay's anchor — the
@@ -10832,16 +10895,22 @@ const p = await Notification.requestPermission();
             startLevelMeter();
             startListening();
           }
+          // THE single centralized cleanup for the entire voice session —
+          // every path out (TTS finishing normally, the watchdog, manual X,
+          // silence/error auto-close, muting, page navigation, and the app
+          // backgrounding) all funnel through this one function. Nothing
+          // else is allowed to independently hide a piece of the voice UI.
           function exit(quiet) {
             if (!sessionOpen) return;
             sessionOpen = false;
             manualStop = true;
+            speechToken++; // orphan any TTS callback still in flight
             cancelAutoClose();
             stopListening(true);
             cancelSpeaking();
             stopLevelMeter();
-            const { wrap, micBtn } = els();
-            if (wrap) wrap.classList.remove('active');
+            setVoiceOverlay(false, quiet);
+            const { micBtn } = els();
             if (micBtn) micBtn.classList.remove('is-live');
             setTwinState('idle');
             // Travel back to wherever the orb belongs now — dock if a
@@ -10849,10 +10918,21 @@ const p = await Notification.requestPermission();
             const hero = document.getElementById('twinHeroAnchor');
             const dock = document.getElementById('twinDockAnchor');
             const backTo = (hero && hero.offsetParent !== null && document.getElementById('aiWelcome')) ? hero : dock;
-            twinOrbGoTo(backTo, { animate: true });
+            twinOrbGoTo(backTo, { animate: !quiet });
           }
           function toggleMute() {
             cancelAutoClose();
+            if (mode === 'speaking') {
+              // "Tap the mic to interrupt": stop Twin talking and start
+              // listening right away instead of muting. Bump the token
+              // BEFORE cancelling so the interrupted utterance's onerror
+              // sees itself as stale and can't race with (or prematurely
+              // close) the fresh listening turn this starts.
+              speechToken++;
+              cancelSpeaking();
+              startListening();
+              return;
+            }
             muted = !muted;
             setMicIcon(muted);
             if (muted) {
