@@ -743,6 +743,15 @@
       flex-shrink: 0
     }
 
+    .ni-chev {
+      margin-left: auto !important;
+      width: auto !important;
+      font-size: 14px !important;
+      color: var(--text3) !important;
+      opacity: 0.7;
+      flex-shrink: 0;
+    }
+
     .badge {
       background: var(--accent);
       color: #fff;
@@ -759,25 +768,88 @@
       border-top: 1px solid var(--border)
     }
 
-    /* ── Category nav pages (Us / Memories / Plans / Together / Our Future / My Space) ── */
+    /* ── Category nav pages (Us / Memories / Plans / Together / Our Future / My Space) ──
+       Flat, native-list style (Instagram "Your activity"-inspired structure) — pure
+       black content area, no card container, no row dividers, no boxed icon chips. */
+    .cat-page {
+      background: #000 !important;
+      margin: calc(-1 * var(--space)) calc(-1 * var(--space)) 0;
+      padding: 14px var(--space) 24px;
+      min-height: calc(100% + var(--space));
+    }
+
     .cat-page-header {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+
+    .cat-back-btn {
+      background: none;
+      border: none;
+      color: var(--text2);
+      font-size: 20px;
+      line-height: 1;
+      padding: 6px 4px 6px 0;
+      cursor: pointer;
+      flex-shrink: 0;
     }
 
     .cat-page-title {
-      font-size: 18px;
+      font-size: 19px;
       font-weight: 600;
       color: var(--white);
       font-family: var(--ff-serif);
     }
 
     .cat-page-sub {
-      font-size: 12px;
+      font-size: 12.5px;
       color: var(--text3);
-      margin-top: 2px;
+      text-align: center;
+      max-width: 260px;
+      margin: 18px auto 6px;
+      line-height: 1.5;
+    }
+
+    .cat-list {
+      margin-top: 14px;
+    }
+
+    .cat-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 2px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.15s;
+    }
+
+    .cat-row:active {
+      opacity: 0.55;
+    }
+
+    .cat-row-ico {
+      width: 22px;
+      text-align: center;
+      font-size: 18px;
+      color: var(--white);
+      flex-shrink: 0;
+    }
+
+    .cat-row-title {
+      flex: 1;
+      font-size: 14.5px;
+      color: var(--white);
+      font-weight: 400;
+    }
+
+    .cat-row-chev {
+      font-size: 14px;
+      color: var(--text3);
+      opacity: 0.7;
+      flex-shrink: 0;
     }
 
     /* ════ TOPBAR ════ */
@@ -5434,12 +5506,12 @@ select option { background: #0D0D0D; color: #fff; }
     </div>
     <div class="nav-group">
       <div class="nav-label">Explore</div>
-      <div class="ni" data-page="catUs"><span class="ico">💑</span>Us</div>
-      <div class="ni" data-page="catMemories"><span class="ico">📷</span>Memories</div>
-      <div class="ni" data-page="catPlans"><span class="ico">📅</span>Plans</div>
-      <div class="ni" data-page="catTogether"><span class="ico">🎮</span>Together</div>
-      <div class="ni" data-page="catFuture"><span class="ico">💫</span>Our Future</div>
-      <div class="ni" data-page="catMyspace"><span class="ico">🌸</span>My Space</div>
+      <div class="ni" data-page="catUs"><span class="ico">💑</span>Us<span class="ico ni-chev">›</span></div>
+      <div class="ni" data-page="catMemories"><span class="ico">📷</span>Memories<span class="ico ni-chev">›</span></div>
+      <div class="ni" data-page="catPlans"><span class="ico">📅</span>Plans<span class="ico ni-chev">›</span></div>
+      <div class="ni" data-page="catTogether"><span class="ico">🎮</span>Together<span class="ico ni-chev">›</span></div>
+      <div class="ni" data-page="catFuture"><span class="ico">💫</span>Our Future<span class="ico ni-chev">›</span></div>
+      <div class="ni" data-page="catMyspace"><span class="ico">🌸</span>My Space<span class="ico ni-chev">›</span></div>
     </div>
     <div class="nav-group">
       <div class="nav-label">AI & Tools</div>
@@ -7053,81 +7125,87 @@ select option { background: #0D0D0D; color: #fff; }
 </div>
 
       <!-- ════ CATEGORY NAV PAGES ════ -->
-      <div class="page" id="page-catUs">
+      <div class="page cat-page" id="page-catUs">
         <div class="cat-page-header">
-          <button class="ic-btn" onclick="history.back()" title="Back" style="font-size:16px">←</button>
-          <div><div class="cat-page-title">Us</div><div class="cat-page-sub">The two of you, together</div></div>
+          <button class="cat-back-btn" onclick="history.back()" title="Back">←</button>
+          <div class="cat-page-title">Us</div>
         </div>
-        <div class="settings-group">
-          <div class="settings-row" onclick="goto('profile')"><div class="settings-row-ico">💑</div><div class="settings-row-content"><div class="settings-row-title">Our Profile</div></div><div class="settings-row-action">›</div></div>
-          <div class="settings-row" onclick="goto('lovecounter')"><div class="settings-row-ico">⏱️</div><div class="settings-row-content"><div class="settings-row-title">Love Counter</div></div><div class="settings-row-action">›</div></div>
-          <div class="settings-row" onclick="goto('level')"><div class="settings-row-ico">🏆</div><div class="settings-row-content"><div class="settings-row-title">Couple Level</div></div><div class="settings-row-action">›</div></div>
-          <div class="settings-row" onclick="goto('fights')"><div class="settings-row-ico">⚡</div><div class="settings-row-content"><div class="settings-row-title">Fight Log</div></div><div class="settings-row-action">›</div></div>
+        <div class="cat-page-sub">Everything that makes us, us.</div>
+        <div class="cat-list">
+          <div class="cat-row" onclick="goto('profile')"><span class="cat-row-ico">💑</span><span class="cat-row-title">Our Profile</span><span class="cat-row-chev">›</span></div>
+          <div class="cat-row" onclick="goto('lovecounter')"><span class="cat-row-ico">⏱️</span><span class="cat-row-title">Love Counter</span><span class="cat-row-chev">›</span></div>
+          <div class="cat-row" onclick="goto('level')"><span class="cat-row-ico">🏆</span><span class="cat-row-title">Couple Level</span><span class="cat-row-chev">›</span></div>
+          <div class="cat-row" onclick="goto('fights')"><span class="cat-row-ico">⚡</span><span class="cat-row-title">Fight Log</span><span class="cat-row-chev">›</span></div>
         </div>
       </div>
 
-      <div class="page" id="page-catMemories">
+      <div class="page cat-page" id="page-catMemories">
         <div class="cat-page-header">
-          <button class="ic-btn" onclick="history.back()" title="Back" style="font-size:16px">←</button>
-          <div><div class="cat-page-title">Memories</div><div class="cat-page-sub">Everything you've captured together</div></div>
+          <button class="cat-back-btn" onclick="history.back()" title="Back">←</button>
+          <div class="cat-page-title">Memories</div>
         </div>
-        <div class="settings-group">
-          <div class="settings-row" onclick="goto('camera')"><div class="settings-row-ico">📷</div><div class="settings-row-content"><div class="settings-row-title">Memories</div></div><div class="settings-row-action">›</div></div>
-          <div class="settings-row" onclick="goto('globe')"><div class="settings-row-ico">🌍</div><div class="settings-row-content"><div class="settings-row-title">Memory Globe</div></div><div class="settings-row-action">›</div></div>
-          <div class="settings-row" onclick="goto('places')"><div class="settings-row-ico">🗺️</div><div class="settings-row-content"><div class="settings-row-title">Places Memory</div></div><div class="settings-row-action">›</div></div>
-          <div class="settings-row" onclick="goto('collection')"><div class="settings-row-ico">🎙️</div><div class="settings-row-content"><div class="settings-row-title">Collection</div></div><div class="settings-row-action">›</div></div>
-          <div class="settings-row" onclick="goto('capsule')"><div class="settings-row-ico">💌</div><div class="settings-row-content"><div class="settings-row-title">Love Capsule</div></div><div class="settings-row-action">›</div></div>
+        <div class="cat-page-sub">Every moment of us, kept in one place.</div>
+        <div class="cat-list">
+          <div class="cat-row" onclick="goto('camera')"><span class="cat-row-ico">📷</span><span class="cat-row-title">Memories</span><span class="cat-row-chev">›</span></div>
+          <div class="cat-row" onclick="goto('globe')"><span class="cat-row-ico">🌍</span><span class="cat-row-title">Memory Globe</span><span class="cat-row-chev">›</span></div>
+          <div class="cat-row" onclick="goto('places')"><span class="cat-row-ico">🗺️</span><span class="cat-row-title">Places Memory</span><span class="cat-row-chev">›</span></div>
+          <div class="cat-row" onclick="goto('collection')"><span class="cat-row-ico">🎙️</span><span class="cat-row-title">Collection</span><span class="cat-row-chev">›</span></div>
+          <div class="cat-row" onclick="goto('capsule')"><span class="cat-row-ico">💌</span><span class="cat-row-title">Love Capsule</span><span class="cat-row-chev">›</span></div>
         </div>
       </div>
 
-      <div class="page" id="page-catPlans">
+      <div class="page cat-page" id="page-catPlans">
         <div class="cat-page-header">
-          <button class="ic-btn" onclick="history.back()" title="Back" style="font-size:16px">←</button>
-          <div><div class="cat-page-title">Plans</div><div class="cat-page-sub">What's coming up for you both</div></div>
+          <button class="cat-back-btn" onclick="history.back()" title="Back">←</button>
+          <div class="cat-page-title">Plans</div>
         </div>
-        <div class="settings-group">
-          <div class="settings-row" onclick="goto('calendar')"><div class="settings-row-ico">📅</div><div class="settings-row-content"><div class="settings-row-title">Calendar</div></div><div class="settings-row-action">›</div></div>
-          <div class="settings-row" onclick="goto('bucket')"><div class="settings-row-ico">🌟</div><div class="settings-row-content"><div class="settings-row-title">Bucket List</div></div><div class="settings-row-action">›</div></div>
-          <div class="settings-row" onclick="goto('meetplanner')"><div class="settings-row-ico">💕</div><div class="settings-row-content"><div class="settings-row-title">Meet Planner</div></div><div class="settings-row-action">›</div></div>
-          <div class="settings-row" onclick="goto('surprise')"><div class="settings-row-ico">🎁</div><div class="settings-row-content"><div class="settings-row-title">Surprises</div></div><div class="settings-row-action">›</div></div>
-          <div class="settings-row" onclick="goto('money')"><div class="settings-row-ico">💰</div><div class="settings-row-content"><div class="settings-row-title">Money</div></div><div class="settings-row-action">›</div></div>
+        <div class="cat-page-sub">Everything we're looking forward to, together.</div>
+        <div class="cat-list">
+          <div class="cat-row" onclick="goto('calendar')"><span class="cat-row-ico">📅</span><span class="cat-row-title">Calendar</span><span class="cat-row-chev">›</span></div>
+          <div class="cat-row" onclick="goto('bucket')"><span class="cat-row-ico">🌟</span><span class="cat-row-title">Bucket List</span><span class="cat-row-chev">›</span></div>
+          <div class="cat-row" onclick="goto('meetplanner')"><span class="cat-row-ico">💕</span><span class="cat-row-title">Meet Planner</span><span class="cat-row-chev">›</span></div>
+          <div class="cat-row" onclick="goto('surprise')"><span class="cat-row-ico">🎁</span><span class="cat-row-title">Surprises</span><span class="cat-row-chev">›</span></div>
+          <div class="cat-row" onclick="goto('money')"><span class="cat-row-ico">💰</span><span class="cat-row-title">Money</span><span class="cat-row-chev">›</span></div>
         </div>
       </div>
 
-      <div class="page" id="page-catTogether">
+      <div class="page cat-page" id="page-catTogether">
         <div class="cat-page-header">
-          <button class="ic-btn" onclick="history.back()" title="Back" style="font-size:16px">←</button>
-          <div><div class="cat-page-title">Together</div><div class="cat-page-sub">Play, watch, and learn side by side</div></div>
+          <button class="cat-back-btn" onclick="history.back()" title="Back">←</button>
+          <div class="cat-page-title">Together</div>
         </div>
-        <div class="settings-group">
-          <div class="settings-row" onclick="goto('music')"><div class="settings-row-ico">🎵</div><div class="settings-row-content"><div class="settings-row-title">Music</div></div><div class="settings-row-action">›</div></div>
-          <div class="settings-row" onclick="goto('games')"><div class="settings-row-ico">🎮</div><div class="settings-row-content"><div class="settings-row-title">Games</div></div><div class="settings-row-action">›</div></div>
-          <div class="settings-row" onclick="goto('movie')"><div class="settings-row-ico">🎬</div><div class="settings-row-content"><div class="settings-row-title">Watch Together</div></div><div class="settings-row-action">›</div></div>
-          <div class="settings-row" onclick="goto('study')"><div class="settings-row-ico">📚</div><div class="settings-row-content"><div class="settings-row-title">Study Together</div></div><div class="settings-row-action">›</div></div>
+        <div class="cat-page-sub">More things to enjoy, side by side.</div>
+        <div class="cat-list">
+          <div class="cat-row" onclick="goto('music')"><span class="cat-row-ico">🎵</span><span class="cat-row-title">Music</span><span class="cat-row-chev">›</span></div>
+          <div class="cat-row" onclick="goto('games')"><span class="cat-row-ico">🎮</span><span class="cat-row-title">Games</span><span class="cat-row-chev">›</span></div>
+          <div class="cat-row" onclick="goto('movie')"><span class="cat-row-ico">🎬</span><span class="cat-row-title">Watch Together</span><span class="cat-row-chev">›</span></div>
+          <div class="cat-row" onclick="goto('study')"><span class="cat-row-ico">📚</span><span class="cat-row-title">Study Together</span><span class="cat-row-chev">›</span></div>
         </div>
       </div>
 
-      <div class="page" id="page-catFuture">
+      <div class="page cat-page" id="page-catFuture">
         <div class="cat-page-header">
-          <button class="ic-btn" onclick="history.back()" title="Back" style="font-size:16px">←</button>
-          <div><div class="cat-page-title">Our Future</div><div class="cat-page-sub">What you're building toward</div></div>
+          <button class="cat-back-btn" onclick="history.back()" title="Back">←</button>
+          <div class="cat-page-title">Our Future</div>
         </div>
-        <div class="settings-group">
-          <div class="settings-row" onclick="goto('dreamgoals')"><div class="settings-row-ico">💫</div><div class="settings-row-content"><div class="settings-row-title">Dream Goals</div></div><div class="settings-row-action">›</div></div>
-          <div class="settings-row" onclick="goto('dreamhome')"><div class="settings-row-ico">🏡</div><div class="settings-row-content"><div class="settings-row-title">Dream Home</div></div><div class="settings-row-action">›</div></div>
-          <div class="settings-row" onclick="goto('virtualhome')"><div class="settings-row-ico">🏠</div><div class="settings-row-content"><div class="settings-row-title">Virtual Home</div></div><div class="settings-row-action">›</div></div>
+        <div class="cat-page-sub">Everything we're building toward, together.</div>
+        <div class="cat-list">
+          <div class="cat-row" onclick="goto('dreamgoals')"><span class="cat-row-ico">💫</span><span class="cat-row-title">Dream Goals</span><span class="cat-row-chev">›</span></div>
+          <div class="cat-row" onclick="goto('dreamhome')"><span class="cat-row-ico">🏡</span><span class="cat-row-title">Dream Home</span><span class="cat-row-chev">›</span></div>
+          <div class="cat-row" onclick="goto('virtualhome')"><span class="cat-row-ico">🏠</span><span class="cat-row-title">Virtual Home</span><span class="cat-row-chev">›</span></div>
         </div>
       </div>
 
-      <div class="page" id="page-catMyspace">
+      <div class="page cat-page" id="page-catMyspace">
         <div class="cat-page-header">
-          <button class="ic-btn" onclick="history.back()" title="Back" style="font-size:16px">←</button>
-          <div><div class="cat-page-title">My Space</div><div class="cat-page-sub">Just for you</div></div>
+          <button class="cat-back-btn" onclick="history.back()" title="Back">←</button>
+          <div class="cat-page-title">My Space</div>
         </div>
-        <div class="settings-group">
-          <div class="settings-row" onclick="goto('myspace')"><div class="settings-row-ico">🌸</div><div class="settings-row-content"><div class="settings-row-title">My Space</div></div><div class="settings-row-action">›</div></div>
-          <div class="settings-row" onclick="goto('period')"><div class="settings-row-ico">🩷</div><div class="settings-row-content"><div class="settings-row-title">Period Tracker</div></div><div class="settings-row-action">›</div></div>
-          <div class="settings-row" onclick="goto('vault')"><div class="settings-row-ico">🔐</div><div class="settings-row-content"><div class="settings-row-title">Secret Vault</div></div><div class="settings-row-action">›</div></div>
+        <div class="cat-page-sub">A little space that's completely yours.</div>
+        <div class="cat-list">
+          <div class="cat-row" onclick="goto('myspace')"><span class="cat-row-ico">🌸</span><span class="cat-row-title">My Space</span><span class="cat-row-chev">›</span></div>
+          <div class="cat-row" onclick="goto('period')"><span class="cat-row-ico">🩷</span><span class="cat-row-title">Period Tracker</span><span class="cat-row-chev">›</span></div>
+          <div class="cat-row" onclick="goto('vault')"><span class="cat-row-ico">🔐</span><span class="cat-row-title">Secret Vault</span><span class="cat-row-chev">›</span></div>
         </div>
       </div>
 

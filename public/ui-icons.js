@@ -243,6 +243,7 @@
     '.priv-badge', '.stat-l', '.pstat-l', '.fstat-l', '.metric-l',
     '.streak-badge', '.info-banner', '.auth-sub', '.auth-tab',
     '.settings-row-action', '.pk', '.money-ic', '.ni .ico', '.bot-ni .ico',
+    '.ni-chev', '.cat-back-btn', '.cat-row-ico', '.cat-row-chev',
     '.hamburger', '#lastSaved', '.alarm-ico', 'label.btn', '.cam-btn',
     '.storage-action-btn', '.symptom-grid > .symptom-tag',
     'select#bucketCat option', 'select#dreamCat option', 'select#surType option',
