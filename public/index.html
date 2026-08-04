@@ -8406,6 +8406,15 @@ function setJustPairedAt(ts) {
                   if (movWin && typeof movWin.closeTopOverlayIfOpen === 'function' && movWin.closeTopOverlayIfOpen()) { return; }
                 } catch (e) {}
               }
+              // 0.68) Twin's voice mode overlay takes priority — end voice
+              //       mode only, stay on the Twin chat page. Previously this
+              //       had no Back-handling at all, so Back (or the edge-swipe
+              //       gesture) fell straight through to page navigation while
+              //       voice mode stayed stuck open on top.
+              const openTwinVoice = document.getElementById('twinVoice');
+              if (openTwinVoice && openTwinVoice.classList.contains('active') && window.TwinVoice && typeof window.TwinVoice.exit === 'function') {
+                window.TwinVoice.exit(); return;
+              }
               // 1) An open modal takes priority — just close it.
               const openModal = document.querySelector('.modal-bg.open');
               if (openModal) { openModal.classList.remove('open'); return; }
