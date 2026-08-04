@@ -10676,6 +10676,7 @@ const p = await Notification.requestPermission();
           function startListening() {
             if (!Rec) { setStatus('Voice input isn\'t supported on this device', 'You can still type to Twin'); return; }
             if (recognitionActive || muted) return;
+            cancelAutoClose(); // a fresh listening turn cancels any pending auto-close from before
             manualStop = false;
             finalTranscript = '';
             setTranscript('', '');
@@ -10696,21 +10697,37 @@ const p = await Notification.requestPermission();
             recognition.onerror = (e) => {
               recognitionActive = false;
               if (manualStop) return;
-              if (e.error === 'no-speech') { setStatus('I couldn\'t hear that', 'Tap the mic to try again'); setMode('idle'); return; }
+              if (e.error === 'no-speech') {
+                // Checklist: "Error / not recognized" and "silence
+                // detected" both auto-close the orb rather than leaving
+                // an idle voice screen sitting open indefinitely — give
+                // the person a beat to read why, then close.
+                setStatus('I couldn\'t hear that', 'Closing…');
+                setMode('idle');
+                scheduleAutoClose(1200);
+                return;
+              }
               if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
                 setStatus('Microphone access is needed to talk with Twin', 'You can still type below');
                 setMode('idle');
+                scheduleAutoClose(1200);
                 return;
               }
-              setStatus('I couldn\'t hear that', 'Tap the mic to try again');
+              setStatus('I couldn\'t hear that', 'Closing…');
               setMode('idle');
+              scheduleAutoClose(1200);
             };
             recognition.onend = () => {
               recognitionActive = false;
               if (manualStop) return;
               const q = finalTranscript.trim();
               if (q) submitVoiceQuestion(q);
-              else if (sessionOpen) { setMode('idle'); setStatus('Ready', 'Tap the mic to speak'); }
+              else if (sessionOpen) {
+                // Silence with no final transcript at all — same
+                // 1.2s-then-close behavior as the no-speech error above.
+                setMode('idle'); setStatus('Ready', 'Closing…');
+                scheduleAutoClose(1200);
+              }
             };
             try { recognition.start(); } catch (e) { setStatus('Couldn\'t start listening', 'Tap the mic to try again'); }
           }
@@ -10719,6 +10736,21 @@ const p = await Notification.requestPermission();
             if (recognition && recognitionActive) { try { recognition.stop(); } catch (e) {} }
             recognitionActive = false;
           }
+
+          // ── Auto-close timer — the single choke point for every
+          // "orb should close" path that isn't an immediate user tap:
+          // silence, no-speech/error, and (below) speech finishing.
+          // Always cleared before a new listening turn starts so it can
+          // never fire late and close a session the person just re-armed. ──
+          let autoCloseTimer = null;
+          function scheduleAutoClose(delayMs) {
+            clearTimeout(autoCloseTimer);
+            autoCloseTimer = setTimeout(() => { autoCloseTimer = null; if (sessionOpen) exit(); }, delayMs);
+          }
+          function cancelAutoClose() {
+            clearTimeout(autoCloseTimer); autoCloseTimer = null;
+          }
+
 
           // ── Send the recognized speech through the EXISTING Twin AI
           // pipeline (askAI) — same conversation, same backend, same
@@ -10753,19 +10785,22 @@ const p = await Notification.requestPermission();
             u.onend = () => {
               document.querySelectorAll('.twin-speak-btn.is-speaking').forEach(b => { b.classList.remove('is-speaking'); b.innerHTML = '🔊 Listen'; });
               if (!sessionOpen) { setTwinState('idle'); return; }
-              if (!muted) startListening();
-              else { setMode('idle'); setStatus('Ready', 'Tap the mic to speak'); }
+              // State-flow: SPEECH END -> ORB CLOSE -> BACK TO IDLE. The
+              // voice session is single-shot per tap — once Twin finishes
+              // speaking the reply, the orb closes itself rather than
+              // silently reopening the mic for another turn.
+              exit();
             };
             u.onerror = () => {
               document.querySelectorAll('.twin-speak-btn.is-speaking').forEach(b => { b.classList.remove('is-speaking'); b.innerHTML = '🔊 Listen'; });
-              if (sessionOpen) { setMode('idle'); setStatus('Ready', 'Tap the mic to speak'); }
+              if (sessionOpen) exit();
               else setTwinState('idle');
             };
             speechSynthesis.speak(u);
           }
           function speakLastReply() {
             if (aiLastReplyText) speak(aiLastReplyText);
-            else if (sessionOpen) { setMode('idle'); setStatus('Ready', 'Tap the mic to speak'); }
+            else if (sessionOpen) exit();
           }
           function cancelSpeaking() {
             if (hasTTS) speechSynthesis.cancel();
@@ -10790,6 +10825,7 @@ const p = await Notification.requestPermission();
             // cancels the hero-hold entrance timer if the mic was tapped
             // during it, so the two animations never fight.
             clearTimeout(twinEntranceTimer); twinEntranceTimer = null; twinEntrancePlayed = true;
+            cancelAutoClose();
             const voiceAnchor = document.getElementById('twinVoiceAnchor');
             twinOrbGoTo(voiceAnchor, { animate: true });
             setMode('idle'); setStatus('Getting ready...', '');
@@ -10800,6 +10836,7 @@ const p = await Notification.requestPermission();
             if (!sessionOpen) return;
             sessionOpen = false;
             manualStop = true;
+            cancelAutoClose();
             stopListening(true);
             cancelSpeaking();
             stopLevelMeter();
@@ -10815,6 +10852,7 @@ const p = await Notification.requestPermission();
             twinOrbGoTo(backTo, { animate: true });
           }
           function toggleMute() {
+            cancelAutoClose();
             muted = !muted;
             setMicIcon(muted);
             if (muted) {
@@ -10826,6 +10864,14 @@ const p = await Notification.requestPermission();
               startListening();
             }
           }
+
+          // Checklist: "App goes to background" auto-closes the orb —
+          // an open mic/TTS session left running while the tab is
+          // hidden is exactly the kind of stale state this whole
+          // show/auto-hide pass exists to prevent.
+          document.addEventListener('visibilitychange', () => {
+            if (document.hidden && sessionOpen) exit(true);
+          });
 
           return { open, exit, toggleMute, speak, cancelSpeaking };
         })();
