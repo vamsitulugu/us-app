@@ -270,7 +270,7 @@
     // prefixed class names — e.g. pm-modal-close, dg-save-btn, mp-tab,
     // lc-bday-emoji — so match by suffix/substring instead of hardcoding
     // every page's classes one by one) ──
-    '.filter-chip', '.vt-btn', '.view-toggle', '.top-title', '.top-actions',
+    '.filter-chip', '.vt-btn', '.vt-del', '.view-toggle', '.top-title', '.top-actions',
     '[class*="-btn"]', '[class$="btn"]', '[class*="-tab"]', '[class*="-chip"]',
     '[class*="-badge"]', '[class*="-ico"]', '[class*="-close"]',
     '[class*="-title"]', '[class*="-emoji"]', '[class*="-label"]',
