@@ -3386,7 +3386,20 @@
       min-width: 0;
     }
 
-    .bot-ni:hover,
+    /* Hover and active are two different things (see checklist item #8):
+       .active is the single JS-managed "current page" state (goto() /
+       syncBotNav). :hover was sharing the same red color, which is
+       harmless with a mouse (hover ends when the pointer leaves) but on
+       touchscreens — especially the Android WebView this app ships in —
+       a tap applies :hover and it can stay "stuck" until the next tap
+       lands somewhere else, since touch has no real hover-then-leave.
+       That produced exactly the reported bug: every destination you'd
+       ever tapped stayed red, independent of which one was actually
+       .active. Restricting :hover to pointer:fine devices (an actual
+       mouse) means touch devices are colored by .active alone. */
+    @media (hover: hover) and (pointer: fine) {
+      .bot-ni:hover { color: var(--accent) }
+    }
     .bot-ni.active {
       color: var(--accent)
     }
