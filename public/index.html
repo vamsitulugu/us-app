@@ -8289,6 +8289,16 @@ function setJustPairedAt(ts) {
               if (typeof calSelectMode !== 'undefined' && calSelectMode) { calExitSelectMode(); return; }
               // 0.56) Bucket List selection mode active — exit selection, don't navigate.
               if (typeof bucketSelectMode !== 'undefined' && bucketSelectMode) { bucketExitSelectMode(); return; }
+              // 0.565) My Space selection modes (Journal/Habits/Notes/Reminders
+              //       tabs each have their own independent long-press
+              //       multi-select) — exit whichever is active, don't navigate.
+              //       These were previously unchecked entirely, so Back would
+              //       skip past select mode straight to page navigation and
+              //       leave the selection toolbar stuck open underneath.
+              if (typeof journalSelectMode !== 'undefined' && journalSelectMode) { journalExitSelectMode(); return; }
+              if (typeof habitsSelectMode !== 'undefined' && habitsSelectMode) { habitsExitSelectMode(); return; }
+              if (typeof notesSelectMode !== 'undefined' && notesSelectMode) { notesExitSelectMode(); return; }
+              if (typeof remindersSelectMode !== 'undefined' && remindersSelectMode) { remindersExitSelectMode(); return; }
               // 0.57) Chat's own overlays take priority — context menus, the
               //       wallpaper settings/preview flow, attach-sheet panels,
               //       search bar, header dropdown, and multi-select mode.
@@ -10223,7 +10233,74 @@ const p = await Notification.requestPermission();
             }
           });
         }
-        function renderReminders() { const el = document.getElementById('remindersList'); if (!el) return; if (!S.reminders || !S.reminders.length) { PS.empty(el, { icon: 'generic', title: 'No reminders yet', desc: 'Set an alarm for something you don\u2019t want to forget.', actionLabel: 'Set a Reminder', onAction: () => document.getElementById('remTitle')?.focus() }); return; } const sorted = [...S.reminders].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)); el.innerHTML = sorted.map(r => `<div class="card" style="margin-bottom:9px;padding:13px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:4px">🔔 ${esc(r.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(r.date)} at ${r.time || '—'}</div><div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--blue-bg);color:var(--blue);border-radius:7px;padding:2px 7px;margin-top:5px;border:1px solid rgba(96,165,250,0.3)">📣 ${r.forWhom === 'both' ? 'Both of us' : r.forWhom === 'self' ? 'Just me' : 'Partner only'}</div>${r.note ? `<div style="font-size:11px;color:var(--text3);margin-top:5px">${esc(r.note)}</div>` : ''}</div><button class="del-btn" onclick="delReminder(${r.id})"><i data-lucide="trash-2"></i></button></div></div>`).join('');}
+        function renderReminders() { const el = document.getElementById('remindersList'); if (!el) return; if (!S.reminders || !S.reminders.length) { PS.empty(el, { icon: 'generic', title: 'No reminders yet', desc: 'Set an alarm for something you don\u2019t want to forget.', actionLabel: 'Set a Reminder', onAction: () => document.getElementById('remTitle')?.focus() }); return; } const sorted = [...S.reminders].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)); el.innerHTML = sorted.map(r => `<div class="card sd-selectable" data-rem-id="${r.id}" style="margin-bottom:9px;padding:13px;position:relative"><div class="sd-check"><i data-lucide="check"></i></div><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:4px">🔔 ${esc(r.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(r.date)} at ${r.time || '—'}</div><div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--blue-bg);color:var(--blue);border-radius:7px;padding:2px 7px;margin-top:5px;border:1px solid rgba(96,165,250,0.3)">📣 ${r.forWhom === 'both' ? 'Both of us' : r.forWhom === 'self' ? 'Just me' : 'Partner only'}</div>${r.note ? `<div style="font-size:11px;color:var(--text3);margin-top:5px">${esc(r.note)}</div>` : ''}</div><button class="del-btn" onclick="delReminder(${r.id})"><i data-lucide="trash-2"></i></button></div></div>`).join(''); if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } remindersWireSelection(); }
+
+        /* ── Long-press multi-select for Reminders (page-scoped) ──
+           The toolbar markup and its onclick handlers already existed in
+           the HTML (remindersExitSelectMode/remindersBulkDeleteSelected),
+           but nothing ever implemented them or wired long-press on the
+           list — every tap on those buttons was a dead handler and Back
+           had no select-mode to exit. Implemented to match Notes' pattern. */
+        let remindersSelection = null;
+        let remindersSelectMode = false;
+        function remindersWireSelection() {
+          if (!remindersSelection) {
+            remindersSelection = createSelectionController({
+              onChange: (ids) => {
+                document.getElementById('remindersSelectCount').textContent = ids.size + ' selected';
+                document.getElementById('remindersSelectTrashBtn').disabled = ids.size === 0;
+                if (ids.size === 0 && remindersSelectMode) remindersExitSelectMode();
+              }
+            });
+          }
+          document.getElementById('remindersList').classList.toggle('sd-select-mode', remindersSelectMode);
+          document.querySelectorAll('#remindersList .sd-selectable').forEach(card => {
+            const id = card.dataset.remId;
+            if (remindersSelectMode && remindersSelection.has(id)) card.classList.add('sd-selected');
+            attachLongPress(card, {
+              ignoreSelector: '.del-btn',
+              onPressStart: () => card.classList.add('sd-pressing'),
+              onPressCancel: () => card.classList.remove('sd-pressing'),
+              onLongPress: () => {
+                card.classList.remove('sd-pressing');
+                if (!remindersSelectMode) remindersEnterSelectMode();
+                remindersSelection.select(id);
+                card.classList.add('sd-selected');
+              },
+              onTap: () => {
+                if (remindersSelectMode) {
+                  const nowSelected = remindersSelection.toggle(id);
+                  card.classList.toggle('sd-selected', nowSelected);
+                }
+              }
+            });
+          });
+        }
+        function remindersEnterSelectMode() {
+          remindersSelectMode = true;
+          document.getElementById('remindersList').classList.add('sd-select-mode');
+          document.getElementById('remindersSelectToolbar').classList.add('show');
+        }
+        function remindersExitSelectMode() {
+          remindersSelectMode = false;
+          if (remindersSelection) remindersSelection.clear();
+          document.querySelectorAll('#remindersList .sd-selected').forEach(r => r.classList.remove('sd-selected'));
+          document.getElementById('remindersList').classList.remove('sd-select-mode');
+          document.getElementById('remindersSelectToolbar').classList.remove('show');
+        }
+        function remindersBulkDeleteSelected() {
+          if (!remindersSelection || !remindersSelection.size) return;
+          const ids = remindersSelection.all();
+          confirmDelete({
+            title: `Delete ${ids.length} selected reminders?`, count: ids.length,
+            message: 'These reminders will be permanently deleted.',
+            onConfirm: async () => {
+              S.reminders = (S.reminders || []).filter(r => !ids.some(id => String(id) === String(r.id)));
+              remindersExitSelectMode();
+              renderReminders(); scheduleSave();
+            }
+          });
+        }
 
       
         // ─── REMINDERS & ALARMS ──────────────────────────────────

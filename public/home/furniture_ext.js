@@ -626,11 +626,11 @@ const HomeFurnitureExt = (() => {
       ctxMenu.dataset.extInjected = '1';
       ctxMenu.insertAdjacentHTML('beforeend', `
         <div class="ctx-sep"></div>
-        <div class="ctx-item" onclick="hfeCtxDuplicate()">📋 Duplicate</div>
-        <div class="ctx-item" onclick="hfeCtxLock()">🔒 Lock / Unlock</div>
+        <div class="ctx-item" onclick="hfeCtxDuplicate()"><i data-lucide="copy"></i> Duplicate</div>
+        <div class="ctx-item" onclick="hfeCtxLock()"><i data-lucide="lock"></i> Lock / Unlock</div>
         <div class="ctx-sep"></div>
-        <div class="ctx-item" onclick="hfeCtxScaleUp()">⤢ Scale Up</div>
-        <div class="ctx-item" onclick="hfeCtxScaleDown()">⤡ Scale Down</div>
+        <div class="ctx-item" onclick="hfeCtxScaleUp()"><i data-lucide="maximize-2"></i> Scale Up</div>
+        <div class="ctx-item" onclick="hfeCtxScaleDown()"><i data-lucide="minimize-2"></i> Scale Down</div>
       `);
 
       // Patch color pick to use our extended color picker
@@ -638,6 +638,7 @@ const HomeFurnitureExt = (() => {
       if (colorItem && colorItem.textContent.includes('Color')) {
         colorItem.setAttribute('onclick', 'hfeCtxColor()');
       }
+      if (window.lucide?.createIcons) window.lucide.createIcons();
     }
 
     // Extended CSS

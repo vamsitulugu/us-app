@@ -4,8 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
   <title>Virtual Home — Twin Hearts ❤️</title>
-  <meta name="robots" content="noindex, nofollow">
-  <link rel="icon" href="/favicon.ico" sizes="48x48">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
   <style>
     /* ══════════════════════════════════════════════
        RESET & ROOT — inherits Twin Hearts app design tokens
@@ -329,7 +328,6 @@
       .room-tab .rt-ico { font-size: 16px; }
     }
   </style>
-  <script src="/js/scroll-reset.js"></script>
 </head>
 <body>
 
@@ -357,8 +355,8 @@
     </div>
     <div class="tb-right">
       <span id="fpsCounter"></span>
-      <button class="ic-btn" id="editToggleBtn" onclick="toggleEditMode()" title="Move Furniture">✏️</button>
-      <button class="ic-btn" onclick="openSettings()" title="Settings">⚙️</button>
+      <button class="ic-btn" id="editToggleBtn" onclick="toggleEditMode()" title="Move Furniture"><i data-lucide="pencil"></i></button>
+      <button class="ic-btn" onclick="openSettings()" title="Settings"><i data-lucide="settings"></i></button>
     </div>
   </div>
 
@@ -384,7 +382,7 @@
   <div id="settingsPanel">
     <div class="sp-title">
       ⚙️ Home Settings
-      <button class="ic-btn" onclick="closeSettings()" style="font-size:13px">✕</button>
+      <button class="ic-btn" onclick="closeSettings()" style="font-size:13px"><i data-lucide="x"></i></button>
     </div>
 
     <div class="sp-section">
@@ -442,10 +440,10 @@
 
   <!-- ════ CONTEXT MENU ════ -->
   <div id="ctxMenu">
-    <div class="ctx-item" onclick="ctxRotate()">🔄 Rotate</div>
-    <div class="ctx-item" onclick="ctxColorPick()">🎨 Change Color</div>
+    <div class="ctx-item" onclick="ctxRotate()"><i data-lucide="rotate-cw"></i> Rotate</div>
+    <div class="ctx-item" onclick="ctxColorPick()"><i data-lucide="palette"></i> Change Color</div>
     <div class="ctx-sep"></div>
-    <div class="ctx-item danger" onclick="ctxDelete()">🗑️ Remove</div>
+    <div class="ctx-item danger" onclick="ctxDelete()"><i data-lucide="trash-2"></i> Remove</div>
   </div>
 
   <!-- ════ TOAST ════ -->
@@ -868,12 +866,37 @@
     else                 HomeScene.resume();
   });
 
+  // ── Back navigation: close overlays one at a time ──────────────
+  // Called by the parent app's hardware/gesture Back handler (this page
+  // runs in a same-origin iframe, same pattern as Chat/Live Map/etc).
+  // Checked in priority order — highest z-index / most "on top" first —
+  // so Back only ever closes the single top-most thing, never jumps
+  // straight past a stack of open panels to page navigation.
+  function closeTopOverlayIfOpen() {
+    const popup = document.getElementById('hmPopup'); // z-index 800
+    if (popup) { window.HomeMemories?.closeMemoryPopup(); return true; }
+    const colorPop = document.getElementById('hfColorPop'); // z-index 520
+    if (colorPop && colorPop.classList.contains('show')) { window.HomeFurniture?.closeColorPicker(); return true; }
+    const ctx = document.getElementById('ctxMenu'); // z-index 500
+    if (ctx && ctx.classList.contains('show')) { closeCtxMenu(); return true; }
+    const hmDrawer = document.getElementById('hmDrawer'); // z-index 350
+    if (hmDrawer && hmDrawer.classList.contains('open')) { window.HomeMemories?.closeDrawer(); return true; }
+    const themePanel = document.getElementById('hfeThemePanel'); // z-index 260
+    if (themePanel && themePanel.classList.contains('open')) { window.HomeFurnitureExt?.closeThemePanel(); return true; }
+    const catalog = document.getElementById('hfCatalog'); // z-index 250
+    if (catalog && catalog.classList.contains('open')) { window.HomeFurniture?.closeCatalog(); return true; }
+    const settings = document.getElementById('settingsPanel'); // z-index 200
+    if (settings && settings.classList.contains('open')) { closeSettings(); return true; }
+    return false;
+  }
+  window.closeTopOverlayIfOpen = closeTopOverlayIfOpen;
+
   // ── Keyboard shortcuts ───────────────────────
   document.addEventListener('keydown', e => {
     if (e.target.closest('input,textarea')) return;
     if (e.key === 'e' || e.key === 'E') toggleEditMode();
     if (e.key === 's' || e.key === 'S') openSettings();
-    if (e.key === 'Escape') { closeSettings(); closeCtxMenu(); }
+    if (e.key === 'Escape') closeTopOverlayIfOpen();
 
     // Number keys 1-9 switch rooms
     const idx = parseInt(e.key) - 1;
