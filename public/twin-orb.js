@@ -240,8 +240,8 @@
     ctx.fillRect(0, 0, W, H);
 
     var mid = ctx.createRadialGradient(R * 0.42, R * 0.5, R * 0.02, R * 0.5, R * 0.52, R * 0.95);
-    mid.addColorStop(0, 'rgba(200,20,45,0.55)');
-    mid.addColorStop(0.4, 'rgba(122,0,24,0.4)');
+    mid.addColorStop(0, 'rgba(225, 20, 48, 0.55)');
+    mid.addColorStop(0.4, 'rgba(177, 10, 43, 0.4)');
     mid.addColorStop(1, 'rgba(18,0,5,0)');
     ctx.fillStyle = mid;
     ctx.fillRect(0, 0, W, H);
