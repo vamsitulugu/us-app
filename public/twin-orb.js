@@ -110,6 +110,24 @@
     var tx = curX - BASE_SIZE / 2;
     var ty = curY - BASE_SIZE / 2;
     canvas.style.transform = 'translate3d(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px,0) scale(' + curScale.toFixed(4) + ')';
+    if (animate) scheduleLandingSettle(tx, ty, curScale);
+  }
+
+  var settleTimer1 = null, settleTimer2 = null;
+  // Extremely small "it just landed" wobble — scale target -> ~1.02x
+  // -> target, over ~300ms once the main 760ms travel finishes. Never
+  // touches position, only a subtle scale overshoot, and only ever
+  // runs on the one canvas that already exists.
+  function scheduleLandingSettle(tx, ty, targetScale) {
+    clearTimeout(settleTimer1); clearTimeout(settleTimer2);
+    settleTimer1 = setTimeout(function () {
+      canvas.style.transition = 'transform 140ms cubic-bezier(0.34,1.56,0.64,1)';
+      canvas.style.transform = 'translate3d(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px,0) scale(' + (targetScale * 1.02).toFixed(4) + ')';
+      settleTimer2 = setTimeout(function () {
+        canvas.style.transition = 'transform 160ms ease-out';
+        canvas.style.transform = 'translate3d(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px,0) scale(' + targetScale.toFixed(4) + ')';
+      }, 140);
+    }, 760);
   }
 
   function centerOf(el) {

@@ -4484,7 +4484,14 @@
   content: ''; position: absolute; inset: 0; margin: -6px; border-radius: 50%;
   background: radial-gradient(circle, rgba(20,10,12,0.9) 55%, rgba(20,10,12,0) 78%);
   z-index: -1;
+  /* Hidden until the orb actually arrives — otherwise this reads as an
+     empty black hole sitting above the input bar while the orb is
+     still up in the hero position. JS fades it in exactly when the
+     orb starts traveling toward the dock. */
+  opacity: 0;
+  transition: opacity .55s ease;
 }
+.twin-dock-orb.is-docked::before { opacity: 1; }
 .twin-dock {
   display: flex; align-items: center; gap: 8px;
   margin: 0 12px max(14px, env(safe-area-inset-bottom)) 12px;
@@ -6620,7 +6627,7 @@ select option { background: #0D0D0D; color: #fff; }
             </div>
           </div>
           <div class="twin-dock-wrap">
-            <div class="twin-dock-orb"><div class="twin-orb-anchor twin-orb-anchor--dock" id="twinDockAnchor"></div></div>
+            <div class="twin-dock-orb" id="twinDockOrbWrap"><div class="twin-orb-anchor twin-orb-anchor--dock" id="twinDockAnchor"></div></div>
             <div class="twin-dock">
               <div class="uc-composer uc-composer--ai" style="padding:0;flex:1">
                 <div class="uc-input-wrap">
@@ -8085,16 +8092,24 @@ function setJustPairedAt(ts) {
           })();
           if (page !== 'camera' && camStream) stopCamera();
           if (page !== 'ai' && window.TwinVoice) TwinVoice.exit(true);
+          if (page !== 'ai') twinEntrancePlayed = false; // re-arm so the presentation replays on genuine re-entry
           if (page === 'ai' && window.TwinOrb) {
             // The ai page is `display:none` until navigated to, so the
             // hero anchor has no layout (offsetParent === null) at boot —
             // that's why positioning must be (re)decided HERE, every time
             // Twin becomes visible, not just once on page load.
             requestAnimationFrame(() => {
-              const hero = document.getElementById('twinHeroAnchor');
-              const dock = document.getElementById('twinDockAnchor');
-              const target = (hero && hero.offsetParent !== null) ? hero : dock;
-              TwinOrb.goTo(target, { animate: false });
+              if (!twinEntrancePlayed) {
+                twinPlayEntrance();
+              } else {
+                // Not a fresh entry (e.g. an unrelated re-render while
+                // already on this page) — just re-settle at whichever
+                // anchor is currently correct, no animation, no replay.
+                const hero = document.getElementById('twinHeroAnchor');
+                const dock = document.getElementById('twinDockAnchor');
+                const target = (hero && hero.offsetParent !== null && document.getElementById('aiWelcome')) ? hero : dock;
+                twinOrbGoTo(target, { animate: false });
+              }
             });
           }
           if (pushHistory) {
@@ -10445,18 +10460,63 @@ const p = await Notification.requestPermission();
 
         // ─── TWIN ORB — single Canvas instance (public/twin-orb.js) ───
         // There is exactly ONE orb on the page: window.TwinOrb owns one
-        // <canvas>, one rAF loop, one state machine. This block only
-        // boots it and points it at the hero anchor on load; all
-        // travel between hero/dock/voice happens via TwinOrb.goTo()
-        // calls further down (askAI(), TwinVoice.open/exit, etc).
+        // <canvas>, one rAF loop, one state machine. Every place that
+        // moves it goes through twinOrbGoTo() below, which also fades
+        // the dock's background patch in/out so it never appears as an
+        // empty black hole ahead of the orb actually arriving there.
+        let twinEntranceTimer = null;
+        let twinEntrancePlayed = false; // reset whenever the ai page is left, so re-entering replays it
+        function twinOrbGoTo(anchorEl, opts) {
+          if (!window.TwinOrb || !anchorEl) return;
+          TwinOrb.goTo(anchorEl, opts);
+          const dockWrap = document.getElementById('twinDockOrbWrap');
+          if (dockWrap) dockWrap.classList.toggle('is-docked', anchorEl.id === 'twinDockAnchor');
+        }
+        // Cancel any pending entrance timer and jump straight to dock —
+        // used when the user interacts (sends a message) before the
+        // 1s hold / travel animation would have finished on its own.
+        function twinCancelEntranceAndDock(animate) {
+          clearTimeout(twinEntranceTimer); twinEntranceTimer = null;
+          twinEntrancePlayed = true;
+          const dock = document.getElementById('twinDockAnchor');
+          twinOrbGoTo(dock, { animate: animate !== false });
+        }
+        // The full "Twin appears" presentation: large in hero, hold for
+        // 1s, then travel down and dock — replayed only on a genuine
+        // fresh entry into the ai page (see the page-switch handler).
+        function twinPlayEntrance() {
+          clearTimeout(twinEntranceTimer);
+          const hero = document.getElementById('twinHeroAnchor');
+          const dock = document.getElementById('twinDockAnchor');
+          const welcomeStillUp = !!document.getElementById('aiWelcome');
+          if (!welcomeStillUp) {
+            // Conversation already exists (e.g. re-opened mid-chat) —
+            // no hero to show, land on dock immediately, no animation.
+            twinEntrancePlayed = true;
+            twinOrbGoTo(dock, { animate: false });
+            return;
+          }
+          twinOrbGoTo(hero, { animate: false }); // appear large, instantly, in the hero spot
+          twinEntranceTimer = setTimeout(function () {
+            twinEntrancePlayed = true;
+            if (!document.getElementById('aiWelcome')) return; // user already sent a message; dock already handled by askAI()
+            twinOrbGoTo(dock, { animate: true });
+          }, 1000);
+        }
         function initTwinOrb() {
           if (!window.TwinOrb) return;
           TwinOrb.init();
           const hero = document.getElementById('twinHeroAnchor');
-          const dock = document.getElementById('twinDockAnchor');
-          // Start wherever is actually visible right now (fresh chat →
-          // hero; already-docked session → dock), never animated on load.
-          TwinOrb.goTo((hero && hero.offsetParent !== null) ? hero : dock, { animate: false });
+          // If Twin happens to be the very first page shown (visible at
+          // boot), play the real entrance. Otherwise just mount quietly
+          // at the dock — the page-switch handler plays the entrance
+          // properly the moment the user actually opens Twin.
+          if (hero && hero.offsetParent !== null) {
+            twinPlayEntrance();
+          } else {
+            const dock = document.getElementById('twinDockAnchor');
+            twinOrbGoTo(dock, { animate: false });
+          }
         }
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initTwinOrb);
         else initTwinOrb();
@@ -10711,9 +10771,12 @@ const p = await Notification.requestPermission();
             if (micBtn) micBtn.classList.add('is-live');
             // The SAME orb travels into the voice overlay's anchor — the
             // overlay is `display:flex` the instant `.active` is added
-            // above, so the anchor's rect is measurable right away.
+            // above, so the anchor's rect is measurable right away. Also
+            // cancels the hero-hold entrance timer if the mic was tapped
+            // during it, so the two animations never fight.
+            clearTimeout(twinEntranceTimer); twinEntranceTimer = null; twinEntrancePlayed = true;
             const voiceAnchor = document.getElementById('twinVoiceAnchor');
-            if (window.TwinOrb && voiceAnchor) TwinOrb.goTo(voiceAnchor, { animate: true });
+            twinOrbGoTo(voiceAnchor, { animate: true });
             setMode('idle'); setStatus('Getting ready...', '');
             startLevelMeter();
             startListening();
@@ -10733,8 +10796,8 @@ const p = await Notification.requestPermission();
             // conversation exists, hero if the welcome screen is still up.
             const hero = document.getElementById('twinHeroAnchor');
             const dock = document.getElementById('twinDockAnchor');
-            const backTo = (hero && hero.offsetParent !== null) ? hero : dock;
-            if (window.TwinOrb && backTo) TwinOrb.goTo(backTo, { animate: true });
+            const backTo = (hero && hero.offsetParent !== null && document.getElementById('aiWelcome')) ? hero : dock;
+            twinOrbGoTo(backTo, { animate: true });
           }
           function toggleMute() {
             muted = !muted;
@@ -10870,9 +10933,10 @@ const p = await Notification.requestPermission();
             // dock anchor's position is stable (it's a flex sibling of
             // #aiMsgs, unaffected by the welcome block being removed), so
             // it's safe to measure and kick off the travel before removing
-            // the hero block underneath it.
-            const dockAnchor = document.getElementById('twinDockAnchor');
-            if (window.TwinOrb && dockAnchor) TwinOrb.goTo(dockAnchor, { animate: true });
+            // the hero block underneath it. If the user sent this message
+            // during the 1s hold or mid-travel of the entrance sequence,
+            // this also cancels that timer so the two never fight.
+            twinCancelEntranceAndDock(true);
             welcome.remove();
           }
           aiLastQuestion = question;
