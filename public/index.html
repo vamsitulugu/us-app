@@ -747,8 +747,8 @@
       margin-left: auto !important;
       width: auto !important;
       font-size: 14px !important;
-      color: var(--text3) !important;
-      opacity: 0.7;
+      color: #FFFFFF !important;
+      opacity: 1 !important;
       flex-shrink: 0;
     }
 
@@ -803,12 +803,23 @@
       font-family: var(--ff-serif);
     }
 
-    .cat-page-sub {
-      font-size: 12.5px;
+    .cat-headline {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--white);
+      text-align: center;
+      line-height: 1.3;
+      max-width: 300px;
+      margin: 28px auto 8px;
+      font-family: var(--ff-serif);
+    }
+
+    .cat-subtext {
+      font-size: 14px;
       color: var(--text3);
       text-align: center;
-      max-width: 260px;
-      margin: 18px auto 6px;
+      max-width: 280px;
+      margin: 0 auto 26px;
       line-height: 1.5;
     }
 
@@ -847,8 +858,8 @@
 
     .cat-row-chev {
       font-size: 14px;
-      color: var(--text3);
-      opacity: 0.7;
+      color: #FFFFFF;
+      opacity: 1;
       flex-shrink: 0;
     }
 
@@ -5490,7 +5501,7 @@ select option { background: #0D0D0D; color: #fff; }
     <div class="nav-group">
       <div class="nav-label">Home</div>
       <div class="ni active" data-page="dashboard"><span class="ico">🏠</span>Dashboard</div>
-      <div class="card" style="margin-bottom:16px;pointer-events:auto;cursor:default">
+      <div class="card" style="margin-bottom:2px;pointer-events:auto;cursor:default">
         <div class="card-title">💭 Quick Mood Check-in</div>
         <div class="mood-row" id="dashMoodRow" style="margin-bottom:0;flex-wrap:nowrap;gap:6px">
           <div class="mood" style="flex:1;text-align:center;padding:8px 4px" onclick="quickMood(this,'😊 Happy')">😊<br>Happy</div>
@@ -5499,8 +5510,8 @@ select option { background: #0D0D0D; color: #fff; }
         </div>
       </div>
     </div>
-    <div class="nav-group">
-      <div class="nav-label">Main</div>
+    <div class="nav-group" style="padding-top:0">
+      <div class="nav-label" style="padding-top:2px">Main</div>
       <div class="ni" data-page="chat"><span class="ico">💬</span>Chat<span data-chat-badge></span></div>
       <div class="ni" data-page="map"><span class="ico">📍</span>Live Map</div>
     </div>
@@ -7130,7 +7141,8 @@ select option { background: #0D0D0D; color: #fff; }
           <button class="cat-back-btn" onclick="history.back()" title="Back">←</button>
           <div class="cat-page-title">Us</div>
         </div>
-        <div class="cat-page-sub">Everything that makes us, us.</div>
+        <div class="cat-headline">Everything that makes us, us</div>
+        <div class="cat-subtext">Our story, milestones and everything we've grown through together.</div>
         <div class="cat-list">
           <div class="cat-row" onclick="goto('profile')"><span class="cat-row-ico">💑</span><span class="cat-row-title">Our Profile</span><span class="cat-row-chev">›</span></div>
           <div class="cat-row" onclick="goto('lovecounter')"><span class="cat-row-ico">⏱️</span><span class="cat-row-title">Love Counter</span><span class="cat-row-chev">›</span></div>
@@ -7144,7 +7156,8 @@ select option { background: #0D0D0D; color: #fff; }
           <button class="cat-back-btn" onclick="history.back()" title="Back">←</button>
           <div class="cat-page-title">Memories</div>
         </div>
-        <div class="cat-page-sub">Every moment of us, kept in one place.</div>
+        <div class="cat-headline">Keep every moment close to us</div>
+        <div class="cat-subtext">Photos, places and memories from our journey together.</div>
         <div class="cat-list">
           <div class="cat-row" onclick="goto('camera')"><span class="cat-row-ico">📷</span><span class="cat-row-title">Memories</span><span class="cat-row-chev">›</span></div>
           <div class="cat-row" onclick="goto('globe')"><span class="cat-row-ico">🌍</span><span class="cat-row-title">Memory Globe</span><span class="cat-row-chev">›</span></div>
@@ -7159,7 +7172,8 @@ select option { background: #0D0D0D; color: #fff; }
           <button class="cat-back-btn" onclick="history.back()" title="Back">←</button>
           <div class="cat-page-title">Plans</div>
         </div>
-        <div class="cat-page-sub">Everything we're looking forward to, together.</div>
+        <div class="cat-headline">Everything we're looking forward to</div>
+        <div class="cat-subtext">Plans, dates and little things we're excited to do together.</div>
         <div class="cat-list">
           <div class="cat-row" onclick="goto('calendar')"><span class="cat-row-ico">📅</span><span class="cat-row-title">Calendar</span><span class="cat-row-chev">›</span></div>
           <div class="cat-row" onclick="goto('bucket')"><span class="cat-row-ico">🌟</span><span class="cat-row-title">Bucket List</span><span class="cat-row-chev">›</span></div>
@@ -7174,7 +7188,8 @@ select option { background: #0D0D0D; color: #fff; }
           <button class="cat-back-btn" onclick="history.back()" title="Back">←</button>
           <div class="cat-page-title">Together</div>
         </div>
-        <div class="cat-page-sub">More things to enjoy, side by side.</div>
+        <div class="cat-headline">Better when we do it together</div>
+        <div class="cat-subtext">Listen, play, watch and spend more time together.</div>
         <div class="cat-list">
           <div class="cat-row" onclick="goto('music')"><span class="cat-row-ico">🎵</span><span class="cat-row-title">Music</span><span class="cat-row-chev">›</span></div>
           <div class="cat-row" onclick="goto('games')"><span class="cat-row-ico">🎮</span><span class="cat-row-title">Games</span><span class="cat-row-chev">›</span></div>
@@ -7188,7 +7203,8 @@ select option { background: #0D0D0D; color: #fff; }
           <button class="cat-back-btn" onclick="history.back()" title="Back">←</button>
           <div class="cat-page-title">Our Future</div>
         </div>
-        <div class="cat-page-sub">Everything we're building toward, together.</div>
+        <div class="cat-headline">Building our tomorrow together</div>
+        <div class="cat-subtext">Our dreams, goals and the future we're creating side by side.</div>
         <div class="cat-list">
           <div class="cat-row" onclick="goto('dreamgoals')"><span class="cat-row-ico">💫</span><span class="cat-row-title">Dream Goals</span><span class="cat-row-chev">›</span></div>
           <div class="cat-row" onclick="goto('dreamhome')"><span class="cat-row-ico">🏡</span><span class="cat-row-title">Dream Home</span><span class="cat-row-chev">›</span></div>
@@ -7201,7 +7217,8 @@ select option { background: #0D0D0D; color: #fff; }
           <button class="cat-back-btn" onclick="history.back()" title="Back">←</button>
           <div class="cat-page-title">My Space</div>
         </div>
-        <div class="cat-page-sub">A little space that's completely yours.</div>
+        <div class="cat-headline">A space that's completely yours</div>
+        <div class="cat-subtext">Your personal tools, private moments and things just for you.</div>
         <div class="cat-list">
           <div class="cat-row" onclick="goto('myspace')"><span class="cat-row-ico">🌸</span><span class="cat-row-title">My Space</span><span class="cat-row-chev">›</span></div>
           <div class="cat-row" onclick="goto('period')"><span class="cat-row-ico">🩷</span><span class="cat-row-title">Period Tracker</span><span class="cat-row-chev">›</span></div>
