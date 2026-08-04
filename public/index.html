@@ -10815,10 +10815,12 @@ const p = await Notification.requestPermission();
 
             let settled = false;
             let watchdog = null;
+            let keepAlive = null;
             const finish = () => {
               if (settled) return;
               settled = true;
               clearTimeout(watchdog);
+              clearInterval(keepAlive);
               document.querySelectorAll('.twin-speak-btn.is-speaking').forEach(b => { b.classList.remove('is-speaking'); b.innerHTML = '🔊 Listen'; });
               // This utterance was superseded (user interrupted, or a
               // newer question is already speaking) — the newer one owns
@@ -10831,15 +10833,35 @@ const p = await Notification.requestPermission();
               // rather than silently reopening the mic for another turn.
               exit();
             };
-            u.onstart = () => setMode('speaking');
+            u.onstart = () => {
+              setMode('speaking');
+              // Show the reply itself while Twin is talking — previously
+              // the transcript box kept showing your last question with
+              // nothing updating it once speech started.
+              setTranscript(plain, '');
+            };
             u.onend = finish;
             u.onerror = finish;
+            // Chrome/Chromium has a long-standing bug where speechSynthesis
+            // silently pauses ~15s into a long utterance and never fires
+            // onend, leaving the "Speaking..." screen stuck forever. The
+            // standard workaround is to nudge it with pause()+resume()
+            // periodically so the browser doesn't consider it idle.
+            keepAlive = setInterval(() => {
+              if (speechSynthesis.speaking && !speechSynthesis.paused) {
+                speechSynthesis.pause();
+                speechSynthesis.resume();
+              }
+            }, 10000);
             // Safety net only, not the primary signal — some mobile
-            // WebViews are known to occasionally drop TTS end/error events
-            // outright, which would otherwise leave the overlay stuck open
-            // forever. Generous on purpose (never fires during normal
-            // playback) and cleared immediately once onend/onerror do fire.
-            watchdog = setTimeout(finish, Math.max(4000, plain.length * 120));
+            // WebViews (and the Chrome bug above) are known to drop TTS
+            // end/error events outright, which would otherwise leave the
+            // overlay stuck open forever. Sized off a realistic speaking
+            // rate (~150 wpm at u.rate 0.98) with a floor/ceiling so a
+            // long reply can't wedge the UI open for a minute.
+            const estWords = plain.split(/\s+/).filter(Boolean).length;
+            const estMs = (estWords / 150) * 60000 / 0.98;
+            watchdog = setTimeout(finish, Math.min(30000, Math.max(4000, estMs + 3000)));
             speechSynthesis.speak(u);
           }
           function speakLastReply() {
