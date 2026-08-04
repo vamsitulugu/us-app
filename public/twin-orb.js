@@ -30,7 +30,8 @@
   var mounted = false;
   var rafId = null;
   var lastFrameT = 0;
-  var visible = true;
+  var visible = true;   // tab-visibility (document.hidden)
+  var pageVisible = false; // is the Twin page currently the active app page
 
   // ── current transform target ──
   var curX = 0, curY = 0, curScale = 84 / BASE_SIZE;
@@ -89,8 +90,15 @@
       pointerEvents: 'none',
       zIndex: '60',
       willChange: 'transform',
-      transformOrigin: '0 0',
-      transition: 'none'
+      // Center-origin is what makes `translate(dx,dy) scale(s)` land the
+      // canvas's *center* exactly on (dx + BASE_SIZE/2, dy + BASE_SIZE/2)
+      // regardless of scale. With the old '0 0' origin, scale shrank the
+      // box toward its top-left corner *before* the translate, which
+      // pulled the visual center up-and-left by BASE_SIZE/2*(1-scale) —
+      // ~56px at dock size. That was the whole "stops too high" bug.
+      transformOrigin: '50% 50%',
+      transition: 'none',
+      display: 'none' // hidden until TwinOrb.show() — never visible by default
     });
     document.body.appendChild(canvas);
     ctx = canvas.getContext('2d');
@@ -385,13 +393,14 @@
   }
 
   function loop(tNow) {
-    if (!visible) { rafId = null; return; }
+    if (!visible || !pageVisible) { rafId = null; return; }
     draw(tNow);
     rafId = requestAnimationFrame(loop);
   }
 
   function startLoop() {
     if (rafId) return;
+    if (!pageVisible) return; // never render while off the Twin page
     rafId = requestAnimationFrame(loop);
   }
   function stopLoop() {
@@ -404,18 +413,44 @@
     if (visible) startLoop(); else stopLoop();
   });
 
-  window.addEventListener('resize', function () { refresh(); });
-  window.addEventListener('orientationchange', function () { setTimeout(refresh, 60); });
+  window.addEventListener('resize', function () { if (pageVisible) refresh(); });
+  window.addEventListener('orientationchange', function () { setTimeout(function () { if (pageVisible) refresh(); }, 60); });
 
   function init() {
     if (mounted) return;
     mounted = true;
     ensureCanvas();
+    // Deliberately NOT calling startLoop()/showing here — the orb stays
+    // fully hidden (display:none, no rAF) until show() is called by the
+    // page-navigation handler for the 'ai' page. This is what guarantees
+    // it can never be seen on Dashboard/Home/any other page, including
+    // on first boot if Twin isn't the initial page.
+  }
+
+  // Called every time the Twin page becomes the active page.
+  function show() {
+    ensureCanvas();
+    pageVisible = true;
+    canvas.style.display = 'block';
     startLoop();
   }
 
+  // Called every time the Twin page is left for any other page. Fully
+  // detaches the orb from view and halts its render loop — this is the
+  // single choke point that fixes "orb leaks onto Dashboard".
+  function hide() {
+    pageVisible = false;
+    stopLoop();
+    if (canvas) canvas.style.display = 'none';
+  }
+
+  function isPageVisible() { return pageVisible; }
+
   window.TwinOrb = {
     init: init,
+    show: show,
+    hide: hide,
+    isPageVisible: isPageVisible,
     goTo: goTo,
     refresh: refresh,
     setState: setState,

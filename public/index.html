@@ -8092,12 +8092,22 @@ function setJustPairedAt(ts) {
           })();
           if (page !== 'camera' && camStream) stopCamera();
           if (page !== 'ai' && window.TwinVoice) TwinVoice.exit(true);
-          if (page !== 'ai') twinEntrancePlayed = false; // re-arm so the presentation replays on genuine re-entry
+          if (page !== 'ai') {
+            twinEntrancePlayed = false; // re-arm so the presentation replays on genuine re-entry
+            // Leaving Twin: cancel any pending "hold then dock" timer so
+            // it can never fire later and move/reveal the orb over
+            // whatever page the user has since navigated to (the fast-
+            // exit race condition), then fully detach the orb overlay —
+            // this is the fix for the orb leaking onto Dashboard/Home.
+            clearTimeout(twinEntranceTimer); twinEntranceTimer = null;
+            if (window.TwinOrb) TwinOrb.hide();
+          }
           if (page === 'ai' && window.TwinOrb) {
             // The ai page is `display:none` until navigated to, so the
             // hero anchor has no layout (offsetParent === null) at boot —
             // that's why positioning must be (re)decided HERE, every time
             // Twin becomes visible, not just once on page load.
+            TwinOrb.show();
             requestAnimationFrame(() => {
               if (!twinEntrancePlayed) {
                 twinPlayEntrance();
@@ -10498,6 +10508,12 @@ const p = await Notification.requestPermission();
           }
           twinOrbGoTo(hero, { animate: false }); // appear large, instantly, in the hero spot
           twinEntranceTimer = setTimeout(function () {
+            twinEntranceTimer = null;
+            // Guard against the fast-exit race: if the user already
+            // navigated away from Twin in the last second, this timer
+            // was supposed to be cancelled by goto()'s cleanup, but if
+            // it somehow still fires, never let it touch the orb.
+            if (!window.TwinOrb || !TwinOrb.isPageVisible()) return;
             twinEntrancePlayed = true;
             if (!document.getElementById('aiWelcome')) return; // user already sent a message; dock already handled by askAI()
             twinOrbGoTo(dock, { animate: true });
@@ -10506,16 +10522,15 @@ const p = await Notification.requestPermission();
         function initTwinOrb() {
           if (!window.TwinOrb) return;
           TwinOrb.init();
-          const hero = document.getElementById('twinHeroAnchor');
-          // If Twin happens to be the very first page shown (visible at
-          // boot), play the real entrance. Otherwise just mount quietly
-          // at the dock — the page-switch handler plays the entrance
-          // properly the moment the user actually opens Twin.
-          if (hero && hero.offsetParent !== null) {
+          // Only actually show/position the orb here if Twin happens to
+          // be the very first page visible at boot. Otherwise leave it
+          // hidden — the goto() page-switch handler calls TwinOrb.show()
+          // and plays the entrance properly the moment the user actually
+          // opens Twin, so there's nothing to position yet.
+          const heroPage = document.getElementById('page-ai');
+          if (heroPage && heroPage.classList.contains('active')) {
+            TwinOrb.show();
             twinPlayEntrance();
-          } else {
-            const dock = document.getElementById('twinDockAnchor');
-            twinOrbGoTo(dock, { animate: false });
           }
         }
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initTwinOrb);
