@@ -8325,6 +8325,40 @@ function setJustPairedAt(ts) {
                   if (globeWin && typeof globeWin.closeTopOverlayIfOpen === 'function' && globeWin.closeTopOverlayIfOpen()) { return; }
                 } catch (e) {}
               }
+              // 0.62) Places Memory lives in its own same-origin iframe with its
+              //       own photo lightbox, place detail overlay (gallery/timeline/
+              //       map tabs), and add/edit place modal — check those before
+              //       falling through to page navigation.
+              if (document.getElementById('page-places')?.classList.contains('active')) {
+                try {
+                  const placesWin = document.getElementById('placesFrame')?.contentWindow;
+                  if (placesWin && typeof placesWin.closeTopOverlayIfOpen === 'function' && placesWin.closeTopOverlayIfOpen()) { return; }
+                } catch (e) {}
+              }
+              // 0.63) Meet Planner lives in its own same-origin iframe with its
+              //       own photo lightbox, safe-delete confirm sheet, View/
+              //       Complete/Edit modals, city search dropdown, and saved-
+              //       plans selection mode — check those before falling
+              //       through to page navigation. (This iframe used to try
+              //       registering its own Capacitor backButton listener, but
+              //       window.Capacitor doesn't exist inside a nested iframe,
+              //       so it never actually fired — see meetplanner.js.)
+              if (document.getElementById('page-meetplanner')?.classList.contains('active')) {
+                try {
+                  const mpWin = document.getElementById('meetplannerFrame')?.contentWindow;
+                  if (mpWin && typeof mpWin.closeTopOverlayIfOpen === 'function' && mpWin.closeTopOverlayIfOpen()) { return; }
+                } catch (e) {}
+              }
+              // 0.64) Collection lives in its own same-origin iframe with its
+              //       own safe-delete confirm sheet, photo/video lightbox,
+              //       and multi-select mode — check those before falling
+              //       through to page navigation.
+              if (document.getElementById('page-collection')?.classList.contains('active')) {
+                try {
+                  const colWin = document.getElementById('collectionFrame')?.contentWindow;
+                  if (colWin && typeof colWin.closeTopOverlayIfOpen === 'function' && colWin.closeTopOverlayIfOpen()) { return; }
+                } catch (e) {}
+              }
               // 1) An open modal takes priority — just close it.
               const openModal = document.querySelector('.modal-bg.open');
               if (openModal) { openModal.classList.remove('open'); return; }

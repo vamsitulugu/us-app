@@ -119,6 +119,11 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
 .voice-action-btn{width:30px;height:30px;min-width:30px;border-radius:8px;border:none;cursor:pointer;background:var(--g2);color:var(--text2);font-size:13px;display:flex;align-items:center;justify-content:center;transition:var(--t)}
 .voice-action-btn:hover{background:var(--g3);color:var(--white)}
 .voice-action-btn.fav{color:var(--yellow)}
+/* Favorite state used to be shown by swapping the emoji character itself
+   (⭐ filled vs ☆ outline); now that both convert to the same Lucide
+   "star" icon, add a fill (not just an outline color) so favorited still
+   reads as visually filled, same pattern used on Places/Live Map. */
+.voice-action-btn.fav .ui-ico{fill:var(--yellow)}
 .voice-action-btn.del:hover{background:var(--red-bg);color:var(--red)}
 /* Mobile: the 4-5 inline buttons don't fit next to avatar+play+name+
    waveform+duration on a ~360-390px screen — that overflow (inside an
@@ -186,6 +191,11 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
 .photo-col-item:hover .photo-action-row{opacity:1}
 .pa-btn{padding:5px 10px;border-radius:8px;border:none;cursor:pointer;font-family:var(--ff-sans);font-size:10px;font-weight:700;color:#fff;background:rgba(255,255,255,0.15);backdrop-filter:blur(8px);transition:var(--t)}
 .pa-btn:hover{background:rgba(255,255,255,0.3)}
+/* Same reasoning as .voice-action-btn.fav above — the favorite state
+   used to come from swapping ★/☆; both now convert to the same Lucide
+   "star" icon, so a fill + color driven by this class replaces it. */
+.pa-btn.fav{color:var(--yellow)}
+.pa-btn.fav .ui-ico{fill:var(--yellow)}
 
 /* ── LIGHTBOX ── */
 .col-lightbox{position:fixed;inset:0;z-index:9000;--gve-backdrop-fade:1;background:rgba(0,0,0,var(--gve-backdrop-fade));display:none}
@@ -249,9 +259,9 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
 <!-- BULK BAR -->
 <div class="col-bulkbar" id="colBulkBar">
   <span id="colBulkCount">0 selected</span>
-  <button onclick="bulkExportToLibrary()">💾 Export to Library</button>
-  <button onclick="bulkDelete()">🗑️ Delete</button>
-  <button onclick="exitSelectMode()">Cancel</button>
+  <button class="col-bulkbar-btn" onclick="bulkExportToLibrary()">💾 Export to Library</button>
+  <button class="col-bulkbar-btn" onclick="bulkDelete()">🗑️ Delete</button>
+  <button class="col-bulkbar-btn" onclick="exitSelectMode()">Cancel</button>
 </div>
 
 <!-- SECTIONS -->
@@ -639,7 +649,7 @@ function renderVoiceListInto(elId, voices, isLibrary) {
         </div>
         <div class="voice-dur">${v.duration}</div>
         <div class="voice-actions">
-          <button class="voice-action-btn fav voice-act-inline${isFav?' fav':''}" title="Favorite" data-action="fav" data-id="${idAttr}">${isFav?'⭐':'☆'}</button>
+          <button class="voice-action-btn voice-act-inline${isFav?' fav':''}" title="Favorite" data-action="fav" data-id="${idAttr}">⭐</button>
           ${!isLibrary ? `<button class="voice-action-btn voice-act-inline" title="Save to Library" data-action="save" data-id="${idAttr}">💾</button>` : ''}
           ${!isLibrary ? `<button class="voice-action-btn voice-act-inline" title="Open in Chat" data-action="chat" data-id="${idAttr}">💬</button>` : ''}
           <button class="voice-action-btn voice-act-inline" title="Download" data-action="download" data-id="${idAttr}" data-lib="${isLibrary?'1':'0'}">⬇️</button>
@@ -1089,7 +1099,7 @@ function renderPhotos() {
           ${isFav ? '<div class="photo-fav-badge">⭐</div>' : ''}
           <div class="photo-overlay"><div class="photo-overlay-date">${p.date||''}</div></div>
           <div class="photo-action-row">
-            <button class="pa-btn" onclick='event.stopPropagation();togglePhotoFav(${JSON.stringify(p.id)})'>${isFav?'★':'☆'}</button>
+            <button class="pa-btn${isFav?' fav':''}" onclick='event.stopPropagation();togglePhotoFav(${JSON.stringify(p.id)})'>⭐</button>
             <button class="pa-btn" onclick='event.stopPropagation();downloadPhoto(${JSON.stringify(p.url||'')})'>⬇</button>
           </div>
         </div>`;
@@ -1250,6 +1260,30 @@ window.addEventListener('message', e => {
   }
   if (e.data?.type === 'colRefresh') init();
 });
+
+// Back-navigation priority for Collection, called by the parent's
+// Android/device backButton handler (same pattern as Chat/LiveMap/Globe/
+// Places/Meet Planner's closeTopOverlayIfOpen()). This page had no Back
+// handling of its own before — checked top-down through this page's own
+// overlay stack before falling through to page-level navigation:
+//   1) the voice-row kebab action sheet (dynamically appended to
+//      document.body, not scoped under any container here)
+//   2) safe-delete confirm sheet (can appear over the lightbox, e.g. when
+//      deleting a photo from inside it)
+//   3) photo/video lightbox
+//   4) multi-select mode (voice/library lists)
+// Returns true if something was closed (caller should stop there).
+function closeTopOverlayIfOpen() {
+  const actionSheet = document.getElementById('voiceActionSheet');
+  if (actionSheet) { closeVoiceMenu(); return true; }
+  const openConfirm = document.querySelector('.sd-overlay.show');
+  if (openConfirm) { openConfirm.classList.remove('show'); return true; }
+  const lightbox = document.getElementById('colLightbox');
+  if (lightbox && lightbox.classList.contains('open')) { closeLightbox(); return true; }
+  if (selectMode) { exitSelectMode(); return true; }
+  return false;
+}
+window.closeTopOverlayIfOpen = closeTopOverlayIfOpen;
 
 // ── INIT ──
 async function init() {

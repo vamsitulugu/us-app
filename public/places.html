@@ -102,6 +102,13 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
 .pm-fav-toggle{display:flex;align-items:center;gap:9px;padding:10px 13px;background:var(--g1);border:1px solid var(--border);border-radius:10px;cursor:pointer;margin-bottom:13px;font-size:13px;color:var(--text2)}
 .pm-fav-toggle .star{font-size:18px;transition:var(--t)}
 .pm-fav-toggle.on .star{filter:drop-shadow(0 0 6px rgba(251,191,36,0.6))}
+/* Favorite state used to be shown by swapping the emoji character itself
+   (⭐ filled vs ☆ outline). Now that both convert to the same Lucide
+   "star" icon, the filled/outline distinction has to come from a fill
+   color driven by the .on class instead, same pattern used for Chat's
+   favorite heart and the Memories viewer's favorite icon. */
+.pm-card-fav .ui-ico,.pm-detail-fav .ui-ico{fill:none;stroke:currentColor}
+.pm-card-fav.on .ui-ico,.pm-detail-fav.on .ui-ico{fill:#fbbf24;stroke:#fbbf24}
 
 .pm-detail-bg{position:fixed;inset:0;z-index:700;background:rgba(2,2,8,0.92);backdrop-filter:blur(6px);display:none;overflow-y:auto}
 .pm-detail-bg.open{display:block}
@@ -242,7 +249,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
             <input type="text" id="pmMemText" placeholder="Add a memory or note...">
           </div>
           <div style="display:flex;gap:8px;align-items:center">
-            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);cursor:pointer"><input type="checkbox" id="pmMemFav" style="accent-color:var(--yellow)"> ⭐ Favorite memory</label>
+            <label class="pm-mem-fav-label" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);cursor:pointer"><input type="checkbox" id="pmMemFav" style="accent-color:var(--yellow)"> ⭐ Favorite memory</label>
             <button onclick="addPmMemory()" style="margin-left:auto;padding:7px 16px;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(135deg,var(--accent),var(--accent-d));color:#fff;font-size:12px;font-weight:600;font-family:var(--ff-sans)">+ Add</button>
           </div>
         </div>
@@ -356,7 +363,7 @@ function renderGrid(){
     <div class="pm-card" onclick="openPmDetail('${p.id}')">
       <div class="pm-card-banner">
         ${p.banner?`<img src="${p.banner}" alt="${escHtml(p.name)}">`:`<span class="pm-card-banner-emoji">🗺️</span>`}
-        <div class="pm-card-fav" onclick="event.stopPropagation();quickToggleFav('${p.id}')">${p.favorite?'⭐':'☆'}</div>
+        <div class="pm-card-fav ${p.favorite?'on':''}" onclick="event.stopPropagation();quickToggleFav('${p.id}')">⭐</div>
         ${(p.photos||[]).length?`<div class="pm-card-photocount">📸 ${p.photos.length}</div>`:''}
       </div>
       <div class="pm-card-body">
@@ -481,7 +488,7 @@ function openPmDetail(id){
   document.getElementById('pmDetailBanner').innerHTML = `
     ${p.banner?`<img src="${p.banner}" alt="${escHtml(p.name)}">`:''}
     <button class="pm-detail-close" onclick="closePmDetail()"><i data-lucide="x"></i></button>
-    <button class="pm-detail-fav ${p.favorite?'on':''}" id="pmDetailFav" onclick="togglePmDetailFav()">${p.favorite?'⭐':'☆'}</button>
+    <button class="pm-detail-fav ${p.favorite?'on':''}" id="pmDetailFav" onclick="togglePmDetailFav()">⭐</button>
     <div class="pm-detail-info">
       <div class="pm-detail-name">${escHtml(p.name)}</div>
       <div class="pm-detail-meta">${p.location?`📍 ${escHtml(p.location)}`:''} ${p.visitDate?`· 🗓️ ${fmtDate(p.visitDate)}`:''}</div>
@@ -507,7 +514,9 @@ function pmDetailTab(tab, el){
 function togglePmDetailFav(){
   const p=pmPlaces.find(x=>x.id===pmCurrentDetailId); if(!p) return;
   p.favorite=!p.favorite; savePmState(); renderPmHero();
-  document.getElementById('pmDetailFav').textContent = p.favorite?'⭐':'☆';
+  // Only toggle the class (drives fill color via CSS) — the icon itself
+  // is now a converted Lucide <svg>, so overwriting textContent here
+  // would delete it instead of just changing which glyph shows.
   document.getElementById('pmDetailFav').classList.toggle('on', p.favorite);
 }
 function editCurrentPlace(){ closePmDetail(); openEditPlace(pmCurrentDetailId); }
@@ -615,8 +624,8 @@ function renderPmTimeline(p){
         <div class="pm-timeline-date">${m.favorite?'⭐ ':''}${fmtDate(m.date)}</div>
         <div class="pm-timeline-text">${escHtml(m.text)}</div>
         <div class="pm-timeline-actions">
-          <button onclick="toggleMemFav('${m.id}')">${m.favorite?'Unfavorite':'⭐ Favorite'}</button>
-          <button onclick="deleteMemory('${m.id}')">🗑️ Delete</button>
+          <button class="pm-timeline-fav-btn" onclick="toggleMemFav('${m.id}')">${m.favorite?'Unfavorite':'⭐ Favorite'}</button>
+          <button class="pm-timeline-del-btn" onclick="deleteMemory('${m.id}')">🗑️ Delete</button>
         </div>
       </div>
     </div>
@@ -659,6 +668,25 @@ function renderPmMap(){
   L.marker([p.lat,p.lng],{icon}).addTo(pmDetailMap);
   setTimeout(()=>pmDetailMap.invalidateSize(),100);
 }
+
+// Back-navigation priority for Places Memory, called by the parent's
+// Android/device backButton handler (same pattern as Chat/LiveMap/Globe's
+// closeTopOverlayIfOpen()). Checked top-down through this page's own
+// overlay stack before falling through to page-level navigation:
+//   1) photo lightbox (on top of everything)
+//   2) place detail overlay (gallery/timeline/map tabs)
+//   3) add/edit place modal
+// Returns true if something was closed (caller should stop there).
+function closeTopOverlayIfOpen(){
+  const lightbox = document.getElementById('pmLightbox');
+  if (lightbox && lightbox.classList.contains('open')) { closePmLightbox(); return true; }
+  const detail = document.getElementById('pmDetailBg');
+  if (detail && detail.classList.contains('open')) { closePmDetail(); return true; }
+  const modal = document.getElementById('pmModal');
+  if (modal && modal.classList.contains('open')) { closePmModal(); return true; }
+  return false;
+}
+window.closeTopOverlayIfOpen = closeTopOverlayIfOpen;
 
 window.addEventListener('message', e=>{
   if(e.data?.type==='theme'){

@@ -300,7 +300,24 @@
 
     // ── Memory Globe page — the street-level badge (id only, no class)
     // and the Stats view's title (was a bare unclassed div).
-    '#streetBadge', '.stats-view-title'
+    '#streetBadge', '.stats-view-title',
+
+    // ── Places Memory page — favorite-toggle controls and the lightbox's
+    // remove button. These don't end in "-btn"/"-tab"/etc so the generic
+    // catch-alls above miss them; the timeline's Favorite/Delete buttons
+    // and the "Favorite memory" checkbox label had no class at all, so
+    // classes were added to them in places.html specifically so they can
+    // be matched here.
+    '.pm-fav-toggle', '.pm-fav-toggle .star', '.pm-card-fav', '.pm-detail-fav',
+    '.pm-lightbox-del', '.pm-timeline-fav-btn', '.pm-timeline-del-btn',
+    '.pm-mem-fav-label',
+
+    // ── Meet Planner page — POI-selection checkmark, checklist checkbox/
+    // delete, the city badge's location pin, and the custom-search/photo-
+    // remove buttons (the latter two had no class at all, so classes were
+    // added to them in meetplanner.html/meetplanner.js specifically).
+    '.mp-poi-check', '.mp-cb', '.mp-check-del', '.mp-city-badge .ico',
+    '.mp-search-btn', '.mp-photo-thumb button'
   ];
 
   // Explicit EXCLUDE list — never process these even if nested inside a safe zone

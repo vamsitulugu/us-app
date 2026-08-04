@@ -565,23 +565,38 @@ function mpExitSelectMode() {
   document.getElementById('mpSelectToolbar').classList.remove('show');
 }
 
-// Android hardware back button: this page had no listener before, so
-// Capacitor's default behavior (webView.goBack()) was in effect. We only
-// need to intercept it for the two transient states this feature adds —
-// the confirm sheet and selection mode — and fall through to the
-// original default for everything else, so normal page navigation is
-// unchanged (Part 26 of the delete-safety spec).
-if (window.Capacitor?.isNativePlatform?.()) {
-  const CapApp = window.Capacitor.Plugins?.App;
-  if (CapApp && typeof CapApp.addListener === 'function') {
-    CapApp.addListener('backButton', () => {
-      const openConfirm = document.querySelector('.sd-overlay.show');
-      if (openConfirm) { openConfirm.classList.remove('show'); return; }
-      if (mpSelectMode) { mpExitSelectMode(); return; }
-      history.back();
-    });
+// Android hardware back button: this file used to register its own
+// CapApp.addListener('backButton', ...) here, but Meet Planner runs in a
+// same-origin iframe (like Chat/Live Map/Memory Globe/Places Memory) and
+// Capacitor's native bridge is only exposed on window.Capacitor in the
+// TOP-level document (index.html), not inside nested iframes — so that
+// listener's window.Capacitor?.isNativePlatform?.() check was always
+// undefined and the whole block was dead code, silently never firing.
+// The actual working pattern (matching every other iframe page in this
+// app) is: expose a plain closeTopOverlayIfOpen() function here, and let
+// the PARENT's single backButton listener in index.html call into this
+// iframe's contentWindow and invoke it. Checked top-down, in the order
+// these can actually stack: photo lightbox (can open over the Complete
+// modal's photo preview too) → safe-delete confirm sheet → an open
+// modal (View/Complete/Edit) → the city search results dropdown →
+// saved-plans selection mode.
+function closeTopOverlayIfOpen() {
+  const lightbox = document.getElementById('mpLightbox');
+  if (lightbox && lightbox.classList.contains('open')) { closeMpLightbox(); return true; }
+  const openConfirm = document.querySelector('.sd-overlay.show');
+  if (openConfirm) { openConfirm.classList.remove('show'); return true; }
+  const openModal = document.querySelector('.mp-modal-bg.open');
+  if (openModal) { openModal.classList.remove('open'); return true; }
+  const cityResults = document.getElementById('mpCityResults');
+  if (cityResults && cityResults.classList.contains('show')) {
+    cityResults.classList.remove('show');
+    document.getElementById('mpCityCard')?.classList.remove('mp-elevated');
+    return true;
   }
+  if (mpSelectMode) { mpExitSelectMode(); return true; }
+  return false;
 }
+window.closeTopOverlayIfOpen = closeTopOverlayIfOpen;
 
 async function mpBulkDeletePlans() {
   if (!mpSelection || !mpSelection.size) return;
