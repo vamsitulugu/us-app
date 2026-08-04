@@ -1265,10 +1265,23 @@ function menuItemsHtml(m, id, includeSelect) {
   // router on every navigation (including Android Back, since that also
   // resolves to a goto() via popstate), and from unload.
   const PANEL_IDS = ['chatGiftPanel', 'chatMsgMenu', 'chatBottomSheet', 'chatEmojiPanel',
-    'chatStickerPanel', 'chatContactSheet', 'chatPollPanel', 'chatGifPanel'];
+    'chatStickerPanel', 'chatContactSheet', 'chatPollPanel', 'chatGifPanel',
+    'chatReactionPicker', 'chatToolbarOverflowMenu'];
+  // Overlays that live in the page markup itself (not body-appended, so
+  // they aren't removed — just closed) plus non-DOM chat state that's only
+  // meaningful while Chat is the active page. Leaving Chat via the bottom
+  // nav/sidebar (not Back) should reset all of this in one shot, the same
+  // way an app fully unwinds a screen's state when you jump away from it —
+  // unlike closeTopOverlayIfOpen(), which unwinds Back one step at a time.
   function destroyPanels() {
     clearTimeout(gifDebounce);
     PANEL_IDS.forEach(id => document.getElementById(id)?.remove());
+    document.getElementById('wpPreviewOverlay')?.classList.remove('open');
+    document.getElementById('wpModalOverlay')?.classList.remove('open');
+    if (_wpCropUrl) { URL.revokeObjectURL(_wpCropUrl); _wpCropUrl = null; }
+    document.getElementById('chatSearchBar')?.classList.remove('show');
+    document.getElementById('chatHeaderMenu')?.classList.remove('open');
+    if (selectMode) exitSelectMode();
   }
   window.addEventListener('pagehide', destroyPanels);
 
@@ -2024,11 +2037,61 @@ function menuItemsHtml(m, id, includeSelect) {
     return false;
   }
 
+  // ─── BACK-NAVIGATION ENTRY POINT ─────────────────────────
+  // Every popup/menu/sheet/panel/modal Chat can have open at once, in the
+  // exact priority a device Back press (or a visible back arrow) should
+  // close them: deepest/most-recently-opened first, one at a time. This is
+  // the single place the app-level Back handler asks "does Chat have
+  // something open right now?" — it must stay in sync with every new
+  // overlay Chat grows, or Back will skip straight past it to page nav.
+  function closeTopOverlayIfOpen() {
+    // 1) Free-floating context menus / pickers (appended to body, no page nav should occur under them)
+    if (closeMsgMenuIfOpen()) return true;
+    const reactionPicker = document.getElementById('chatReactionPicker');
+    if (reactionPicker) { reactionPicker.remove(); return true; }
+    const overflowMenu = document.getElementById('chatToolbarOverflowMenu');
+    if (overflowMenu) { overflowMenu.remove(); return true; }
+    const contactSheet = document.getElementById('chatContactSheet');
+    if (contactSheet) { contactSheet.remove(); return true; }
+    // 2) Wallpaper flow — full-screen crop/preview is nested one level
+    //    deeper than the wallpaper settings modal that opened it, so it
+    //    must close first and land back on that modal, not on Chat itself.
+    const wpPreview = document.getElementById('wpPreviewOverlay');
+    if (wpPreview && wpPreview.classList.contains('open')) { cancelWallpaperPreview(); return true; }
+    const wpModal = document.getElementById('wpModalOverlay');
+    if (wpModal && wpModal.classList.contains('open')) { closeWallpaperModal(); return true; }
+    // 3) Attach-menu sub-panels (GIF/sticker/emoji/gift/poll) and the
+    //    attach sheet itself — a sub-panel implies the sheet beneath it
+    //    is still logically open, so only the sub-panel closes first.
+    const gifPanel = document.getElementById('chatGifPanel');
+    if (gifPanel && gifPanel.classList.contains('open')) { gifPanel.classList.remove('open'); return true; }
+    const stickerPanel = document.getElementById('chatStickerPanel');
+    if (stickerPanel && stickerPanel.classList.contains('open')) { stickerPanel.classList.remove('open'); return true; }
+    const emojiPanel = document.getElementById('chatEmojiPanel');
+    if (emojiPanel && emojiPanel.classList.contains('open')) { emojiPanel.classList.remove('open'); return true; }
+    const giftPanel = document.getElementById('chatGiftPanel');
+    if (giftPanel && giftPanel.classList.contains('open')) { giftPanel.classList.remove('open'); return true; }
+    const pollPanel = document.getElementById('chatPollPanel');
+    if (pollPanel) { pollPanel.remove(); return true; }
+    const bottomSheet = document.getElementById('chatBottomSheet');
+    if (bottomSheet && bottomSheet.classList.contains('open')) { closeSheet(); return true; }
+    // 4) Search bar
+    const searchBar = document.getElementById('chatSearchBar');
+    if (searchBar && searchBar.classList.contains('show')) { closeSearch(); return true; }
+    // 5) Header 3-dot dropdown
+    const headerMenu = document.getElementById('chatHeaderMenu');
+    if (headerMenu && headerMenu.classList.contains('open')) { toggleHeaderMenu(); return true; }
+    // 6) Multi-select toolbar (checked separately by callers via isSelecting(),
+    //    kept here too so this function alone is a complete "anything open?" check)
+    if (selectMode) { exitSelectMode(); return true; }
+    return false;
+  }
+
   return {
     onChatScroll, scrollToBottom, sendText, onTypingInput, onImagePick, toggleRecord,
     onBubbleClick, openMenu, reactTo, replyTo, closeBanner, togglePin, toggleStar,
     openStarred, deleteMsg, confirmDeleteMsg, enterSelectMode, deleteSelected, exitSelectMode,
-    isSelecting, closeMsgMenuIfOpen, openToolbarOverflow, openMediaViewer,
+    isSelecting, closeMsgMenuIfOpen, closeTopOverlayIfOpen, openToolbarOverflow, openMediaViewer,
     openSearch, closeSearch, runSearch, scrollToMsg, sendGif, sendEmoji, sendEmojiTap,
     openEmojiPanel, switchEmojiTab, filterEmoji, openGifPanel, searchGifs, markRead, init, openSheet, closeSheet,
     forwardMsg, copyMsg, editMsg, cancelEdit, infoMsg, cancelRecording, startLongPress, endLongPress, moveLongPress,

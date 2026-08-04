@@ -255,10 +255,16 @@
     openViewer(url) {
       // Reuses the app's existing full-screen image viewer if present.
       if (typeof global.openImgViewer === 'function') { global.openImgViewer(url); return; }
+      // Defensive fallback only (openImgViewer should always be available
+      // by the time this can be clicked) — still needs to be one of the
+      // things Android/device Back knows how to close, not an orphan
+      // overlay outside the app's back-navigation hierarchy.
       const overlay = document.createElement('div');
+      overlay.id = 'avatarViewerFallback';
+      overlay.className = 'modal-bg open';
       overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;';
       overlay.innerHTML = `<img src="${url}" style="max-width:90%;max-height:90%;border-radius:12px;">`;
-      overlay.onclick = () => document.body.removeChild(overlay);
+      overlay.onclick = () => overlay.remove();
       document.body.appendChild(overlay);
     }
   };

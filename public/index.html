@@ -2572,6 +2572,10 @@
       color: #ff5c72
     }
 
+    .mem-viewer-action.fav.active .ico svg {
+      fill: currentColor
+    }
+
     /* Bottom sheet used by both "More" (actions) and "Details" (metadata) */
     .mem-sheet-overlay {
       position: fixed;
@@ -5215,7 +5219,7 @@ select option { background: #0D0D0D; color: #fff; }
   <!-- MEMORIES GALLERY VIEWER (dedicated to the Memories page — see Part below) -->
   <div class="mem-viewer" id="memViewer">
     <div class="mem-viewer-top" id="memViewerTop">
-      <button type="button" class="mem-viewer-back" onclick="closeMemViewer()" aria-label="Close"><i data-lucide="x"></i></button>
+      <button type="button" class="mem-viewer-back" onclick="memViewerBackTap()" aria-label="Close"><i data-lucide="x"></i></button>
       <div class="mem-viewer-counter" id="memViewerCounter"></div>
       <div style="width:42px"></div>
     </div>
@@ -5225,16 +5229,16 @@ select option { background: #0D0D0D; color: #fff; }
     </div>
     <div class="mem-viewer-bar" id="memViewerBar">
       <button type="button" class="mem-viewer-action fav" id="memViewerFavBtn" onclick="memViewerToggleFav()">
-        <span class="ico" id="memViewerFavIcon">🤍</span><span>Favorite</span>
+        <span class="ico" id="memViewerFavIcon"><i data-lucide="heart"></i></span><span>Favorite</span>
       </button>
       <button type="button" class="mem-viewer-action" onclick="memViewerShare()">
-        <span class="ico">↗️</span><span>Share</span>
+        <span class="ico"><i data-lucide="share-2"></i></span><span>Share</span>
       </button>
       <button type="button" class="mem-viewer-action" onclick="memViewerDeleteCurrent()">
-        <span class="ico">🗑️</span><span>Delete</span>
+        <span class="ico"><i data-lucide="trash-2"></i></span><span>Delete</span>
       </button>
       <button type="button" class="mem-viewer-action" onclick="memViewerOpenMore()">
-        <span class="ico">⋮</span><span>More</span>
+        <span class="ico"><i data-lucide="more-vertical"></i></span><span>More</span>
       </button>
     </div>
   </div>
@@ -8285,9 +8289,13 @@ function setJustPairedAt(ts) {
               if (typeof calSelectMode !== 'undefined' && calSelectMode) { calExitSelectMode(); return; }
               // 0.56) Bucket List selection mode active — exit selection, don't navigate.
               if (typeof bucketSelectMode !== 'undefined' && bucketSelectMode) { bucketExitSelectMode(); return; }
-              // 0.57) Chat's own message action-menu / selection mode take priority.
-              if (window.Chat && typeof window.Chat.closeMsgMenuIfOpen === 'function' && window.Chat.closeMsgMenuIfOpen()) { return; }
-              if (window.Chat && typeof window.Chat.isSelecting === 'function' && window.Chat.isSelecting()) { window.Chat.exitSelectMode(); return; }
+              // 0.57) Chat's own overlays take priority — context menus, the
+              //       wallpaper settings/preview flow, attach-sheet panels,
+              //       search bar, header dropdown, and multi-select mode.
+              //       Only relevant while Chat is the active page, but the
+              //       DOM nodes these check are scoped to Chat's own ids so
+              //       this is safe to call unconditionally.
+              if (window.Chat && typeof window.Chat.closeTopOverlayIfOpen === 'function' && window.Chat.closeTopOverlayIfOpen()) { return; }
               // 0.6) Dream Goals lives in its own same-origin iframe with its own
               //      safe-delete confirm sheet + selection mode — check those
               //      before falling through to page navigation.
@@ -9117,6 +9125,19 @@ const p = await Notification.requestPermission();
           memViewerIndex = -1;
         }
 
+        // Used by the viewer's own visible ✕ button — must close the same
+        // one-level-at-a-time as the hardware Back handler (which checks
+        // Details/More sheets before the viewer itself), otherwise tapping
+        // ✕ while a sheet is open would dismiss the whole viewer and leave
+        // that sheet stuck open behind it.
+        function memViewerBackTap() {
+          const details = document.getElementById('memDetailsSheet');
+          if (details && details.classList.contains('show')) { memViewerCloseDetails(); return; }
+          const more = document.getElementById('memMoreSheet');
+          if (more && more.classList.contains('show')) { memViewerCloseMore(); return; }
+          closeMemViewer();
+        }
+
         function memViewerCurrent() {
           const list = memViewerList();
           return memViewerIndex >= 0 && memViewerIndex < list.length ? list[memViewerIndex] : null;
@@ -9133,7 +9154,6 @@ const p = await Notification.requestPermission();
           document.getElementById('memViewerPrevBtn').style.visibility = memViewerIndex > 0 ? 'visible' : 'hidden';
           document.getElementById('memViewerNextBtn').style.visibility = memViewerIndex < list.length - 1 ? 'visible' : 'hidden';
           const favIcon = document.getElementById('memViewerFavIcon');
-          favIcon.textContent = p.favorite ? '❤️' : '🤍';
           document.getElementById('memViewerFavBtn').classList.toggle('active', !!p.favorite);
         }
         // Kept for backward compatibility with any other call sites.
