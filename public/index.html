@@ -4420,8 +4420,8 @@
    destinations — not orbs themselves.
 ════════════════════════════════════════════ */
 .twin-orb-anchor { flex-shrink: 0; border-radius: 50%; }
-.twin-orb-anchor--hero { width: 84px; height: 84px; }
-.twin-orb-anchor--dock { width: 36px; height: 36px; }
+.twin-orb-anchor--hero { width: clamp(96px, 30vw, 140px); height: clamp(96px, 30vw, 140px); }
+.twin-orb-anchor--dock { width: clamp(48px, 17vw, 72px); height: clamp(48px, 17vw, 72px); }
 .twin-orb-anchor--voice { width: 168px; height: 168px; }
 
 /* Small static (non-canvas) mini orb used only for the tiny bottom-nav
@@ -4445,7 +4445,7 @@
 @media (prefers-reduced-motion: reduce) { .twin-mini-orb { animation: none !important; } }
 
 /* Twin welcome screen */
-.twin-welcome-orb-wrap { width: 84px; height: 84px; margin: 0 auto 16px; }
+.twin-welcome-orb-wrap { width: clamp(96px, 30vw, 140px); height: clamp(96px, 30vw, 140px); margin: 0 auto 16px; }
 .twin-welcome-title { font-family: var(--ff-serif); font-size: 22px; color: var(--white); margin-bottom: 2px; }
 .twin-welcome-sub { font-size: 13px; color: var(--text3); }
 
@@ -4468,12 +4468,22 @@
 .twin-sugg-chip:hover { background: var(--g2); border-color: var(--border2); color: var(--white); }
 .twin-sugg-chip:active { transform: scale(.96); }
 
-/* Premium floating Twin dock — the composer bar restyled so a smaller
-   orb can visually overlap its top-center edge. */
+/* Premium floating Twin dock — the orb's own anchor is centered
+   exactly ON the bar's top edge (translate -50%,-50%) so roughly half
+   the sphere sits above the bar and half visually overlaps/intersects
+   it, matching the reference "docked AI orb" pattern. A soft patch
+   behind the orb breaks the bar's border/background right where the
+   sphere crosses it, so the border never visibly cuts through the
+   orb's center. */
 .twin-dock-wrap { position: relative; flex-shrink: 0; }
 .twin-dock-orb {
-  position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
-  width: 36px; height: 36px; z-index: 2; pointer-events: none;
+  position: absolute; top: 0; left: 50%; z-index: 3; pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+.twin-dock-orb::before {
+  content: ''; position: absolute; inset: 0; margin: -6px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(20,10,12,0.9) 55%, rgba(20,10,12,0) 78%);
+  z-index: -1;
 }
 .twin-dock {
   display: flex; align-items: center; gap: 8px;
@@ -8076,10 +8086,16 @@ function setJustPairedAt(ts) {
           if (page !== 'camera' && camStream) stopCamera();
           if (page !== 'ai' && window.TwinVoice) TwinVoice.exit(true);
           if (page === 'ai' && window.TwinOrb) {
-            // Re-measure on return — anchor position may have shifted
-            // (nav bar height, keyboard, orientation) while this page
-            // wasn't visible. Never spawns a second orb; same instance.
-            requestAnimationFrame(() => TwinOrb.refresh());
+            // The ai page is `display:none` until navigated to, so the
+            // hero anchor has no layout (offsetParent === null) at boot —
+            // that's why positioning must be (re)decided HERE, every time
+            // Twin becomes visible, not just once on page load.
+            requestAnimationFrame(() => {
+              const hero = document.getElementById('twinHeroAnchor');
+              const dock = document.getElementById('twinDockAnchor');
+              const target = (hero && hero.offsetParent !== null) ? hero : dock;
+              TwinOrb.goTo(target, { animate: false });
+            });
           }
           if (pushHistory) {
     history.pushState({ page }, '', '#' + page);

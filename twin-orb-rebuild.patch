@@ -1,0 +1,971 @@
+diff --git a/public/index.html b/public/index.html
+index 6723ee2..77ab224 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -4409,236 +4409,43 @@
+ .ai-sugg-txt { font-size: 12px; color: var(--text2); line-height: 1.4; }
+ 
+ /* ════════════════════════════════════════════
+-   TWIN — animated energy orb (Phase 2 rebuild)
++   TWIN ORB — single Canvas instance (Phase 3 rebuild)
+    ───────────────────────────────────────────────
+-   Previous implementation: a radial-gradient "core" disc plus one
+-   conic-gradient "energy" layer that simply spun 360° as a whole
+-   (twinEnergySpin rotating the entire layer) — visually that reads as
+-   a rotating red ball because the ONE thing moving is a full rotation
+-   of a single gradient layer; there was no internal structure to look
+-   like flowing energy independent of the sphere's own "spin".
+-   Rebuilt as: a static shaded sphere (.to-core, unchanged technique,
+-   recolored) + a layer of 3 curved SVG paths ("silver energy waves")
+-   whose motion comes from animating stroke-dashoffset (energy flowing
+-   along each curve) plus a small independent translate/scale drift per
+-   path — never a rotation of the sphere itself — plus a thin rim-light
+-   stroke and the existing aura/highlight/core-breathe layers recolored
+-   into the crimson/burgundy/silver palette. One shared markup block
+-   (TWIN_ORB_INNER_HTML, injected by initTwinOrbs() below) is reused for
+-   the hero orb, the dock orb, the voice-mode orb, the chat-message
+-   avatar orb, and the bottom-nav mini orb — only size and a couple of
+-   detail-reduction rules differ per context. All motion is
+-   transform/opacity/stroke-dashoffset — no layout-triggering
+-   properties, no canvas, no extra deps.
++   The old dual SVG orb (#twinOrb + #twinDockOrb, two DOM elements kept
++   in sync) is gone. Twin is now rendered by exactly one <canvas>
++   (public/twin-orb.js, #twinOrbCanvas, appended to <body>) that
++   physically translates/scales itself on top of whichever anchor
++   below is currently active. These elements are now just invisible,
++   correctly-sized *anchors* reserving layout space and marking travel
++   destinations — not orbs themselves.
+ ════════════════════════════════════════════ */
+-.twin-orb {
+-  --orb-size: 76px;
+-  --tw-deepest: #120005;
+-  --tw-burgundy: #3a000c;
+-  --tw-crimson: #7a0018;
+-  --tw-bright: var(--accent-d, #b30000);
+-  --tw-silver: #bfc2c7;
+-  --tw-silver-bright: #e4e5e7;
+-  position: relative;
+-  width: var(--orb-size); height: var(--orb-size);
+-  flex-shrink: 0;
+-}
+-.twin-orb .to-aura {
+-  position: absolute; inset: -14px; border-radius: 50%;
+-  background:
+-    radial-gradient(circle, rgba(228,229,231,0.10), transparent 55%),
+-    radial-gradient(circle, var(--accent-glow), transparent 70%);
+-  opacity: .5; filter: blur(2px);
+-  animation: twinAuraBreathe 4.2s ease-in-out infinite;
+-  transition: opacity .4s ease;
+-}
+-.twin-orb .to-core {
+-  position: absolute; inset: 0; border-radius: 50%;
+-  overflow: hidden;
++.twin-orb-anchor { flex-shrink: 0; border-radius: 50%; }
++.twin-orb-anchor--hero { width: clamp(96px, 30vw, 140px); height: clamp(96px, 30vw, 140px); }
++.twin-orb-anchor--dock { width: clamp(48px, 17vw, 72px); height: clamp(48px, 17vw, 72px); }
++.twin-orb-anchor--voice { width: 168px; height: 168px; }
++
++/* Small static (non-canvas) mini orb used only for the tiny bottom-nav
++   glyph and the per-message chat avatar — decorative icons, not the
++   Twin orb instance, so they stay lightweight CSS rather than spinning
++   up additional canvases. */
++.twin-mini-orb {
++  display: block; border-radius: 50%;
+   background:
+-    radial-gradient(circle at 32% 26%, rgba(255,255,255,0.30), transparent 38%),
+-    radial-gradient(circle at 62% 68%, var(--tw-crimson), transparent 62%),
+-    radial-gradient(circle at 42% 52%, var(--tw-bright), var(--tw-burgundy) 68%, var(--tw-deepest) 100%);
+-  box-shadow:
+-    inset 0 -6px 14px rgba(0,0,0,0.5),
+-    inset 0 4px 10px rgba(255,255,255,0.08),
+-    0 6px 22px rgba(0,0,0,0.5);
+-  animation: twinCoreBreathe 4s ease-in-out infinite;
+-}
+-/* Layer 5 — soft powered center core: a separate, slower breathing glow
+-   sitting under the waves so the sphere reads as "powered from inside"
+-   independent of the outer shading above. */
+-.twin-orb .to-core::after {
+-  content: ''; position: absolute; inset: 18%; border-radius: 50%;
+-  background: radial-gradient(circle, rgba(244,244,244,0.35), rgba(211,19,50,0.18) 55%, transparent 75%);
+-  animation: twinCoreGlow 3.4s ease-in-out infinite;
+-  mix-blend-mode: screen;
+-}
+-.twin-orb .to-waves {
+-  position: absolute; inset: 0; width: 100%; height: 100%;
+-  overflow: hidden; border-radius: 50%;
+-}
+-.twin-orb .tw-wave { fill: none; stroke-linecap: round; }
+-/* Front wave — brightest, closest layer. */
+-.twin-orb .tw-wave-1 {
+-  stroke: var(--tw-silver-bright); stroke-width: 2.6; opacity: .8;
+-  stroke-dasharray: 14 10;
+-  animation: twFlow1 5.5s linear infinite, twDrift1 7s ease-in-out infinite;
+-}
+-/* Middle wave — muted silver, slightly slower, opposite flow direction. */
+-.twin-orb .tw-wave-2 {
+-  stroke: var(--tw-silver); stroke-width: 2.2; opacity: .55;
+-  stroke-dasharray: 10 9;
+-  animation: twFlow2 7.5s linear infinite reverse, twDrift2 9s ease-in-out infinite;
+-}
+-/* Back wave — faint burgundy-white, deepest/dimmest layer. */
+-.twin-orb .tw-wave-3 {
+-  stroke: rgba(214,182,190,0.4); stroke-width: 1.8; opacity: .4;
+-  stroke-dasharray: 8 12;
+-  animation: twFlow1 9.5s linear infinite, twDrift1 11s ease-in-out infinite reverse;
+-}
+-.twin-orb .tw-rim {
+-  fill: none; stroke: rgba(228,229,231,0.3); stroke-width: 1;
+-  stroke-dasharray: 60 240;
+-  animation: twRim 6s ease-in-out infinite;
+-}
+-.twin-orb .to-highlight {
+-  position: absolute; top: 12%; left: 22%; width: 30%; height: 22%; border-radius: 50%;
+-  background: rgba(255,255,255,0.5); filter: blur(4px);
+-  opacity: .55;
+-}
+-@keyframes twinAuraBreathe { 0%,100% { transform: scale(1); opacity: .4; } 50% { transform: scale(1.12); opacity: .6; } }
+-@keyframes twinCoreBreathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.045); } }
+-@keyframes twinCoreGlow { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+-/* Dash-offset animation = the classic "energy flowing along a line"
+-   technique: the dash pattern itself doesn't move in space, only the
+-   offset does, which reads as light traveling along the curve rather
+-   than the curve (or the sphere) rotating. */
+-@keyframes twFlow1 { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -48; } }
+-@keyframes twFlow2 { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -38; } }
+-/* Small independent drift per wave — organic bend/shift without
+-   morphing the path data (keeps this animatable everywhere, including
+-   older Android WebViews that don't support animating SVG `d`). */
+-@keyframes twDrift1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(1.5px,-1.2px); } }
+-@keyframes twDrift2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-1.5px,1px); } }
+-@keyframes twRim { 0%,100% { stroke-dashoffset: 0; opacity: .25; } 50% { stroke-dashoffset: -40; opacity: .4; } }
+-
+-/* THINKING — internal energy intensifies: waves speed up, core
+-   brightens, aura firms up. The sphere itself never spins. */
+-.twin-orb.is-thinking .tw-wave-1 { animation-duration: 2.2s, 3.5s; opacity: 1; }
+-.twin-orb.is-thinking .tw-wave-2 { animation-duration: 3s, 4.5s; opacity: .75; }
+-.twin-orb.is-thinking .tw-wave-3 { animation-duration: 4s, 5.5s; opacity: .6; }
+-.twin-orb.is-thinking .to-core { animation-duration: 1.3s; }
+-.twin-orb.is-thinking .to-core::after { animation-duration: 1.1s; }
+-.twin-orb.is-thinking .to-aura { animation-duration: 1.4s; opacity: .7; }
+-
+-/* RESPONDING — brief settle pulse back toward idle */
+-.twin-orb.is-responding .tw-wave-1 { animation-duration: 4s, 6s; }
+-.twin-orb.is-responding .to-core { animation-duration: 2.2s; }
+-
+-/* ERROR — restrained red flash, then returns to idle via JS */
+-.twin-orb.is-error .to-core {
+-  animation: twinErrorPulse .5s ease 2;
+-}
+-.twin-orb.is-error .to-aura { background: radial-gradient(circle, rgba(248,113,113,0.5), transparent 70%); }
+-@keyframes twinErrorPulse { 0%,100% { filter: none; } 50% { filter: brightness(1.5) saturate(1.3); } }
+-
+-/* OFFLINE — internal energy stops, aura dims */
+-.twin-orb.is-offline .tw-wave, .twin-orb.is-offline .tw-rim, .twin-orb.is-offline .to-aura { animation: none; opacity: .12; }
+-.twin-orb.is-offline .to-core { animation: none; filter: saturate(.4) brightness(.7); }
+-.twin-orb.is-offline .to-core::after { animation: none; opacity: .15; }
+-
+-/* LISTENING — calm baseline; real mic amplitude (--mic-level, 0..1,
+-   written from the AnalyserNode loop) subtly scales wave amplitude,
+-   aura size and core intensity on top of this, so the orb visibly
+-   responds to actual voice input rather than a fake/random idle loop. */
+-.twin-orb.is-listening { --mic-level: 0; }
+-.twin-orb.is-listening .to-aura {
+-  animation: none;
+-  transform: scale(calc(1 + var(--mic-level) * 0.22));
+-  opacity: calc(0.5 + var(--mic-level) * 0.35);
+-  transition: transform .08s ease-out, opacity .08s ease-out;
+-}
+-.twin-orb.is-listening .to-core {
+-  animation: none;
+-  transform: scale(calc(1 + var(--mic-level) * 0.09));
+-  transition: transform .08s ease-out;
+-}
+-.twin-orb.is-listening .tw-wave-1 {
+-  animation-duration: 4.5s, 6s;
+-  stroke-width: calc(2.6px + var(--mic-level) * 1.6px);
+-  opacity: calc(.6 + var(--mic-level) * .4);
+-  transition: stroke-width .08s ease-out, opacity .08s ease-out;
+-}
+-.twin-orb.is-listening .tw-wave-2 { animation-duration: 6s, 8s; }
+-
+-/* SPEAKING — steady expressive energy while Twin talks. Browser TTS
+-   doesn't expose output amplitude, so absent a real analyser this is a
+-   restrained, non-random lifecycle animation (never presented as real
+-   audio data) tied to the actual speech start/stop lifecycle. If a
+-   future TTS integration does expose amplitude, it can drive
+-   --mic-level here exactly the same way LISTENING does above. */
+-.twin-orb.is-speaking .tw-wave-1 { animation-duration: 2.4s, 3s; opacity: .95; }
+-.twin-orb.is-speaking .tw-wave-2 { animation-duration: 3.2s, 4s; opacity: .7; }
+-.twin-orb.is-speaking .to-core { animation: twinSpeakPulse 1.1s ease-in-out infinite; }
+-.twin-orb.is-speaking .to-aura { animation-duration: 1.6s; opacity: .65; }
+-@keyframes twinSpeakPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.035); } }
+-
+-@media (prefers-reduced-motion: reduce) {
+-  .twin-orb .to-aura, .twin-orb .to-core, .twin-orb .to-core::after,
+-  .twin-orb .tw-wave, .twin-orb .tw-rim { animation: none !important; }
+-}
+-
+-.twin-msg-av { background: transparent; }
+-.twin-msg-av .twin-orb { width: 26px; height: 26px; }
+-.twin-msg-av .twin-orb .to-core { animation: none; }
+-/* Too small to read 3 layered waves cleanly — show only the front one. */
+-.twin-msg-av .twin-orb .tw-wave-2, .twin-msg-av .twin-orb .tw-wave-3 { display: none; }
+-
+-/* Tiny nav glyph — now uses the same wave system as the rest of Twin
+-   (previously intentionally static; the shared component makes a
+-   restrained animated version cheap enough to run everywhere). */
+-.nav-twin-ico { display: inline-flex; align-items: center; justify-content: center; }
+-.nav-twin-ico .twin-orb { width: 16px; height: 16px; }
+-
+-/* ── Mini Twin Orb — bottom nav (Twin is the centered, hero destination) ──
+-   Reuses the exact same .twin-orb layers/markup as the main AI page's
+-   orb — not a second visual identity — just smaller sizing and one
+-   wave hidden (too small to read 3 layers cleanly). Pure CSS, so
+-   running it continuously across every page the navbar appears on
+-   costs nothing beyond what the rest of the navbar already costs. */
+-.nav-twin-ico--mini .twin-orb { width: 22px; height: 22px; }
+-.twin-orb--navmini { --orb-size: 22px; }
+-.twin-orb--navmini .to-aura { inset: -5px; opacity: .3; animation-duration: 4.5s; }
+-.twin-orb--navmini .to-core { animation-duration: 4.5s; }
+-.twin-orb--navmini .to-highlight { opacity: .45; }
+-.twin-orb--navmini .tw-wave-3 { display: none; }
+-.twin-orb--navmini .tw-wave-1 { stroke-width: 2; }
+-.twin-orb--navmini .tw-wave-2 { stroke-width: 1.6; }
+-/* Idle breathing — very subtle, must never compete with the currently
+-   active page. */
+-.bot-ni--twin:not(.active) .twin-orb--navmini { opacity: .82; }
+-/* Active Twin — orb becomes visibly "more alive": brighter waves, richer
+-   core, slightly larger, one restrained pulse on entry. The normal red
+-   active-indicator/label treatment below still applies on top of this,
+-   unchanged from every other nav destination. */
+-.bot-ni--twin.active .twin-orb--navmini {
+-  transform: scale(1.08);
+-  animation: twinNavActivate .3s ease;
+-}
+-.bot-ni--twin.active .tw-wave-1 { opacity: 1; }
+-.bot-ni--twin.active .tw-wave-2 { opacity: .8; }
+-.bot-ni--twin.active .to-aura { opacity: .6; animation-duration: 2.6s; }
+-.bot-ni--twin.active .to-core { filter: saturate(1.15) brightness(1.08); animation-duration: 2.4s; }
+-@keyframes twinNavActivate { 0% { transform: scale(1); } 55% { transform: scale(1.14); } 100% { transform: scale(1.08); } }
+-@media (prefers-reduced-motion: reduce) {
+-  .twin-orb--navmini .to-aura, .twin-orb--navmini .to-core,
+-  .twin-orb--navmini .tw-wave, .twin-orb--navmini .tw-rim { animation: none !important; }
+-}
++    radial-gradient(circle at 32% 28%, rgba(228,229,231,0.55), transparent 40%),
++    radial-gradient(circle at 60% 65%, #7a0018, transparent 65%),
++    radial-gradient(circle at 45% 50%, #b30000, #3a000c 68%, #120005 100%);
++  box-shadow: inset 0 -2px 5px rgba(0,0,0,0.5), inset 0 1px 3px rgba(255,255,255,0.08);
++  animation: twinMiniBreathe 4s ease-in-out infinite;
++}
++@keyframes twinMiniBreathe { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.12); } }
++.nav-twin-ico .twin-mini-orb { width: 16px; height: 16px; }
++.nav-twin-ico--mini .twin-mini-orb { width: 22px; height: 22px; }
++.twin-msg-av .twin-mini-orb { width: 26px; height: 26px; animation: none; }
++.bot-ni--twin.active .twin-mini-orb { transform: scale(1.1); filter: brightness(1.2) saturate(1.15); }
++@media (prefers-reduced-motion: reduce) { .twin-mini-orb { animation: none !important; } }
+ 
+ /* Twin welcome screen */
+-.twin-welcome-orb-wrap { width: 84px; height: 84px; margin: 0 auto 16px; }
+-.twin-welcome-orb-wrap .twin-orb { --orb-size: 84px; }
++.twin-welcome-orb-wrap { width: clamp(96px, 30vw, 140px); height: clamp(96px, 30vw, 140px); margin: 0 auto 16px; }
+ .twin-welcome-title { font-family: var(--ff-serif); font-size: 22px; color: var(--white); margin-bottom: 2px; }
+ .twin-welcome-sub { font-size: 13px; color: var(--text3); }
+ 
+@@ -4661,14 +4468,23 @@
+ .twin-sugg-chip:hover { background: var(--g2); border-color: var(--border2); color: var(--white); }
+ .twin-sugg-chip:active { transform: scale(.96); }
+ 
+-/* Premium floating Twin dock — the composer bar restyled so a smaller
+-   orb can visually overlap its top-center edge. */
++/* Premium floating Twin dock — the orb's own anchor is centered
++   exactly ON the bar's top edge (translate -50%,-50%) so roughly half
++   the sphere sits above the bar and half visually overlaps/intersects
++   it, matching the reference "docked AI orb" pattern. A soft patch
++   behind the orb breaks the bar's border/background right where the
++   sphere crosses it, so the border never visibly cuts through the
++   orb's center. */
+ .twin-dock-wrap { position: relative; flex-shrink: 0; }
+ .twin-dock-orb {
+-  position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
+-  width: 36px; height: 36px; z-index: 2; pointer-events: none;
++  position: absolute; top: 0; left: 50%; z-index: 3; pointer-events: none;
++  transform: translate(-50%, -50%);
++}
++.twin-dock-orb::before {
++  content: ''; position: absolute; inset: 0; margin: -6px; border-radius: 50%;
++  background: radial-gradient(circle, rgba(20,10,12,0.9) 55%, rgba(20,10,12,0) 78%);
++  z-index: -1;
+ }
+-.twin-dock-orb .twin-orb { --orb-size: 36px; }
+ .twin-dock {
+   display: flex; align-items: center; gap: 8px;
+   margin: 0 12px max(14px, env(safe-area-inset-bottom)) 12px;
+@@ -4699,7 +4515,6 @@
+ }
+ .twin-voice.active { display: flex; }
+ .twin-voice-orb-wrap { width: 168px; height: 168px; }
+-.twin-voice-orb-wrap .twin-orb { --orb-size: 168px; }
+ .twin-voice-status {
+   font-family: var(--ff-serif); font-size: 20px; color: var(--white);
+   min-height: 26px; text-align: center; letter-spacing: .2px;
+@@ -5578,7 +5393,7 @@ select option { background: #0D0D0D; color: #fff; }
+ 
+     <div class="nav-group">
+       <div class="nav-label">AI & Tools</div>
+-      <div class="ni" data-page="ai"><span class="ico nav-twin-ico"><span class="twin-orb"></span></span>Twin</div>
++      <div class="ni" data-page="ai"><span class="ico nav-twin-ico"><span class="twin-mini-orb"></span></span>Twin</div>
+     </div>
+     <div class="sb-foot">
+       <div class="ni" data-page="settings" style="margin:0"><span class="ico">⚙️</span>Settings</div>
+@@ -6791,7 +6606,7 @@ select option { background: #0D0D0D; color: #fff; }
+           <div class="ai-msgs" id="aiMsgs">
+             <div class="ai-welcome" id="aiWelcome">
+               <div class="twin-welcome-orb-wrap">
+-                <div class="twin-orb" id="twinOrb"></div>
++                <div class="twin-orb-anchor twin-orb-anchor--hero" id="twinHeroAnchor"></div>
+               </div>
+               <div class="twin-welcome-title">Hey, I'm Twin.</div>
+               <div class="twin-welcome-sub">What's on your mind?</div>
+@@ -6805,7 +6620,7 @@ select option { background: #0D0D0D; color: #fff; }
+             </div>
+           </div>
+           <div class="twin-dock-wrap">
+-            <div class="twin-dock-orb"><div class="twin-orb" id="twinDockOrb"></div></div>
++            <div class="twin-dock-orb"><div class="twin-orb-anchor twin-orb-anchor--dock" id="twinDockAnchor"></div></div>
+             <div class="twin-dock">
+               <div class="uc-composer uc-composer--ai" style="padding:0;flex:1">
+                 <div class="uc-input-wrap">
+@@ -6826,7 +6641,7 @@ select option { background: #0D0D0D; color: #fff; }
+           <!-- TWIN VOICE MODE (Phase 2) -->
+           <div class="twin-voice" id="twinVoice">
+             <div class="twin-voice-orb-wrap">
+-              <div class="twin-orb" id="twinVoiceOrb"></div>
++              <div class="twin-orb-anchor twin-orb-anchor--voice" id="twinVoiceAnchor"></div>
+             </div>
+             <div class="twin-voice-status" id="twinVoiceStatus">Listening...</div>
+             <div class="twin-voice-transcript" id="twinVoiceTranscript"></div>
+@@ -7184,7 +6999,7 @@ select option { background: #0D0D0D; color: #fff; }
+         <div class="bot-ni active" data-page="dashboard"><span class="ico">🏠</span>Home</div>
+ <div class="bot-ni" data-page="chat"><span class="ico">💬</span>Chat<span data-chat-badge></span></div>
+ <div class="bot-ni" data-page="globe"><span class="ico">🌍</span>Globe</div>
+-<div class="bot-ni bot-ni--twin" data-page="ai"><span class="ico nav-twin-ico nav-twin-ico--mini"><span class="twin-orb twin-orb--navmini"></span></span>Twin</div>
++<div class="bot-ni bot-ni--twin" data-page="ai"><span class="ico nav-twin-ico nav-twin-ico--mini"><span class="twin-mini-orb"></span></span>Twin</div>
+ <div class="bot-ni" data-page="games"><span class="ico">🎮</span>Games</div>
+ <div class="bot-ni" data-page="movie"><span class="ico">🎬</span>Watch</div>
+ <div class="bot-ni" data-page="settings"><span class="ico">⚙️</span>More</div>
+@@ -7452,6 +7267,7 @@ select option { background: #0D0D0D; color: #fff; }
+       </div>
+ 
+       <div class="toast" id="toast"></div>
++<script src="/twin-orb.js"></script>
+ <script>
+   // Notification deep-linking: chat/call/globe/music/etc. pushes include
+   // a url like /?page=chat so tapping the notification opens the right
+@@ -8269,6 +8085,18 @@ function setJustPairedAt(ts) {
+           })();
+           if (page !== 'camera' && camStream) stopCamera();
+           if (page !== 'ai' && window.TwinVoice) TwinVoice.exit(true);
++          if (page === 'ai' && window.TwinOrb) {
++            // The ai page is `display:none` until navigated to, so the
++            // hero anchor has no layout (offsetParent === null) at boot —
++            // that's why positioning must be (re)decided HERE, every time
++            // Twin becomes visible, not just once on page load.
++            requestAnimationFrame(() => {
++              const hero = document.getElementById('twinHeroAnchor');
++              const dock = document.getElementById('twinDockAnchor');
++              const target = (hero && hero.offsetParent !== null) ? hero : dock;
++              TwinOrb.goTo(target, { animate: false });
++            });
++          }
+           if (pushHistory) {
+     history.pushState({ page }, '', '#' + page);
+   }
+@@ -10615,30 +10443,23 @@ const p = await Notification.requestPermission();
+             </div>`).join('');
+         }
+ 
+-        // ─── TWIN ORB — shared rendering (hero / dock / voice / nav / msg avatar) ───
+-        // One markup source used everywhere the orb appears, so the visual
+-        // identity (crimson/burgundy sphere + 3 silver energy waves + rim +
+-        // aura + highlight) can never drift between locations. The outer
+-        // .twin-orb wrapper (and its id, if any) stays exactly where each
+-        // caller already expects it — only the inner layers are shared —
+-        // so the existing state-machine code below (setTwinState, the
+-        // listening/speaking wiring, --mic-level) needed zero changes.
+-        const TWIN_ORB_INNER_HTML =
+-          '<span class="to-aura"></span>' +
+-          '<span class="to-core"></span>' +
+-          '<svg class="to-waves" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
+-            '<path class="tw-wave tw-wave-1" d="M -10,58 C 20,38 40,78 60,55 C 80,32 95,50 110,45"></path>' +
+-            '<path class="tw-wave tw-wave-2" d="M -10,45 C 15,65 35,30 60,50 C 82,68 95,40 110,58"></path>' +
+-            '<path class="tw-wave tw-wave-3" d="M -10,62 C 25,48 45,66 65,50 C 85,36 95,58 110,50"></path>' +
+-            '<circle class="tw-rim" cx="50" cy="50" r="47"></circle>' +
+-          '</svg>' +
+-          '<span class="to-highlight"></span>';
+-        function buildTwinOrb(el) {
+-          if (el && !el.dataset.twinBuilt) { el.innerHTML = TWIN_ORB_INNER_HTML; el.dataset.twinBuilt = '1'; }
+-        }
+-        function initTwinOrbs() { document.querySelectorAll('.twin-orb').forEach(buildTwinOrb); }
+-        initTwinOrbs();
+-        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initTwinOrbs);
++        // ─── TWIN ORB — single Canvas instance (public/twin-orb.js) ───
++        // There is exactly ONE orb on the page: window.TwinOrb owns one
++        // <canvas>, one rAF loop, one state machine. This block only
++        // boots it and points it at the hero anchor on load; all
++        // travel between hero/dock/voice happens via TwinOrb.goTo()
++        // calls further down (askAI(), TwinVoice.open/exit, etc).
++        function initTwinOrb() {
++          if (!window.TwinOrb) return;
++          TwinOrb.init();
++          const hero = document.getElementById('twinHeroAnchor');
++          const dock = document.getElementById('twinDockAnchor');
++          // Start wherever is actually visible right now (fresh chat →
++          // hero; already-docked session → dock), never animated on load.
++          TwinOrb.goTo((hero && hero.offsetParent !== null) ? hero : dock, { animate: false });
++        }
++        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initTwinOrb);
++        else initTwinOrb();
+ 
+         // ─── TWIN (AI Love Guide 2.0) ────────────────────────────
+         let aiStreaming = false;
+@@ -10646,29 +10467,13 @@ const p = await Notification.requestPermission();
+         let aiLastReplyText = ''; // latest Twin reply, plain text — read by the voice-mode TTS and the text-chat speak button
+         let aiLastFailed = false; // set on request failure so voice mode doesn't re-speak a stale reply
+ 
+-        // Orb state machine. Phase 1 states: idle / thinking / responding /
+-        // error / offline. Phase 2 will add listening/speaking on top of
+-        // this same setter without touching callers.
++        // Orb state machine. States: idle / thinking / responding / error /
++        // offline / listening / speaking. Delegates straight to the single
++        // TwinOrb canvas instance — no more looping over two DOM elements.
+         let twinState = 'idle';
+-        let twinErrorTimer = null;
+         function setTwinState(state) {
+           twinState = state;
+-          const orbs = [document.getElementById('twinOrb'), document.getElementById('twinDockOrb')];
+-          clearTimeout(twinErrorTimer);
+-          orbs.forEach(o => {
+-            if (!o) return;
+-            o.classList.remove('is-thinking', 'is-responding', 'is-error', 'is-offline');
+-            if (state !== 'idle') o.classList.add('is-' + state);
+-          });
+-          if (state === 'error') {
+-            // Restrained error pulse, then settle back to idle automatically
+-            // rather than leaving Twin stuck in an error visual.
+-            twinErrorTimer = setTimeout(() => setTwinState('idle'), 1400);
+-          }
+-          if (state === 'responding') {
+-            // Brief settle animation, then back to idle.
+-            twinErrorTimer = setTimeout(() => { if (twinState === 'responding') setTwinState('idle'); }, 900);
+-          }
++          if (window.TwinOrb) TwinOrb.setState(state);
+         }
+         function twinMicTap() { TwinVoice.open(); }
+         window.addEventListener('online', () => { if (twinState === 'offline') setTwinState('idle'); });
+@@ -10710,7 +10515,7 @@ const p = await Notification.requestPermission();
+           function els() {
+             return {
+               wrap: document.getElementById('twinVoice'),
+-              orb: document.getElementById('twinVoiceOrb'),
++
+               status: document.getElementById('twinVoiceStatus'),
+               transcript: document.getElementById('twinVoiceTranscript'),
+               muteBtn: document.getElementById('twinVoiceMuteBtn'),
+@@ -10735,14 +10540,7 @@ const p = await Notification.requestPermission();
+ 
+           function setMode(next) {
+             mode = next;
+-            const { orb, muteBtn } = els();
+-            [orb, document.getElementById('twinOrb'), document.getElementById('twinDockOrb')].forEach(o => {
+-              if (!o) return;
+-              o.classList.remove('is-listening', 'is-speaking', 'is-thinking', 'is-responding', 'is-error');
+-              if (next === 'listening') o.classList.add('is-listening');
+-              else if (next === 'speaking') o.classList.add('is-speaking');
+-              else if (next === 'thinking') o.classList.add('is-thinking');
+-            });
++            if (window.TwinOrb) TwinOrb.setState(next);
+             twinState = next === 'idle' ? 'idle' : next;
+             if (next === 'listening') { setStatus('Listening...'); setMicIcon(muted); }
+             else if (next === 'thinking') { setStatus('Thinking...', ''); }
+@@ -10781,10 +10579,7 @@ const p = await Notification.requestPermission();
+                 for (let i = 0; i < data.length; i++) sum += data[i];
+                 const avg = sum / data.length / 255; // 0..1
+                 smoothedLevel = smoothedLevel * 0.75 + avg * 0.25;
+-                const { orb } = els();
+-                [orb, document.getElementById('twinOrb'), document.getElementById('twinDockOrb')].forEach(o => {
+-                  if (o) o.style.setProperty('--mic-level', Math.min(1, smoothedLevel * 2.2).toFixed(3));
+-                });
++                if (window.TwinOrb) TwinOrb.setMicLevel(Math.min(1, smoothedLevel * 2.2));
+                 rafId = requestAnimationFrame(loop);
+               };
+               loop();
+@@ -10914,6 +10709,11 @@ const p = await Notification.requestPermission();
+             wrap.classList.add('active');
+             const { micBtn } = els();
+             if (micBtn) micBtn.classList.add('is-live');
++            // The SAME orb travels into the voice overlay's anchor — the
++            // overlay is `display:flex` the instant `.active` is added
++            // above, so the anchor's rect is measurable right away.
++            const voiceAnchor = document.getElementById('twinVoiceAnchor');
++            if (window.TwinOrb && voiceAnchor) TwinOrb.goTo(voiceAnchor, { animate: true });
+             setMode('idle'); setStatus('Getting ready...', '');
+             startLevelMeter();
+             startListening();
+@@ -10929,9 +10729,12 @@ const p = await Notification.requestPermission();
+             if (wrap) wrap.classList.remove('active');
+             if (micBtn) micBtn.classList.remove('is-live');
+             setTwinState('idle');
+-            [document.getElementById('twinOrb'), document.getElementById('twinDockOrb')].forEach(o => {
+-              if (o) o.classList.remove('is-listening', 'is-speaking');
+-            });
++            // Travel back to wherever the orb belongs now — dock if a
++            // conversation exists, hero if the welcome screen is still up.
++            const hero = document.getElementById('twinHeroAnchor');
++            const dock = document.getElementById('twinDockAnchor');
++            const backTo = (hero && hero.offsetParent !== null) ? hero : dock;
++            if (window.TwinOrb && backTo) TwinOrb.goTo(backTo, { animate: true });
+           }
+           function toggleMute() {
+             muted = !muted;
+@@ -11061,7 +10864,17 @@ const p = await Notification.requestPermission();
+           const msgsEl = document.getElementById('aiMsgs');
+           const sendBtn = document.getElementById('aiSendBtn');
+           const welcome = document.getElementById('aiWelcome');
+-          if (welcome) welcome.remove();
++          if (welcome) {
++            // The single Twin orb physically travels from its hero position
++            // down into the dock notch — it is NOT hidden/re-created. The
++            // dock anchor's position is stable (it's a flex sibling of
++            // #aiMsgs, unaffected by the welcome block being removed), so
++            // it's safe to measure and kick off the travel before removing
++            // the hero block underneath it.
++            const dockAnchor = document.getElementById('twinDockAnchor');
++            if (window.TwinOrb && dockAnchor) TwinOrb.goTo(dockAnchor, { animate: true });
++            welcome.remove();
++          }
+           aiLastQuestion = question;
+ 
+           if (!isRegenerate) {
+@@ -11078,8 +10891,7 @@ const p = await Notification.requestPermission();
+           bubbleEl.innerHTML = `<span class="ai-thinking-wave"><span></span><span></span><span></span></span><span class="ai-thinking-label">Thinking...</span>`;
+           wrapDiv.appendChild(bubbleEl);
+           const avDiv = document.createElement('div'); avDiv.className = 'ai-av twin-msg-av';
+-          avDiv.innerHTML = '<span class="twin-orb"></span>';
+-          buildTwinOrb(avDiv.querySelector('.twin-orb'));
++          avDiv.innerHTML = '<span class="twin-mini-orb"></span>';
+           ld.appendChild(avDiv); ld.appendChild(wrapDiv);
+           msgsEl.appendChild(ld);
+           trimAiHistoryDom(msgsEl);
+diff --git a/public/twin-orb.js b/public/twin-orb.js
+new file mode 100644
+index 0000000..cd36213
+--- /dev/null
++++ b/public/twin-orb.js
+@@ -0,0 +1,407 @@
++/* ════════════════════════════════════════════════════════════════════
++   TWIN ORB — single Canvas-rendered energy sphere (Phase 3 rebuild)
++   ────────────────────────────────────────────────────────────────────
++   Replaces the old dual-DOM SVG orb (#twinOrb + #twinDockOrb, two
++   separate elements kept in visual sync by toggling the same classes
++   on both). There is now exactly ONE orb: one <canvas>, one rAF loop,
++   one state machine. It lives in a fixed overlay layer and physically
++   translates/scales itself on top of whichever "anchor" element is
++   currently active (hero welcome / dock / voice-mode), measured with
++   getBoundingClientRect(). Nothing about layout, chat, the AI backend,
++   or Twin's personality is touched by this file.
++
++   Public API (window.TwinOrb):
++     TwinOrb.init()                         — call once on page load
++     TwinOrb.goTo(anchorEl, {animate})       — travel to an anchor's center
++     TwinOrb.setSize(px, {animate})          — resize (usually paired with goTo)
++     TwinOrb.setState('idle'|'thinking'|'responding'|'error'|'offline'|'listening'|'speaking')
++     TwinOrb.setMicLevel(0..1)               — real mic amplitude while listening
++     TwinOrb.refresh()                       — re-measure current anchor (resize/orientation)
++════════════════════════════════════════════════════════════════════ */
++(function () {
++  'use strict';
++
++  // Canvas is always drawn at this logical size; CSS transform scales
++  // it down for smaller anchors (dock/nav) so there is only ever one
++  // resolution to render, and shrinking via `scale()` stays crisp.
++  var BASE_SIZE = 176;
++
++  var canvas, ctx, dpr = 1;
++  var mounted = false;
++  var rafId = null;
++  var lastFrameT = 0;
++  var visible = true;
++
++  // ── current transform target ──
++  var curX = 0, curY = 0, curScale = 84 / BASE_SIZE;
++  var activeAnchor = null;
++
++  // ── state machine ──
++  var state = 'idle';           // idle | thinking | responding | error | offline | listening | speaking
++  var micLevel = 0;             // 0..1, live mic amplitude (listening)
++  var errorTimer = null;
++  var respondTimer = null;
++  var stateT0 = performance.now();
++
++  // ── plasma blobs (procedural, merge into one soft field) ──
++  var PLASMA = [
++    { rx: 0.30, ry: 0.22, r: 0.55, fx: 0.31, fy: 0.27, ph: 0.0, tone: 0 },
++    { rx: 0.62, ry: 0.60, r: 0.60, fx: 0.19, fy: 0.24, ph: 1.1, tone: 1 },
++    { rx: 0.40, ry: 0.70, r: 0.48, fx: 0.26, fy: 0.18, ph: 2.4, tone: 0 },
++    { rx: 0.72, ry: 0.32, r: 0.42, fx: 0.22, fy: 0.29, ph: 3.6, tone: 2 },
++    { rx: 0.50, ry: 0.50, r: 0.70, fx: 0.12, fy: 0.15, ph: 4.4, tone: 1 },
++    { rx: 0.25, ry: 0.55, r: 0.40, fx: 0.28, fy: 0.21, ph: 5.2, tone: 2 }
++  ];
++
++  // ── silver energy ribbons (bezier, animated control points) ──
++  var RIBBONS = [
++    { depth: 'back', fx1: 0.17, fy1: 0.23, fx2: 0.21, fy2: 0.19, ph: 0.4, amp: 0.16, speed: 0.35, y0: 0.30 },
++    { depth: 'mid', fx1: 0.20, fy1: 0.16, fx2: 0.15, fy2: 0.24, ph: 1.6, amp: 0.20, speed: 0.42, y0: 0.48 },
++    { depth: 'front', fx1: 0.24, fy1: 0.20, fx2: 0.18, fy2: 0.17, ph: 2.7, amp: 0.22, speed: 0.5, y0: 0.55 },
++    { depth: 'mid', fx1: 0.14, fy1: 0.27, fx2: 0.22, fy2: 0.14, ph: 3.9, amp: 0.18, speed: 0.31, y0: 0.62 },
++    { depth: 'back', fx1: 0.19, fy1: 0.18, fx2: 0.16, fy2: 0.22, ph: 5.1, amp: 0.15, speed: 0.38, y0: 0.42 }
++  ];
++
++  var PARTICLES = (function () {
++    var arr = [];
++    for (var i = 0; i < 16; i++) {
++      arr.push({
++        a: Math.random() * Math.PI * 2,
++        rr: 0.25 + Math.random() * 0.55,
++        speed: 0.04 + Math.random() * 0.06,
++        ph: Math.random() * Math.PI * 2,
++        size: 0.6 + Math.random() * 1.3
++      });
++    }
++    return arr;
++  })();
++
++  function ensureCanvas() {
++    if (canvas) return;
++    canvas = document.createElement('canvas');
++    canvas.id = 'twinOrbCanvas';
++    canvas.setAttribute('aria-hidden', 'true');
++    Object.assign(canvas.style, {
++      position: 'fixed',
++      top: '0', left: '0',
++      width: BASE_SIZE + 'px',
++      height: BASE_SIZE + 'px',
++      pointerEvents: 'none',
++      zIndex: '60',
++      willChange: 'transform',
++      transformOrigin: '0 0',
++      transition: 'none'
++    });
++    document.body.appendChild(canvas);
++    ctx = canvas.getContext('2d');
++    resizeCanvasBuffer();
++  }
++
++  function resizeCanvasBuffer() {
++    dpr = Math.min(window.devicePixelRatio || 1, 2);
++    canvas.width = Math.round(BASE_SIZE * dpr);
++    canvas.height = Math.round(BASE_SIZE * dpr);
++  }
++
++  function applyTransform(animate) {
++    canvas.style.transition = animate
++      ? 'transform 760ms cubic-bezier(0.22,1,0.36,1)'
++      : 'none';
++    var tx = curX - BASE_SIZE / 2;
++    var ty = curY - BASE_SIZE / 2;
++    canvas.style.transform = 'translate3d(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px,0) scale(' + curScale.toFixed(4) + ')';
++  }
++
++  function centerOf(el) {
++    var r = el.getBoundingClientRect();
++    return { x: r.left + r.width / 2, y: r.top + r.height / 2, size: r.width };
++  }
++
++  function goTo(anchorEl, opts) {
++    if (!anchorEl) return;
++    ensureCanvas();
++    opts = opts || {};
++    activeAnchor = anchorEl;
++    var c = centerOf(anchorEl);
++    curX = c.x; curY = c.y;
++    if (c.size > 0) curScale = c.size / BASE_SIZE;
++    applyTransform(opts.animate !== false);
++  }
++
++  function refresh() {
++    if (!activeAnchor || !canvas) return;
++    goTo(activeAnchor, { animate: false });
++  }
++
++  function setState(next) {
++    if (!next) next = 'idle';
++    clearTimeout(errorTimer);
++    clearTimeout(respondTimer);
++    state = next;
++    stateT0 = performance.now();
++    if (next === 'error') {
++      errorTimer = setTimeout(function () { setState('idle'); }, 1400);
++    }
++    if (next === 'responding') {
++      respondTimer = setTimeout(function () { if (state === 'responding') setState('idle'); }, 900);
++    }
++  }
++
++  function setMicLevel(v) {
++    micLevel = Math.max(0, Math.min(1, v || 0));
++  }
++
++  // ── drawing helpers ──
++  function lerp(a, b, t) { return a + (b - a) * t; }
++
++  function speedMul() {
++    switch (state) {
++      case 'thinking': return 1.9;
++      case 'listening': return 1 + micLevel * 1.1;
++      case 'speaking': return 1.5;
++      case 'offline': return 0.15;
++      default: return 1;
++    }
++  }
++  function energyMul() {
++    switch (state) {
++      case 'thinking': return 1.35;
++      case 'listening': return 1 + micLevel * 0.8;
++      case 'speaking': return 1.25;
++      case 'error': return 1.4;
++      case 'offline': return 0.25;
++      default: return 1;
++    }
++  }
++
++  function draw(tNow) {
++    var W = BASE_SIZE, H = BASE_SIZE, R = W / 2;
++    var t = tNow * 0.001;
++    var sMul = speedMul();
++    var eMul = energyMul();
++    var tt = t * sMul;
++
++    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
++    ctx.clearRect(0, 0, W, H);
++
++    // ── outer aura (outside the sphere clip) ──
++    var breathe = 1 + Math.sin(t * 1.3) * 0.05 * eMul;
++    var auraR = R * (1.28 * breathe);
++    var auraGrad = ctx.createRadialGradient(R, R, R * 0.7, R, R, auraR);
++    var auraOp = (state === 'offline') ? 0.08 : 0.34 + 0.16 * eMul;
++    auraGrad.addColorStop(0, 'rgba(122,0,24,' + (auraOp * 0.5).toFixed(3) + ')');
++    auraGrad.addColorStop(0.55, 'rgba(58,0,12,' + (auraOp * 0.35).toFixed(3) + ')');
++    auraGrad.addColorStop(1, 'rgba(58,0,12,0)');
++    ctx.save();
++    ctx.globalCompositeOperation = 'screen';
++    ctx.fillStyle = auraGrad;
++    ctx.beginPath(); ctx.arc(R, R, auraR, 0, Math.PI * 2); ctx.fill();
++    ctx.restore();
++
++    // ── clip to the sphere ──
++    ctx.save();
++    ctx.beginPath();
++    ctx.arc(R, R, R * 0.97, 0, Math.PI * 2);
++    ctx.clip();
++
++    // Layer 1 — deep base sphere shading (several stacked radials = depth)
++    var base = ctx.createRadialGradient(R * 0.86, R * 0.72, R * 0.05, R, R, R * 1.05);
++    base.addColorStop(0, '#120005');
++    base.addColorStop(0.35, '#3a000c');
++    base.addColorStop(0.7, '#1c0006');
++    base.addColorStop(1, '#050001');
++    ctx.fillStyle = base;
++    ctx.fillRect(0, 0, W, H);
++
++    var mid = ctx.createRadialGradient(R * 0.42, R * 0.5, R * 0.02, R * 0.5, R * 0.52, R * 0.95);
++    mid.addColorStop(0, 'rgba(200,20,45,0.55)');
++    mid.addColorStop(0.4, 'rgba(122,0,24,0.4)');
++    mid.addColorStop(1, 'rgba(18,0,5,0)');
++    ctx.fillStyle = mid;
++    ctx.fillRect(0, 0, W, H);
++
++    // Layer 2 — internal plasma clouds (merged soft blobs, screen blend)
++    ctx.save();
++    ctx.globalCompositeOperation = 'screen';
++    try { ctx.filter = 'blur(' + (R * 0.10).toFixed(1) + 'px)'; } catch (e) {}
++    for (var i = 0; i < PLASMA.length; i++) {
++      var p = PLASMA[i];
++      var px = R + Math.cos(tt * p.fx + p.ph) * R * p.rx;
++      var py = R + Math.sin(tt * p.fy + p.ph * 1.3) * R * p.ry;
++      var pr = R * p.r * (0.85 + 0.15 * Math.sin(tt * 0.6 + p.ph));
++      var col = p.tone === 0 ? '154,10,32' : (p.tone === 1 ? '90,0,18' : '196,150,160');
++      var g = ctx.createRadialGradient(px, py, 0, px, py, pr);
++      var op = (0.22 * eMul).toFixed(3);
++      g.addColorStop(0, 'rgba(' + col + ',' + op + ')');
++      g.addColorStop(1, 'rgba(' + col + ',0)');
++      ctx.fillStyle = g;
++      ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.fill();
++    }
++    try { ctx.filter = 'none'; } catch (e) {}
++    ctx.restore();
++
++    // Layer 3 — silver energy ribbons (smooth bezier, no dashes)
++    for (var d = 0; d < 3; d++) {
++      var depthName = d === 0 ? 'back' : (d === 1 ? 'mid' : 'front');
++      for (var r2 = 0; r2 < RIBBONS.length; r2++) {
++        var rb = RIBBONS[r2];
++        if (rb.depth !== depthName) continue;
++        drawRibbon(rb, tt, R, eMul);
++      }
++    }
++
++    // Layer 4 — breathing core
++    var coreBreath = 0.55 + 0.45 * Math.sin(t * 2.1 * sMul);
++    var coreR = R * (0.42 + 0.06 * coreBreath * eMul);
++    var coreG = ctx.createRadialGradient(R * 0.46, R * 0.46, 0, R * 0.5, R * 0.5, coreR);
++    coreG.addColorStop(0, 'rgba(244,244,244,' + (0.30 + 0.22 * coreBreath * eMul).toFixed(3) + ')');
++    coreG.addColorStop(0.4, 'rgba(211,19,50,' + (0.20 * eMul).toFixed(3) + ')');
++    coreG.addColorStop(1, 'rgba(211,19,50,0)');
++    ctx.save();
++    ctx.globalCompositeOperation = 'screen';
++    ctx.fillStyle = coreG;
++    ctx.beginPath(); ctx.arc(R, R, coreR, 0, Math.PI * 2); ctx.fill();
++    ctx.restore();
++
++    // Layer 5 — tiny drifting particles
++    if (state !== 'offline') {
++      ctx.save();
++      for (var pi = 0; pi < PARTICLES.length; pi++) {
++        var par = PARTICLES[pi];
++        var ang = par.a + tt * par.speed;
++        var rad = R * par.rr;
++        var qx = R + Math.cos(ang) * rad;
++        var qy = R + Math.sin(ang * 0.8) * rad * 0.9;
++        var fade = 0.25 + 0.35 * Math.sin(t * 1.4 + par.ph);
++        if (fade < 0) continue;
++        ctx.fillStyle = 'rgba(228,229,231,' + (fade * 0.6 * eMul).toFixed(3) + ')';
++        ctx.beginPath(); ctx.arc(qx, qy, par.size, 0, Math.PI * 2); ctx.fill();
++      }
++      ctx.restore();
++    }
++
++    // ── spherical lighting on top ──
++    // edge vignette
++    var vig = ctx.createRadialGradient(R, R, R * 0.55, R, R, R);
++    vig.addColorStop(0, 'rgba(0,0,0,0)');
++    vig.addColorStop(1, 'rgba(0,0,0,0.55)');
++    ctx.fillStyle = vig;
++    ctx.fillRect(0, 0, W, H);
++    // upper-left soft highlight
++    var hi = ctx.createRadialGradient(R * 0.36, R * 0.30, 0, R * 0.36, R * 0.30, R * 0.55);
++    hi.addColorStop(0, 'rgba(255,255,255,0.22)');
++    hi.addColorStop(1, 'rgba(255,255,255,0)');
++    ctx.fillStyle = hi;
++    ctx.fillRect(0, 0, W, H);
++    // lower deep shadow
++    var lo = ctx.createRadialGradient(R * 0.62, R * 0.82, 0, R * 0.62, R * 0.82, R * 0.7);
++    lo.addColorStop(0, 'rgba(0,0,0,0.35)');
++    lo.addColorStop(1, 'rgba(0,0,0,0)');
++    ctx.fillStyle = lo;
++    ctx.fillRect(0, 0, W, H);
++    // rim light
++    ctx.save();
++    ctx.strokeStyle = 'rgba(228,229,231,0.28)';
++    ctx.lineWidth = Math.max(1, R * 0.02);
++    ctx.beginPath();
++    ctx.arc(R, R, R * 0.94, Math.PI * 1.05, Math.PI * 1.75);
++    ctx.stroke();
++    ctx.restore();
++
++    // state-specific flash (error)
++    if (state === 'error') {
++      var flick = Math.abs(Math.sin((tNow - stateT0) * 0.02));
++      ctx.fillStyle = 'rgba(248,113,113,' + (0.18 * flick).toFixed(3) + ')';
++      ctx.fillRect(0, 0, W, H);
++    }
++
++    ctx.restore(); // end sphere clip
++  }
++
++  function drawRibbon(rb, tt, R, eMul) {
++    var W = BASE_SIZE;
++    var ph = tt * rb.speed + rb.ph;
++    var y0 = rb.y0 * W;
++    var amp = rb.amp * W * (0.85 + 0.15 * eMul);
++
++    var x0 = -W * 0.15, x3 = W * 1.15;
++    var c1x = W * rb.fx1 * 3, c1y = y0 + Math.sin(ph) * amp;
++    var c2x = W - W * rb.fx2 * 3, c2y = y0 + Math.cos(ph * 1.3 + 1) * amp;
++    var midY = y0 + Math.sin(ph * 0.7 + 2) * amp * 0.6;
++
++    var style;
++    if (rb.depth === 'back') style = { w: 1.1, glow: 0.10, mid: 0.16, core: 0.20, color: '196,150,160' };
++    else if (rb.depth === 'mid') style = { w: 1.6, glow: 0.16, mid: 0.30, core: 0.5, color: '191,194,199' };
++    else style = { w: 2.1, glow: 0.22, mid: 0.42, core: 0.9, color: '228,229,231' };
++
++    function path() {
++      ctx.beginPath();
++      ctx.moveTo(x0, y0);
++      ctx.bezierCurveTo(c1x, c1y, c2x, c2y, x3, midY);
++    }
++
++    ctx.save();
++    ctx.setLineDash([]);
++    ctx.lineCap = 'round';
++
++    // pass 1 — wide soft glow
++    ctx.globalAlpha = style.glow * eMul;
++    ctx.strokeStyle = 'rgba(' + style.color + ',1)';
++    ctx.lineWidth = style.w * 4.2;
++    try { ctx.filter = 'blur(' + (style.w * 1.6).toFixed(1) + 'px)'; } catch (e) {}
++    path(); ctx.stroke();
++    try { ctx.filter = 'none'; } catch (e) {}
++
++    // pass 2 — medium silver body
++    ctx.globalAlpha = style.mid * eMul;
++    ctx.lineWidth = style.w * 1.6;
++    path(); ctx.stroke();
++
++    // pass 3 — thin bright core
++    ctx.globalAlpha = style.core;
++    ctx.strokeStyle = 'rgba(255,255,255,1)';
++    ctx.lineWidth = Math.max(0.6, style.w * 0.55);
++    path(); ctx.stroke();
++
++    ctx.restore();
++  }
++
++  function loop(tNow) {
++    if (!visible) { rafId = null; return; }
++    draw(tNow);
++    rafId = requestAnimationFrame(loop);
++  }
++
++  function startLoop() {
++    if (rafId) return;
++    rafId = requestAnimationFrame(loop);
++  }
++  function stopLoop() {
++    if (rafId) cancelAnimationFrame(rafId);
++    rafId = null;
++  }
++
++  document.addEventListener('visibilitychange', function () {
++    visible = !document.hidden;
++    if (visible) startLoop(); else stopLoop();
++  });
++
++  window.addEventListener('resize', function () { refresh(); });
++  window.addEventListener('orientationchange', function () { setTimeout(refresh, 60); });
++
++  function init() {
++    if (mounted) return;
++    mounted = true;
++    ensureCanvas();
++    startLoop();
++  }
++
++  window.TwinOrb = {
++    init: init,
++    goTo: goTo,
++    refresh: refresh,
++    setState: setState,
++    setMicLevel: setMicLevel,
++    getState: function () { return state; }
++  };
++})();
