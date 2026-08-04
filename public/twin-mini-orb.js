@@ -97,19 +97,8 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, W);
 
-    // outer aura
-    var breathe = 1 + Math.sin(t * 1.3) * 0.05 * eMul;
-    var auraR = R * (1.22 * breathe) * (active ? 1.1 : 1);
-    var auraGrad = ctx.createRadialGradient(R, R, R * 0.7, R, R, auraR);
-    var auraOp = 0.30 + 0.16 * eMul;
-    auraGrad.addColorStop(0, 'rgba(200,0,0,' + (auraOp * 0.5).toFixed(3) + ')');
-    auraGrad.addColorStop(0.55, 'rgba(120,0,0,' + (auraOp * 0.35).toFixed(3) + ')');
-    auraGrad.addColorStop(1, 'rgba(120,0,0,0)');
-    ctx.save();
-    ctx.globalCompositeOperation = 'screen';
-    ctx.fillStyle = auraGrad;
-    ctx.beginPath(); ctx.arc(R, R, auraR, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
+    // outer aura removed — matches the same change in twin-orb.js so
+    // the nav orb and main orb stay visually identical.
 
     // clip to sphere
     ctx.save();

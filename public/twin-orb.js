@@ -210,19 +210,11 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
 
-    // ── outer aura (outside the sphere clip) ──
-    var breathe = 1 + Math.sin(t * 1.3) * 0.05 * eMul;
-    var auraR = R * (1.28 * breathe);
-    var auraGrad = ctx.createRadialGradient(R, R, R * 0.7, R, R, auraR);
-    var auraOp = (state === 'offline') ? 0.08 : 0.34 + 0.16 * eMul;
-    auraGrad.addColorStop(0, 'rgba(200,0,0,' + (auraOp * 0.5).toFixed(3) + ')');
-    auraGrad.addColorStop(0.55, 'rgba(120,0,0,' + (auraOp * 0.35).toFixed(3) + ')');
-    auraGrad.addColorStop(1, 'rgba(120,0,0,0)');
-    ctx.save();
-    ctx.globalCompositeOperation = 'screen';
-    ctx.fillStyle = auraGrad;
-    ctx.beginPath(); ctx.arc(R, R, auraR, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
+    // ── outer aura removed — the soft red glow bleeding past the
+    // sphere's edge was intentionally cut here so only the crisp
+    // sphere itself remains. (Kept `breathe`/`auraOp` computation out
+    // entirely rather than just zeroing opacity, since there's no
+    // reason to keep computing an unused gradient every frame.)
 
     // ── clip to the sphere ──
     ctx.save();
