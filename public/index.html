@@ -773,9 +773,24 @@
        black content area, no card container, no row dividers, no boxed icon chips. */
     .cat-page {
       background: #000 !important;
-      margin: calc(-1 * var(--space)) calc(-1 * var(--space)) 0;
-      padding: 14px var(--space) 24px;
-      min-height: calc(100% + var(--space));
+      /* ROOT CAUSE of the burgundy/red strip above the bottom nav:
+         .content reserves bottom space for the fixed bottom nav via
+         padding-bottom (see .content and app-polish.css's
+         `.content{padding-bottom:max(90px, ...)}` override). This rule
+         used to cancel that padding on the top/sides only (negative
+         margin) but NOT on the bottom, so .cat-page's own black
+         background stopped short of the nav by exactly that reserved
+         padding amount — the gap that showed #bg's radial-gradient glow
+         (which reads as a dark red/burgundy strip under the burgundy
+         theme) through .content's padding area.
+         Fix: bleed the negative margin into the bottom too, using the
+         SAME expression .content's padding-bottom resolves to, then add
+         equivalent padding back inside .cat-page so row content still
+         sits above the bottom nav instead of being hidden under it. */
+      --cat-bottom-reserve: max(90px, calc(72px + env(safe-area-inset-bottom)));
+      margin: calc(-1 * var(--space)) calc(-1 * var(--space)) calc(-1 * var(--cat-bottom-reserve));
+      padding: 14px var(--space) calc(24px + var(--cat-bottom-reserve));
+      min-height: calc(100% + var(--space) + var(--cat-bottom-reserve));
     }
 
     .cat-page-header {
@@ -925,7 +940,6 @@
 
     .page.active {
       display: block;
-      animation: pageIn 0.25s ease
     }
 
     @keyframes pageIn {
@@ -942,7 +956,6 @@
 
     .page.active {
       display: block;
-      animation: pageIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     /* ════ BUTTONS ════ */
@@ -7138,7 +7151,7 @@ select option { background: #0D0D0D; color: #fff; }
       <!-- ════ CATEGORY NAV PAGES ════ -->
       <div class="page cat-page" id="page-catUs">
         <div class="cat-page-header">
-          <button class="cat-back-btn" onclick="history.back()" title="Back">←</button>
+          <button class="cat-back-btn" onclick="goBack()" title="Back">←</button>
           <div class="cat-page-title">Us</div>
         </div>
         <div class="cat-headline">Everything that makes us, us</div>
@@ -7153,7 +7166,7 @@ select option { background: #0D0D0D; color: #fff; }
 
       <div class="page cat-page" id="page-catMemories">
         <div class="cat-page-header">
-          <button class="cat-back-btn" onclick="history.back()" title="Back">←</button>
+          <button class="cat-back-btn" onclick="goBack()" title="Back">←</button>
           <div class="cat-page-title">Memories</div>
         </div>
         <div class="cat-headline">Keep every moment close to us</div>
@@ -7169,7 +7182,7 @@ select option { background: #0D0D0D; color: #fff; }
 
       <div class="page cat-page" id="page-catPlans">
         <div class="cat-page-header">
-          <button class="cat-back-btn" onclick="history.back()" title="Back">←</button>
+          <button class="cat-back-btn" onclick="goBack()" title="Back">←</button>
           <div class="cat-page-title">Plans</div>
         </div>
         <div class="cat-headline">Everything we're looking forward to</div>
@@ -7185,7 +7198,7 @@ select option { background: #0D0D0D; color: #fff; }
 
       <div class="page cat-page" id="page-catTogether">
         <div class="cat-page-header">
-          <button class="cat-back-btn" onclick="history.back()" title="Back">←</button>
+          <button class="cat-back-btn" onclick="goBack()" title="Back">←</button>
           <div class="cat-page-title">Together</div>
         </div>
         <div class="cat-headline">Better when we do it together</div>
@@ -7200,7 +7213,7 @@ select option { background: #0D0D0D; color: #fff; }
 
       <div class="page cat-page" id="page-catFuture">
         <div class="cat-page-header">
-          <button class="cat-back-btn" onclick="history.back()" title="Back">←</button>
+          <button class="cat-back-btn" onclick="goBack()" title="Back">←</button>
           <div class="cat-page-title">Our Future</div>
         </div>
         <div class="cat-headline">Building our tomorrow together</div>
@@ -7214,7 +7227,7 @@ select option { background: #0D0D0D; color: #fff; }
 
       <div class="page cat-page" id="page-catMyspace">
         <div class="cat-page-header">
-          <button class="cat-back-btn" onclick="history.back()" title="Back">←</button>
+          <button class="cat-back-btn" onclick="goBack()" title="Back">←</button>
           <div class="cat-page-title">My Space</div>
         </div>
         <div class="cat-headline">A space that's completely yours</div>
@@ -8184,6 +8197,27 @@ function setJustPairedAt(ts) {
           dreamgoals: 'catFuture', dreamhome: 'catFuture', virtualhome: 'catFuture',
           myspace: 'catMyspace', period: 'catMyspace', vault: 'catMyspace'
         };
+        // ── Centralized back-stack ──────────────────────────────────
+        // ROOT CAUSE (category back navigation getting stuck): the app's
+        // one and only base history entry ({page:'dashboard'}) used to be
+        // (re)established deep inside the async boot chain, gated behind
+        // `if (!history.state)` (see finishRestoreRemainder). If the user
+        // navigated (tap Memories, etc.) before that async code ran, the
+        // check saw a non-null history.state already and skipped writing
+        // the base entry entirely — leaving category pages with no valid
+        // parent to return to, so Back landed on a stateless entry that
+        // popstate treated inconsistently ("stuck"/dead-end).
+        // Fixing this requires two things: (1) establish the base entry
+        // synchronously, right here, before any navigation can possibly
+        // happen, and (2) track our own lightweight nav stack in JS as the
+        // single source of truth for "do we have a real place to go back
+        // to", so Back never has to guess from browser history length —
+        // it can fall back to Dashboard on purpose instead of silently
+        // doing nothing.
+        if (!history.state) {
+          history.replaceState({ page: 'dashboard' }, '', '#dashboard');
+        }
+        window.__navStack = window.__navStack || ['dashboard'];
         // Valid page ids goto() recognizes (mirrors the .page/#page-X elements
         // in the DOM) — used to sanity-check both the initial ?page= URL param
         // and any notification-click payload before calling goto() with it.
@@ -8364,7 +8398,25 @@ function setJustPairedAt(ts) {
             });
           }
           if (pushHistory) {
+    // Forward navigation (nav click, category row, deep link). Skip
+    // pushing a duplicate entry if we're already on this page (e.g.
+    // tapping the same sidebar category twice) — avoids the
+    // "Dashboard → Memories → Memories → Memories" duplicate-stack bug.
+    if (__navStack[__navStack.length - 1] !== page) {
+      __navStack.push(page);
+    }
     history.pushState({ page }, '', '#' + page);
+  } else {
+    // Landed here via Back (popstate) or a direct fallback call
+    // (e.g. goto('dashboard') from the stuck-safety-net below).
+    // Keep the internal stack's top in sync with what's actually on
+    // screen so the NEXT Back computes its target correctly.
+    const idx = __navStack.lastIndexOf(page);
+    if (idx !== -1) {
+      __navStack.length = idx + 1;
+    } else {
+      __navStack = [page];
+    }
   }
           if (page === 'calendar') renderCalendar();
           if (page === 'chat' && window.Chat) {
@@ -8424,6 +8476,33 @@ function setJustPairedAt(ts) {
     goto('dashboard', false);
   }
 });
+        // ── Centralized Back action ─────────────────────────────────
+        // Used by BOTH the visible top-left cat-back-btn on every category
+        // page AND the Android hardware back button (see CapApp.backButton
+        // listener below), so there is exactly one place that decides what
+        // "Back" means. __navStack (kept in sync inside goto()) is the
+        // source of truth for whether a real parent entry exists:
+        //  - if it does, defer to the browser's own history.back(), which
+        //    fires the normal popstate handler above.
+        //  - if it doesn't (category page opened with no valid previous
+        //    internal entry — e.g. a fresh deep link), fall back straight
+        //    to Dashboard instead of doing nothing.
+        // A short safety-net timeout also guards against the rare case
+        // where history.back() doesn't produce a popstate at all — a
+        // category page must never become a dead end.
+        function goBack() {
+          const activeBefore = document.querySelector('.page.active')?.id;
+          if (__navStack.length > 1) {
+            history.back();
+            setTimeout(() => {
+              const stillSame = document.querySelector('.page.active')?.id === activeBefore;
+              if (stillSame) goto('dashboard');
+            }, 400);
+          } else {
+            goto('dashboard');
+          }
+        }
+        window.goBack = goBack;
         document.querySelectorAll('.ni[data-page]').forEach(el => el.addEventListener('click', () => goto(el.dataset.page)));
 
         // ─── UI HELPERS ──────────────────────────────────────────
@@ -8613,7 +8692,7 @@ function setJustPairedAt(ts) {
               //    history.back() triggers the existing popstate handler,
               //    which reads e.state.page and restores exactly that page.
               const onDashboard = document.getElementById('page-dashboard')?.classList.contains('active');
-              if (!onDashboard) { history.back(); return; }
+              if (!onDashboard) { goBack(); return; }
               // 3) Already at the dashboard (top level) — minimize
               //    instead of exiting or falling through to landing.html.
               CapApp.minimizeApp?.();
@@ -11992,9 +12071,9 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
           }
           setupNativeNotifications();
           startSyncLoop();
-          if (!history.state) {
-            history.replaceState({ page: 'dashboard' }, '', '#dashboard');
-          }
+          // Base history entry is now established synchronously at script
+          // load (see __navStack / history.replaceState above), so no
+          // late/racy re-check is needed here anymore.
         }
 
         // ─── INIT ────────────────────────────────────────────────

@@ -158,7 +158,7 @@ body[data-immersive="1"] .content {
 
 /* ---- 5. Prevent theme-flash on route/page change --------------- */
 .page { animation: none; }
-.page.active { animation: al-fadein 180ms ease both; }
+.page.active { animation: none; }
 
 /* ---- 6. Touch targets / accessibility --------------------------- */
 .ic-btn, .btn-sm, .bot-ni, .ni { min-height: 40px; }
