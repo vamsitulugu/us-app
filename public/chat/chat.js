@@ -1656,7 +1656,6 @@ function menuItemsHtml(m, id, includeSelect) {
     { id: 'slate', css: 'linear-gradient(160deg,#0d1014,#1a1f26)' }
   ];
   let _wpDbPromise = null;
-  let _pendingWallpaperBlob = null;
 
   function wpKey() { return (coupleId() || 'anon') + '_' + (myRole() || 'u'); }
 
@@ -1789,61 +1788,175 @@ function menuItemsHtml(m, id, includeSelect) {
     toast('Wallpaper removed');
   }
 
-  // Downscale + compress before storing — a raw phone-camera photo can be
-  // several MB; this keeps IndexedDB usage small without a visible quality
-  // loss for a background image, and happens once (at pick time) rather
-  // than being recomputed on every load.
-  function resizeImageFile(file, maxDim, quality) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        let { width, height } = img;
-        if (width > maxDim || height > maxDim) {
-          if (width > height) { height = Math.round(height * (maxDim / width)); width = maxDim; }
-          else { width = Math.round(width * (maxDim / height)); height = maxDim; }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = width; canvas.height = height;
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        URL.revokeObjectURL(url);
-        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('toBlob failed')), 'image/jpeg', quality);
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image load failed')); };
-      img.src = url;
-    });
+  // ── Crop/adjust engine (Android "move and scale" style) ──
+  // The user drags to pan and pinches (or scrolls) to zoom a full-res image
+  // inside a viewport-sized stage; only the final visible crop is rendered
+  // to a canvas and saved, so what they see is exactly what gets set.
+  let _wpCropUrl = null;
+  const wpCrop = {
+    natW: 0, natH: 0, viewW: 0, viewH: 0,
+    scale: 1, minScale: 1, maxScale: 1, x: 0, y: 0,
+    pointers: new Map(), pinchStartDist: 0, pinchStartScale: 1, pinchMidX: 0, pinchMidY: 0,
+    lastX: 0, lastY: 0, bound: false
+  };
+
+  function wpCropClamp() {
+    wpCrop.scale = Math.min(wpCrop.maxScale, Math.max(wpCrop.minScale, wpCrop.scale));
+    const w = wpCrop.natW * wpCrop.scale, h = wpCrop.natH * wpCrop.scale;
+    const minX = Math.min(0, wpCrop.viewW - w), minY = Math.min(0, wpCrop.viewH - h);
+    wpCrop.x = Math.max(minX, Math.min(0, wpCrop.x));
+    wpCrop.y = Math.max(minY, Math.min(0, wpCrop.y));
+  }
+  function wpCropRender() {
+    const img = document.getElementById('wpCropImg');
+    if (img) img.style.transform = `translate(${wpCrop.x}px, ${wpCrop.y}px) scale(${wpCrop.scale})`;
+  }
+  function wpCropFadeHint() {
+    const hint = document.getElementById('wpCropHint');
+    if (hint) hint.classList.add('faded');
+  }
+  function wpCropDist(p1, p2) { return Math.hypot(p1.x - p2.x, p1.y - p2.y); }
+
+  function wpCropOnPointerDown(e) {
+    const stage = document.getElementById('wpCropStage');
+    stage.setPointerCapture(e.pointerId);
+    wpCrop.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    stage.classList.add('dragging');
+    wpCropFadeHint();
+    if (wpCrop.pointers.size === 1) {
+      wpCrop.lastX = e.clientX; wpCrop.lastY = e.clientY;
+    } else if (wpCrop.pointers.size === 2) {
+      const pts = [...wpCrop.pointers.values()];
+      wpCrop.pinchStartDist = wpCropDist(pts[0], pts[1]);
+      wpCrop.pinchStartScale = wpCrop.scale;
+      const stageRect = stage.getBoundingClientRect();
+      wpCrop.pinchMidX = (pts[0].x + pts[1].x) / 2 - stageRect.left;
+      wpCrop.pinchMidY = (pts[0].y + pts[1].y) / 2 - stageRect.top;
+    }
+  }
+  function wpCropOnPointerMove(e) {
+    if (!wpCrop.pointers.has(e.pointerId)) return;
+    wpCrop.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (wpCrop.pointers.size === 1) {
+      const dx = e.clientX - wpCrop.lastX, dy = e.clientY - wpCrop.lastY;
+      wpCrop.lastX = e.clientX; wpCrop.lastY = e.clientY;
+      wpCrop.x += dx; wpCrop.y += dy;
+      wpCropClamp(); wpCropRender();
+    } else if (wpCrop.pointers.size === 2) {
+      const pts = [...wpCrop.pointers.values()];
+      const dist = wpCropDist(pts[0], pts[1]);
+      if (wpCrop.pinchStartDist > 0) {
+        const ratio = dist / wpCrop.pinchStartDist;
+        const newScale = Math.min(wpCrop.maxScale, Math.max(wpCrop.minScale, wpCrop.pinchStartScale * ratio));
+        // Zoom anchored at the pinch midpoint so the point under the fingers stays put.
+        wpCrop.x = wpCrop.pinchMidX - (wpCrop.pinchMidX - wpCrop.x) * (newScale / wpCrop.scale);
+        wpCrop.y = wpCrop.pinchMidY - (wpCrop.pinchMidY - wpCrop.y) * (newScale / wpCrop.scale);
+        wpCrop.scale = newScale;
+        wpCropClamp(); wpCropRender();
+      }
+    }
+  }
+  function wpCropOnPointerUp(e) {
+    wpCrop.pointers.delete(e.pointerId);
+    const stage = document.getElementById('wpCropStage');
+    if (stage) {
+      if (wpCrop.pointers.size === 0) stage.classList.remove('dragging');
+      if (wpCrop.pointers.size === 1) {
+        const [p] = [...wpCrop.pointers.values()];
+        wpCrop.lastX = p.x; wpCrop.lastY = p.y;
+      }
+    }
+  }
+  function wpCropOnWheel(e) {
+    e.preventDefault();
+    const stage = document.getElementById('wpCropStage');
+    const rect = stage.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const factor = Math.pow(1.0015, -e.deltaY);
+    const newScale = Math.min(wpCrop.maxScale, Math.max(wpCrop.minScale, wpCrop.scale * factor));
+    wpCrop.x = mx - (mx - wpCrop.x) * (newScale / wpCrop.scale);
+    wpCrop.y = my - (my - wpCrop.y) * (newScale / wpCrop.scale);
+    wpCrop.scale = newScale;
+    wpCropClamp(); wpCropRender();
+    wpCropFadeHint();
+  }
+  function wpCropBindStage() {
+    const stage = document.getElementById('wpCropStage');
+    if (!stage || wpCrop.bound) return;
+    wpCrop.bound = true;
+    stage.addEventListener('pointerdown', wpCropOnPointerDown);
+    stage.addEventListener('pointermove', wpCropOnPointerMove);
+    stage.addEventListener('pointerup', wpCropOnPointerUp);
+    stage.addEventListener('pointercancel', wpCropOnPointerUp);
+    stage.addEventListener('wheel', wpCropOnWheel, { passive: false });
   }
 
   async function onWallpaperFilePicked(input) {
     const file = input.files && input.files[0];
     input.value = '';
     if (!file) return;
-    try {
-      const blob = await resizeImageFile(file, 1440, 0.82);
-      _pendingWallpaperBlob = blob;
-      const url = URL.createObjectURL(blob);
-      const bg = document.getElementById('wpPreviewBg');
-      const dim = document.getElementById('wpPreviewDim');
-      bg.style.backgroundImage = `url("${url}")`;
-      const s = getWpSetting();
-      dim.style.opacity = String((s.dim || 0) / 100);
-      closeWallpaperModal();
-      document.getElementById('wpPreviewOverlay').classList.add('open');
-    } catch (e) {
-      toast('Could not load that image — please try another');
-    }
+    const img = document.getElementById('wpCropImg');
+    const stage = document.getElementById('wpCropStage');
+    const hint = document.getElementById('wpCropHint');
+    if (_wpCropUrl) { URL.revokeObjectURL(_wpCropUrl); _wpCropUrl = null; }
+    _wpCropUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      const rect = stage.getBoundingClientRect();
+      wpCrop.natW = img.naturalWidth; wpCrop.natH = img.naturalHeight;
+      wpCrop.viewW = rect.width; wpCrop.viewH = rect.height;
+      // "Cover" fit as the starting point — same math as CSS background-size:cover —
+      // so the wallpaper starts filling the screen with no gaps, same as Android's picker.
+      const coverScale = Math.max(wpCrop.viewW / wpCrop.natW, wpCrop.viewH / wpCrop.natH);
+      wpCrop.minScale = coverScale;
+      wpCrop.maxScale = coverScale * 4;
+      wpCrop.scale = coverScale;
+      wpCrop.x = (wpCrop.viewW - wpCrop.natW * coverScale) / 2;
+      wpCrop.y = (wpCrop.viewH - wpCrop.natH * coverScale) / 2;
+      wpCropClamp(); wpCropRender();
+      wpCropBindStage();
+      hint?.classList.remove('faded');
+      clearTimeout(wpCrop._hintTimer);
+      wpCrop._hintTimer = setTimeout(wpCropFadeHint, 2400);
+    };
+    img.onerror = () => toast('Could not load that image — please try another');
+    img.src = _wpCropUrl;
+    const dim = document.getElementById('wpPreviewDim');
+    const s = getWpSetting();
+    if (dim) dim.style.opacity = String((s.dim || 0) / 100);
+    closeWallpaperModal();
+    document.getElementById('wpPreviewOverlay').classList.add('open');
   }
   function cancelWallpaperPreview() {
-    _pendingWallpaperBlob = null;
+    if (_wpCropUrl) { URL.revokeObjectURL(_wpCropUrl); _wpCropUrl = null; }
     document.getElementById('wpPreviewOverlay')?.classList.remove('open');
     openWallpaperModal();
   }
+  // Renders exactly what's visible in the crop stage to a canvas at the
+  // device's pixel density (capped, so a 108MP photo doesn't produce a
+  // multi-MB PNG) — what the user framed is exactly what gets saved.
+  function wpCropExport() {
+    return new Promise((resolve, reject) => {
+      const img = document.getElementById('wpCropImg');
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const outW = Math.round(wpCrop.viewW * dpr);
+      const outH = Math.round(wpCrop.viewH * dpr);
+      const canvas = document.createElement('canvas');
+      canvas.width = outW; canvas.height = outH;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
+      ctx.scale(dpr, dpr);
+      ctx.translate(wpCrop.x, wpCrop.y);
+      ctx.scale(wpCrop.scale, wpCrop.scale);
+      ctx.drawImage(img, 0, 0, wpCrop.natW, wpCrop.natH);
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('toBlob failed')), 'image/jpeg', 0.86);
+    });
+  }
   async function confirmWallpaperPreview() {
-    if (!_pendingWallpaperBlob) return;
     try {
-      await wpIdbSet(wpKey(), _pendingWallpaperBlob);
+      const blob = await wpCropExport();
+      await wpIdbSet(wpKey(), blob);
       setWpSetting({ mode: 'custom' });
-      _pendingWallpaperBlob = null;
+      if (_wpCropUrl) { URL.revokeObjectURL(_wpCropUrl); _wpCropUrl = null; }
       document.getElementById('wpPreviewOverlay')?.classList.remove('open');
       await applyWallpaper();
       toast('Wallpaper set');

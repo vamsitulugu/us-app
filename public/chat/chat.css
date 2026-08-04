@@ -640,9 +640,32 @@
   opacity:0; pointer-events:none; transition:opacity .2s ease;
 }
 .wp-preview-overlay.open{opacity:1; pointer-events:auto}
-.wp-preview-bg{flex:1; position:relative; background-size:cover; background-position:center; background-repeat:no-repeat}
-.wp-preview-dim{position:absolute; inset:0; background:#000}
-.wp-preview-sample{position:absolute; left:0; right:0; bottom:16px; padding:0 14px}
+.wp-preview-dim{position:absolute; inset:0; background:#000; pointer-events:none}
+
+/* ── Crop/adjust stage — Android "move and scale" style ── */
+.wp-crop-topbar{
+  display:flex; align-items:center; gap:10px; padding:calc(10px + env(safe-area-inset-top)) 16px 10px;
+  background:rgba(0,0,0,.55); flex-shrink:0;
+}
+.wp-crop-cancel{font-size:18px; color:#fff; opacity:.85; cursor:pointer; line-height:1; width:22px; text-align:center}
+.wp-crop-title{flex:1; text-align:center; font-size:14px; font-weight:600; color:#fff}
+.wp-crop-topbar-spacer{width:22px}
+.wp-crop-stage{
+  flex:1; position:relative; overflow:hidden; background:#000;
+  touch-action:none; -webkit-user-select:none; user-select:none; cursor:grab;
+}
+.wp-crop-stage.dragging{cursor:grabbing}
+.wp-crop-img{
+  position:absolute; top:0; left:0; transform-origin:0 0;
+  will-change:transform; pointer-events:none; max-width:none; max-height:none;
+}
+.wp-crop-hint{
+  position:absolute; left:0; right:0; top:14px; text-align:center;
+  font-size:12px; color:rgba(255,255,255,.85); pointer-events:none;
+  text-shadow:0 1px 3px rgba(0,0,0,.6);
+  opacity:1; transition:opacity .5s ease .1s;
+}
+.wp-crop-hint.faded{opacity:0}
 .wp-preview-actions{
   display:flex; gap:10px; padding:14px 16px calc(14px + env(safe-area-inset-bottom));
   background:rgba(0,0,0,.55);

@@ -5655,10 +5655,17 @@ select option { background: #0D0D0D; color: #fff; }
       </div>
     </div>
 
-    <!-- ── Full-screen wallpaper preview before committing ── -->
+    <!-- ── Full-screen wallpaper crop/adjust screen (Android-style) before committing ── -->
     <div class="wp-preview-overlay" id="wpPreviewOverlay">
-      <div class="wp-preview-bg" id="wpPreviewBg">
+      <div class="wp-crop-topbar">
+        <span class="wp-crop-cancel" onclick="Chat.cancelWallpaperPreview()">✕</span>
+        <span class="wp-crop-title">Move and scale</span>
+        <span class="wp-crop-topbar-spacer"></span>
+      </div>
+      <div class="wp-crop-stage" id="wpCropStage">
+        <img class="wp-crop-img" id="wpCropImg" draggable="false" alt="">
         <div class="wp-preview-dim" id="wpPreviewDim"></div>
+        <div class="wp-crop-hint" id="wpCropHint">Pinch to zoom · Drag to reposition</div>
       </div>
       <div class="wp-preview-actions">
         <button class="wp-preview-cancel" onclick="Chat.cancelWallpaperPreview()">Cancel</button>
