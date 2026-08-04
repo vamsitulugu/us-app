@@ -1481,6 +1481,26 @@
   document.addEventListener('DOMContentLoaded', () => { if (window.lucide) window.lucide.createIcons(); });
   if (document.readyState !== 'loading' && window.lucide) window.lucide.createIcons();
 
+  // ── Android/device Back support ────────────────────────────
+  // Watch Together lives in its own same-origin iframe (like Chat/Live
+  // Map/Globe/Places/Meet Planner/Collection/Music/Games). Back must
+  // unwind its stacked overlays one at a time: the end-session confirm,
+  // the movie chat log, the watch-history sheet, the incoming invite,
+  // the video-call options menu, then an expanded video call (minimizes
+  // to the bubble rather than ending the call) — instead of falling
+  // straight through to page navigation. Ending the session itself
+  // always requires the explicit End button, never Back.
+  function closeTopOverlayIfOpen() {
+    if ($('endModalBackdrop') && !$('endModalBackdrop').hidden) { $('btnCancelEnd')?.click(); return true; }
+    if ($('movieChatLogBackdrop') && !$('movieChatLogBackdrop').hidden) { $('btnMovieChatLogClose')?.click(); return true; }
+    if ($('historyBackdrop') && !$('historyBackdrop').hidden) { $('btnHistoryClose')?.click(); return true; }
+    if ($('inviteModalBackdrop') && !$('inviteModalBackdrop').hidden) { $('btnDeclineInvite')?.click(); return true; }
+    if ($('wtVideoVMenu')?.classList.contains('is-open')) { $('wtVideoVMenu').classList.remove('is-open'); return true; }
+    if ($('wtVideoWin') && !$('wtVideoWin').hidden) { $('vmenuMinBtn')?.click(); return true; }
+    return false;
+  }
+  window.closeTopOverlayIfOpen = closeTopOverlayIfOpen;
+
   (async function init() {
     if (!COUPLE_ID) { toast('Could not find your couple pairing.'); showState('setup'); showSetupSub('empty'); return; }
     setupRealtime();

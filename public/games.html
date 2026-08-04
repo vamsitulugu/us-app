@@ -3310,6 +3310,27 @@ window.toast = toast; window.showReward = showReward; window.closeReward = close
 window.esc = esc; window.rand = rand; window.uid = uid; window.todayStr = todayStr;
 window.TTT = TTT; window.Ludo = Ludo; window.TOD = TOD; window.Draw = Draw; window.Memory = Memory; window.Bomb = Bomb; window.Puzzle = Puzzle; window.MindReader = MindReader;
 
+// ── Android/device Back support ──────────────────────────────
+// Games lives in its own same-origin iframe (like Chat/Live Map/Globe/
+// Places/Meet Planner/Collection/Music). Back must unwind, in order: an
+// incoming video-call invite, the reward popup, an active face-to-face
+// video call (ends the call but stays in the game), then the active
+// game itself (returns to the games list) — instead of falling straight
+// through to page navigation.
+function closeTopOverlayIfOpen() {
+  // 0) An incoming video-call invite is always topmost — decline it only.
+  if (document.getElementById('gvIncomingOverlay')) { GameVideo.declineIncoming(); return true; }
+  // 1) The win/reward popup.
+  if (document.getElementById('rewardPop')?.classList.contains('show')) { closeReward(); return true; }
+  // 2) An active face-to-face video call closes before the game itself.
+  if (document.getElementById('goVideo')?.classList.contains('on')) { GameVideo.stop(); return true; }
+  // 3) The active game overlay — back to the games list.
+  if (document.getElementById('goverlay')?.classList.contains('open')) { Hub.exitGame(); return true; }
+  return false;
+}
+window.closeTopOverlayIfOpen = closeTopOverlayIfOpen;
+
+
 Hub.init();
 </script>
 <script src="/premium-motion.js"></script>

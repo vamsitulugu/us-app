@@ -8305,13 +8305,16 @@ function setJustPairedAt(ts) {
               //       call unconditionally.
               if (window.LiveMap && typeof window.LiveMap.closeTopOverlayIfOpen === 'function' && window.LiveMap.closeTopOverlayIfOpen()) { return; }
               // 0.6) Dream Goals lives in its own same-origin iframe with its own
-              //      safe-delete confirm sheet + selection mode — check those
-              //      before falling through to page navigation.
+              //      safe-delete confirm sheet, selection mode, and add/edit
+              //      dream + update-progress modals — check those before
+              //      falling through to page navigation.
               if (document.getElementById('page-dreamgoals')?.classList.contains('active')) {
                 const dgWin = document.getElementById('dreamgoalsFrame')?.contentWindow;
                 try {
                   const dgConfirm = dgWin?.document.querySelector('.sd-overlay.show');
                   if (dgConfirm) { dgConfirm.classList.remove('show'); return; }
+                  const dgModal = dgWin?.document.querySelector('.dg-modal-bg.open');
+                  if (dgModal) { dgModal.classList.remove('open'); return; }
                   if (dgWin?.dgSelectMode) { dgWin.dgExitSelectMode(); return; }
                 } catch (e) {}
               }
@@ -8357,6 +8360,40 @@ function setJustPairedAt(ts) {
                 try {
                   const colWin = document.getElementById('collectionFrame')?.contentWindow;
                   if (colWin && typeof colWin.closeTopOverlayIfOpen === 'function' && colWin.closeTopOverlayIfOpen()) { return; }
+                } catch (e) {}
+              }
+              // 0.65) Music lives in its own same-origin iframe with its own
+              //       full-screen player, recorder, FX rack, karaoke mode,
+              //       action sheet, movie detail/edit, song/lyrics/
+              //       achievements modals, safe-delete confirm, and
+              //       Recordings multi-select — check those before falling
+              //       through to page navigation.
+              if (document.getElementById('page-music')?.classList.contains('active')) {
+                try {
+                  const musWin = document.getElementById('musicFrame')?.contentWindow;
+                  if (musWin && typeof musWin.closeTopOverlayIfOpen === 'function' && musWin.closeTopOverlayIfOpen()) { return; }
+                } catch (e) {}
+              }
+              // 0.66) Games lives in its own same-origin iframe with an
+              //       incoming video-call invite, a win/reward popup, an
+              //       active face-to-face video call, and the active game
+              //       overlay itself — check those before falling through
+              //       to page navigation.
+              if (document.getElementById('page-games')?.classList.contains('active')) {
+                try {
+                  const gamWin = document.getElementById('gamesFrame')?.contentWindow;
+                  if (gamWin && typeof gamWin.closeTopOverlayIfOpen === 'function' && gamWin.closeTopOverlayIfOpen()) { return; }
+                } catch (e) {}
+              }
+              // 0.67) Watch Together lives in its own same-origin iframe
+              //       with its own end-session confirm, movie chat log,
+              //       watch-history sheet, incoming invite, video-call
+              //       options menu, and expanded video call — check those
+              //       before falling through to page navigation.
+              if (document.getElementById('page-movie')?.classList.contains('active')) {
+                try {
+                  const movWin = document.getElementById('movieFrame')?.contentWindow;
+                  if (movWin && typeof movWin.closeTopOverlayIfOpen === 'function' && movWin.closeTopOverlayIfOpen()) { return; }
                 } catch (e) {}
               }
               // 1) An open modal takes priority — just close it.

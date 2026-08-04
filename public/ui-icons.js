@@ -85,7 +85,7 @@
     '🏠': 'layout-dashboard', '💬': 'message-circle', '📷': 'images', '🖼️': 'image',
     '💑': 'user-round', '👤': 'user', '🌟': 'list-todo', '📅': 'calendar-days',
     '📍': 'map-pinned', '🌍': 'globe', '🗺️': 'map', '🗓️': 'calendar-days',
-    '⏱️': 'heart', '🎙️': 'mic', '🎵': 'music', '🎮': 'gamepad-2',
+    '⏱️': 'timer', '🎙️': 'mic', '🎵': 'music', '🎮': 'gamepad-2',
     '💫': 'target', '💰': 'wallet', '⚡': 'shield-alert', '💌': 'package-open',
     '🎁': 'gift', '🏆': 'trophy', '🏡': 'home', '🌸': 'flower-2', '🩷': 'droplet',
     '📚': 'book-open', '🔐': 'lock', '🔒': 'lock', '🔓': 'lock-open',
@@ -208,6 +208,11 @@
     '📐': 'move-3d', '🚨': 'siren', '🕶️': 'eye-off', '🕶': 'eye-off',
     '👁️': 'eye', '👁': 'eye', '🔋': 'battery', '📶': 'signal',
     '🔇': 'volume-x', '🚴': 'bike', '🚫': 'ban', '↻': 'refresh-cw',
+
+    // ── NEW in v9 — Music page cleanup: player transport controls,
+    // recorder/karaoke restart buttons ──
+    '⏭': 'skip-forward', '⏭️': 'skip-forward', '⏮': 'skip-back', '⏮️': 'skip-back',
+    '⟲': 'rotate-ccw',
   };
 
   function iconHTML(name) {
@@ -297,6 +302,23 @@
     // injected outside the normal card/button markup, so this needs its
     // own class rather than relying on an existing selector above.
     '.lm-popup-link',
+
+    // ── Music page — control classes that don't match the generic
+    // "-btn"/"-ico" catch-alls above (transport controls, recorder pills,
+    // track row actions, mode toggle pills). Card titles/labels already
+    // fall under existing "-title"/"-label" selectors. ──
+    '.nc-btn', '.rec-ctrl', '.karaoke-rec-pill', '.track-more', '.track-del',
+    '.rec-card-fav', '.mode-pill', '.mm-close', '.sm-close', '.karaoke-close',
+
+    // ── Games page — control class that doesn't match the generic "-btn"
+    // catch-all (no hyphen before "btn"). Everything else on this page
+    // (gohead-btn, gv-ctrl-btn, gv-decline-btn, gv-accept-btn, card/badge
+    // classes) already matches an existing selector above. ──
+    '.gohead-vidbtn',
+
+    // ── Dream Goals page — icon-only edit/delete buttons whose class
+    // doesn't match the generic "-btn" catch-all. ──
+    '.dc-action',
 
     // ── Memory Globe page — the street-level badge (id only, no class)
     // and the Stats view's title (was a bare unclassed div).

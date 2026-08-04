@@ -2630,6 +2630,50 @@ window.resetFxRack = resetFxRack;
 window.openAchievementsModal = openAchievementsModal;
 window.closeAchievementsModal = closeAchievementsModal;
 window.checkAchievements = checkAchievements;
+
+// ── Android/device Back support ──────────────────────────────
+// Music lives in its own same-origin iframe (like Chat/Live Map/Globe/
+// Places/Meet Planner/Collection) and has many stacked overlays of its
+// own (full-screen player + its queue/lyrics sub-panels, recorder,
+// FX rack, karaoke + its history sub-panel, action sheet, movie detail,
+// movie edit modal, song/lyrics/achievements modal, safe-delete confirm,
+// Recordings multi-select). Back must unwind these one at a time instead
+// of falling straight through to page navigation.
+function closeTopOverlayIfOpen() {
+  // 0) A safe-delete confirmation sheet is always topmost — close it only.
+  const sd = document.querySelector('.sd-overlay.show');
+  if (sd) { sd.querySelector('.sd-cancel')?.click(); return true; }
+  // 1) Sub-panels inside the full-screen player close before the player itself.
+  const fpQueue = document.getElementById('fpQueuePanel');
+  const fpLyrics = document.getElementById('fpLyricsPanel');
+  if (fpQueue && fpQueue.style.display !== 'none') { toggleFpQueue(); return true; }
+  if (fpLyrics && fpLyrics.style.display !== 'none') { toggleFpLyrics(); return true; }
+  if (document.getElementById('fullPlayerBg')?.classList.contains('open')) { closeFullPlayer(); return true; }
+  // 2) Recorder / playback overlays.
+  if (document.getElementById('recPlayOverlay')?.classList.contains('open')) { closeRecPlayback(); return true; }
+  if (document.getElementById('recOverlay')?.classList.contains('open')) { closeRecorder(); return true; }
+  // 3) FX rack.
+  if (document.getElementById('fxRackOverlay')?.classList.contains('open')) { closeFxRack(); return true; }
+  // 4) Karaoke's history sub-panel closes before karaoke mode itself.
+  const kHist = document.getElementById('karaokeHistoryPanel');
+  if (kHist && kHist.style.display !== 'none') { toggleKaraokeHistory(); return true; }
+  if (document.getElementById('karaokeBg')?.classList.contains('open')) { closeKaraokeMode(); return true; }
+  // 5) Track action sheet.
+  if (document.getElementById('actionSheetOverlay')?.classList.contains('open')) { closeActionSheet(); return true; }
+  // 6) Movie detail panel.
+  if (document.getElementById('mvDetailBg')?.classList.contains('open')) { closeMvDetail(); return true; }
+  // 7) Add/edit movie modal.
+  if (document.getElementById('movieModal')?.classList.contains('open')) { closeMovieModal(); return true; }
+  // 8) Song details / lyrics / achievements modal (share one CSS class,
+  //    only one is ever open at a time).
+  if (document.getElementById('songModal')?.classList.contains('open')) { closeSongModal(); return true; }
+  if (document.getElementById('lyricsModal')?.classList.contains('open')) { closeLyricsModal(); return true; }
+  if (document.getElementById('achievementsModal')?.classList.contains('open')) { closeAchievementsModal(); return true; }
+  // 9) Recordings grid multi-select mode.
+  if (typeof recSelectMode !== 'undefined' && recSelectMode) { recExitSelectMode(); return true; }
+  return false;
+}
+window.closeTopOverlayIfOpen = closeTopOverlayIfOpen;
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
 <script src="/metadata-service.js"></script>
