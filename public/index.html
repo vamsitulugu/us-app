@@ -4426,23 +4426,62 @@
 
 /* Small static (non-canvas) mini orb used only for the tiny bottom-nav
    glyph and the per-message chat avatar — decorative icons, not the
-   Twin orb instance, so they stay lightweight CSS rather than spinning
-   up additional canvases. */
+   Twin orb instance, so they stay lightweight CSS/SVG rather than
+   spinning up additional canvases. The two silver ribbons are baked
+   into an inline SVG background layer with SMIL <animate> on
+   stroke-dashoffset — the curves themselves flow/shimmer, the sphere
+   never rotates, and there's no JS animation loop or extra canvas to
+   clean up. */
 .twin-mini-orb {
-  display: block; border-radius: 50%;
+  display: block; border-radius: 50%; position: relative;
   background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='s' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ffffff' stop-opacity='0'/%3E%3Cstop offset='.5' stop-color='%23eef0f5' stop-opacity='.95'/%3E%3Cstop offset='1' stop-color='%23ffffff' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M8,58 C28,18 72,84 92,42' fill='none' stroke='url(%23s)' stroke-width='4.5' stroke-linecap='round' stroke-dasharray='8 14'%3E%3Canimate attributeName='stroke-dashoffset' from='0' to='-44' dur='5s' repeatCount='indefinite'/%3E%3C/path%3E%3Cpath d='M14,32 C42,72 58,14 90,56' fill='none' stroke='url(%23s)' stroke-width='3.2' stroke-linecap='round' opacity='.7' stroke-dasharray='6 12'%3E%3Canimate attributeName='stroke-dashoffset' from='0' to='36' dur='6.5s' repeatCount='indefinite'/%3E%3C/path%3E%3C/svg%3E") center/76% no-repeat,
     radial-gradient(circle at 32% 28%, rgba(228,229,231,0.55), transparent 40%),
     radial-gradient(circle at 60% 65%, #7a0018, transparent 65%),
     radial-gradient(circle at 45% 50%, #b30000, #3a000c 68%, #120005 100%);
-  box-shadow: inset 0 -2px 5px rgba(0,0,0,0.5), inset 0 1px 3px rgba(255,255,255,0.08);
+  box-shadow:
+    inset 0 -2px 5px rgba(0,0,0,0.5), inset 0 1px 3px rgba(255,255,255,0.08),
+    0 0 6px rgba(179,0,0,0.45);
   animation: twinMiniBreathe 4s ease-in-out infinite;
+  transition: transform .25s ease, filter .25s ease, box-shadow .25s ease;
 }
 @keyframes twinMiniBreathe { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.12); } }
 .nav-twin-ico .twin-mini-orb { width: 16px; height: 16px; }
 .nav-twin-ico--mini .twin-mini-orb { width: 22px; height: 22px; }
 .twin-msg-av .twin-mini-orb { width: 26px; height: 26px; animation: none; }
-.bot-ni--twin.active .twin-mini-orb { transform: scale(1.1); filter: brightness(1.2) saturate(1.15); }
-@media (prefers-reduced-motion: reduce) { .twin-mini-orb { animation: none !important; } }
+/* Active state: aura strengthens and the orb scales up slightly
+   (1.00 → 1.07) — it brightens, it does not turn into a flat red
+   disc and it does not spin. */
+.bot-ni--twin.active .twin-mini-orb {
+  transform: scale(1.07);
+  filter: brightness(1.22) saturate(1.2);
+  box-shadow:
+    inset 0 -2px 5px rgba(0,0,0,0.5), inset 0 1px 3px rgba(255,255,255,0.12),
+    0 0 10px rgba(220,20,40,0.7);
+}
+/* Small glowing underline beneath the whole Twin nav item when active
+   — Twin already reads as red via the orb itself, so this replaces
+   the plain "label turns red" treatment every other nav item gets. */
+.bot-ni--twin { position: relative; }
+.bot-ni--twin.active::after {
+  content: ''; position: absolute; bottom: 1px; left: 50%;
+  width: 14px; height: 2px; border-radius: 2px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, #ff3355, transparent);
+  box-shadow: 0 0 6px rgba(255,45,85,0.7);
+  animation: twinActiveLinePulse 2.2s ease-in-out infinite;
+}
+@keyframes twinActiveLinePulse { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .twin-mini-orb {
+    animation: none !important;
+    background:
+      radial-gradient(circle at 32% 28%, rgba(228,229,231,0.55), transparent 40%),
+      radial-gradient(circle at 60% 65%, #7a0018, transparent 65%),
+      radial-gradient(circle at 45% 50%, #b30000, #3a000c 68%, #120005 100%);
+  }
+  .bot-ni--twin.active::after { animation: none !important; }
+}
 
 /* Twin welcome screen */
 .twin-welcome-orb-wrap { width: clamp(96px, 30vw, 140px); height: clamp(96px, 30vw, 140px); margin: 0 auto 16px; }
