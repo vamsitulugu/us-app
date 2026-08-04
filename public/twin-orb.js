@@ -215,9 +215,9 @@
     var auraR = R * (1.28 * breathe);
     var auraGrad = ctx.createRadialGradient(R, R, R * 0.7, R, R, auraR);
     var auraOp = (state === 'offline') ? 0.08 : 0.34 + 0.16 * eMul;
-    auraGrad.addColorStop(0, 'rgba(122,0,24,' + (auraOp * 0.5).toFixed(3) + ')');
-    auraGrad.addColorStop(0.55, 'rgba(58,0,12,' + (auraOp * 0.35).toFixed(3) + ')');
-    auraGrad.addColorStop(1, 'rgba(58,0,12,0)');
+    auraGrad.addColorStop(0, 'rgba(200,0,0,' + (auraOp * 0.5).toFixed(3) + ')');
+    auraGrad.addColorStop(0.55, 'rgba(120,0,0,' + (auraOp * 0.35).toFixed(3) + ')');
+    auraGrad.addColorStop(1, 'rgba(120,0,0,0)');
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
     ctx.fillStyle = auraGrad;
@@ -233,15 +233,15 @@
     // Layer 1 — deep base sphere shading (several stacked radials = depth)
     var base = ctx.createRadialGradient(R * 0.86, R * 0.72, R * 0.05, R, R, R * 1.05);
     base.addColorStop(0, '#120005');
-    base.addColorStop(0.35, '#3a000c');
+    base.addColorStop(0.35, '#7a0010');
     base.addColorStop(0.7, '#1c0006');
     base.addColorStop(1, '#050001');
     ctx.fillStyle = base;
     ctx.fillRect(0, 0, W, H);
 
     var mid = ctx.createRadialGradient(R * 0.42, R * 0.5, R * 0.02, R * 0.5, R * 0.52, R * 0.95);
-    mid.addColorStop(0, 'rgba(225, 20, 48, 0.55)');
-    mid.addColorStop(0.4, 'rgba(177, 10, 43, 0.4)');
+    mid.addColorStop(0, 'rgba(220,10,10,0.55)');
+    mid.addColorStop(0.4, 'rgba(200,0,0,0.4)');
     mid.addColorStop(1, 'rgba(18,0,5,0)');
     ctx.fillStyle = mid;
     ctx.fillRect(0, 0, W, H);
@@ -255,7 +255,7 @@
       var px = R + Math.cos(tt * p.fx + p.ph) * R * p.rx;
       var py = R + Math.sin(tt * p.fy + p.ph * 1.3) * R * p.ry;
       var pr = R * p.r * (0.85 + 0.15 * Math.sin(tt * 0.6 + p.ph));
-      var col = p.tone === 0 ? '154,10,32' : (p.tone === 1 ? '90,0,18' : '196,150,160');
+      var col = p.tone === 0 ? '200,20,20' : (p.tone === 1 ? '150,0,0' : '196,150,160');
       var g = ctx.createRadialGradient(px, py, 0, px, py, pr);
       var op = (0.22 * eMul).toFixed(3);
       g.addColorStop(0, 'rgba(' + col + ',' + op + ')');
