@@ -904,7 +904,7 @@ const LiveMap = (() => {
         html: `<div style="width:26px;height:26px;border-radius:8px;background:${color};display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.35)">${ico}</div>`,
         className: '', iconSize: [26, 26]
       });
-      const m = L.marker([p.lat, p.lng], { icon }).addTo(st.map).bindPopup(`<b>${esc(p.name)}</b><br>${esc(p.cat)}<br><a href="#" onclick="LiveMap.openStreetView(${p.lat},${p.lng});return false;">👁 Street View</a>`);
+      const m = L.marker([p.lat, p.lng], { icon }).addTo(st.map).bindPopup(`<b>${esc(p.name)}</b><br>${esc(p.cat)}<br><a class="lm-popup-link" href="#" onclick="LiveMap.openStreetView(${p.lat},${p.lng});return false;">👁 Street View</a>`);
       st.placeMarkers.push(m);
     });
   }
@@ -2925,6 +2925,55 @@ const LiveMap = (() => {
     // Note: the pause-sharing timer (_pauseTimer) is intentionally left running —
     // it's a user-initiated commitment ("resume in 15m") that should honor
     // itself regardless of which page the user is currently on.
+    // Leaving the map page entirely (bottom-nav tap, not Back) should also
+    // tear down every in-page overlay below, so nothing stays stuck open
+    // behind the next page — same reasoning as Chat's destroyPanels().
+    ['lmGmSearchResults', 'lmPlaceSearchResults'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('show');
+    });
+    ['lmNavPanel', 'lmPlaceDetailsCard', 'lmDirectionsPanel', 'lmRouteSettingsPanel', 'lmPrivacyPanel', 'lmLoveNotesPanel', 'lmMeetingSuggestions'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    _hideStartNavBtn();
+  }
+
+  /* ── BACK-NAVIGATION OVERLAY PRIORITY ──────────────────────────
+     Mirrors Chat.closeTopOverlayIfOpen(): the hardware/device Back
+     button (and its native edge-swipe-gesture twin) calls this first
+     while Live Map is the active page, so Back closes one in-page
+     overlay at a time instead of jumping straight past all of them to
+     page navigation. Checked in priority order — most transient/topmost
+     first. Returns true if it closed something (caller should stop
+     there), false if there was nothing open on this page to close. */
+  function closeTopOverlayIfOpen() {
+    // 1) Floating search-result dropdowns (main map search, and the
+    //    "Add Place" search inside its modal) — the most transient UI.
+    const gmResults = document.getElementById('lmGmSearchResults');
+    if (gmResults && gmResults.classList.contains('show')) { gmResults.classList.remove('show'); return true; }
+    const placeResults = document.getElementById('lmPlaceSearchResults');
+    if (placeResults && placeResults.classList.contains('show')) { placeResults.classList.remove('show'); return true; }
+    // 2) Active turn-by-turn navigation panel.
+    const navPanel = document.getElementById('lmNavPanel');
+    if (navPanel && navPanel.style.display === 'block') { toggleNavPanel(); return true; }
+    // 3) Place details card, and any legacy Directions panel attached to it.
+    const detailsCard = document.getElementById('lmPlaceDetailsCard');
+    const dirPanel = document.getElementById('lmDirectionsPanel');
+    if ((detailsCard && detailsCard.style.display === 'block') || (dirPanel && dirPanel.style.display === 'block')) { closePlaceDetails(); return true; }
+    // 4) Route history settings panel.
+    const routeSettings = document.getElementById('lmRouteSettingsPanel');
+    if (routeSettings && routeSettings.style.display === 'block') { toggleRouteSettingsPanel(); return true; }
+    // 5) Location-privacy panel.
+    const privacyPanel = document.getElementById('lmPrivacyPanel');
+    if (privacyPanel && privacyPanel.style.display === 'block') { togglePrivacyPanel(); return true; }
+    // 6) Love-note composer.
+    const loveNotesPanel = document.getElementById('lmLoveNotesPanel');
+    if (loveNotesPanel && loveNotesPanel.style.display === 'block') { openLoveNoteComposer(); return true; }
+    // 7) Meeting-place suggestions — no dedicated close button elsewhere, just hide it.
+    const meetingPanel = document.getElementById('lmMeetingSuggestions');
+    if (meetingPanel && meetingPanel.style.display === 'block') { meetingPanel.style.display = 'none'; return true; }
+    return false;
   }
 
   // One-time listeners for the whole module lifetime — NOT inside onEnterPage,
@@ -2943,7 +2992,7 @@ const LiveMap = (() => {
 
   /* ── PUBLIC API ── */
   return {
-    onEnterPage, onLeavePage,
+    onEnterPage, onLeavePage, closeTopOverlayIfOpen,
     toggleTracking, startTracking, stopTracking,
     openPlaceModal, onCatChange, useCurrentLocForPlace, savePlace, deletePlace,
     onSearchInput, searchByChip, pickSearchResult,

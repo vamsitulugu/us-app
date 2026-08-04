@@ -6482,7 +6482,7 @@ select option { background: #0D0D0D; color: #fff; }
         persisted in S like everything else, so they sync via scheduleSave(). -->
    <div style="position:relative;margin-bottom:10px">
      <div style="display:flex;align-items:center;gap:6px;background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px">
-       <span style="opacity:.55;font-size:13px">🔍</span>
+       <span id="lmGmSearchIco" style="opacity:.55;font-size:13px">🔍</span>
        <input type="text" id="lmGmSearchInput" placeholder="Search Bengaluru, Vijayawada, restaurants, hospitals…"
          oninput="LiveMap.gmSearchInput(this.value)" onfocus="LiveMap.gmSearchFocus()"
          style="flex:1;min-width:0;background:transparent;border:none;outline:none;color:var(--white);font-size:12px">
@@ -8296,6 +8296,14 @@ function setJustPairedAt(ts) {
               //       DOM nodes these check are scoped to Chat's own ids so
               //       this is safe to call unconditionally.
               if (window.Chat && typeof window.Chat.closeTopOverlayIfOpen === 'function' && window.Chat.closeTopOverlayIfOpen()) { return; }
+              // 0.58) Live Map's own overlays take priority — search-result
+              //       dropdowns, the active nav panel, place details/directions,
+              //       route-history settings, the privacy panel, the love-note
+              //       composer, and meeting-place suggestions. Only relevant
+              //       while Live Map is the active page, but the DOM nodes this
+              //       checks are scoped to Live Map's own ids so it's safe to
+              //       call unconditionally.
+              if (window.LiveMap && typeof window.LiveMap.closeTopOverlayIfOpen === 'function' && window.LiveMap.closeTopOverlayIfOpen()) { return; }
               // 0.6) Dream Goals lives in its own same-origin iframe with its own
               //      safe-delete confirm sheet + selection mode — check those
               //      before falling through to page navigation.
@@ -8305,6 +8313,16 @@ function setJustPairedAt(ts) {
                   const dgConfirm = dgWin?.document.querySelector('.sd-overlay.show');
                   if (dgConfirm) { dgConfirm.classList.remove('show'); return; }
                   if (dgWin?.dgSelectMode) { dgWin.dgExitSelectMode(); return; }
+                } catch (e) {}
+              }
+              // 0.61) Memory Globe lives in its own same-origin iframe with its
+              //       own City/Detail/Add-Memory panels, fullscreen photo/video
+              //       viewer, Stats view, and global search bar — check those
+              //       before falling through to page navigation.
+              if (document.getElementById('page-globe')?.classList.contains('active')) {
+                try {
+                  const globeWin = document.getElementById('globeFrame')?.contentWindow;
+                  if (globeWin && typeof globeWin.closeTopOverlayIfOpen === 'function' && globeWin.closeTopOverlayIfOpen()) { return; }
                 } catch (e) {}
               }
               // 1) An open modal takes priority — just close it.

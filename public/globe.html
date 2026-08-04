@@ -517,7 +517,7 @@
   <div id="statsView">
     <div class="stats-header">
       <button class="ic-btn" onclick="closeStats()"><i data-lucide="x"></i></button>
-      <div style="font-family:var(--ff-serif);font-size:20px;color:var(--white)">📊 Travel Stats</div>
+      <div class="stats-view-title" style="font-family:var(--ff-serif);font-size:20px;color:var(--white)">📊 Travel Stats</div>
     </div>
     <div class="stats-content" id="statsContent"></div>
   </div>
@@ -1976,6 +1976,42 @@ function closeViewer() {
 document.getElementById('imgViewerStage').addEventListener('click', function (e) {
   if (e.target.classList.contains('gve-content') || e.target.classList.contains('gve-slide') || e.target === this) closeViewer();
 });
+
+// ═══════════════════════════════════════════
+// BACK-NAVIGATION OVERLAY PRIORITY — called by the parent app's Android/
+// device Back handler (index.html) while this iframe's page is active,
+// same pattern as Chat.closeTopOverlayIfOpen()/LiveMap.closeTopOverlayIfOpen().
+// Runs inside this iframe's own document, so it's exposed as a plain
+// global (window.closeTopOverlayIfOpen) for the parent to call across the
+// iframe boundary via globeFrame.contentWindow. Checked in priority order —
+// highest z-index / most-recently-opened first — so Back closes one
+// overlay at a time instead of jumping straight to the sidebar/dashboard.
+// Returns true if it closed something (caller should stop there), false
+// if there was nothing open to close.
+function closeTopOverlayIfOpen() {
+  // 1) Fullscreen photo/video viewer — opened from within Memory Detail,
+  //    sits on top of every other overlay (z-index 9999).
+  const viewer = document.getElementById('imgViewer');
+  if (viewer && viewer.classList.contains('open')) { closeViewer(); return true; }
+  // 2) Add/Edit Memory form — can stack over City panel, or stand alone.
+  const addPanel = document.getElementById('addPanel');
+  if (addPanel && addPanel.classList.contains('open')) { closeAddPanel(); return true; }
+  // 3) Memory detail panel — can stack over City panel.
+  const detailPanel = document.getElementById('detailPanel');
+  if (detailPanel && detailPanel.classList.contains('open')) { closeDetailPanel(); return true; }
+  // 4) City panel (base layer — list of memories for a tapped city/marker).
+  const cityPanel = document.getElementById('cityPanel');
+  if (cityPanel && cityPanel.classList.contains('open')) { closeCityPanel(); return true; }
+  // 5) Stats fullscreen view.
+  const statsView = document.getElementById('statsView');
+  if (statsView && statsView.classList.contains('open')) { closeStats(); return true; }
+  // 6) Global search — close the results dropdown first, then the bar itself.
+  const searchResults = document.getElementById('globalSearchResults');
+  if (searchResults && searchResults.classList.contains('show')) { searchResults.classList.remove('show'); return true; }
+  const searchBar = document.getElementById('globalSearchBar');
+  if (searchBar && searchBar.style.display === 'block') { toggleGlobalSearch(); return true; }
+  return false;
+}
 
 // ═══════════════════════════════════════════
 // HELPERS — unchanged

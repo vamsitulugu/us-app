@@ -199,6 +199,15 @@
     // were still plain Unicode/emoji instead of Lucide ──
     '⋮': 'more-vertical', '↪️': 'corner-up-right', '↪': 'corner-up-right',
     '📔': 'notebook',
+
+    // ── NEW in v8 — Live Map page cleanup: map-style switcher, camera-angle
+    // toggle, the emergency-share banner, invisible-mode/Street-View/voice-nav
+    // buttons, the permission-denied banner, the battery/signal status line,
+    // the bike travel-mode icon, and the search-results "Retry" button ──
+    '🛰️': 'satellite', '🛰': 'satellite', '🌗': 'sun-moon',
+    '📐': 'move-3d', '🚨': 'siren', '🕶️': 'eye-off', '🕶': 'eye-off',
+    '👁️': 'eye', '👁': 'eye', '🔋': 'battery', '📶': 'signal',
+    '🔇': 'volume-x', '🚴': 'bike', '🚫': 'ban', '↻': 'refresh-cw',
   };
 
   function iconHTML(name) {
@@ -276,7 +285,22 @@
     '#chatBottomSheet .chat-sheet-opt',
 
     // ── Memories page — insight banner icon (static tip text, not user content) ──
-    '.mem-insight-ico'
+    '.mem-insight-ico',
+
+    // ── Live Map page — the unclassed search-bar glyphs (magnifier + clear
+    // "✕"), plus the battery/network status line inside the Privacy panel.
+    // Everything else on this page (card titles, toolbar buttons/icons,
+    // banners) already matches a selector above; these are matched by id
+    // instead, same as #lastSaved/#camPh elsewhere in this list. ──
+    '#lmGmSearchIco', '#lmGmSearchClear', '#lmBatteryNetLine',
+    // Street View link inside the place-marker popup — Leaflet popups are
+    // injected outside the normal card/button markup, so this needs its
+    // own class rather than relying on an existing selector above.
+    '.lm-popup-link',
+
+    // ── Memory Globe page — the street-level badge (id only, no class)
+    // and the Stats view's title (was a bare unclassed div).
+    '#streetBadge', '.stats-view-title'
   ];
 
   // Explicit EXCLUDE list — never process these even if nested inside a safe zone
