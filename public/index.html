@@ -4424,40 +4424,40 @@
 .twin-orb-anchor--dock { width: clamp(48px, 17vw, 72px); height: clamp(48px, 17vw, 72px); }
 .twin-orb-anchor--voice { width: 168px; height: 168px; }
 
-/* Small static (non-canvas) mini orb used only for the tiny bottom-nav
-   glyph and the per-message chat avatar — decorative icons, not the
-   Twin orb instance, so they stay lightweight CSS/SVG rather than
-   spinning up additional canvases. The two silver ribbons are baked
-   into an inline SVG background layer with SMIL <animate> on
-   stroke-dashoffset — the curves themselves flow/shimmer, the sphere
-   never rotates, and there's no JS animation loop or extra canvas to
-   clean up. */
+/* Chat-avatar-only fallback glyph (unchanged approximation) — the
+   navbar no longer uses this; see .twin-nav-orb below, which is a
+   canvas rendered from the SAME gradient/ribbon math as the
+   production twin-orb.js sphere. */
 .twin-mini-orb {
-  display: block; border-radius: 50%; position: relative;
+  display: block; border-radius: 50%;
   background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='s' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ffffff' stop-opacity='0'/%3E%3Cstop offset='.5' stop-color='%23eef0f5' stop-opacity='.95'/%3E%3Cstop offset='1' stop-color='%23ffffff' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M8,58 C28,18 72,84 92,42' fill='none' stroke='url(%23s)' stroke-width='4.5' stroke-linecap='round' stroke-dasharray='8 14'%3E%3Canimate attributeName='stroke-dashoffset' from='0' to='-44' dur='5s' repeatCount='indefinite'/%3E%3C/path%3E%3Cpath d='M14,32 C42,72 58,14 90,56' fill='none' stroke='url(%23s)' stroke-width='3.2' stroke-linecap='round' opacity='.7' stroke-dasharray='6 12'%3E%3Canimate attributeName='stroke-dashoffset' from='0' to='36' dur='6.5s' repeatCount='indefinite'/%3E%3C/path%3E%3C/svg%3E") center/76% no-repeat,
     radial-gradient(circle at 32% 28%, rgba(228,229,231,0.55), transparent 40%),
     radial-gradient(circle at 60% 65%, #7a0018, transparent 65%),
     radial-gradient(circle at 45% 50%, #b30000, #3a000c 68%, #120005 100%);
-  box-shadow:
-    inset 0 -2px 5px rgba(0,0,0,0.5), inset 0 1px 3px rgba(255,255,255,0.08),
-    0 0 6px rgba(179,0,0,0.45);
-  animation: twinMiniBreathe 4s ease-in-out infinite;
-  transition: transform .25s ease, filter .25s ease, box-shadow .25s ease;
+  box-shadow: inset 0 -2px 5px rgba(0,0,0,0.5), inset 0 1px 3px rgba(255,255,255,0.08);
 }
-@keyframes twinMiniBreathe { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.12); } }
-.nav-twin-ico .twin-mini-orb { width: 16px; height: 16px; }
-.nav-twin-ico--mini .twin-mini-orb { width: 22px; height: 22px; }
-.twin-msg-av .twin-mini-orb { width: 26px; height: 26px; animation: none; }
+.twin-msg-av .twin-mini-orb { width: 26px; height: 26px; }
+
+/* ── Navbar Twin orb — real canvas, rendered by public/twin-mini-orb.js
+   using the exact same PLASMA/RIBBONS/gradient math as the production
+   orb in twin-orb.js (values copied, not approximated), just at a
+   smaller size and lighter detail level. Separate <canvas> instance
+   and its own tiny rAF loop — it does NOT share DOM position or
+   state with the main Twin orb. */
+.twin-nav-orb {
+  display: block; border-radius: 50%;
+  transition: transform .25s ease, filter .25s ease;
+}
+.nav-twin-ico .twin-nav-orb { width: 16px; height: 16px; }
+.nav-twin-ico--mini .twin-nav-orb { width: 22px; height: 22px; }
 /* Active state: aura strengthens and the orb scales up slightly
    (1.00 → 1.07) — it brightens, it does not turn into a flat red
-   disc and it does not spin. */
-.bot-ni--twin.active .twin-mini-orb {
+   disc and it does not spin. twin-mini-orb.js reads this same
+   .active class each frame to intensify the aura/ribbons. */
+.bot-ni--twin.active .twin-nav-orb,
+.ni.active .twin-nav-orb {
   transform: scale(1.07);
-  filter: brightness(1.22) saturate(1.2);
-  box-shadow:
-    inset 0 -2px 5px rgba(0,0,0,0.5), inset 0 1px 3px rgba(255,255,255,0.12),
-    0 0 10px rgba(220,20,40,0.7);
+  filter: drop-shadow(0 0 4px rgba(220,20,40,0.55));
 }
 /* Small glowing underline beneath the whole Twin nav item when active
    — Twin already reads as red via the orb itself, so this replaces
@@ -4473,13 +4473,6 @@
 }
 @keyframes twinActiveLinePulse { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
-  .twin-mini-orb {
-    animation: none !important;
-    background:
-      radial-gradient(circle at 32% 28%, rgba(228,229,231,0.55), transparent 40%),
-      radial-gradient(circle at 60% 65%, #7a0018, transparent 65%),
-      radial-gradient(circle at 45% 50%, #b30000, #3a000c 68%, #120005 100%);
-  }
   .bot-ni--twin.active::after { animation: none !important; }
 }
 
@@ -5447,7 +5440,7 @@ select option { background: #0D0D0D; color: #fff; }
 
     <div class="nav-group">
       <div class="nav-label">AI & Tools</div>
-      <div class="ni" data-page="ai"><span class="ico nav-twin-ico"><span class="twin-mini-orb"></span></span>Twin</div>
+      <div class="ni" data-page="ai"><span class="ico nav-twin-ico"><canvas class="twin-nav-orb" aria-hidden="true"></canvas></span>Twin</div>
     </div>
     <div class="sb-foot">
       <div class="ni" data-page="settings" style="margin:0"><span class="ico">⚙️</span>Settings</div>
@@ -7053,7 +7046,7 @@ select option { background: #0D0D0D; color: #fff; }
         <div class="bot-ni active" data-page="dashboard"><span class="ico">🏠</span>Home</div>
 <div class="bot-ni" data-page="chat"><span class="ico">💬</span>Chat<span data-chat-badge></span></div>
 <div class="bot-ni" data-page="globe"><span class="ico">🌍</span>Globe</div>
-<div class="bot-ni bot-ni--twin" data-page="ai"><span class="ico nav-twin-ico nav-twin-ico--mini"><span class="twin-mini-orb"></span></span>Twin</div>
+<div class="bot-ni bot-ni--twin" data-page="ai"><span class="ico nav-twin-ico nav-twin-ico--mini"><canvas class="twin-nav-orb" aria-hidden="true"></canvas></span>Twin</div>
 <div class="bot-ni" data-page="games"><span class="ico">🎮</span>Games</div>
 <div class="bot-ni" data-page="movie"><span class="ico">🎬</span>Watch</div>
 <div class="bot-ni" data-page="settings"><span class="ico">⚙️</span>More</div>
@@ -7322,6 +7315,7 @@ select option { background: #0D0D0D; color: #fff; }
 
       <div class="toast" id="toast"></div>
 <script src="/twin-orb.js"></script>
+<script src="/twin-mini-orb.js" defer></script>
 <script>
   // Notification deep-linking: chat/call/globe/music/etc. pushes include
   // a url like /?page=chat so tapping the notification opens the right
