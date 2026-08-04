@@ -759,6 +759,27 @@
       border-top: 1px solid var(--border)
     }
 
+    /* ── Category nav pages (Us / Memories / Plans / Together / Our Future / My Space) ── */
+    .cat-page-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .cat-page-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--white);
+      font-family: var(--ff-serif);
+    }
+
+    .cat-page-sub {
+      font-size: 12px;
+      color: var(--text3);
+      margin-top: 2px;
+    }
+
     /* ════ TOPBAR ════ */
     .topbar {
       background: rgba(8, 8, 20, 0.65);
@@ -5405,43 +5426,21 @@ select option { background: #0D0D0D; color: #fff; }
           <div class="mood" style="flex:1;text-align:center;padding:8px 4px" onclick="quickMood(this,'😡 Angry')">😡<br>Angry</div>
         </div>
       </div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Main</div>
       <div class="ni" data-page="chat"><span class="ico">💬</span>Chat<span data-chat-badge></span></div>
-      <div class="ni" data-page="camera"><span class="ico">📷</span>Memories</div>
-      <div class="ni" data-page="profile"><span class="ico">💑</span>Our Profile</div>
-    </div>
-    <div class="nav-group">
-      <div class="nav-label">Together</div>
-      <div class="ni" data-page="bucket"><span class="ico">🌟</span>Bucket List</div>
-      <div class="ni" data-page="calendar"><span class="ico">📅</span>Calendar</div>
       <div class="ni" data-page="map"><span class="ico">📍</span>Live Map</div>
-      <div class="ni" data-page="globe"><span class="ico">🌍</span>Memory Globe</div>
-      <div class="ni" data-page="places"><span class="ico">🗺️</span>Places Memory</div>
-      <div class="ni" data-page="meetplanner"><span class="ico">💕</span>Meet Planner</div>
-      <div class="ni" data-page="lovecounter"><span class="ico">⏱️</span>Love Counter</div>
-      <div class="ni" data-page="collection"><span class="ico">🎙️</span>Collection</div>
-      <div class="ni" data-page="music"><span class="ico">🎵</span>Music</div>
-      <div class="ni" data-page="games"><span class="ico">🎮</span>Games <span class="games-badge">NEW</span></div>
-      <div class="ni" data-page="movie"><span class="ico">🎬</span>Watch Together</div>
-      <div class="ni" data-page="dreamgoals"><span class="ico">💫</span>Dream Goals <div class="dreams-new-badge"></div></div>
-      <div class="ni" data-page="money"><span class="ico">💰</span>Money</div>
-      <div class="ni" data-page="fights"><span class="ico">⚡</span>Fight Log</div>
-      <div class="ni" data-page="capsule"><span class="ico">💌</span>Love Capsule</div>
-      <div class="ni" data-page="surprise"><span class="ico">🎁</span>Surprises</div>
     </div>
     <div class="nav-group">
-      <div class="nav-label">Growth</div>
-      <div class="ni" data-page="level"><span class="ico">🏆</span>Couple Level</div>
-      <div class="ni" data-page="dreamhome"><span class="ico">🏡</span>Dream Home</div>
-      <div class="ni" data-page="virtualhome"><span class="ico">🏠</span>Virtual Home <span class="games-badge">3D</span></div>
+      <div class="nav-label">Explore</div>
+      <div class="ni" data-page="catUs"><span class="ico">💑</span>Us</div>
+      <div class="ni" data-page="catMemories"><span class="ico">📷</span>Memories</div>
+      <div class="ni" data-page="catPlans"><span class="ico">📅</span>Plans</div>
+      <div class="ni" data-page="catTogether"><span class="ico">🎮</span>Together</div>
+      <div class="ni" data-page="catFuture"><span class="ico">💫</span>Our Future</div>
+      <div class="ni" data-page="catMyspace"><span class="ico">🌸</span>My Space</div>
     </div>
-    <div class="nav-group">
-      <div class="nav-label">Personal</div>
-      <div class="ni" data-page="myspace"><span class="ico">🌸</span>My Space</div>
-      <div class="ni" data-page="period"><span class="ico">🩷</span>Period Tracker</div>
-      <div class="ni" data-page="study"><span class="ico">📚</span>Study Together</div>
-      <div class="ni" data-page="vault"><span class="ico">🔐</span>Secret Vault</div>
-    </div>
-
     <div class="nav-group">
       <div class="nav-label">AI & Tools</div>
       <div class="ni" data-page="ai"><span class="ico">🤖</span>Twin</div>
@@ -7052,6 +7051,86 @@ select option { background: #0D0D0D; color: #fff; }
     <iframe id="meetplannerFrame" src="/meetplanner.html" title="Live Meet Planner" allow="geolocation" loading="lazy"></iframe>
   </div>
 </div>
+
+      <!-- ════ CATEGORY NAV PAGES ════ -->
+      <div class="page" id="page-catUs">
+        <div class="cat-page-header">
+          <button class="ic-btn" onclick="history.back()" title="Back" style="font-size:16px">←</button>
+          <div><div class="cat-page-title">Us</div><div class="cat-page-sub">The two of you, together</div></div>
+        </div>
+        <div class="settings-group">
+          <div class="settings-row" onclick="goto('profile')"><div class="settings-row-ico">💑</div><div class="settings-row-content"><div class="settings-row-title">Our Profile</div></div><div class="settings-row-action">›</div></div>
+          <div class="settings-row" onclick="goto('lovecounter')"><div class="settings-row-ico">⏱️</div><div class="settings-row-content"><div class="settings-row-title">Love Counter</div></div><div class="settings-row-action">›</div></div>
+          <div class="settings-row" onclick="goto('level')"><div class="settings-row-ico">🏆</div><div class="settings-row-content"><div class="settings-row-title">Couple Level</div></div><div class="settings-row-action">›</div></div>
+          <div class="settings-row" onclick="goto('fights')"><div class="settings-row-ico">⚡</div><div class="settings-row-content"><div class="settings-row-title">Fight Log</div></div><div class="settings-row-action">›</div></div>
+        </div>
+      </div>
+
+      <div class="page" id="page-catMemories">
+        <div class="cat-page-header">
+          <button class="ic-btn" onclick="history.back()" title="Back" style="font-size:16px">←</button>
+          <div><div class="cat-page-title">Memories</div><div class="cat-page-sub">Everything you've captured together</div></div>
+        </div>
+        <div class="settings-group">
+          <div class="settings-row" onclick="goto('camera')"><div class="settings-row-ico">📷</div><div class="settings-row-content"><div class="settings-row-title">Memories</div></div><div class="settings-row-action">›</div></div>
+          <div class="settings-row" onclick="goto('globe')"><div class="settings-row-ico">🌍</div><div class="settings-row-content"><div class="settings-row-title">Memory Globe</div></div><div class="settings-row-action">›</div></div>
+          <div class="settings-row" onclick="goto('places')"><div class="settings-row-ico">🗺️</div><div class="settings-row-content"><div class="settings-row-title">Places Memory</div></div><div class="settings-row-action">›</div></div>
+          <div class="settings-row" onclick="goto('collection')"><div class="settings-row-ico">🎙️</div><div class="settings-row-content"><div class="settings-row-title">Collection</div></div><div class="settings-row-action">›</div></div>
+          <div class="settings-row" onclick="goto('capsule')"><div class="settings-row-ico">💌</div><div class="settings-row-content"><div class="settings-row-title">Love Capsule</div></div><div class="settings-row-action">›</div></div>
+        </div>
+      </div>
+
+      <div class="page" id="page-catPlans">
+        <div class="cat-page-header">
+          <button class="ic-btn" onclick="history.back()" title="Back" style="font-size:16px">←</button>
+          <div><div class="cat-page-title">Plans</div><div class="cat-page-sub">What's coming up for you both</div></div>
+        </div>
+        <div class="settings-group">
+          <div class="settings-row" onclick="goto('calendar')"><div class="settings-row-ico">📅</div><div class="settings-row-content"><div class="settings-row-title">Calendar</div></div><div class="settings-row-action">›</div></div>
+          <div class="settings-row" onclick="goto('bucket')"><div class="settings-row-ico">🌟</div><div class="settings-row-content"><div class="settings-row-title">Bucket List</div></div><div class="settings-row-action">›</div></div>
+          <div class="settings-row" onclick="goto('meetplanner')"><div class="settings-row-ico">💕</div><div class="settings-row-content"><div class="settings-row-title">Meet Planner</div></div><div class="settings-row-action">›</div></div>
+          <div class="settings-row" onclick="goto('surprise')"><div class="settings-row-ico">🎁</div><div class="settings-row-content"><div class="settings-row-title">Surprises</div></div><div class="settings-row-action">›</div></div>
+          <div class="settings-row" onclick="goto('money')"><div class="settings-row-ico">💰</div><div class="settings-row-content"><div class="settings-row-title">Money</div></div><div class="settings-row-action">›</div></div>
+        </div>
+      </div>
+
+      <div class="page" id="page-catTogether">
+        <div class="cat-page-header">
+          <button class="ic-btn" onclick="history.back()" title="Back" style="font-size:16px">←</button>
+          <div><div class="cat-page-title">Together</div><div class="cat-page-sub">Play, watch, and learn side by side</div></div>
+        </div>
+        <div class="settings-group">
+          <div class="settings-row" onclick="goto('music')"><div class="settings-row-ico">🎵</div><div class="settings-row-content"><div class="settings-row-title">Music</div></div><div class="settings-row-action">›</div></div>
+          <div class="settings-row" onclick="goto('games')"><div class="settings-row-ico">🎮</div><div class="settings-row-content"><div class="settings-row-title">Games</div></div><div class="settings-row-action">›</div></div>
+          <div class="settings-row" onclick="goto('movie')"><div class="settings-row-ico">🎬</div><div class="settings-row-content"><div class="settings-row-title">Watch Together</div></div><div class="settings-row-action">›</div></div>
+          <div class="settings-row" onclick="goto('study')"><div class="settings-row-ico">📚</div><div class="settings-row-content"><div class="settings-row-title">Study Together</div></div><div class="settings-row-action">›</div></div>
+        </div>
+      </div>
+
+      <div class="page" id="page-catFuture">
+        <div class="cat-page-header">
+          <button class="ic-btn" onclick="history.back()" title="Back" style="font-size:16px">←</button>
+          <div><div class="cat-page-title">Our Future</div><div class="cat-page-sub">What you're building toward</div></div>
+        </div>
+        <div class="settings-group">
+          <div class="settings-row" onclick="goto('dreamgoals')"><div class="settings-row-ico">💫</div><div class="settings-row-content"><div class="settings-row-title">Dream Goals</div></div><div class="settings-row-action">›</div></div>
+          <div class="settings-row" onclick="goto('dreamhome')"><div class="settings-row-ico">🏡</div><div class="settings-row-content"><div class="settings-row-title">Dream Home</div></div><div class="settings-row-action">›</div></div>
+          <div class="settings-row" onclick="goto('virtualhome')"><div class="settings-row-ico">🏠</div><div class="settings-row-content"><div class="settings-row-title">Virtual Home</div></div><div class="settings-row-action">›</div></div>
+        </div>
+      </div>
+
+      <div class="page" id="page-catMyspace">
+        <div class="cat-page-header">
+          <button class="ic-btn" onclick="history.back()" title="Back" style="font-size:16px">←</button>
+          <div><div class="cat-page-title">My Space</div><div class="cat-page-sub">Just for you</div></div>
+        </div>
+        <div class="settings-group">
+          <div class="settings-row" onclick="goto('myspace')"><div class="settings-row-ico">🌸</div><div class="settings-row-content"><div class="settings-row-title">My Space</div></div><div class="settings-row-action">›</div></div>
+          <div class="settings-row" onclick="goto('period')"><div class="settings-row-ico">🩷</div><div class="settings-row-content"><div class="settings-row-title">Period Tracker</div></div><div class="settings-row-action">›</div></div>
+          <div class="settings-row" onclick="goto('vault')"><div class="settings-row-ico">🔐</div><div class="settings-row-content"><div class="settings-row-title">Secret Vault</div></div><div class="settings-row-action">›</div></div>
+        </div>
+      </div>
+
       <!-- Mobile Bottom Nav -->
       <nav class="bot-nav" id="botNav">
         <div class="bot-ni active" data-page="dashboard"><span class="ico">🏠</span>Home</div>
@@ -7995,7 +8074,20 @@ function setJustPairedAt(ts) {
           fights: 'Fight Log', study: 'Study Together', map: 'Live Map ',
           music: 'Music ', capsule: 'Love Capsule ', surprise: 'Surprises ',chat: 'Chat ',
           level: 'Couple Level ',globe: 'Memory Globe ', dreamhome: 'Dream Home ',games: 'Couple Games ',
-          dreamgoals: 'Dream Goals ', places: 'Places Memory ', meetplanner: 'Meet Planner '
+          dreamgoals: 'Dream Goals ', places: 'Places Memory ', meetplanner: 'Meet Planner ',
+          catUs: 'Us', catMemories: 'Memories', catPlans: 'Plans', catTogether: 'Together',
+          catFuture: 'Our Future', catMyspace: 'My Space'
+        };
+        // Maps a feature page id to the sidebar category it now lives under —
+        // these pages no longer have their own sidebar row (see NEW SIDEBAR
+        // STRUCTURE), so goto() highlights the owning category item instead.
+        const CATEGORY_OWNER = {
+          profile: 'catUs', lovecounter: 'catUs', level: 'catUs', fights: 'catUs',
+          camera: 'catMemories', globe: 'catMemories', places: 'catMemories', collection: 'catMemories', capsule: 'catMemories',
+          calendar: 'catPlans', bucket: 'catPlans', meetplanner: 'catPlans', surprise: 'catPlans', money: 'catPlans',
+          music: 'catTogether', games: 'catTogether', movie: 'catTogether', study: 'catTogether',
+          dreamgoals: 'catFuture', dreamhome: 'catFuture', virtualhome: 'catFuture',
+          myspace: 'catMyspace', period: 'catMyspace', vault: 'catMyspace'
         };
         // Valid page ids goto() recognizes (mirrors the .page/#page-X elements
         // in the DOM) — used to sanity-check both the initial ?page= URL param
@@ -8005,7 +8097,8 @@ function setJustPairedAt(ts) {
           'games', 'calendar', 'settings', 'profile', 'map', 'ai', 'capsule',
           'surprise', 'level', 'dreamhome', 'dreamgoals', 'places',
           'lovecounter', 'fights', 'myspace', 'vault', 'bucket', 'money',
-          'period', 'study', 'collection', 'movie'
+          'period', 'study', 'collection', 'movie',
+          'catUs', 'catMemories', 'catPlans', 'catTogether', 'catFuture', 'catMyspace'
         ]);
         function navigateToDeepLink(page) {
           if (!page || !DEEP_LINK_PAGES.has(page)) return false;
@@ -8111,7 +8204,8 @@ function setJustPairedAt(ts) {
           document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
           const pg = document.getElementById('page-' + page); if (!pg) return;
           pg.classList.add('active');
-          const ni = document.querySelector('.ni[data-page="' + page + '"]'); if (ni) ni.classList.add('active');
+          const niPage = CATEGORY_OWNER[page] || page;
+          const ni = document.querySelector('.ni[data-page="' + niPage + '"]'); if (ni) ni.classList.add('active');
           syncBotNav(page);
           document.getElementById('topTitle').textContent = pageTitles[page] || page;
           // Every page must open at the top rather than remembering the
