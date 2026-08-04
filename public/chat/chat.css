@@ -3,7 +3,7 @@
    ══════════════════════════════════════════════════════════════ */
 .content:has(#page-chat.active) {
   overflow: hidden;
-  padding: 0;
+  padding: 0 !important;
 }
 .chat-page-wrap {
   display: flex;
