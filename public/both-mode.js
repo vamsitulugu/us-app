@@ -196,8 +196,19 @@
   async function onRealtimeEvent(type, payload) {
     if (!state.round) return;
     if (payload.roundId && payload.roundId !== state.round.id && type !== 'poll') return;
+
+    // Snapshot before refresh so a no-op poll tick never touches the DOM —
+    // otherwise re-rendering the submit textarea on every 3-6s poll wipes
+    // out whatever the person is mid-typing.
+    const before = { status: state.round.status, you: state.round.you_submitted, partner: state.round.partner_submitted };
     await refreshRoundFromServer(state.round.id);
     const st = state.round.status;
+    const unchanged = type === 'poll' &&
+      st === before.status &&
+      !!state.round.you_submitted === !!before.you &&
+      !!state.round.partner_submitted === !!before.partner;
+    if (unchanged) return;
+
     if (st === 'done' || st === 'safety') { unsubscribeRealtime(); if (state.pollTimer) clearInterval(state.pollTimer); renderResult(); }
     else if (st === 'failed') { unsubscribeRealtime(); if (state.pollTimer) clearInterval(state.pollTimer); renderFailed(); }
     else renderSubmitOrWaiting();
