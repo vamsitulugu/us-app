@@ -245,6 +245,8 @@
       saveOpenSession(sessionId);
       const active = [...detail.rounds].reverse().find(r => r.status !== 'done' && r.status !== 'safety') || detail.rounds[detail.rounds.length - 1];
       renderSessionShell(detail.rounds);
+      const prior = detail.rounds.filter(r => r.id !== active.id && (r.status === 'done' || r.status === 'safety'));
+      renderPriorRounds(prior);
       loadRound(active);
     } catch (e) {
       clearOpenSession();
@@ -273,8 +275,38 @@
           <span class="both-couple-vs-sm">Twin</span>
           ${avatarHtml(S.partnerAvatar, partnerName())} <span class="both-couple-name">${esc(partnerName())}</span>
         </div>
+        <div id="bothPriorRounds" class="both-prior-rounds"></div>
         <div id="bothRoundBody" class="both-round-body"></div>
       </div>`;
+  }
+
+  // Show earlier completed rounds (and Twin's results for each) above the
+  // current active round, so reopening a discussion shows the full history
+  // instead of only the latest round.
+  function renderPriorRounds(rounds) {
+    const el = document.getElementById('bothPriorRounds');
+    if (!el) return;
+    if (!rounds.length) { el.innerHTML = ''; return; }
+    el.innerHTML = rounds.map(r => {
+      const result = r.result;
+      const sections = result && !result.safety_flag
+        ? (result.sections || []).map(s => `
+            <div class="both-result-section">
+              <div class="both-result-section-title">${esc(s.title)}</div>
+              <div class="both-result-section-content">${esc(s.content)}</div>
+            </div>`).join('')
+        : '';
+      const safetyBody = result && result.safety_flag
+        ? `<div class="both-safety-body">${(result.sections || []).map(s => `<p><strong>${esc(s.title)}:</strong> ${esc(s.content)}</p>`).join('')}</div>`
+        : '';
+      return `
+        <details class="both-prior-round">
+          <summary>Round ${r.round_number}${result ? ` — ${esc(INTENT_LABEL[result.intent] || result.intent)}` : ''}</summary>
+          <div class="both-prior-round-body">
+            ${result ? (result.safety_flag ? safetyBody : sections) : '<div class="empty">No result.</div>'}
+          </div>
+        </details>`;
+    }).join('');
   }
 
   // ─── Round lifecycle ───────────────────────────────────
@@ -432,6 +464,6 @@
   window.TwinBoth = {
     onEnterAiPage, onLeaveAiPage, switchMode,
     startNewSession, openSession, submitCurrent, continueTogether, retryRound,
-    renderBothHome,
+    renderBothHome, toggleCardMenu, confirmDelete,
   };
 })();
