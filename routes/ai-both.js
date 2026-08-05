@@ -14,6 +14,73 @@ const router = express.Router();
 function otherRole(role) { return role === 'user1' ? 'user2' : 'user1'; }
 function topicFor(coupleId) { return `both_round:${coupleId}`; }
 
+// ─── Real names ─────────────────────────────────────────
+// Both-mode must never say "Partner 1/2" — pull real display names from
+// the couples row (same source the rest of the app already uses for
+// S.myName / S.partnerName) and cache briefly per couple.
+const _namesCache = new Map(); // coupleId -> { names, ts }
+async function getCoupleNames(coupleId) {
+  const cached = _namesCache.get(coupleId);
+  if (cached && Date.now() - cached.ts < 60000) return cached.names;
+  const { data: couple } = await supabase
+    .from('couples').select('user1_name, user2_name').eq('id', coupleId).maybeSingle();
+  const names = {
+    user1: (couple && couple.user1_name) || 'Partner 1',
+    user2: (couple && couple.user2_name) || 'Partner 2',
+  };
+  _namesCache.set(coupleId, { names, ts: Date.now() });
+  return names;
+}
+
+// ─── Relevant shared app context ───────────────────────────
+// The app stores each couple's shared data as one JSON blob in app_state.
+// We NEVER send that whole blob to the AI. We only pull a few explicitly
+// shared/plannable categories, and only the items whose text overlaps with
+// keywords from what was actually submitted this round. Anything private —
+// vault, periods, journal, capsules, surprises, personal You-mode chats,
+// credentials/tokens — is never touched here.
+const CONTEXT_SOURCES = [
+  { key: 'events',   label: 'Calendar / Events', pick: i => [i.title, i.date].filter(Boolean).join(' — ') },
+  { key: 'bucket',   label: 'Bucket List',       pick: i => i.title },
+  { key: 'milestones', label: 'Important Dates', pick: i => [i.title, i.date].filter(Boolean).join(' — ') },
+  { key: 'habits',   label: 'Habits',            pick: i => i.name },
+  { key: 'notes',    label: 'Shared Notes',      pick: i => i.text },
+  { key: 'dreamBoard', label: 'Plans / Ideas',   pick: i => i.title },
+];
+
+function extractKeywords(text) {
+  return (text || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 3);
+}
+
+async function gatherRelevantContext(coupleId, textA, textB) {
+  const { data: row } = await supabase
+    .from('app_state').select('state').eq('couple_id', coupleId).maybeSingle();
+  const state = row && row.state;
+  if (!state) return '';
+
+  const keywords = new Set([...extractKeywords(textA), ...extractKeywords(textB)]);
+  if (!keywords.size) return '';
+
+  const lines = [];
+  for (const src of CONTEXT_SOURCES) {
+    const list = Array.isArray(state[src.key]) ? state[src.key] : [];
+    for (const item of list) {
+      let label;
+      try { label = src.pick(item); } catch (e) { continue; }
+      if (!label) continue;
+      const itemWords = extractKeywords(label);
+      const overlaps = itemWords.some(w => keywords.has(w));
+      if (overlaps) lines.push(`- [${src.label}] ${label}`);
+    }
+  }
+  // Cap so we never send unbounded data — a handful of matches is plenty context.
+  return lines.slice(0, 12).join('\n');
+}
+
 // ─── Feature flag ─────────────────────────────────────────
 router.get('/flag/:coupleId', async (req, res) => {
   const { coupleId } = req.params;
@@ -207,6 +274,45 @@ router.get('/rounds/:roundId', async (req, res) => {
   });
 });
 
+// GET real names for the mode header (Vamsi / Likky), reusing the same
+// source of truth as the rest of the app (couples.user1_name/user2_name).
+router.get('/names/:coupleId', async (req, res) => {
+  try {
+    const names = await getCoupleNames(req.params.coupleId);
+    res.json(names);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── Delete a discussion ────────────────────────────────────
+// Removes the session and everything under it (rounds, submissions,
+// results). Scoped by coupleId so one couple can never delete another
+// couple's discussion even if a stale/guessed id is sent.
+router.delete('/session/:sessionId', async (req, res) => {
+  const { sessionId } = req.params;
+  const { coupleId } = req.body || {};
+  if (!coupleId) return res.status(400).json({ error: 'Missing coupleId' });
+
+  const { data: session, error: sErr } = await supabase
+    .from('both_sessions').select('id, couple_id').eq('id', sessionId).maybeSingle();
+  if (sErr) return res.status(500).json({ error: sErr.message });
+  if (!session) return res.status(404).json({ error: 'Discussion not found' });
+  if (session.couple_id !== coupleId) return res.status(403).json({ error: 'Not your discussion' });
+
+  const { data: rounds } = await supabase.from('both_rounds').select('id').eq('session_id', sessionId);
+  const roundIds = (rounds || []).map(r => r.id);
+
+  if (roundIds.length) {
+    await supabase.from('both_results').delete().in('round_id', roundIds);
+    await supabase.from('both_submissions').delete().in('round_id', roundIds);
+    await supabase.from('both_rounds').delete().in('id', roundIds);
+  }
+  const { error: delErr } = await supabase.from('both_sessions').delete().eq('id', sessionId);
+  if (delErr) return res.status(500).json({ error: delErr.message });
+
+  broadcastEvent(topicFor(coupleId), 'session_deleted', { sessionId });
+  res.json({ deleted: true });
+});
+
 // ─── Start next round in an existing session ──────────────
 router.post('/sessions/:sessionId/next-round', async (req, res) => {
   const { sessionId } = req.params;
@@ -236,15 +342,22 @@ async function generateBothResult(roundId, coupleId) {
     return;
   }
 
-  const systemPrompt = buildBothSystemPrompt();
-  // Normalize so raw text length never signals "who wrote more" to the model's framing.
+  const names = await getCoupleNames(coupleId);
+  const context = await gatherRelevantContext(coupleId, a.content, b.content);
+  const isFirstRound = round.round_number === 1;
+
+  const systemPrompt = buildBothSystemPrompt(names, isFirstRound);
+  // Names are given directly (not "partner 1/2") so the model refers to each
+  // person by their real name. Order in the prompt is randomized-free — we
+  // always list user1 then user2 internally, but the system prompt explicitly
+  // forbids favoring whoever is listed second, so this is safe.
   const userPrompt =
-`PERSPECTIVE FROM PARTNER 1:
+`${names.user1}'S PERSPECTIVE:
 """${a.content}"""
 
-PERSPECTIVE FROM PARTNER 2:
+${names.user2}'S PERSPECTIVE:
 """${b.content}"""
-
+${context ? `\nRELEVANT SHARED APP CONTEXT (only use if actually relevant, never invent beyond this):\n${context}\n` : ''}
 Analyze both together per your instructions and return ONLY the JSON object.`;
 
   let json;
@@ -273,14 +386,16 @@ Analyze both together per your instructions and return ONLY the JSON object.`;
   const intent = (json.intent || 'GENERAL').toUpperCase();
   const safety = !!json.safety_flag;
   const sections = Array.isArray(json.sections) ? json.sections : [];
+  const generatedTitle = isFirstRound && json.title ? String(json.title).slice(0, 60) : null;
 
   await supabase.from('both_results').insert({
     round_id: roundId, intent, sections, safety_flag: safety, raw_model_output: json.__raw,
   });
   await supabase.from('both_rounds').update({ status: safety ? 'safety' : 'done' }).eq('id', roundId);
-  await supabase.from('both_sessions')
-    .update({ intent, last_activity_at: new Date().toISOString() })
-    .eq('id', round.session_id);
+
+  const sessionUpdate = { intent, last_activity_at: new Date().toISOString() };
+  if (generatedTitle) sessionUpdate.title = generatedTitle;
+  await supabase.from('both_sessions').update(sessionUpdate).eq('id', round.session_id);
 
   logAnalytics('both_round_completed', { coupleId, intent, safety });
   broadcastEvent(topicFor(coupleId), 'result_ready', { roundId, safety });
@@ -304,8 +419,10 @@ router.post('/rounds/:roundId/retry', async (req, res) => {
   generateBothResult(roundId, coupleId).catch(e => console.error('[both-mode] retry generation error:', e));
 });
 
-function buildBothSystemPrompt() {
+function buildBothSystemPrompt(names, isFirstRound) {
   return `You are Twin, analyzing a shared discussion between two partners in a couples app, in "Both" mode. You receive one private perspective from each partner, submitted independently without either seeing the other's text first.
+
+The two people are named ${names.user1} and ${names.user2}. ALWAYS refer to them by these real first names (e.g. "${names.user1}'s perspective", "${names.user2} felt..."). NEVER say "Partner 1", "Partner 2", "User A", "User B", "Person 1", "Person 2", or any other placeholder — this is a hard rule.
 
 CLASSIFY the interaction into exactly one intent: CONFLICT, DECISION, PLANNING, IDEAS, QUESTION, RELATIONSHIP_DISCUSSION, FUN, or GENERAL. Most interactions are NOT conflicts — do not default to CONFLICT unless there is an actual disagreement or grievance.
 
@@ -322,11 +439,13 @@ CORE RULES:
 
 SAFETY: If either perspective describes serious threats, coercion, physical violence, stalking, or self-harm risk, do NOT analyze it as a normal disagreement. Set "safety_flag": true, keep "sections" supportive and non-inflammatory, do not assign blame-based analysis, do not suggest retaliation or confrontation tactics, and gently note that professional support (a counselor, a trusted person, or a crisis line appropriate to their country) is worth reaching out to. Never encourage manipulation, surveillance, or revenge.
 
+${isFirstRound ? `TITLE: This is round 1 of a new discussion, so also generate a short, specific, useful title (4-8 words) summarizing what this discussion is actually about — e.g. "Weekend trip budget disagreement" or "Choosing a venue for the anniversary". Never output "Untitled Discussion" or anything generic like "Discussion" or "Conversation".` : ''}
+
 OUTPUT: Return ONLY a JSON object, no other text, in this exact shape:
 {
   "intent": "CONFLICT | DECISION | PLANNING | IDEAS | QUESTION | RELATIONSHIP_DISCUSSION | FUN | GENERAL",
   "safety_flag": false,
-  "sections": [
+  ${isFirstRound ? '"title": "Short specific title",\n  ' : ''}"sections": [
     { "title": "Short section title", "content": "2-5 sentences of substantive analysis." }
   ]
 }
