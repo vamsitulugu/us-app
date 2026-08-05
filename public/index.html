@@ -8478,7 +8478,7 @@ function setJustPairedAt(ts) {
                 const hero = document.getElementById('twinHeroAnchor');
                 const dock = document.getElementById('twinDockAnchor');
                 const target = (hero && hero.offsetParent !== null && document.getElementById('aiWelcome')) ? hero : dock;
-                twinOrbGoTo(target, { animate: false });
+                twinOrbGoToWhenReady(target, { animate: false });
               }
             });
           }
@@ -11078,6 +11078,31 @@ const p = await Notification.requestPermission();
           const dockWrap = document.getElementById('twinDockOrbWrap');
           if (dockWrap) dockWrap.classList.toggle('is-docked', anchorEl.id === 'twinDockAnchor');
         }
+        // Anchors are 0×0 until the page they live on has actually been
+        // laid out by the browser (display:none → visible doesn't always
+        // resolve within a single requestAnimationFrame on slower
+        // devices / fast page-switches). Reading getBoundingClientRect()
+        // too early gave {0,0,0,0}, which is why the orb would snap to
+        // the top-left corner instead of the hero/dock spot. This waits
+        // for a real, non-zero rect (capped so it can never hang) before
+        // calling back.
+        function twinWaitForLayout(el, cb, tries) {
+          tries = tries || 0;
+          if (!el) { cb(); return; }
+          const r = el.getBoundingClientRect();
+          if (r.width > 0 && r.height > 0) { cb(); return; }
+          if (tries >= 10) { cb(); return; } // give up gracefully after ~10 frames rather than hang forever
+          requestAnimationFrame(function () { twinWaitForLayout(el, cb, tries + 1); });
+        }
+        // Same as twinOrbGoTo, but waits for the anchor to have real
+        // layout dimensions first — use this instead of twinOrbGoTo
+        // anywhere the anchor's page may have *just* become visible.
+        function twinOrbGoToWhenReady(anchorEl, opts) {
+          if (!window.TwinOrb || !anchorEl) return;
+          twinWaitForLayout(anchorEl, function () {
+            twinOrbGoTo(anchorEl, opts);
+          });
+        }
         // Cancel any pending entrance timer and jump straight to dock —
         // used when the user interacts (sends a message) before the
         // 1s hold / travel animation would have finished on its own.
@@ -11102,7 +11127,7 @@ const p = await Notification.requestPermission();
             twinOrbGoTo(dock, { animate: false });
             return;
           }
-          twinOrbGoTo(hero, { animate: false }); // appear large, instantly, in the hero spot
+          twinOrbGoToWhenReady(hero, { animate: false }); // appear large, instantly, in the hero spot — once it's actually measurable
           twinEntranceTimer = setTimeout(function () {
             twinEntranceTimer = null;
             // Guard against the fast-exit race: if the user already
@@ -11112,7 +11137,7 @@ const p = await Notification.requestPermission();
             if (!window.TwinOrb || !TwinOrb.isPageVisible()) return;
             twinEntrancePlayed = true;
             if (!document.getElementById('aiWelcome')) return; // user already sent a message; dock already handled by askAI()
-            twinOrbGoTo(dock, { animate: true });
+            twinOrbGoToWhenReady(dock, { animate: true });
           }, 1000);
         }
         function initTwinOrb() {

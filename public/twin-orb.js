@@ -149,6 +149,13 @@
     opts = opts || {};
     activeAnchor = anchorEl;
     var c = centerOf(anchorEl);
+    // Defense in depth: a 0×0 rect means the anchor's page hasn't been
+    // laid out yet (still display:none, or read one frame too early).
+    // Snapping curX/curY to (0,0) in that case is what sent the orb to
+    // the top-left corner. Instead, keep whatever position it already
+    // had — it'll get corrected on the next real goTo()/refresh() once
+    // the anchor is actually measurable.
+    if (c.size === 0 && c.x === 0 && c.y === 0) return;
     curX = c.x; curY = c.y;
     if (c.size > 0) curScale = c.size / BASE_SIZE;
     applyTransform(opts.animate !== false);
