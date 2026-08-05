@@ -61,15 +61,34 @@
   // account, etc). Never throws — network errors are treated as
   // "couldn't validate right now", distinct from "invalid", so callers
   // can fall back to offline/local mode instead of wrongly logging out.
-  async function validateSession(userId) {
+  // Timeout + one short retry so a stalled/never-responding request can't
+  // block dashboard startup forever. A genuinely invalid session (401/404)
+  // is never retried — only transient network/5xx conditions are.
+  async function validateSession(userId, _attempt) {
     if (!userId) return { ok: false, reason: 'missing' };
+    const attempt = _attempt || 0;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
     try {
-      const r = await fetch(API + '/api/auth/session/' + encodeURIComponent(userId));
+      const r = await fetch(API + '/api/auth/session/' + encodeURIComponent(userId), { signal: controller.signal });
+      clearTimeout(timer);
       if (r.status === 401 || r.status === 404) return { ok: false, reason: 'invalid' };
-      if (!r.ok) return { ok: false, reason: 'network' };
+      if (!r.ok) {
+        if (r.status >= 500 && attempt < 1) {
+          await new Promise(res => setTimeout(res, 600));
+          return validateSession(userId, attempt + 1);
+        }
+        return { ok: false, reason: 'network' };
+      }
       const data = await r.json();
       return { ok: true, data };
     } catch (e) {
+      clearTimeout(timer);
+      if (attempt < 1) {
+        await new Promise(res => setTimeout(res, 600));
+        return validateSession(userId, attempt + 1);
+      }
+      console.warn('[SessionManager] validateSession failed:', e.message);
       return { ok: false, reason: 'network' };
     }
   }
