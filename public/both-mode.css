@@ -1,0 +1,312 @@
+/* ═══════════════════════════════════════════════════════
+   public/both-mode.css — "Both" mode styles
+   Uses the app's existing design tokens (--accent, --border,
+   --white, --text2/3, --g1, --blur, --r) so it matches You-mode
+   without redefining a parallel palette.
+   ═══════════════════════════════════════════════════════ */
+
+.twin-mode-selector {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  margin: 0 0 14px;
+  background: var(--border);
+  border-radius: 14px;
+  width: fit-content;
+}
+
+.twin-mode-btn {
+  border: none;
+  background: transparent;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 8px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease, transform 0.15s ease;
+}
+
+.twin-mode-btn:active { transform: scale(0.96); }
+
+.twin-mode-btn.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  box-shadow: 0 4px 14px var(--accent-glow);
+}
+
+.both-wrap { animation: al-fadein 0.35s ease both; }
+
+/* ── Home ── */
+.both-hero {
+  text-align: center;
+  padding: 28px 16px 22px;
+}
+
+.both-hero-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--white);
+  margin-bottom: 8px;
+}
+
+.both-hero-sub {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.5;
+  max-width: 320px;
+  margin: 0 auto 20px;
+}
+
+.both-start-btn { width: 100%; max-width: 280px; }
+
+.both-history-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 6px 4px 10px;
+}
+
+.both-history-list { display: flex; flex-direction: column; gap: 10px; }
+
+.both-history-item {
+  background: var(--g1);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.15s ease;
+}
+
+.both-history-item:active { transform: scale(0.98); }
+.both-history-item:hover { border-color: var(--border2); }
+
+.both-history-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.both-history-intent {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-glow);
+  padding: 3px 9px;
+  border-radius: 8px;
+}
+
+.both-history-date { font-size: 11px; color: var(--text3); }
+
+.both-history-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--white);
+  margin-bottom: 4px;
+}
+
+.both-history-meta { font-size: 11px; color: var(--text3); }
+
+/* ── Session shell ── */
+.both-session-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.both-back-btn {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 4px;
+}
+
+.both-round-indicator {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text2);
+  background: var(--border);
+  padding: 4px 12px;
+  border-radius: 10px;
+}
+
+.both-round-body { animation: al-fadein 0.3s ease both; }
+
+/* ── Submit card ── */
+.both-submit-card {
+  background: var(--g1);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px;
+}
+
+.both-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--white);
+  font-size: 14px;
+  font-family: inherit;
+  padding: 12px 14px;
+  resize: vertical;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.both-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.both-submit-btn { width: 100%; }
+
+/* ── Status cards (waiting / analyzing / failed) ── */
+.both-status-card {
+  background: var(--g1);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 28px 20px;
+  text-align: center;
+  color: var(--text2);
+  font-size: 14px;
+}
+
+.both-check {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+}
+
+.both-waiting-sub {
+  font-size: 12px;
+  color: var(--text3);
+  margin-top: 6px;
+}
+
+.both-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  margin: 0 auto 12px;
+  animation: both-spin 0.8s linear infinite;
+}
+
+@keyframes both-spin { to { transform: rotate(360deg); } }
+
+.both-status-card.both-failed { color: var(--white); }
+.both-status-card.both-failed button { margin-top: 14px; }
+
+/* ── Result card ── */
+.both-result-card {
+  background: var(--g1);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 18px;
+  animation: al-fadein 0.4s ease both;
+}
+
+.both-result-intent {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-glow);
+  padding: 4px 11px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+}
+
+.both-result-section { margin-bottom: 14px; }
+.both-result-section:last-of-type { margin-bottom: 18px; }
+
+.both-result-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 4px;
+}
+
+.both-result-section-content {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.55;
+}
+
+.both-continue-btn { width: 100%; }
+
+/* ── Safety card ── */
+.both-safety-card {
+  background: var(--g1);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid rgba(250, 204, 21, 0.35);
+  border-radius: var(--r);
+  padding: 18px;
+}
+
+.both-safety-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 10px;
+}
+
+.both-safety-body {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.55;
+}
+
+.both-safety-body p { margin-bottom: 8px; }
+
+.both-safety-note {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Misc / shared empty & retry states ── */
+.both-history-list .empty,
+.both-retry-link {
+  font-size: 13px;
+  color: var(--text3);
+  text-align: center;
+  padding: 16px 0;
+}
+
+.both-retry-link {
+  display: inline;
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 0 0 4px;
+}
