@@ -5147,6 +5147,7 @@ select option { background: #0D0D0D; color: #fff; }
   
   <link rel="stylesheet" href="/responsive-fix.css">
   <link rel="stylesheet" href="/safe-delete.css">
+  <link rel="stylesheet" href="/both-mode.css">
   <script src="/js/scroll-reset.js"></script>
   <script src="/js/session-manager.js"></script>
   <script src="/js/gallery-viewer.js"></script>
@@ -6795,7 +6796,12 @@ select option { background: #0D0D0D; color: #fff; }
 
       <!-- ════ AI GUIDE ════ -->
       <div class="page" id="page-ai">
-        <div class="ai-wrap">
+        <div class="twin-mode-selector" id="twinModeSelector" style="display:none">
+          <button class="twin-mode-btn active" id="twinModeYouBtn" onclick="TwinBoth.switchMode('you')">YOU</button>
+          <button class="twin-mode-btn" id="twinModeBothBtn" onclick="TwinBoth.switchMode('both')">BOTH</button>
+        </div>
+        <div class="both-wrap" id="bothModeWrap" style="display:none"></div>
+        <div class="ai-wrap" id="aiWrapYou">
           <div class="ai-msgs" id="aiMsgs">
             <div class="ai-welcome" id="aiWelcome">
               <div class="twin-welcome-orb-wrap">
@@ -7553,6 +7559,7 @@ select option { background: #0D0D0D; color: #fff; }
 
       <div class="toast" id="toast"></div>
 <script src="/twin-orb.js"></script>
+<script src="/both-mode.js"></script>
 <script src="/twin-mini-orb.js" defer></script>
 <script>
   // Notification deep-linking: chat/call/globe/music/etc. pushes include
@@ -8409,6 +8416,8 @@ function setJustPairedAt(ts) {
           document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
           const pg = document.getElementById('page-' + page); if (!pg) return;
           pg.classList.add('active');
+          if (page === 'ai' && window.TwinBoth) TwinBoth.onEnterAiPage();
+          else if (window.TwinBoth) TwinBoth.onLeaveAiPage();
           const niPage = CATEGORY_OWNER[page] || page;
           const ni = document.querySelector('.ni[data-page="' + niPage + '"]'); if (ni) ni.classList.add('active');
           syncBotNav(page);
