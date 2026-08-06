@@ -366,12 +366,21 @@
           <div class="both-check">✓</div>
           <div>Your response is submitted.</div>
           <div class="both-waiting-sub">Waiting for ${esc(partnerName())}…</div>
+          ${!r.partner_submitted ? `
+            <div class="both-waiting-actions">
+              <button class="both-text-link" onclick="TwinBoth.editSubmission()">Edit your response</button>
+              <span class="both-waiting-actions-sep">·</span>
+              <button class="both-text-link" onclick="TwinBoth.nudgePartner(this)">Remind ${esc(partnerName())}</button>
+            </div>` : ''}
         </div>`;
       return;
     }
     body.innerHTML = `
       <div class="both-submit-card">
-        <textarea id="bothInputArea" class="both-input" rows="4" placeholder="Share your side — Twin won't show ${esc(partnerName())} until you both submit."></textarea>
+        <div class="both-input-wrap">
+          <textarea id="bothInputArea" class="both-input" rows="4" placeholder="Share your side — Twin won't show ${esc(partnerName())} until you both submit."></textarea>
+          <button type="button" class="both-mic-btn" onclick="TwinBoth.voiceInput('bothInputArea')" title="Speak your side">🎙️</button>
+        </div>
         <button class="btn btn-accent both-submit-btn" onclick="TwinBoth.submitCurrent()">Submit privately</button>
         ${r.partner_submitted ? `<div class="both-waiting-sub">${esc(partnerName())} has already submitted theirs.</div>` : ''}
       </div>`;
@@ -388,11 +397,92 @@
         coupleId: coupleId(), role: myRole(), content,
       });
       state.round.you_submitted = true;
+      state.round.your_content = content; // so Edit can prefill without another round-trip
       if (r.status === 'analyzing') state.round.partner_submitted = true;
       renderSubmitOrWaiting();
     } catch (e) {
       if (btn) { btn.disabled = false; btn.textContent = 'Submit privately'; }
       alertToast('Could not submit — try again.');
+    }
+  }
+
+  // ─── Voice input (tap-to-speak, same Web Speech API pattern as
+  //     games.html's voiceInput() — one-shot dictation into a textarea,
+  //     no separate recording UI needed for a simple form field) ───────
+  function voiceInput(targetId) {
+    const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Rec) { alertToast("Voice input isn't supported on this browser"); return; }
+    const rec = new Rec();
+    rec.lang = 'en-US';
+    rec.interimResults = false;
+    rec.onresult = (e) => {
+      const txt = e.results[0][0].transcript;
+      const ta = document.getElementById(targetId);
+      if (ta) {
+        ta.value = (ta.value ? ta.value + ' ' : '') + txt;
+        ta.dispatchEvent(new Event('input')); // let any input-watching UI (char counts, etc.) react
+      }
+    };
+    rec.onerror = () => alertToast("Couldn't hear that — try again");
+    alertToast('🎙️ Listening…');
+    rec.start();
+  }
+
+  // ─── Edit your own response before your partner has submitted theirs.
+  //     Once they have, the round has already locked server-side and
+  //     editSubmission() is never reachable (renderSubmitOrWaiting hides
+  //     the link), but saveEdit() still handles the 409 race gracefully. ──
+  function editSubmission() {
+    const body = document.getElementById('bothRoundBody');
+    if (!body) return;
+    const r = state.round;
+    body.innerHTML = `
+      <div class="both-submit-card">
+        <div class="both-input-wrap">
+          <textarea id="bothInputArea" class="both-input" rows="4">${esc(r.your_content || '')}</textarea>
+          <button type="button" class="both-mic-btn" onclick="TwinBoth.voiceInput('bothInputArea')" title="Speak your side">🎙️</button>
+        </div>
+        <button class="btn btn-accent both-submit-btn" onclick="TwinBoth.saveEdit()">Save changes</button>
+        <button class="both-text-link both-cancel-edit" onclick="TwinBoth.renderSubmitOrWaiting()">Cancel</button>
+      </div>`;
+    const ta = document.getElementById('bothInputArea');
+    if (ta) { ta.focus(); ta.selectionStart = ta.selectionEnd = ta.value.length; }
+  }
+
+  async function saveEdit() {
+    const ta = document.getElementById('bothInputArea');
+    const content = ta && ta.value.trim();
+    if (!content) return;
+    const btn = document.querySelector('.both-submit-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    try {
+      await api('POST', `/api/ai-both/rounds/${state.round.id}/edit`, {
+        coupleId: coupleId(), role: myRole(), content,
+      });
+      state.round.your_content = content;
+      renderSubmitOrWaiting();
+    } catch (e) {
+      // A 409 here means the partner's submit landed first and the round
+      // already locked — refresh from the server so the UI reflects that
+      // instead of staying stuck on an edit form for a round that moved on.
+      await refreshRoundFromServer(state.round.id);
+      if (state.round.status !== 'pending') { loadRound(state.round); return; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Save changes'; }
+      alertToast((e && e.message) || 'Could not save — try again.');
+    }
+  }
+
+  async function nudgePartner(btn) {
+    if (btn) btn.disabled = true;
+    try {
+      const r = await api('POST', `/api/ai-both/rounds/${state.round.id}/nudge`, {
+        coupleId: coupleId(), role: myRole(),
+      });
+      alertToast(r.sent ? `Nudged ${partnerName()} 👋` : `${partnerName()} doesn't have notifications enabled yet.`);
+    } catch (e) {
+      alertToast((e && e.message) || 'Could not send a reminder — try again.');
+    } finally {
+      if (btn) setTimeout(() => { btn.disabled = false; }, 2000);
     }
   }
 
@@ -488,5 +578,6 @@
     onEnterAiPage, onLeaveAiPage, switchMode,
     startNewSession, openSession, submitCurrent, continueTogether, retryRound,
     renderBothHome, toggleCardMenu, confirmDelete, closeTopOverlayIfOpen,
+    voiceInput, editSubmission, saveEdit, nudgePartner,
   };
 })();

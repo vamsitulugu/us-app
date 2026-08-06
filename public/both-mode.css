@@ -368,6 +368,30 @@
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
+.both-input-wrap { position: relative; }
+
+.both-input { padding-right: 44px; } /* room for the mic button */
+
+.both-mic-btn {
+  position: absolute;
+  right: 10px;
+  bottom: 20px;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: var(--border);
+  color: var(--text2);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+.both-mic-btn:hover { background: var(--accent-glow); color: var(--accent); }
+.both-mic-btn:active { transform: scale(0.92); }
+
 .both-submit-btn { width: 100%; }
 .both-start-btn:hover,
 .both-submit-btn:hover,
@@ -405,6 +429,36 @@
   font-size: 12px;
   color: var(--text3);
   margin-top: 6px;
+}
+
+.both-waiting-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.both-waiting-actions-sep { color: var(--text3); font-size: 12px; }
+
+.both-text-link {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 2px;
+}
+.both-text-link:hover { text-decoration: underline; }
+.both-text-link:disabled { opacity: 0.5; cursor: default; text-decoration: none; }
+
+.both-cancel-edit {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-top: 10px;
+  color: var(--text3);
 }
 
 .both-spinner {

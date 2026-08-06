@@ -8,7 +8,7 @@
 // ═══════════════════════════════════════════════════════
 const express = require('express');
 const supabase = require('../middleware/supabase');
-const { broadcastEvent } = require('./auth');
+const { broadcastEvent, sendPushToPartner } = require('./auth');
 const router = express.Router();
 
 function otherRole(role) { return role === 'user1' ? 'user2' : 'user1'; }
@@ -263,15 +263,102 @@ router.get('/rounds/:roundId', async (req, res) => {
     ? await supabase.from('both_results').select('*').eq('round_id', roundId).maybeSingle()
     : { data: null };
 
-  const { data: subs } = await supabase.from('both_submissions').select('role').eq('round_id', roundId);
+  const { data: subs } = await supabase.from('both_submissions').select('role, content').eq('round_id', roundId);
   const rolesSubmitted = (subs || []).map(s => s.role);
+  const mySub = (subs || []).find(s => s.role === role);
 
   res.json({
     id: round.id, status: round.status,
     you_submitted: rolesSubmitted.includes(role),
     partner_submitted: rolesSubmitted.includes(otherRole(role)),
+    your_content: mySub ? mySub.content : null,
     result: result || null,
   });
+});
+
+// ─── Edit a submitted perspective before the partner submits ───────
+// Only allowed while the round is still 'pending' — the moment both
+// sides have submitted, the round atomically flips to 'analyzing' (see
+// /submit above), so 'pending' alone is a sufficient and race-safe
+// guard: if this ever returns 409, the partner necessarily beat you to it.
+router.post('/rounds/:roundId/edit', async (req, res) => {
+  const { roundId } = req.params;
+  const { coupleId, role, content } = req.body;
+  if (!coupleId || !role || !content || !content.trim()) {
+    return res.status(400).json({ error: 'Missing coupleId/role/content' });
+  }
+  const { data: round, error: rErr } = await supabase
+    .from('both_rounds').select('status').eq('id', roundId).maybeSingle();
+  if (rErr) return res.status(500).json({ error: rErr.message });
+  if (!round) return res.status(404).json({ error: 'Round not found' });
+  if (round.status !== 'pending') {
+    return res.status(409).json({ error: 'Too late to edit — your partner has already responded' });
+  }
+  const { data: updated, error: updErr } = await supabase
+    .from('both_submissions')
+    .update({ content: content.trim() })
+    .eq('round_id', roundId).eq('role', role)
+    .select().maybeSingle();
+  if (updErr) return res.status(500).json({ error: updErr.message });
+  if (!updated) return res.status(404).json({ error: 'No existing submission to edit' });
+  res.json({ status: 'edited' });
+});
+
+// ─── Nudge: remind the partner via push that you're waiting ────────
+// Deliberately rate-limited in-memory (not persisted — a couple of
+// missed nudges across a rare server restart is harmless, and this
+// avoids a migration for something this low-stakes).
+const _lastNudgeAt = new Map(); // `${roundId}:${role}` -> timestamp
+const NUDGE_COOLDOWN_MS = 5 * 60 * 1000;
+
+router.post('/rounds/:roundId/nudge', async (req, res) => {
+  const { roundId } = req.params;
+  const { coupleId, role } = req.body;
+  if (!coupleId || !role) return res.status(400).json({ error: 'Missing coupleId/role' });
+
+  const { data: round, error: rErr } = await supabase
+    .from('both_rounds').select('status').eq('id', roundId).maybeSingle();
+  if (rErr) return res.status(500).json({ error: rErr.message });
+  if (!round) return res.status(404).json({ error: 'Round not found' });
+  if (round.status !== 'pending') {
+    return res.status(409).json({ error: 'This round is no longer waiting on a response' });
+  }
+
+  const { data: subs } = await supabase.from('both_submissions').select('role').eq('round_id', roundId);
+  const roles = new Set((subs || []).map(s => s.role));
+  if (!roles.has(role)) {
+    return res.status(400).json({ error: 'Submit your own response first, then you can nudge your partner' });
+  }
+  if (roles.has(otherRole(role))) {
+    return res.status(409).json({ error: 'Your partner has already responded' });
+  }
+
+  const cooldownKey = `${roundId}:${role}`;
+  const last = _lastNudgeAt.get(cooldownKey);
+  if (last && Date.now() - last < NUDGE_COOLDOWN_MS) {
+    const waitMin = Math.ceil((NUDGE_COOLDOWN_MS - (Date.now() - last)) / 60000);
+    return res.status(429).json({ error: `You already nudged them — try again in ${waitMin} min` });
+  }
+  _lastNudgeAt.set(cooldownKey, Date.now());
+
+  let sent = false;
+  if (sendPushToPartner) {
+    try {
+      const names = await getCoupleNames(coupleId);
+      const senderName = role === 'user1' ? names.user1 : names.user2;
+      await sendPushToPartner(coupleId, role, {
+        title: '💬 Twin — waiting for you',
+        body: `${senderName} is waiting for your thoughts in a Both mode discussion.`,
+        icon: '/icons/icon-192.png',
+        tag: 'both-nudge',
+        url: '/?page=ai',
+      });
+      sent = true;
+    } catch (e) {
+      console.error('[both-mode] nudge push failed:', e.message);
+    }
+  }
+  res.json({ sent });
 });
 
 // GET real names for the mode header (Vamsi / Likky), reusing the same
