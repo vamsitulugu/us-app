@@ -1093,6 +1093,9 @@
     input[type=number],
     input[type=date],
     input[type=time],
+    input[type=tel],
+    input[type=search],
+    input[type=url],
     textarea,
     select {
       width: 100%;
@@ -1118,6 +1121,21 @@
       border-color: var(--accent);
       background: var(--g2);
       box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    /* Fix mobile autofill/dark-mode UA overrides on tel/text inputs so the
+       themed dark background + white text always win over Chrome's yellow
+       autofill highlight and native OS light styling. */
+    input[type=tel]:-webkit-autofill,
+    input[type=text]:-webkit-autofill,
+    input[type=email]:-webkit-autofill {
+      -webkit-text-fill-color: var(--white);
+      -webkit-box-shadow: 0 0 0 1000px var(--g1) inset;
+      transition: background-color 9999s ease-in-out 0s;
+    }
+
+    input[type=tel] {
+      color-scheme: dark;
     }
 
     select option {
