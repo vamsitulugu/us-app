@@ -80,13 +80,24 @@ router.get('/session/:userId', async (req, res) => {
 
   const { data: user, error } = await supabase
     .from('users')
-    .select('id, name, email, phone_number, couple_id, role')
+    .select('id, name, email, phone_number, couple_id, role, account_status')
     .eq('id', userId)
     .maybeSingle();
 
   // Invalid / deleted account — the client is expected to treat this as
   // "session expired" and clear all local auth data for this account.
   if (error || !user) return res.status(401).json({ error: 'Session no longer valid' });
+
+  // Enforced here too (not just at /login) since the app restores an
+  // existing session from a locally-stored userId on every startup —
+  // an admin suspending/disabling an account must take effect immediately,
+  // not just the next time that person happens to type their password in.
+  if (user.account_status === 'suspended') {
+    return res.status(403).json({ error: 'This account has been suspended. Contact support if you believe this is a mistake.' });
+  }
+  if (user.account_status === 'disabled') {
+    return res.status(403).json({ error: 'This account has been disabled.' });
+  }
 
   let partnerName = 'Partner', anniversary = '', paired = false;
   if (user.couple_id) {
@@ -695,7 +706,7 @@ router.post('/login', async (req, res) => {
 
   const { data: user, error } = await supabase
     .from('users')
-    .select('id, name, email, phone_number, password_hash, couple_id, role')
+    .select('id, name, email, phone_number, password_hash, couple_id, role, account_status')
     .eq('email', email.toLowerCase().trim())
     .maybeSingle();
 
@@ -703,6 +714,16 @@ router.post('/login', async (req, res) => {
 
   const match = await bcrypt.compare(password, user.password_hash);
   if (!match) return res.status(401).json({ error: 'Incorrect password.' });
+
+  // Blocked here (not at signup or anywhere else) so an admin-suspended
+  // account fails cleanly at the one place a session actually begins,
+  // with a message that doesn't imply the account was deleted.
+  if (user.account_status === 'suspended') {
+    return res.status(403).json({ error: 'This account has been suspended. Contact support if you believe this is a mistake.' });
+  }
+  if (user.account_status === 'disabled') {
+    return res.status(403).json({ error: 'This account has been disabled.' });
+  }
 
   let partnerName = 'Partner', anniversary = '', paired = false;
   if (user.couple_id) {

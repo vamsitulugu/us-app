@@ -113,6 +113,37 @@ app.use('/api/search', require('./routes/search'));
 app.use('/api/presence', require('./routes/presence'));
 app.use('/api/movie', require('./routes/routes-movie'));
 app.use('/api/meetplanner', require('./routes/meetplanner'));
+
+// ── Public release/flag endpoints (no auth — called by the app itself) ─
+app.use('/api/releases', require('./routes/releases'));
+app.use('/api/flags', require('./routes/flags'));
+
+// ── Admin Control Center ────────────────────────────────
+// Deliberately separate from everything above: its own auth routes,
+// its own admin-only API routes (every one gated by requireAdmin
+// inside the route file itself — never trust this mount point alone),
+// and its own static frontend served from ./admin (a sibling of
+// ./public, NOT inside it) so it is never bundled into the Vercel
+// static site, never picked up by the PWA service worker's caching,
+// and never linked from anywhere in the normal app. It only exists
+// at this Render origin, same-origin with its own API, which is also
+// required for the SameSite=Strict admin session cookie to work.
+app.use('/api/admin/auth', require('./routes/admin-auth'));
+app.use('/api/admin/overview', require('./routes/admin-overview'));
+app.use('/api/admin/users', require('./routes/admin-users'));
+app.use('/api/admin/couples', require('./routes/admin-couples'));
+app.use('/api/admin/releases', require('./routes/admin-releases'));
+app.use('/api/admin/notifications', require('./routes/admin-notifications'));
+app.use('/api/admin/flags', require('./routes/admin-flags'));
+app.use('/api/admin/health', require('./routes/admin-health'));
+app.use('/admin', express.static(path.join(__dirname, 'admin'), {
+  etag: true,
+  lastModified: true,
+  // Always revalidate — this is a low-traffic internal tool, not the
+  // main app, so there's no reason to trade freshness for caching here.
+  maxAge: 0
+}));
+
 // ── Health check ───────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
