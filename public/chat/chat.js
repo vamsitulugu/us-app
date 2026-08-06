@@ -93,18 +93,19 @@ const Chat = (function () {
   function renderPresenceUI() {
     const st = presenceStatusFor(otherRole());
     const hs = document.getElementById('chatHeaderStatus');
-    if (hs) {
-      hs.innerHTML = partnerTyping
-        ? `<span style="color:var(--green)">typing</span><span class="typing-dots"><span></span><span></span><span></span></span>`
-        : st.dot + ' ' + st.label;
-    }
-    document.querySelectorAll('[data-presence-dot]').forEach(el => el.textContent = partnerTyping ? '🟢' : st.dot);
+    if (hs) hs.innerHTML = st.dot + ' ' + st.label;
+    document.querySelectorAll('[data-presence-dot]').forEach(el => el.textContent = st.dot);
     const psb = document.getElementById('hbSidebarPresence');
-    if (psb) {
-      psb.innerHTML = partnerTyping
-        ? `<span style="font-size:11px;color:var(--green)">typing…</span>`
-        : `<span style="font-size:11px;color:var(--text3)">${st.dot} ${esc(st.label)}</span>`;
-    }
+    if (psb) psb.innerHTML = `<span style="font-size:11px;color:var(--text3)">${st.dot} ${esc(st.label)}</span>`;
+  }
+
+  function updateTypingIndicatorUI() {
+    const el = document.getElementById('chatTypingIndicator');
+    if (!el) return;
+    const box = document.getElementById('chatMsgs');
+    const wasNearBottom = box && (box.scrollHeight - box.scrollTop - box.clientHeight < 150);
+    el.classList.toggle('show', partnerTyping);
+    if (partnerTyping && wasNearBottom) scrollToBottom(true);
   }
 
   // ─── LOAD / POLL MESSAGES ───────────────────────────
@@ -601,11 +602,11 @@ function reanchorAfterImages() {
       partnerTyping = true;
       // Safety net: auto-clear if a "stop" event is ever dropped (e.g. tab
       // killed mid-type without a pagehide firing in time).
-      partnerTypingTimeout = setTimeout(() => { partnerTyping = false; renderPresenceUI(); }, 5000);
+      partnerTypingTimeout = setTimeout(() => { partnerTyping = false; updateTypingIndicatorUI(); }, 5000);
     } else {
       partnerTyping = false;
     }
-    renderPresenceUI();
+    updateTypingIndicatorUI();
   }
 
   // Uploads a File/Blob to Supabase Storage instead of embedding it as

@@ -46,11 +46,20 @@
 .chat-header-status { font-size: 11px; color: var(--text3); display: flex; align-items: center; gap: 4px; }
 .chat-header-actions { display: flex; gap: 6px; }
 
-.typing-dots { display: inline-flex; gap: 2px; }
-.typing-dots span { width: 4px; height: 4px; border-radius: 50%; background: var(--green); animation: typingBlink 1.2s infinite; }
+.typing-dots { display: inline-flex; gap: 4px; }
+.typing-dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: typingBlink 1.2s infinite; }
 .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
 .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes typingBlink { 0%,60%,100%{opacity:0.3} 30%{opacity:1} }
+
+.chat-typing-indicator { display: none; padding: 2px 12px 8px; }
+.chat-typing-indicator.show { display: flex; }
+.chat-typing-bubble {
+  background: #0e0e0e; border: 1px solid var(--border);
+  border-radius: 4px 16px 16px 16px;
+  padding: 10px 16px;
+  display: inline-flex; align-items: center;
+}
 
 /* ── PINNED BAR ── */
 .chat-pinned-bar {
