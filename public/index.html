@@ -3224,7 +3224,8 @@
     .ai-wrap {
       display: flex;
       flex-direction: column;
-      height: calc(100dvh - 118px)
+      flex: 1;
+      min-height: 0;
     }
 
     .ai-msgs {
@@ -4489,6 +4490,26 @@
 
 /* Ambient background for the AI page only */
 #page-ai { position: relative; }
+/* #page-ai used to rely on .ai-wrap's own hardcoded
+   height:calc(100dvh - 118px) to fill the screen, which worked back when
+   ai-wrap was the page's only real content. Now that #twinModeSelector
+   (YOU/BOTH toggle) sits above it, that fixed height no longer accounts
+   for the selector's row, so the page overflowed past the viewport and
+   pushed the composer/orb down below the fold. Making #page-ai itself a
+   flex column — with the selector at its natural height and
+   ai-wrap/both-wrap sharing whatever's left via flex:1 — fixes that
+   regardless of how tall the selector row is. */
+#page-ai.active {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - 118px);
+}
+#twinModeSelector { flex: none; }
+#bothModeWrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
 #page-ai::before {
   content: '';
   position: absolute; inset: 0;
