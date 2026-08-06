@@ -13,6 +13,8 @@ const Chat = (function () {
   let recording = false, mediaRecorder = null, recChunks = [], recStart = 0, recTimerInt = null, recCancelled = false;
   let replyingTo = null;
   let lpTimer = null, lpFired = false;
+  let typingStopTimer = null, lastTypingSentAt = 0;
+  let partnerTyping = false, partnerTypingTimeout = null;
   const seenIds = new Set();
   function trackKey(m) { return m.client_id || m.id; }
 
@@ -38,6 +40,7 @@ const Chat = (function () {
       sendPresence(document.visibilityState === 'visible' ? 'online' : 'away');
     });
     window.addEventListener('pagehide', () => sendPresence('offline'));
+    window.addEventListener('pagehide', () => { clearTimeout(typingStopTimer); sendTypingSignal('stop'); });
     window.addEventListener('pagehide', () => {
       if (realtimeChannel) {
         try {
@@ -90,10 +93,18 @@ const Chat = (function () {
   function renderPresenceUI() {
     const st = presenceStatusFor(otherRole());
     const hs = document.getElementById('chatHeaderStatus');
-    if (hs) hs.innerHTML = st.dot + ' ' + st.label;
-    document.querySelectorAll('[data-presence-dot]').forEach(el => el.textContent = st.dot);
+    if (hs) {
+      hs.innerHTML = partnerTyping
+        ? `<span style="color:var(--green)">typing</span><span class="typing-dots"><span></span><span></span><span></span></span>`
+        : st.dot + ' ' + st.label;
+    }
+    document.querySelectorAll('[data-presence-dot]').forEach(el => el.textContent = partnerTyping ? '🟢' : st.dot);
     const psb = document.getElementById('hbSidebarPresence');
-    if (psb) psb.innerHTML = `<span style="font-size:11px;color:var(--text3)">${st.dot} ${esc(st.label)}</span>`;
+    if (psb) {
+      psb.innerHTML = partnerTyping
+        ? `<span style="font-size:11px;color:var(--green)">typing…</span>`
+        : `<span style="font-size:11px;color:var(--text3)">${st.dot} ${esc(st.label)}</span>`;
+    }
   }
 
   // ─── LOAD / POLL MESSAGES ───────────────────────────
@@ -550,11 +561,52 @@ function reanchorAfterImages() {
     if (!text) return;
     if (editingId) { inp.value = ''; inp.style.height = 'auto'; saveEdit(text); return; }
     inp.value = ''; inp.style.height = 'auto';
+    clearTimeout(typingStopTimer);
+    sendTypingSignal('stop');
     sendMessage({ type: 'text', text, replyTo: replyingTo });
     replyingTo = null; closeBanner();
   }
 
-  function onTypingInput() {}
+  // ─── TYPING INDICATOR (WhatsApp-style, via Supabase Realtime broadcast) ─
+  function onTypingInput() {
+    if (!coupleId() || !myRole() || !realtimeChannel) return;
+    const now = Date.now();
+    // Throttle "start" broadcasts so we're not sending one per keystroke —
+    // one every 2.5s while the user keeps typing is plenty to keep the
+    // partner's "typing…" indicator alive.
+    if (now - lastTypingSentAt > 2500) {
+      lastTypingSentAt = now;
+      sendTypingSignal('start');
+    }
+    // Debounced "stop" — fires 3s after the user pauses typing.
+    clearTimeout(typingStopTimer);
+    typingStopTimer = setTimeout(() => sendTypingSignal('stop'), 3000);
+  }
+
+  function sendTypingSignal(status) {
+    if (!realtimeChannel) return;
+    try {
+      realtimeChannel.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { role: myRole(), status }
+      });
+    } catch (e) {}
+  }
+
+  function handleTypingBroadcast(payload) {
+    if (!payload || payload.role !== otherRole()) return;
+    clearTimeout(partnerTypingTimeout);
+    if (payload.status === 'start') {
+      partnerTyping = true;
+      // Safety net: auto-clear if a "stop" event is ever dropped (e.g. tab
+      // killed mid-type without a pagehide firing in time).
+      partnerTypingTimeout = setTimeout(() => { partnerTyping = false; renderPresenceUI(); }, 5000);
+    } else {
+      partnerTyping = false;
+    }
+    renderPresenceUI();
+  }
 
   // Uploads a File/Blob to Supabase Storage instead of embedding it as
   // base64 text in the chat message — base64 media meant every chat
@@ -1597,6 +1649,7 @@ function menuItemsHtml(m, id, includeSelect) {
             markRead();
           }
         })
+        .on('broadcast', { event: 'typing' }, (msg) => handleTypingBroadcast(msg.payload))
         .subscribe((status) => {
           console.log('[Chat realtime]', status);
         });
