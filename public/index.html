@@ -8688,6 +8688,13 @@ function setJustPairedAt(ts) {
               //       checks are scoped to Live Map's own ids so it's safe to
               //       call unconditionally.
               if (window.LiveMap && typeof window.LiveMap.closeTopOverlayIfOpen === 'function' && window.LiveMap.closeTopOverlayIfOpen()) { return; }
+              // 0.585) Twin's Both mode — its own delete-confirm dialog and
+              //        card ⋮ menu take priority; failing that, Back while
+              //        inside a discussion returns to the Both home list
+              //        instead of leaving the AI page entirely. Only relevant
+              //        while Both mode is the active AI sub-mode; returns
+              //        false otherwise so this falls through normally.
+              if (window.TwinBoth && typeof window.TwinBoth.closeTopOverlayIfOpen === 'function' && window.TwinBoth.closeTopOverlayIfOpen()) { return; }
               // 0.6) Dream Goals lives in its own same-origin iframe with its own
               //      safe-delete confirm sheet, selection mode, and add/edit
               //      dream + update-progress modals — check those before

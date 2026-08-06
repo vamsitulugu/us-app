@@ -266,11 +266,13 @@
       <div class="both-session">
         <div class="both-session-header">
           <button class="both-back-btn" onclick="TwinBoth.renderBothHome()">‹ Back</button>
-          <div class="both-session-heading">
-            <div class="both-session-title">${esc((state.session && state.session.title) || 'Discussion')}</div>
-            <div class="both-session-subtitle">with ${esc(partnerName())}</div>
-          </div>
+          <div class="both-session-title">${esc((state.session && state.session.title) || 'Discussion')}</div>
           <div class="both-round-indicator" id="bothRoundIndicator">Round ${rounds[rounds.length - 1].round_number}</div>
+        </div>
+        <div class="both-couple-row both-couple-row-compact">
+          ${avatarHtml(S.myAvatar, myName())} <span class="both-couple-name">${esc(myName())}</span>
+          <span class="both-couple-vs-sm">Twin</span>
+          ${avatarHtml(S.partnerAvatar, partnerName())} <span class="both-couple-name">${esc(partnerName())}</span>
         </div>
         <div id="bothPriorRounds" class="both-prior-rounds"></div>
         <div id="bothRoundBody" class="both-round-body"></div>
@@ -458,9 +460,28 @@
     else console.warn('[both-mode]', msg);
   }
 
+  // ─── Android hardware back button ──────────────────────
+  // Called from the CapApp 'backButton' listener in index.html, same
+  // pattern as Chat/LiveMap's own closeTopOverlayIfOpen(). Only acts
+  // while Both mode is actually the active AI sub-mode — returns false
+  // otherwise so the caller falls through to normal page navigation.
+  function closeTopOverlayIfOpen() {
+    if (state.mode !== 'both') return false;
+    // 1) Delete-confirmation dialog takes priority over everything else.
+    const confirmOverlay = document.querySelector('.both-confirm-overlay');
+    if (confirmOverlay) { confirmOverlay.remove(); return true; }
+    // 2) An open card ⋮ menu on a discussion in the history list.
+    const openMenu = document.querySelector('.both-history-menu.open');
+    if (openMenu) { openMenu.classList.remove('open'); return true; }
+    // 3) Inside a discussion — back out to the Both home list instead of
+    //    leaving the AI page entirely (mirrors a normal "page back").
+    if (state.view === 'session') { renderBothHome(); return true; }
+    return false;
+  }
+
   window.TwinBoth = {
     onEnterAiPage, onLeaveAiPage, switchMode,
     startNewSession, openSession, submitCurrent, continueTogether, retryRound,
-    renderBothHome, toggleCardMenu, confirmDelete,
+    renderBothHome, toggleCardMenu, confirmDelete, closeTopOverlayIfOpen,
   };
 })();
