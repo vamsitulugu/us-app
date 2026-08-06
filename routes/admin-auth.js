@@ -44,6 +44,11 @@ router.post('/login', adminLoginLimiter, async (req, res) => {
   // by an attacker measuring response time.
   const passwordMatches = await bcrypt.compare(String(password), adminPasswordHash);
 
+  // TEMPORARY DIAGNOSTIC — remove after debugging the login issue.
+  // Logs only booleans/lengths, never the password, hash, or email value.
+  console.log('[admin-auth][debug] emailMatches=%s passwordMatches=%s hashLen=%d hashPrefix=%s envEmailLen=%d',
+    emailMatches, passwordMatches, adminPasswordHash.length, adminPasswordHash.slice(0, 7), adminEmail.length);
+
   if (!emailMatches || !passwordMatches) {
     await logAudit(String(email).toLowerCase().trim(), 'admin.login_failed', null, null, {});
     return res.status(401).json({ error: 'Invalid credentials' });
