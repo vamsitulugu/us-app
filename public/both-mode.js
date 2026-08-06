@@ -266,13 +266,11 @@
       <div class="both-session">
         <div class="both-session-header">
           <button class="both-back-btn" onclick="TwinBoth.renderBothHome()">‹ Back</button>
-          <div class="both-session-title">${esc((state.session && state.session.title) || 'Discussion')}</div>
+          <div class="both-session-heading">
+            <div class="both-session-title">${esc((state.session && state.session.title) || 'Discussion')}</div>
+            <div class="both-session-subtitle">with ${esc(partnerName())}</div>
+          </div>
           <div class="both-round-indicator" id="bothRoundIndicator">Round ${rounds[rounds.length - 1].round_number}</div>
-        </div>
-        <div class="both-couple-row both-couple-row-compact">
-          ${avatarHtml(S.myAvatar, myName())} <span class="both-couple-name">${esc(myName())}</span>
-          <span class="both-couple-vs-sm">Twin</span>
-          ${avatarHtml(S.partnerAvatar, partnerName())} <span class="both-couple-name">${esc(partnerName())}</span>
         </div>
         <div id="bothPriorRounds" class="both-prior-rounds"></div>
         <div id="bothRoundBody" class="both-round-body"></div>

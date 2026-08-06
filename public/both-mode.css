@@ -166,6 +166,53 @@
   padding: 28px 16px 22px;
 }
 
+/* Avatar row: two circular avatars with a small glowing "Twin" badge
+   between them. Previously undefined in CSS entirely, so this rendered
+   as raw stacked text ("V" / "Twin" / "V") instead of a row. */
+.both-couple-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.both-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border2, var(--border));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.both-avatar-fallback {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: 2px solid var(--border2, var(--border));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.both-couple-vs {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--white);
+  background: var(--border);
+  padding: 5px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
 .both-hero-title {
   font-size: 26px;
   font-weight: 800;
@@ -202,11 +249,11 @@
   border-radius: var(--r);
   padding: 14px 16px;
   cursor: pointer;
-  transition: border-color 0.2s ease, transform 0.15s ease;
+  transition: border-color 0.2s ease, transform 0.15s ease, background 0.2s ease;
 }
 
 .both-history-item:active { transform: scale(0.98); }
-.both-history-item:hover { border-color: var(--border2); }
+.both-history-item:hover { border-color: var(--accent); background: rgba(255, 255, 255, 0.03); }
 
 .both-history-top {
   display: flex;
@@ -240,7 +287,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 18px;
 }
 
 .both-back-btn {
@@ -251,6 +299,31 @@
   font-weight: 600;
   cursor: pointer;
   padding: 6px 4px;
+  flex-shrink: 0;
+}
+
+/* Title + "with {partner}" subtitle, centered between back button and
+   round indicator — replaces the old redundant avatar/name row that
+   repeated information already shown elsewhere. */
+.both-session-heading {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.both-session-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--white);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.both-session-subtitle {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 1px;
 }
 
 .both-round-indicator {
@@ -260,6 +333,7 @@
   background: var(--border);
   padding: 4px 12px;
   border-radius: 10px;
+  flex-shrink: 0;
 }
 
 .both-round-body { animation: al-fadein 0.3s ease both; }
@@ -291,9 +365,14 @@
 .both-input:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .both-submit-btn { width: 100%; }
+.both-start-btn:hover,
+.both-submit-btn:hover,
+.both-continue-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px var(--accent-glow); }
+.both-start-btn, .both-submit-btn, .both-continue-btn { transition: transform 0.15s ease, box-shadow 0.15s ease; }
 
 /* ── Status cards (waiting / analyzing / failed) ── */
 .both-status-card {
