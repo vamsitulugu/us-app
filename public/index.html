@@ -4650,6 +4650,8 @@
   display: flex; gap: 8px; overflow-x: auto; padding: 4px 4px 2px;
   margin-top: 18px; max-width: 100%;
   scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
 }
 .twin-sugg-row::-webkit-scrollbar { display: none; }
 .twin-sugg-chip {
@@ -4658,6 +4660,7 @@
   background: var(--g1); border: 1px solid var(--border);
   font-size: 12px; color: var(--text2); white-space: nowrap;
   cursor: pointer; transition: var(--t);
+  scroll-snap-align: center;
 }
 .twin-sugg-chip:hover { background: var(--g2); border-color: var(--border2); color: var(--white); }
 .twin-sugg-chip:active { transform: scale(.96); }
@@ -6830,10 +6833,10 @@ select option { background: #0D0D0D; color: #fff; }
               </div>
               <div class="twin-welcome-title">Hey, I'm Twin.</div>
               <div class="twin-welcome-sub">What's on your mind?</div>
-              <div class="twin-sugg-row">
+              <div class="twin-sugg-row" id="twinSuggRow">
                 <div class="twin-sugg-chip" onclick="askAI('Give us 5 creative and romantic date night ideas for tonight')">💑 Plan a date</div>
                 <div class="twin-sugg-chip" onclick="askAI('We had a fight. Give us a step-by-step guide to talk it through with love')">💬 We argued</div>
-                <div class="twin-sugg-chip" onclick="askAI('Write a heartfelt, poetic love letter from me to my partner')">💌 Write something sweet</div>
+                <div class="twin-sugg-chip" data-sugg-center="1" onclick="askAI('Write a heartfelt, poetic love letter from me to my partner')">💌 Write something sweet</div>
                 <div class="twin-sugg-chip" onclick="askAI('Give us 5 deep conversation questions to learn more about each other')">💭 Deep talk</div>
                 <div class="twin-sugg-chip" onclick="askAI('Plan a romantic surprise — give me 3 detailed and thoughtful options')">🎁 Surprise idea</div>
               </div>
@@ -8489,6 +8492,7 @@ function setJustPairedAt(ts) {
             // that's why positioning must be (re)decided HERE, every time
             // Twin becomes visible, not just once on page load.
             TwinOrb.show();
+            initTwinSuggCarousel();
             requestAnimationFrame(() => {
               if (!twinEntrancePlayed) {
                 twinPlayEntrance();
@@ -11167,6 +11171,38 @@ const p = await Notification.requestPermission();
             if (!document.getElementById('aiWelcome')) return; // user already sent a message; dock already handled by askAI()
             twinOrbGoToWhenReady(dock, { animate: true });
           }, 1000);
+        }
+        // Suggestion-chip carousel: rests with "Write something sweet"
+        // centered (We argued / Deep talk peeking on either side), scroll
+        // left/right to reveal Plan a date / Surprise idea, then after 2s
+        // of no interaction it springs back to the centered resting chip.
+        let twinSuggIdleTimer = null;
+        function twinSuggRecenter(row, mid, animate) {
+          const padL = Math.max(0, (row.clientWidth - mid.offsetWidth) / 2);
+          row.style.paddingLeft = padL + 'px';
+          row.style.paddingRight = padL + 'px';
+          const target = mid.offsetLeft - padL;
+          if (row.scrollTo) row.scrollTo({ left: target, behavior: animate ? 'smooth' : 'auto' });
+          else row.scrollLeft = target;
+        }
+        function initTwinSuggCarousel() {
+          const row = document.getElementById('twinSuggRow');
+          if (!row || row.dataset.suggInit) return;
+          const mid = row.querySelector('[data-sugg-center]');
+          if (!mid) return;
+          row.dataset.suggInit = '1';
+          twinWaitForLayout(row, function () {
+            twinSuggRecenter(row, mid, false);
+          });
+          row.addEventListener('scroll', function () {
+            clearTimeout(twinSuggIdleTimer);
+            twinSuggIdleTimer = setTimeout(function () {
+              twinSuggRecenter(row, mid, true);
+            }, 2000);
+          }, { passive: true });
+          window.addEventListener('resize', function () {
+            twinSuggRecenter(row, mid, false);
+          });
         }
         function initTwinOrb() {
           if (!window.TwinOrb) return;
