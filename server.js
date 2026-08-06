@@ -16,6 +16,20 @@ const compression = require('compression');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// ── Trust proxy ─────────────────────────────────────────
+// Render puts every request behind exactly one reverse proxy, which sets
+// X-Forwarded-For. Express's default ('trust proxy' = false) makes
+// express-rate-limit refuse to trust that header (ERR_ERL_UNEXPECTED_X_FORWARDED_FOR)
+// and, more importantly, means req.ip would resolve to Render's internal
+// proxy IP instead of the real client IP, breaking IP-based rate limiting.
+// Use the numeric hop count (1) rather than `true`: `true` trusts every
+// hop in the chain (spoofable by a client sending its own X-Forwarded-For),
+// while `1` trusts only the single hop Render actually adds.
+// This must be set before any express-rate-limit middleware is registered,
+// on this app instance and any router mounted on it (admin-auth.js's
+// rate limiter included, since it shares this same app/router chain).
+app.set('trust proxy', 1);
+
 // Express auto-generates ETags on JSON responses, which makes browsers
 // 304-cache polling endpoints (like /api/call/signal) and reuse the FIRST
 // response forever, even after the underlying data changes. Disable it.
