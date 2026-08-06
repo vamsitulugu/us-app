@@ -4924,11 +4924,12 @@ body {
 }
 /* ════ VERCEL WIDGET + BODY FLEX CHILD PROTECTION ════ */
 vercel-live-feedback {
+  display: none !important;
   position: fixed !important;
   width: 0 !important;
   height: 0 !important;
-  pointer-events: none;
-  overflow: visible;
+  pointer-events: none !important;
+  overflow: hidden !important;
 }
 
 
@@ -13471,7 +13472,7 @@ init();
   function applyFix() {
     const el = document.querySelector('vercel-live-feedback');
     if (el) {
-      el.style.cssText = 'position:fixed!important;width:0!important;height:0!important;overflow:visible!important;pointer-events:none!important;top:auto!important;left:auto!important;bottom:0!important;right:0!important;';
+      el.style.cssText = 'display:none!important;position:fixed!important;width:0!important;height:0!important;overflow:hidden!important;pointer-events:none!important;top:auto!important;left:auto!important;bottom:0!important;right:0!important;';
     }
   }
 
