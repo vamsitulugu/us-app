@@ -45,12 +45,11 @@
   async function onEnterAiPage() {
     if (!state.flagChecked) {
       state.flagChecked = true;
-      try {
-        const r = await api('GET', `/api/ai-both/flag/${coupleId()}`);
-        state.flagEnabled = !!r.enabled;
-      } catch (e) { state.flagEnabled = false; }
+      // Both mode is a finished, stable feature now — always show the
+      // selector. (This used to be gated behind a `feature_flags` DB
+      // row that was never created, which silently hid it forever.)
       const sel = document.getElementById('twinModeSelector');
-      if (sel) sel.style.display = state.flagEnabled ? 'flex' : 'none';
+      if (sel) sel.style.display = 'flex';
     }
     if (!state.names) {
       try { state.names = await api('GET', `/api/ai-both/names/${coupleId()}`); }
