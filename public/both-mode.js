@@ -476,7 +476,12 @@
     // 3) Inside a discussion — back out to the Both home list instead of
     //    leaving the AI page entirely (mirrors a normal "page back").
     if (state.view === 'session') { renderBothHome(); return true; }
-    return false;
+    // 4) On the Both home screen itself — back returns to You mode first,
+    //    same as tapping the YOU pill, instead of falling straight through
+    //    to leaving the AI page (which used to skip You mode entirely and
+    //    land on Dashboard).
+    switchMode('you');
+    return true;
   }
 
   window.TwinBoth = {
