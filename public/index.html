@@ -5910,10 +5910,10 @@ select option { background: #0D0D0D; color: #fff; }
       <div class="chat-wallpaper-layer" id="chatWallpaperLayer"></div>
       <div class="chat-wallpaper-dim" id="chatWallpaperDim"></div>
       <div class="chat-msgs" id="chatMsgs" onscroll="Chat.onChatScroll()"></div>
+      <button class="chat-jump-btn" id="chatJumpBtn" onclick="Chat.scrollToBottom(true)">
+        ⬇<span class="chat-jump-badge" data-chat-badge></span>
+      </button>
     </div>
-    <button class="chat-jump-btn" id="chatJumpBtn" onclick="Chat.scrollToBottom(true)">
-      ⬇<span class="chat-jump-badge" data-chat-badge></span>
-    </button>
 
     <div class="chat-typing-indicator" id="chatTypingIndicator">
       <div class="chat-typing-bubble"><span class="typing-dots"><span></span><span></span><span></span></span></div>
@@ -5942,7 +5942,7 @@ select option { background: #0D0D0D; color: #fff; }
       <button class="uc-btn uc-btn--rec" id="chatStopRecBtn" style="display:none" onclick="Chat.toggleRecord()" title="Send voice message">✔</button>
       <button class="uc-btn uc-btn--send uc-btn--mic-send" id="chatSendBtn" onclick="chatMicSendClick()" title="Voice message">
         <span class="uc-mic-ico">🎙️</span>
-        <span class="uc-send-ico">➤</span>
+        <span class="uc-send-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3.4 20.6 21 12 3.4 3.4 3 10l12 2-12 2z" fill="currentColor"/></svg></span>
       </button>
     </div>
     <script>

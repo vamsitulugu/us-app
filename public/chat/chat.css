@@ -240,7 +240,7 @@
    while the user is actively scrolling so the button doesn't fight the
    scroll gesture; it's purely visual (opacity), never affects layout. */
 .chat-jump-btn {
-  display: flex; position: absolute; bottom: 14px; right: 14px; left: auto;
+  display: flex; position: absolute; bottom: 16px; right: max(14px, calc(10px + env(safe-area-inset-right))); left: auto;
   width: 38px; height: 38px; border-radius: 50%;
   background: var(--g2); border: 1px solid var(--border2);
   align-items: center; justify-content: center; cursor: pointer;
