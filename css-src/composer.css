@@ -212,21 +212,10 @@
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   transition: opacity 0.15s ease, transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
 }
-/* Material Design 3 send-plane icon — crisp vector instead of the old
-   "➤" text glyph, sized/optically-centered to sit dead-center in the
-   circular button (nudged 1px right since the plane's visual weight
-   leans left otherwise). */
-.uc-btn--mic-send .uc-send-ico svg { width: 20px; height: 20px; transform: translateX(1px); }
 .uc-btn--mic-send .uc-send-ico { opacity: 0; transform: scale(0.6) rotate(-20deg); }
 .uc-btn--mic-send .uc-mic-ico { opacity: 1; transform: scale(1) rotate(0); }
 .uc-btn--mic-send.has-text .uc-send-ico { opacity: 1; transform: scale(1) rotate(0); }
 .uc-btn--mic-send.has-text .uc-mic-ico { opacity: 0; transform: scale(0.6) rotate(20deg); }
-/* Subtle press feedback (MD3-style) layered on top of the existing
-   .uc-btn:active scale — a soft ripple-ish inset glow rather than a
-   hard shadow, and only while the button is actually the send state
-   (empty-field mic taps shouldn't ripple, they open a recorder). */
-.uc-btn--mic-send.has-text:active { transform: scale(0.92); }
-.uc-btn--mic-send.has-text:active .uc-send-ico { transition: opacity 0.1s ease, transform 0.1s ease; }
 
 /* Smaller circular buttons for the AI composer (single send button) */
 .uc-composer--ai .uc-btn {

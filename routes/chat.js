@@ -26,22 +26,14 @@ const { isViewingChat } = require('./presence');
 
 function otherRole(role) { return role === 'user1' ? 'user2' : 'user1'; }
 
-// ─── GET messages (initial load + polling fallback + pagination) ─
-// GET /api/chat/:coupleId?after=<ts>&limit=100   → poll for new (forward)
-// GET /api/chat/:coupleId?before=<ts>&limit=40   → lazy-load older (backward, infinite scroll up)
-// GET /api/chat/:coupleId?limit=40               → initial load, most recent N only
+// ─── GET messages (initial load + polling fallback) ─────
+// GET /api/chat/:coupleId?after=<id>&limit=100
 router.get('/:coupleId', async (req, res) => {
   const { coupleId } = req.params;
-  const afterTs = req.query.after;   // ISO timestamp string, not a numeric id
-  const beforeTs = req.query.before; // ISO timestamp string — pagination cursor for scroll-up
-  // Initial-load default trimmed to a WhatsApp-style first page (was 200 —
-  // fetching the whole history on every chat open doesn't scale as a
-  // conversation grows to thousands of messages). Older messages are
-  // fetched lazily via `before` as the user scrolls up instead.
-  const limit = Math.min(parseInt(req.query.limit) || 40, 300);
+  const afterTs = req.query.after; // ISO timestamp string now, not a numeric id
+  const limit = Math.min(parseInt(req.query.limit) || 200, 300);
 
   const validAfter = afterTs && afterTs !== 'NaN' && afterTs !== 'null' && afterTs !== '0';
-  const validBefore = beforeTs && beforeTs !== 'NaN' && beforeTs !== 'null' && beforeTs !== '0';
 
   if (validAfter) {
     // Polling for new messages only
@@ -52,19 +44,6 @@ router.get('/:coupleId', async (req, res) => {
       .limit(limit);
     if (error) return res.status(500).json({ error: error.message });
     return res.json(data || []);
-  }
-
-  if (validBefore) {
-    // Lazy-load an older page for infinite scroll-up. Fetched newest-first
-    // so `.limit()` grabs the page immediately older than the cursor,
-    // then reversed back to chronological order for the client.
-    const { data, error } = await supabase
-      .from('chat_messages').select('*').eq('couple_id', coupleId)
-      .lt('created_at', beforeTs)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-    if (error) return res.status(500).json({ error: error.message });
-    return res.json((data || []).reverse());
   }
 
   // Initial load — must be the most RECENT `limit` messages, not the oldest.

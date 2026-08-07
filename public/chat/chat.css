@@ -240,7 +240,7 @@
    while the user is actively scrolling so the button doesn't fight the
    scroll gesture; it's purely visual (opacity), never affects layout. */
 .chat-jump-btn {
-  display: flex; position: absolute; bottom: 16px; right: max(14px, calc(10px + env(safe-area-inset-right))); left: auto;
+  display: flex; position: absolute; bottom: 14px; right: 14px; left: auto;
   width: 38px; height: 38px; border-radius: 50%;
   background: var(--g2); border: 1px solid var(--border2);
   align-items: center; justify-content: center; cursor: pointer;
@@ -694,37 +694,3 @@
 }
 .wp-preview-cancel{background:rgba(255,255,255,.12); color:#fff}
 .wp-preview-set{background:linear-gradient(135deg,var(--accent),var(--accent-d)); color:#fff}
-/* ─── Chat history loading: skeleton shimmer + older-page spinner ───
-   Shown only when there is no cached history yet to paint immediately
-   (see Chat.loadMessages()/showChatSkeleton() in chat.js). Mirrors the
-   real .chat-row/.me/.them bubble layout so there's no shape jump when
-   real messages replace it. */
-.chat-skeleton-wrap { display: flex; flex-direction: column; padding: 10px 8px; }
-.chat-skel-row { display: flex; margin: 6px 0; }
-.chat-skel-row.mine { justify-content: flex-end; }
-.chat-skel-row.theirs { justify-content: flex-start; }
-.chat-skel-bubble {
-  height: 34px; border-radius: 16px; max-width: 78%;
-  background: linear-gradient(90deg,
-    rgba(255,255,255,.06) 25%, rgba(255,255,255,.14) 37%, rgba(255,255,255,.06) 63%);
-  background-size: 400% 100%;
-  animation: chat-skel-shimmer 1.4s ease-in-out infinite;
-}
-@keyframes chat-skel-shimmer {
-  0% { background-position: 100% 50%; }
-  100% { background-position: 0 50%; }
-}
-/* Small top-of-list spinner while an older page is being fetched
-   during scroll-up (infinite pagination). Purely additive — doesn't
-   touch layout/height so it never shifts the messages beneath it. */
-.chat-loading-older #chatMsgs::before,
-#chatMsgs.chat-loading-older::before {
-  content: '';
-  display: block;
-  width: 22px; height: 22px; margin: 10px auto;
-  border-radius: 50%;
-  border: 2px solid rgba(255,255,255,.18);
-  border-top-color: rgba(255,255,255,.65);
-  animation: chat-older-spin .7s linear infinite;
-}
-@keyframes chat-older-spin { to { transform: rotate(360deg); } }
