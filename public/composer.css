@@ -187,7 +187,32 @@
   background: linear-gradient(135deg, var(--accent), var(--accent-d));
   color: #fff;
   box-shadow: 0 3px 12px var(--accent-glow);
-  opacity: .55
+  opacity: .55;
+  transition: var(--t), transform .15s cubic-bezier(.34, 1.56, .64, 1), box-shadow .2s ease, opacity .2s ease
+}
+
+.uc-btn--send:active {
+  transform: scale(.88);
+  box-shadow: 0 1px 6px var(--accent-glow)
+}
+
+.uc-btn--mic-send:not(.has-text) {
+  background: var(--g2);
+  box-shadow: none;
+  opacity: 1
+}
+
+.uc-btn--mic-send:not(.has-text):hover {
+  background: var(--g3)
+}
+
+.uc-btn--mic-send:not(.has-text):active {
+  transform: scale(.9)
+}
+
+.uc-btn--mic-send.has-text {
+  opacity: 1;
+  box-shadow: 0 4px 16px var(--accent-glow)
 }
 
 .uc-btn--send.is-ready {
@@ -280,6 +305,12 @@
 .uc-btn--mic-send.has-text .uc-mic-ico {
   opacity: 0;
   transform: scale(.6) rotate(20deg)
+}
+
+.uc-btn--mic-send .uc-send-ico svg {
+  width: 20px;
+  height: 20px;
+  transform: translateX(-1px)
 }
 
 .uc-composer--ai .uc-btn {

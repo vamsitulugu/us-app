@@ -5932,7 +5932,10 @@ select option { background: #0D0D0D; color: #fff; }
       <div class="chat-msgs" id="chatMsgs" onscroll="Chat.onChatScroll()"></div>
     </div>
     <button class="chat-jump-btn" id="chatJumpBtn" onclick="Chat.scrollToBottom(true)">
-      ⬇<span class="chat-jump-badge" data-chat-badge></span>
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 10l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="chat-jump-badge" data-chat-badge></span>
     </button>
 
     <div class="chat-typing-indicator" id="chatTypingIndicator">
@@ -5962,7 +5965,11 @@ select option { background: #0D0D0D; color: #fff; }
       <button class="uc-btn uc-btn--rec" id="chatStopRecBtn" style="display:none" onclick="Chat.toggleRecord()" title="Send voice message">✔</button>
       <button class="uc-btn uc-btn--send uc-btn--mic-send" id="chatSendBtn" onclick="chatMicSendClick()" title="Voice message">
         <span class="uc-mic-ico">🎙️</span>
-        <span class="uc-send-ico">➤</span>
+        <span class="uc-send-ico">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3.4 20.6 21 12 3.4 3.4 3.4 10.2 15 12 3.4 13.8Z" fill="currentColor" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"/>
+          </svg>
+        </span>
       </button>
     </div>
     <script>

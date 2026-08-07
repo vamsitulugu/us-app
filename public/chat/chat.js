@@ -722,6 +722,7 @@ function reanchorAfterImages() {
     if (!text) return;
     if (editingId) { inp.value = ''; inp.style.height = 'auto'; saveEdit(text); return; }
     inp.value = ''; inp.style.height = 'auto';
+    document.getElementById('chatSendBtn')?.classList.remove('has-text');
     clearTimeout(typingStopTimer);
     sendTypingSignal('stop');
     sendMessage({ type: 'text', text, replyTo: replyingTo });
