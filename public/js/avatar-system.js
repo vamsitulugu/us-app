@@ -253,181 +253,22 @@
     },
 
     openViewer(url, sourceEl, ownerForLabel) {
-      // `global.openImgViewer`, referenced by the old comment here, was never
-      // actually defined anywhere in the app — every call silently fell
-      // through to a bare click-to-close <img>, which is why tapping a
-      // profile photo never opened a real preview. openProfilePreview below
-      // is the real implementation: full image, name/status, pinch-zoom,
-      // drag, and a hero (shared-element) open/close animation.
+      // Reuses the app's real, already-proven full-screen viewer
+      // (gallery-viewer.js, wired up as global openImgViewer() in
+      // index.html) instead of a separate implementation — it already has
+      // production pinch-zoom, drag-to-dismiss-with-fade, and swipe
+      // transitions, and reusing it keeps every full-screen photo view in
+      // the app (chat media, this profile preview) feeling identical. The
+      // only thing it didn't support was a name/status caption, so
+      // openImgViewer() now takes that as an optional 4th argument.
       const profile = ProfileStore.get(ownerForLabel) || {};
-      openProfilePreview(url, profile, sourceEl);
+      const caption = { name: profile.display_name || '', status: profile.status || profile.bio || '' };
+      if (typeof global.openImgViewer === 'function') {
+        global.openImgViewer(url, null, 0, caption);
+      }
     }
   };
   global.Avatar = Avatar;
-
-  // ── Profile preview (hero image viewer) ────────────────────────
-  // Premium full-screen preview: opens with a shared-element "hero"
-  // animation from the tapped avatar's on-screen position, supports
-  // pinch-to-zoom and drag-to-pan once zoomed, and drag-down or tap-outside
-  // to dismiss (springs back if the drag doesn't clear the threshold).
-  let _pvStyleInjected = false;
-  function ensurePreviewStyles() {
-    if (_pvStyleInjected) return;
-    _pvStyleInjected = true;
-    const s = document.createElement('style');
-    s.textContent = `
-      .profile-preview-overlay{position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,0);
-        display:flex;flex-direction:column;align-items:center;justify-content:center;
-        opacity:0;transition:opacity .28s ease,background .28s ease;touch-action:none;overscroll-behavior:contain}
-      .profile-preview-overlay.open{opacity:1;background:rgba(0,0,0,.92)}
-      .profile-preview-close{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);right:16px;
-        width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;border:none;
-        font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2}
-      .profile-preview-stage{position:relative;flex:1;width:100%;display:flex;align-items:center;justify-content:center;
-        overflow:hidden;min-height:0}
-      .profile-preview-img{max-width:88vw;max-height:70vh;border-radius:16px;object-fit:cover;
-        box-shadow:0 20px 60px rgba(0,0,0,.5);will-change:transform;user-select:none;-webkit-user-drag:none;
-        transform-origin:center center;transition:transform .22s cubic-bezier(0.22,1,0.36,1)}
-      .profile-preview-img.dragging{transition:none}
-      .profile-preview-meta{padding:14px 20px calc(env(safe-area-inset-bottom,0px) + 22px);text-align:center;color:#fff}
-      .profile-preview-name{font-size:17px;font-weight:700;margin-bottom:4px}
-      .profile-preview-status{font-size:13px;color:rgba(255,255,255,.65)}
-    `;
-    document.head.appendChild(s);
-  }
-
-  function openProfilePreview(url, profile, sourceEl) {
-    if (!url) return;
-    ensurePreviewStyles();
-    document.getElementById('profilePreviewOverlay')?.remove();
-
-    const overlay = document.createElement('div');
-    overlay.className = 'profile-preview-overlay';
-    overlay.id = 'profilePreviewOverlay';
-    overlay.innerHTML = `
-      <button class="profile-preview-close" aria-label="Close">✕</button>
-      <div class="profile-preview-stage"><img class="profile-preview-img" src="${url}" alt="" draggable="false"></div>
-      <div class="profile-preview-meta">
-        <div class="profile-preview-name">${(profile.display_name || '').replace(/</g,'&lt;')}</div>
-        <div class="profile-preview-status">${(profile.status || profile.bio || '').replace(/</g,'&lt;')}</div>
-      </div>`;
-    document.body.appendChild(overlay);
-    const img = overlay.querySelector('.profile-preview-img');
-    const closeBtn = overlay.querySelector('.profile-preview-close');
-
-    // ── Hero open animation: start the image at the clicked avatar's
-    // screen rect/shape, then animate to its natural centered position. ──
-    const startRect = sourceEl && sourceEl.getBoundingClientRect ? sourceEl.getBoundingClientRect() : null;
-    requestAnimationFrame(() => {
-      overlay.classList.add('open');
-      if (startRect && startRect.width > 0) {
-        const endRect = img.getBoundingClientRect();
-        const scaleX = startRect.width / endRect.width, scaleY = startRect.height / endRect.height;
-        const dx = (startRect.left + startRect.width / 2) - (endRect.left + endRect.width / 2);
-        const dy = (startRect.top + startRect.height / 2) - (endRect.top + endRect.height / 2);
-        img.style.transition = 'none';
-        img.style.borderRadius = '50%';
-        img.style.transform = `translate(${dx}px, ${dy}px) scale(${scaleX}, ${scaleY})`;
-        requestAnimationFrame(() => {
-          img.style.transition = 'transform .32s cubic-bezier(0.22,1,0.36,1), border-radius .32s ease';
-          img.style.borderRadius = '16px';
-          img.style.transform = 'translate(0,0) scale(1)';
-        });
-      }
-    });
-
-    let scale = 1, panX = 0, panY = 0;
-    let pinch = null;   // { startDist, startScale }
-    let drag = null;    // { startX, startY, startPanX, startPanY, isDismiss }
-    let closing = false;
-
-    function applyTransform(extra) {
-      img.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})` + (extra || '');
-    }
-
-    function dist(t0, t1) { return Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY); }
-
-    function close() {
-      if (closing) return;
-      closing = true;
-      overlay.classList.remove('open');
-      overlay.style.background = 'rgba(0,0,0,0)';
-      setTimeout(() => overlay.remove(), 260);
-    }
-    closeBtn.onclick = close;
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
-
-    overlay.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 2) {
-        pinch = { startDist: dist(e.touches[0], e.touches[1]), startScale: scale };
-        drag = null;
-      } else if (e.touches.length === 1) {
-        drag = { startX: e.touches[0].clientX, startY: e.touches[0].clientY, startPanX: panX, startPanY: panY, isDismiss: scale <= 1.01 };
-        img.classList.add('dragging');
-      }
-    }, { passive: true });
-
-    overlay.addEventListener('touchmove', (e) => {
-      if (pinch && e.touches.length === 2) {
-        e.preventDefault();
-        const ratio = dist(e.touches[0], e.touches[1]) / pinch.startDist;
-        scale = Math.min(4, Math.max(1, pinch.startScale * ratio));
-        applyTransform();
-      } else if (drag && e.touches.length === 1) {
-        const t = e.touches[0];
-        const ddx = t.clientX - drag.startX, ddy = t.clientY - drag.startY;
-        if (drag.isDismiss && scale <= 1.01) {
-          // Drag-to-dismiss: follow the finger, fade background with distance.
-          if (e.cancelable) e.preventDefault();
-          panX = drag.startPanX + ddx; panY = drag.startPanY + ddy;
-          const p = Math.min(1, Math.abs(ddy) / 240);
-          overlay.style.background = `rgba(0,0,0,${0.92 * (1 - p * 0.7)})`;
-          applyTransform();
-        } else {
-          if (e.cancelable) e.preventDefault();
-          panX = drag.startPanX + ddx; panY = drag.startPanY + ddy;
-          applyTransform();
-        }
-      }
-    }, { passive: false });
-
-    function endGesture() {
-      img.classList.remove('dragging');
-      if (drag && drag.isDismiss && scale <= 1.01 && Math.abs(panY - drag.startPanY) > 110) {
-        close();
-      } else if (scale <= 1.01) {
-        // Spring back to center — natural bounce rather than a hard snap.
-        panX = 0; panY = 0;
-        img.style.transition = 'transform .3s cubic-bezier(0.34,1.56,0.64,1)';
-        applyTransform();
-        overlay.style.background = '';
-        setTimeout(() => { if (img) img.style.transition = ''; }, 300);
-      } else if (scale < 1) {
-        scale = 1; applyTransform();
-      }
-      pinch = null; drag = null;
-    }
-    overlay.addEventListener('touchend', endGesture, { passive: true });
-    overlay.addEventListener('touchcancel', endGesture, { passive: true });
-
-    // Double-tap to toggle zoom (desktop-friendly + common mobile gesture).
-    let lastTap = 0;
-    img.addEventListener('click', () => {
-      const now = Date.now();
-      if (now - lastTap < 300) {
-        scale = scale > 1 ? 1 : 2;
-        panX = 0; panY = 0;
-        img.style.transition = 'transform .25s ease';
-        applyTransform();
-        setTimeout(() => { if (img) img.style.transition = ''; }, 250);
-      }
-      lastTap = now;
-    });
-
-    // Escape key + Android hardware back both close it like any other modal.
-    document.addEventListener('keydown', function onKey(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } });
-  }
-  global.openProfilePreview = openProfilePreview;
 
   ProfileStore.onChange((owner) => Avatar.refreshAll(owner));
 

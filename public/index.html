@@ -2504,6 +2504,22 @@
       text-shadow: 0 1px 3px rgba(0,0,0,.6);
     }
 
+    /* Optional name/status caption — only populated when openImgViewer()
+       is called with a 4th `caption` arg (profile-preview taps), fixed
+       to the viewport like the rest of the overlay chrome so it never
+       moves with pinch/pan/swipe of the photo itself underneath it. */
+    .img-viewer-caption {
+      position: fixed;
+      left: 0; right: 0;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
+      z-index: 2;
+      text-align: center;
+      color: #fff;
+      pointer-events: none;
+    }
+    .img-viewer-caption-name { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+    .img-viewer-caption-status { font-size: 13px; color: rgba(255,255,255,.65); }
+
     /* Gallery stage: the ONLY layer the GalleryEngine writes/transforms
        into. Sits below the fixed overlay in stacking order but is a
        plain sibling in the DOM, not an ancestor of the overlay — so
@@ -5415,6 +5431,10 @@ select option { background: #0D0D0D; color: #fff; }
       <div class="img-viewer-counter" id="imgViewerCounter"></div>
     </div>
     <div class="img-viewer-stage" id="imgViewerStage"></div>
+    <div class="img-viewer-caption gve-no-drag" id="imgViewerCaption" style="display:none">
+      <div class="img-viewer-caption-name" id="imgViewerCaptionName"></div>
+      <div class="img-viewer-caption-status" id="imgViewerCaptionStatus"></div>
+    </div>
   </div>
 
   <!-- MEMORIES GALLERY VIEWER (dedicated to the Memories page — see Part below) -->
@@ -5910,10 +5930,10 @@ select option { background: #0D0D0D; color: #fff; }
       <div class="chat-wallpaper-layer" id="chatWallpaperLayer"></div>
       <div class="chat-wallpaper-dim" id="chatWallpaperDim"></div>
       <div class="chat-msgs" id="chatMsgs" onscroll="Chat.onChatScroll()"></div>
-      <button class="chat-jump-btn" id="chatJumpBtn" onclick="Chat.scrollToBottom(true)">
-        ⬇<span class="chat-jump-badge" data-chat-badge></span>
-      </button>
     </div>
+    <button class="chat-jump-btn" id="chatJumpBtn" onclick="Chat.scrollToBottom(true)">
+      ⬇<span class="chat-jump-badge" data-chat-badge></span>
+    </button>
 
     <div class="chat-typing-indicator" id="chatTypingIndicator">
       <div class="chat-typing-bubble"><span class="typing-dots"><span></span><span></span><span></span></span></div>
@@ -5942,7 +5962,7 @@ select option { background: #0D0D0D; color: #fff; }
       <button class="uc-btn uc-btn--rec" id="chatStopRecBtn" style="display:none" onclick="Chat.toggleRecord()" title="Send voice message">✔</button>
       <button class="uc-btn uc-btn--send uc-btn--mic-send" id="chatSendBtn" onclick="chatMicSendClick()" title="Voice message">
         <span class="uc-mic-ico">🎙️</span>
-        <span class="uc-send-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3.4 20.6 21 12 3.4 3.4 3 10l12 2-12 2z" fill="currentColor"/></svg></span>
+        <span class="uc-send-ico">➤</span>
       </button>
     </div>
     <script>
@@ -8907,15 +8927,25 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
           });
           return _imgViewerEngine;
         }
-        function openImgViewer(url, collection, index) {
+        function openImgViewer(url, collection, index, caption) {
           const items = (collection && collection.length) ? collection : [{ url, type: 'image' }];
           const startIndex = (collection && collection.length) ? (index || 0) : 0;
           _imgViewerGetEngine().open(items, startIndex);
           document.getElementById('imgViewer').classList.add('open');
+          const capEl = document.getElementById('imgViewerCaption');
+          if (caption && (caption.name || caption.status)) {
+            document.getElementById('imgViewerCaptionName').textContent = caption.name || '';
+            document.getElementById('imgViewerCaptionStatus').textContent = caption.status || '';
+            capEl.style.display = 'block';
+          } else if (capEl) {
+            capEl.style.display = 'none';
+          }
         }
         function closeImgViewer() {
           document.getElementById('imgViewer').classList.remove('open');
           if (_imgViewerEngine) _imgViewerEngine.close();
+          const capEl = document.getElementById('imgViewerCaption');
+          if (capEl) capEl.style.display = 'none';
         }
         // Tap the letterboxed background (not the photo itself, not a
         // drag) to close — mirrors the old click-outside-image behavior.
@@ -8935,9 +8965,15 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
           ['jAv2', 'hAv2', 'studyAv2'].forEach(id => setAvText(id, p[0] || 'P'));
           setAvText('profAv1', m[0] || 'U'); setAvText('profAv2', p[0] || 'P');
           setAvText('settingsAv1', m[0] || 'U');
-          setAvText('chatHeaderAv', p[0] || 'P');
+          // chatHeaderAv intentionally NOT touched here — it previously used
+          // this stale S.partnerAvatar global and fought with Chat.init()'s
+          // Avatar.mount('chatHeaderAv', ...) call (public/chat/chat.js),
+          // which reads live from ProfileStore and is also what wires up
+          // the tap-to-preview handler. Two systems writing the same
+          // element was why the chat header photo could look inconsistent
+          // or briefly flash back to an initial/stale image.
           if (S.myAvatar) { ['sbAv1', 'profAv1', 'settingsAv1'].forEach(id => setAvImg(id, S.myAvatar)); }
-          if (S.partnerAvatar) { ['sbAv2', 'profAv2', 'chatHeaderAv'].forEach(id => setAvImg(id, S.partnerAvatar)); }
+          if (S.partnerAvatar) { ['sbAv2', 'profAv2'].forEach(id => setAvImg(id, S.partnerAvatar)); }
           const el1 = document.getElementById('profMyName'); if (el1) el1.textContent = m;
           const el2 = document.getElementById('profPtName'); if (el2) el2.textContent = p;
           ['studyMyName', 'studyMyNameTT'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = m + "'s"; });
