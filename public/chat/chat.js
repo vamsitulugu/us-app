@@ -18,6 +18,35 @@ const Chat = (function () {
   const seenIds = new Set();
   function trackKey(m) { return m.client_id || m.id; }
 
+  // ─── LOCAL CACHE (instant open, offline fallback) ──────
+  // Keeps the last page of messages per couple in localStorage so the
+  // chat can paint immediately on open instead of showing a blank
+  // screen while the network round-trip is in flight, and so the last
+  // known conversation is still visible with no internet at all.
+  const MSG_CACHE_LIMIT = 50;
+  function msgCacheKey() { return 'uwl_chat_cache_' + (coupleId() || ''); }
+  function loadCachedMessages() {
+    try {
+      const raw = localStorage.getItem(msgCacheKey());
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : null;
+    } catch (e) { return null; }
+  }
+  let _cacheSaveTimer = null;
+  function saveCachedMessages() {
+    // Debounced — render()/poll ticks can fire rapidly and this is only
+    // ever read again on the next full page load, so no need to persist
+    // synchronously on every single change.
+    clearTimeout(_cacheSaveTimer);
+    _cacheSaveTimer = setTimeout(() => {
+      try {
+        const tail = msgs.slice(-MSG_CACHE_LIMIT);
+        localStorage.setItem(msgCacheKey(), JSON.stringify(tail));
+      } catch (e) { /* storage full/unavailable — cache is best-effort only */ }
+    }, 300);
+  }
+
   function coupleId() { return window.S && window.S.coupleId; }
   function myRole() { return window.S && window.S.role; }
   function otherRole() { return myRole() === 'user1' ? 'user2' : 'user1'; }
@@ -122,24 +151,118 @@ const Chat = (function () {
   }
 
   // ─── LOAD / POLL MESSAGES ───────────────────────────
+ // WhatsApp-style first page: only the most recent INITIAL_PAGE_SIZE
+ // messages are fetched on open — never the whole history. Older
+ // messages load lazily via loadOlderMessages() as the user scrolls up.
+ const INITIAL_PAGE_SIZE = 40;
+ let hasMoreOlder = true;      // false once we've hit the start of history
+ let loadingOlder = false;     // in-flight guard against duplicate fetches
+ let _historyLoaded = false;   // true once the real network fetch has landed at least once
+
  async function loadMessages() {
   if (!coupleId()) return;
-  try {
-    const rows = await api('GET', '/api/chat/' + coupleId() + '?limit=200');
-    msgs = rows || [];
-    lastMsgTs = msgs.length ? msgs[msgs.length - 1].created_at : null;
+  _historyLoaded = false;
+
+  // 1) Paint instantly from cache (or a skeleton if there's no cache
+  // yet) — never leave the screen blank while the network call is
+  // in flight.
+  const cached = loadCachedMessages();
+  if (cached && cached.length) {
+    msgs = cached;
+    lastMsgTs = msgs[msgs.length - 1].created_at;
+    hideChatSkeleton();
     render();
     scrollToBottom(false);
+  } else {
+    showChatSkeleton();
+  }
+
+  // 2) Fetch the real latest page from Supabase in the background and
+  // reconcile — this replaces the cache with server truth but render()'s
+  // existing append/mutation fast paths mean already-visible bubbles
+  // are patched in place rather than flashed/reloaded.
+  try {
+    const rows = await api('GET', '/api/chat/' + coupleId() + '?limit=' + INITIAL_PAGE_SIZE);
+    const fresh = rows || [];
+    hasMoreOlder = fresh.length >= INITIAL_PAGE_SIZE;
+    msgs = fresh;
+    lastMsgTs = msgs.length ? msgs[msgs.length - 1].created_at : null;
+    _historyLoaded = true;
+    hideChatSkeleton();
+    render();
+    // Only snap to bottom on the very first paint (no cache) — if cache
+    // already positioned the view, reconciling with server data
+    // shouldn't yank the scroll position out from under the user.
+    if (!cached) scrollToBottom(false);
     reanchorAfterImages();
     settleScrollBurst();
+    saveCachedMessages();
     // Any already-loaded partner messages that are still unread need
     // marking now — previously markRead() only fired reactively when a
     // *new* message arrived while the chat was already open, so opening
     // a chat that already had unread messages waiting never flipped
     // their ticks blue at all.
     if (msgs.some(m => !isMine(m) && !m.read) && document.hasFocus()) markRead();
-  } catch (e) {}
+  } catch (e) {
+    // Offline / request failed — if we had cache, it's already showing
+    // (this is the "offline support" requirement); if not, leave the
+    // skeleton up and let startPolling()/the 'online' listener retry.
+    hasMoreOlder = true;
+  }
 }
+
+ // ─── Skeleton / shimmer placeholders (shown only when there's no
+ // cached history to paint immediately) ──────────────────────────
+ function showChatSkeleton() {
+   const box = document.getElementById('chatMsgs');
+   if (!box) return;
+   box.classList.add('chat-skeleton-active');
+   const side = () => Math.random() > 0.5 ? 'mine' : 'theirs';
+   let html = '<div class="chat-skeleton-wrap">';
+   for (let i = 0; i < 8; i++) {
+     const w = 40 + Math.floor(Math.random() * 45); // vary bubble widths so it doesn't look robotic
+     html += `<div class="chat-skel-row ${side()}"><div class="chat-skel-bubble" style="width:${w}%"></div></div>`;
+   }
+   html += '</div>';
+   box.innerHTML = html;
+ }
+ function hideChatSkeleton() {
+   const box = document.getElementById('chatMsgs');
+   if (box) box.classList.remove('chat-skeleton-active');
+   // Force render()'s fast-path detection to start clean since the
+   // skeleton markup isn't real message DOM.
+   _renderedSigs = [];
+   _renderedMsgIds = [];
+   _renderedLastDate = null;
+ }
+
+ // ─── Lazy-load older messages on scroll-up (infinite scroll) ────
+ async function loadOlderMessages() {
+   if (loadingOlder || !hasMoreOlder || !_historyLoaded) return;
+   const oldest = msgs.length ? msgs[0].created_at : null;
+   if (!oldest) return;
+   loadingOlder = true;
+   const box = document.getElementById('chatMsgs');
+   box?.classList.add('chat-loading-older');
+   try {
+     const rows = await api('GET', '/api/chat/' + coupleId() + '?before=' + encodeURIComponent(oldest) + '&limit=' + INITIAL_PAGE_SIZE);
+     const older = rows || [];
+     hasMoreOlder = older.length >= INITIAL_PAGE_SIZE;
+     if (older.length) {
+       // Prepending isn't a pure-append or pure-mutation, so render()
+       // takes its full-rebuild path — which already restores the exact
+       // same distance-from-bottom the view had before the DOM grew
+       // upward, so the messages the user was just looking at don't jump.
+       msgs = older.concat(msgs);
+       render();
+     }
+   } catch (e) {
+     // Leave hasMoreOlder as-is so a later scroll retries.
+   } finally {
+     loadingOlder = false;
+     box?.classList.remove('chat-loading-older');
+   }
+ }
 
 // Catch-all safety net: re-pin to bottom a few more times over the next
 // second, in case something other than images shifts layout after the
@@ -194,6 +317,7 @@ function reanchorAfterImages() {
       });
       lastMsgTs = rows[rows.length - 1].created_at;
       render();
+      saveCachedMessages();
       const box = document.getElementById('chatMsgs');
       const nearBottom = box && (box.scrollHeight - box.scrollTop - box.clientHeight < 150);
       if (nearBottom || rows.some(isMine)) { scrollToBottom(true); reanchorAfterImages(); }
@@ -347,6 +471,10 @@ function reanchorAfterImages() {
       const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 150;
       btn?.classList.toggle('show', !nearBottom);
       if (nearBottom) updateJumpBadge(0);
+      // Infinite scroll-up: fire the older-messages fetch a bit before
+      // the user actually hits the top edge, so the next batch is
+      // already in place by the time they get there.
+      if (box.scrollTop < 400) loadOlderMessages();
     });
   }
   function updateJumpBadge(n) {
@@ -691,6 +819,7 @@ function reanchorAfterImages() {
       if (idx > -1) msgs[idx] = saved;
       lastMsgId = Math.max(lastMsgId, saved.id);
       render();
+      saveCachedMessages();
     } catch (e) {
       // The request itself errored (network blip, dropped connection,
       // etc.) — but the server upsert is idempotent on client_id, so it's
@@ -1849,6 +1978,7 @@ function menuItemsHtml(m, id, includeSelect) {
           msgs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
           if (r.created_at && (!lastMsgTs || r.created_at > lastMsgTs)) lastMsgTs = r.created_at;
           render();
+          saveCachedMessages();
           const box = document.getElementById('chatMsgs');
           const nearBottom = box && (box.scrollHeight - box.scrollTop - box.clientHeight < 150);
           if (nearBottom || isMine(r)) { scrollToBottom(true); reanchorAfterImages(); }
@@ -2476,7 +2606,7 @@ function menuItemsHtml(m, id, includeSelect) {
   }
 
   return {
-    onChatScroll, scrollToBottom, sendText, onTypingInput, onImagePick, toggleRecord,
+    onChatScroll, scrollToBottom, sendText, onTypingInput, onImagePick, toggleRecord, loadOlderMessages,
     onBubbleClick, openMenu, reactTo, replyTo, closeBanner, togglePin, toggleStar,
     openStarred, deleteMsg, confirmDeleteMsg, enterSelectMode, deleteSelected, exitSelectMode,
     isSelecting, closeMsgMenuIfOpen, closeTopOverlayIfOpen, openToolbarOverflow, openMediaViewer,
