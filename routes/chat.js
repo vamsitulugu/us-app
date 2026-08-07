@@ -307,4 +307,34 @@ router.get('/:coupleId/search', async (req, res) => {
   return res.json(data || []);
 });
 
+// ─── WALLPAPER — shared mode, synced across both devices ─
+// GET returns the couple's shared wallpaper row (or a default shape if
+// they've never set one). POST upserts it — the client's own Supabase
+// realtime channel (already subscribed to this couple's changes, see
+// chat.js's startRealtime()) picks up the change and applies it instantly
+// on the partner's device without a refresh, since chat_wallpaper is
+// added to the same realtime publication as chat_messages.
+router.get('/:coupleId/wallpaper', async (req, res) => {
+  const { data, error } = await supabase.from('chat_wallpaper')
+    .select('*').eq('couple_id', req.params.coupleId).maybeSingle();
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json(data || { couple_id: req.params.coupleId, mode: 'default', swatch: null, image_url: null, dim: 0 });
+});
+
+router.post('/:coupleId/wallpaper', async (req, res) => {
+  const { mode, swatch, image_url, dim, role } = req.body;
+  if (!mode || !['default', 'swatch', 'custom'].includes(mode)) {
+    return res.status(400).json({ error: 'Invalid mode' });
+  }
+  const { data, error } = await supabase.from('chat_wallpaper').upsert({
+    couple_id: req.params.coupleId,
+    mode, swatch: swatch || null, image_url: image_url || null,
+    dim: Number.isFinite(dim) ? Math.max(0, Math.min(90, dim)) : 0,
+    updated_by: role || null,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'couple_id' }).select('*').single();
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json(data);
+});
+
 module.exports = router;

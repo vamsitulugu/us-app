@@ -232,22 +232,31 @@
 @keyframes voiceWaveAnim { from{transform:scaleY(0.5)} to{transform:scaleY(1)} }
 .voice-dur-chat { font-size: 10px; opacity: 0.8; flex-shrink: 0; }
 
-/* ── JUMP TO LATEST ── */
+/* ── JUMP TO LATEST ──
+   Anchored with right/bottom only (never `left`), and always kept in the
+   DOM/display:flex so opacity+transform can transition cleanly — display
+   toggling (the old, now-removed rule) can't be animated and was the
+   source of the "jump"/pop instead of a fade. `.hiding` is added briefly
+   while the user is actively scrolling so the button doesn't fight the
+   scroll gesture; it's purely visual (opacity), never affects layout. */
 .chat-jump-btn {
-  display: flex; position: absolute; bottom: 14px; right: 14px;
+  display: flex; position: absolute; bottom: 14px; right: 14px; left: auto;
   width: 38px; height: 38px; border-radius: 50%;
   background: var(--g2); border: 1px solid var(--border2);
   align-items: center; justify-content: center; cursor: pointer;
   box-shadow: 0 4px 14px rgba(0,0,0,0.3); z-index: 5; color: var(--white); font-size: 16px;
   opacity: 0; transform: translateY(8px) scale(0.85); pointer-events: none;
   transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  will-change: opacity, transform;
 }
 .chat-jump-btn.show { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+.chat-jump-btn.show.scrolling { opacity: 0.35; transition: opacity 0.15s ease; }
 .chat-jump-badge {
   position: absolute; top: -4px; right: -4px;
   background: var(--accent); color: #fff; font-size: 9px; font-weight: 700;
-  border-radius: 10px; padding: 1px 5px; display: none;
+  border-radius: 10px; padding: 1px 5px; display: none; line-height: 1.3;
 }
+.chat-jump-badge:not(:empty) { display: block; }
 
 /* ── COMPOSER BANNER (reply/edit) ── */
 .chat-composer-banner {
@@ -475,10 +484,11 @@
 .chat-img{max-width:220px;border-radius:12px;display:block;margin-bottom:4px}
 .chat-gif{max-width:180px}
 .chat-date-sep{text-align:center;margin:14px 0 8px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
-.chat-jump-btn{position:absolute;right:14px;bottom:80px;width:38px;height:38px;border-radius:50%;background:rgba(20,20,20,.85);border:1px solid var(--border2);color:#fff;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:6;font-size:14px}
-.chat-jump-btn.show{display:flex}
-.chat-jump-badge{position:absolute;top:-4px;right:-4px;background:var(--red);border-radius:10px;font-size:9px;padding:1px 5px;display:none}
-.chat-jump-badge:not(:empty){display:block}
+/* Legacy .chat-jump-btn / .chat-jump-badge rules removed — they duplicated
+   and fought with the canonical, animated definitions above (line ~236),
+   forcing an abrupt display:none/flex toggle at a different `bottom` offset
+   instead of the intended opacity/transform fade. That conflict was the
+   cause of the button "jumping" and animating without smoothness. */
 .chat-pinned-bar{display:none;flex-direction:column;gap:4px;padding:6px 12px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.03);max-height:80px;overflow-y:auto}
 .chat-pinned-item{font-size:11px;color:var(--text2);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* ── CONTEXTUAL SELECTION TOOLBAR ──

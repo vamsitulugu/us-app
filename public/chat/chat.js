@@ -38,8 +38,21 @@ const Chat = (function () {
     _presenceListenersAttached = true;
     document.addEventListener('visibilitychange', () => {
       sendPresence(document.visibilityState === 'visible' ? 'online' : 'away');
+      if (document.visibilityState === 'visible') {
+        // Coming back from background: the realtime socket may have been
+        // suspended by the OS/browser and the poll loop was paused (see
+        // startPolling's `if (document.hidden) return`), so without this
+        // the newest incoming message wouldn't surface until the next
+        // background tick (~20s) or a manual pull-to-refresh.
+        pollNew();
+        if (!realtimeChannel) startRealtime();
+      }
     });
     window.addEventListener('pagehide', () => sendPresence('offline'));
+    // Network drop/restore (airplane mode, wifi->cellular handoff, etc.) is
+    // distinct from tab visibility — catch it too so "works after reconnect"
+    // holds even if the tab was visible the whole time.
+    window.addEventListener('online', () => { pollNew(); if (!realtimeChannel) startRealtime(); });
     window.addEventListener('pagehide', () => { clearTimeout(typingStopTimer); sendTypingSignal('stop'); });
     window.addEventListener('pagehide', () => {
       if (realtimeChannel) {
@@ -187,6 +200,11 @@ function reanchorAfterImages() {
       else updateJumpBadge(rows.filter(r => !isMine(r)).length);
       if (rows.some(r => !isMine(r)) && document.getElementById('page-chat')?.classList.contains('active') && document.hasFocus()) {
         markRead();
+      } else if (rows.some(r => !isMine(r))) {
+        // Not actively viewing the chat right now — reflect the new
+        // unread(s) on the OS/PWA app icon immediately rather than waiting
+        // for the person to open the app and find out some other way.
+        syncAppBadge(msgs.filter(m => !isMine(m) && !m.read).length);
       }
     }
     await refreshRecentStatuses();
@@ -230,22 +248,106 @@ function reanchorAfterImages() {
 
   async function markRead() {
     if (!coupleId()) return;
-    try { await api('POST', '/api/chat/' + coupleId() + '/read', { role: myRole() }); } catch (e) {}
+    try {
+      await api('POST', '/api/chat/' + coupleId() + '/read', { role: myRole() });
+      clearReadNotifications();
+    } catch (e) {}
+  }
+
+  // Notification badge / tray sync — previously nothing here at all, so a
+  // push notification (and the OS/PWA app-icon badge) would sit there even
+  // after the person opened the chat and read the message. This mirrors
+  // WhatsApp: reading in-app clears both the notification tray entry and
+  // the badge, and doesn't require the person to have tapped the push
+  // notification itself to get there.
+  function clearReadNotifications() {
+    if (navigator.clearAppBadge) { try { navigator.clearAppBadge(); } catch (e) {} }
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'clear_notifications', tag: 'us-app-love' });
+      navigator.serviceWorker.controller.postMessage({ type: 'clear_notifications', tag: 'us-app' });
+    }
+    document.querySelectorAll('[data-chat-badge]').forEach(el => { el.textContent = ''; el.style.display = 'none'; });
+  }
+
+  // Called whenever the unread count actually changes (new incoming
+  // message while not focused/visible) so the OS app-icon badge reflects
+  // reality even before the person opens the app.
+  function syncAppBadge(unreadCount) {
+    if (!navigator.setAppBadge) return;
+    try {
+      if (unreadCount > 0) navigator.setAppBadge(unreadCount);
+      else if (navigator.clearAppBadge) navigator.clearAppBadge();
+    } catch (e) {}
   }
 
   // ─── SCROLL (fixed input, no jumping) ───────────────
+  // Custom rAF-driven smooth scroll instead of the native `behavior:'smooth'`
+  // scrollTo(). Native smooth-scroll can't be cancelled or reasoned about —
+  // if a new message triggers a second scrollToBottom() mid-animation, or the
+  // user grabs the scrollbar while it's still gliding, native smooth-scroll
+  // either queues/fights and stutters, or gets silently abandoned partway.
+  // Driving it manually means every call can supersede the last one cleanly.
+  let _scrollAnim = null; // rAF id of an in-flight programmatic scroll
+  let _userScrolling = false, _userScrollIdleTimer = null;
+
   function scrollToBottom(smooth) {
     const box = document.getElementById('chatMsgs');
     if (!box) return;
-    box.scrollTo({ top: box.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+    if (_scrollAnim) { cancelAnimationFrame(_scrollAnim); _scrollAnim = null; }
+
+    const target = box.scrollHeight - box.clientHeight;
+    if (!smooth) {
+      box.scrollTop = target;
+    } else {
+      const start = box.scrollTop;
+      const dist = target - start;
+      const dur = Math.min(420, Math.max(180, Math.abs(dist) * 0.35));
+      const t0 = performance.now();
+      // easeOutCubic — matches the button's own bounce-less, natural deceleration
+      const ease = x => 1 - Math.pow(1 - x, 3);
+      const step = now => {
+        const p = Math.min(1, (now - t0) / dur);
+        // Re-read scrollHeight each frame: images/new rows can grow the
+        // container mid-scroll, so the target itself may shift.
+        const liveTarget = box.scrollHeight - box.clientHeight;
+        box.scrollTop = start + (liveTarget - start) * ease(p);
+        if (p < 1) { _scrollAnim = requestAnimationFrame(step); }
+        else { _scrollAnim = null; box.scrollTop = box.scrollHeight - box.clientHeight; }
+      };
+      _scrollAnim = requestAnimationFrame(step);
+    }
     document.getElementById('chatJumpBtn')?.classList.remove('show');
     updateJumpBadge(0);
   }
+
+  let _scrollTick = false;
   function onChatScroll() {
     const box = document.getElementById('chatMsgs');
     if (!box) return;
-    const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 150;
-    document.getElementById('chatJumpBtn')?.classList.toggle('show', !nearBottom);
+
+    // A manual scroll (wheel/touch/scrollbar drag) should immediately win
+    // over any in-flight programmatic animation — otherwise the two fight
+    // and the view stutters/snaps back.
+    if (_scrollAnim) { cancelAnimationFrame(_scrollAnim); _scrollAnim = null; }
+
+    const btn = document.getElementById('chatJumpBtn');
+    if (btn && !_userScrolling) { _userScrolling = true; btn.classList.add('scrolling'); }
+    clearTimeout(_userScrollIdleTimer);
+    _userScrollIdleTimer = setTimeout(() => {
+      _userScrolling = false;
+      btn?.classList.remove('scrolling');
+    }, 150);
+
+    // Throttle the show/hide + badge work to one per animation frame —
+    // scroll fires far more often than the UI needs to react.
+    if (_scrollTick) return;
+    _scrollTick = true;
+    requestAnimationFrame(() => {
+      _scrollTick = false;
+      const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 150;
+      btn?.classList.toggle('show', !nearBottom);
+      if (nearBottom) updateJumpBadge(0);
+    });
   }
   function updateJumpBadge(n) {
     document.querySelectorAll('[data-chat-badge]').forEach(el => {
@@ -264,11 +366,17 @@ function reanchorAfterImages() {
   // *existing* message always invalidates the fast path and falls back
   // to the exact original full-rebuild behavior below.
   let _renderedSigs = [];
+  let _renderedMsgIds = [];
   let _renderedLastDate = null;
 
   function _msgSig(m) {
     const rx = m.reactions ? Object.entries(m.reactions).map(([e, r]) => e + ':' + r.length).sort().join(',') : '';
-    return trackKey(m) + '|' + (m.deleted ? 1 : 0) + '|' + (m.delivered ? 1 : 0) + '|' + (m.read ? 1 : 0) + '|' + (m.text || '') + '|' + rx;
+    // pinned/starred_by were missing from the signature — toggling either
+    // left currentSigs identical to _renderedSigs, so render() took the
+    // "nothing changed" early-return and the bubble's pin/star icon never
+    // actually updated (only the separate pinned-bar did).
+    const starred = (m.starred_by || []).slice().sort().join(',');
+    return trackKey(m) + '|' + (m.deleted ? 1 : 0) + '|' + (m.delivered ? 1 : 0) + '|' + (m.read ? 1 : 0) + '|' + (m.text || '') + '|' + rx + '|' + (m.pinned ? 1 : 0) + '|' + starred;
   }
 
   // ─── RENDER ──────────────────────────────────────────
@@ -315,6 +423,7 @@ function reanchorAfterImages() {
     });
     box.appendChild(frag);
     _renderedSigs = currentSigs;
+    _renderedMsgIds = visible.map(trackKey);
     _renderedLastDate = lastDate;
     renderPinned();
     if (wasNearBottom) box.scrollTop = box.scrollHeight;
@@ -322,9 +431,46 @@ function reanchorAfterImages() {
     return;
   }
 
-  // Full rebuild — anything that isn't a pure append (edits, deletes,
-  // reactions, reorders, first render). Identical to the original
-  // implementation.
+  // In-place patch: same number of messages, same order, but one or more
+  // signatures changed (a reaction, edit, pin/star toggle, or a read/
+  // delivered tick flipping — by far the most common non-append update,
+  // since refreshRecentStatuses() and the realtime UPDATE handler both hit
+  // this constantly). Previously ANY of these fell through to the full
+  // rebuild below, which reset box.innerHTML for the *entire* conversation
+  // — every image re-decoded/flickered, any in-flight bubble animation or
+  // swipe-reply transform was destroyed, and it scaled with total message
+  // count instead of the (usually 1) row that actually changed. Patching
+  // just the changed rows keeps this O(changed) instead of O(all).
+  const isPureMutation = box.children.length > 0 &&
+    _renderedSigs.length === currentSigs.length &&
+    visible.length === _renderedMsgIds.length &&
+    visible.every((m, i) => trackKey(m) === _renderedMsgIds[i]);
+
+  if (isPureMutation) {
+    let changedCount = 0;
+    for (let i = 0; i < currentSigs.length; i++) {
+      if (currentSigs[i] === _renderedSigs[i]) continue;
+      changedCount++;
+      const m = visible[i];
+      const oldRow = box.querySelector(`.chat-row[data-id="${m.id}"]`);
+      if (!oldRow) continue; // shouldn't happen given the id-order check above, but stay safe
+      const wrap = document.createElement('div');
+      wrap.innerHTML = renderBubble(m, false);
+      const newRow = wrap.firstElementChild;
+      if (newRow) oldRow.replaceWith(newRow);
+    }
+    if (changedCount > 0) {
+      _renderedSigs = currentSigs;
+      renderPinned();
+      // A same-length mutation never changes overall scroll height enough
+      // to matter, and re-pinning here would fight a person mid-read of
+      // older messages — leave scroll position exactly where it was.
+    }
+    return;
+  }
+
+  // Full rebuild — anything that isn't a pure append or pure mutation
+  // (deletes, reorders, first render).
   let html = '', lastDate = null;
   visible.forEach(m => {
     const d = new Date(m.created_at);
@@ -336,6 +482,7 @@ function reanchorAfterImages() {
   visible.forEach(m => seenIds.add(trackKey(m)));
   box.innerHTML = html || `<div class="empty" style="padding:60px 20px"><div class="empty-ico">💬</div>Say hello 👋</div>`;
   _renderedSigs = currentSigs;
+  _renderedMsgIds = visible.map(trackKey);
   _renderedLastDate = lastDate;
   pruneMissingSelection();
   renderPinned();
@@ -347,6 +494,15 @@ function reanchorAfterImages() {
   }
 }
 
+  // Shared 12-hour clock formatter — toLocaleTimeString([]) without an
+  // explicit hour12 falls back to the OS/browser locale's default, which
+  // for many locales (en-IN, en-GB, etc.) is 24-hour. Every clock-time
+  // display in chat (bubbles, message info, reply preview, notifications,
+  // media) should route through this so they're all consistently 12-hour
+  // with an AM/PM suffix, regardless of device locale.
+  function fmtClock(d) {
+    return new Date(d).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  }
   function fmtDaySep(d) {
     const today = new Date(); const yest = new Date(); yest.setDate(yest.getDate() - 1);
     if (d.toDateString() === today.toDateString()) return 'Today';
@@ -359,7 +515,7 @@ function reanchorAfterImages() {
       return `<div class="chat-row ${isMine(m) ? 'me' : 'them'}"><div class="chat-bubble deleted-bubble">🚫 Message deleted</div></div>`;
     }
     const mine = isMine(m);
-    const time = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const time = fmtClock(m.created_at);
     let body = '';
     if (m.type === 'image') body = `<img src="${esc(m.media_url)}" class="chat-img" onclick="Chat.openMediaViewer('${m.id}')" loading="lazy">`;
     else if (m.type === 'gif') body = `<img src="${esc(m.media_url)}" class="chat-img chat-gif" onclick="Chat.openMediaViewer('${m.id}')" loading="lazy">`;
@@ -442,17 +598,21 @@ function reanchorAfterImages() {
 
   function renderVoice(m) {
     const dur = (m.media_meta && m.media_meta.duration) || 0;
-    // IMPORTANT: playback must only be triggered by the play/pause button
-    // itself. The outer .voice-msg container intentionally has NO click
-    // handler of its own — a click anywhere else (waveform, duration,
-    // padding) is left to bubble up to the normal .chat-row bubble click
-    // handler (Chat.onBubbleClick), which drives selection-mode
-    // tap-to-select and does nothing in normal mode. This is what stops
-    // "tap bubble -> plays audio" while still letting long-press/selection
-    // work anywhere on the bubble, including the waveform.
+    // Bar heights were Math.random() on every call — since renderBubble()
+    // can now legitimately re-run for the same message (a reaction, pin,
+    // or read-receipt patch), that redrew the whole waveform with a brand
+    // new random shape each time, visible as the waveform "jittering" for
+    // reasons that have nothing to do with playback. Deriving the heights
+    // deterministically from the message id keeps the shape stable across
+    // any number of re-renders while still looking varied message-to-message.
+    const seed = String(m.id || '').split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+    function barHeight(i) {
+      const x = Math.sin(seed + i * 12.9898) * 43758.5453;
+      return 8 + (x - Math.floor(x)) * 16;
+    }
     return `<div class="voice-msg">
       <button type="button" class="voice-play" aria-label="Play voice message" onclick="event.stopPropagation();Chat.toggleVoicePlay(this.parentElement,'${esc(m.media_url)}')">▶</button>
-      <div class="voice-waveform">${Array.from({length:18}).map((_,i)=>`<span style="height:${8+Math.random()*16}px"></span>`).join('')}</div>
+      <div class="voice-waveform">${Array.from({length:18}).map((_,i)=>`<span style="height:${barHeight(i).toFixed(1)}px"></span>`).join('')}</div>
       <div class="voice-dur">${Math.floor(dur/60)}:${String(dur%60).padStart(2,'0')}</div>
     </div>`;
   }
@@ -875,7 +1035,26 @@ function menuItemsHtml(m, id, includeSelect) {
     const banner = document.getElementById('chatComposerBanner');
     banner.style.display = 'flex';
     banner.innerHTML = `<div class="chat-banner-text">↩️ Replying to: ${esc((m.text||'Media').slice(0,60))}</div><button onclick="Chat.closeBanner()">✕</button>`;
-    document.getElementById('chatIn').focus();
+    focusComposer();
+  }
+  // Focusing immediately after a touch gesture (swipe-to-reply) can silently
+  // fail on mobile Safari/Chrome if it fires before the banner's layout
+  // change has actually been applied — the keyboard then never opens even
+  // though the reply preview is visible. Focusing once synchronously (to
+  // catch the common case) and once more after layout settles on the next
+  // frame covers both.
+  function focusComposer() {
+    const input = document.getElementById('chatIn');
+    if (!input) return;
+    const place = () => {
+      input.focus({ preventScroll: false });
+      if (typeof input.setSelectionRange === 'function' && input.value != null) {
+        const len = input.value.length;
+        try { input.setSelectionRange(len, len); } catch (e) {}
+      }
+    };
+    place();
+    requestAnimationFrame(place);
   }
   function closeBanner() { const b = document.getElementById('chatComposerBanner'); if (b) { b.style.display = 'none'; b.innerHTML = ''; } replyingTo = null; editingId = null; }
   async function togglePin(id, silent) {
@@ -934,7 +1113,7 @@ function menuItemsHtml(m, id, includeSelect) {
   function infoMsg(id) {
     document.getElementById('chatMsgMenu')?.remove();
     const m = msgs.find(x => x.id === id); if (!m) return;
-    const sent = new Date(m.created_at).toLocaleString();
+    const sent = fmtDaySep(new Date(m.created_at)) + ' at ' + fmtClock(m.created_at);
     const status = m.read ? 'Read' : m.delivered ? 'Delivered' : 'Sent';
     toast(`${status} · ${sent}`);
   }
@@ -1553,6 +1732,15 @@ function menuItemsHtml(m, id, includeSelect) {
   // ─── SWIPE TO REPLY (WhatsApp-style) ──────────────────
   let swipeState = null;
   const SWIPE_TRIGGER = 64, SWIPE_MAX = 84;
+  // Rubber-band curve: raw finger travel maps 1:1 up to SWIPE_TRIGGER, then
+  // asymptotically approaches SWIPE_MAX rather than hard-clamping — gives
+  // the "elastic resistance" feel instead of the finger hitting a wall.
+  function swipeElastic(raw) {
+    if (raw <= SWIPE_TRIGGER) return raw;
+    const over = raw - SWIPE_TRIGGER;
+    const room = SWIPE_MAX - SWIPE_TRIGGER;
+    return SWIPE_TRIGGER + room * (1 - Math.exp(-over / (room * 1.6)));
+  }
   function initSwipeToReply() {
     const box = document.getElementById('chatMsgs');
     if (!box || box._swipeInit) return;
@@ -1571,21 +1759,27 @@ function menuItemsHtml(m, id, includeSelect) {
     const row = e.target.closest && e.target.closest('.chat-row');
     if (!row || e.target.closest('.chat-swipe-reply-icon')) return;
     const p = swipePoint(e);
-    swipeState = { row, startX: p.clientX, startY: p.clientY, dx: 0, locked: null, id: row.dataset.id };
+    swipeState = { row, startX: p.clientX, startY: p.clientY, dx: 0, locked: null, id: row.dataset.id, crossed: false };
+    // Bubble may still be mid-bounce-back from a previous swipe on this row;
+    // clear any leftover transition so the new drag follows the finger
+    // immediately instead of easing from the old position.
+    const bubble = row.querySelector('.chat-bubble');
+    if (bubble) bubble.style.transition = '';
   }
   function onSwipeMove(e) {
     if (!swipeState) return;
     const p = swipePoint(e);
-    const dx = p.clientX - swipeState.startX;
+    const rawDx = p.clientX - swipeState.startX;
     const dy = p.clientY - swipeState.startY;
     if (swipeState.locked === null) {
-      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-      swipeState.locked = Math.abs(dx) > Math.abs(dy);
+      if (Math.abs(rawDx) < 8 && Math.abs(dy) < 8) return;
+      swipeState.locked = Math.abs(rawDx) > Math.abs(dy);
       if (swipeState.locked) endLongPress();
     }
     if (!swipeState.locked) { swipeState = null; return; }
-    if (dx <= 0) { swipeState.dx = 0; } // only swipe rightward, like WhatsApp
-    else { swipeState.dx = Math.min(dx, SWIPE_MAX); }
+    // Only swipe rightward, like WhatsApp; elastic curve softens the approach
+    // to SWIPE_MAX instead of a hard clamp.
+    swipeState.dx = rawDx <= 0 ? 0 : swipeElastic(rawDx);
     if (e.cancelable) e.preventDefault();
     const bubble = swipeState.row.querySelector('.chat-bubble');
     const icon = swipeState.row.querySelector('.chat-swipe-reply-icon');
@@ -1595,16 +1789,24 @@ function menuItemsHtml(m, id, includeSelect) {
       icon.style.opacity = p2;
       icon.style.transform = `translateX(${-8 + swipeState.dx * 0.3}px) scale(${0.7 + p2 * 0.3})`;
     }
+    // Light haptic tick the instant the drag crosses the trigger threshold —
+    // mirrors WhatsApp's "armed" feedback, not just a buzz on release.
+    const nowCrossed = swipeState.dx >= SWIPE_TRIGGER;
+    if (nowCrossed && !swipeState.crossed && navigator.vibrate) navigator.vibrate(12);
+    swipeState.crossed = nowCrossed;
   }
   function onSwipeEnd() {
     if (!swipeState) return;
-    const { row, dx, id } = swipeState;
+    const { row, dx, id, crossed } = swipeState;
     const bubble = row.querySelector('.chat-bubble');
     const icon = row.querySelector('.chat-swipe-reply-icon');
-    if (bubble) { bubble.style.transition = 'transform .2s ease'; bubble.style.transform = 'translateX(0)'; setTimeout(() => { if (bubble) bubble.style.transition = ''; }, 220); }
+    // Spring-style bounce back (slight overshoot, then settle) instead of a
+    // linear ease — reads as an elastic release rather than a hard snap.
+    const bounce = 'transform .32s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    if (bubble) { bubble.style.transition = bounce; bubble.style.transform = 'translateX(0)'; setTimeout(() => { if (bubble) bubble.style.transition = ''; }, 340); }
     if (icon) { icon.style.transition = 'opacity .2s ease, transform .2s ease'; icon.style.opacity = 0; icon.style.transform = ''; setTimeout(() => { if (icon) icon.style.transition = ''; }, 220); }
     if (dx >= SWIPE_TRIGGER) {
-      if (navigator.vibrate) navigator.vibrate(25);
+      if (navigator.vibrate && !crossed) navigator.vibrate(25); // fallback if the crossing tick above didn't fire
       replyTo(id);
     }
     swipeState = null;
@@ -1641,6 +1843,10 @@ function menuItemsHtml(m, id, includeSelect) {
           if (!r) return;
           const idx = msgs.findIndex(m => m.id === r.id || (r.client_id && m.client_id === r.client_id));
           if (idx > -1) msgs[idx] = r; else msgs.push(r);
+          // A late/out-of-order push can insert an older row after a newer
+          // one — keep the working array sorted so render(), lastMsgTs, and
+          // "last received message" all agree on what's actually newest.
+          msgs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
           if (r.created_at && (!lastMsgTs || r.created_at > lastMsgTs)) lastMsgTs = r.created_at;
           render();
           const box = document.getElementById('chatMsgs');
@@ -1648,11 +1854,40 @@ function menuItemsHtml(m, id, includeSelect) {
           if (nearBottom || isMine(r)) { scrollToBottom(true); reanchorAfterImages(); }
           if (!isMine(r) && document.getElementById('page-chat')?.classList.contains('active') && document.hasFocus()) {
             markRead();
+          } else if (!isMine(r)) {
+            syncAppBadge(msgs.filter(m => !isMine(m) && !m.read).length);
           }
         })
         .on('broadcast', { event: 'typing' }, (msg) => handleTypingBroadcast(msg.payload))
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'chat_wallpaper',
+          filter: 'couple_id=eq.' + coupleId()
+        }, (payload) => {
+          const row = payload.new;
+          if (!row || !isWpShared()) return;
+          // The partner just changed the shared wallpaper — apply it
+          // immediately, no refresh, exactly like a new chat message.
+          setSharedWpCache(row);
+          applyWallpaper();
+          if (document.getElementById('wpModalOverlay')?.classList.contains('open')) renderWpSwatches();
+        })
         .subscribe((status) => {
           console.log('[Chat realtime]', status);
+          if (status === 'SUBSCRIBED') {
+            // Supabase Realtime does NOT backfill events missed while the
+            // socket was down (backgrounded tab, dropped connection, cold
+            // start) — it only pushes what happens *after* SUBSCRIBED fires.
+            // Without this, reconnecting silently loses any message sent
+            // during the gap until the next slow background poll catches up.
+            pollNew();
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            // Drop the dead channel and let the next trigger (poll tick,
+            // visibility change, or manual retry) re-establish it — retrying
+            // immediately here on every blip would spam reconnect attempts.
+            try { sb.removeChannel(realtimeChannel); } catch (e) {}
+            realtimeChannel = null;
+            setTimeout(() => { if (!document.hidden) startRealtime(); }, 2000);
+          }
         });
     } catch (e) { realtimeChannel = null; }
   }
@@ -1668,12 +1903,21 @@ function menuItemsHtml(m, id, includeSelect) {
     initSwipeToReply();
     const nameEl = document.getElementById('chatHeaderName');
     if (nameEl) nameEl.textContent = window.S.partnerName || 'Partner';
-    const avEl = document.getElementById('chatHeaderAv');
-    if (avEl) avEl.textContent = (window.S.partnerName || 'P')[0];
+    // Routed through the shared Avatar/ProfileStore system (public/js/avatar-system.js)
+    // instead of manually writing an initial letter — this is what actually
+    // gives the header photo a real image, square 1:1 cropping, and a tap
+    // handler that opens the profile preview (name/status/pinch-zoom).
+    if (window.Avatar) {
+      Avatar.mount('chatHeaderAv', { owner: 'partner', size: 40, editable: false });
+    } else {
+      const avEl = document.getElementById('chatHeaderAv');
+      if (avEl) avEl.textContent = (window.S.partnerName || 'P')[0];
+    }
     // No standalone fetchPresence interval here — pollNew() already calls
     // fetchPresence() on every tick (2.5s on the chat page, ~20s elsewhere,
     // paused when backgrounded), so a separate 15s timer was pure duplication.
     applyWallpaper();
+    if (isWpShared()) pullSharedWallpaper().then(applyWallpaper);
     initKeyboardFocusFix();
   }
   document.addEventListener('DOMContentLoaded', () => setTimeout(init, 500));
@@ -1724,7 +1968,33 @@ function menuItemsHtml(m, id, includeSelect) {
   ];
   let _wpDbPromise = null;
 
-  function wpKey() { return (coupleId() || 'anon') + '_' + (myRole() || 'u'); }
+  function wpKey() {
+    // Shared mode uses one key for the whole couple (both devices read the
+    // same cached blob/settings); personal mode keeps the original
+    // per-role isolation so each partner's local choice never leaks to
+    // the other's device.
+    return isWpShared() ? (coupleId() || 'anon') + '_shared' : (coupleId() || 'anon') + '_' + (myRole() || 'u');
+  }
+  const WP_SHARED_FLAG_KEY = 'uwl_wallpaper_shared_v1';
+  function isWpShared() {
+    try { return localStorage.getItem(WP_SHARED_FLAG_KEY + '_' + (coupleId() || '')) === '1'; } catch (e) { return false; }
+  }
+  function setWpShared(on) {
+    try { localStorage.setItem(WP_SHARED_FLAG_KEY + '_' + (coupleId() || ''), on ? '1' : '0'); } catch (e) {}
+  }
+  async function toggleWallpaperShared() {
+    const next = !isWpShared();
+    setWpShared(next);
+    const state = document.getElementById('wpSharedToggleState');
+    if (state) state.textContent = next ? 'On' : 'Off';
+    if (next) {
+      // Switching on: pull whatever's already saved for the couple (if the
+      // partner set one previously) rather than silently keeping whatever
+      // was showing from personal mode.
+      await pullSharedWallpaper();
+    }
+    await applyWallpaper();
+  }
 
   function openWpDb() {
     if (_wpDbPromise) return _wpDbPromise;
@@ -1781,23 +2051,59 @@ function menuItemsHtml(m, id, includeSelect) {
     return all[wpKey()];
   }
 
+  let _sharedWpCache = null;
+  function sharedWpCacheKey() { return 'uwl_wallpaper_shared_cache_' + (coupleId() || ''); }
+  function getSharedWpCache() {
+    if (_sharedWpCache) return _sharedWpCache;
+    try { _sharedWpCache = JSON.parse(localStorage.getItem(sharedWpCacheKey()) || 'null'); } catch (e) { _sharedWpCache = null; }
+    return _sharedWpCache || { mode: 'default', dim: 0, swatch: null, image_url: null };
+  }
+  function setSharedWpCache(row) {
+    _sharedWpCache = row;
+    try { localStorage.setItem(sharedWpCacheKey(), JSON.stringify(row)); } catch (e) {}
+  }
+  async function pullSharedWallpaper() {
+    if (!coupleId()) return getSharedWpCache();
+    try {
+      const row = await api('GET', '/api/chat/' + coupleId() + '/wallpaper');
+      if (row) setSharedWpCache(row);
+    } catch (e) { /* keep last-known cache, e.g. offline */ }
+    return getSharedWpCache();
+  }
+  async function pushSharedWallpaper(patch) {
+    const merged = Object.assign({}, getSharedWpCache(), patch);
+    setSharedWpCache(merged); // optimistic, so this device updates instantly too
+    if (!coupleId()) return merged;
+    try {
+      const saved = await api('POST', '/api/chat/' + coupleId() + '/wallpaper',
+        { mode: merged.mode, swatch: merged.swatch, image_url: merged.image_url, dim: merged.dim, role: myRole() });
+      setSharedWpCache(saved);
+      return saved;
+    } catch (e) { toast('Could not sync wallpaper — will retry'); return merged; }
+  }
+
   let _wpObjectUrl = null;
   async function applyWallpaper() {
     const layer = document.getElementById('chatWallpaperLayer');
     const dimEl = document.getElementById('chatWallpaperDim');
     if (!layer || !dimEl) return;
-    const s = getWpSetting();
+    const shared = isWpShared();
+    const s = shared ? getSharedWpCache() : getWpSetting();
     dimEl.style.opacity = String((s.dim || 0) / 100);
     if (_wpObjectUrl) { URL.revokeObjectURL(_wpObjectUrl); _wpObjectUrl = null; }
     if (s.mode === 'custom') {
-      try {
-        const blob = await wpIdbGet(wpKey());
-        if (blob) {
-          _wpObjectUrl = URL.createObjectURL(blob);
-          layer.style.backgroundImage = `url("${_wpObjectUrl}")`;
-          return;
-        }
-      } catch (e) { /* fall through to default */ }
+      if (shared) {
+        if (s.image_url) { layer.style.backgroundImage = `url("${s.image_url}")`; return; }
+      } else {
+        try {
+          const blob = await wpIdbGet(wpKey());
+          if (blob) {
+            _wpObjectUrl = URL.createObjectURL(blob);
+            layer.style.backgroundImage = `url("${_wpObjectUrl}")`;
+            return;
+          }
+        } catch (e) { /* fall through to default */ }
+      }
     }
     if (s.mode === 'swatch' && s.swatch) {
       const sw = WP_SWATCHES.find(x => x.id === s.swatch);
@@ -1811,26 +2117,31 @@ function menuItemsHtml(m, id, includeSelect) {
   function renderWpSwatches() {
     const box = document.getElementById('wpSwatches');
     if (!box) return;
-    const s = getWpSetting();
+    const s = isWpShared() ? getSharedWpCache() : getWpSetting();
     box.innerHTML = WP_SWATCHES.map(sw =>
       `<div class="wp-swatch${s.mode === 'swatch' && s.swatch === sw.id ? ' active' : ''}" style="background-image:${sw.css}" onclick="Chat.selectWpSwatch('${sw.id}')"></div>`
     ).join('');
   }
   function selectWpSwatch(id) {
-    setWpSetting({ mode: 'swatch', swatch: id });
+    if (isWpShared()) { pushSharedWallpaper({ mode: 'swatch', swatch: id }); }
+    else { setWpSetting({ mode: 'swatch', swatch: id }); }
     applyWallpaper();
     renderWpSwatches();
   }
 
   function openWallpaperModal() {
     document.getElementById('chatHeaderMenu')?.classList.remove('open');
-    const s = getWpSetting();
+    const shared = isWpShared();
+    const s = shared ? getSharedWpCache() : getWpSetting();
     const slider = document.getElementById('wpDimSlider');
     const val = document.getElementById('wpDimVal');
     if (slider) slider.value = s.dim || 0;
     if (val) val.textContent = (s.dim || 0) + '%';
+    const toggleState = document.getElementById('wpSharedToggleState');
+    if (toggleState) toggleState.textContent = shared ? 'On' : 'Off';
     renderWpSwatches();
     document.getElementById('wpModalOverlay')?.classList.add('open');
+    if (shared) pullSharedWallpaper().then(() => { applyWallpaper(); renderWpSwatches(); });
   }
   function closeWallpaperModal() {
     document.getElementById('wpModalOverlay')?.classList.remove('open');
@@ -1839,17 +2150,22 @@ function menuItemsHtml(m, id, includeSelect) {
     const v = Number(val) || 0;
     document.getElementById('wpDimVal').textContent = v + '%';
     document.getElementById('chatWallpaperDim').style.opacity = String(v / 100);
-    setWpSetting({ dim: v });
+    if (isWpShared()) { pushSharedWallpaper({ dim: v }); } else { setWpSetting({ dim: v }); }
   }
   function setDefaultWallpaper() {
-    setWpSetting({ mode: 'default', swatch: null });
+    if (isWpShared()) { pushSharedWallpaper({ mode: 'default', swatch: null, image_url: null }); }
+    else { setWpSetting({ mode: 'default', swatch: null }); }
     applyWallpaper();
     renderWpSwatches();
     toast('Default wallpaper restored');
   }
   async function removeWallpaper() {
-    try { await wpIdbDelete(wpKey()); } catch (e) {}
-    setWpSetting({ mode: 'default', swatch: null });
+    if (isWpShared()) {
+      await pushSharedWallpaper({ mode: 'default', swatch: null, image_url: null });
+    } else {
+      try { await wpIdbDelete(wpKey()); } catch (e) {}
+      setWpSetting({ mode: 'default', swatch: null });
+    }
     applyWallpaper();
     renderWpSwatches();
     toast('Wallpaper removed');
@@ -2021,8 +2337,26 @@ function menuItemsHtml(m, id, includeSelect) {
   async function confirmWallpaperPreview() {
     try {
       const blob = await wpCropExport();
-      await wpIdbSet(wpKey(), blob);
-      setWpSetting({ mode: 'custom' });
+      if (isWpShared()) {
+        // Shared mode needs a URL both devices can load, not a local IDB
+        // blob — reuse the existing /api/media/upload endpoint (same one
+        // photos/vault already go through) to get a public URL, then save
+        // that URL on the couple's row so the partner's device can render
+        // it too. Note: the app's shared api() helper always JSON-encodes
+        // its body, so a multipart upload has to go through a raw fetch()
+        // instead — same pattern used elsewhere in index.html for photo/
+        // avatar uploads.
+        const fd = new FormData();
+        fd.append('file', blob, 'wallpaper.jpg');
+        fd.append('coupleId', coupleId());
+        const uploadRes = await fetch(API + '/api/media/upload', { method: 'POST', body: fd });
+        const uploaded = await uploadRes.json();
+        if (!uploadRes.ok || uploaded.error) throw new Error(uploaded.error || 'Upload failed');
+        await pushSharedWallpaper({ mode: 'custom', image_url: uploaded.url, swatch: null });
+      } else {
+        await wpIdbSet(wpKey(), blob);
+        setWpSetting({ mode: 'custom' });
+      }
       if (_wpCropUrl) { URL.revokeObjectURL(_wpCropUrl); _wpCropUrl = null; }
       document.getElementById('wpPreviewOverlay')?.classList.remove('open');
       await applyWallpaper();
@@ -2153,7 +2487,8 @@ function menuItemsHtml(m, id, includeSelect) {
     openStickerPanel, sendSticker, sendContactCard, openContactCard, openMemories, openPollComposer, submitPoll, votePoll,
     destroyPanels,
     toggleHeaderMenu, openWallpaperModal, closeWallpaperModal, onDimSlider, setDefaultWallpaper, removeWallpaper,
-    onWallpaperFilePicked, cancelWallpaperPreview, confirmWallpaperPreview, selectWpSwatch, applyWallpaper
+    onWallpaperFilePicked, cancelWallpaperPreview, confirmWallpaperPreview, selectWpSwatch, applyWallpaper,
+    loadMessages, toggleWallpaperShared
   };
 })();
 window.Chat = Chat;

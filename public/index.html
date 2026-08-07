@@ -5826,6 +5826,11 @@ select option { background: #0D0D0D; color: #fff; }
     <div class="wp-modal-overlay" id="wpModalOverlay" onclick="if(event.target===this) Chat.closeWallpaperModal()">
       <div class="wp-modal">
         <div class="wp-modal-title">Chat wallpaper <span class="wp-modal-close" onclick="Chat.closeWallpaperModal()">✕</span></div>
+        <div class="wp-option-row" id="wpSharedToggleRow" onclick="Chat.toggleWallpaperShared()">
+          <span class="ico">🔗</span>
+          <span style="flex:1">Shared with partner</span>
+          <span id="wpSharedToggleState" style="font-size:11px;color:var(--text3)">Off</span>
+        </div>
         <div class="wp-option-row" onclick="document.getElementById('wpFileInput').click()"><span class="ico">🖼️</span> Choose from device</div>
         <div class="wp-option-row" onclick="Chat.setDefaultWallpaper()"><span class="ico">↺</span> Default wallpaper</div>
         <div class="wp-option-row" onclick="Chat.removeWallpaper()"><span class="ico">🗑️</span> Remove wallpaper</div>
@@ -8463,6 +8468,14 @@ function setJustPairedAt(ts) {
           document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
           const pg = document.getElementById('page-' + page); if (!pg) return;
           pg.classList.add('active');
+          if (page === 'chat' && window.Chat) {
+            // Mark-as-read previously only happened on the next 5s poll
+            // tick (or not at all if focus was already on the tab) —
+            // opening the chat should clear unread state the instant the
+            // conversation becomes visible, matching WhatsApp.
+            if (typeof Chat.markRead === 'function') Chat.markRead();
+            if (typeof Chat.loadMessages === 'function') Chat.loadMessages();
+          }
           if (page === 'ai' && window.TwinBoth) TwinBoth.onEnterAiPage();
           else if (window.TwinBoth) TwinBoth.onLeaveAiPage();
           const niPage = CATEGORY_OWNER[page] || page;

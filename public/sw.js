@@ -142,3 +142,22 @@ self.addEventListener('notificationclick', e => {
     })
   );
 });
+
+// ── CLEAR NOTIFICATIONS: page asks us to dismiss stale ones ─────────
+// Previously nothing ever closed an already-shown OS notification once the
+// person read the message in-app — it just sat in the tray/status bar
+// indefinitely. The page (chat.js's markRead()) now posts this message
+// whenever the conversation is read; we close any live notification with
+// a matching tag so it disappears immediately, in sync with in-app state.
+self.addEventListener('message', e => {
+  const msg = e.data || {};
+  if (msg.type !== 'clear_notifications') return;
+  const wantTag = msg.tag; // undefined = clear all chat-related notifications
+  e.waitUntil(
+    self.registration.getNotifications().then(list => {
+      list.forEach(n => {
+        if (!wantTag || n.tag === wantTag) n.close();
+      });
+    })
+  );
+});
