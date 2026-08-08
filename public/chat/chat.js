@@ -141,7 +141,7 @@ const Chat = (function () {
     // *new* message arrived while the chat was already open, so opening
     // a chat that already had unread messages waiting never flipped
     // their ticks blue at all.
-    if (msgs.some(m => !isMine(m) && !m.read) && document.hasFocus()) markRead();
+    if (msgs.some(m => !isMine(m) && !m.read) && chatBottomInView()) markRead();
   } catch (e) {}
 }
 
@@ -202,7 +202,7 @@ function reanchorAfterImages() {
       const nearBottom = box && (box.scrollHeight - box.scrollTop - box.clientHeight < 150);
       if (nearBottom || rows.some(isMine)) { scrollToBottom(true); reanchorAfterImages(); }
       else updateJumpBadge(rows.filter(r => !isMine(r)).length);
-      if (rows.some(r => !isMine(r)) && document.getElementById('page-chat')?.classList.contains('active') && document.hasFocus()) {
+      if (rows.some(r => !isMine(r)) && chatBottomInView()) {
         markRead();
       } else if (rows.some(r => !isMine(r))) {
         // Not actively viewing the chat right now — reflect the new
@@ -331,6 +331,23 @@ function reanchorAfterImages() {
   }
 
   let _scrollTick = false;
+  // ─── VIEWPORT-BASED READ TRACKING ────────────────────
+  // "Online" and "chat page open" are NOT the same as "actually seeing this
+  // message" (see master spec). document.hasFocus() was the old gate here,
+  // but it's unreliable on Android Chrome/PWA — a foregrounded webview
+  // frequently reports hasFocus()===false after resuming from background,
+  // which silently stopped read receipts from ever firing (the ✓✓ blue
+  // bug in the screenshots). Page Visibility + "is the bottom of the
+  // conversation actually scrolled into view" is a much more reliable
+  // proxy for "the partner can see the newest message right now".
+  function chatBottomInView() {
+    const box = document.getElementById('chatMsgs');
+    if (!box) return false;
+    if (document.visibilityState !== 'visible') return false;
+    if (!document.getElementById('page-chat')?.classList.contains('active')) return false;
+    return box.scrollHeight - box.scrollTop - box.clientHeight < 150;
+  }
+
   function onChatScroll() {
     const box = document.getElementById('chatMsgs');
     if (!box) return;
@@ -356,7 +373,13 @@ function reanchorAfterImages() {
       _scrollTick = false;
       const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 150;
       btn?.classList.toggle('show', !nearBottom);
-      if (nearBottom) updateJumpBadge(0);
+      if (nearBottom) {
+        updateJumpBadge(0);
+        // Scrolling down into the latest message(s) is itself a read
+        // event — e.g. arriving on the chat already at the bottom, or
+        // the user scrolling back down after reading older history.
+        if (msgs.some(m => !isMine(m) && !m.read) && chatBottomInView()) markRead();
+      }
     });
   }
   function updateJumpBadge(n) {
@@ -1888,7 +1911,7 @@ function menuItemsHtml(m, id, includeSelect) {
           const box = document.getElementById('chatMsgs');
           const nearBottom = box && (box.scrollHeight - box.scrollTop - box.clientHeight < 150);
           if (nearBottom || isMine(r)) { scrollToBottom(true); reanchorAfterImages(); }
-          if (!isMine(r) && document.getElementById('page-chat')?.classList.contains('active') && document.hasFocus()) {
+          if (!isMine(r) && chatBottomInView()) {
             markRead();
           } else if (!isMine(r)) {
             syncAppBadge(msgs.filter(m => !isMine(m) && !m.read).length);
@@ -2035,7 +2058,10 @@ function menuItemsHtml(m, id, includeSelect) {
   }
   const WP_SHARED_FLAG_KEY = 'uwl_wallpaper_shared_v1';
   function isWpShared() {
-    try { return localStorage.getItem(WP_SHARED_FLAG_KEY + '_' + (coupleId() || '')) === '1'; } catch (e) { return false; }
+    // Shared is the default (spec: setting a wallpaper should sync to your
+    // partner unless you deliberately opt out) — so an unset flag reads as
+    // "on", and only an explicit '0' (user toggled it off) reads as "off".
+    try { return localStorage.getItem(WP_SHARED_FLAG_KEY + '_' + (coupleId() || '')) !== '0'; } catch (e) { return true; }
   }
   function setWpShared(on) {
     try { localStorage.setItem(WP_SHARED_FLAG_KEY + '_' + (coupleId() || ''), on ? '1' : '0'); } catch (e) {}
