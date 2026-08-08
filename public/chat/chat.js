@@ -118,6 +118,10 @@ const Chat = (function () {
     const box = document.getElementById('chatMsgs');
     const wasNearBottom = box && (box.scrollHeight - box.scrollTop - box.clientHeight < 150);
     el.classList.toggle('show', partnerTyping);
+    // Lets the jump-to-bottom button (see .chat-jump-btn in chat.css)
+    // shift up by the indicator's height while it's showing, so it
+    // never sits on top of / gets covered by the typing bubble.
+    document.documentElement.style.setProperty('--chat-typing-h', partnerTyping ? '44px' : '0px');
     if (partnerTyping && wasNearBottom) scrollToBottom(true);
   }
 
@@ -1928,6 +1932,8 @@ function menuItemsHtml(m, id, includeSelect) {
     startRealtime();
     fetchPresence();
     initSwipeToReply();
+    initViewportKeyboardFix();
+    initComposerResizeObserver();
     const nameEl = document.getElementById('chatHeaderName');
     if (nameEl) nameEl.textContent = window.S.partnerName || 'Partner';
     // Routed through the shared Avatar/ProfileStore system (public/js/avatar-system.js)
@@ -2444,6 +2450,73 @@ function menuItemsHtml(m, id, includeSelect) {
       });
     }
   }
+
+  // ══════════════════════════════════════════════════════════════
+  // KEYBOARD / VIEWPORT (Problem 1 — keyboard overlapping messages)
+  // Uses the VisualViewport API as the source of truth for how much
+  // vertical space is actually available once the on-screen keyboard is
+  // up, and writes it to a CSS var that .chat-page-wrap's height is
+  // built from (see chat.css). This is what makes messages move up
+  // instead of hiding behind the keyboard, and it works whether or not
+  // the browser also honors the viewport meta's
+  // interactive-widget=resizes-content hint on its own (that meta tag
+  // covers modern Android Chrome; this JS layer is the fallback that
+  // also covers older WebViews / installed PWA edge cases and keeps the
+  // composer/jump-button pinned to the visible viewport rather than the
+  // full layout viewport while the keyboard animates open/closed).
+  // ══════════════════════════════════════════════════════════════
+  let _vvBound = false;
+  function initViewportKeyboardFix() {
+    if (_vvBound) return;
+    _vvBound = true;
+    const vv = window.visualViewport;
+    if (!vv) return; // unsupported browser — CSS falls back to 100dvh alone
+    let raf = null;
+    const apply = () => {
+      raf = null;
+      // vv.height already excludes the on-screen keyboard once it's
+      // open, so this shrinks exactly as much as the keyboard takes up
+      // (and grows back exactly as much when it closes) with no manual
+      // guessing of keyboard height needed.
+      document.documentElement.style.setProperty('--chat-vvh', vv.height + 'px');
+      // Keep the latest message pinned in view as the available height
+      // changes (keyboard opening/closing, URL bar collapsing, etc.) —
+      // exactly WhatsApp's "chat moves upward, latest message stays
+      // visible" behavior, rather than leaving the scroll position
+      // wherever it happened to be before the resize.
+      const box = document.getElementById('chatMsgs');
+      if (box) {
+        const wasNearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 150;
+        if (wasNearBottom) scrollToBottom(false);
+      }
+    };
+    const onVvChange = () => { if (!raf) raf = requestAnimationFrame(apply); };
+    vv.addEventListener('resize', onVvChange);
+    vv.addEventListener('scroll', onVvChange);
+    apply();
+  }
+
+  // ResizeObserver keeps --uc-composer-h in sync with the composer's
+  // REAL rendered height (recording UI, multi-line input growth, and
+  // safe-area insets all change it) so the jump-to-bottom button and
+  // typing indicator can size themselves relative to it instead of a
+  // hardcoded guess — the root cause of the jump button previously
+  // overlapping the send button.
+  let _composerRoBound = false;
+  function initComposerResizeObserver() {
+    if (_composerRoBound) return;
+    const composer = document.querySelector('.uc-composer');
+    if (!composer || typeof ResizeObserver === 'undefined') return;
+    _composerRoBound = true;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const h = entry.borderBoxSize?.[0]?.blockSize || entry.contentRect.height;
+        document.documentElement.style.setProperty('--uc-composer-h', Math.ceil(h) + 'px');
+      }
+    });
+    ro.observe(composer);
+  }
+
 
   function isSelecting() { return selectMode; }
   function closeMsgMenuIfOpen() {

@@ -8,12 +8,21 @@
 .chat-page-wrap {
   display: flex;
   flex-direction: column;
-  height: calc(100dvh - 118px);
+  /* --chat-vvh is set by JS (public/chat/chat.js initViewportKeyboardFix's
+     viewport handler) from window.visualViewport.height on every resize —
+     this is the real-time keyboard-aware viewport height. 100dvh is the
+     fallback for browsers where visualViewport isn't available yet (var
+     is unset before first JS run) or don't support dvh keyboard resize.
+     Together with the viewport meta's interactive-widget=resizes-content,
+     this is what makes the keyboard actually push content up on Android
+     Chrome and inside an installed PWA instead of covering it. */
+  height: calc(var(--chat-vvh, 100dvh) - 118px);
   overflow: hidden;
   position: relative;
+  transition: height 0.12s ease-out;
 }
 @media(max-width:700px) {
-  .chat-page-wrap { height: calc(100dvh - 52px - 60px); }
+  .chat-page-wrap { height: calc(var(--chat-vvh, 100dvh) - 52px - 60px); }
 }
 
 /* ── HEADER ──
@@ -52,8 +61,13 @@
 .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes typingBlink { 0%,60%,100%{opacity:0.3} 30%{opacity:1} }
 
-.chat-typing-indicator { display: none; padding: 2px 12px 8px; }
-.chat-typing-indicator.show { display: flex; }
+.chat-typing-indicator {
+  display: flex; padding: 2px 12px 8px;
+  flex-shrink: 0; position: relative; z-index: 8;
+  opacity: 0; max-height: 0; overflow: hidden; pointer-events: none;
+  transition: opacity 0.2s ease, max-height 0.2s ease;
+}
+.chat-typing-indicator.show { opacity: 1; max-height: 60px; pointer-events: auto; }
 .chat-typing-bubble {
   background: #0e0e0e; border: 1px solid var(--border);
   border-radius: 4px 16px 16px 16px;
@@ -240,18 +254,26 @@
    while the user is actively scrolling so the button doesn't fight the
    scroll gesture; it's purely visual (opacity), never affects layout. */
 .chat-jump-btn {
-  /* Same 46px circle + right inset as .uc-btn--send (composer padding-right
-     is 12px, send button is 46px wide, so its center sits 12+23=35px from
-     the right edge) — right:12px + width:46px gives this button that exact
-     same center-x, so the two buttons stack perfectly aligned, never drift
-     sideways from each other, and share one visual "column". */
-  display: flex; position: absolute; bottom: 18px; right: 12px; left: auto;
+  /* ROOT-CAUSE FIX: this used to be `bottom: 18px` measured against
+     .chat-page-wrap's own bottom edge. But .chat-page-wrap's bottom edge
+     is BELOW the composer (the composer is itself a flex child inside
+     .chat-page-wrap, sitting after this button in the DOM) — so 18px from
+     THAT edge placed the button underneath/behind the input bar instead
+     of above it, which is exactly why it looked broken and overlapped
+     the send button. Fixed to sit above the composer using its live
+     measured height (--uc-composer-h, set by a ResizeObserver in
+     chat.js so it stays correct across recording-mode height changes,
+     safe-area insets, and screen sizes) plus the typing indicator's
+     height when it's showing, plus an 80px clearance as requested. */
+  display: flex; position: absolute;
+  bottom: calc(var(--uc-composer-h, 64px) + var(--chat-typing-h, 0px) + 80px);
+  right: 12px; left: auto;
   width: 46px; height: 46px; border-radius: 50%;
   background: var(--g2); border: 1px solid var(--border2);
   align-items: center; justify-content: center; cursor: pointer;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.28); z-index: 5; color: var(--white);
+  box-shadow: 0 3px 12px rgba(0,0,0,0.28); z-index: 7; color: var(--white);
   opacity: 0; transform: translateY(8px) scale(0.85); pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.34,1.56,0.64,1), background 0.15s ease;
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.34,1.56,0.64,1), background 0.15s ease, bottom 0.15s ease;
   will-change: opacity, transform;
 }
 .chat-jump-btn svg { width: 20px; height: 20px; }
