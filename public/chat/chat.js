@@ -568,7 +568,7 @@ function reanchorAfterImages() {
     const quoted = m.reply_to ? renderQuote(m.reply_to) : '';
 
     return `<div class="chat-row ${mine ? 'me' : 'them'}${isNew ? ' msg-pop-in' : ''}${selectMode && selectedIds.has(m.id) ? ' sel-selected' : ''}" data-id="${m.id}" onclick="Chat.onBubbleClick('${m.id}', event)" oncontextmenu="Chat.openMenu('${m.id}', event); return false;" ontouchstart="Chat.startLongPress('${m.id}', event)" ontouchend="Chat.endLongPress()" ontouchcancel="Chat.endLongPress()" ontouchmove="Chat.moveLongPress(event)">
-      <div class="chat-swipe-reply-icon">↩️</div>
+      <div class="chat-swipe-reply-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></div>
       <div class="chat-bubble ${mine ? 'mine' : 'theirs'}">
         ${quoted}
         ${body}
@@ -676,7 +676,14 @@ function reanchorAfterImages() {
   }
   function scrollToMsg(id) {
     const el = document.querySelector(`.chat-row[data-id="${id}"]`);
-    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1200); }
+    // BUG FIX: this used to add class 'flash', but the CSS animation is
+    // defined on '.msg-flash' (and, separately, was scoped to a
+    // '.msg-row' selector that no rendered element actually has — rows
+    // are '.chat-row'). Both mismatches meant tapping a reply quote,
+    // pinned-message bar, or search result scrolled to the right message
+    // but never actually highlighted it. Fixed to the class name the CSS
+    // (now correctly scoped to .chat-row.msg-flash) expects.
+    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('msg-flash'); setTimeout(() => el.classList.remove('msg-flash'), 1300); }
   }
 
   // ─── SEND ────────────────────────────────────────────
@@ -1044,8 +1051,26 @@ function menuItemsHtml(m, id, includeSelect) {
     editingId = null;
     replyingTo = id;
     const banner = document.getElementById('chatComposerBanner');
-    banner.style.display = 'flex';
-    banner.innerHTML = `<div class="chat-banner-text">↩️ Replying to: ${esc((m.text||'Media').slice(0,60))}</div><button onclick="Chat.closeBanner()">✕</button>`;
+    const who = isMine(m) ? (window.S.myName || 'You') : (window.S.partnerName || 'Partner');
+    // Small attachment thumbnail for image/gif/sticker replies — gives
+    // the reply preview the same "what am I replying to" context
+    // WhatsApp shows, instead of just a text line.
+    const thumbUrl = (m.type === 'image' || m.type === 'gif') ? m.media_url : null;
+    let previewText = m.text;
+    if (!previewText) {
+      previewText = m.type === 'image' ? '📷 Photo' : m.type === 'gif' ? '🎞️ GIF' : m.type === 'voice' ? '🎤 Voice message'
+        : m.type === 'audio' ? '🎵 Audio' : m.type === 'sticker' ? (m.media_meta?.emoji || '🙂') + ' Sticker'
+        : m.type === 'gift' ? '🎁 Gift' : m.type === 'contact' ? '👤 Contact' : m.type === 'location' ? '📍 Location'
+        : m.type === 'poll' ? '📊 Poll' : 'Message';
+    }
+    banner.innerHTML = `
+      ${thumbUrl ? `<img class="banner-thumb" src="${esc(thumbUrl)}" alt="">` : ''}
+      <div class="banner-body">
+        <div class="banner-title">${esc(who)}</div>
+        <div class="banner-sub">${esc(String(previewText).slice(0, 80))}</div>
+      </div>
+      <button class="banner-close" onclick="Chat.closeBanner()" aria-label="Cancel reply">✕</button>`;
+    banner.classList.add('show');
     focusComposer();
   }
   // Focusing immediately after a touch gesture (swipe-to-reply) can silently
@@ -1067,7 +1092,7 @@ function menuItemsHtml(m, id, includeSelect) {
     place();
     requestAnimationFrame(place);
   }
-  function closeBanner() { const b = document.getElementById('chatComposerBanner'); if (b) { b.style.display = 'none'; b.innerHTML = ''; } replyingTo = null; editingId = null; }
+  function closeBanner() { const b = document.getElementById('chatComposerBanner'); if (b) { b.classList.remove('show'); setTimeout(() => { if (!b.classList.contains('show')) b.innerHTML = ''; }, 200); } replyingTo = null; editingId = null; }
   async function togglePin(id, silent) {
     if (!silent) document.getElementById('chatMsgMenu')?.remove();
     const m = msgs.find(x => x.id === id); if (!m) return;
@@ -1108,8 +1133,8 @@ function menuItemsHtml(m, id, includeSelect) {
     inp.value = m.text || '';
     inp.focus();
     const banner = document.getElementById('chatComposerBanner');
-    banner.style.display = 'flex';
-    banner.innerHTML = `<div class="chat-banner-text">✏️ Editing message</div><button onclick="Chat.cancelEdit()">✕</button>`;
+    banner.innerHTML = `<div class="banner-body"><div class="banner-title">Editing message</div></div><button class="banner-close" onclick="Chat.cancelEdit()" aria-label="Cancel edit">✕</button>`;
+    banner.classList.add('show');
   }
   function cancelEdit() { editingId = null; closeBanner(); document.getElementById('chatIn').value = ''; }
   async function saveEdit(text) {
