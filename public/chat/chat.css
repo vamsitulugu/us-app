@@ -8,15 +8,24 @@
 .chat-page-wrap {
   display: flex;
   flex-direction: column;
-  /* --chat-vvh is set by JS (public/chat/chat.js initViewportKeyboardFix's
-     viewport handler) from window.visualViewport.height on every resize —
-     this is the real-time keyboard-aware viewport height. 100dvh is the
-     fallback for browsers where visualViewport isn't available yet (var
-     is unset before first JS run) or don't support dvh keyboard resize.
-     Together with the viewport meta's interactive-widget=resizes-content,
-     this is what makes the keyboard actually push content up on Android
-     Chrome and inside an installed PWA instead of covering it. */
-  height: calc(var(--chat-vvh, 100dvh) - 118px);
+  /* ROOT-CAUSE FIX: this used to be calc(var(--chat-vvh,100dvh) - 118px)
+     — 118px was a hardcoded guess at how much chrome (the app's own top
+     bar, above this whole page) sits above .chat-page-wrap. Wrong on
+     any device/build where that's not exactly 118px, which mattered a
+     lot here: .content has overflow:hidden while chat is active (see
+     rule above), so any extra height this box ended up with wasn't
+     reachable by scrolling anything — it was just permanently sliced
+     off by .content, invisibly eating into the composer/last-message
+     area no matter how far #chatMsgs itself was scrolled.
+     --chat-wrap-h (set by initViewportKeyboardFix in chat.js) is the
+     real, self-measured answer: visualViewport.height minus this
+     element's OWN actual current distance from the top of the screen,
+     recalculated on every resize. No guessing, correct on any device,
+     self-correcting if the app's header height ever changes.
+     The calc(100dvh - 118px) fallback only matters for the very first
+     frame before that JS has run once, or if VisualViewport isn't
+     supported at all. */
+  height: var(--chat-wrap-h, calc(var(--chat-vvh, 100dvh) - 118px));
   overflow: hidden;
   position: relative;
   transition: height 0.12s ease-out;
@@ -342,9 +351,10 @@
      chat.js so it stays correct across recording-mode height changes,
      safe-area insets, and screen sizes) plus the typing indicator's
      height when it's showing, plus an 80px clearance as requested. */
-  display: flex; position: absolute;
+  display: flex; position: absolute !important;
+  top: auto !important;
   bottom: calc(var(--uc-composer-h, 64px) + var(--chat-typing-h, 0px) + 80px);
-  right: 12px; left: auto;
+  right: 12px !important; left: auto !important;
   width: 46px; height: 46px; border-radius: 50%;
   background: var(--g2); border: 1px solid var(--border2);
   align-items: center; justify-content: center; cursor: pointer;

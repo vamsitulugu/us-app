@@ -2802,14 +2802,27 @@ function menuItemsHtml(m, id, includeSelect) {
   // Uses the VisualViewport API as the source of truth for how much
   // vertical space is actually available once the on-screen keyboard is
   // up, and writes it to a CSS var that .chat-page-wrap's height is
-  // built from (see chat.css). This is what makes messages move up
-  // instead of hiding behind the keyboard, and it works whether or not
-  // the browser also honors the viewport meta's
-  // interactive-widget=resizes-content hint on its own (that meta tag
-  // covers modern Android Chrome; this JS layer is the fallback that
-  // also covers older WebViews / installed PWA edge cases and keeps the
-  // composer/jump-button pinned to the visible viewport rather than the
-  // full layout viewport while the keyboard animates open/closed).
+  // built from (see chat.css).
+  //
+  // ROOT-CAUSE FIX: this used to write vv.height (the FULL device
+  // viewport height, top of screen to bottom) straight into --chat-vvh,
+  // and chat.css subtracted a hardcoded "118px" guess for how much
+  // chrome (the app's own top bar + this page's own header, above
+  // .chat-page-wrap) needed to be excluded. That's a magic number
+  // fighting a real, measured value — on any build/device where the
+  // actual chrome height isn't exactly 118px, .chat-page-wrap ends up
+  // TALLER than the space .content (its scroll-clipped parent, see
+  // ".content:has(#page-chat.active){overflow:hidden}" in chat.css) has
+  // actually got. Because .content no longer scrolls while chat is
+  // open, that extra height doesn't show up as "scroll down to see
+  // more" — it's just silently sliced off by .content's own
+  // overflow:hidden, permanently, no matter how far #chatMsgs itself is
+  // scrolled. That's what was cutting off the composer/last message.
+  // Fixed by measuring .chat-page-wrap's OWN real distance from the top
+  // of the visual viewport every time this runs, instead of assuming a
+  // constant — this is the one authoritative number, self-correcting
+  // for any header height, device, or future layout change, with zero
+  // guessing involved.
   // ══════════════════════════════════════════════════════════════
   let _vvBound = false;
   function initViewportKeyboardFix() {
@@ -2820,6 +2833,15 @@ function menuItemsHtml(m, id, includeSelect) {
     let raf = null;
     const apply = () => {
       raf = null;
+      const wrap = document.querySelector('.chat-page-wrap');
+      // wrap.getBoundingClientRect().top is how much chrome (app top
+      // bar, etc.) currently sits above the chat page — the ACTUAL
+      // number the old "118px" was only ever guessing at. Re-measured
+      // on every call, so it's correct even if that chrome's height
+      // ever changes (different device, safe-area, future redesign).
+      const top = wrap ? Math.max(0, wrap.getBoundingClientRect().top) : 0;
+      const available = Math.max(200, vv.height - top);
+      document.documentElement.style.setProperty('--chat-wrap-h', available + 'px');
       // vv.height already excludes the on-screen keyboard once it's
       // open, so this shrinks exactly as much as the keyboard takes up
       // (and grows back exactly as much when it closes) with no manual
@@ -2840,6 +2862,13 @@ function menuItemsHtml(m, id, includeSelect) {
     vv.addEventListener('resize', onVvChange);
     vv.addEventListener('scroll', onVvChange);
     apply();
+    // The very first apply() runs before layout has settled on some
+    // devices (fonts/safe-area insets not applied to the first paint
+    // yet), which would bake a slightly-wrong "top" measurement into
+    // --chat-wrap-h. Re-measure a couple more times shortly after so it
+    // self-corrects once everything has actually settled.
+    setTimeout(apply, 250);
+    setTimeout(apply, 1000);
   }
 
   // ResizeObserver keeps --uc-composer-h in sync with the composer's
