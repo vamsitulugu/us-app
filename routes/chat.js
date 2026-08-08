@@ -89,33 +89,57 @@ router.post('/', async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message });
 
-  // Mark delivered immediately (partner will mark read when they open chat).
-  // Fire-and-forget: the client only needs to know the message SAVED, not
-  // that this follow-up flag write finished too. Awaiting it here forced
-  // every send through two sequential DB round-trips (roughly doubling
-  // perceived send latency), and any hiccup in this second write used to
-  // throw before res.json(data) — the client would see "Send failed" even
-  // though the message itself was already safely in the database.
-  const deliveredAt = new Date().toISOString();
-  supabase.from('chat_messages')
-    .update({ delivered: true, delivered_at: deliveredAt })
-    .eq('id', data.id)
-    .then(({ error: dErr }) => { if (dErr) console.error('mark-delivered failed:', dErr.message); });
-  data.delivered = true;
-  data.delivered_at = deliveredAt;
+  // ── DELIVERED must reflect REAL partner connectivity, not be faked. ──
+  // A message is only "delivered" once it has actually reached the
+  // partner's active client. We approximate that using chat_presence
+  // (updated by the partner's own 20s heartbeat, see startPresence() in
+  // public/chat/chat.js): if their last heartbeat is fresh (<35s old,
+  // same threshold the client itself uses to show "Online"), their
+  // Supabase Realtime socket is almost certainly still connected, so the
+  // INSERT they just received over that socket counts as delivery.
+  // If they're stale/offline, the row stays delivered:false (single ✓)
+  // — the presence heartbeat POST handler below is what flips it to
+  // delivered once they actually reconnect, so nothing here fakes it.
+  const receiverRoleForDelivery = senderRole === 'user1' ? 'user2' : 'user1';
+  let delivered = false, deliveredAt = null;
+  try {
+    const { data: presenceRow } = await supabase.from('chat_presence')
+      .select('status,last_seen').eq('couple_id', coupleId).eq('role', receiverRoleForDelivery).maybeSingle();
+    if (presenceRow && presenceRow.status === 'online' &&
+        (Date.now() - new Date(presenceRow.last_seen).getTime()) < 35000) {
+      delivered = true;
+      deliveredAt = new Date().toISOString();
+    }
+  } catch (e) { console.error('presence lookup for delivery failed:', e.message); }
 
-  // Push the delivered flag over Realtime Broadcast (not just relying on
-  // the chat_messages postgres_changes/replication stream). Broadcast-
-  // over-HTTP always fires regardless of whether the table's Realtime
-  // replication publication has UPDATE events enabled in the Supabase
-  // dashboard — that setting lives outside this repo and isn't something
-  // the app can verify or configure itself, so this makes delivered/read
-  // ticks work correctly even if that dashboard setting is off.
-  // Topic MUST match the client's channel name exactly: 'chat-' + coupleId
-  // (see startRealtime() in public/chat/chat.js).
-  if (_broadcastEvent) {
-    _broadcastEvent(`chat-${coupleId}`, 'message_status', { id: data.id, delivered: true, delivered_at: deliveredAt });
+  if (delivered) {
+    // Fire-and-forget: the client only needs to know the message SAVED,
+    // not that this follow-up flag write finished too. Awaiting it here
+    // would force every send through two sequential DB round-trips.
+    supabase.from('chat_messages')
+      .update({ delivered: true, delivered_at: deliveredAt })
+      .eq('id', data.id)
+      .then(({ error: dErr }) => { if (dErr) console.error('mark-delivered failed:', dErr.message); });
+    data.delivered = true;
+    data.delivered_at = deliveredAt;
+
+    // Push the delivered flag over Realtime Broadcast (not just relying on
+    // the chat_messages postgres_changes/replication stream). Broadcast-
+    // over-HTTP always fires regardless of whether the table's Realtime
+    // replication publication has UPDATE events enabled in the Supabase
+    // dashboard — that setting lives outside this repo and isn't something
+    // the app can verify or configure itself, so this makes delivered/read
+    // ticks work correctly even if that dashboard setting is off.
+    // Topic MUST match the client's channel name exactly: 'chat-' + coupleId
+    // (see startRealtime() in public/chat/chat.js).
+    if (_broadcastEvent) {
+      _broadcastEvent(`chat-${coupleId}`, 'message_status', { id: data.id, delivered: true, delivered_at: deliveredAt });
+    }
   }
+  // else: row stays delivered:false (single ✓ in the UI). See the
+  // presence POST handler below — the moment the partner's client sends
+  // its next "online" heartbeat, any of their pending undelivered
+  // messages get flipped to delivered and broadcast from there.
 
   // Push notify partner — but only if they're NOT currently looking at
   // this same conversation. Real-time (Supabase Realtime, already wired
@@ -324,6 +348,31 @@ router.post('/:coupleId/presence', async (req, res) => {
     status: status || 'online', last_seen: new Date().toISOString()
   }, { onConflict: 'couple_id,role' });
   if (error) return res.status(500).json({ error: error.message });
+
+  // This role just told us it's online (heartbeat, or coming back from
+  // background/reconnect) — this is the REAL "message reached the
+  // partner's active client" moment for anything the OTHER role sent
+  // while this role was offline/away, so flip those from single ✓ to
+  // double ✓ now instead of only faking it at send time. Fire-and-forget:
+  // the presence write itself already succeeded and shouldn't wait on this.
+  if ((status || 'online') === 'online') {
+    const coupleId = req.params.coupleId;
+    supabase.from('chat_messages')
+      .update({ delivered: true, delivered_at: new Date().toISOString() })
+      .eq('couple_id', coupleId)
+      .eq('sender_role', otherRole(role))
+      .eq('delivered', false)
+      .select('id')
+      .then(({ data: flipped, error: fErr }) => {
+        if (fErr) { console.error('presence-driven delivery flip failed:', fErr.message); return; }
+        if (_broadcastEvent && flipped && flipped.length) {
+          _broadcastEvent(`chat-${coupleId}`, 'message_status', {
+            ids: flipped.map(m => m.id), delivered: true, delivered_at: new Date().toISOString()
+          });
+        }
+      });
+  }
+
   return res.json({ ok: true });
 });
 
