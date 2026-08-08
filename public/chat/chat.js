@@ -106,10 +106,11 @@ const Chat = (function () {
   function renderPresenceUI() {
     const st = presenceStatusFor(otherRole());
     const hs = document.getElementById('chatHeaderStatus');
-    if (hs) hs.innerHTML = st.dot + ' ' + st.label;
+    if (hs) { hs.innerHTML = st.dot + ' ' + st.label; hs.classList.toggle('online', !!st.online); }
     document.querySelectorAll('[data-presence-dot]').forEach(el => el.textContent = st.dot);
     const psb = document.getElementById('hbSidebarPresence');
     if (psb) psb.innerHTML = `<span style="font-size:11px;color:var(--text3)">${st.dot} ${esc(st.label)}</span>`;
+    updateHeaderRing();
   }
 
   function updateTypingIndicatorUI() {
@@ -438,7 +439,8 @@ function reanchorAfterImages() {
     }
     let lastDate = _renderedLastDate;
     const frag = document.createDocumentFragment();
-    newOnes.forEach(m => {
+    const appendStart = _renderedSigs.length;
+    newOnes.forEach((m, localI) => {
       const d = new Date(m.created_at);
       const ds = d.toDateString();
       if (ds !== lastDate) {
@@ -450,11 +452,20 @@ function reanchorAfterImages() {
       }
       const isNew = !seenIds.has(trackKey(m));
       const wrap = document.createElement('div');
-      wrap.innerHTML = renderBubble(m, isNew);
+      wrap.innerHTML = renderBubble(m, isNew, groupPosAt(visible, appendStart + localI));
       frag.appendChild(wrap.firstElementChild || wrap);
       seenIds.add(trackKey(m));
     });
     box.appendChild(frag);
+    // The row immediately before this batch may have gained a same-sender
+    // neighbor (it was 'last'/standalone, now followed by a new message
+    // from the same person) — refresh just its data-group attribute in
+    // place so its bubble corner updates without a full re-render.
+    if (appendStart > 0) {
+      const prevRow = box.querySelector(`.chat-row[data-id="${visible[appendStart - 1].id}"]`);
+      const newPos = groupPosAt(visible, appendStart - 1);
+      if (prevRow) { if (newPos) prevRow.setAttribute('data-group', newPos); else prevRow.removeAttribute('data-group'); }
+    }
     _renderedSigs = currentSigs;
     _renderedMsgIds = visible.map(trackKey);
     _renderedLastDate = lastDate;
@@ -488,7 +499,7 @@ function reanchorAfterImages() {
       const oldRow = box.querySelector(`.chat-row[data-id="${m.id}"]`);
       if (!oldRow) continue; // shouldn't happen given the id-order check above, but stay safe
       const wrap = document.createElement('div');
-      wrap.innerHTML = renderBubble(m, false);
+      wrap.innerHTML = renderBubble(m, false, groupPosAt(visible, i));
       const newRow = wrap.firstElementChild;
       if (newRow) oldRow.replaceWith(newRow);
     }
@@ -505,12 +516,12 @@ function reanchorAfterImages() {
   // Full rebuild — anything that isn't a pure append or pure mutation
   // (deletes, reorders, first render).
   let html = '', lastDate = null;
-  visible.forEach(m => {
+  visible.forEach((m, i) => {
     const d = new Date(m.created_at);
     const ds = d.toDateString();
     if (ds !== lastDate) { lastDate = ds; html += `<div class="chat-date-sep"><span>${fmtDaySep(d)}</span></div>`; }
     const isNew = !seenIds.has(trackKey(m));
-    html += renderBubble(m, isNew);
+    html += renderBubble(m, isNew, groupPosAt(visible, i));
   });
   visible.forEach(m => seenIds.add(trackKey(m)));
   box.innerHTML = html || `<div class="empty" style="padding:60px 20px"><div class="empty-ico">💬</div>Say hello 👋</div>`;
@@ -543,7 +554,26 @@ function reanchorAfterImages() {
     return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
-  function renderBubble(m, isNew) {
+  // Telegram-style bubble grouping: returns 'first' | 'mid' | 'last' | null
+  // (null = standalone, default full-tail bubble) for the message at index
+  // i within a `visible` array, based on whether the immediately adjacent
+  // message(s) are from the same sender on the same calendar day. Purely
+  // a CSS hook (see .chat-row[data-group] in chat.css) — never changes
+  // which messages exist or their order.
+  function groupPosAt(visible, i) {
+    const m = visible[i];
+    if (!m || m.deleted || m.type === 'call_log') return null;
+    const prevM = visible[i - 1], nextM = visible[i + 1];
+    const sameDay = (a, b) => a && b && new Date(a.created_at).toDateString() === new Date(b.created_at).toDateString();
+    const prevSame = prevM && !prevM.deleted && prevM.type !== 'call_log' && isMine(prevM) === isMine(m) && sameDay(prevM, m);
+    const nextSame = nextM && !nextM.deleted && nextM.type !== 'call_log' && isMine(nextM) === isMine(m) && sameDay(nextM, m);
+    if (!prevSame && !nextSame) return null;
+    if (!prevSame) return 'first';
+    if (!nextSame) return 'last';
+    return 'mid';
+  }
+
+  function renderBubble(m, isNew, groupPos) {
     if (m.deleted) {
       return `<div class="chat-row ${isMine(m) ? 'me' : 'them'}"><div class="chat-bubble deleted-bubble">🚫 Message deleted</div></div>`;
     }
@@ -580,7 +610,7 @@ function reanchorAfterImages() {
       </div>`;
     }
     else if (m.type === 'call_log') return `<div class="chat-call-log${isNew ? ' msg-pop-in' : ''}"><span>${esc(m.text)}</span><span class="chat-call-time">${time}</span></div>`;
-    else body = `<div class="chat-text">${linkify(esc(m.text || ''))}</div>`;
+    else body = `<div class="chat-text">${linkify(esc(m.text || ''))}</div>${renderLinkPreview(m.text)}`;
 
     const reactions = m.reactions && Object.keys(m.reactions).length
       ? `<div class="chat-reactions">${Object.entries(m.reactions).map(([e, roles]) => `<span class="chat-reaction-pill">${e} ${roles.length}</span>`).join('')}</div>` : '';
@@ -590,7 +620,7 @@ function reanchorAfterImages() {
 
     const quoted = m.reply_to ? renderQuote(m.reply_to) : '';
 
-    return `<div class="chat-row ${mine ? 'me' : 'them'}${isNew ? ' msg-pop-in' : ''}${selectMode && selectedIds.has(m.id) ? ' sel-selected' : ''}" data-id="${m.id}" onclick="Chat.onBubbleClick('${m.id}', event)" oncontextmenu="Chat.openMenu('${m.id}', event); return false;" ontouchstart="Chat.startLongPress('${m.id}', event)" ontouchend="Chat.endLongPress()" ontouchcancel="Chat.endLongPress()" ontouchmove="Chat.moveLongPress(event)">
+    return `<div class="chat-row ${mine ? 'me' : 'them'}${isNew ? ' msg-pop-in' : ''}${selectMode && selectedIds.has(m.id) ? ' sel-selected' : ''}" data-id="${m.id}"${groupPos ? ` data-group="${groupPos}"` : ''} onclick="Chat.onBubbleClick('${m.id}', event)" oncontextmenu="Chat.openMenu('${m.id}', event); return false;" ontouchstart="Chat.startLongPress('${m.id}', event)" ontouchend="Chat.endLongPress()" ontouchcancel="Chat.endLongPress()" ontouchmove="Chat.moveLongPress(event)">
       <div class="chat-swipe-reply-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></div>
       <div class="chat-bubble ${mine ? 'mine' : 'theirs'}">
         ${quoted}
@@ -621,6 +651,26 @@ function reanchorAfterImages() {
   function linkify(text) {
     return text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
   }
+  // Lightweight link-preview chip (WhatsApp/Telegram-style card under the
+  // text). Deliberately doesn't fetch the target page's og:title/image —
+  // that needs a server-side proxy (browsers block cross-origin metadata
+  // reads) which this app doesn't have — so it shows what's honestly
+  // available client-side: the domain, a globe icon, and the full URL,
+  // in a tappable card instead of a bare blue link.
+  function renderLinkPreview(text) {
+    if (!text) return '';
+    const match = String(text).match(/https?:\/\/[^\s]+/);
+    if (!match) return '';
+    let host = '';
+    try { host = new URL(match[0]).hostname.replace(/^www\./, ''); } catch (e) { return ''; }
+    return `<a class="chat-link-preview" href="${esc(match[0])}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+      <div class="chat-link-preview-ico">🔗</div>
+      <div class="chat-link-preview-body">
+        <div class="chat-link-preview-host">${esc(host)}</div>
+        <div class="chat-link-preview-url">${esc(match[0])}</div>
+      </div>
+    </a>`;
+  }
   function lonLatToTile(lat, lon, zoom) {
     const n = Math.pow(2, zoom);
     const x = Math.floor((lon + 180) / 360 * n);
@@ -647,9 +697,26 @@ function reanchorAfterImages() {
       <button type="button" class="voice-play" aria-label="Play voice message" onclick="event.stopPropagation();Chat.toggleVoicePlay(this.parentElement,'${esc(m.media_url)}')">▶</button>
       <div class="voice-waveform">${Array.from({length:18}).map((_,i)=>`<span style="height:${barHeight(i).toFixed(1)}px"></span>`).join('')}</div>
       <div class="voice-dur">${Math.floor(dur/60)}:${String(dur%60).padStart(2,'0')}</div>
+      <button type="button" class="voice-speed" aria-label="Playback speed" onclick="event.stopPropagation();Chat.cycleVoiceSpeed(this.parentElement)">1x</button>
     </div>`;
   }
   let _activeVoiceEl = null;
+  const VOICE_SPEEDS = [1, 1.5, 2];
+  // Telegram-style playback-speed cycling: tap the "1x" pill on a voice
+  // bubble to step through 1x → 1.5x → 2x → back to 1x. Speed is stored
+  // on the row's audio element (if already created) so it survives
+  // pause/resume, and remembered per-row via a data attribute so a fresh
+  // Audio() created later (first tap on Play) picks up the last-chosen
+  // speed instead of resetting to 1x.
+  function cycleVoiceSpeed(el) {
+    const cur = Number(el.dataset.speed || 1);
+    const idx = VOICE_SPEEDS.indexOf(cur);
+    const next = VOICE_SPEEDS[(idx + 1) % VOICE_SPEEDS.length];
+    el.dataset.speed = next;
+    const btn = el.querySelector('.voice-speed');
+    if (btn) btn.textContent = (next % 1 === 0 ? next : next.toFixed(1)) + 'x';
+    if (el._audio) el._audio.playbackRate = next;
+  }
   function toggleVoicePlay(el, url) {
     // Selection mode takes priority: tapping Play while in WhatsApp-style
     // multi-select mode must select/deselect the message rather than
@@ -662,7 +729,11 @@ function reanchorAfterImages() {
       return;
     }
     let audio = el._audio;
-    if (!audio) { audio = new Audio(url); el._audio = audio; audio.onended = () => { el.querySelector('.voice-waveform').classList.remove('playing'); el.querySelector('.voice-play').textContent = '▶'; if (_activeVoiceEl === el) _activeVoiceEl = null; }; }
+    if (!audio) {
+      audio = new Audio(url); el._audio = audio;
+      audio.playbackRate = Number(el.dataset.speed || 1);
+      audio.onended = () => { el.querySelector('.voice-waveform').classList.remove('playing'); el.querySelector('.voice-play').textContent = '▶'; if (_activeVoiceEl === el) _activeVoiceEl = null; };
+    }
     if (audio.paused) {
       // Only one voice message plays at a time — pause whichever one
       // (if any) was already playing before starting this one.
@@ -990,9 +1061,37 @@ function reanchorAfterImages() {
   }
 
   // ─── BUBBLE ACTIONS / LONG-PRESS MENU ───────────────
+  let _lastTapId = null, _lastTapTime = 0;
   function onBubbleClick(id, ev) {
     if (lpFired) { lpFired = false; return; }
     if (selectMode) { toggleSelect(id); return; }
+    // Instagram-style double-tap-to-heart: two taps on the SAME bubble
+    // within 300ms toggles a ❤️ reaction and shows a brief floating-heart
+    // burst at the tap point. A single tap (or a double-tap that lands on
+    // two different bubbles) does nothing — matches IG/WhatsApp behavior
+    // of not hijacking normal taps.
+    const now = Date.now();
+    if (_lastTapId === id && now - _lastTapTime < 300) {
+      _lastTapTime = 0; _lastTapId = null;
+      const m = msgs.find(x => x.id === id || String(x.id) === String(id));
+      if (m && !m.deleted) {
+        const already = m.reactions && Object.entries(m.reactions).some(([e, roles]) => e === '❤️' && roles.includes(myRole()));
+        reactTo(id, '❤️');
+        if (!already) burstHeart(ev);
+      }
+      return;
+    }
+    _lastTapId = id; _lastTapTime = now;
+  }
+  function burstHeart(ev) {
+    const heart = document.createElement('div');
+    heart.className = 'dbl-tap-heart';
+    heart.textContent = '❤️';
+    const x = ev && ev.clientX ? ev.clientX : window.innerWidth / 2;
+    const y = ev && ev.clientY ? ev.clientY : window.innerHeight / 2;
+    heart.style.left = x + 'px'; heart.style.top = y + 'px';
+    document.body.appendChild(heart);
+    setTimeout(() => heart.remove(), 700);
   }
   let lpStartX = 0, lpStartY = 0;
   const LP_MOVE_TOLERANCE = 12; // px — real fingers jitter slightly during a hold; only cancel on real movement
@@ -1497,12 +1596,21 @@ function menuItemsHtml(m, id, includeSelect) {
   // ─── SEARCH ──────────────────────────────────────────
   function openSearch() { document.getElementById('chatSearchBar').classList.add('show'); document.getElementById('chatSearchInput').focus(); }
   function closeSearch() { document.getElementById('chatSearchBar').classList.remove('show'); document.getElementById('chatSearchInput').value=''; document.getElementById('chatSearchResults').innerHTML=''; }
+  // Wraps every case-insensitive occurrence of `q` in escaped `text` with
+  // <mark>, so the matched word/phrase stands out in the results list —
+  // same idea as WhatsApp/Telegram's yellow-highlighted search hits.
+  function highlightMatch(text, q) {
+    const safe = esc(text);
+    const qEsc = esc(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (!qEsc) return safe;
+    return safe.replace(new RegExp(qEsc, 'ig'), match => `<mark class="chat-search-mark">${match}</mark>`);
+  }
   async function runSearch(q) {
     if (!q.trim()) { document.getElementById('chatSearchResults').innerHTML = ''; return; }
     try {
       const rows = await api('GET', '/api/chat/' + coupleId() + '/search?q=' + encodeURIComponent(q));
       const el = document.getElementById('chatSearchResults');
-      el.innerHTML = (rows||[]).map(r => `<div class="chat-search-result" onclick="Chat.closeSearch();Chat.scrollToMsg(${r.id})">${esc((r.text||'Media').slice(0,80))}</div>`).join('') || '<div class="empty">No results</div>';
+      el.innerHTML = (rows||[]).map(r => `<div class="chat-search-result" onclick="Chat.closeSearch();Chat.scrollToMsg(${r.id})">${highlightMatch((r.text||'Media').slice(0,80), q)}</div>`).join('') || '<div class="empty">No results</div>';
     } catch (e) {}
   }
 
@@ -1847,6 +1955,11 @@ function menuItemsHtml(m, id, includeSelect) {
       const p2 = Math.min(1, swipeState.dx / SWIPE_TRIGGER);
       icon.style.opacity = p2;
       icon.style.transform = `translateX(${-8 + swipeState.dx * 0.3}px) scale(${0.7 + p2 * 0.3})`;
+      // Telegram-style "armed" state: icon fills solid accent and its own
+      // scale gets a tiny extra pop right when the drag crosses the
+      // trigger, so the finger gets a clear "this will fire" signal
+      // before release, not just a haptic buzz.
+      icon.classList.toggle('armed', swipeState.dx >= SWIPE_TRIGGER);
     }
     // Light haptic tick the instant the drag crosses the trigger threshold —
     // mirrors WhatsApp's "armed" feedback, not just a buzz on release.
@@ -1863,7 +1976,7 @@ function menuItemsHtml(m, id, includeSelect) {
     // linear ease — reads as an elastic release rather than a hard snap.
     const bounce = 'transform .32s cubic-bezier(0.34, 1.56, 0.64, 1)';
     if (bubble) { bubble.style.transition = bounce; bubble.style.transform = 'translateX(0)'; setTimeout(() => { if (bubble) bubble.style.transition = ''; }, 340); }
-    if (icon) { icon.style.transition = 'opacity .2s ease, transform .2s ease'; icon.style.opacity = 0; icon.style.transform = ''; setTimeout(() => { if (icon) icon.style.transition = ''; }, 220); }
+    if (icon) { icon.style.transition = 'opacity .2s ease, transform .2s ease'; icon.style.opacity = 0; icon.style.transform = ''; icon.classList.remove('armed'); setTimeout(() => { if (icon) icon.style.transition = ''; }, 220); }
     if (dx >= SWIPE_TRIGGER) {
       if (navigator.vibrate && !crossed) navigator.vibrate(25); // fallback if the crossing tick above didn't fire
       replyTo(id);
@@ -1982,7 +2095,7 @@ function menuItemsHtml(m, id, includeSelect) {
     initSwipeToReply();
     initViewportKeyboardFix();
     initComposerResizeObserver();
-    const nameEl = document.getElementById('chatHeaderName');
+    const nameEl = document.getElementById('chatHeaderNameText');
     if (nameEl) nameEl.textContent = window.S.partnerName || 'Partner';
     // Routed through the shared Avatar/ProfileStore system (public/js/avatar-system.js)
     // instead of manually writing an initial letter — this is what actually
@@ -2000,6 +2113,129 @@ function menuItemsHtml(m, id, includeSelect) {
     applyWallpaper();
     if (isWpShared()) pullSharedWallpaper().then(applyWallpaper);
     initKeyboardFocusFix();
+    initTheme();
+    initHeaderRing();
+    initMute();
+    initNickname();
+  }
+
+  // ─── CLEAR CHAT (delete-for-me, everyone in one action) ──────────
+  // Reuses the existing per-message "delete for me" path (deleteMsg with
+  // mode 'me') for every visible message, so it obeys exactly the same
+  // rules as deleting one at a time — nothing removed for your partner,
+  // just cleared from your own view.
+  function clearChat() {
+    confirmDelete({
+      title: 'Clear chat?',
+      itemType: 'chat',
+      message: 'Every message will be removed from your view only — your partner will still see the full conversation.',
+      destructiveLabel: 'Clear Chat',
+      onConfirm: async () => {
+        const visible = msgs.filter(m => !(m.deleted_for || '').split(',').includes(myRole()));
+        for (const m of visible) { await deleteMsg(m.id, 'me'); }
+        toast && toast('Chat cleared');
+      }
+    });
+  }
+
+  // ─── MUTE NOTIFICATIONS (this chat, this device) ──────────────────
+  // Client-side only — suppresses the in-app "new message" toast/badge
+  // bump for this couple's chat while muted. Doesn't touch OS push
+  // delivery (that's server/service-worker driven and out of scope for
+  // a page-level toggle), so muted still means "won't interrupt you
+  // while the app's open," same as WhatsApp's in-chat mute baseline.
+  function muteKey() { return 'chat_muted_' + coupleId(); }
+  function isMuted() { return localStorage.getItem(muteKey()) === '1'; }
+  function initMute() { updateMuteUI(); }
+  function toggleMute() {
+    localStorage.setItem(muteKey(), isMuted() ? '0' : '1');
+    updateMuteUI();
+  }
+  function updateMuteUI() {
+    const sw = document.getElementById('chatMuteSwitch');
+    if (sw) sw.classList.toggle('on', isMuted());
+    const label = document.getElementById('chatMuteLabel');
+    if (label) label.textContent = isMuted() ? 'Muted' : 'Mute notifications';
+    const bell = document.getElementById('chatHeaderMuteBell');
+    if (bell) bell.style.display = isMuted() ? 'inline' : 'none';
+  }
+
+  // ─── PARTNER NICKNAME (local pet name, header display only) ───────
+  // Purely cosmetic and local to this device — overrides only what the
+  // chat HEADER shows for your partner's name; never sent anywhere, never
+  // changes their actual profile name, and each of you can set your own
+  // without the other seeing or being affected.
+  function nicknameKey() { return 'chat_nickname_' + coupleId(); }
+  function initNickname() { applyNickname(); }
+  function applyNickname() {
+    const saved = localStorage.getItem(nicknameKey());
+    const nameEl = document.getElementById('chatHeaderNameText');
+    if (nameEl && saved) nameEl.textContent = saved;
+  }
+  function promptNickname() {
+    const cur = localStorage.getItem(nicknameKey()) || '';
+    const next = window.prompt('Pet name for ' + (window.S.partnerName || 'your partner') + ' (only you see this):', cur);
+    if (next === null) return; // cancelled
+    const trimmed = next.trim();
+    if (trimmed) localStorage.setItem(nicknameKey(), trimmed); else localStorage.removeItem(nicknameKey());
+    applyNickname();
+    if (!trimmed) { const nameEl = document.getElementById('chatHeaderNameText'); if (nameEl) nameEl.textContent = window.S.partnerName || 'Partner'; }
+  }
+
+  // ─── THEME TOGGLE (chat page only) ───────────────────────
+  // Persists to localStorage so it's remembered next visit; only ever
+  // touches #page-chat's data-theme attribute — see the scoped CSS
+  // overrides in chat.css (#page-chat[data-theme="light"]...).
+  function initTheme() {
+    const page = document.getElementById('page-chat');
+    if (!page) return;
+    const saved = localStorage.getItem('chat_theme') || 'dark';
+    page.setAttribute('data-theme', saved);
+    updateThemeSwitchUI(saved);
+  }
+  function toggleTheme() {
+    const page = document.getElementById('page-chat');
+    if (!page) return;
+    const next = page.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    page.setAttribute('data-theme', next);
+    localStorage.setItem('chat_theme', next);
+    updateThemeSwitchUI(next);
+  }
+  function updateThemeSwitchUI(mode) {
+    const sw = document.getElementById('chatThemeSwitch');
+    if (sw) sw.classList.toggle('on', mode === 'light');
+    const label = document.getElementById('chatThemeLabel');
+    if (label) label.textContent = mode === 'light' ? 'Light mode' : 'Dark mode';
+  }
+
+  // ─── HEADER AVATAR "RING" ─────────────────────────────────
+  // Not a fabricated Stories feature — it's a real, honest signal: the
+  // Instagram-style gradient ring lights up on the header avatar only
+  // when the partner has shared a photo/GIF you haven't opened yet
+  // (checked against a locally-remembered "last seen" timestamp).
+  // Tapping the avatar clears it, same as opening someone's story.
+  function initHeaderRing() { updateHeaderRing(); }
+  function updateHeaderRing() {
+    const av = document.getElementById('chatHeaderAv');
+    if (!av) return;
+    const lastSeen = Number(localStorage.getItem('chat_ring_seen_ts') || 0);
+    const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    const hasUnseenMedia = msgs.some(m =>
+      !m.deleted && !isMine(m) && (m.type === 'image' || m.type === 'gif') &&
+      new Date(m.created_at).getTime() > Math.max(lastSeen, dayAgo));
+    av.classList.toggle('has-ring', hasUnseenMedia);
+    let dot = av.querySelector('.status-dot');
+    if (!dot) { dot = document.createElement('div'); dot.className = 'status-dot'; av.appendChild(dot); }
+    const st = presenceStatusFor(otherRole());
+    dot.classList.toggle('online', !!(st && st.online));
+    if (!av._ringWired) {
+      av._ringWired = true;
+      av.addEventListener('click', () => {
+        localStorage.setItem('chat_ring_seen_ts', String(Date.now()));
+        av.classList.remove('has-ring');
+        openMediaGrid();
+      });
+    }
   }
   document.addEventListener('DOMContentLoaded', () => setTimeout(init, 500));
 
@@ -2569,6 +2805,40 @@ function menuItemsHtml(m, id, includeSelect) {
   }
 
 
+  // ─── SHARED MEDIA GRID (Telegram/Instagram-style) ───────────────────
+  // Full-screen overlay showing every photo/gif in this conversation as a
+  // dense square grid, newest first. Tapping a tile opens the same
+  // gallery viewer used from inline bubbles (openMediaViewer), scoped and
+  // indexed to the same media collection so swiping still moves through
+  // every photo in the chat, not just the grid.
+  function openMediaGrid() {
+    closeTopOverlayIfOpen();
+    let overlay = document.getElementById('chatMediaGridOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'chatMediaGridOverlay';
+      overlay.className = 'media-grid-overlay';
+      document.body.appendChild(overlay);
+    }
+    const media = msgs.filter(m => !m.deleted && (m.type === 'image' || m.type === 'gif'))
+      .slice().reverse(); // newest first for browsing
+    overlay.innerHTML = `
+      <div class="media-grid-topbar">
+        <button class="media-grid-back" aria-label="Close"><i data-lucide="arrow-left"></i></button>
+        <div class="media-grid-title">Shared Media <span class="media-grid-count">${media.length}</span></div>
+      </div>
+      <div class="media-grid-body">
+        ${media.length ? `<div class="media-grid">${media.map(m => `<div class="media-grid-tile" data-id="${m.id}"><img src="${esc(m.media_url)}" loading="lazy"></div>`).join('')}</div>`
+          : `<div class="media-grid-empty">📷<div>No photos yet</div></div>`}
+      </div>`;
+    overlay.querySelector('.media-grid-back').onclick = () => overlay.classList.remove('open');
+    overlay.querySelectorAll('.media-grid-tile').forEach(tile => {
+      tile.onclick = () => { overlay.classList.remove('open'); openMediaViewer(tile.getAttribute('data-id')); };
+    });
+    requestAnimationFrame(() => overlay.classList.add('open'));
+    if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+  }
+
   function isSelecting() { return selectMode; }
   function closeMsgMenuIfOpen() {
     const el = document.getElementById('chatMsgMenu');
@@ -2586,6 +2856,8 @@ function menuItemsHtml(m, id, includeSelect) {
   function closeTopOverlayIfOpen() {
     // 1) Free-floating context menus / pickers (appended to body, no page nav should occur under them)
     if (closeMsgMenuIfOpen()) return true;
+    const mediaGrid = document.getElementById('chatMediaGridOverlay');
+    if (mediaGrid && mediaGrid.classList.contains('open')) { mediaGrid.classList.remove('open'); return true; }
     const reactionPicker = document.getElementById('chatReactionPicker');
     if (reactionPicker) { reactionPicker.remove(); return true; }
     const overflowMenu = document.getElementById('chatToolbarOverflowMenu');
@@ -2639,7 +2911,8 @@ function menuItemsHtml(m, id, includeSelect) {
     destroyPanels,
     toggleHeaderMenu, openWallpaperModal, closeWallpaperModal, onDimSlider, setDefaultWallpaper, removeWallpaper,
     onWallpaperFilePicked, cancelWallpaperPreview, confirmWallpaperPreview, selectWpSwatch, applyWallpaper,
-    loadMessages, toggleWallpaperShared
+    loadMessages, toggleWallpaperShared, openMediaGrid, toggleTheme, cycleVoiceSpeed,
+    clearChat, toggleMute, promptNickname
   };
 })();
 window.Chat = Chat;

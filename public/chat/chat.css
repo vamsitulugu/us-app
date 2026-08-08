@@ -33,9 +33,11 @@
    band (and, via bleed, the page below it) read visibly redder than
    the AI page even though both sit on the same global background. */
 .chat-header {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 11px;
   padding: 10px 14px;
-  background: transparent;
+  background: rgba(14,14,14,0.72);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
   border: 1px solid var(--border);
   border-radius: var(--r) var(--r) 0 0;
   flex-shrink: 0;
@@ -43,23 +45,50 @@
   top: 0;
   z-index: 5;
 }
+/* Instagram-style gradient "story ring" around the avatar. Off by default
+   (flat border) — .chat-header-av.has-ring turns the ring on, e.g. when
+   the partner has posted a fresh memory/status. */
 .chat-header-av {
   width: 40px; height: 40px; border-radius: 50%;
   background: linear-gradient(135deg, var(--accent2), var(--accent2-d));
   display: flex; align-items: center; justify-content: center;
   color: #fff; font-weight: 700; font-size: 15px; position: relative; overflow: hidden;
   flex-shrink: 0;
+  padding: 2px;
+  background-clip: content-box;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.06);
+  cursor: pointer;
+  transition: transform .15s ease;
 }
+.chat-header-av:active { transform: scale(0.94); }
+.chat-header-av.has-ring {
+  box-shadow: 0 0 0 2.5px #0e0e0e, 0 0 0 4.5px;
+  box-shadow: 0 0 0 2.5px #0e0e0e,
+              0 0 0 4.5px transparent;
+  background-image: linear-gradient(135deg, var(--accent2), var(--accent2-d)),
+                     linear-gradient(135deg, #feda75, #d62976 45%, #4f5bd5 100%);
+  background-origin: content-box, border-box;
+  background-clip: content-box, border-box;
+  border: 2.5px solid transparent;
+}
+.chat-header-av .status-dot {
+  position: absolute; right: -1px; bottom: -1px;
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--text3); border: 2px solid #0e0e0e;
+  transition: background .2s ease;
+}
+.chat-header-av .status-dot.online { background: #3ddc74; }
 .chat-header-info { flex: 1; min-width: 0; }
-.chat-header-name { font-size: 14px; font-weight: 600; color: var(--white); }
+.chat-header-name { font-size: 14.5px; font-weight: 700; color: var(--white); letter-spacing: -0.1px; }
 .chat-header-status { font-size: 11px; color: var(--text3); display: flex; align-items: center; gap: 4px; }
-.chat-header-actions { display: flex; gap: 6px; }
+.chat-header-status.online { color: #3ddc74; font-weight: 600; }
+.chat-header-actions { display: flex; gap: 4px; align-items: center; }
 
 .typing-dots { display: inline-flex; gap: 4px; }
-.typing-dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: typingBlink 1.2s infinite; }
+.typing-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent, #E50914); animation: typingBlink 1.2s infinite; }
 .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
 .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes typingBlink { 0%,60%,100%{opacity:0.3} 30%{opacity:1} }
+@keyframes typingBlink { 0%,60%,100%{opacity:0.3; transform:translateY(0)} 30%{opacity:1; transform:translateY(-2px)} }
 
 .chat-typing-indicator {
   display: flex; padding: 2px 12px 8px;
@@ -69,10 +98,11 @@
 }
 .chat-typing-indicator.show { opacity: 1; max-height: 60px; pointer-events: auto; }
 .chat-typing-bubble {
-  background: #0e0e0e; border: 1px solid var(--border);
-  border-radius: 4px 16px 16px 16px;
-  padding: 10px 16px;
+  background: #1c1c1e; border: 1px solid rgba(255,255,255,.06);
+  border-radius: 18px 18px 18px 5px;
+  padding: 10px 14px;
   display: inline-flex; align-items: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,.18);
 }
 
 /* ── PINNED BAR ── */
@@ -115,10 +145,25 @@
   display: flex; flex-direction: column; min-height: 0;
 }
 .chat-msgs {
-  flex: 1; overflow-y: auto; padding: 12px 14px;
+  flex: 1; overflow-y: auto; padding: 14px 12px;
   background: transparent;
-  display: flex; flex-direction: column; gap: 3px;
+  display: flex; flex-direction: column; gap: 2px;
   position: relative; z-index: 2;
+}
+/* Faint repeating doodle pattern behind the messages, WhatsApp-style —
+   sits under everything (z-index below .chat-msgs) and under any custom
+   wallpaper the user sets via Chat wallpaper settings, so it only shows
+   when no wallpaper/wallpaper-dim layer is active. */
+.chat-msgs-shell::before {
+  content: "";
+  position: absolute; inset: 0; z-index: 1;
+  opacity: 0.035;
+  background-image: radial-gradient(circle at 20% 20%, currentColor 1.5px, transparent 1.5px),
+                     radial-gradient(circle at 60% 55%, currentColor 1.5px, transparent 1.5px),
+                     radial-gradient(circle at 85% 15%, currentColor 1.5px, transparent 1.5px);
+  background-size: 90px 90px;
+  color: var(--white);
+  pointer-events: none;
 }
 .chat-empty { text-align: center; color: var(--text3); font-size: 13px; margin: auto; padding: 40px; }
 
@@ -470,19 +515,30 @@
 
 
 .chat-rec-timer{font-size:11px;color:var(--red-status);font-weight:700}
-.chat-row{display:flex;margin:1px 0;position:relative;padding:2px 8px;border-radius:10px;transition:background-color .15s ease;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.chat-row{display:flex;margin:1px 0;position:relative;padding:1px 8px;border-radius:10px;transition:background-color .15s ease;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .chat-row .msg-bubble,.chat-row .msg-text{-webkit-user-select:text;user-select:text}
 #chatMsgs.selecting .chat-row .msg-bubble,#chatMsgs.selecting .chat-row .msg-text{-webkit-user-select:none;user-select:none}
 .chat-row.me{justify-content:flex-end}
-/* Tighter vertical rhythm for consecutive messages from the same sender;
-   a touch more room when the sender changes (row immediately follows a
-   row from the other side) or around date separators. */
-.chat-row + .chat-row.me,.chat-row + .chat-row.them{margin-top:1px}
-.chat-row.them + .chat-row.me,.chat-row.me + .chat-row.them{margin-top:6px}
-.chat-date-sep + .chat-row{margin-top:2px}
-.chat-bubble{max-width:82%;width:fit-content;padding:6px 9px 5px;border-radius:16px;font-size:13.5px;line-height:1.42;position:relative;cursor:pointer;transition:transform .1s}
-.chat-bubble.mine{background:#161616;color:#fff;border:1px solid rgba(255,255,255,.08);border-radius:16px 4px 16px 16px}
-.chat-bubble.theirs{background:#0e0e0e;color:var(--white);border:1px solid var(--border);border-radius:4px 16px 16px 16px}
+/* Telegram-style grouping: consecutive bubbles from the same sender sit
+   almost flush together (2px), a full run break gets breathing room
+   (10px) when the sender switches. Corner radii below follow the same
+   grouping — only the first/last bubble in a run gets the "sharp" corner
+   that forms the speech-tail; interior bubbles are uniformly rounded. */
+.chat-row + .chat-row.me,.chat-row + .chat-row.them{margin-top:2px}
+.chat-row.them + .chat-row.me,.chat-row.me + .chat-row.them{margin-top:10px}
+.chat-date-sep + .chat-row{margin-top:4px}
+.chat-bubble{max-width:78%;width:fit-content;padding:7px 11px 6px;border-radius:18px;font-size:14px;line-height:1.44;position:relative;cursor:pointer;transition:transform .1s;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.chat-bubble.mine{background:linear-gradient(135deg,var(--accent,#E50914),var(--accent-d,#a80710));color:#fff;border:none;border-radius:18px 18px 5px 18px}
+.chat-bubble.theirs{background:#1c1c1e;color:var(--white);border:1px solid rgba(255,255,255,.06);border-radius:18px 18px 18px 5px}
+/* Grouped-run corner refinement: applied by JS via data-group="first|mid|last"
+   on .chat-row (safe no-op if the attribute is never set — bubbles just
+   keep the default single-message tail above). */
+.chat-row[data-group="first"] .chat-bubble.mine{border-radius:18px 18px 5px 18px}
+.chat-row[data-group="mid"] .chat-bubble.mine{border-radius:18px 5px 5px 18px}
+.chat-row[data-group="last"] .chat-bubble.mine{border-radius:18px 5px 18px 18px}
+.chat-row[data-group="first"] .chat-bubble.theirs{border-radius:18px 18px 18px 5px}
+.chat-row[data-group="mid"] .chat-bubble.theirs{border-radius:5px 18px 18px 5px}
+.chat-row[data-group="last"] .chat-bubble.theirs{border-radius:5px 18px 18px 18px}
 .chat-bubble:active{transform:scale(.98)}
 
 /* Selection mode (WhatsApp-style): the message ROW itself is the
@@ -528,12 +584,17 @@
    unbroken token (URL, long word) overflow past the bubble's max-width
    instead of breaking; normal sentences still wrap at word boundaries
    first, this only kicks in when a word alone is wider than the bubble. */
-.chat-text{white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;overflow-wrap:anywhere;line-height:1.42;margin:0}
-.chat-meta{display:flex;gap:5px;justify-content:flex-end;font-size:9.5px;opacity:.65;margin-top:2px}
+.chat-text{white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;overflow-wrap:anywhere;line-height:1.44;margin:0}
+.chat-meta{display:flex;gap:4px;align-items:center;justify-content:flex-end;font-size:10px;opacity:.7;margin-top:3px;font-variant-numeric:tabular-nums}
+.chat-status{font-size:13px;line-height:1;letter-spacing:-1.5px}
 .chat-status.read{color:#7dd3fc}
-.chat-img{max-width:220px;border-radius:12px;display:block;margin-bottom:4px}
-.chat-gif{max-width:180px}
-.chat-date-sep{text-align:center;margin:14px 0 8px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
+.chat-reactions{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px}
+.chat-reaction-pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.1);border-radius:11px;padding:1px 7px 2px;font-size:11.5px;line-height:1.5;backdrop-filter:blur(4px)}
+.chat-bubble.mine .chat-reaction-pill{background:rgba(0,0,0,.18);border-color:rgba(255,255,255,.15)}
+.chat-img{max-width:230px;border-radius:14px;display:block;margin-bottom:4px}
+.chat-gif{max-width:190px}
+.chat-date-sep{text-align:center;margin:16px 0 10px;font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px}
+.chat-date-sep span{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:12px;padding:3px 12px}
 /* Legacy .chat-jump-btn / .chat-jump-badge rules removed — they duplicated
    and fought with the canonical, animated definitions above (line ~236),
    forcing an abrupt display:none/flex toggle at a different `bottom` offset
@@ -744,3 +805,145 @@
 }
 .wp-preview-cancel{background:rgba(255,255,255,.12); color:#fff}
 .wp-preview-set{background:linear-gradient(135deg,var(--accent),var(--accent-d)); color:#fff}
+/* ── SHARED MEDIA GRID (Instagram-style dense grid, Telegram-style topbar) ── */
+.media-grid-overlay{
+  position:fixed; inset:0; z-index:200; background:#0a0a0a;
+  display:flex; flex-direction:column;
+  opacity:0; pointer-events:none; transform:translateY(12px);
+  transition:opacity .18s ease, transform .18s ease;
+}
+.media-grid-overlay.open{ opacity:1; pointer-events:auto; transform:translateY(0); }
+.media-grid-topbar{
+  display:flex; align-items:center; gap:12px; padding:12px 14px;
+  border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.media-grid-back{
+  width:34px; height:34px; border-radius:50%; border:none;
+  background:rgba(255,255,255,.08); color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer;
+}
+.media-grid-title{ font-size:15px; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px; }
+.media-grid-count{ font-size:11px; font-weight:600; color:var(--text3); background:rgba(255,255,255,.08); border-radius:10px; padding:2px 8px; }
+.media-grid-body{ flex:1; overflow-y:auto; padding:2px; }
+.media-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:2px; }
+.media-grid-tile{ position:relative; aspect-ratio:1/1; overflow:hidden; cursor:pointer; }
+.media-grid-tile img{ width:100%; height:100%; object-fit:cover; display:block; transition:transform .15s ease; }
+.media-grid-tile:active img{ transform:scale(0.94); }
+.media-grid-empty{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  height:60vh; color:var(--text3); font-size:13px; gap:10px;
+}
+.media-grid-empty > div:first-child{ font-size:40px; }
+
+/* ── DOUBLE-TAP-TO-HEART (Instagram-style) ── */
+.dbl-tap-heart{
+  position:fixed; z-index:300; pointer-events:none;
+  font-size:52px; transform:translate(-50%,-50%) scale(0.3);
+  animation:dblTapHeart .7s cubic-bezier(.17,.89,.32,1.49) forwards;
+  filter:drop-shadow(0 2px 8px rgba(0,0,0,.35));
+}
+@keyframes dblTapHeart{
+  0%{ transform:translate(-50%,-50%) scale(0.3); opacity:0; }
+  25%{ transform:translate(-50%,-50%) scale(1.15); opacity:1; }
+  40%{ transform:translate(-50%,-50%) scale(0.95); opacity:1; }
+  100%{ transform:translate(-50%,-65%) scale(0.9); opacity:0; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LIGHT THEME (chat page only) — toggled via Chat.toggleTheme(),
+   persisted to localStorage key 'chat_theme'. Scoped to #page-chat
+   so it never touches any other page's palette; only the CSS
+   variables the chat page actually reads are overridden here.
+   ══════════════════════════════════════════════════════════════ */
+#page-chat[data-theme="light"] {
+  --white: #1a1a1a;
+  --text: rgba(0,0,0,0.88);
+  --text2: rgba(0,0,0,0.58);
+  --text3: rgba(0,0,0,0.4);
+  --border: rgba(0,0,0,0.09);
+  --border2: rgba(0,0,0,0.16);
+}
+#page-chat[data-theme="light"] .chat-page-wrap,
+#page-chat[data-theme="light"] .chat-msgs-shell,
+#page-chat[data-theme="light"] .chat-msgs { background: #EFEAE2; }
+#page-chat[data-theme="light"] .chat-header {
+  background: rgba(255,255,255,0.82);
+  border-color: rgba(0,0,0,0.08);
+}
+#page-chat[data-theme="light"] .chat-bubble.theirs {
+  background: #ffffff; color: #1a1a1a;
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+#page-chat[data-theme="light"] .chat-bubble.mine {
+  background: linear-gradient(135deg, var(--accent,#E50914), var(--accent-d,#a80710));
+  color: #fff;
+}
+#page-chat[data-theme="light"] .chat-quote { background: rgba(0,0,0,0.05); }
+#page-chat[data-theme="light"] .chat-bubble.theirs .chat-quote-text { color: rgba(0,0,0,0.6); }
+#page-chat[data-theme="light"] .chat-date-sep span {
+  background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.08); color: rgba(0,0,0,0.45);
+}
+#page-chat[data-theme="light"] .uc-composer,
+#page-chat[data-theme="light"] .uc-input-wrap { background: rgba(255,255,255,0.9); }
+#page-chat[data-theme="light"] .uc-input { color: #1a1a1a; }
+#page-chat[data-theme="light"] .chat-typing-bubble {
+  background: #fff; border-color: rgba(0,0,0,0.06);
+}
+#page-chat[data-theme="light"] .media-grid-overlay { background: #EFEAE2; }
+#page-chat[data-theme="light"] .media-grid-title { color: #1a1a1a; }
+#page-chat[data-theme="light"] .media-grid-back { background: rgba(0,0,0,0.06); color: #1a1a1a; }
+#page-chat[data-theme="light"] .chat-msgs-shell::before { color: #000; opacity: 0.045; }
+
+/* Toggle switch shown in the chat header ⋮ menu */
+.theme-toggle-row { display: flex; align-items: center; }
+.theme-toggle-row .ico-label { flex: 1; display: flex; align-items: center; gap: 8px; }
+.theme-switch {
+  width: 34px; height: 20px; border-radius: 12px; background: rgba(255,255,255,.14);
+  position: relative; flex-shrink: 0; transition: background .18s ease;
+}
+.theme-switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
+  border-radius: 50%; background: #fff; transition: transform .18s ease;
+}
+.theme-switch.on { background: var(--accent,#E50914); }
+.theme-switch.on::after { transform: translateX(14px); }
+
+/* ── SWIPE-TO-REPLY: armed-state feedback once past trigger threshold ── */
+.chat-swipe-reply-icon.armed {
+  background: var(--accent,#E50914); color:#fff;
+  transition: background .12s ease;
+}
+
+/* ── SEARCH RESULT HIGHLIGHT ── */
+.chat-search-mark{ background:rgba(255,193,7,.35); color:inherit; border-radius:3px; padding:0 1px; font-weight:700; }
+
+/* ── VOICE MESSAGE: playback speed pill ── */
+.voice-msg{ display:flex; align-items:center; gap:8px; }
+.voice-speed{
+  flex-shrink:0; border:none; cursor:pointer;
+  background:rgba(255,255,255,.14); color:inherit;
+  font-size:10.5px; font-weight:700; padding:3px 7px; border-radius:10px;
+  min-width:26px; text-align:center;
+}
+.chat-bubble.mine .voice-speed{ background:rgba(0,0,0,.18); }
+.voice-speed:active{ transform:scale(.92); }
+
+/* ── LINK PREVIEW CARD (WhatsApp/Telegram-style) ── */
+.chat-link-preview{
+  display:flex; align-items:center; gap:9px;
+  margin-top:6px; padding:8px 10px; border-radius:12px;
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.08);
+  text-decoration:none; color:inherit; cursor:pointer;
+}
+.chat-bubble.mine .chat-link-preview{ background:rgba(0,0,0,.16); border-color:rgba(255,255,255,.12); }
+.chat-link-preview-ico{
+  width:30px; height:30px; border-radius:8px; flex-shrink:0;
+  background:rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center; font-size:14px;
+}
+.chat-link-preview-body{ min-width:0; flex:1; }
+.chat-link-preview-host{ font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; opacity:.85; }
+.chat-link-preview-url{ font-size:11px; opacity:.65; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* ── Partner nickname: header name is tappable ── */
+.chat-header-name{ cursor:pointer; }
+.chat-header-name:active{ opacity:.7; }

@@ -5825,7 +5825,7 @@ select option { background: #0D0D0D; color: #fff; }
     <div class="chat-header">
       <div class="chat-header-av" id="chatHeaderAv">P</div>
       <div class="chat-header-info">
-        <div class="chat-header-name" id="chatHeaderName">Partner</div>
+        <div class="chat-header-name" id="chatHeaderName" onclick="Chat.promptNickname()" title="Tap to set a pet name"><span id="chatHeaderNameText">Partner</span><span id="chatHeaderMuteBell" style="display:none;font-size:11px;margin-left:5px">🔕</span></div>
         <div class="chat-header-status" id="chatHeaderStatus">offline</div>
       </div>
       <div class="chat-header-actions">
@@ -5836,7 +5836,17 @@ select option { background: #0D0D0D; color: #fff; }
   <div class="chat-header-menu-wrap">
     <button class="ic-btn" id="chatMoreMenuBtn" style="width:34px;height:34px;font-size:14px" onclick="Chat.toggleHeaderMenu(event)" title="More" aria-haspopup="true" aria-expanded="false">⋮</button>
     <div class="chat-header-menu" id="chatHeaderMenu">
+      <div class="chat-header-menu-item theme-toggle-row" onclick="Chat.toggleTheme()">
+        <span class="ico-label"><span class="ico">🌗</span> <span id="chatThemeLabel">Dark mode</span></span>
+        <span class="theme-switch" id="chatThemeSwitch"></span>
+      </div>
+      <div class="chat-header-menu-item theme-toggle-row" onclick="Chat.toggleMute()">
+        <span class="ico-label"><span class="ico">🔔</span> <span id="chatMuteLabel">Mute notifications</span></span>
+        <span class="theme-switch" id="chatMuteSwitch"></span>
+      </div>
+      <div class="chat-header-menu-item" onclick="Chat.openMediaGrid()"><span class="ico">🖼️</span> Shared media</div>
       <div class="chat-header-menu-item" onclick="Chat.openWallpaperModal()"><span class="ico">🖼️</span> Chat wallpaper</div>
+      <div class="chat-header-menu-item" style="color:#ff6b6b" onclick="Chat.toggleHeaderMenu();Chat.clearChat()"><span class="ico">🗑️</span> Clear chat</div>
     </div>
   </div>
 </div>
