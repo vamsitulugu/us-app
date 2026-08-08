@@ -715,14 +715,23 @@
 /* ══════════════════════════════════════════════════════════════
    CHAT WALLPAPER
    ══════════════════════════════════════════════════════════════ */
-/* Wallpaper renders as its own layer behind the messages, inside
-   .chat-msgs (which already scrolls) rather than on .chat-msgs itself,
-   so the image scrolls with the conversation the way WhatsApp's does,
-   while dimming sits between the wallpaper and the message bubbles. */
+/* Wallpaper is now the first child of .chat-page-wrap (see index.html),
+   so it spans the FULL chat screen — header, typing indicator strip and
+   composer all sit visually on top of it, not just the message list —
+   instead of only covering .chat-msgs-shell and leaving those other
+   strips showing plain background underneath ("gap" bug).
+   background-attachment:fixed is the other half of the fix: for a fixed
+   background, background-size percentages (e.g. `cover`) are resolved
+   against the viewport, not the element's own box. That means when the
+   keyboard opens/closes and .chat-page-wrap's height shrinks/grows
+   (via --chat-vvh), the wallpaper image no longer visually rescales or
+   shifts — it stays put behind the chat exactly like a real wallpaper,
+   and only the message list area is what appears to move. */
 .chat-wallpaper-layer{
   position:absolute; inset:0; z-index:0; pointer-events:none;
   background-size:cover; background-position:center; background-repeat:no-repeat;
   background-color:transparent;
+  background-attachment:fixed;
 }
 .chat-wallpaper-dim{
   position:absolute; inset:0; z-index:1; pointer-events:none;

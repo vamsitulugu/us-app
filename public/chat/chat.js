@@ -462,7 +462,7 @@ function reanchorAfterImages() {
     // from the same person) — refresh just its data-group attribute in
     // place so its bubble corner updates without a full re-render.
     if (appendStart > 0) {
-      const prevRow = box.querySelector(`.chat-row[data-id="${visible[appendStart - 1].id}"]`);
+      const prevRow = box.querySelector(`.chat-row[data-track="${CSS.escape(String(trackKey(visible[appendStart - 1])))}"]`);
       const newPos = groupPosAt(visible, appendStart - 1);
       if (prevRow) { if (newPos) prevRow.setAttribute('data-group', newPos); else prevRow.removeAttribute('data-group'); }
     }
@@ -496,7 +496,19 @@ function reanchorAfterImages() {
       if (currentSigs[i] === _renderedSigs[i]) continue;
       changedCount++;
       const m = visible[i];
-      const oldRow = box.querySelector(`.chat-row[data-id="${m.id}"]`);
+      // BUG FIX: this used to look up the row by data-id="${m.id}". That's
+      // fine for edits/reactions on an already-confirmed message, but for
+      // a message that just went optimistic -> confirmed (temp_xxx id ->
+      // real numeric id from the server), the DOM row still has the OLD
+      // temp id as its data-id while `m.id` here is already the new real
+      // id — the selector never matched, so the row (and its delivered/
+      // read tick) silently never updated in place. It only ever looked
+      // right again after a full rebuild (e.g. reopening the app, which
+      // reloads messages fresh with real ids from the server). data-track
+      // is trackKey(m) — client_id when present — which stays identical
+      // across that optimistic -> confirmed swap, so the row is always
+      // found.
+      const oldRow = box.querySelector(`.chat-row[data-track="${CSS.escape(String(trackKey(m)))}"]`);
       if (!oldRow) continue; // shouldn't happen given the id-order check above, but stay safe
       const wrap = document.createElement('div');
       wrap.innerHTML = renderBubble(m, false, groupPosAt(visible, i));
@@ -620,7 +632,7 @@ function reanchorAfterImages() {
 
     const quoted = m.reply_to ? renderQuote(m.reply_to) : '';
 
-    return `<div class="chat-row ${mine ? 'me' : 'them'}${isNew ? ' msg-pop-in' : ''}${selectMode && selectedIds.has(m.id) ? ' sel-selected' : ''}" data-id="${m.id}"${groupPos ? ` data-group="${groupPos}"` : ''} onclick="Chat.onBubbleClick('${m.id}', event)" oncontextmenu="Chat.openMenu('${m.id}', event); return false;" ontouchstart="Chat.startLongPress('${m.id}', event)" ontouchend="Chat.endLongPress()" ontouchcancel="Chat.endLongPress()" ontouchmove="Chat.moveLongPress(event)">
+    return `<div class="chat-row ${mine ? 'me' : 'them'}${isNew ? ' msg-pop-in' : ''}${selectMode && selectedIds.has(m.id) ? ' sel-selected' : ''}" data-id="${m.id}" data-track="${esc(String(trackKey(m)))}"${groupPos ? ` data-group="${groupPos}"` : ''} onclick="Chat.onBubbleClick('${m.id}', event)" oncontextmenu="Chat.openMenu('${m.id}', event); return false;" ontouchstart="Chat.startLongPress('${m.id}', event)" ontouchend="Chat.endLongPress()" ontouchcancel="Chat.endLongPress()" ontouchmove="Chat.moveLongPress(event)">
       <div class="chat-swipe-reply-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></div>
       <div class="chat-bubble ${mine ? 'mine' : 'theirs'}">
         ${quoted}
