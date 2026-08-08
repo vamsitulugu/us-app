@@ -263,6 +263,12 @@ function reanchorAfterImages() {
   function clearReadNotifications() {
     if (navigator.clearAppBadge) { try { navigator.clearAppBadge(); } catch (e) {} }
     if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      // 'chat-msg' is the ACTUAL tag routes/chat.js puts on chat push
+      // notifications (see chatPayload.tag in the POST /api/chat handler).
+      // 'us-app-love' / 'us-app' were stale tag names that never matched
+      // anything shown, so the OS notification tray entry never actually
+      // closed when the conversation was read in-app — this is the fix.
+      navigator.serviceWorker.controller.postMessage({ type: 'clear_notifications', tag: 'chat-msg' });
       navigator.serviceWorker.controller.postMessage({ type: 'clear_notifications', tag: 'us-app-love' });
       navigator.serviceWorker.controller.postMessage({ type: 'clear_notifications', tag: 'us-app' });
     }
@@ -1860,6 +1866,26 @@ function menuItemsHtml(m, id, includeSelect) {
           }
         })
         .on('broadcast', { event: 'typing' }, (msg) => handleTypingBroadcast(msg.payload))
+        .on('broadcast', { event: 'message_status' }, (msg) => {
+          // Delivered/read status pushed directly from the server
+          // (routes/chat.js broadcastEvent calls) over Realtime Broadcast.
+          // This does NOT depend on chat_messages' Postgres replication
+          // publication settings in the Supabase dashboard — unlike the
+          // postgres_changes subscription below, Broadcast-over-HTTP always
+          // fires, so delivered ticks and blue read ticks now update
+          // instantly even if that dashboard setting is misconfigured.
+          const p = msg.payload || {};
+          const ids = p.ids || (p.id != null ? [p.id] : []);
+          if (!ids.length) return;
+          let changed = false;
+          ids.forEach(id => {
+            const idx = msgs.findIndex(m => m.id === id);
+            if (idx === -1) return;
+            if (p.delivered) { msgs[idx].delivered = true; msgs[idx].delivered_at = p.delivered_at || msgs[idx].delivered_at; changed = true; }
+            if (p.read) { msgs[idx].read = true; msgs[idx].read_at = p.read_at || msgs[idx].read_at; changed = true; }
+          });
+          if (changed) render();
+        })
         .on('postgres_changes', {
           event: '*', schema: 'public', table: 'chat_wallpaper',
           filter: 'couple_id=eq.' + coupleId()

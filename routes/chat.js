@@ -9,7 +9,7 @@ const crypto   = require('crypto');
 const supabase = require('../middleware/supabase');
 const router   = express.Router();
 
-let _sendPushToPartner, _sendFCMToPartner;
+let _sendPushToPartner, _sendFCMToPartner, _broadcastEvent;
 try {
   _sendPushToPartner = require('./auth').sendPushToPartner;
   console.log('[NOTIF-DEBUG][chat] sendPushToPartner loaded OK:', typeof _sendPushToPartner === 'function');
@@ -21,6 +21,11 @@ try {
   console.log('[NOTIF-DEBUG][chat] sendFCMToPartner loaded OK:', typeof _sendFCMToPartner === 'function');
 } catch (e) {
   console.error('[NOTIF-DEBUG][chat] FAILED HERE: Stage0 — require("./auth").sendFCMToPartner threw at module load:', e.message);
+}
+try {
+  _broadcastEvent = require('./auth').broadcastEvent;
+} catch (e) {
+  console.error('[chat] FAILED to load broadcastEvent from ./auth:', e.message);
 }
 const { isViewingChat } = require('./presence');
 
@@ -98,6 +103,19 @@ router.post('/', async (req, res) => {
     .then(({ error: dErr }) => { if (dErr) console.error('mark-delivered failed:', dErr.message); });
   data.delivered = true;
   data.delivered_at = deliveredAt;
+
+  // Push the delivered flag over Realtime Broadcast (not just relying on
+  // the chat_messages postgres_changes/replication stream). Broadcast-
+  // over-HTTP always fires regardless of whether the table's Realtime
+  // replication publication has UPDATE events enabled in the Supabase
+  // dashboard — that setting lives outside this repo and isn't something
+  // the app can verify or configure itself, so this makes delivered/read
+  // ticks work correctly even if that dashboard setting is off.
+  // Topic MUST match the client's channel name exactly: 'chat-' + coupleId
+  // (see startRealtime() in public/chat/chat.js).
+  if (_broadcastEvent) {
+    _broadcastEvent(`chat-${coupleId}`, 'message_status', { id: data.id, delivered: true, delivered_at: deliveredAt });
+  }
 
   // Push notify partner — but only if they're NOT currently looking at
   // this same conversation. Real-time (Supabase Realtime, already wired
@@ -212,13 +230,26 @@ router.post('/:coupleId/read', async (req, res) => {
   const { role } = req.body;
   if (!role) return res.status(400).json({ error: 'Missing role' });
 
-  const { error } = await supabase.from('chat_messages')
-    .update({ read: true, read_at: new Date().toISOString() })
+  const readAt = new Date().toISOString();
+  const { data: updated, error } = await supabase.from('chat_messages')
+    .update({ read: true, read_at: readAt })
     .eq('couple_id', coupleId)
     .eq('sender_role', otherRole(role))
-    .eq('read', false);
+    .eq('read', false)
+    .select('id');
 
   if (error) return res.status(500).json({ error: error.message });
+
+  // Same reasoning as the delivered-flag broadcast above: push the read
+  // receipt over Realtime Broadcast so the SENDER's ticks flip to blue
+  // instantly, without depending on chat_messages' Postgres replication
+  // publication settings (which can't be verified/configured from here).
+  if (_broadcastEvent && updated && updated.length) {
+    _broadcastEvent(`chat-${coupleId}`, 'message_status', {
+      ids: updated.map(m => m.id), read: true, read_at: readAt
+    });
+  }
+
   return res.json({ ok: true });
 });
 

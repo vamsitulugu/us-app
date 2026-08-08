@@ -38,7 +38,7 @@
   const ProfileStore = {
     _cache: { me: null, partner: null },
     _listeners: [],           // fn(owner, profile)
-    _channel: null,
+    _channels: null,
     _userId: null,
     _partnerId: null,
 
@@ -77,30 +77,50 @@
     _subscribeRealtime() {
       const sb = global.__SHARED_SB__;
       if (!sb || !this._userId) { console.warn('[ProfileStore] shared supabase client unavailable, will rely on manual refresh()'); return; }
-      if (this._channel) return;
+      if (this._channels && this._channels.length) return;
 
+      // FIX: the server (routes/auth.js broadcastEvent, called from
+      // routes/profile.js on every profile/avatar update) publishes to
+      // Supabase Realtime topic `profile:${userId}` — in Supabase, the
+      // channel NAME *is* the topic a broadcast is addressed to. This used
+      // to join a single channel literally named 'profile-sync', which is
+      // a different topic than what the server ever broadcasts to, so the
+      // 'profile_updated' broadcast was never delivered — the UI only ever
+      // caught up via the (initially undocumented / possibly unconfigured)
+      // postgres_changes fallback below, which is why avatar updates only
+      // ever appeared after a full app reopen instead of instantly. Each
+      // topic needs its own channel() join.
+      this._channels = [];
       const topics = [`profile:${this._userId}`];
       if (this._partnerId) topics.push(`profile:${this._partnerId}`);
 
-      this._channel = sb.channel('profile-sync', { config: { broadcast: { self: true } } });
       topics.forEach(topic => {
-        this._channel.on('broadcast', { event: 'profile_updated' }, (msg) => {
+        const ch = sb.channel(topic);
+        ch.on('broadcast', { event: 'profile_updated' }, (msg) => {
           const profile = msg && msg.payload && msg.payload.profile;
           if (!profile) return;
           const owner = profile.id === this._userId ? 'me' : 'partner';
           this._emit(owner, profile);
         });
+        ch.subscribe();
+        this._channels.push(ch);
       });
-      // Also listen to raw postgres changes as a belt-and-suspenders
-      // path in case the broadcast is missed (matches migrations/
-      // 001_create_profiles.sql's `alter publication ... add table`).
-      this._channel.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
+
+      // Belt-and-suspenders: also listen for raw postgres UPDATE changes
+      // on the profiles table, in case a broadcast is ever dropped (e.g.
+      // the server's fire-and-forget HTTP broadcast call fails). Requires
+      // the `profiles` table to be added to the `supabase_realtime`
+      // publication in the Supabase dashboard (Database → Replication) —
+      // that's a project config setting, not something set from code.
+      this._pgChannel = sb.channel('profile-pg-changes-' + this._userId);
+      this._pgChannel.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
         const row = payload.new;
         if (!row) return;
         if (row.id === this._userId) this._emit('me', row);
         else if (row.id === this._partnerId) this._emit('partner', row);
       });
-      this._channel.subscribe();
+      this._pgChannel.subscribe();
+      this._channels.push(this._pgChannel);
     },
 
     // Optimistic update: apply locally immediately, then persist.
