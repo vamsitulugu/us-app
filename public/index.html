@@ -5957,8 +5957,15 @@ select option { background: #0D0D0D; color: #fff; }
       <span class="chat-jump-badge" data-chat-badge></span>
     </button>
 
-    <div class="chat-typing-indicator" id="chatTypingIndicator">
-      <div class="chat-typing-bubble"><span class="typing-dots"><span></span><span></span><span></span></span></div>
+    <!-- Moved into #chatMsgs at runtime (see positionTypingIndicator() in
+         chat.js) whenever the partner is typing, so it appears as an
+         actual row in the chat area — left-aligned, right after the
+         last message, riding on the wallpaper like a real bubble —
+         instead of a separate fixed strip below the message list. This
+         is just its home in the DOM when hidden; JS moves the real node,
+         it never gets cloned/duplicated. -->
+    <div class="chat-row them chat-typing-row" id="chatTypingIndicator">
+      <div class="chat-bubble theirs chat-typing-bubble"><span class="typing-dots"><span></span><span></span><span></span></span></div>
     </div>
 
     <div class="chat-composer-banner" id="chatComposerBanner"></div>

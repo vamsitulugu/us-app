@@ -91,18 +91,30 @@
 @keyframes typingBlink { 0%,60%,100%{opacity:0.3; transform:translateY(0)} 30%{opacity:1; transform:translateY(-2px)} }
 
 .chat-typing-indicator {
-  display: flex; padding: 2px 12px 8px;
-  flex-shrink: 0; position: relative; z-index: 8;
-  opacity: 0; max-height: 0; overflow: hidden; pointer-events: none;
-  transition: opacity 0.2s ease, max-height 0.2s ease;
+  display: none;
 }
-.chat-typing-indicator.show { opacity: 1; max-height: 60px; pointer-events: auto; }
+/* Typing indicator now lives inside #chatMsgs as a real chat row (see
+   positionTypingIndicator() in chat.js) — styled exactly like an
+   incoming "them" bubble so it reads as part of the actual conversation,
+   sitting on the wallpaper right after the last message, instead of a
+   separate card below the list. Hidden by default; .show reveals it
+   with the same pop-in feel as a real new message.
+   Selectors are prefixed with .chat-row (matching the element's own
+   class list) to out-specificity the base `.chat-row{display:flex}`
+   rule further down this file — otherwise that rule (same 0-1-0
+   specificity as a bare `.chat-typing-row`, but declared later) would
+   win and the indicator would never actually hide. */
+.chat-row.chat-typing-row {
+  display: none;
+  margin-bottom: 2px;
+}
+.chat-row.chat-typing-row.show {
+  display: flex;
+  animation: msgPopIn 0.22s cubic-bezier(0.22,1,0.36,1);
+}
 .chat-typing-bubble {
-  background: #1c1c1e; border: 1px solid rgba(255,255,255,.06);
-  border-radius: 18px 18px 18px 5px;
-  padding: 10px 14px;
+  padding: 10px 14px 8px;
   display: inline-flex; align-items: center;
-  box-shadow: 0 1px 3px rgba(0,0,0,.18);
 }
 
 /* The shared .uc-composer component (public/composer.css) is transparent
