@@ -5814,18 +5814,22 @@ select option { background: #0D0D0D; color: #fff; }
       </div>
       <!-- ════ CHAT ════ -->
 <div class="page" id="page-chat">
-  <div class="chat-page-wrap">
-    <!-- Wallpaper now lives here, as the first children of .chat-page-wrap
-         (which spans header -> composer), instead of only inside
-         .chat-msgs-shell. Previously it only covered the message-list box,
-         leaving the header strip, typing-indicator strip, and composer
-         strip showing plain background underneath them — the "gap" /
-         "not full screen" issue. Moving it here + background-attachment:
-         fixed (see chat.css) also stops it visually rescaling/shifting
-         when the keyboard opens and .chat-page-wrap's height shrinks. -->
-    <div class="chat-wallpaper-layer" id="chatWallpaperLayer"></div>
-    <div class="chat-wallpaper-dim" id="chatWallpaperDim"></div>
+  <!-- Wallpaper lives OUTSIDE .chat-page-wrap on purpose: .chat-page-wrap
+       is the element whose height is animated/shrunk by JS
+       (--chat-vvh) whenever the keyboard opens, and it also has
+       overflow:hidden. Even with position:fixed, Android WebView has a
+       long history of incorrectly scoping "fixed" positioning to an
+       overflow:hidden/animated ancestor instead of the true viewport
+       (this is exactly what we were still seeing — the wallpaper
+       resizing/shifting in lockstep with the composer moving up over
+       the keyboard). Being a plain sibling of .chat-page-wrap, sitting
+       directly under #page-chat (which has no overflow/transform/
+       animated-height of its own), removes that ancestor entirely so
+       there's nothing left for the fixed positioning to get scoped to. -->
+  <div class="chat-wallpaper-layer" id="chatWallpaperLayer"></div>
+  <div class="chat-wallpaper-dim" id="chatWallpaperDim"></div>
 
+  <div class="chat-page-wrap">
     <div class="chat-select-toolbar" id="chatSelectToolbar">
       <button type="button" class="cst-btn cst-back" onclick="Chat.exitSelectMode()" aria-label="Cancel selection"><i data-lucide="arrow-left"></i></button>
       <div class="cnt" id="chatSelectCount">1</div>

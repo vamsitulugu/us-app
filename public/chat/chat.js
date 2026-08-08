@@ -371,6 +371,15 @@ function reanchorAfterImages() {
   function onChatScroll() {
     const box = document.getElementById('chatMsgs');
     if (!box) return;
+    // BUG FIX: this was declared with `const btn` inside the
+    // `if (!_programmaticScroll)` block below, but also read further
+    // down (outside that block) in the rAF show/hide tick — a
+    // block-scoped const isn't visible outside its block, so that
+    // later reference threw "btn is not defined" and crashed this
+    // entire function every time it ran, which is why the jump button
+    // could never show/hide or scroll at all. Hoisted to the top so
+    // it's in scope for the whole function.
+    const btn = document.getElementById('chatJumpBtn');
 
     // Ignore scroll events we caused ourselves (see _programmaticScroll
     // above) — only a genuine manual touch/wheel/scrollbar scroll should
@@ -383,7 +392,6 @@ function reanchorAfterImages() {
       // and the view stutters/snaps back.
       if (_scrollAnim) { cancelAnimationFrame(_scrollAnim); _scrollAnim = null; }
 
-      const btn = document.getElementById('chatJumpBtn');
       if (btn && !_userScrolling) { _userScrolling = true; btn.classList.add('scrolling'); }
       clearTimeout(_userScrollIdleTimer);
       _userScrollIdleTimer = setTimeout(() => {
