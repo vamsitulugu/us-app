@@ -518,9 +518,18 @@ function reanchorAfterImages() {
     if (changedCount > 0) {
       _renderedSigs = currentSigs;
       renderPinned();
-      // A same-length mutation never changes overall scroll height enough
-      // to matter, and re-pinning here would fight a person mid-read of
-      // older messages — leave scroll position exactly where it was.
+      // BUG FIX: an in-place mutation (e.g. an optimistic "sending" bubble
+      // getting swapped for the server-confirmed row, a reaction, or a
+      // tick flipping) can change a bubble's rendered height — most
+      // commonly the just-sent message gaining a reply-quote block. This
+      // branch used to always leave scroll position untouched (to avoid
+      // fighting someone mid-read of older history), but when the person
+      // was already pinned to the bottom and the LAST message is what
+      // grew taller, that meant its new bottom portion (and its
+      // timestamp) ended up scrolled out of view / hidden under the
+      // composer bar, without the normal auto-scroll ever kicking in.
+      // Re-pin to bottom only when we were already there.
+      if (wasNearBottom) box.scrollTop = box.scrollHeight;
     }
     return;
   }

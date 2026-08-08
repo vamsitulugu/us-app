@@ -105,6 +105,22 @@
   box-shadow: 0 1px 3px rgba(0,0,0,.18);
 }
 
+/* The shared .uc-composer component (public/composer.css) is transparent
+   by default (`background: 0 0 !important`) so it can sit directly on
+   whatever a given page's own background already is — fine for pages
+   with no wallpaper, but on Chat that meant the composer bar became
+   invisible/unreadable against light or busy wallpapers. Give it a
+   solid, always-legible dark bar here, scoped to Chat only. Higher
+   specificity than the shared rule (attribute selector) so it wins
+   without needing !important, and the existing light-theme override
+   below still wins over this when data-theme="light" is set. */
+#page-chat .uc-composer {
+  background: rgba(12,12,14,0.96) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  backdrop-filter: blur(10px) !important;
+  border-top: 1px solid var(--border) !important;
+}
+
 /* ── PINNED BAR ── */
 .chat-pinned-bar {
   display: none; align-items: center; gap: 8px;
@@ -145,7 +161,7 @@
   display: flex; flex-direction: column; min-height: 0;
 }
 .chat-msgs {
-  flex: 1; overflow-y: auto; padding: 14px 12px;
+  flex: 1; overflow-y: auto; padding: 14px 12px 8px;
   background: transparent;
   display: flex; flex-direction: column; gap: 2px;
   position: relative; z-index: 2;
@@ -720,21 +736,26 @@
    composer all sit visually on top of it, not just the message list —
    instead of only covering .chat-msgs-shell and leaving those other
    strips showing plain background underneath ("gap" bug).
-   background-attachment:fixed is the other half of the fix: for a fixed
-   background, background-size percentages (e.g. `cover`) are resolved
-   against the viewport, not the element's own box. That means when the
-   keyboard opens/closes and .chat-page-wrap's height shrinks/grows
-   (via --chat-vvh), the wallpaper image no longer visually rescales or
-   shifts — it stays put behind the chat exactly like a real wallpaper,
-   and only the message list area is what appears to move. */
+   It's position:fixed (not absolute) and sized to the real viewport
+   (100dvh/100vw), completely independent of --chat-vvh / .chat-page-
+   wrap's own height. That's what stops it moving/rescaling when the
+   keyboard opens: .chat-page-wrap still shrinks (via --chat-vvh) so the
+   message list + composer ride up above the keyboard as normal, but the
+   wallpaper itself is anchored straight to the screen and never resizes.
+   (background-attachment:fixed was tried first, but WebView/Android
+   Chrome support for fixed backgrounds is unreliable — an actually
+   position:fixed element is the robust cross-WebView fix.) */
 .chat-wallpaper-layer{
-  position:absolute; inset:0; z-index:0; pointer-events:none;
+  position:fixed; top:0; left:0; right:0; bottom:0;
+  height:100dvh; width:100vw;
+  z-index:0; pointer-events:none;
   background-size:cover; background-position:center; background-repeat:no-repeat;
   background-color:transparent;
-  background-attachment:fixed;
 }
 .chat-wallpaper-dim{
-  position:absolute; inset:0; z-index:1; pointer-events:none;
+  position:fixed; top:0; left:0; right:0; bottom:0;
+  height:100dvh; width:100vw;
+  z-index:1; pointer-events:none;
   background:#000; opacity:0; transition:opacity .1s linear;
 }
 
