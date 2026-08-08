@@ -119,27 +119,7 @@ const Chat = (function () {
     const box = document.getElementById('chatMsgs');
     const wasNearBottom = box && (box.scrollHeight - box.scrollTop - box.clientHeight < 150);
     el.classList.toggle('show', partnerTyping);
-    if (partnerTyping) positionTypingIndicator();
     if (partnerTyping && wasNearBottom) scrollToBottom(true);
-  }
-
-  // Keeps the typing-indicator row physically as the LAST child of
-  // #chatMsgs. It lives inside the actual scrollable message list (see
-  // the row markup in index.html) so it reads as a real incoming bubble
-  // on the wallpaper, right after the last message — not a separate
-  // fixed strip. render() rebuilds/appends to #chatMsgs constantly
-  // (new messages, tick updates, etc.), which can leave the indicator
-  // stranded mid-list or wiped out entirely (full rebuilds reset
-  // box.innerHTML) — this re-appends the SAME node (appendChild moves
-  // an already-attached element rather than cloning it, so no duplicate
-  // ever gets created) after every render, keeping it pinned to the end
-  // whenever it's supposed to be visible.
-  function positionTypingIndicator() {
-    if (!partnerTyping) return;
-    const el = document.getElementById('chatTypingIndicator');
-    const box = document.getElementById('chatMsgs');
-    if (!el || !box) return;
-    if (box.lastElementChild !== el) box.appendChild(el);
   }
 
   // ─── LOAD / POLL MESSAGES ───────────────────────────
@@ -432,7 +412,6 @@ function reanchorAfterImages() {
   // ─── RENDER ──────────────────────────────────────────
   function render() {
     _renderImpl();
-    positionTypingIndicator();
   }
 
   function _renderImpl() {

@@ -93,12 +93,12 @@
 .chat-typing-indicator {
   display: none;
 }
-/* Typing indicator now lives inside #chatMsgs as a real chat row (see
-   positionTypingIndicator() in chat.js) — styled exactly like an
-   incoming "them" bubble so it reads as part of the actual conversation,
-   sitting on the wallpaper right after the last message, instead of a
-   separate card below the list. Hidden by default; .show reveals it
-   with the same pop-in feel as a real new message.
+/* Typing indicator sits inside .chat-msgs-shell as a SIBLING of
+   #chatMsgs (see index.html) — position:absolute anchors it to the
+   shell itself, not to the scrolling message list, so it stays put
+   near the bottom of the chat area (on top of the wallpaper) while
+   #chatMsgs scrolls independently underneath it. Styled like an
+   incoming "them" bubble so it still reads as part of the conversation.
    Selectors are prefixed with .chat-row (matching the element's own
    class list) to out-specificity the base `.chat-row{display:flex}`
    rule further down this file — otherwise that rule (same 0-1-0
@@ -106,7 +106,11 @@
    win and the indicator would never actually hide. */
 .chat-row.chat-typing-row {
   display: none;
-  margin-bottom: 2px;
+  position: absolute;
+  left: 8px; bottom: 6px;
+  z-index: 5;
+  margin: 0; padding: 0;
+  pointer-events: none;
 }
 .chat-row.chat-typing-row.show {
   display: flex;

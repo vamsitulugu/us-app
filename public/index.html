@@ -5949,6 +5949,15 @@ select option { background: #0D0D0D; color: #fff; }
 
     <div class="chat-msgs-shell">
       <div class="chat-msgs" id="chatMsgs" onscroll="Chat.onChatScroll()"></div>
+      <!-- Lives here, as a sibling of #chatMsgs inside the shell (not
+           inside #chatMsgs itself), so it's positioned relative to the
+           shell and stays PUT — pinned near the bottom of the chat area,
+           on top of the wallpaper — while #chatMsgs scrolls underneath
+           it. See .chat-typing-row in chat.css for the absolute
+           positioning that makes this work. -->
+      <div class="chat-row them chat-typing-row" id="chatTypingIndicator">
+        <div class="chat-bubble theirs chat-typing-bubble"><span class="typing-dots"><span></span><span></span><span></span></span></div>
+      </div>
     </div>
     <button class="chat-jump-btn" id="chatJumpBtn" onclick="Chat.scrollToBottom(true)">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -5956,17 +5965,6 @@ select option { background: #0D0D0D; color: #fff; }
       </svg>
       <span class="chat-jump-badge" data-chat-badge></span>
     </button>
-
-    <!-- Moved into #chatMsgs at runtime (see positionTypingIndicator() in
-         chat.js) whenever the partner is typing, so it appears as an
-         actual row in the chat area — left-aligned, right after the
-         last message, riding on the wallpaper like a real bubble —
-         instead of a separate fixed strip below the message list. This
-         is just its home in the DOM when hidden; JS moves the real node,
-         it never gets cloned/duplicated. -->
-    <div class="chat-row them chat-typing-row" id="chatTypingIndicator">
-      <div class="chat-bubble theirs chat-typing-bubble"><span class="typing-dots"><span></span><span></span><span></span></span></div>
-    </div>
 
     <div class="chat-composer-banner" id="chatComposerBanner"></div>
 
