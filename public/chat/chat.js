@@ -296,6 +296,20 @@ function reanchorAfterImages() {
   // Driving it manually means every call can supersede the last one cleanly.
   let _scrollAnim = null; // rAF id of an in-flight programmatic scroll
   let _userScrolling = false, _userScrollIdleTimer = null;
+  // BUG FIX (root cause of "tapping the jump-to-bottom button doesn't
+  // actually scroll down"): #chatMsgs has onscroll="Chat.onChatScroll()"
+  // wired directly in the markup, which fires for EVERY scrollTop change
+  // — including the ones OUR OWN smooth-scroll animation makes every
+  // frame. onChatScroll() used to unconditionally do
+  // `if (_scrollAnim) cancelAnimationFrame(_scrollAnim)` on every single
+  // scroll event, meaning the very first frame of our own animation
+  // triggered a native scroll event that cancelled that same animation
+  // a frame after it started — so tapping the button visibly moved the
+  // list by about one frame's worth of distance and then just stopped.
+  // This flag lets onChatScroll tell "I caused this scroll myself" apart
+  // from "the person is actually touching/dragging the list", so it only
+  // cancels the animation for genuine manual scrolls.
+  let _programmaticScroll = false;
 
   function scrollToBottom(smooth) {
     const box = document.getElementById('chatMsgs');
@@ -304,8 +318,14 @@ function reanchorAfterImages() {
 
     const target = box.scrollHeight - box.clientHeight;
     if (!smooth) {
+      _programmaticScroll = true;
       box.scrollTop = target;
+      // Give the resulting scroll event (fired async in most browsers,
+      // including Android WebView) a moment to arrive before dropping
+      // the flag, otherwise onChatScroll could still see it as manual.
+      requestAnimationFrame(() => { _programmaticScroll = false; });
     } else {
+      _programmaticScroll = true;
       const start = box.scrollTop;
       const dist = target - start;
       const dur = Math.min(420, Math.max(180, Math.abs(dist) * 0.35));
@@ -319,7 +339,10 @@ function reanchorAfterImages() {
         const liveTarget = box.scrollHeight - box.clientHeight;
         box.scrollTop = start + (liveTarget - start) * ease(p);
         if (p < 1) { _scrollAnim = requestAnimationFrame(step); }
-        else { _scrollAnim = null; box.scrollTop = box.scrollHeight - box.clientHeight; }
+        else {
+          _scrollAnim = null; box.scrollTop = box.scrollHeight - box.clientHeight;
+          requestAnimationFrame(() => { _programmaticScroll = false; });
+        }
       };
       _scrollAnim = requestAnimationFrame(step);
     }
@@ -349,18 +372,25 @@ function reanchorAfterImages() {
     const box = document.getElementById('chatMsgs');
     if (!box) return;
 
-    // A manual scroll (wheel/touch/scrollbar drag) should immediately win
-    // over any in-flight programmatic animation — otherwise the two fight
-    // and the view stutters/snaps back.
-    if (_scrollAnim) { cancelAnimationFrame(_scrollAnim); _scrollAnim = null; }
+    // Ignore scroll events we caused ourselves (see _programmaticScroll
+    // above) — only a genuine manual touch/wheel/scrollbar scroll should
+    // cancel an in-flight animation or flip on the "user is scrolling"
+    // state. Still fall through to the show/hide + read-tracking logic
+    // below so the button/badge stay in sync while we animate.
+    if (!_programmaticScroll) {
+      // A manual scroll (wheel/touch/scrollbar drag) should immediately win
+      // over any in-flight programmatic animation — otherwise the two fight
+      // and the view stutters/snaps back.
+      if (_scrollAnim) { cancelAnimationFrame(_scrollAnim); _scrollAnim = null; }
 
-    const btn = document.getElementById('chatJumpBtn');
-    if (btn && !_userScrolling) { _userScrolling = true; btn.classList.add('scrolling'); }
-    clearTimeout(_userScrollIdleTimer);
-    _userScrollIdleTimer = setTimeout(() => {
-      _userScrolling = false;
-      btn?.classList.remove('scrolling');
-    }, 150);
+      const btn = document.getElementById('chatJumpBtn');
+      if (btn && !_userScrolling) { _userScrolling = true; btn.classList.add('scrolling'); }
+      clearTimeout(_userScrollIdleTimer);
+      _userScrollIdleTimer = setTimeout(() => {
+        _userScrolling = false;
+        btn?.classList.remove('scrolling');
+      }, 150);
+    }
 
     // Throttle the show/hide + badge work to one per animation frame —
     // scroll fires far more often than the UI needs to react.
