@@ -762,25 +762,32 @@
    composer all sit visually on top of it, not just the message list —
    instead of only covering .chat-msgs-shell and leaving those other
    strips showing plain background underneath ("gap" bug).
-   It's position:fixed (not absolute) and sized to the real viewport
-   (100dvh/100vw), completely independent of --chat-vvh / .chat-page-
-   wrap's own height. That's what stops it moving/rescaling when the
-   keyboard opens: .chat-page-wrap still shrinks (via --chat-vvh) so the
-   message list + composer ride up above the keyboard as normal, but the
-   wallpaper itself is anchored straight to the screen and never resizes.
-   (background-attachment:fixed was tried first, but WebView/Android
-   Chrome support for fixed backgrounds is unreliable — an actually
-   position:fixed element is the robust cross-WebView fix.) */
+   It's position:fixed (not absolute).
+   ROOT-CAUSE FIX for "wallpaper still moves with the keyboard": this
+   used to be sized with `height:100dvh`. dvh is the DYNAMIC viewport
+   height — it is BY DEFINITION exactly the thing that shrinks when the
+   on-screen keyboard opens (same mechanism .chat-page-wrap's own
+   keyboard-follow height uses). So even though the wallpaper was
+   already position:fixed, sizing it with 100dvh meant it was still
+   directly wired to the keyboard and shrank/rescaled right along with
+   it — position:fixed only controls WHERE an element is anchored, not
+   whether its own size reacts to the viewport.
+   --screen-h (set once by setStaticScreenHeight() in chat.js, on load
+   and on real orientation/rotation changes only — deliberately NEVER
+   updated on the visualViewport resize the keyboard triggers) is a
+   genuinely static height, so the wallpaper now has a real fixed size
+   that the keyboard cannot touch at all. 100dvh remains only as the
+   fallback for the brief instant before that JS has run once. */
 .chat-wallpaper-layer{
   position:fixed; top:0; left:0; right:0; bottom:0;
-  height:100dvh; width:100vw;
+  height:var(--screen-h, 100dvh); width:100vw;
   z-index:0; pointer-events:none;
   background-size:cover; background-position:center; background-repeat:no-repeat;
   background-color:transparent;
 }
 .chat-wallpaper-dim{
   position:fixed; top:0; left:0; right:0; bottom:0;
-  height:100dvh; width:100vw;
+  height:var(--screen-h, 100dvh); width:100vw;
   z-index:1; pointer-events:none;
   background:#000; opacity:0; transition:opacity .1s linear;
 }

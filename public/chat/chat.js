@@ -2152,6 +2152,7 @@ function menuItemsHtml(m, id, includeSelect) {
     startRealtime();
     fetchPresence();
     initSwipeToReply();
+    setStaticScreenHeight();
     initViewportKeyboardFix();
     initComposerResizeObserver();
     const nameEl = document.getElementById('chatHeaderNameText');
@@ -2824,6 +2825,31 @@ function menuItemsHtml(m, id, includeSelect) {
   // for any header height, device, or future layout change, with zero
   // guessing involved.
   // ══════════════════════════════════════════════════════════════
+  // Sets --screen-h to a genuinely STATIC height that the wallpaper (see
+  // .chat-wallpaper-layer/.chat-wallpaper-dim in chat.css) is sized
+  // from. Deliberately measured with window.innerHeight (the LAYOUT
+  // viewport, which real Android/Chrome + this app's own
+  // interactive-widget=resizes-content meta tag keep stable while the
+  // keyboard is open — unlike visualViewport.height, which is exactly
+  // what shrinks for the keyboard) and only ever re-measured on a real
+  // rotation/resize (guarded by a width change — the keyboard never
+  // changes window width, only a genuine orientation/size change does),
+  // never on every little visualViewport wiggle. That's what keeps the
+  // wallpaper's size completely decoupled from the keyboard.
+  let _lastScreenW = window.innerWidth;
+  function setStaticScreenHeight() {
+    document.documentElement.style.setProperty('--screen-h', window.innerHeight + 'px');
+    _lastScreenW = window.innerWidth;
+  }
+  window.addEventListener('orientationchange', () => setTimeout(setStaticScreenHeight, 200));
+  window.addEventListener('resize', () => {
+    // Only a real rotation/window-size change moves the width; the
+    // on-screen keyboard opening/closing never does. This is what lets
+    // one shared 'resize' listener tell the two apart without needing
+    // visualViewport at all.
+    if (window.innerWidth !== _lastScreenW) setStaticScreenHeight();
+  });
+
   let _vvBound = false;
   function initViewportKeyboardFix() {
     if (_vvBound) return;
