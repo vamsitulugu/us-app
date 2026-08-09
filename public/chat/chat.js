@@ -198,7 +198,7 @@ function reanchorAfterImages() {
       const box = document.getElementById('chatMsgs');
       const nearBottom = box && (box.scrollHeight - box.scrollTop - box.clientHeight < 150);
       if (nearBottom || rows.some(isMine)) { scrollToBottom(true); reanchorAfterImages(); }
-      else updateJumpBadge(rows.filter(r => !isMine(r)).length);
+      else if (!isMuted() && !isDndActive()) updateJumpBadge(rows.filter(r => !isMine(r)).length);
       if (rows.some(r => !isMine(r)) && chatBottomInView()) {
         markRead();
       } else if (rows.some(r => !isMine(r))) {
@@ -249,6 +249,7 @@ function reanchorAfterImages() {
 
   async function markRead() {
     if (!coupleId()) return;
+    localStorage.removeItem(forceUnreadKey());
     try {
       await api('POST', '/api/chat/' + coupleId() + '/read', { role: myRole() });
       clearReadNotifications();
@@ -418,10 +419,25 @@ function reanchorAfterImages() {
     });
   }
   function updateJumpBadge(n) {
+    if (n > 0) localStorage.removeItem(forceUnreadKey());
+    const forced = !n && localStorage.getItem(forceUnreadKey()) === '1';
+    const shown = forced ? 1 : n;
     document.querySelectorAll('[data-chat-badge]').forEach(el => {
-      el.textContent = n > 0 ? n : '';
-      el.style.display = n > 0 ? 'inline-flex' : 'none';
+      el.textContent = shown > 0 ? shown : '';
+      el.style.display = shown > 0 ? 'inline-flex' : 'none';
     });
+  }
+  // Mark as unread — manual "come back to this later" flag (WhatsApp-
+  // style). Persisted per couple so the Chat nav badge shows again next
+  // time the app is opened, even though nothing is technically unread
+  // server-side. Clears itself the next time a real unread count > 0
+  // comes in, or the person marks the chat read again.
+  function forceUnreadKey() { return 'chat_force_unread_' + coupleId(); }
+  function markUnread(id) {
+    document.getElementById('chatMsgMenu')?.remove();
+    localStorage.setItem(forceUnreadKey(), '1');
+    updateJumpBadge(0);
+    toast('Marked as unread');
   }
 
   // Tracks the message signatures + last date-separator from the
@@ -716,7 +732,7 @@ function reanchorAfterImages() {
     else body = `<div class="chat-text">${linkify(applyWaFormatting(esc(m.text || '')))}</div>${renderLinkPreview(m.text)}`;
 
     const reactions = m.reactions && Object.keys(m.reactions).length
-      ? `<div class="chat-reactions">${Object.entries(m.reactions).map(([e, roles]) => `<span class="chat-reaction-pill">${e} ${roles.length}</span>`).join('')}</div>` : '';
+      ? `<div class="chat-reactions">${Object.entries(m.reactions).map(([e, roles]) => `<span class="chat-reaction-pill" title="${esc(roles.map(r => r === myRole() ? (window.S.myName || 'You') : (window.S.partnerName || 'Partner')).join(', '))}">${e} ${roles.length}</span>`).join('')}</div>` : '';
 
     const status = mine ? renderTicks(m) : '';
 
@@ -752,7 +768,28 @@ function reanchorAfterImages() {
   }
 
   function linkify(text) {
-    return text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+    return text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener" onclick="return Chat.openInAppBrowser(this.href, event)">$1</a>');
+  }
+  // In-app browser — opens shared links in a sheet inside the app instead
+  // of kicking straight out to the system browser. Falls back to a normal
+  // new-tab open if the click handler can't run (e.g. inline onclick
+  // blocked) since the underlying <a target="_blank"> is left intact.
+  function openInAppBrowser(url, ev) {
+    if (ev) ev.preventDefault();
+    const overlay = document.createElement('div');
+    overlay.className = 'chat-inapp-browser-overlay';
+    let host = url; try { host = new URL(url).hostname; } catch (e) {}
+    overlay.innerHTML = `<div class="chat-inapp-browser">
+      <div class="chat-inapp-browser-bar">
+        <button onclick="this.closest('.chat-inapp-browser-overlay').remove()">✕</button>
+        <span class="url">${esc(host)}</span>
+        <button onclick="window.open('${esc(url)}','_blank','noopener')" title="Open in browser">↗</button>
+      </div>
+      <iframe src="${esc(url)}" referrerpolicy="no-referrer"></iframe>
+    </div>`;
+    overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+    document.body.appendChild(overlay);
+    return false;
   }
 
   // WhatsApp-style inline text formatting: *bold*, _italic_, ~strikethrough~,
@@ -764,6 +801,10 @@ function reanchorAfterImages() {
   // aren't accidentally reformatted.
   function applyWaFormatting(text) {
     text = text.replace(/```([^`\n]+?)```/g, (_, c) => `<code class="wa-mono">${c}</code>`);
+    // Spoiler/blur text: ||hidden text|| — tap to reveal (Telegram-style).
+    // Runs before the */_/~ rules so a spoiler containing those markers
+    // still formats inside it; the pipe character isn't used elsewhere here.
+    text = text.replace(/\|\|([^|\n]+?)\|\|/g, (_, c) => `<span class="wa-spoiler" onclick="this.classList.toggle('revealed');event.stopPropagation();">${c}</span>`);
     text = text.replace(/(^|[\s(])\*([^*\n]+?)\*(?=[\s).,!?]|$)/g, '$1<b>$2</b>');
     text = text.replace(/(^|[\s(])_([^_\n]+?)_(?=[\s).,!?]|$)/g, '$1<i>$2</i>');
     text = text.replace(/(^|[\s(])~([^~\n]+?)~(?=[\s).,!?]|$)/g, '$1<s>$2</s>');
@@ -808,7 +849,7 @@ function reanchorAfterImages() {
     if (!match) return '';
     let host = '';
     try { host = new URL(match[0]).hostname.replace(/^www\./, ''); } catch (e) { return ''; }
-    return `<a class="chat-link-preview" href="${esc(match[0])}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+    return `<a class="chat-link-preview" href="${esc(match[0])}" target="_blank" rel="noopener" onclick="event.stopPropagation();return Chat.openInAppBrowser('${esc(match[0])}', event)">
       <div class="chat-link-preview-ico">🔗</div>
       <div class="chat-link-preview-body">
         <div class="chat-link-preview-host">${esc(host)}</div>
@@ -1095,6 +1136,40 @@ function reanchorAfterImages() {
     const data = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(data.error || 'Upload failed');
     return data.url;
+  }
+
+  // Formatting toolbar — wraps the current textarea selection (or inserts
+  // empty markers at the caret if nothing's selected) with the given
+  // before/after marker pair, then restores focus/caret. Reuses the same
+  // *_/~/|| markers applyWaFormatting() already renders.
+  function wrapSelection(before, after) {
+    const ta = document.getElementById('chatIn');
+    if (!ta) return;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const val = ta.value;
+    const selected = val.slice(start, end);
+    ta.value = val.slice(0, start) + before + selected + after + val.slice(end);
+    const caret = selected ? start + before.length + selected.length + after.length : start + before.length;
+    ta.focus();
+    ta.setSelectionRange(caret, caret);
+    ta.dispatchEvent(new Event('input'));
+  }
+
+  // Paste-to-send: if the clipboard on paste contains an image (screenshot,
+  // copied photo), route it through the same pre-send preview pipeline as
+  // a gallery pick instead of dumping it as plain text/nothing.
+  function onComposerPaste(e) {
+    const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+    if (!items) return;
+    const imgItem = Array.from(items).find(it => it.type && it.type.startsWith('image/'));
+    if (!imgItem) return; // let normal text paste proceed untouched
+    e.preventDefault();
+    const file = imgItem.getAsFile();
+    if (!file) return;
+    const inp = document.getElementById('chatIn');
+    const caption = inp ? inp.value.trim() : '';
+    if (inp) { inp.value = ''; inp.style.height = 'auto'; document.getElementById('chatSendBtn')?.classList.remove('has-text'); }
+    openPreSendPreview([file], caption);
   }
 
   async function onImagePick(input) {
@@ -1821,7 +1896,8 @@ function menuItemsHtml(m, id, includeSelect) {
   const mine = isMine(m);
   return `
     ${includeSelect ? `<div class="ctx-item" onclick="Chat.enterSelectMode('${id}')">☑️ Select</div>` : ''}
-    <div class="ctx-item" onclick="Chat.reactTo('${id}','❤️')">❤️ React</div>
+    <div class="ctx-item" onclick="Chat.openReactionPicker('${id}', event)">😀 React</div>
+    <div class="ctx-item" onclick="Chat.markUnread('${id}')">📩 Mark as unread</div>
     <div class="ctx-item" onclick="Chat.replyTo('${id}')">↩️ Reply</div>
     <div class="ctx-item" onclick="Chat.forwardMsg('${id}')">↪️ Forward</div>
     <div class="ctx-item" onclick="Chat.copyMsg('${id}')">📋 Copy</div>
@@ -1832,6 +1908,19 @@ function menuItemsHtml(m, id, includeSelect) {
     ${mine ? `<div class="ctx-item danger" onclick="Chat.confirmDeleteMsg('${id}','everyone')">🗑️ Delete for everyone</div>` : ''}
     <div class="ctx-item danger" onclick="Chat.confirmDeleteMsg('${id}','me')">🗑️ Delete for me</div>`;
 }
+  const REACTION_EMOJIS = ['❤️', '😂', '😮', '😢', '👍', '🔥'];
+  // Reaction picker — replaces the old single hard-coded ❤️ menu item
+  // with a WhatsApp/Telegram-style row of quick emojis.
+  function openReactionPicker(id, ev) {
+    document.getElementById('chatMsgMenu')?.remove();
+    const bar = document.createElement('div');
+    bar.className = 'chat-sheet-overlay';
+    bar.innerHTML = `<div class="chat-reaction-picker">
+      ${REACTION_EMOJIS.map(e => `<span class="reaction-picker-emoji" onclick="Chat.reactTo('${id}','${e}');this.closest('.chat-sheet-overlay').remove()">${e}</span>`).join('')}
+    </div>`;
+    bar.onclick = e => { if (e.target === bar) bar.remove(); };
+    document.body.appendChild(bar);
+  }
   async function reactTo(id, emoji) {
     document.getElementById('chatMsgMenu')?.remove();
     try {
@@ -2865,6 +2954,8 @@ function menuItemsHtml(m, id, includeSelect) {
     setStaticScreenHeight();
     initViewportKeyboardFix();
     initComposerResizeObserver();
+    initDragDrop();
+    initAutoLock();
     const nameEl = document.getElementById('chatHeaderNameText');
     if (nameEl) nameEl.textContent = window.S.partnerName || 'Partner';
     // Routed through the shared Avatar/ProfileStore system (public/js/avatar-system.js)
@@ -3063,6 +3154,38 @@ function menuItemsHtml(m, id, includeSelect) {
   }
   document.addEventListener('DOMContentLoaded', () => setTimeout(init, 500));
 
+  // ─── DRAG-AND-DROP (desktop web) ───────────────────────────────────
+  // Dropping a file anywhere on the chat page routes it through the same
+  // pick handlers as the attach sheet — images/gifs go through the
+  // pre-send preview, everything else through the generic file handler.
+  let _dndBound = false;
+  function initDragDrop() {
+    if (_dndBound) return;
+    const page = document.getElementById('page-chat');
+    if (!page) return;
+    _dndBound = true;
+    let dragDepth = 0;
+    page.addEventListener('dragenter', e => { e.preventDefault(); dragDepth++; page.classList.add('chat-dropzone-active'); });
+    page.addEventListener('dragover', e => e.preventDefault());
+    page.addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) page.classList.remove('chat-dropzone-active'); });
+    page.addEventListener('drop', e => {
+      e.preventDefault();
+      dragDepth = 0;
+      page.classList.remove('chat-dropzone-active');
+      const files = Array.from(e.dataTransfer?.files || []);
+      if (!files.length) return;
+      const images = files.filter(f => f.type.startsWith('image/'));
+      const rest = files.filter(f => !f.type.startsWith('image/'));
+      if (images.length) {
+        const inp = document.getElementById('chatIn');
+        const caption = inp ? inp.value.trim() : '';
+        if (inp) { inp.value = ''; inp.style.height = 'auto'; document.getElementById('chatSendBtn')?.classList.remove('has-text'); }
+        openPreSendPreview(images, caption);
+      }
+      rest.forEach(f => f.type.startsWith('video/') ? onVideoPick(f) : onFilePick(f));
+    });
+  }
+
   // ══════════════════════════════════════════════════════════════
   // CHAT HEADER — 3-DOT MENU
   // ══════════════════════════════════════════════════════════════
@@ -3111,9 +3234,120 @@ function menuItemsHtml(m, id, includeSelect) {
     } catch (e) { toast('Could not update setting'); }
   }
 
+  // ─── AUTO-LOCK (idle timeout, reuses the app's vault PIN) ──────────
+  // Client-side only, same scope as Mute: locks the chat SCREEN after N
+  // minutes of no touch/mouse/key activity, requiring the vault PIN to
+  // get back in. Doesn't lock the OS app itself, just this page.
+  function autoLockKey() { return 'chat_autolock_min_' + coupleId(); }
+  function autoLockMinutes() { return parseInt(localStorage.getItem(autoLockKey()) || '0', 10); }
+  let _autoLockTimer = null;
+  function ensureAutoLockMenuItem() {
+    const menu = document.getElementById('chatHeaderMenu');
+    if (!menu || document.getElementById('chatAutoLockItem')) return;
+    const item = document.createElement('div');
+    item.id = 'chatAutoLockItem';
+    item.className = 'chat-header-menu-item';
+    item.style.cursor = 'pointer';
+    item.innerHTML = `🔒 Auto-lock chat: <span id="chatAutoLockLabel">${autoLockLabelFor(autoLockMinutes())}</span>`;
+    item.onclick = openAutoLockPicker;
+    menu.appendChild(item);
+  }
+  function autoLockLabelFor(min) { return min > 0 ? min + 'm idle' : 'Off'; }
+  function openAutoLockPicker() {
+    const choice = prompt('Auto-lock chat after idle minutes (0 = off):', String(autoLockMinutes() || 0));
+    if (choice === null) return;
+    const min = Math.max(0, parseInt(choice) || 0);
+    localStorage.setItem(autoLockKey(), String(min));
+    const label = document.getElementById('chatAutoLockLabel');
+    if (label) label.textContent = autoLockLabelFor(min);
+    resetAutoLockTimer();
+    toast(min ? `Auto-lock set to ${min}m` : 'Auto-lock turned off');
+  }
+  function initAutoLock() {
+    ['mousemove', 'touchstart', 'keydown', 'click', 'scroll'].forEach(evt =>
+      document.addEventListener(evt, resetAutoLockTimer, { passive: true }));
+    resetAutoLockTimer();
+  }
+  function resetAutoLockTimer() {
+    if (_autoLockTimer) clearTimeout(_autoLockTimer);
+    const min = autoLockMinutes();
+    if (!min || document.getElementById('chatAutoLockOverlay')) return;
+    _autoLockTimer = setTimeout(showAutoLockOverlay, min * 60000);
+  }
+  function showAutoLockOverlay() {
+    if (document.getElementById('chatAutoLockOverlay')) return;
+    const overlay = document.createElement('div');
+    overlay.id = 'chatAutoLockOverlay';
+    overlay.className = 'chat-autolock-overlay';
+    overlay.innerHTML = `<div style="font-size:34px">🔒</div>
+      <div>Chat locked — enter PIN</div>
+      <input id="chatAutoLockPin" type="password" inputmode="numeric" maxlength="6" autofocus>
+      <div id="chatAutoLockErr" style="color:#ff6b6b;font-size:12px;display:none">Wrong PIN</div>`;
+    document.body.appendChild(overlay);
+    const inp = document.getElementById('chatAutoLockPin');
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') tryAutoLockPin(inp.value); });
+    inp.focus();
+  }
+  async function tryAutoLockPin(pin) {
+    let ok = false;
+    try {
+      if (window.S && window.S.coupleId) { await api('POST', '/api/auth/verify-pin', { coupleId: window.S.coupleId, pin }); ok = true; }
+    } catch (e) { ok = false; }
+    if (!ok && window.S && pin === String(window.S.vaultPin)) ok = true;
+    if (ok) { document.getElementById('chatAutoLockOverlay')?.remove(); resetAutoLockTimer(); }
+    else {
+      const err = document.getElementById('chatAutoLockErr');
+      if (err) err.style.display = 'block';
+      const inp = document.getElementById('chatAutoLockPin');
+      if (inp) inp.value = '';
+    }
+  }
+
+  // ─── DO-NOT-DISTURB WINDOW ──────────────────────────────────────────
+  // Extends Mute with a recurring daily time range (e.g. partner's work
+  // hours) instead of an all-or-nothing toggle. Same client-side scope
+  // as Mute — suppresses the in-app badge/toast bump during the window.
+  function dndKey() { return 'chat_dnd_' + coupleId(); }
+  function dndSettings() { try { return JSON.parse(localStorage.getItem(dndKey()) || 'null'); } catch (e) { return null; } }
+  function isDndActive() {
+    const s = dndSettings();
+    if (!s || !s.start || !s.end) return false;
+    const now = new Date();
+    const cur = now.getHours() * 60 + now.getMinutes();
+    const [sh, sm] = s.start.split(':').map(Number);
+    const [eh, em] = s.end.split(':').map(Number);
+    const start = sh * 60 + sm, end = eh * 60 + em;
+    return start <= end ? (cur >= start && cur < end) : (cur >= start || cur < end);
+  }
+  function ensureDndMenuItem() {
+    const menu = document.getElementById('chatHeaderMenu');
+    if (!menu || document.getElementById('chatDndItem')) return;
+    const item = document.createElement('div');
+    item.id = 'chatDndItem';
+    item.className = 'chat-header-menu-item';
+    item.style.cursor = 'pointer';
+    item.innerHTML = `🌙 Do-not-disturb: <span id="chatDndLabel">${dndLabel()}</span>`;
+    item.onclick = openDndPicker;
+    menu.appendChild(item);
+  }
+  function dndLabel() { const s = dndSettings(); return s && s.start && s.end ? `${s.start}–${s.end}` : 'Off'; }
+  function openDndPicker() {
+    const s = dndSettings() || {};
+    const start = prompt('Do-not-disturb start time (24h HH:MM, blank = off):', s.start || '');
+    if (start === null) return;
+    if (!start.trim()) { localStorage.removeItem(dndKey()); document.getElementById('chatDndLabel').textContent = 'Off'; toast('Do-not-disturb turned off'); return; }
+    const end = prompt('Do-not-disturb end time (24h HH:MM):', s.end || '');
+    if (end === null || !/^\d{1,2}:\d{2}$/.test(start) || !/^\d{1,2}:\d{2}$/.test(end)) { toast('Use HH:MM format'); return; }
+    localStorage.setItem(dndKey(), JSON.stringify({ start, end }));
+    document.getElementById('chatDndLabel').textContent = `${start}–${end}`;
+    toast(`Do-not-disturb set: ${start}–${end}`);
+  }
+
   function toggleHeaderMenu(ev) {
     if (ev) ev.stopPropagation();
     ensureDisappearingMenuItem();
+    ensureAutoLockMenuItem();
+    ensureDndMenuItem();
     const menu = document.getElementById('chatHeaderMenu');
     const btn = document.getElementById('chatMoreMenuBtn');
     if (!menu) return;
@@ -3959,7 +4193,9 @@ function menuItemsHtml(m, id, includeSelect) {
     openViewOnce, pickEffect, clearEffect, loadStreak,
     setSearchFilter, exportChat,
     _pspRotate, _pspRemove, _pspCancel, _pspSend,
-    scheduleCurrentMessage
+    scheduleCurrentMessage,
+    wrapSelection, onComposerPaste, openReactionPicker, markUnread,
+    openInAppBrowser, openAutoLockPicker, openDndPicker
   };
 })();
 window.Chat = Chat;

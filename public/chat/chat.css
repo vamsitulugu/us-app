@@ -1184,3 +1184,70 @@
   align-items:center; gap:6px; border-top:1px solid rgba(255,255,255,.08);
 }
 .chat-header-menu-item span{ margin-left:auto; opacity:.75; font-weight:700; }
+/* Spoiler/blur text (||hidden||) — tap to reveal */
+.wa-spoiler{
+  background:rgba(255,255,255,.22); color:transparent; border-radius:4px;
+  cursor:pointer; padding:0 2px; user-select:none; transition:color .15s,background .15s;
+  box-decoration-break:clone; -webkit-box-decoration-break:clone;
+}
+.wa-spoiler.revealed{ background:rgba(255,255,255,.08); color:inherit; cursor:text; user-select:text; }
+
+/* Composer formatting toolbar (B / I / S / spoiler) */
+.uc-fmt-toolbar{
+  display:flex; gap:4px; padding:4px 8px 0 8px; align-items:center;
+}
+.uc-fmt-btn{
+  width:26px; height:26px; border-radius:6px; border:none; background:transparent;
+  color:var(--text3,#9aa0a6); font-size:13px; cursor:pointer; display:flex;
+  align-items:center; justify-content:center; line-height:1;
+}
+.uc-fmt-btn:active{ background:rgba(255,255,255,.1); }
+.uc-fmt-btn.fmt-b{ font-weight:800; }
+.uc-fmt-btn.fmt-i{ font-style:italic; }
+.uc-fmt-btn.fmt-s{ text-decoration:line-through; }
+.uc-fmt-btn.fmt-sp{ font-size:11px; }
+
+/* Drag-and-drop file target */
+#page-chat.chat-dropzone-active::after{
+  content:"Drop to send"; position:fixed; inset:0; z-index:9000;
+  background:rgba(0,0,0,.55); color:#fff; font-size:20px; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+  border:3px dashed rgba(255,255,255,.6); pointer-events:none;
+}
+
+/* Reaction emoji picker */
+.chat-reaction-picker{
+  display:flex; gap:10px; background:var(--card,#1e1e1e); padding:14px 18px;
+  border-radius:16px; font-size:26px;
+}
+.reaction-picker-emoji{ cursor:pointer; transition:transform .1s; }
+.reaction-picker-emoji:active{ transform:scale(1.3); }
+
+/* In-app browser modal */
+.chat-inapp-browser-overlay{
+  position:fixed; inset:0; z-index:9500; background:rgba(0,0,0,.6);
+  display:flex; align-items:flex-end; justify-content:center;
+}
+.chat-inapp-browser{
+  width:100%; max-width:720px; height:88vh; background:var(--card,#1e1e1e);
+  border-radius:16px 16px 0 0; display:flex; flex-direction:column; overflow:hidden;
+}
+.chat-inapp-browser-bar{
+  display:flex; align-items:center; gap:8px; padding:10px 12px;
+  border-bottom:1px solid rgba(255,255,255,.1); font-size:12.5px;
+}
+.chat-inapp-browser-bar .url{ flex:1; opacity:.7; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chat-inapp-browser-bar button{
+  background:none; border:none; color:inherit; font-size:16px; cursor:pointer; padding:4px 8px;
+}
+.chat-inapp-browser iframe{ flex:1; border:none; width:100%; background:#fff; }
+
+/* Auto-lock overlay */
+.chat-autolock-overlay{
+  position:fixed; inset:0; z-index:9800; background:var(--bg,#111);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; color:#fff;
+}
+.chat-autolock-overlay input{
+  font-size:22px; letter-spacing:8px; text-align:center; width:160px; padding:8px;
+  border-radius:10px; border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.06); color:#fff;
+}
