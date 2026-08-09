@@ -92,6 +92,52 @@ router.post('/upload', handleUploadErrors(upload.single('file')), async (req, re
     return res.json({ url: urlData.publicUrl, path: name });
 });
 
+// ── POST /api/media/upload-doc ──────────────────────────
+// Chat "Documents" sheet option — previously routed through /upload,
+// whose fileFilter only allows image/video mimetypes, so every document
+// send silently 415'd on the server while the UI gave no real feedback
+// beyond a generic "upload failed" toast. This endpoint allows common,
+// non-executable document types instead. Still blocks anything that can
+// execute in a browser context (html, svg, js) for the same reason
+// mediaFileFilter above does for images/videos.
+const ALLOWED_DOC_MIME = /^(application\/(pdf|msword|vnd\.openxmlformats-officedocument\.[a-z.]+|vnd\.ms-excel|vnd\.ms-powerpoint|zip|x-zip-compressed|json|rtf)|text\/(plain|csv))$/i;
+function docFileFilter(req, file, cb) {
+    if (!ALLOWED_DOC_MIME.test(file.mimetype)) {
+        return cb(new Error('Unsupported file type'));
+    }
+    cb(null, true);
+}
+const uploadDoc = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max for documents
+    fileFilter: docFileFilter
+});
+
+router.post('/upload-doc', handleUploadErrors(uploadDoc.single('file')), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No file provided' });
+    const { coupleId } = req.body;
+    if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
+
+    const ext    = (req.file.originalname.split('.').pop() || 'bin').toLowerCase();
+    const name   = `${coupleId}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    // NOTE: this bucket must exist in the Supabase dashboard — 'couple-files'
+    // isn't created automatically by this code (same as every other bucket
+    // referenced in this file). Create it as a public bucket if it doesn't
+    // exist yet, same settings as 'couple-photos'.
+    const bucket = 'couple-files';
+
+    const { error } = await supabase.storage
+        .from(bucket)
+        .upload(name, req.file.buffer, {
+            contentType: req.file.mimetype,
+            upsert: false
+        });
+    if (error) return res.status(500).json({ error: error.message });
+
+    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(name);
+    return res.json({ url: urlData.publicUrl, path: name, name: req.file.originalname, size: req.file.size });
+});
+
 // ── POST /api/media/upload-audio ───────────────────────
 // Uploads a song file to the public 'couple-music' bucket.
 router.post('/upload-audio', uploadAudio.single('file'), async (req, res) => {

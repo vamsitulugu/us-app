@@ -170,7 +170,7 @@ router.post('/', async (req, res) => {
     console.log(`[NOTIF-DEBUG][chat] Stage1b avatar lookup couple=${coupleId} sender=${senderRole} senderAvatar=${senderAvatar ? senderAvatar : 'NULL — couples.' + (senderRole === 'user1' ? 'user1_avatar' : 'user2_avatar') + ' is empty, notification will fall back to letter avatar'}`);
     const chatPayload = {
       title: senderName ? `💬 ${senderName}` : '💬 New message',
-      body: text ? text.slice(0, 80) : (type === 'image' ? '📷 Photo' : type === 'image_group' ? `📷 ${(mediaMeta?.items?.length) || 1} Photos` : type === 'video' ? '🎬 Video' : '🎙️ Voice message'),
+      body: text ? text.slice(0, 80) : (type === 'image' ? '📷 Photo' : type === 'image_group' ? `📷 ${(mediaMeta?.items?.length) || 1} Photos` : type === 'video' ? '🎬 Video' : type === 'file' ? '📎 ' + (mediaMeta?.name || 'Document') : '🎙️ Voice message'),
       icon: '/icons/icon-192.png',
       tag: 'chat-msg',
       url: '/?page=chat',

@@ -671,6 +671,9 @@ function reanchorAfterImages() {
     const time = fmtClock(m.created_at);
     let body = '';
     if (m.type === 'image') body = `<img src="${esc(m.media_url)}" class="chat-img" onclick="Chat.openMediaViewer('${m.id}')" loading="lazy" draggable="false">`;
+    else if (m.type === 'image_group') body = renderPhotoGrid(m) + (m.text ? `<div class="chat-text photo-caption">${linkify(applyWaFormatting(esc(m.text)))}</div>` : '');
+    else if (m.type === 'video') body = `<video class="chat-video" src="${esc(m.media_url)}" controls preload="metadata" playsinline></video>${m.text ? `<div class="chat-text photo-caption">${linkify(applyWaFormatting(esc(m.text)))}</div>` : ''}`;
+    else if (m.type === 'file') body = renderFileBubble(m);
     else if (m.type === 'image_group') body = renderPhotoGrid(m);
     else if (m.type === 'gif') body = `<img src="${esc(m.media_url)}" class="chat-img chat-gif" onclick="Chat.openMediaViewer('${m.id}')" loading="lazy" draggable="false">`;
     else if (m.type === 'voice') body = renderVoice(m);
@@ -701,7 +704,7 @@ function reanchorAfterImages() {
       </div>`;
     }
     else if (m.type === 'call_log') return `<div class="chat-call-log chat-system-event${isNew ? ' msg-pop-in' : ''}"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><path d="M3.6 1.4c.5-.2 1.1 0 1.3.5l1 2.2c.2.4.1.9-.2 1.2l-1 1c.6 1.5 1.8 2.7 3.3 3.3l1-1c.3-.3.8-.4 1.2-.2l2.2 1c.5.2.7.8.5 1.3l-.6 1.5c-.2.5-.7.8-1.2.7-4.6-.6-8.3-4.3-8.9-8.9-.1-.5.2-1 .7-1.2z"/></svg><span>${esc(m.text)}</span><span class="chat-call-time">${time}</span></div>`;
-    else body = `<div class="chat-text">${linkify(esc(m.text || ''))}</div>${renderLinkPreview(m.text)}`;
+    else body = `<div class="chat-text">${linkify(applyWaFormatting(esc(m.text || '')))}</div>${renderLinkPreview(m.text)}`;
 
     const reactions = m.reactions && Object.keys(m.reactions).length
       ? `<div class="chat-reactions">${Object.entries(m.reactions).map(([e, roles]) => `<span class="chat-reaction-pill">${e} ${roles.length}</span>`).join('')}</div>` : '';
@@ -729,6 +732,7 @@ function reanchorAfterImages() {
     if (!preview) {
       preview = src.type === 'image' ? '📷 Photo' : src.type === 'image_group' ? `📷 ${groupItemsOf(src).length || ''} Photos`.trim() : src.type === 'gif' ? 'GIF' : src.type === 'voice' ? '🎤 Voice message'
         : src.type === 'audio' ? '🎵 Audio' : src.type === 'sticker' ? (src.media_meta?.emoji || '🙂') + ' Sticker'
+        : src.type === 'video' ? '🎬 Video' : src.type === 'file' ? '📎 ' + ((src.media_meta && src.media_meta.name) || 'Document')
         : src.type === 'gift' ? '🎁 Gift' : src.type === 'contact' ? '👤 Contact' : src.type === 'location' ? '📍 Location'
         : src.type === 'poll' ? '📊 Poll' : 'Message';
     }
@@ -740,6 +744,48 @@ function reanchorAfterImages() {
 
   function linkify(text) {
     return text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  }
+
+  // WhatsApp-style inline text formatting: *bold*, _italic_, ~strikethrough~,
+  // ```monospace```. Runs on already-escaped text (safe — these are plain
+  // punctuation characters, not HTML), and BEFORE linkify() so a URL
+  // containing one of these characters doesn't get partially mangled by
+  // both passes. Marker must be flanked by whitespace/start-end/punctuation
+  // (not mid-word) so things like "5*3=15" or file paths with underscores
+  // aren't accidentally reformatted.
+  function applyWaFormatting(text) {
+    text = text.replace(/```([^`\n]+?)```/g, (_, c) => `<code class="wa-mono">${c}</code>`);
+    text = text.replace(/(^|[\s(])\*([^*\n]+?)\*(?=[\s).,!?]|$)/g, '$1<b>$2</b>');
+    text = text.replace(/(^|[\s(])_([^_\n]+?)_(?=[\s).,!?]|$)/g, '$1<i>$2</i>');
+    text = text.replace(/(^|[\s(])~([^~\n]+?)~(?=[\s).,!?]|$)/g, '$1<s>$2</s>');
+    return text;
+  }
+
+  // Generic document/file bubble — icon by extension, filename, size, and
+  // a tap-to-download affordance. Reuses the same downloadUrl() helper
+  // the selection toolbar's "Download" action already uses.
+  const FILE_ICONS = {
+    pdf: '📕', doc: '📘', docx: '📘', xls: '📗', xlsx: '📗', ppt: '📙', pptx: '📙',
+    zip: '🗜️', txt: '📄', csv: '📊', json: '🧾', rtf: '📄'
+  };
+  function fmtFileSize(bytes) {
+    if (!bytes) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+  function renderFileBubble(m) {
+    const name = (m.media_meta && m.media_meta.name) || (m.media_url || '').split('/').pop().split('?')[0] || 'File';
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    const icon = FILE_ICONS[ext] || '📎';
+    const size = m.media_meta && m.media_meta.size ? fmtFileSize(m.media_meta.size) : '';
+    return `<div class="msg-file" onclick="event.stopPropagation();Chat.downloadUrl('${esc(m.media_url)}','${esc(name)}')">
+      <div class="msg-file-icon">${icon}</div>
+      <div class="msg-file-info">
+        <div class="msg-file-name">${esc(name)}</div>
+        <div class="msg-file-sub">${esc(ext.toUpperCase())}${size ? ' · ' + esc(size) : ''} · Tap to download</div>
+      </div>
+    </div>`;
   }
   // Lightweight link-preview chip (WhatsApp/Telegram-style card under the
   // text). Deliberately doesn't fetch the target page's og:title/image —
@@ -1006,17 +1052,49 @@ function reanchorAfterImages() {
     // Gallery (multi-select) and camera captures go through the WhatsApp-
     // style instant-preview + grouped-photo pipeline below, even for a
     // single photo, so every photo send gets the pending/progress/retry
-    // treatment. Video/generic-file inputs keep the original single-file
-    // upload-then-send path unchanged (out of scope of this feature).
+    // treatment. Whatever text is already sitting in the composer when
+    // photos are picked is sent along as the group's caption — mirrors
+    // WhatsApp letting you type a caption before/while attaching photos.
     if (input.id === 'chatGalleryInput' || input.id === 'chatCameraInput') {
-      sendImageGroup(files);
+      const inp = document.getElementById('chatIn');
+      const caption = inp ? inp.value.trim() : '';
+      if (inp) { inp.value = ''; inp.style.height = 'auto'; document.getElementById('chatSendBtn')?.classList.remove('has-text'); }
+      sendImageGroup(files, caption);
       return;
     }
+    // BUG FIX: Video and Document sheet options both called onImagePick
+    // too, which unconditionally tagged the message type: 'image' —
+    // videos rendered as a broken <img>, and documents were silently
+    // rejected server-side (the /upload endpoint's mime filter only
+    // allows image/video). Route each to its own real message type.
+    if (input.id === 'chatVideoInput') { onVideoPick(files[0]); return; }
+    if (input.id === 'chatFileInput') { onFilePick(files[0]); return; }
     const file = files[0];
     try {
       const url = await uploadChatMedia(file, file.name);
       sendMessage({ type: 'image', mediaUrl: url });
     } catch (e) { toast('Image upload failed — please try again'); }
+  }
+
+  async function onVideoPick(file) {
+    if (!file) return;
+    try {
+      const url = await uploadChatMedia(file, file.name);
+      sendMessage({ type: 'video', mediaUrl: url, mediaMeta: { name: file.name, size: file.size } });
+    } catch (e) { toast('Video upload failed — please try again'); }
+  }
+
+  async function onFilePick(file) {
+    if (!file) return;
+    try {
+      const form = new FormData();
+      form.append('file', file, file.name);
+      form.append('coupleId', coupleId());
+      const r = await fetch(API + '/api/media/upload-doc', { method: 'POST', body: form });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || 'Upload failed');
+      sendMessage({ type: 'file', mediaUrl: data.url, mediaMeta: { name: file.name, size: file.size, path: data.path } });
+    } catch (e) { toast((e && e.message) || 'File upload failed — please try again'); }
   }
 
   // ─── GROUPED PHOTO SENDING (WhatsApp-style) ────────────
@@ -1041,7 +1119,7 @@ function reanchorAfterImages() {
     requestAnimationFrame(() => { _uploadRenderQueued = false; render(); });
   }
 
-  function sendImageGroup(files) {
+  function sendImageGroup(files, caption) {
     if (!coupleId()) { toast('Not connected'); return; }
     if (!files.length) return;
     const clientId = genClientId();
@@ -1056,7 +1134,7 @@ function reanchorAfterImages() {
     const optimistic = {
       id: 'temp_' + clientId, client_id: clientId, couple_id: coupleId(), sender_role: myRole(),
       created_at: new Date().toISOString(), delivered: false, read: false,
-      type: 'image_group', _pending: true, _items: items, _uploadRev: 0
+      type: 'image_group', text: caption || null, _pending: true, _items: items, _uploadRev: 0
     };
     msgs.push(optimistic);
     render(); scrollToBottom(true);
@@ -1091,6 +1169,14 @@ function reanchorAfterImages() {
     it.status = 'uploading'; it.progress = 0; it.error = null;
     bumpUploadRev(m); throttledRender();
     try {
+      // Resize/re-encode large photos before upload — was previously
+      // sending full-resolution originals, which is slow on mobile
+      // uploads and wastes bandwidth for what's shown at bubble/thumbnail
+      // size anyway. Only runs once per item (retries reuse the result).
+      if (!it._compressed) {
+        it.file = await compressImageFile(it.file);
+        it._compressed = true;
+      }
       const data = await uploadFileWithProgress(it.file, coupleId(), (pct) => {
         it.progress = pct; bumpUploadRev(m); throttledRender();
       }, (xhr) => { it._xhr = xhr; });
@@ -1101,6 +1187,40 @@ function reanchorAfterImages() {
       it._xhr = null;
     }
     bumpUploadRev(m); render();
+  }
+
+  // Downscales/re-encodes a picked photo to JPEG before upload — skips
+  // anything already small, and leaves GIFs/non-images untouched (GIFs
+  // would lose their animation if re-encoded through canvas). Runs
+  // entirely client-side; never blocks the instant local preview, which
+  // already shows the ORIGINAL file's blob: URL before this ever runs.
+  function compressImageFile(file, maxDim = 1600, quality = 0.82) {
+    return new Promise((resolve) => {
+      if (!file.type || !file.type.startsWith('image/') || file.type === 'image/gif') { resolve(file); return; }
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const { width, height } = img;
+        // Already small enough — skip the re-encode round-trip entirely.
+        if (width <= maxDim && height <= maxDim && file.size < 700 * 1024) {
+          URL.revokeObjectURL(url); resolve(file); return;
+        }
+        const scale = Math.min(1, maxDim / Math.max(width, height));
+        const w = Math.max(1, Math.round(width * scale)), h = Math.max(1, Math.round(height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => {
+          URL.revokeObjectURL(url);
+          if (!blob) { resolve(file); return; }
+          const newName = (file.name || 'photo').replace(/\.(png|heic|heif|webp)$/i, '.jpg');
+          resolve(new File([blob], newName, { type: 'image/jpeg' }));
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); }; // fall back to original on decode failure
+      img.src = url;
+    });
   }
 
   // XHR (not fetch) so we get real upload-progress events for the
@@ -1160,7 +1280,7 @@ function reanchorAfterImages() {
     try {
       const saved = await api('POST', '/api/chat', {
         coupleId: coupleId(), clientId, senderRole: myRole(),
-        type: 'image_group', mediaUrl: items[0].url, mediaMeta
+        type: 'image_group', text: m.text || null, mediaUrl: items[0].url, mediaMeta
       });
       const idx2 = msgs.findIndex(x => x.client_id === clientId);
       if (idx2 > -1) {
@@ -1609,6 +1729,7 @@ function menuItemsHtml(m, id, includeSelect) {
     if (!previewText) {
       previewText = m.type === 'image' ? '📷 Photo' : m.type === 'image_group' ? `📷 ${groupItemsOf(m).length || ''} Photos`.trim() : m.type === 'gif' ? '🎞️ GIF' : m.type === 'voice' ? '🎤 Voice message'
         : m.type === 'audio' ? '🎵 Audio' : m.type === 'sticker' ? (m.media_meta?.emoji || '🙂') + ' Sticker'
+        : m.type === 'video' ? '🎬 Video' : m.type === 'file' ? '📎 ' + ((m.media_meta && m.media_meta.name) || 'Document')
         : m.type === 'gift' ? '🎁 Gift' : m.type === 'contact' ? '👤 Contact' : m.type === 'location' ? '📍 Location'
         : m.type === 'poll' ? '📊 Poll' : 'Message';
     }
@@ -1781,7 +1902,7 @@ function menuItemsHtml(m, id, includeSelect) {
   }
   function hasDownloadableMedia(m) {
     if (m.type === 'image_group') return groupItemsOf(m).length > 0;
-    return !!m.media_url && ['image', 'gif', 'voice', 'audio'].includes(m.type);
+    return !!m.media_url && ['image', 'gif', 'voice', 'audio', 'video', 'file'].includes(m.type);
   }
   const TOOLBAR_ACTIONS = [
     { key: 'reply', icon: 'reply', label: 'Reply',
@@ -3431,7 +3552,7 @@ function menuItemsHtml(m, id, includeSelect) {
 
   return {
     onChatScroll, scrollToBottom, sendText, onTypingInput, onImagePick, toggleRecord,
-    retryImageItem, removeImageItem, retryImageGroup, retryImageGroupSend, openMediaGroupViewer,
+    retryImageItem, removeImageItem, retryImageGroup, retryImageGroupSend, openMediaGroupViewer, downloadUrl,
     onBubbleClick, openMenu, reactTo, replyTo, closeBanner, togglePin, toggleStar,
     openStarred, deleteMsg, confirmDeleteMsg, enterSelectMode, deleteSelected, exitSelectMode,
     isSelecting, closeMsgMenuIfOpen, closeTopOverlayIfOpen, openToolbarOverflow, openMediaViewer,
