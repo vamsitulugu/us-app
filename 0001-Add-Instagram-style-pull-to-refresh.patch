@@ -1,0 +1,412 @@
+From b8cf2da02d1bbf784370c77dff53c21ecf44c474 Mon Sep 17 00:00:00 2001
+From: Claude <claude@anthropic.com>
+Date: Sun, 9 Aug 2026 09:14:05 +0000
+Subject: [PATCH] Add Instagram-style pull-to-refresh
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- New reusable engine (public/js/pull-to-refresh.js): touch-only,
+  activates only at scrollTop 0, rubber-band pull with rotating
+  indicator, threshold-triggered async refresh, duplicate-refresh
+  guard, clean destroy().
+- Wired into the SPA shell's shared .content container, dispatching
+  to the existing loadFromCloud()+renderAll() cycle (same one the
+  5s sync loop already uses) for all main pages.
+- Separate instance on #chatMsgs calling Chat.loadMessages().
+- Iframe-hosted pages (collection.html, globe.html) get their own
+  instance on their own document scroll, reusing their existing
+  init()/loadMemories() fetch paths.
+- Other iframe pages (music/games/movie/lovecounter/dreamgoals/
+  meetplanner/places/dailyroutine) intentionally left out of this
+  pass — touch input inside an <iframe> never reaches the shell's
+  listeners, and wiring per-page refresh there needs the same
+  function-mapping care given to collection/globe.
+- Shell excludes chat/camera/ai/virtualhome + all iframe pages from
+  its own .content instance so it never no-ops or double-fires.
+---
+ public/collection.html       |  16 +++
+ public/globe.html            |  14 ++
+ public/index.html            |  53 ++++++++
+ public/js/pull-to-refresh.js | 246 +++++++++++++++++++++++++++++++++++
+ 4 files changed, 329 insertions(+)
+ create mode 100644 public/js/pull-to-refresh.js
+
+diff --git a/public/collection.html b/public/collection.html
+index abd9cef..ce4eb2b 100644
+--- a/public/collection.html
++++ b/public/collection.html
+@@ -235,6 +235,22 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+   <link rel="stylesheet" href="/responsive-fix.css">
+   <link rel="stylesheet" href="/safe-delete.css">
+   <script src="/js/scroll-reset.js"></script>
++  <script src="/js/pull-to-refresh.js"></script>
++  <script>
++    // Pull-to-refresh for this page's own document scroll (this file
++    // is loaded into a persistent iframe by the shell, so it needs its
++    // own instance — the shell's `.content` never receives touch input
++    // that originates inside an <iframe>). Reruns the exact same init()
++    // the page already calls on first load, so there's no second
++    // data-fetch path to maintain.
++    window.addEventListener('DOMContentLoaded', function () {
++      if (window.PullToRefresh) {
++        PullToRefresh.attach(document.scrollingElement || document.documentElement, function () {
++          return typeof init === 'function' ? init() : null;
++        });
++      }
++    });
++  </script>
+   <script src="/js/gallery-viewer.js"></script>
+   <script src="/safe-delete.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+diff --git a/public/globe.html b/public/globe.html
+index 9c65489..d185c51 100644
+--- a/public/globe.html
++++ b/public/globe.html
+@@ -412,6 +412,20 @@
+ <script src="https://cesium.com/downloads/cesiumjs/releases/1.121/Build/Cesium/Cesium.js"></script>
+ <link href="https://cesium.com/downloads/cesiumjs/releases/1.121/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+   <script src="/js/scroll-reset.js"></script>
++  <script src="/js/pull-to-refresh.js"></script>
++  <script>
++    // Pull-to-refresh for this page's own document scroll — see the
++    // matching comment in collection.html. Reruns loadMemories(), the
++    // same function the page's own init() and sync logic already call,
++    // rather than a duplicate fetch path.
++    window.addEventListener('DOMContentLoaded', function () {
++      if (window.PullToRefresh) {
++        PullToRefresh.attach(document.scrollingElement || document.documentElement, function () {
++          return typeof loadMemories === 'function' ? loadMemories() : null;
++        });
++      }
++    });
++  </script>
+   <script src="/js/gallery-viewer.js"></script>
+   <script src="/js/upload-queue.js"></script>
+   <script src="/js/upload-progress-ui.js"></script>
+diff --git a/public/index.html b/public/index.html
+index 1e34fe4..903853f 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -5208,6 +5208,7 @@ select option { background: #0D0D0D; color: #fff; }
+   <link rel="stylesheet" href="/safe-delete.css">
+   <link rel="stylesheet" href="/both-mode.css">
+   <script src="/js/scroll-reset.js"></script>
++  <script src="/js/pull-to-refresh.js"></script>
+   <script src="/js/session-manager.js"></script>
+   <script src="/js/gallery-viewer.js"></script>
+   <script src="/js/upload-queue.js"></script>
+@@ -12453,6 +12454,58 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
+           isSelfSyncing() { return this.SELF_SYNCING_PAGES.has(this.currentPage); }
+         };
+ 
++        // ─── PULL TO REFRESH ──────────────────────────────────────
++        // Instagram-style pull-to-refresh for the SPA shell. The shell
++        // reuses one scrollable `.content` region for every non-iframe
++        // `.page` (see goto()'s resetPageScroll comment), so a single
++        // instance attached there covers dashboard/home/level/period/
++        // fights/myspace/study/bucket/calendar/money/map/surprise/vault/
++        // settings/profile/dreamhome — it reruns the exact same
++        // loadFromCloud() + renderAll() the 5s sync loop already uses,
++        // so there's no duplicate data-fetch path to keep in sync.
++        // Chat gets its own instance on its own scroll container
++        // (#chatMsgs) since `.content` isn't what scrolls there.
++        // Pages backed by a same-origin <iframe> (collection/globe/
++        // music/games/movie/lovecounter/dreamgoals/meetplanner/
++        // dailyroutine/places) and non-list pages (camera, ai, the 3D
++        // virtualhome view) are excluded here — touch input inside an
++        // <iframe> never reaches these listeners anyway, and those
++        // pages get their own pull-to-refresh wired locally where
++        // relevant (see each page's own script).
++        (function initShellPullToRefresh() {
++          if (!window.PullToRefresh) return;
++          var EXCLUDED_PAGES = new Set([
++            'chat', 'camera', 'ai', 'virtualhome',
++            'collection', 'globe', 'music', 'games', 'movie',
++            'lovecounter', 'dreamgoals', 'meetplanner', 'dailyroutine', 'places'
++          ]);
++          var contentEl = document.querySelector('.content');
++          if (contentEl) {
++            PullToRefresh.attach(contentEl, async function () {
++              await loadFromCloud();
++              renderAll();
++            }, {
++              canActivate: function () {
++                var page = window.PageManager && PageManager.currentPage;
++                return !!page && !EXCLUDED_PAGES.has(page);
++              }
++            });
++          }
++          var chatMsgsEl = document.getElementById('chatMsgs');
++          if (chatMsgsEl) {
++            PullToRefresh.attach(chatMsgsEl, async function () {
++              if (window.Chat && typeof Chat.loadMessages === 'function') {
++                await Chat.loadMessages();
++              }
++            }, {
++              canActivate: function () {
++                var page = window.PageManager && PageManager.currentPage;
++                return page === 'chat' && !!window.Chat && typeof Chat.loadMessages === 'function';
++              }
++            });
++          }
++        })();
++
+         // ─── RECONNECT / RESUME RETRY ─────────────────────────────
+         // When the network comes back, or the tab/app becomes visible
+         // again, immediately re-sync instead of waiting for the next 5s
+diff --git a/public/js/pull-to-refresh.js b/public/js/pull-to-refresh.js
+new file mode 100644
+index 0000000..1001324
+--- /dev/null
++++ b/public/js/pull-to-refresh.js
+@@ -0,0 +1,246 @@
++/*
++ * pull-to-refresh.js
++ * ─────────────────────────────────────────────────────────────
++ * A dependency-free, Instagram-style pull-to-refresh controller.
++ * Works both in the top-level SPA shell (attached to `.content`)
++ * and inside individual same-origin iframe pages (attached to
++ * whatever that page's own scroll container is) — same pattern
++ * as scroll-reset.js, which this file is designed to sit next to.
++ *
++ * Usage:
++ *   const handle = PullToRefresh.attach(containerEl, onRefresh, {
++ *     canActivate: () => true,   // optional runtime gate, checked on every gesture start
++ *     threshold: 70,             // px of pull required to trigger on release
++ *     maxPull: 120               // px of visual travel at full rubber-band resistance
++ *   });
++ *   handle.destroy();            // removes all listeners + the indicator DOM
++ *
++ * onRefresh may return a Promise; the indicator stays in its
++ * loading state until it resolves/rejects, and a new gesture is
++ * ignored while one is in flight (per-instance, so multiple
++ * containers on the same page — e.g. the shell + chat — don't
++ * block each other).
++ *
++ * Design notes:
++ *   - Only touch/pen pointer input is handled; mouse-driven pulls
++ *     are ignored entirely so desktop pointer/drag/click behavior
++ *     is completely unaffected.
++ *   - The gesture only arms when the container's scrollTop is
++ *     already 0 at touchstart, and only commits to "pulling" once
++ *     the drag is confirmed vertical-downward past a small
++ *     deadzone — until that point touchmove is never
++ *     preventDefault()'d, so normal scrolling, horizontal swipes,
++ *     and any other gesture handling on the page is untouched.
++ *   - Uses CSS transforms + a WAAPI-free class-based fade, so it
++ *     has no external CSS dependency and can't fight the host
++ *     page's stylesheet cascade — all indicator styling is inline.
++ */
++(function (global) {
++  'use strict';
++
++  var DEADZONE = 8;         // px of vertical travel before we decide this is a pull, not a tap/scroll
++  var HORIZONTAL_GUARD = 1.2; // if |dx| > |dy| * this, treat as a horizontal swipe and back off
++
++  function makeIndicator() {
++    var wrap = document.createElement('div');
++    wrap.setAttribute('aria-hidden', 'true');
++    wrap.style.cssText = [
++      'position:absolute', 'left:0', 'right:0', 'top:0',
++      'display:flex', 'align-items:center', 'justify-content:center',
++      'height:0', 'overflow:visible', 'pointer-events:none',
++      'z-index:60', 'transition:none'
++    ].join(';');
++
++    var puck = document.createElement('div');
++    puck.style.cssText = [
++      'width:34px', 'height:34px', 'border-radius:50%',
++      'background:var(--card,#fff)', 'box-shadow:0 2px 10px rgba(0,0,0,.18)',
++      'display:flex', 'align-items:center', 'justify-content:center',
++      'transform:translateY(-40px) scale(.7)', 'opacity:0',
++      'transition:opacity .18s ease'
++    ].join(';');
++
++    puck.innerHTML =
++      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" ' +
++      'style="transform:rotate(0deg)">' +
++      '<circle cx="12" cy="12" r="9" stroke="var(--border,#e2e2e6)" stroke-width="2.5"/>' +
++      '<path d="M12 3a9 9 0 0 1 9 9" stroke="var(--brand,#ED2A3A)" stroke-width="2.5" stroke-linecap="round"/>' +
++      '</svg>';
++
++    wrap.appendChild(puck);
++    return { wrap: wrap, puck: puck, arc: puck.querySelector('svg') };
++  }
++
++  function PullToRefresh(container, onRefresh, opts) {
++    opts = opts || {};
++    this.container = container;
++    this.onRefresh = onRefresh;
++    this.canActivate = typeof opts.canActivate === 'function' ? opts.canActivate : function () { return true; };
++    this.threshold = opts.threshold || 70;
++    this.maxPull = opts.maxPull || 120;
++
++    this._active = false;      // a touch is down and we've committed to a pull
++    this._deciding = false;    // a touch is down, still inside the deadzone
++    this._refreshing = false;  // an onRefresh() call is in flight
++    this._startY = 0;
++    this._startX = 0;
++    this._dist = 0;
++    this._touchId = null;
++
++    var pos = getComputedStyle(container).position;
++    if (pos === 'static') container.style.position = 'relative';
++
++    var ind = makeIndicator();
++    this._indWrap = ind.wrap;
++    this._indPuck = ind.puck;
++    this._indArc = ind.arc;
++    container.insertBefore(this._indWrap, container.firstChild);
++
++    this._onStart = this._onStart.bind(this);
++    this._onMove = this._onMove.bind(this);
++    this._onEnd = this._onEnd.bind(this);
++
++    container.addEventListener('touchstart', this._onStart, { passive: true });
++    container.addEventListener('touchmove', this._onMove, { passive: false });
++    container.addEventListener('touchend', this._onEnd, { passive: true });
++    container.addEventListener('touchcancel', this._onEnd, { passive: true });
++  }
++
++  PullToRefresh.prototype._onStart = function (e) {
++    if (this._refreshing) return;
++    if (!this.canActivate()) return;
++    if (this.container.scrollTop > 0) return;
++    var t = e.touches[0];
++    this._touchId = t.identifier;
++    this._startY = t.clientY;
++    this._startX = t.clientX;
++    this._dist = 0;
++    this._deciding = true;
++    this._active = false;
++  };
++
++  PullToRefresh.prototype._onMove = function (e) {
++    if (!this._deciding && !this._active) return;
++    var t = null;
++    for (var i = 0; i < e.touches.length; i++) {
++      if (e.touches[i].identifier === this._touchId) { t = e.touches[i]; break; }
++    }
++    if (!t) return;
++
++    var dy = t.clientY - this._startY;
++    var dx = t.clientX - this._startX;
++
++    if (this._deciding) {
++      if (Math.abs(dy) < DEADZONE && Math.abs(dx) < DEADZONE) return;
++      if (dy <= 0 || Math.abs(dx) > Math.abs(dy) * HORIZONTAL_GUARD || this.container.scrollTop > 0) {
++        // Not a downward pull-at-top gesture (upward scroll, horizontal
++        // swipe, or the container already scrolled during the deadzone)
++        // — release control back to normal scrolling entirely.
++        this._deciding = false;
++        return;
++      }
++      this._deciding = false;
++      this._active = true;
++    }
++
++    if (!this._active) return;
++
++    // Rubber-band resistance past the container's scrollTop staying 0.
++    if (this.container.scrollTop > 0) { this._cancel(); return; }
++
++    var raw = Math.max(0, dy);
++    var resisted = raw < this.maxPull ? raw * 0.55 : this.maxPull * 0.55 + (raw - this.maxPull) * 0.08;
++    this._dist = Math.min(resisted, this.maxPull);
++
++    e.preventDefault(); // now safe: we've confirmed this is our gesture, not a scroll/swipe
++
++    var progress = Math.min(1, this._dist / this.threshold);
++    this._indWrap.style.height = '0px';
++    this._indPuck.style.transform = 'translateY(' + (this._dist - 6) + 'px) scale(' + (0.7 + 0.3 * progress) + ')';
++    this._indPuck.style.opacity = String(Math.min(1, progress * 1.2));
++    this._indArc.style.transform = 'rotate(' + (progress * 300) + 'deg)';
++  };
++
++  PullToRefresh.prototype._onEnd = function () {
++    if (!this._active) { this._deciding = false; this._active = false; return; }
++    this._active = false;
++    var triggered = this._dist >= this.threshold;
++    if (triggered) {
++      this._runRefresh();
++    } else {
++      this._settle(0, true);
++    }
++  };
++
++  PullToRefresh.prototype._cancel = function () {
++    this._deciding = false;
++    if (this._active) { this._active = false; this._settle(0, true); }
++  };
++
++  PullToRefresh.prototype._settle = function (toY, fade) {
++    var self = this;
++    this._indPuck.style.transition = 'transform .25s cubic-bezier(.22,1,.36,1), opacity .25s ease';
++    this._indPuck.style.transform = 'translateY(' + (toY - 40) + 'px) scale(.7)';
++    if (fade) this._indPuck.style.opacity = '0';
++    setTimeout(function () { self._indPuck.style.transition = ''; }, 260);
++  };
++
++  PullToRefresh.prototype._runRefresh = function () {
++    var self = this;
++    this._refreshing = true;
++
++    // Lock the indicator into a centered spinning "loading" state.
++    this._indPuck.style.transition = 'transform .18s ease';
++    this._indPuck.style.transform = 'translateY(' + (this.threshold - 6) + 'px) scale(1)';
++    this._indPuck.style.opacity = '1';
++    this._indArc.style.animation = 'ptr-spin .8s linear infinite';
++    ensureSpinKeyframes();
++
++    var result;
++    try {
++      result = this.onRefresh ? this.onRefresh() : null;
++    } catch (err) {
++      result = Promise.reject(err);
++    }
++    Promise.resolve(result).then(
++      function () { self._finishRefresh(true); },
++      function (err) { console.warn('[pull-to-refresh] refresh failed', err); self._finishRefresh(false); }
++    );
++  };
++
++  PullToRefresh.prototype._finishRefresh = function (ok) {
++    var self = this;
++    this._indArc.style.animation = '';
++    // Brief success/settle beat so the release doesn't feel abrupt,
++    // then collapse the indicator back off-screen.
++    this._indArc.style.transform = 'rotate(360deg)';
++    setTimeout(function () {
++      self._refreshing = false;
++      self._settle(0, true);
++    }, ok ? 150 : 250);
++  };
++
++  PullToRefresh.prototype.destroy = function () {
++    this.container.removeEventListener('touchstart', this._onStart);
++    this.container.removeEventListener('touchmove', this._onMove);
++    this.container.removeEventListener('touchend', this._onEnd);
++    this.container.removeEventListener('touchcancel', this._onEnd);
++    if (this._indWrap && this._indWrap.parentNode) this._indWrap.parentNode.removeChild(this._indWrap);
++  };
++
++  var _kfInjected = false;
++  function ensureSpinKeyframes() {
++    if (_kfInjected) return;
++    _kfInjected = true;
++    var style = document.createElement('style');
++    style.textContent = '@keyframes ptr-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
++    document.head.appendChild(style);
++  }
++
++  global.PullToRefresh = {
++    attach: function (container, onRefresh, opts) {
++      if (!container) return { destroy: function () {} };
++      return new PullToRefresh(container, onRefresh, opts);
++    }
++  };
++})(window);
+-- 
+2.43.0
+

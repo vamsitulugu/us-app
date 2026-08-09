@@ -235,6 +235,22 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
   <link rel="stylesheet" href="/responsive-fix.css">
   <link rel="stylesheet" href="/safe-delete.css">
   <script src="/js/scroll-reset.js"></script>
+  <script src="/js/pull-to-refresh.js"></script>
+  <script>
+    // Pull-to-refresh for this page's own document scroll (this file
+    // is loaded into a persistent iframe by the shell, so it needs its
+    // own instance — the shell's `.content` never receives touch input
+    // that originates inside an <iframe>). Reruns the exact same init()
+    // the page already calls on first load, so there's no second
+    // data-fetch path to maintain.
+    window.addEventListener('DOMContentLoaded', function () {
+      if (window.PullToRefresh) {
+        PullToRefresh.attach(document.scrollingElement || document.documentElement, function () {
+          return typeof init === 'function' ? init() : null;
+        });
+      }
+    });
+  </script>
   <script src="/js/gallery-viewer.js"></script>
   <script src="/safe-delete.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

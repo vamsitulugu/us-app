@@ -412,6 +412,20 @@
 <script src="https://cesium.com/downloads/cesiumjs/releases/1.121/Build/Cesium/Cesium.js"></script>
 <link href="https://cesium.com/downloads/cesiumjs/releases/1.121/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
   <script src="/js/scroll-reset.js"></script>
+  <script src="/js/pull-to-refresh.js"></script>
+  <script>
+    // Pull-to-refresh for this page's own document scroll — see the
+    // matching comment in collection.html. Reruns loadMemories(), the
+    // same function the page's own init() and sync logic already call,
+    // rather than a duplicate fetch path.
+    window.addEventListener('DOMContentLoaded', function () {
+      if (window.PullToRefresh) {
+        PullToRefresh.attach(document.scrollingElement || document.documentElement, function () {
+          return typeof loadMemories === 'function' ? loadMemories() : null;
+        });
+      }
+    });
+  </script>
   <script src="/js/gallery-viewer.js"></script>
   <script src="/js/upload-queue.js"></script>
   <script src="/js/upload-progress-ui.js"></script>

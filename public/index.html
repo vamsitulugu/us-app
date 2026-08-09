@@ -5208,6 +5208,7 @@ select option { background: #0D0D0D; color: #fff; }
   <link rel="stylesheet" href="/safe-delete.css">
   <link rel="stylesheet" href="/both-mode.css">
   <script src="/js/scroll-reset.js"></script>
+  <script src="/js/pull-to-refresh.js"></script>
   <script src="/js/session-manager.js"></script>
   <script src="/js/gallery-viewer.js"></script>
   <script src="/js/upload-queue.js"></script>
@@ -12452,6 +12453,58 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
           ]),
           isSelfSyncing() { return this.SELF_SYNCING_PAGES.has(this.currentPage); }
         };
+
+        // ─── PULL TO REFRESH ──────────────────────────────────────
+        // Instagram-style pull-to-refresh for the SPA shell. The shell
+        // reuses one scrollable `.content` region for every non-iframe
+        // `.page` (see goto()'s resetPageScroll comment), so a single
+        // instance attached there covers dashboard/home/level/period/
+        // fights/myspace/study/bucket/calendar/money/map/surprise/vault/
+        // settings/profile/dreamhome — it reruns the exact same
+        // loadFromCloud() + renderAll() the 5s sync loop already uses,
+        // so there's no duplicate data-fetch path to keep in sync.
+        // Chat gets its own instance on its own scroll container
+        // (#chatMsgs) since `.content` isn't what scrolls there.
+        // Pages backed by a same-origin <iframe> (collection/globe/
+        // music/games/movie/lovecounter/dreamgoals/meetplanner/
+        // dailyroutine/places) and non-list pages (camera, ai, the 3D
+        // virtualhome view) are excluded here — touch input inside an
+        // <iframe> never reaches these listeners anyway, and those
+        // pages get their own pull-to-refresh wired locally where
+        // relevant (see each page's own script).
+        (function initShellPullToRefresh() {
+          if (!window.PullToRefresh) return;
+          var EXCLUDED_PAGES = new Set([
+            'chat', 'camera', 'ai', 'virtualhome',
+            'collection', 'globe', 'music', 'games', 'movie',
+            'lovecounter', 'dreamgoals', 'meetplanner', 'dailyroutine', 'places'
+          ]);
+          var contentEl = document.querySelector('.content');
+          if (contentEl) {
+            PullToRefresh.attach(contentEl, async function () {
+              await loadFromCloud();
+              renderAll();
+            }, {
+              canActivate: function () {
+                var page = window.PageManager && PageManager.currentPage;
+                return !!page && !EXCLUDED_PAGES.has(page);
+              }
+            });
+          }
+          var chatMsgsEl = document.getElementById('chatMsgs');
+          if (chatMsgsEl) {
+            PullToRefresh.attach(chatMsgsEl, async function () {
+              if (window.Chat && typeof Chat.loadMessages === 'function') {
+                await Chat.loadMessages();
+              }
+            }, {
+              canActivate: function () {
+                var page = window.PageManager && PageManager.currentPage;
+                return page === 'chat' && !!window.Chat && typeof Chat.loadMessages === 'function';
+              }
+            });
+          }
+        })();
 
         // ─── RECONNECT / RESUME RETRY ─────────────────────────────
         // When the network comes back, or the tab/app becomes visible
