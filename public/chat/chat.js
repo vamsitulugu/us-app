@@ -670,9 +670,18 @@ function reanchorAfterImages() {
     const mine = isMine(m);
     const time = fmtClock(m.created_at);
     let body = '';
-    if (m.type === 'image') body = `<img src="${esc(m.media_url)}" class="chat-img" onclick="Chat.openMediaViewer('${m.id}')" loading="lazy" draggable="false">`;
+    // View-once: server already strips media_url once opened/expired, so
+    // any message with view_once && no media_url here is either pending
+    // (tap to open) or already burned (viewed_at set). Render a lock
+    // tile instead of the real media in either case.
+    if (m.view_once && !m.media_url && (m.type === 'image' || m.type === 'video' || m.type === 'gif')) {
+      body = m.viewed_at
+        ? `<div class="chat-view-once opened"><span class="vo-icon">👁️</span><span>Opened</span></div>`
+        : `<div class="chat-view-once pending" onclick="Chat.openViewOnce('${m.id}')"><span class="vo-icon">🔒</span><span>${mine ? 'Photo sent' : 'Tap to view photo'}</span></div>`;
+    }
+    else if (m.type === 'image') body = `<img src="${esc(m.media_url)}" class="chat-img" onclick="Chat.openMediaViewer('${m.id}')" loading="lazy" draggable="false">${m.view_once ? '<span class="vo-badge" title="View once">1</span>' : ''}`;
     else if (m.type === 'image_group') body = renderPhotoGrid(m) + (m.text ? `<div class="chat-text photo-caption">${linkify(applyWaFormatting(esc(m.text)))}</div>` : '');
-    else if (m.type === 'video') body = `<video class="chat-video" src="${esc(m.media_url)}" controls preload="metadata" playsinline></video>${m.text ? `<div class="chat-text photo-caption">${linkify(applyWaFormatting(esc(m.text)))}</div>` : ''}`;
+    else if (m.type === 'video') body = `<video class="chat-video" src="${esc(m.media_url)}" controls preload="metadata" playsinline></video>${m.text ? `<div class="chat-text photo-caption">${linkify(applyWaFormatting(esc(m.text)))}</div>` : ''}${m.view_once ? '<span class="vo-badge" title="View once">1</span>' : ''}`;
     else if (m.type === 'file') body = renderFileBubble(m);
     else if (m.type === 'image_group') body = renderPhotoGrid(m);
     else if (m.type === 'gif') body = `<img src="${esc(m.media_url)}" class="chat-img chat-gif" onclick="Chat.openMediaViewer('${m.id}')" loading="lazy" draggable="false">`;
@@ -921,12 +930,16 @@ function reanchorAfterImages() {
 
   async function sendMessage(payload) {
     if (!coupleId()) { toast('Not connected'); return; }
+    if (pendingEffect && !payload.effect) { payload = { ...payload, effect: pendingEffect }; }
+    const effectToPlay = payload.effect;
+    clearEffect();
     const clientId = genClientId();
     const optimistic = {
       id: 'temp_' + clientId, client_id: clientId, couple_id: coupleId(), sender_role: myRole(),
       created_at: new Date().toISOString(), delivered: false, read: false, ...payload
     };
     msgs.push(optimistic); render(); scrollToBottom(true);
+    if (effectToPlay) playSendEffect(effectToPlay);
     if (window.playAppSound) {
       const soundByType = { gif: 'chat.gif.sent', image: 'chat.image.sent', file: 'chat.file.sent',
         sticker: 'chat.sticker.sent', voice: 'chat.voice.sent' };
@@ -938,6 +951,7 @@ function reanchorAfterImages() {
       if (idx > -1) msgs[idx] = saved;
       lastMsgId = Math.max(lastMsgId, saved.id);
       render();
+      loadStreak();
       // Insurance for delivered/read ticks: the normal path for a tick to
       // flip live is the partner's client broadcasting 'message_status'
       // (see startRealtime's broadcast handler) the instant they come
@@ -977,12 +991,49 @@ function reanchorAfterImages() {
     }
   }
 
+  // ─── DRAFT PERSISTENCE ─────────────────────────────────
+  // Per-couple, per-device (localStorage, not synced) so leaving the chat
+  // mid-type — switching pages, backgrounding the app, a crash — doesn't
+  // lose what was typed. Cleared the moment the draft is actually sent.
+  function draftKey() { return coupleId() ? 'chatDraft_' + coupleId() : null; }
+  let _draftSaveTimer = null;
+  function saveDraft() {
+    const key = draftKey();
+    if (!key) return;
+    clearTimeout(_draftSaveTimer);
+    _draftSaveTimer = setTimeout(() => {
+      const inp = document.getElementById('chatIn');
+      const text = inp ? inp.value : '';
+      try {
+        if (text) localStorage.setItem(key, text);
+        else localStorage.removeItem(key);
+      } catch (e) {}
+    }, 400);
+  }
+  function restoreDraft() {
+    const key = draftKey();
+    if (!key) return;
+    let text = '';
+    try { text = localStorage.getItem(key) || ''; } catch (e) {}
+    if (!text) return;
+    const inp = document.getElementById('chatIn');
+    if (!inp) return;
+    inp.value = text;
+    inp.style.height = 'auto'; inp.style.height = inp.scrollHeight + 'px';
+    document.getElementById('chatSendBtn')?.classList.add('has-text');
+  }
+  function clearDraft() {
+    const key = draftKey();
+    if (key) { try { localStorage.removeItem(key); } catch (e) {} }
+  }
+
   function sendText() {
     const inp = document.getElementById('chatIn');
     const text = inp.value.trim();
     if (!text) return;
     if (editingId) { inp.value = ''; inp.style.height = 'auto'; saveEdit(text); return; }
     inp.value = ''; inp.style.height = 'auto';
+    clearDraft();
     document.getElementById('chatSendBtn')?.classList.remove('has-text');
     clearTimeout(typingStopTimer);
     sendTypingSignal('stop');
@@ -992,6 +1043,7 @@ function reanchorAfterImages() {
 
   // ─── TYPING INDICATOR (WhatsApp-style, via Supabase Realtime broadcast) ─
   function onTypingInput() {
+    saveDraft();
     if (!coupleId() || !myRole() || !realtimeChannel) return;
     const now = Date.now();
     // Throttle "start" broadcasts so we're not sending one per keystroke —
@@ -1059,7 +1111,7 @@ function reanchorAfterImages() {
       const inp = document.getElementById('chatIn');
       const caption = inp ? inp.value.trim() : '';
       if (inp) { inp.value = ''; inp.style.height = 'auto'; document.getElementById('chatSendBtn')?.classList.remove('has-text'); }
-      sendImageGroup(files, caption);
+      openPreSendPreview(files, caption);
       return;
     }
     // BUG FIX: Video and Document sheet options both called onImagePick
@@ -1095,6 +1147,81 @@ function reanchorAfterImages() {
       if (!r.ok) throw new Error(data.error || 'Upload failed');
       sendMessage({ type: 'file', mediaUrl: data.url, mediaMeta: { name: file.name, size: file.size, path: data.path } });
     } catch (e) { toast((e && e.message) || 'File upload failed — please try again'); }
+  }
+
+  // ─── PRE-SEND PREVIEW SHEET (crop/rotate/reorder-lite) ─
+  // Shown between "photos picked" and "upload starts" — lets the person
+  // drop a bad shot, rotate one that came in sideways, or fix the caption
+  // before anything goes out, instead of only being able to delete after
+  // the fact. Rotation is applied via canvas re-encode at Send time, not
+  // live on every tap, so flipping through several photos stays instant.
+  function openPreSendPreview(files, caption) {
+    const items = files.map((file, i) => ({ id: 'psp_' + i, file, rotation: 0, url: URL.createObjectURL(file) }));
+    const overlay = document.createElement('div');
+    overlay.id = 'chatPreSendPreview';
+    overlay.className = 'chat-presend-overlay';
+    const renderTiles = () => overlay.querySelector('.presend-tiles').innerHTML = items.map(it => `
+      <div class="presend-tile" data-id="${it.id}">
+        <img src="${it.url}" style="transform:rotate(${it.rotation}deg)">
+        <button type="button" class="presend-rotate" onclick="Chat._pspRotate('${it.id}')">↻</button>
+        <button type="button" class="presend-remove" onclick="Chat._pspRemove('${it.id}')">✕</button>
+      </div>`).join('');
+    overlay.innerHTML = `
+      <div class="chat-presend-sheet">
+        <div class="presend-tiles"></div>
+        <input id="presendCaption" class="presend-caption" placeholder="Add a caption…" value="${esc(caption || '')}">
+        <div class="presend-actions">
+          <button type="button" class="presend-cancel" onclick="Chat._pspCancel()">Cancel</button>
+          <button type="button" class="presend-send" onclick="Chat._pspSend()">Send ${items.length > 1 ? '(' + items.length + ')' : ''}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    renderTiles();
+    _pspState = { items, renderTiles };
+  }
+  let _pspState = null;
+  function _pspRotate(id) {
+    const it = _pspState.items.find(x => x.id === id);
+    if (it) { it.rotation = (it.rotation + 90) % 360; _pspState.renderTiles(); }
+  }
+  function _pspRemove(id) {
+    _pspState.items = _pspState.items.filter(x => x.id !== id);
+    if (!_pspState.items.length) { _pspCancel(); return; }
+    _pspState.renderTiles();
+  }
+  function _pspCancel() {
+    if (_pspState) _pspState.items.forEach(it => { try { URL.revokeObjectURL(it.url); } catch (e) {} });
+    document.getElementById('chatPreSendPreview')?.remove();
+    _pspState = null;
+  }
+  async function _pspSend() {
+    if (!_pspState || !_pspState.items.length) { _pspCancel(); return; }
+    const caption = document.getElementById('presendCaption')?.value.trim() || '';
+    const finalFiles = await Promise.all(_pspState.items.map(it => it.rotation ? rotateFile(it.file, it.rotation) : Promise.resolve(it.file)));
+    _pspState.items.forEach(it => { try { URL.revokeObjectURL(it.url); } catch (e) {} });
+    document.getElementById('chatPreSendPreview')?.remove();
+    _pspState = null;
+    sendImageGroup(finalFiles, caption);
+  }
+  function rotateFile(file, degrees) {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const swap = degrees % 180 !== 0;
+        const canvas = document.createElement('canvas');
+        canvas.width = swap ? img.height : img.width;
+        canvas.height = swap ? img.width : img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(degrees * Math.PI / 180);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+        URL.revokeObjectURL(url);
+        canvas.toBlob(blob => resolve(blob ? new File([blob], file.name, { type: 'image/jpeg' }) : file), 'image/jpeg', 0.9);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
   }
 
   // ─── GROUPED PHOTO SENDING (WhatsApp-style) ────────────
@@ -2177,8 +2304,44 @@ function menuItemsHtml(m, id, includeSelect) {
   }
 
   // ─── SEARCH ──────────────────────────────────────────
-  function openSearch() { document.getElementById('chatSearchBar').classList.add('show'); document.getElementById('chatSearchInput').focus(); }
+  let activeSearchFilter = 'all';
+  function openSearch() {
+    document.getElementById('chatSearchBar').classList.add('show');
+    document.getElementById('chatSearchInput').focus();
+    ensureSearchFilterBar();
+  }
   function closeSearch() { document.getElementById('chatSearchBar').classList.remove('show'); document.getElementById('chatSearchInput').value=''; document.getElementById('chatSearchResults').innerHTML=''; }
+
+  // Filter chips (All/Media/Links/Docs) + export button, injected once
+  // rather than hand-added to the giant shared index.html search bar markup.
+  function ensureSearchFilterBar() {
+    const bar = document.getElementById('chatSearchBar');
+    if (!bar || document.getElementById('chatSearchFilters')) return;
+    const filters = document.createElement('div');
+    filters.id = 'chatSearchFilters';
+    filters.className = 'chat-search-filters';
+    filters.innerHTML = `
+      <button type="button" class="chip active" data-f="all" onclick="Chat.setSearchFilter('all')">All</button>
+      <button type="button" class="chip" data-f="media" onclick="Chat.setSearchFilter('media')">Media</button>
+      <button type="button" class="chip" data-f="links" onclick="Chat.setSearchFilter('links')">Links</button>
+      <button type="button" class="chip" data-f="docs" onclick="Chat.setSearchFilter('docs')">Docs</button>
+      <button type="button" class="chip export" onclick="Chat.exportChat()">⬇ Export</button>`;
+    bar.appendChild(filters);
+  }
+  function setSearchFilter(f) {
+    activeSearchFilter = f;
+    document.querySelectorAll('#chatSearchFilters .chip[data-f]').forEach(el =>
+      el.classList.toggle('active', el.dataset.f === f));
+    const q = document.getElementById('chatSearchInput')?.value || '';
+    runSearch(q);
+  }
+  function exportChat() {
+    if (!coupleId()) { toast('Not connected'); return; }
+    // Plain navigation (not fetch+blob) so the browser/WebView's own
+    // download handling takes over — matches how other download links
+    // already work in this app (see downloadUrl()).
+    window.open('/api/chat/' + coupleId() + '/export', '_blank');
+  }
   // Wraps every case-insensitive occurrence of `q` in escaped `text` with
   // <mark>, so the matched word/phrase stands out in the results list —
   // same idea as WhatsApp/Telegram's yellow-highlighted search hits.
@@ -2189,9 +2352,10 @@ function menuItemsHtml(m, id, includeSelect) {
     return safe.replace(new RegExp(qEsc, 'ig'), match => `<mark class="chat-search-mark">${match}</mark>`);
   }
   async function runSearch(q) {
-    if (!q.trim()) { document.getElementById('chatSearchResults').innerHTML = ''; return; }
+    if (!q.trim() && activeSearchFilter === 'all') { document.getElementById('chatSearchResults').innerHTML = ''; return; }
     try {
-      const rows = await api('GET', '/api/chat/' + coupleId() + '/search?q=' + encodeURIComponent(q));
+      const qs = 'q=' + encodeURIComponent(q) + '&filter=' + encodeURIComponent(activeSearchFilter);
+      const rows = await api('GET', '/api/chat/' + coupleId() + '/search?' + qs);
       const el = document.getElementById('chatSearchResults');
       el.innerHTML = (rows||[]).map(r => `<div class="chat-search-result" onclick="Chat.closeSearch();Chat.scrollToMsg(${r.id})">${highlightMatch((r.text||'Media').slice(0,80), q)}</div>`).join('') || '<div class="empty">No results</div>';
     } catch (e) {}
@@ -2597,7 +2761,10 @@ function menuItemsHtml(m, id, includeSelect) {
           const r = payload.new;
           if (!r) return;
           const idx = msgs.findIndex(m => m.id === r.id || (r.client_id && m.client_id === r.client_id));
+          const isNewIncoming = idx === -1 && !isMine(r);
           if (idx > -1) msgs[idx] = r; else msgs.push(r);
+          if (isNewIncoming && r.effect) playSendEffect(r.effect);
+          if (isNewIncoming) loadStreak();
           // A late/out-of-order push can insert an older row after a newer
           // one — keep the working array sorted so render(), lastMsgTs, and
           // "last received message" all agree on what's actually newest.
@@ -2633,6 +2800,25 @@ function menuItemsHtml(m, id, includeSelect) {
             if (p.read) { msgs[idx].read = true; msgs[idx].read_at = p.read_at || msgs[idx].read_at; changed = true; }
           });
           if (changed) render();
+        })
+        .on('broadcast', { event: 'view_once_opened' }, (msg) => {
+          const id = msg.payload?.id;
+          if (id == null) return;
+          const idx = msgs.findIndex(m => m.id === id);
+          if (idx > -1) { msgs[idx].viewed_at = new Date().toISOString(); render(); }
+        })
+        .on('broadcast', { event: 'disappearing_changed' }, (msg) => {
+          _disappearingSeconds = msg.payload?.seconds || 0;
+          const label = document.getElementById('chatDisappearingLabel');
+          if (label) label.textContent = disappearingLabelFor(_disappearingSeconds);
+        })
+        .on('broadcast', { event: 'scheduled_sent' }, (msg) => {
+          const r = msg.payload?.message;
+          if (!r) return;
+          const idx = msgs.findIndex(m => m.id === r.id || (r.client_id && m.client_id === r.client_id));
+          if (idx > -1) msgs[idx] = r; else msgs.push(r);
+          msgs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+          render(); scrollToBottom(true);
         })
         .on('postgres_changes', {
           event: '*', schema: 'public', table: 'chat_wallpaper',
@@ -2701,6 +2887,60 @@ function menuItemsHtml(m, id, includeSelect) {
     initHeaderRing();
     initMute();
     initNickname();
+    ensureEffectUI();
+    ensureStreakBadge();
+    loadStreak();
+    refreshDisappearingLabel();
+    restoreDraft();
+  }
+
+  // Both injected instead of hand-edited into index.html (9,900+ lines,
+  // shared across many other pages) — keeps this feature self-contained
+  // to chat.js/chat.css and safe to add/remove without touching the SPA
+  // shell markup.
+  function ensureStreakBadge() {
+    if (document.getElementById('chatStreakBadge')) return;
+    const header = document.querySelector('.chat-header, #chatHeaderNameText')?.closest?.('.chat-header')
+      || document.getElementById('chatHeaderNameText')?.parentElement;
+    if (!header) return;
+    const badge = document.createElement('span');
+    badge.id = 'chatStreakBadge';
+    badge.className = 'chat-streak-badge';
+    badge.style.display = 'none';
+    header.appendChild(badge);
+  }
+
+  function ensureEffectUI() {
+    if (!document.getElementById('chatEffectLayer')) {
+      const layer = document.createElement('div');
+      layer.id = 'chatEffectLayer';
+      layer.className = 'chat-effect-layer';
+      document.body.appendChild(layer);
+    }
+    const sendBtn = document.getElementById('chatSendBtn');
+    if (!sendBtn || document.getElementById('chatEffectPicker')) return;
+    const picker = document.createElement('div');
+    picker.id = 'chatEffectPicker';
+    picker.className = 'chat-effect-picker';
+    picker.innerHTML = `
+      <button type="button" onclick="Chat.pickEffect('confetti')" title="Confetti">🎉</button>
+      <button type="button" onclick="Chat.pickEffect('hearts')" title="Hearts">❤️</button>
+      <button type="button" onclick="Chat.pickEffect('balloons')" title="Balloons">🎈</button>
+      <button type="button" onclick="Chat.scheduleCurrentMessage()" title="Schedule send">🕐</button>
+      <button type="button" onclick="Chat.clearEffect()" title="Clear">✕</button>`;
+    picker.style.display = 'none';
+    sendBtn.insertAdjacentElement('afterend', picker);
+    let pressTimer = null;
+    const openPicker = () => { picker.style.display = 'flex'; };
+    sendBtn.addEventListener('touchstart', () => { pressTimer = setTimeout(openPicker, 450); }, { passive: true });
+    sendBtn.addEventListener('touchend', () => clearTimeout(pressTimer));
+    sendBtn.addEventListener('mousedown', () => { pressTimer = setTimeout(openPicker, 450); });
+    sendBtn.addEventListener('mouseup', () => clearTimeout(pressTimer));
+    document.addEventListener('click', (e) => {
+      if (picker.style.display === 'flex' && !picker.contains(e.target) && e.target !== sendBtn) {
+        picker.style.display = 'none';
+      }
+    });
   }
 
   // ─── CLEAR CHAT (delete-for-me, everyone in one action) ──────────
@@ -2827,8 +3067,53 @@ function menuItemsHtml(m, id, includeSelect) {
   // CHAT HEADER — 3-DOT MENU
   // ══════════════════════════════════════════════════════════════
   let _headerMenuOutsideBound = false;
+  // Disappearing-messages toggle — injected into the existing header ⋮
+  // menu the first time it's opened, instead of hand-adding a row to
+  // index.html's shared menu markup (used across many other pages too).
+  let _disappearingSeconds = 0;
+  function ensureDisappearingMenuItem() {
+    const menu = document.getElementById('chatHeaderMenu');
+    if (!menu || document.getElementById('chatDisappearingItem')) return;
+    const item = document.createElement('div');
+    item.id = 'chatDisappearingItem';
+    item.className = 'chat-header-menu-item';
+    item.style.cursor = 'pointer';
+    item.innerHTML = `⏱ Disappearing messages: <span id="chatDisappearingLabel">Off</span>`;
+    item.onclick = openDisappearingPicker;
+    menu.appendChild(item);
+    refreshDisappearingLabel();
+  }
+  async function refreshDisappearingLabel() {
+    if (!coupleId()) return;
+    try {
+      const res = await api('GET', '/api/chat/' + coupleId() + '/disappearing');
+      _disappearingSeconds = res.disappearingSeconds || 0;
+      const label = document.getElementById('chatDisappearingLabel');
+      if (label) label.textContent = disappearingLabelFor(_disappearingSeconds);
+    } catch (e) {}
+  }
+  function disappearingLabelFor(seconds) {
+    if (!seconds) return 'Off';
+    if (seconds < 3600) return Math.round(seconds / 60) + 'm';
+    if (seconds < 86400) return Math.round(seconds / 3600) + 'h';
+    return Math.round(seconds / 86400) + 'd';
+  }
+  async function openDisappearingPicker() {
+    const choice = prompt('Disappearing messages — enter minutes (0 = off):\n\nCommon: 60 = 1h, 1440 = 24h, 10080 = 7d', _disappearingSeconds ? Math.round(_disappearingSeconds / 60) : 0);
+    if (choice === null) return;
+    const minutes = Math.max(0, parseInt(choice) || 0);
+    try {
+      const res = await api('POST', '/api/chat/' + coupleId() + '/disappearing', { seconds: minutes * 60 });
+      _disappearingSeconds = res.disappearingSeconds || 0;
+      const label = document.getElementById('chatDisappearingLabel');
+      if (label) label.textContent = disappearingLabelFor(_disappearingSeconds);
+      toast(_disappearingSeconds ? `Disappearing messages: ${disappearingLabelFor(_disappearingSeconds)}` : 'Disappearing messages turned off');
+    } catch (e) { toast('Could not update setting'); }
+  }
+
   function toggleHeaderMenu(ev) {
     if (ev) ev.stopPropagation();
+    ensureDisappearingMenuItem();
     const menu = document.getElementById('chatHeaderMenu');
     const btn = document.getElementById('chatMoreMenuBtn');
     if (!menu) return;
@@ -3550,6 +3835,111 @@ function menuItemsHtml(m, id, includeSelect) {
     return false;
   }
 
+  // ─── VIEW-ONCE: open + burn a photo/video ─────────────
+  async function openViewOnce(id) {
+    const m = msgs.find(mm => String(mm.id) === String(id));
+    if (!m) return;
+    try {
+      const res = await api('POST', '/api/chat/' + id + '/view', { coupleId: coupleId(), role: myRole() });
+      if (res.expired) { toast('This media has already been viewed'); return; }
+      // Show it in the existing full-screen media viewer, but never persist
+      // the url back into msgs — a refresh/poll must go back to the lock
+      // tile, matching what the server now actually has stored.
+      openMediaViewerWithUrl(res.mediaUrl, m.type, res.mediaMeta);
+      if (m.sender_role !== myRole()) {
+        m.viewed_at = new Date().toISOString();
+        render();
+      }
+    } catch (e) { toast('Could not open — try again'); }
+  }
+
+  function openMediaViewerWithUrl(url, type, meta) {
+    // Reuses the app-wide gallery viewer (window.openImgViewer, same one
+    // openMediaViewer() above calls) for photos/gifs — single-item
+    // collection since a view-once photo has no siblings to swipe to.
+    // Video has no equivalent full-screen viewer wired up yet, so it
+    // opens in a new tab/native player instead of guessing at markup
+    // that doesn't exist.
+    if ((type === 'image' || type === 'gif') && window.openImgViewer) {
+      window.openImgViewer(url, [{ url, type: 'image' }], 0);
+    } else {
+      window.open(url, '_blank');
+    }
+  }
+
+  // ─── SEND EFFECT: confetti/hearts/balloons on send ────
+  let pendingEffect = null;
+  function pickEffect(effect) {
+    pendingEffect = effect;
+    const btn = document.getElementById('chatSendBtn');
+    if (btn) btn.classList.add('effect-armed');
+    const picker = document.getElementById('chatEffectPicker');
+    if (picker) picker.style.display = 'none';
+    toast('Effect armed — next message will send with ' + effect);
+  }
+  function clearEffect() {
+    pendingEffect = null;
+    document.getElementById('chatSendBtn')?.classList.remove('effect-armed');
+  }
+  function playSendEffect(effect) {
+    if (!effect) return;
+    const layer = document.getElementById('chatEffectLayer');
+    if (!layer) return;
+    layer.className = 'chat-effect-layer effect-' + effect;
+    layer.innerHTML = '';
+    const symbols = { confetti: ['🎉','✨','🎊'], hearts: ['❤️','💕','💖'], balloons: ['🎈','🎈','🎈'] };
+    const chars = symbols[effect] || ['✨'];
+    for (let i = 0; i < 24; i++) {
+      const s = document.createElement('span');
+      s.className = 'effect-particle';
+      s.textContent = chars[i % chars.length];
+      s.style.left = Math.random() * 100 + '%';
+      s.style.animationDelay = (Math.random() * 0.4) + 's';
+      s.style.fontSize = (14 + Math.random() * 14) + 'px';
+      layer.appendChild(s);
+    }
+    setTimeout(() => { layer.innerHTML = ''; }, 2200);
+  }
+
+  // ─── STREAK: daily-messaging streak in the chat header ─
+  async function loadStreak() {
+    if (!coupleId()) return;
+    try {
+      const res = await api('GET', '/api/chat/' + coupleId() + '/streak');
+      const el = document.getElementById('chatStreakBadge');
+      if (!el) return;
+      if (res.streak > 0) {
+        el.style.display = 'inline-flex';
+        el.innerHTML = `🔥 <span>${res.streak}</span>`;
+        el.title = res.activeToday ? `${res.streak}-day streak — today counts already!` : `${res.streak}-day streak — message today to keep it going`;
+      } else {
+        el.style.display = 'none';
+      }
+    } catch (e) {}
+  }
+
+  // ─── SCHEDULE SEND ─────────────────────────────────────
+  async function scheduleCurrentMessage() {
+    const picker = document.getElementById('chatEffectPicker');
+    if (picker) picker.style.display = 'none';
+    const inp = document.getElementById('chatIn');
+    const text = inp ? inp.value.trim() : '';
+    if (!text) { toast('Type a message first, then schedule it'); return; }
+    const minutesStr = prompt('Send in how many minutes from now?', '60');
+    if (minutesStr === null) return;
+    const minutes = parseInt(minutesStr);
+    if (!minutes || minutes <= 0) { toast('Enter a positive number of minutes'); return; }
+    const sendAt = new Date(Date.now() + minutes * 60000).toISOString();
+    try {
+      await api('POST', '/api/chat/' + coupleId() + '/schedule', {
+        clientId: genClientId(), senderRole: myRole(), type: 'text', text, sendAt
+      });
+      inp.value = ''; inp.style.height = 'auto'; clearDraft();
+      document.getElementById('chatSendBtn')?.classList.remove('has-text');
+      toast(`Scheduled — will send in ${minutes} min`);
+    } catch (e) { toast('Could not schedule message'); }
+  }
+
   return {
     onChatScroll, scrollToBottom, sendText, onTypingInput, onImagePick, toggleRecord,
     retryImageItem, removeImageItem, retryImageGroup, retryImageGroupSend, openMediaGroupViewer, downloadUrl,
@@ -3565,7 +3955,11 @@ function menuItemsHtml(m, id, includeSelect) {
     toggleHeaderMenu, openWallpaperModal, closeWallpaperModal, onDimSlider, setDefaultWallpaper, removeWallpaper,
     onWallpaperFilePicked, cancelWallpaperPreview, confirmWallpaperPreview, selectWpSwatch, applyWallpaper,
     loadMessages, toggleWallpaperShared, openMediaGrid, toggleTheme, cycleVoiceSpeed,
-    clearChat, toggleMute, promptNickname
+    clearChat, toggleMute, promptNickname,
+    openViewOnce, pickEffect, clearEffect, loadStreak,
+    setSearchFilter, exportChat,
+    _pspRotate, _pspRemove, _pspCancel, _pspSend,
+    scheduleCurrentMessage
   };
 })();
 window.Chat = Chat;

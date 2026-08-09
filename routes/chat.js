@@ -31,6 +31,17 @@ const { isViewingChat } = require('./presence');
 
 function otherRole(role) { return role === 'user1' ? 'user2' : 'user1'; }
 
+// List endpoints never leak view-once media_url directly — the client must
+// hit GET /:id/view to actually retrieve (and burn) it. This keeps the
+// same "already viewed" guarantee for messages fetched via polling/list,
+// not just the dedicated view endpoint.
+function stripUnopenedViewOnce(rows) {
+  return (rows || []).map(m => {
+    if (m.view_once && !m.viewed_at) return { ...m, media_url: null, view_once_pending: true };
+    return m;
+  });
+}
+
 // ─── GET messages (initial load + polling fallback) ─────
 // GET /api/chat/:coupleId?after=<id>&limit=100
 router.get('/:coupleId', async (req, res) => {
@@ -48,7 +59,7 @@ router.get('/:coupleId', async (req, res) => {
       .order('created_at', { ascending: true })
       .limit(limit);
     if (error) return res.status(500).json({ error: error.message });
-    return res.json(data || []);
+    return res.json(stripUnopenedViewOnce(data));
   }
 
   // Initial load — must be the most RECENT `limit` messages, not the oldest.
@@ -57,15 +68,29 @@ router.get('/:coupleId', async (req, res) => {
     .order('created_at', { ascending: false })
     .limit(limit);
   if (error) return res.status(500).json({ error: error.message });
-  return res.json((data || []).reverse());
+  return res.json(stripUnopenedViewOnce((data || []).reverse()));
 });
 
 // ─── POST send message ────────────────────────────────
 // body: { coupleId, clientId, senderRole, type, text, mediaUrl, mediaMeta, replyTo }
 router.post('/', async (req, res) => {
-  const { coupleId, clientId, senderRole, type, text, mediaUrl, mediaMeta, replyTo, forwarded } = req.body;
+  const { coupleId, clientId, senderRole, type, text, mediaUrl, mediaMeta, replyTo, forwarded, viewOnce, effect } = req.body;
   if (!coupleId || !senderRole || !clientId) return res.status(400).json({ error: 'Missing data' });
   if (!text && !mediaUrl && !mediaMeta) return res.status(400).json({ error: 'Empty message' });
+
+  // View-once only makes sense for media messages — silently ignore the
+  // flag on text-only sends rather than erroring, since the client may
+  // just be reusing one send path for both.
+  const isMedia = !!mediaUrl || !!mediaMeta;
+
+  let expiresAt = null;
+  try {
+    const { data: settings } = await supabase.from('chat_settings')
+      .select('disappearing_seconds').eq('couple_id', coupleId).maybeSingle();
+    if (settings && settings.disappearing_seconds > 0) {
+      expiresAt = new Date(Date.now() + settings.disappearing_seconds * 1000).toISOString();
+    }
+  } catch (e) { /* disappearing messages is a nice-to-have — never block a send over it */ }
 
   const row = {
     couple_id:   coupleId,
@@ -79,6 +104,9 @@ router.post('/', async (req, res) => {
     forwarded:   !!forwarded,
     delivered:   false,
     read:        false,
+    view_once:   isMedia && !!viewOnce,
+    effect:      effect || null,
+    expires_at:  expiresAt,
   };
 
   // Upsert on (couple_id, client_id) so retried/optimistic sends never duplicate
@@ -333,6 +361,192 @@ router.post('/:id/star', async (req, res) => {
 });
 
 // ─── PRESENCE — GET / POST ──────────────────────────────
+// ─── View-once media: open + burn ─────────────────────
+// POST /api/chat/:id/view  body: { coupleId, role }
+// The FIRST caller (i.e. the recipient, not the sender re-viewing their
+// own send) gets the media_url back and the row is immediately stripped
+// of it server-side, so a second request — replay, refresh, partner's
+// other device — can never retrieve it again. Sender can always re-open
+// their own sent view-once media (matches WhatsApp/Telegram behavior).
+router.post('/:id/view', async (req, res) => {
+  const { id } = req.params;
+  const { coupleId, role } = req.body;
+  if (!coupleId || !role) return res.status(400).json({ error: 'Missing data' });
+
+  const { data: msg, error: fetchErr } = await supabase
+    .from('chat_messages').select('*').eq('id', id).eq('couple_id', coupleId).maybeSingle();
+  if (fetchErr) return res.status(500).json({ error: fetchErr.message });
+  if (!msg) return res.status(404).json({ error: 'Message not found' });
+  if (!msg.view_once) return res.json({ mediaUrl: msg.media_url, mediaMeta: msg.media_meta, alreadyOpen: true });
+
+  const isSender = msg.sender_role === role;
+  if (!isSender && msg.viewed_at) {
+    return res.status(410).json({ error: 'This media has already been viewed', expired: true });
+  }
+
+  if (!isSender) {
+    const { error: updateErr } = await supabase
+      .from('chat_messages')
+      .update({ viewed_at: new Date().toISOString(), media_url: null })
+      .eq('id', id);
+    if (updateErr) return res.status(500).json({ error: updateErr.message });
+
+    if (_broadcastEvent) {
+      try { _broadcastEvent(`chat-${coupleId}`, 'view_once_opened', { id }); } catch (e) {}
+    }
+  }
+
+  return res.json({ mediaUrl: msg.media_url, mediaMeta: msg.media_meta, alreadyOpen: false });
+});
+
+// ─── Streak: consecutive days both partners have sent >=1 message ─────
+// GET /api/chat/:coupleId/streak
+router.get('/:coupleId/streak', async (req, res) => {
+  const { coupleId } = req.params;
+
+  const { data, error } = await supabase
+    .from('chat_messages')
+    .select('sender_role, created_at')
+    .eq('couple_id', coupleId)
+    .order('created_at', { ascending: false })
+    .limit(2000); // enough history for any realistic streak
+  if (error) return res.status(500).json({ error: error.message });
+
+  // Group by local calendar day (UTC date string) -> set of roles who sent that day
+  const byDay = new Map();
+  for (const row of data || []) {
+    const day = row.created_at.slice(0, 10); // YYYY-MM-DD
+    if (!byDay.has(day)) byDay.set(day, new Set());
+    byDay.get(day).add(row.sender_role);
+  }
+
+  const msPerDay = 86400000;
+  const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+
+  let streak = 0;
+  let cursor = new Date(today);
+  // Allow today to be "in progress" (not yet both-replied) without breaking
+  // the streak — start counting from yesterday if today isn't complete yet.
+  const todayKey = today.toISOString().slice(0, 10);
+  const todayBoth = byDay.get(todayKey) && byDay.get(todayKey).size >= 2;
+  if (!todayBoth) cursor = new Date(today.getTime() - msPerDay);
+
+  while (true) {
+    const key = cursor.toISOString().slice(0, 10);
+    const roles = byDay.get(key);
+    if (roles && roles.size >= 2) {
+      streak++;
+      cursor = new Date(cursor.getTime() - msPerDay);
+    } else break;
+  }
+
+  return res.json({ streak, activeToday: !!todayBoth });
+});
+
+// ─── Disappearing messages: per-couple timer setting ───
+// GET returns { disappearingSeconds }. POST sets it (0 = off).
+// Only NEW messages sent after this is turned on get an expiry —
+// matches WhatsApp/Telegram, which never retroactively expire history.
+router.get('/:coupleId/disappearing', async (req, res) => {
+  const { data, error } = await supabase.from('chat_settings')
+    .select('disappearing_seconds').eq('couple_id', req.params.coupleId).maybeSingle();
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ disappearingSeconds: data?.disappearing_seconds || 0 });
+});
+router.post('/:coupleId/disappearing', async (req, res) => {
+  const { coupleId } = req.params;
+  const seconds = Math.max(0, parseInt(req.body.seconds) || 0);
+  const { error } = await supabase.from('chat_settings')
+    .upsert({ couple_id: coupleId, disappearing_seconds: seconds, updated_at: new Date().toISOString() },
+      { onConflict: 'couple_id' });
+  if (error) return res.status(500).json({ error: error.message });
+  if (_broadcastEvent) {
+    try { _broadcastEvent(`chat-${coupleId}`, 'disappearing_changed', { seconds }); } catch (e) {}
+  }
+  return res.json({ disappearingSeconds: seconds });
+});
+
+// Sweeps expired disappearing messages. Runs in-process on an interval —
+// this server is a long-lived Render process (see server.js), not a
+// serverless function, so a plain setInterval is reliable here without
+// needing an external cron. Marks rows deleted (soft-delete, same shape
+// the client already renders for any other deletion) rather than hard-
+// deleting, so "This message was deleted" shows instead of a render gap.
+async function sweepExpiredMessages() {
+  try {
+    const { data: expired, error } = await supabase.from('chat_messages')
+      .select('id').lt('expires_at', new Date().toISOString()).not('expires_at', 'is', null)
+      .is('deleted', false).limit(200);
+    if (error || !expired?.length) return;
+    const ids = expired.map(r => r.id);
+    await supabase.from('chat_messages')
+      .update({ deleted: true, deleted_for: 'everyone', text: null, media_url: null, media_meta: null, expires_at: null })
+      .in('id', ids);
+  } catch (e) { console.error('[chat] disappearing-message sweep failed:', e.message); }
+}
+setInterval(sweepExpiredMessages, 60 * 1000);
+
+// ─── Scheduled send ("send later") ─────────────────────
+// POST /:coupleId/schedule  body: { clientId, senderRole, type, text, mediaUrl, mediaMeta, sendAt }
+router.post('/:coupleId/schedule', async (req, res) => {
+  const { coupleId } = req.params;
+  const { clientId, senderRole, type, text, mediaUrl, mediaMeta, sendAt } = req.body;
+  if (!clientId || !senderRole || !sendAt) return res.status(400).json({ error: 'Missing data' });
+  const sendAtDate = new Date(sendAt);
+  if (isNaN(sendAtDate.getTime()) || sendAtDate.getTime() <= Date.now()) {
+    return res.status(400).json({ error: 'sendAt must be a valid future time' });
+  }
+  const { data, error } = await supabase.from('chat_scheduled_messages').insert({
+    couple_id: coupleId, sender_role: senderRole, client_id: clientId,
+    type: type || 'text', text: text || null, media_url: mediaUrl || null,
+    media_meta: mediaMeta || null, send_at: sendAtDate.toISOString(),
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json(data);
+});
+
+// GET /:coupleId/scheduled — list not-yet-sent scheduled messages (so the
+// composer can show "3 scheduled" and let either partner cancel one).
+router.get('/:coupleId/scheduled', async (req, res) => {
+  const { data, error } = await supabase.from('chat_scheduled_messages')
+    .select('*').eq('couple_id', req.params.coupleId).eq('sent', false)
+    .order('send_at', { ascending: true });
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json(data || []);
+});
+
+router.delete('/scheduled/:id', async (req, res) => {
+  const { error } = await supabase.from('chat_scheduled_messages')
+    .delete().eq('id', req.params.id).eq('sent', false);
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ ok: true });
+});
+
+// Fires due scheduled messages into chat_messages, same INSERT shape as
+// the normal POST / handler. Runs alongside the disappearing-message
+// sweep on the same interval — this is a long-lived process, so a plain
+// setInterval is enough without an external scheduler.
+async function sweepScheduledMessages() {
+  try {
+    const { data: due, error } = await supabase.from('chat_scheduled_messages')
+      .select('*').eq('sent', false).lte('send_at', new Date().toISOString()).limit(50);
+    if (error || !due?.length) return;
+    for (const sm of due) {
+      const { data: inserted, error: insertErr } = await supabase.from('chat_messages').upsert({
+        couple_id: sm.couple_id, client_id: sm.client_id, sender_role: sm.sender_role,
+        type: sm.type, text: sm.text, media_url: sm.media_url, media_meta: sm.media_meta,
+        delivered: false, read: false,
+      }, { onConflict: 'couple_id,client_id' }).select().single();
+      if (insertErr) { console.error('[chat] scheduled-send insert failed:', insertErr.message); continue; }
+      await supabase.from('chat_scheduled_messages').update({ sent: true }).eq('id', sm.id);
+      if (_broadcastEvent) {
+        try { _broadcastEvent(`chat-${sm.couple_id}`, 'scheduled_sent', { message: inserted }); } catch (e) {}
+      }
+    }
+  } catch (e) { console.error('[chat] scheduled-message sweep failed:', e.message); }
+}
+setInterval(sweepScheduledMessages, 30 * 1000);
+
 router.get('/:coupleId/presence', async (req, res) => {
   const { data, error } = await supabase.from('chat_presence')
     .select('*').eq('couple_id', req.params.coupleId);
@@ -377,14 +591,63 @@ router.post('/:coupleId/presence', async (req, res) => {
 });
 
 // ─── SEARCH within chat ─────────────────────────────────
+// GET /api/chat/:coupleId/search?q=<text>&filter=<all|media|links|docs>
+// `filter` narrows by message type/content independently of `q` — either
+// can be used alone (q-only text search, filter-only "show me all photos",
+// or both combined).
+const MEDIA_TYPES = ['image', 'video', 'gif', 'image_group'];
 router.get('/:coupleId/search', async (req, res) => {
   const { q } = req.query;
-  if (!q || q.length < 1) return res.json([]);
-  const { data, error } = await supabase.from('chat_messages')
-    .select('*').eq('couple_id', req.params.coupleId)
-    .ilike('text', `%${q}%`).order('created_at', { ascending: false }).limit(50);
+  const filter = req.query.filter || 'all';
+  if ((!q || q.length < 1) && filter === 'all') return res.json([]);
+
+  let query = supabase.from('chat_messages').select('*').eq('couple_id', req.params.coupleId);
+
+  if (filter === 'media') query = query.in('type', MEDIA_TYPES);
+  else if (filter === 'docs') query = query.eq('type', 'file');
+  else if (filter === 'links') query = query.ilike('text', '%http%');
+
+  if (q && q.length >= 1 && filter !== 'media' && filter !== 'docs') {
+    query = query.ilike('text', `%${q}%`);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false }).limit(100);
   if (error) return res.status(500).json({ error: error.message });
   return res.json(data || []);
+});
+
+// ─── Export chat as plain text ─────────────────────────
+// GET /api/chat/:coupleId/export
+// Streams the full conversation (oldest→newest) as a downloadable .txt,
+// WhatsApp-style: "[date time] Sender: text/<Media omitted>". Deleted
+// messages and unopened view-once media are excluded from the export —
+// exporting shouldn't be a backdoor around either feature.
+router.get('/:coupleId/export', async (req, res) => {
+  const { coupleId } = req.params;
+  const { data, error } = await supabase.from('chat_messages')
+    .select('*').eq('couple_id', coupleId)
+    .order('created_at', { ascending: true }).limit(20000);
+  if (error) return res.status(500).json({ error: error.message });
+
+  const lines = (data || [])
+    .filter(m => (m.deleted_for || 'none') !== 'both')
+    .map(m => {
+      const ts = new Date(m.created_at).toLocaleString('en-US', {
+        month: '2-digit', day: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit'
+      });
+      const who = m.sender_role === 'user1' ? 'Partner 1' : 'Partner 2';
+      let body;
+      if (m.deleted) body = 'This message was deleted';
+      else if (m.view_once && !m.media_url) body = m.viewed_at ? '<Media omitted — view once, already viewed>' : '<Media omitted — view once, not yet opened>';
+      else if (m.text) body = m.text;
+      else if (m.type) body = `<${m.type} omitted>`;
+      else body = '<Media omitted>';
+      return `[${ts}] ${who}: ${body}`;
+    });
+
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="chat-export-${coupleId}.txt"`);
+  return res.send(lines.join('\n'));
 });
 
 // ─── WALLPAPER — shared mode, synced across both devices ─
