@@ -627,13 +627,20 @@
    instead of breaking; normal sentences still wrap at word boundaries
    first, this only kicks in when a word alone is wider than the bubble. */
 .chat-text{white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;overflow-wrap:anywhere;line-height:1.44;margin:0}
-.chat-meta{display:flex;gap:4px;align-items:center;justify-content:flex-end;font-size:10px;opacity:.7;margin-top:3px;font-variant-numeric:tabular-nums}
+/* opacity moved off the wrapper and onto .chat-meta > span (the timestamp
+   text) only — opacity on the parent used to also dim the ticks on top of
+   their own color, compositing them down to a barely-visible ~0.6 alpha
+   even when .chat-ticks itself was near-opaque. Ticks now render at their
+   own full, undimmed color/opacity. */
+.chat-meta{display:flex;gap:4px;align-items:center;justify-content:flex-end;font-size:10px;margin-top:3px;font-variant-numeric:tabular-nums}
+.chat-meta>span:not(.chat-ticks){opacity:.7}
 /* Message status ticks — proper vector icons (SVG), never Unicode/emoji
    checkmarks. Color alone communicates state: muted for sent/delivered,
    WhatsApp blue only once the partner has actually read the message. */
-.chat-ticks{display:inline-flex;align-items:center;line-height:0;color:rgba(255,255,255,.62);transition:color .25s ease}
-.chat-ticks.sending{color:rgba(255,255,255,.45)}
-.chat-ticks.read{color:#53bdeb}
+.chat-ticks{display:inline-flex;align-items:center;line-height:0;color:#fff;transition:color .25s ease}
+.chat-ticks.sending{color:rgba(255,255,255,.65)}
+.chat-ticks.read{color:#3ecbff}
+.chat-ticks svg{filter:drop-shadow(0 0 1px rgba(0,0,0,.4))}
 .chat-reactions{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px}
 .chat-reaction-pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.1);border-radius:11px;padding:1px 7px 2px;font-size:11.5px;line-height:1.5;backdrop-filter:blur(4px)}
 .chat-bubble.mine .chat-reaction-pill{background:rgba(0,0,0,.18);border-color:rgba(255,255,255,.15)}
