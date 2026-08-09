@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<title>Daily Routine 🗓️</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --h: 215;
+  --accent: hsl(var(--h),100%,62%);
+  --accent-d: hsl(var(--h),95%,50%);
+  --accent-l: hsl(var(--h),100%,78%);
+  --accent-glow: hsla(var(--h),100%,62%,0.35);
+  --accent2: hsl(300,85%,65%);
+  --accent2-d: hsl(300,80%,52%);
+  --accent2-glow: hsla(300,85%,65%,0.35);
+  --g1: rgba(255,255,255,0.04);
+  --g2: rgba(255,255,255,0.08);
+  --g3: rgba(255,255,255,0.13);
+  --blur: blur(24px) saturate(180%);
+  --ff-serif: 'DM Serif Display',Georgia,serif;
+  --ff-sans: 'Inter',system-ui,sans-serif;
+  --r: 18px; --rs: 12px; --rss: 8px;
+  --white: #ffffff;
+  --text: rgba(255,255,255,0.92);
+  --text2: rgba(255,255,255,0.62);
+  --text3: rgba(255,255,255,0.38);
+  --border: rgba(255,255,255,0.10);
+  --border2: rgba(255,255,255,0.18);
+  --green: #34d399; --green-bg: rgba(52,211,153,0.15);
+  --red: #f87171; --red-bg: rgba(248,113,113,0.15);
+  --yellow: #fbbf24; --yellow-bg: rgba(251,191,36,0.15);
+  --t: all 0.2s cubic-bezier(0.4,0,0.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--ff-sans);color:var(--text);min-height:100dvh;background:transparent;line-height:1.5;overscroll-behavior-y:none}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.14);border-radius:99px}
+button{font-family:inherit}
+
+/* ── Header ── */
+.dr-head{padding:18px 16px 0}
+.dr-title{font-family:var(--ff-serif);font-size:22px;color:var(--white)}
+.dr-sub{font-size:12px;color:var(--text3);margin-top:2px}
+
+/* ── Tabs (segmented control) ── */
+.dr-tabs{display:flex;gap:2px;margin:14px 16px 10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:4px;position:sticky;top:0;z-index:20;backdrop-filter:var(--blur)}
+.dr-tab{flex:1;padding:10px 12px;border:none;background:transparent;border-radius:var(--rs);cursor:pointer;font-size:13px;font-weight:700;color:var(--text2);letter-spacing:0.3px;transition:var(--t);text-transform:uppercase}
+.dr-tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 2px 10px var(--accent-glow)}
+
+/* ── Date nav ── */
+.dr-datenav{display:flex;align-items:center;justify-content:space-between;margin:0 16px 10px;gap:8px}
+.dr-datebtn{width:34px;height:34px;border-radius:10px;background:var(--g1);border:1px solid var(--border);color:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;transition:var(--t)}
+.dr-datebtn:hover{background:var(--g2)}
+.dr-datecenter{flex:1;text-align:center;cursor:pointer}
+.dr-dateday{font-size:14px;font-weight:700;color:var(--white)}
+.dr-datetoday{font-size:10px;color:var(--accent-l);font-weight:700;letter-spacing:0.5px;text-transform:uppercase}
+.dr-datehidden{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+
+.dr-strip{display:flex;gap:6px;overflow-x:auto;margin:0 16px 14px;padding-bottom:2px}
+.dr-strip::-webkit-scrollbar{height:0}
+.dr-stripday{flex:0 0 auto;width:46px;padding:8px 0;border-radius:12px;background:var(--g1);border:1px solid var(--border);text-align:center;cursor:pointer;transition:var(--t)}
+.dr-stripday.today{border-color:var(--border2)}
+.dr-stripday.sel{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent}
+.dr-stripday .dow{font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase}
+.dr-stripday.sel .dow{color:rgba(255,255,255,0.85)}
+.dr-stripday .dnum{font-size:15px;font-weight:700;color:var(--white);margin-top:2px}
+
+/* ── Summary ── */
+.dr-summary{margin:0 16px 16px;background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;backdrop-filter:var(--blur)}
+.dr-summary-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+.dr-summary-label{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:0.6px;text-transform:uppercase}
+.dr-summary-pct{font-family:var(--ff-serif);font-size:20px;color:var(--white)}
+.dr-bar{height:6px;border-radius:99px;background:var(--g2);overflow:hidden;margin-bottom:8px}
+.dr-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width 0.4s ease}
+.dr-summary-line{font-size:12px;color:var(--text2)}
+.dr-summary-next{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px}
+.dr-summary-next b{color:var(--white)}
+.dr-nextpill{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+
+/* ── Timeline ── */
+.dr-list{margin:0 16px 100px}
+.dr-now{display:flex;align-items:center;gap:8px;margin:10px 0;color:var(--accent-l);font-size:10px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase}
+.dr-now::before,.dr-now::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--accent-glow))}
+.dr-now::after{background:linear-gradient(90deg,var(--accent-glow),transparent)}
+
+.dr-item{display:flex;gap:12px;padding:12px 4px;border-bottom:1px solid var(--border);cursor:pointer;transition:var(--t)}
+.dr-item:hover{background:var(--g1)}
+.dr-item.done{opacity:0.55}
+.dr-item.active{background:var(--g1);border-radius:var(--rs);border-bottom:1px solid transparent}
+.dr-time{flex:0 0 68px;font-size:12px;font-weight:700;color:var(--text2);line-height:1.35;padding-top:1px}
+.dr-time small{display:block;font-size:10px;color:var(--text3);font-weight:600}
+.dr-dot-col{flex:0 0 10px;display:flex;flex-direction:column;align-items:center;padding-top:3px}
+.dr-dot{width:9px;height:9px;border-radius:50%;background:var(--g3);border:2px solid var(--border2)}
+.dr-dot.completed{background:var(--green);border-color:var(--green)}
+.dr-dot.in_progress{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.dr-dot.skipped,.dr-dot.missed{background:transparent;border-color:var(--text3)}
+.dr-body{flex:1;min-width:0}
+.dr-body-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.dr-name{font-size:14px;font-weight:600;color:var(--white)}
+.dr-item.done .dr-name{text-decoration:line-through;text-decoration-color:var(--text3)}
+.dr-type{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;background:var(--g2);padding:2px 6px;border-radius:6px}
+.dr-desc{font-size:12px;color:var(--text2);margin-top:2px}
+.dr-status{font-size:10px;font-weight:700;margin-top:4px;text-transform:uppercase;letter-spacing:0.4px}
+.dr-status.completed{color:var(--green)}
+.dr-status.in_progress{color:var(--accent-l)}
+.dr-status.skipped,.dr-status.missed{color:var(--text3)}
+.dr-status.upcoming{color:var(--text3)}
+.dr-shared-badge{font-size:9px;color:var(--accent2-d);background:var(--accent2-glow);padding:2px 6px;border-radius:6px;font-weight:700}
+
+.dr-free{margin:10px 0;padding:10px 12px;border:1px dashed var(--border2);border-radius:var(--rs);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.dr-free-txt{font-size:11px;color:var(--text3)}
+.dr-free-add{font-size:11px;font-weight:700;color:var(--accent-l);background:none;border:none;cursor:pointer}
+
+/* ── FAB ── */
+.dr-fab{position:fixed;right:18px;bottom:24px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 20px var(--accent-glow);z-index:30;transition:var(--t)}
+.dr-fab:active{transform:scale(0.94)}
+
+/* ── Empty state ── */
+.dr-empty{margin:40px 16px;text-align:center;padding:30px 16px}
+.dr-empty-ico{font-size:34px;margin-bottom:10px}
+.dr-empty h3{font-family:var(--ff-serif);font-size:17px;color:var(--white);margin-bottom:6px}
+.dr-empty p{font-size:12px;color:var(--text3);margin-bottom:16px}
+.dr-empty-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.dr-btn{padding:10px 16px;border-radius:12px;border:none;font-size:12px;font-weight:700;cursor:pointer;transition:var(--t)}
+.dr-btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+.dr-btn.ghost{background:var(--g1);border:1px solid var(--border);color:var(--white)}
+
+/* ── Bottom sheet modal ── */
+.dr-sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.dr-sheet-bg.open{display:flex}
+.dr-sheet{width:100%;max-width:520px;max-height:88dvh;overflow-y:auto;background:#14141c;border:1px solid var(--border2);border-top-left-radius:22px;border-top-right-radius:22px;padding:16px 16px calc(24px + env(safe-area-inset-bottom));animation:drUp 0.25s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes drUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.dr-sheet-handle{width:36px;height:4px;border-radius:99px;background:var(--g3);margin:0 auto 14px}
+.dr-sheet-title{font-family:var(--ff-serif);font-size:18px;color:var(--white);margin-bottom:14px}
+.dr-field{margin-bottom:12px}
+.dr-field label{display:block;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px}
+.dr-field input,.dr-field select,.dr-field textarea{width:100%;background:var(--g1);border:1px solid var(--border);border-radius:10px;padding:11px 12px;font-size:14px;color:var(--white);font-family:var(--ff-sans);outline:none;transition:var(--t)}
+.dr-field input:focus,.dr-field select:focus,.dr-field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.dr-field textarea{resize:vertical;min-height:56px}
+.dr-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dr-chiprow{display:flex;gap:6px;flex-wrap:wrap}
+.dr-chip{padding:7px 12px;border-radius:99px;border:1px solid var(--border);background:var(--g1);color:var(--text2);font-size:11px;font-weight:700;cursor:pointer;transition:var(--t)}
+.dr-chip.sel{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent}
+.dr-err{font-size:11px;color:var(--red);margin:-4px 0 10px;display:none}
+.dr-err.show{display:block}
+.dr-sheet-actions{display:flex;gap:8px;margin-top:16px}
+.dr-sheet-actions .dr-btn{flex:1}
+.dr-quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.dr-quick-actions .dr-btn{font-size:11px;padding:11px 8px}
+.dr-quick-actions .dr-btn.danger{background:var(--red-bg);color:var(--red)}
+
+.dr-toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(12px);background:rgba(10,10,25,0.95);border:1px solid var(--border2);color:#fff;font-size:12px;padding:10px 16px;border-radius:12px;z-index:200;opacity:0;pointer-events:none;transition:var(--t)}
+</style>
+</head>
+<body>
+
+<div class="dr-head">
+  <div class="dr-title">Daily Routine</div>
+  <div class="dr-sub">Plan your day, one time block at a time.</div>
+</div>
+
+<div class="dr-tabs">
+  <button class="dr-tab active" id="drTabMine" onclick="drSwitchTab('mine')">Mine</button>
+  <button class="dr-tab" id="drTabPartner" onclick="drSwitchTab('partner')">Partner</button>
+</div>
+
+<div class="dr-datenav">
+  <button class="dr-datebtn" onclick="drShiftDate(-1)" aria-label="Previous day">‹</button>
+  <div class="dr-datecenter" onclick="document.getElementById('drDatePick').showPicker ? document.getElementById('drDatePick').showPicker() : document.getElementById('drDatePick').click()">
+    <div class="dr-datetoday" id="drDateBadge">TODAY</div>
+    <div class="dr-dateday" id="drDateLabel">—</div>
+  </div>
+  <button class="dr-datebtn" onclick="drShiftDate(1)" aria-label="Next day">›</button>
+  <input type="date" id="drDatePick" class="dr-datehidden" onchange="drPickDate(this.value)">
+</div>
+
+<div class="dr-strip" id="drStrip"></div>
+
+<div class="dr-summary" id="drSummary"></div>
+
+<div class="dr-list" id="drList"></div>
+
+<button class="dr-fab" onclick="drOpenAdd()" aria-label="Add routine">+</button>
+
+<!-- Add/Edit sheet -->
+<div class="dr-sheet-bg" id="drFormBg">
+  <div class="dr-sheet">
+    <div class="dr-sheet-handle"></div>
+    <div class="dr-sheet-title" id="drFormTitle">Add Routine</div>
+    <div class="dr-err" id="drFormErr"></div>
+
+    <div class="dr-field"><label>Activity</label><input id="drFTitle" placeholder="e.g. Gym"></div>
+    <div class="dr-row2">
+      <div class="dr-field"><label>Start Time</label><input id="drFStart" type="time"></div>
+      <div class="dr-field"><label>End Time</label><input id="drFEnd" type="time"></div>
+    </div>
+    <div class="dr-field">
+      <label>Type</label>
+      <div class="dr-chiprow" id="drFType"></div>
+    </div>
+    <div class="dr-field"><label>Description (optional)</label><textarea id="drFDesc" placeholder="Short note"></textarea></div>
+    <div class="dr-row2">
+      <div class="dr-field">
+        <label>Repeat</label>
+        <select id="drFRepeat">
+          <option value="none">Does not repeat</option>
+          <option value="daily">Every day</option>
+          <option value="weekdays">Weekdays</option>
+          <option value="weekends">Weekends</option>
+        </select>
+      </div>
+      <div class="dr-field">
+        <label>Reminder</label>
+        <select id="drFReminder">
+          <option value="none">None</option>
+          <option value="at_time">At time</option>
+          <option value="5min">5 min before</option>
+          <option value="10min">10 min before</option>
+          <option value="15min">15 min before</option>
+          <option value="30min">30 min before</option>
+          <option value="1hour">1 hour before</option>
+        </select>
+      </div>
+    </div>
+    <div class="dr-field">
+      <label>Visibility</label>
+      <div class="dr-chiprow" id="drFVis">
+        <button type="button" class="dr-chip sel" data-v="private" onclick="drPickVis('private')">🔒 Private</button>
+        <button type="button" class="dr-chip" data-v="shared" onclick="drPickVis('shared')">👥 Shared</button>
+      </div>
+    </div>
+    <div class="dr-field"><label>Location (optional)</label><input id="drFLoc" placeholder="e.g. Home gym"></div>
+    <div class="dr-field"><label>Notes (optional)</label><textarea id="drFNotes" placeholder="Anything else"></textarea></div>
+
+    <div class="dr-sheet-actions">
+      <button class="dr-btn ghost" onclick="drCloseForm()">Cancel</button>
+      <button class="dr-btn primary" onclick="drSaveForm()" id="drSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Item detail / quick actions sheet -->
+<div class="dr-sheet-bg" id="drDetailBg">
+  <div class="dr-sheet">
+    <div class="dr-sheet-handle"></div>
+    <div class="dr-sheet-title" id="drDetailTitle">Activity</div>
+    <div id="drDetailBody" style="font-size:13px;color:var(--text2);margin-bottom:14px"></div>
+    <div class="dr-quick-actions" id="drDetailActions"></div>
+  </div>
+</div>
+
+<div class="dr-toast" id="drToast"></div>
+
+<script>
+'use strict';
+const API = 'https://us-app-av6d.onrender.com';
+let AppS = {};
+try { AppS = JSON.parse(localStorage.getItem('uwl_v5') || '{}'); } catch (e) {}
+const coupleId = AppS.coupleId || null;
+const myRole   = AppS.role || 'user1';
+const partnerRole = myRole === 'user1' ? 'user2' : 'user1';
+let myName      = AppS.myName || 'You';
+let partnerName = AppS.partnerName || 'Partner';
+
+window.addEventListener('message', e => {
+  if (!e.data || !e.data.type) return;
+  if (e.data.type === 'names') { myName = e.data.my || myName; partnerName = e.data.partner || partnerName; drRender(); }
+  if (e.data.type === 'theme' && e.data.vars) {
+    Object.entries(e.data.vars).forEach(([k, v]) => { if (v) document.documentElement.style.setProperty(k, v); });
+  }
+  if (e.data.type === 'US_RESET_SCROLL') window.scrollTo(0, 0);
+});
+
+const TYPE_META = {
+  routine: { ico:'🔁', label:'Routine' }, habit: { ico:'✅', label:'Habit' },
+  task: { ico:'📋', label:'Task' }, event: { ico:'📅', label:'Event' },
+  meal: { ico:'🍽️', label:'Meal' }, workout: { ico:'💪', label:'Workout' },
+  couple: { ico:'💞', label:'Couple' }, focus: { ico:'🎯', label:'Focus' },
+  break: { ico:'☕', label:'Break' }, sleep: { ico:'😴', label:'Sleep' }
+};
+
+function esc(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function pad2(n){ return String(n).padStart(2,'0'); }
+function fmtDate(d){ return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+function toMin(hhmm){ const [h,m]=hhmm.split(':').map(Number); return h*60+m; }
+function fmtTime12(hhmm){
+  const [h,m]=hhmm.split(':').map(Number);
+  const ap = h>=12?'PM':'AM'; let hh=h%12; if(hh===0)hh=12;
+  return hh+':'+pad2(m)+' '+ap;
+}
+function toast(msg,dur=2600){ const t=document.getElementById('drToast'); t.textContent=msg; t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)'; clearTimeout(window._drToastT); window._drToastT=setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(-50%) translateY(12px)';},dur); }
+
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+/* ── State ── */
+let drTab = 'mine';           // 'mine' | 'partner'
+let drDate = new Date();      // currently viewed date
+let drRoutines = [];          // raw templates from server (both roles)
+let drTicker = null;
+
+function drRoleForTab(tab){ return tab === 'mine' ? myRole : partnerRole; }
+
+/* ── Load ── */
+async function drLoad() {
+  if (!coupleId) { drList().innerHTML = '<div class="dr-empty"><div class="dr-empty-ico">🔌</div><h3>Not connected</h3><p>Pair with your partner first to use Daily Routine.</p></div>'; return; }
+  try {
+    drRoutines = await api('GET', '/api/daily-routine/' + coupleId);
+  } catch (e) { toast('Could not load routines'); drRoutines = drRoutines || []; }
+  drRender();
+}
+function drList(){ return document.getElementById('drList'); }
+
+/* ── Occurrence expansion for a given date ── */
+function drOccursOn(r, dateStr, dow){
+  if (r.repeat === 'none') return r.date === dateStr;
+  if (r.date && r.date > dateStr) return false; // hasn't started yet
+  if (r.repeat === 'daily') return true;
+  if (r.repeat === 'weekdays') return dow >= 1 && dow <= 5;
+  if (r.repeat === 'weekends') return dow === 0 || dow === 6;
+  if (r.repeat === 'custom') return Array.isArray(r.repeatDays) && r.repeatDays.includes(dow);
+  return false;
+}
+function drOccurrenceFor(r, dateStr){
+  const ov = (r.timeByDate && r.timeByDate[dateStr]) || null;
+  const status = (r.statusByDate && r.statusByDate[dateStr]) || 'upcoming';
+  return {
+    ...r,
+    startTime: ov ? ov.start : r.startTime,
+    endTime:   ov ? ov.end   : r.endTime,
+    status, dateStr
+  };
+}
+function drOccurrencesForDate(role, dateStr){
+  const d = new Date(dateStr + 'T00:00:00');
+  const dow = d.getDay();
+  return drRoutines
+    .filter(r => r.role === role)
+    .filter(r => role === partnerRole ? r.visibility === 'shared' : true) // privacy: only shared items cross to partner tab
+    .filter(r => drOccursOn(r, dateStr, dow))
+    .map(r => drOccurrenceFor(r, dateStr))
+    .sort((a,b) => toMin(a.startTime) - toMin(b.startTime) || (a.endTime<b.endTime?-1:1));
+}
+function drComputeStatus(occ, dateStr, nowMin, isToday){
+  if (occ.status === 'completed' || occ.status === 'skipped') return occ.status;
+  if (!isToday) return dateStr < fmtDate(new Date()) ? 'missed' : 'upcoming';
+  const s = toMin(occ.startTime), en = toMin(occ.endTime);
+  const overnight = en <= s;
+  const inRange = overnight ? (nowMin >= s || nowMin < en) : (nowMin >= s && nowMin < en);
+  if (inRange) return 'in_progress';
+  if (!overnight && nowMin >= en) return 'missed';
+  return 'upcoming';
+}
+
+/* ── Tabs / date nav ── */
+function drSwitchTab(tab){
+  drTab = tab;
+  document.getElementById('drTabMine').classList.toggle('active', tab==='mine');
+  document.getElementById('drTabPartner').classList.toggle('active', tab==='partner');
+  drRender();
+}
+function drShiftDate(delta){ drDate.setDate(drDate.getDate()+delta); drRender(); }
+function drPickDate(v){ if(!v) return; drDate = new Date(v+'T00:00:00'); drRender(); }
+
+/* ── Render ── */
+function drRender(){
+  const dateStr = fmtDate(drDate);
+  const todayStr = fmtDate(new Date());
+  const isToday = dateStr === todayStr;
+
+  document.getElementById('drDateBadge').textContent = isToday ? 'TODAY' : (dateStr < todayStr ? 'PAST' : 'UPCOMING');
+  document.getElementById('drDateLabel').textContent = drDate.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
+  document.getElementById('drDatePick').value = dateStr;
+
+  drRenderStrip(dateStr);
+
+  const role = drRoleForTab(drTab);
+  const occs = drOccurrencesForDate(role, dateStr);
+  const now = new Date();
+  const nowMin = now.getHours()*60 + now.getMinutes();
+  occs.forEach(o => { o._status = drComputeStatus(o, dateStr, nowMin, isToday); });
+
+  drRenderSummary(occs, isToday, nowMin);
+  drRenderList(occs, isToday, nowMin, role);
+}
+
+function drRenderStrip(selDateStr){
+  const strip = document.getElementById('drStrip');
+  const todayStr = fmtDate(new Date());
+  let html = '';
+  for (let i=-2;i<=4;i++){
+    const d = new Date(drDate); d.setDate(drDate.getDate()+i-0); // relative to selected date center
+  }
+  // Build a stable window around *today*, not the selected date, so the strip doesn't jump around.
+  const base = new Date();
+  for (let i=-2;i<=4;i++){
+    const d = new Date(base); d.setDate(base.getDate()+i);
+    const ds = fmtDate(d);
+    const sel = ds === selDateStr;
+    const isT = ds === todayStr;
+    html += `<div class="dr-stripday ${isT?'today':''} ${sel?'sel':''}" onclick="drPickDate('${ds}')">
+      <div class="dow">${d.toLocaleDateString(undefined,{weekday:'short'})}</div>
+      <div class="dnum">${d.getDate()}</div>
+    </div>`;
+  }
+  strip.innerHTML = html;
+}
+
+function drRenderSummary(occs, isToday, nowMin){
+  const el = document.getElementById('drSummary');
+  const total = occs.length;
+  const done = occs.filter(o => o._status === 'completed').length;
+  const pct = total ? Math.round(done/total*100) : 0;
+  const remaining = occs.filter(o => o._status === 'upcoming' || o._status === 'in_progress').length;
+
+  let nextHtml = '';
+  const next = occs.find(o => o._status === 'upcoming' || o._status === 'in_progress');
+  if (isToday && next) {
+    const mins = toMin(next.startTime) - nowMin;
+    const when = next._status === 'in_progress' ? 'happening now' : (mins > 0 ? 'in ' + (mins>=60? Math.round(mins/60)+'h '+(mins%60)+'m' : mins+'m') : 'starting soon');
+    nextHtml = `<div class="dr-summary-next">
+      <div class="dr-nextpill">Next</div>
+      <div>${fmtTime12(next.startTime)} · <b>${esc(next.title)}</b> — ${when}</div>
+    </div>`;
+  }
+
+  el.innerHTML = total === 0 ? '' : `
+    <div class="dr-summary-top"><div class="dr-summary-label">${isToday?'Today':drDate.toLocaleDateString(undefined,{month:'short',day:'numeric'})}</div><div class="dr-summary-pct">${pct}%</div></div>
+    <div class="dr-bar"><div class="dr-bar-fill" style="width:${pct}%"></div></div>
+    <div class="dr-summary-line">${done} of ${total} activities completed · ${remaining} remaining</div>
+    ${nextHtml}
+  `;
+}
+
+function drRenderList(occs, isToday, nowMin, role){
+  const el = drList();
+  if (occs.length === 0){
+    el.innerHTML = `<div class="dr-empty">
+      <div class="dr-empty-ico">🗓️</div>
+      <h3>${drTab==='mine' ? 'Your day is empty' : (partnerName + '’s day is empty')}</h3>
+      <p>${drTab==='mine' ? 'Create your first routine to start planning your day.' : 'Nothing shared for this day yet.'}</p>
+      ${drTab==='mine' ? `<div class="dr-empty-actions"><button class="dr-btn primary" onclick="drOpenAdd()">+ Add Routine</button></div>` : ''}
+    </div>`;
+    return;
+  }
+
+  let html = '';
+  let nowInserted = !isToday;
+  occs.forEach((o, i) => {
+    if (isToday && !nowInserted && toMin(o.startTime) > nowMin) {
+      html += `<div class="dr-now">NOW · ${fmtTime12(pad2(new Date().getHours())+':'+pad2(new Date().getMinutes()))}</div>`;
+      nowInserted = true;
+    }
+    const meta = TYPE_META[o.type] || TYPE_META.routine;
+    const dur = ((toMin(o.endTime) - toMin(o.startTime) + 1440) % 1440);
+    const durTxt = dur >= 60 ? Math.floor(dur/60)+'h'+(dur%60?' '+(dur%60)+'m':'') : dur+'m';
+    const statusLabel = ({upcoming:'Upcoming',in_progress:'In Progress',completed:'Completed',skipped:'Skipped',missed:'Missed'})[o._status];
+    html += `<div class="dr-item ${o._status==='completed'?'done':''} ${o._status==='in_progress'?'active':''}" onclick="drOpenDetail('${o.id}','${o.dateStr}')">
+      <div class="dr-time">${fmtTime12(o.startTime)}<small>${fmtTime12(o.endTime)} · ${durTxt}</small></div>
+      <div class="dr-dot-col"><div class="dr-dot ${o._status}"></div></div>
+      <div class="dr-body">
+        <div class="dr-body-top">
+          <span class="dr-name">${meta.ico} ${esc(o.title)}</span>
+          <span class="dr-type">${meta.label}</span>
+          ${o.visibility==='shared' ? '<span class="dr-shared-badge">Shared</span>' : ''}
+        </div>
+        ${o.description ? `<div class="dr-desc">${esc(o.description)}</div>` : ''}
+        <div class="dr-status ${o._status}">${statusLabel}</div>
+      </div>
+    </div>`;
+    // free-time gap detection to next item
+    const next = occs[i+1];
+    if (next) {
+      const gap = toMin(next.startTime) - toMin(o.endTime);
+      if (gap >= 20) {
+        const gh = Math.floor(gap/60), gm = gap%60;
+        const gapTxt = gh ? gh+'h'+(gm?' '+gm+'m':'') : gm+'m';
+        html += `<div class="dr-free"><span class="dr-free-txt">${fmtTime12(o.endTime)} – ${fmtTime12(next.startTime)} · Free time · ${gapTxt} available</span><button class="dr-free-add" onclick="drOpenAdd('${o.endTime}','${next.startTime}')">+ Add</button></div>`;
+      }
+    }
+  });
+  if (isToday && !nowInserted) html += `<div class="dr-now">NOW · ${fmtTime12(pad2(new Date().getHours())+':'+pad2(new Date().getMinutes()))}</div>`;
+  el.innerHTML = html;
+}
+
+/* ── Add / Edit form ── */
+let drEditId = null;
+let drFormVis = 'private';
+function drTypeChips(){
+  const wrap = document.getElementById('drFType');
+  wrap.innerHTML = Object.entries(TYPE_META).map(([k,m]) => `<button type="button" class="dr-chip" data-t="${k}" onclick="drPickType('${k}')">${m.ico} ${m.label}</button>`).join('');
+}
+function drPickType(t){ document.querySelectorAll('#drFType .dr-chip').forEach(c => c.classList.toggle('sel', c.dataset.t===t)); document.getElementById('drFType').dataset.sel = t; }
+function drPickVis(v){ drFormVis = v; document.querySelectorAll('#drFVis .dr-chip').forEach(c => c.classList.toggle('sel', c.dataset.v===v)); }
+
+function drOpenAdd(prefStart, prefEnd){
+  if (!coupleId) { toast('Not connected to your couple space'); return; }
+  drEditId = null;
+  document.getElementById('drFormTitle').textContent = 'Add Routine';
+  document.getElementById('drFTitle').value = '';
+  document.getElementById('drFStart').value = prefStart || '';
+  document.getElementById('drFEnd').value = prefEnd || '';
+  document.getElementById('drFDesc').value = '';
+  document.getElementById('drFRepeat').value = 'none';
+  document.getElementById('drFReminder').value = 'none';
+  document.getElementById('drFLoc').value = '';
+  document.getElementById('drFNotes').value = '';
+  drTypeChips(); drPickType('routine'); drPickVis('private');
+  document.getElementById('drFormErr').classList.remove('show');
+  document.getElementById('drFormBg').classList.add('open');
+}
+function drOpenEdit(id){
+  const r = drRoutines.find(x => x.id === id);
+  if (!r) return;
+  drEditId = id;
+  document.getElementById('drFormTitle').textContent = 'Edit Routine';
+  document.getElementById('drFTitle').value = r.title;
+  document.getElementById('drFStart').value = r.startTime;
+  document.getElementById('drFEnd').value = r.endTime;
+  document.getElementById('drFDesc').value = r.description || '';
+  document.getElementById('drFRepeat').value = ['none','daily','weekdays','weekends'].includes(r.repeat) ? r.repeat : 'none';
+  document.getElementById('drFReminder').value = r.reminder || 'none';
+  document.getElementById('drFLoc').value = r.location || '';
+  document.getElementById('drFNotes').value = r.notes || '';
+  drTypeChips(); drPickType(r.type || 'routine'); drPickVis(r.visibility || 'private');
+  document.getElementById('drFormErr').classList.remove('show');
+  document.getElementById('drDetailBg').classList.remove('open');
+  document.getElementById('drFormBg').classList.add('open');
+}
+function drCloseForm(){ document.getElementById('drFormBg').classList.remove('open'); }
+
+function drShowErr(msg){ const e = document.getElementById('drFormErr'); e.textContent = msg; e.classList.add('show'); }
+
+function drHasConflict(role, dateStr, startTime, endTime, excludeId){
+  const occs = drOccurrencesForDate(role, dateStr).filter(o => o.id !== excludeId);
+  const s1 = toMin(startTime), e1raw = toMin(endTime); const e1 = e1raw <= s1 ? e1raw+1440 : e1raw;
+  return occs.some(o => {
+    const s2 = toMin(o.startTime); let e2 = toMin(o.endTime); if (e2 <= s2) e2 += 1440;
+    return s1 < e2 && s2 < e1;
+  });
+}
+
+async function drSaveForm(){
+  const title = document.getElementById('drFTitle').value.trim();
+  const startTime = document.getElementById('drFStart').value;
+  const endTime = document.getElementById('drFEnd').value;
+  const type = document.getElementById('drFType').dataset.sel || 'routine';
+  if (!title) return drShowErr('Please enter an activity name.');
+  if (!startTime || !endTime) return drShowErr('Please set a start and end time.');
+  if (startTime === endTime) return drShowErr('End time cannot be the same as start time.');
+
+  const dateStr = fmtDate(drDate);
+  if (drHasConflict(myRole, dateStr, startTime, endTime, drEditId)) {
+    return drShowErr('Schedule conflict — this overlaps with another activity.');
+  }
+
+  const routine = {
+    title, startTime, endTime, type,
+    description: document.getElementById('drFDesc').value.trim() || null,
+    repeat: document.getElementById('drFRepeat').value,
+    reminder: document.getElementById('drFReminder').value,
+    visibility: drFormVis,
+    location: document.getElementById('drFLoc').value.trim() || null,
+    notes: document.getElementById('drFNotes').value.trim() || null,
+    date: dateStr
+  };
+
+  document.getElementById('drSaveBtn').textContent = 'Saving…';
+  try {
+    if (drEditId) {
+      await api('PUT', '/api/daily-routine/' + drEditId, { routine });
+    } else {
+      await api('POST', '/api/daily-routine', { coupleId, role: myRole, routine, myName });
+    }
+    drCloseForm();
+    toast('Routine saved');
+    await drLoad();
+  } catch (e) {
+    drShowErr(e.message || 'Could not save. Please try again.');
+  } finally {
+    document.getElementById('drSaveBtn').textContent = 'Save';
+  }
+}
+
+/* ── Detail / quick actions ── */
+let drDetailCtx = null; // {id, dateStr}
+function drOpenDetail(id, dateStr){
+  const r = drRoutines.find(x => x.id === id);
+  if (!r) return;
+  drDetailCtx = { id, dateStr };
+  const meta = TYPE_META[r.type] || TYPE_META.routine;
+  document.getElementById('drDetailTitle').textContent = meta.ico + ' ' + r.title;
+  const parts = [`${fmtTime12(r.startTime)} – ${fmtTime12(r.endTime)}`];
+  if (r.description) parts.push(r.description);
+  if (r.location) parts.push('📍 ' + r.location);
+  if (r.notes) parts.push('📝 ' + r.notes);
+  document.getElementById('drDetailBody').innerHTML = parts.map(esc).join('<br>');
+
+  const isMine = r.role === myRole;
+  const actions = document.getElementById('drDetailActions');
+  let html = '';
+  if (isMine) {
+    html += `<button class="dr-btn primary" onclick="drSetStatus('completed')">✓ Mark Complete</button>`;
+    html += `<button class="dr-btn ghost" onclick="drSetStatus('skipped')">Skip</button>`;
+    html += `<button class="dr-btn ghost" onclick="drOpenEdit('${id}')">Edit</button>`;
+    html += `<button class="dr-btn ghost" onclick="drDuplicate()">Duplicate</button>`;
+    html += `<button class="dr-btn danger" onclick="drDelete()" style="grid-column:1/-1">Delete</button>`;
+  } else {
+    html += `<div style="grid-column:1/-1;font-size:11px;color:var(--text3)">Shared by ${esc(partnerName)} · read-only</div>`;
+  }
+  actions.innerHTML = html;
+  document.getElementById('drDetailBg').classList.add('open');
+}
+function drCloseDetail(){ document.getElementById('drDetailBg').classList.remove('open'); }
+document.getElementById('drDetailBg').addEventListener('click', e => { if (e.target.id==='drDetailBg') drCloseDetail(); });
+document.getElementById('drFormBg').addEventListener('click', e => { if (e.target.id==='drFormBg') drCloseForm(); });
+
+async function drSetStatus(status){
+  if (!drDetailCtx) return;
+  try {
+    await api('PATCH', '/api/daily-routine/' + drDetailCtx.id + '/status', { date: drDetailCtx.dateStr, status });
+    drCloseDetail(); toast(status === 'completed' ? 'Marked complete' : 'Skipped');
+    await drLoad();
+  } catch (e) { toast(e.message || 'Could not update'); }
+}
+async function drDuplicate(){
+  if (!drDetailCtx) return;
+  try { await api('POST', '/api/daily-routine/' + drDetailCtx.id + '/duplicate'); drCloseDetail(); toast('Duplicated'); await drLoad(); }
+  catch (e) { toast(e.message || 'Could not duplicate'); }
+}
+async function drDelete(){
+  if (!drDetailCtx) return;
+  if (!confirm('Delete this routine? This cannot be undone for this series.')) return;
+  try { await api('DELETE', '/api/daily-routine/' + drDetailCtx.id); drCloseDetail(); toast('Deleted'); await drLoad(); }
+  catch (e) { toast(e.message || 'Could not delete'); }
+}
+
+/* ── Live clock tick (updates NOW indicator + in-progress state) ── */
+function drStartTicker(){
+  clearInterval(drTicker);
+  drTicker = setInterval(() => { if (fmtDate(drDate) === fmtDate(new Date())) drRender(); }, 60000);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  drStartTicker();
+  drLoad();
+});
+</script>
+</body>
+</html>

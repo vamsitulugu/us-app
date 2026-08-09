@@ -127,6 +127,7 @@ app.use('/api/search', require('./routes/search'));
 app.use('/api/presence', require('./routes/presence'));
 app.use('/api/movie', require('./routes/routes-movie'));
 app.use('/api/meetplanner', require('./routes/meetplanner'));
+app.use('/api/daily-routine', require('./routes/daily-routine'));
 
 // ── Public release/flag endpoints (no auth — called by the app itself) ─
 app.use('/api/releases', require('./routes/releases'));
