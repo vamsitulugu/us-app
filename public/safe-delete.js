@@ -46,47 +46,93 @@
   function close() {
     if (busy) return; // don't allow closing mid-delete via backdrop/esc race
     overlay.classList.remove('show');
-    setTimeout(() => { confirmBtn.onclick = null; }, 200);
+    setTimeout(() => {
+      confirmBtn.onclick = null;
+      // Multi-option mode injects extra buttons ahead of sd-confirm —
+      // strip them back out so the next single-option call gets a clean
+      // two-button sheet again instead of accumulating stale buttons.
+      overlay.querySelectorAll('.sd-actions .sd-btn[data-extra]').forEach(b => b.remove());
+      confirmBtn.style.display = '';
+      overlay.querySelector('.sd-actions').classList.remove('sd-multi');
+    }, 200);
   }
 
-  function setBusy(v) {
+  function setBusy(v, btn) {
     busy = v;
-    confirmBtn.disabled = v;
+    const actionBtns = overlay.querySelectorAll('.sd-actions .sd-btn:not(.sd-cancel)');
+    actionBtns.forEach(b => { b.disabled = v; });
     cancelBtn.disabled = v;
-    confirmBtn.classList.toggle('sd-loading', v);
-    confirmBtn.textContent = v ? '' : (confirmBtn.dataset.label || 'Delete');
+    const target = btn || confirmBtn;
+    target.classList.toggle('sd-loading', v);
+    target.textContent = v ? '' : (target.dataset.label || 'Delete');
   }
 
   /**
    * confirmDelete({title, message, itemType, count, destructiveLabel, onConfirm})
-   * onConfirm may be async; while it runs the confirm button is disabled
-   * (prevents double-delete / double-tap). Modal only closes after
-   * onConfirm resolves successfully, or stays open + shows the thrown
-   * error message if it rejects.
+   *   — single destructive action (original signature, unchanged for
+   *   every existing caller across the app).
+   * confirmDelete({title, message, itemType, count, options})
+   *   — WhatsApp-style sheet with 2+ destructive choices stacked above
+   *   Cancel, e.g. [{ label: 'Delete for everyone', onConfirm }, { label:
+   *   'Delete for me', onConfirm }]. Only pass the options the backend
+   *   can actually perform for the current selection — this modal never
+   *   decides eligibility itself, the caller does.
+   * Each onConfirm may be async; its own button is disabled while it
+   * runs (prevents double-tap), and the whole sheet only closes once it
+   * resolves — a rejection keeps the sheet open and shows the error so
+   * the user can retry instead of silently losing the action.
    */
-  window.confirmDelete = function ({ title, message, itemType, count, destructiveLabel, onConfirm }) {
+  window.confirmDelete = function ({ title, message, itemType, count, destructiveLabel, onConfirm, options }) {
     ensureDom();
     const label = itemType || 'item';
     const n = count || 1;
     titleEl.textContent = title || (n > 1 ? `Delete ${n} selected ${label}${n === 1 ? '' : 's'}?` : `Delete this ${label}?`);
     msgEl.textContent = message || `This action can't be undone.`;
-    confirmBtn.dataset.label = destructiveLabel || 'Delete';
-    confirmBtn.textContent = confirmBtn.dataset.label;
     setBusy(false);
-    overlay.classList.add('show');
 
-    confirmBtn.onclick = async () => {
-      if (busy) return; // guard against rapid double-tap
-      setBusy(true);
+    async function runOption(fn, btn) {
+      if (busy) return; // guard against rapid double-tap across any of the buttons
+      setBusy(true, btn);
       try {
-        await onConfirm();
-        setBusy(false);
+        await fn();
+        setBusy(false, btn);
         overlay.classList.remove('show');
       } catch (err) {
-        setBusy(false);
+        setBusy(false, btn);
         msgEl.textContent = 'Something went wrong: ' + (err && err.message ? err.message : 'delete failed') + '. Nothing else was deleted — you can try again.';
       }
-    };
+    }
+
+    const actionsEl = overlay.querySelector('.sd-actions');
+    actionsEl.classList.toggle('sd-multi', !!(options && options.length));
+
+    if (options && options.length) {
+      // Multi-choice sheet: one button per option, all above Cancel,
+      // each independently disabled/spinning only while its own
+      // onConfirm is in flight.
+      confirmBtn.style.display = 'none';
+      overlay.querySelectorAll('.sd-actions .sd-btn[data-extra]').forEach(b => b.remove());
+      const actions = actionsEl;
+      // Insert each option directly before Cancel, in the order given —
+      // Cancel always ends up last, matching the WhatsApp sheet layout
+      // (destructive choices stacked above Cancel, not mixed with it).
+      options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'sd-btn sd-confirm';
+        btn.setAttribute('data-extra', '1');
+        btn.dataset.label = opt.label;
+        btn.textContent = opt.label;
+        btn.onclick = () => runOption(opt.onConfirm, btn);
+        actions.insertBefore(btn, cancelBtn);
+      });
+    } else {
+      confirmBtn.dataset.label = destructiveLabel || 'Delete';
+      confirmBtn.textContent = confirmBtn.dataset.label;
+      confirmBtn.onclick = () => runOption(onConfirm, confirmBtn);
+    }
+
+    overlay.classList.add('show');
   };
 })();
 

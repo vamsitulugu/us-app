@@ -666,8 +666,8 @@ function reanchorAfterImages() {
     const mine = isMine(m);
     const time = fmtClock(m.created_at);
     let body = '';
-    if (m.type === 'image') body = `<img src="${esc(m.media_url)}" class="chat-img" onclick="Chat.openMediaViewer('${m.id}')" loading="lazy">`;
-    else if (m.type === 'gif') body = `<img src="${esc(m.media_url)}" class="chat-img chat-gif" onclick="Chat.openMediaViewer('${m.id}')" loading="lazy">`;
+    if (m.type === 'image') body = `<img src="${esc(m.media_url)}" class="chat-img" onclick="Chat.openMediaViewer('${m.id}')" loading="lazy" draggable="false">`;
+    else if (m.type === 'gif') body = `<img src="${esc(m.media_url)}" class="chat-img chat-gif" onclick="Chat.openMediaViewer('${m.id}')" loading="lazy" draggable="false">`;
     else if (m.type === 'voice') body = renderVoice(m);
     else if (m.type === 'audio') body = `<audio controls src="${esc(m.media_url)}" style="max-width:220px"></audio>`;
     else if (m.type === 'location') {
@@ -1200,6 +1200,15 @@ function reanchorAfterImages() {
     const p = ev && ev.touches ? ev.touches[0] : ev;
     lpStartX = p ? p.clientX : 0;
     lpStartY = p ? p.clientY : 0;
+    // `.msg-text`/`.msg-bubble` intentionally re-enable native text
+    // selection (see chat.css) so users can select/copy text normally.
+    // That's exactly what races our own long-press on text messages —
+    // Android's own "hold to select text" can start during the same
+    // window our timer is counting down. Suppress it just for this row,
+    // just for the duration of the hold, so it can never win the race;
+    // restored the instant the press ends if our long-press didn't fire.
+    const row = ev && ev.target && ev.target.closest ? ev.target.closest('.chat-row') : null;
+    if (row) row.classList.add('lp-holding');
     lpTimer = setTimeout(() => {
       lpFired = true;
       if (navigator.vibrate) navigator.vibrate(30);
@@ -1219,8 +1228,30 @@ function reanchorAfterImages() {
     const dx = Math.abs(p.clientX - lpStartX), dy = Math.abs(p.clientY - lpStartY);
     if (dx > LP_MOVE_TOLERANCE || dy > LP_MOVE_TOLERANCE) endLongPress();
   }
-  function endLongPress() { clearTimeout(lpTimer); lpTimer = null; }
+  function endLongPress() {
+    clearTimeout(lpTimer); lpTimer = null;
+    // Only strip the temporary no-select guard if selection mode didn't
+    // end up active for this row — once selected, `.selecting` (see
+    // chat.css) already owns disabling text-select for as long as it's
+    // checked, and clearing it here too is harmless either way.
+    document.querySelectorAll('.chat-row.lp-holding').forEach(r => r.classList.remove('lp-holding'));
+  }
   function openMenu(id, ev) {
+  // Root cause of "long-press sometimes fails to select, especially on
+  // images": on Android, a real finger-hold on a bubble (in particular
+  // an <img>, which has its own native "hold to save" affordance) also
+  // fires the browser's native `contextmenu` event around the same
+  // ~450-800ms mark our own JS timer uses. Both handlers used to run —
+  // our timer selects the message, then the native contextmenu arrived
+  // a beat later and, since selectMode was already true, toggled the
+  // very message we'd just selected right back OFF. `lpFired` is set
+  // the instant our own timer fires for this exact touch sequence, so
+  // if it's already true here, this contextmenu is just the trailing
+  // native event for the gesture we already handled — swallow it
+  // instead of letting it re-toggle the selection. (oncontextmenu's
+  // `return false` already suppresses the native menu itself; this
+  // stops our own code from acting on it a second time.)
+  if (lpFired) return;
   // If selection mode is already active, long-press / right-click on
   // another message just adds it to the selection instead of popping
   // the action menu again — this is what makes multi-select feel
@@ -1665,31 +1696,50 @@ function menuItemsHtml(m, id, includeSelect) {
     else if (mediaMs.length) { mediaMs.forEach(m => window.open(m.media_url, '_blank')); }
     exitSelectMode();
   }
-  // Bulk delete always deletes "for me" — safe regardless of whether the
-  // selection mixes your own and your partner's messages (deleting a
-  // partner's message "for everyone" isn't something you're allowed to do,
-  // and the backend would reject it per-message anyway). Reports partial
-  // failures instead of silently claiming everything was removed.
+  // WhatsApp-style bulk delete: "Delete for everyone" is only offered
+  // when EVERY selected message is eligible for it (same rule as the
+  // single-message context menu — mine ? both options : "for me" only),
+  // since one mode is applied uniformly to the whole selection and the
+  // backend would reject "everyone" per-message for anything that isn't
+  // yours anyway. Reports partial failures instead of silently claiming
+  // everything was removed.
+  async function runBulkDeleteMode(mode, ids, trashBtn) {
+    if (trashBtn) trashBtn.disabled = true;
+    const { succeeded, failed } = await runBulkDelete(ids, (id) => deleteMsg(id, mode));
+    if (trashBtn) trashBtn.disabled = false;
+    selectedIds = new Set(failed.map(f => f.id)); // keep failed ones selected/visible so the user can retry just those
+    if (!selectedIds.size) exitSelectMode();
+    else renderSelectToolbar();
+    if (failed.length) toast(`${succeeded.length} deleted. ${failed.length} couldn't be deleted.`);
+    else toast(succeeded.length > 1 ? `${succeeded.length} messages deleted` : 'Deleted');
+  }
   async function deleteSelected() {
     const ids = Array.from(selectedIds);
     if (!ids.length) return;
-    confirmDelete({
-      title: `Delete ${ids.length} selected message${ids.length > 1 ? 's' : ''}?`,
-      count: ids.length,
-      itemType: 'message',
-      message: 'These messages will be removed from your chat only — your partner will still see their copies.',
-      onConfirm: async () => {
-        const trashBtn = document.querySelector('#chatSelectActions .cst-btn[data-action="delete"]');
-        if (trashBtn) trashBtn.disabled = true;
-        const { succeeded, failed } = await runBulkDelete(ids, (id) => deleteMsg(id, 'me'));
-        if (trashBtn) trashBtn.disabled = false;
-        selectedIds = new Set(failed.map(f => f.id)); // keep failed ones selected/visible
-        if (!selectedIds.size) exitSelectMode();
-        else renderSelectToolbar();
-        if (failed.length) toast(`${succeeded.length} deleted. ${failed.length} couldn't be deleted.`);
-        else toast(succeeded.length > 1 ? `${succeeded.length} messages deleted` : 'Deleted');
-      }
-    });
+    const ms = selectedMsgs();
+    const trashBtn = document.querySelector('#chatSelectActions .cst-btn[data-action="delete"]');
+    const allMine = ms.length > 0 && ms.every(m => isMine(m));
+
+    if (allMine) {
+      confirmDelete({
+        title: `Delete ${ids.length} selected message${ids.length > 1 ? 's' : ''}?`,
+        count: ids.length,
+        itemType: 'message',
+        options: [
+          { label: 'Delete for everyone', onConfirm: () => runBulkDeleteMode('everyone', ids, trashBtn) },
+          { label: 'Delete for me', onConfirm: () => runBulkDeleteMode('me', ids, trashBtn) }
+        ]
+      });
+    } else {
+      confirmDelete({
+        title: `Delete ${ids.length} selected message${ids.length > 1 ? 's' : ''}?`,
+        count: ids.length,
+        itemType: 'message',
+        message: 'These messages will be removed from your chat only — your partner will still see their copies.',
+        destructiveLabel: 'Delete for Me',
+        onConfirm: () => runBulkDeleteMode('me', ids, trashBtn)
+      });
+    }
   }
 
   // ─── SEARCH ──────────────────────────────────────────

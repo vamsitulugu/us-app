@@ -559,6 +559,7 @@
 .chat-rec-timer{font-size:11px;color:var(--red-status);font-weight:700}
 .chat-row{display:flex;margin:1px 0;position:relative;padding:1px 8px;border-radius:10px;transition:background-color .15s ease;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .chat-row .msg-bubble,.chat-row .msg-text{-webkit-user-select:text;user-select:text}
+.chat-row.lp-holding .msg-bubble,.chat-row.lp-holding .msg-text{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #chatMsgs.selecting .chat-row .msg-bubble,#chatMsgs.selecting .chat-row .msg-text{-webkit-user-select:none;user-select:none}
 .chat-row.me{justify-content:flex-end}
 /* Telegram-style grouping: consecutive bubbles from the same sender sit
