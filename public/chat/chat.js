@@ -632,6 +632,33 @@ function reanchorAfterImages() {
     return 'mid';
   }
 
+  // WhatsApp-style message status indicator, rendered as inline SVG (never
+  // Unicode/emoji characters). Reads the real backend state on the message
+  // (delivered / delivered_at / read / read_at) — a 'temp_' id means the
+  // optimistic bubble hasn't been confirmed by the server yet, i.e. SENDING.
+  // Two-check icons are shared markup; only the wrapper class/color differs
+  // between delivered (muted) and read (blue), so CSS alone drives the
+  // color swap and can transition it smoothly.
+  function renderTicks(m) {
+    const sending = typeof m.id === 'string' && m.id.indexOf('temp_') === 0;
+    if (sending) {
+      return `<span class="chat-ticks sending" title="Sending">
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="none"><circle cx="8" cy="8" r="6.2" stroke="currentColor" stroke-width="1.4" opacity=".55"/><path d="M8 4.4V8l2.6 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/></svg>
+      </span>`;
+    }
+    if (!m.delivered && !m.read) {
+      // SENT — single tick
+      return `<span class="chat-ticks sent" title="Sent">${TICK_SVG_SINGLE}</span>`;
+    }
+    if (m.read) {
+      return `<span class="chat-ticks read" title="Read">${TICK_SVG_DOUBLE}</span>`;
+    }
+    // DELIVERED — two muted ticks
+    return `<span class="chat-ticks delivered" title="Delivered">${TICK_SVG_DOUBLE}</span>`;
+  }
+  const TICK_SVG_SINGLE = `<svg viewBox="0 0 16 11" width="15" height="10" fill="none"><path d="M1 5.6 5 9.6 15 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const TICK_SVG_DOUBLE = `<svg viewBox="0 0 20 11" width="18" height="10" fill="none"><path d="M1 5.6 5 9.6 15 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 5.6 10 9.6 20 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
   function renderBubble(m, isNew, groupPos) {
     if (m.deleted) {
       return `<div class="chat-row ${isMine(m) ? 'me' : 'them'}"><div class="chat-bubble deleted-bubble">🚫 Message deleted</div></div>`;
@@ -668,14 +695,13 @@ function reanchorAfterImages() {
         ${opts.map(o => `<div class="msg-poll-opt" onclick="event.stopPropagation();Chat.votePoll(${m.id},'${esc(o).replace(/'/g,"\\'")}')">${esc(o)}</div>`).join('')}
       </div>`;
     }
-    else if (m.type === 'call_log') return `<div class="chat-call-log${isNew ? ' msg-pop-in' : ''}"><span>${esc(m.text)}</span><span class="chat-call-time">${time}</span></div>`;
+    else if (m.type === 'call_log') return `<div class="chat-call-log chat-system-event${isNew ? ' msg-pop-in' : ''}"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><path d="M3.6 1.4c.5-.2 1.1 0 1.3.5l1 2.2c.2.4.1.9-.2 1.2l-1 1c.6 1.5 1.8 2.7 3.3 3.3l1-1c.3-.3.8-.4 1.2-.2l2.2 1c.5.2.7.8.5 1.3l-.6 1.5c-.2.5-.7.8-1.2.7-4.6-.6-8.3-4.3-8.9-8.9-.1-.5.2-1 .7-1.2z"/></svg><span>${esc(m.text)}</span><span class="chat-call-time">${time}</span></div>`;
     else body = `<div class="chat-text">${linkify(esc(m.text || ''))}</div>${renderLinkPreview(m.text)}`;
 
     const reactions = m.reactions && Object.keys(m.reactions).length
       ? `<div class="chat-reactions">${Object.entries(m.reactions).map(([e, roles]) => `<span class="chat-reaction-pill">${e} ${roles.length}</span>`).join('')}</div>` : '';
 
-    const status = mine ? (m.read ? '✓✓' : m.delivered ? '✓✓' : '✓') : '';
-    const statusClass = mine && m.read ? 'read' : '';
+    const status = mine ? renderTicks(m) : '';
 
     const quoted = m.reply_to ? renderQuote(m.reply_to) : '';
 
@@ -685,7 +711,7 @@ function reanchorAfterImages() {
         ${quoted}
         ${body}
         ${reactions}
-        <div class="chat-meta"><span>${time}${m.edited ? ' · edited' : ''}</span>${mine ? `<span class="chat-status ${statusClass}">${status}</span>` : ''}</div>
+        <div class="chat-meta"><span>${time}${m.edited ? ' · edited' : ''}</span>${mine ? status : ''}</div>
       </div>
     </div>`;
   }
