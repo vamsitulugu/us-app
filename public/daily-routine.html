@@ -9,14 +9,17 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --h: 215;
-  --accent: hsl(var(--h),100%,62%);
-  --accent-d: hsl(var(--h),95%,50%);
-  --accent-l: hsl(var(--h),100%,78%);
-  --accent-glow: hsla(var(--h),100%,62%,0.35);
-  --accent2: hsl(300,85%,65%);
-  --accent2-d: hsl(300,80%,52%);
-  --accent2-glow: hsla(300,85%,65%,0.35);
+  /* Matches the app's actual default theme (public/theme-burgundy.css)
+     exactly, so this page paints red from the very first frame instead
+     of flashing the old blue placeholder while waiting for the parent
+     frame's postMessage('theme') to arrive. */
+  --accent: #C1121F;
+  --accent-d: #8B0000;
+  --accent-l: #FF6B5D;
+  --accent-glow: rgba(255, 59, 48, 0.35);
+  --accent2: #E0355B;
+  --accent2-d: #A3123A;
+  --accent2-glow: rgba(224, 53, 91, 0.32);
   --g1: rgba(255,255,255,0.04);
   --g2: rgba(255,255,255,0.08);
   --g3: rgba(255,255,255,0.13);

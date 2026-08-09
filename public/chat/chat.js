@@ -861,6 +861,20 @@ function reanchorAfterImages() {
       if (idx > -1) msgs[idx] = saved;
       lastMsgId = Math.max(lastMsgId, saved.id);
       render();
+      // Insurance for delivered/read ticks: the normal path for a tick to
+      // flip live is the partner's client broadcasting 'message_status'
+      // (see startRealtime's broadcast handler) the instant they come
+      // online / read it. That depends on Realtime actually being
+      // reachable end-to-end (dashboard config, socket staying connected,
+      // etc.) — if it silently isn't, the only other thing that catches
+      // it is the next background poll tick, up to ~2.5s away. A message
+      // someone JUST sent is the single most likely moment for the
+      // partner to immediately see/open the chat and read it, so give
+      // this one message a few extra explicit status checks right after
+      // sending, on top of (not instead of) the regular poll loop —
+      // cheap, and it's exactly the window where "why hasn't my tick
+      // updated yet" would be most noticeable.
+      [1500, 4000, 8000].forEach(delay => setTimeout(refreshRecentStatuses, delay));
     } catch (e) {
       // The request itself errored (network blip, dropped connection,
       // etc.) — but the server upsert is idempotent on client_id, so it's
