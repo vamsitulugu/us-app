@@ -732,7 +732,7 @@ function reanchorAfterImages() {
     else body = `<div class="chat-text">${linkify(applyWaFormatting(esc(m.text || '')))}</div>${renderLinkPreview(m.text)}`;
 
     const reactions = m.reactions && Object.keys(m.reactions).length
-      ? `<div class="chat-reactions">${Object.entries(m.reactions).map(([e, roles]) => `<span class="chat-reaction-pill" title="${esc(roles.map(r => r === myRole() ? (window.S.myName || 'You') : (window.S.partnerName || 'Partner')).join(', '))}">${e} ${roles.length}</span>`).join('')}</div>` : '';
+      ? `<div class="chat-reactions">${Object.entries(m.reactions).map(([e, roles]) => `<span class="chat-reaction-pill${roles.includes(myRole()) ? ' mine' : ''}" title="${esc(roles.map(r => r === myRole() ? (window.S.myName || 'You') : (window.S.partnerName || 'Partner')).join(', '))}" onclick="event.stopPropagation();Chat.reactTo('${m.id}','${e}')">${e} ${roles.length}</span>`).join('')}</div>` : '';
 
     const status = mine ? renderTicks(m) : '';
 
@@ -1896,7 +1896,7 @@ function menuItemsHtml(m, id, includeSelect) {
   const mine = isMine(m);
   return `
     ${includeSelect ? `<div class="ctx-item" onclick="Chat.enterSelectMode('${id}')">☑️ Select</div>` : ''}
-    <div class="ctx-item" onclick="Chat.openReactionPicker('${id}', event)">😀 React</div>
+    <div class="ctx-item" onclick="Chat.openReactionPickerAt('${id}', event)">😀 React</div>
     <div class="ctx-item" onclick="Chat.markUnread('${id}')">📩 Mark as unread</div>
     <div class="ctx-item" onclick="Chat.replyTo('${id}')">↩️ Reply</div>
     <div class="ctx-item" onclick="Chat.forwardMsg('${id}')">↪️ Forward</div>
@@ -1909,17 +1909,12 @@ function menuItemsHtml(m, id, includeSelect) {
     <div class="ctx-item danger" onclick="Chat.confirmDeleteMsg('${id}','me')">🗑️ Delete for me</div>`;
 }
   const REACTION_EMOJIS = ['❤️', '😂', '😮', '😢', '👍', '🔥'];
-  // Reaction picker — replaces the old single hard-coded ❤️ menu item
-  // with a WhatsApp/Telegram-style row of quick emojis.
-  function openReactionPicker(id, ev) {
+  // Reaction picker anchored to the message bubble (long-press context
+  // menu / desktop right-click path) — positions the emoji row directly
+  // above the bubble, WhatsApp-style, instead of a generic modal.
+  function openReactionPickerAt(id, ev) {
     document.getElementById('chatMsgMenu')?.remove();
-    const bar = document.createElement('div');
-    bar.className = 'chat-sheet-overlay';
-    bar.innerHTML = `<div class="chat-reaction-picker">
-      ${REACTION_EMOJIS.map(e => `<span class="reaction-picker-emoji" onclick="Chat.reactTo('${id}','${e}');this.closest('.chat-sheet-overlay').remove()">${e}</span>`).join('')}
-    </div>`;
-    bar.onclick = e => { if (e.target === bar) bar.remove(); };
-    document.body.appendChild(bar);
+    showReactionRow(id, e => { reactTo(id, e); });
   }
   async function reactTo(id, emoji) {
     document.getElementById('chatMsgMenu')?.remove();
@@ -2230,19 +2225,42 @@ function menuItemsHtml(m, id, includeSelect) {
   function openReactionPicker(ev) {
     if (selectedIds.size !== 1) return;
     const id = Array.from(selectedIds)[0];
+    showReactionRow(id, e => { reactTo(id, e); exitSelectMode(); });
+  }
+  // Shared by both entry points (long-press ctx menu, and the select-mode
+  // toolbar's React icon): renders the quick-emoji row positioned right
+  // above the target message bubble — matches WhatsApp's placement
+  // instead of a centered/top-of-screen popup. Falls back to centering
+  // near the tap point if the bubble isn't found (e.g. it scrolled out).
+  function showReactionRow(id, onPick) {
     document.getElementById('chatReactionPicker')?.remove();
+    const row = document.querySelector(`.chat-row[data-id="${id}"]`);
+    const bubbleEl = row ? (row.querySelector('.chat-bubble') || row) : null;
     const wrap = document.createElement('div');
     wrap.id = 'chatReactionPicker';
     wrap.className = 'msg-ctx-bg';
-    wrap.innerHTML = `<div class="chat-reaction-picker">
-      ${QUICK_REACTIONS.map(e => `<span class="ctx-emoji" data-emoji="${e}">${e}</span>`).join('')}
-    </div>`;
+    const picker = document.createElement('div');
+    picker.className = 'chat-reaction-picker chat-reaction-picker-anchored';
+    picker.innerHTML = QUICK_REACTIONS.map(e => `<span class="ctx-emoji" data-emoji="${e}">${e}</span>`).join('');
+    wrap.appendChild(picker);
+    document.body.appendChild(wrap);
+    if (bubbleEl) {
+      const r = bubbleEl.getBoundingClientRect();
+      const pickerW = Math.max(220, QUICK_REACTIONS.length * 42);
+      let left = r.left + r.width / 2 - pickerW / 2;
+      left = Math.max(8, Math.min(window.innerWidth - pickerW - 8, left));
+      let top = r.top - 56; // above the bubble
+      if (top < 56) top = r.bottom + 8; // not enough room above — drop below instead
+      picker.style.position = 'fixed';
+      picker.style.left = left + 'px';
+      picker.style.top = top + 'px';
+      picker.style.width = pickerW + 'px';
+    }
     wrap.onclick = (e) => {
       if (e.target === wrap) { wrap.remove(); return; }
       const span = e.target.closest('[data-emoji]');
-      if (span) { wrap.remove(); reactTo(id, span.dataset.emoji); exitSelectMode(); }
+      if (span) { wrap.remove(); onPick(span.dataset.emoji); }
     };
-    document.body.appendChild(wrap);
   }
 
   // ─── Bulk star / pin — toggle-as-a-group: if every selected message
@@ -4194,7 +4212,7 @@ function menuItemsHtml(m, id, includeSelect) {
     setSearchFilter, exportChat,
     _pspRotate, _pspRemove, _pspCancel, _pspSend,
     scheduleCurrentMessage,
-    wrapSelection, onComposerPaste, openReactionPicker, markUnread,
+    wrapSelection, onComposerPaste, openReactionPickerAt, markUnread,
     openInAppBrowser, openAutoLockPicker, openDndPicker
   };
 })();

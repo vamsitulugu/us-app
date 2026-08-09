@@ -643,7 +643,8 @@
 .chat-ticks.read{color:#3ecbff}
 .chat-ticks svg{filter:drop-shadow(0 0 1px rgba(0,0,0,.4))}
 .chat-reactions{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px}
-.chat-reaction-pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.1);border-radius:11px;padding:1px 7px 2px;font-size:11.5px;line-height:1.5;backdrop-filter:blur(4px)}
+.chat-reaction-pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.1);border-radius:11px;padding:1px 7px 2px;font-size:11.5px;line-height:1.5;backdrop-filter:blur(4px);cursor:pointer}
+.chat-reaction-pill.mine{background:rgba(37,211,102,.28);border-color:rgba(37,211,102,.5)}
 .chat-bubble.mine .chat-reaction-pill{background:rgba(0,0,0,.18);border-color:rgba(255,255,255,.15)}
 .chat-img{max-width:230px;border-radius:14px;display:block;margin-bottom:4px}
 .chat-gif{max-width:190px}
@@ -1218,8 +1219,12 @@
 /* Reaction emoji picker */
 .chat-reaction-picker{
   display:flex; gap:10px; background:var(--card,#1e1e1e); padding:14px 18px;
-  border-radius:16px; font-size:26px;
+  border-radius:16px; font-size:26px; justify-content:center;
 }
+.chat-reaction-picker-anchored{
+  box-shadow:0 6px 24px rgba(0,0,0,.4); animation:reactRowPop .15s ease;
+}
+@keyframes reactRowPop{ from{ opacity:0; transform:translateY(6px) scale(.9);} to{ opacity:1; transform:translateY(0) scale(1);} }
 .reaction-picker-emoji{ cursor:pointer; transition:transform .1s; }
 .reaction-picker-emoji:active{ transform:scale(1.3); }
 
