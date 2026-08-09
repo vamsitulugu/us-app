@@ -647,6 +647,31 @@
 .chat-bubble.mine .chat-reaction-pill{background:rgba(0,0,0,.18);border-color:rgba(255,255,255,.15)}
 .chat-img{max-width:230px;border-radius:14px;display:block;margin-bottom:4px}
 .chat-gif{max-width:190px}
+
+/* ─── WhatsApp-style grouped photo grid ─────────────── */
+.chat-photo-grid{display:grid;gap:2px;border-radius:14px;overflow:hidden;width:230px;margin-bottom:4px}
+.chat-photo-grid.n1{grid-template-columns:1fr}
+.chat-photo-grid.n1 .gph{aspect-ratio:4/5;max-height:300px}
+.chat-photo-grid.n2{grid-template-columns:1fr 1fr;height:150px}
+.chat-photo-grid.n3{grid-template-columns:1.3fr 1fr;grid-template-rows:1fr 1fr;height:200px}
+.chat-photo-grid.n3 .gph:first-child{grid-row:1 / 3}
+.chat-photo-grid.n4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;height:230px}
+.gph{position:relative;overflow:hidden;cursor:pointer;background:rgba(255,255,255,.05)}
+.gph img{width:100%;height:100%;object-fit:cover;display:block;-webkit-user-drag:none}
+.gph-more{position:absolute;inset:0;background:rgba(0,0,0,.5);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;letter-spacing:.3px}
+
+/* Pending-upload states */
+.gph-progress{position:absolute;inset:0;background:rgba(0,0,0,.4);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.gph-progress svg{width:38px;height:38px;transform:rotate(-90deg)}
+.gph-progress circle.bg{stroke:rgba(255,255,255,.28)}
+.gph-progress circle.fg{stroke:#fff;stroke-linecap:round;transition:stroke-dashoffset .15s linear}
+.gph-progress-pct{color:#fff;font-size:11px;font-weight:600;opacity:.9}
+.gph-failed{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#fff;text-align:center;padding:6px}
+.gph-failed-label{font-size:11px;font-weight:600}
+.gph-remove{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1}
+.gph-sendfail{margin-top:4px;padding:6px 10px;border-radius:10px;background:rgba(255,80,80,.14);color:#ff9a9a;font-size:12px;font-weight:600;cursor:pointer;text-align:center}
+.gph-retry-all{margin-top:4px;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.08);color:#fff;font-size:12px;font-weight:600;cursor:pointer;text-align:center}
+@media (max-width:380px){ .chat-photo-grid{width:200px} }
 /* ── SYSTEM CHAT EVENTS ──
    Shared look for anything that isn't a real sent/received message: date
    separators, call-history entries, routine/activity notices, blocked-user

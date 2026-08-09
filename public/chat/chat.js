@@ -444,7 +444,11 @@ function reanchorAfterImages() {
     // "nothing changed" early-return and the bubble's pin/star icon never
     // actually updated (only the separate pinned-bar did).
     const starred = (m.starred_by || []).slice().sort().join(',');
-    return trackKey(m) + '|' + (m.deleted ? 1 : 0) + '|' + (m.delivered ? 1 : 0) + '|' + (m.read ? 1 : 0) + '|' + (m.text || '') + '|' + rx + '|' + (m.pinned ? 1 : 0) + '|' + starred;
+    // _uploadRev (bumped on every progress tick / retry / removal) and
+    // _sendFailed are included so a pending image_group's progress rings
+    // and per-tile retry state actually get patched into the DOM instead
+    // of being treated as "nothing changed" and silently skipped.
+    return trackKey(m) + '|' + (m.deleted ? 1 : 0) + '|' + (m.delivered ? 1 : 0) + '|' + (m.read ? 1 : 0) + '|' + (m.text || '') + '|' + rx + '|' + (m.pinned ? 1 : 0) + '|' + starred + '|' + (m._uploadRev || 0) + '|' + (m._sendFailed ? 1 : 0);
   }
 
   // ─── RENDER ──────────────────────────────────────────
@@ -667,6 +671,7 @@ function reanchorAfterImages() {
     const time = fmtClock(m.created_at);
     let body = '';
     if (m.type === 'image') body = `<img src="${esc(m.media_url)}" class="chat-img" onclick="Chat.openMediaViewer('${m.id}')" loading="lazy" draggable="false">`;
+    else if (m.type === 'image_group') body = renderPhotoGrid(m);
     else if (m.type === 'gif') body = `<img src="${esc(m.media_url)}" class="chat-img chat-gif" onclick="Chat.openMediaViewer('${m.id}')" loading="lazy" draggable="false">`;
     else if (m.type === 'voice') body = renderVoice(m);
     else if (m.type === 'audio') body = `<audio controls src="${esc(m.media_url)}" style="max-width:220px"></audio>`;
@@ -722,7 +727,7 @@ function reanchorAfterImages() {
     const who = isMine(src) ? (window.S.myName || 'You') : (window.S.partnerName || 'Partner');
     let preview = src.text;
     if (!preview) {
-      preview = src.type === 'image' ? '📷 Photo' : src.type === 'gif' ? 'GIF' : src.type === 'voice' ? '🎤 Voice message'
+      preview = src.type === 'image' ? '📷 Photo' : src.type === 'image_group' ? `📷 ${groupItemsOf(src).length || ''} Photos`.trim() : src.type === 'gif' ? 'GIF' : src.type === 'voice' ? '🎤 Voice message'
         : src.type === 'audio' ? '🎵 Audio' : src.type === 'sticker' ? (src.media_meta?.emoji || '🙂') + ' Sticker'
         : src.type === 'gift' ? '🎁 Gift' : src.type === 'contact' ? '👤 Contact' : src.type === 'location' ? '📍 Location'
         : src.type === 'poll' ? '📊 Poll' : 'Message';
@@ -995,13 +1000,304 @@ function reanchorAfterImages() {
   }
 
   async function onImagePick(input) {
-    if (!input.files[0]) return;
-    const file = input.files[0];
+    const files = Array.from(input.files || []);
     input.value = '';
+    if (!files.length) return;
+    // Gallery (multi-select) and camera captures go through the WhatsApp-
+    // style instant-preview + grouped-photo pipeline below, even for a
+    // single photo, so every photo send gets the pending/progress/retry
+    // treatment. Video/generic-file inputs keep the original single-file
+    // upload-then-send path unchanged (out of scope of this feature).
+    if (input.id === 'chatGalleryInput' || input.id === 'chatCameraInput') {
+      sendImageGroup(files);
+      return;
+    }
+    const file = files[0];
     try {
       const url = await uploadChatMedia(file, file.name);
       sendMessage({ type: 'image', mediaUrl: url });
     } catch (e) { toast('Image upload failed — please try again'); }
+  }
+
+  // ─── GROUPED PHOTO SENDING (WhatsApp-style) ────────────
+  // One or more photos picked in a single action become ONE optimistic
+  // 'image_group' message immediately (using local blob: URLs so the
+  // user sees their photos with zero wait), each tile uploads
+  // independently with its own progress ring, failures are recoverable
+  // per-photo, and the real chat message is only created on the server
+  // once every tile has a hosted URL. Uses the same stable client-id +
+  // upsert-on-conflict reconciliation as sendMessage() so retries/late
+  // responses never duplicate the message.
+  const MAX_CONCURRENT_UPLOADS = 3;
+
+  function bumpUploadRev(m) { m._uploadRev = (m._uploadRev || 0) + 1; }
+
+  // Cheap rAF throttle so a fast upload (many onprogress ticks/sec) can't
+  // force a full re-render every tick — at most one paint per frame.
+  let _uploadRenderQueued = false;
+  function throttledRender() {
+    if (_uploadRenderQueued) return;
+    _uploadRenderQueued = true;
+    requestAnimationFrame(() => { _uploadRenderQueued = false; render(); });
+  }
+
+  function sendImageGroup(files) {
+    if (!coupleId()) { toast('Not connected'); return; }
+    if (!files.length) return;
+    const clientId = genClientId();
+    const items = files.map((file, i) => ({
+      id: clientId + '_' + i,
+      file,
+      localUrl: URL.createObjectURL(file),
+      status: 'uploading', // uploading | done | failed
+      progress: 0,
+      url: null, path: null, error: null
+    }));
+    const optimistic = {
+      id: 'temp_' + clientId, client_id: clientId, couple_id: coupleId(), sender_role: myRole(),
+      created_at: new Date().toISOString(), delivered: false, read: false,
+      type: 'image_group', _pending: true, _items: items, _uploadRev: 0
+    };
+    msgs.push(optimistic);
+    render(); scrollToBottom(true);
+    if (window.playAppSound) window.playAppSound('chat.image.sent');
+    runGroupUploads(clientId);
+  }
+
+  // Uploads every 'uploading'/'failed' item in the group, limited to
+  // MAX_CONCURRENT_UPLOADS in flight at once so picking 10+ photos on a
+  // slow connection doesn't try to open 10 simultaneous requests.
+  async function runGroupUploads(clientId) {
+    const m = msgs.find(x => x.client_id === clientId);
+    if (!m || !m._items) return;
+    const queue = m._items.filter(it => it.status === 'uploading' || it.status === 'failed');
+    let cursor = 0;
+    async function worker() {
+      while (cursor < queue.length) {
+        const it = queue[cursor++];
+        await uploadOneGroupItem(clientId, it.id);
+      }
+    }
+    const workers = Array.from({ length: Math.min(MAX_CONCURRENT_UPLOADS, queue.length) }, worker);
+    await Promise.all(workers);
+    maybeFinalizeGroup(clientId);
+  }
+
+  async function uploadOneGroupItem(clientId, itemId) {
+    const m = msgs.find(x => x.client_id === clientId);
+    if (!m) return;
+    const it = m._items.find(x => x.id === itemId);
+    if (!it) return;
+    it.status = 'uploading'; it.progress = 0; it.error = null;
+    bumpUploadRev(m); throttledRender();
+    try {
+      const data = await uploadFileWithProgress(it.file, coupleId(), (pct) => {
+        it.progress = pct; bumpUploadRev(m); throttledRender();
+      }, (xhr) => { it._xhr = xhr; });
+      it.url = data.url; it.path = data.path; it.status = 'done'; it.progress = 100; it._xhr = null;
+    } catch (e) {
+      it.status = 'failed';
+      it.error = (e && e.message) || 'Upload failed';
+      it._xhr = null;
+    }
+    bumpUploadRev(m); render();
+  }
+
+  // XHR (not fetch) so we get real upload-progress events for the
+  // circular progress ring — fetch's request streaming isn't reliably
+  // supported across the WebViews this app targets.
+  function uploadFileWithProgress(file, coupleId, onProgress, onXhrReady) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', API + '/api/media/upload');
+      xhr.timeout = 120000;
+      if (onXhrReady) onXhrReady(xhr);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+      };
+      xhr.onload = () => {
+        let data = {};
+        try { data = JSON.parse(xhr.responseText || '{}'); } catch (e) {}
+        if (xhr.status >= 200 && xhr.status < 300 && data.url) resolve(data);
+        else reject(new Error(data.error || 'Upload failed'));
+      };
+      xhr.onerror = () => reject(new Error('Network error — check your connection'));
+      xhr.ontimeout = () => reject(new Error('Upload timed out'));
+      xhr.onabort = () => reject(new Error('Cancelled'));
+      const form = new FormData();
+      form.append('file', file, file.name || 'upload');
+      form.append('coupleId', coupleId);
+      xhr.send(form);
+    });
+  }
+
+  // Once every item has settled (done or failed), decide what happens
+  // next: any failures keep the group pending with a per-tile retry UI;
+  // once everything has succeeded, the real message gets created.
+  function maybeFinalizeGroup(clientId) {
+    const idx = msgs.findIndex(x => x.client_id === clientId);
+    if (idx === -1) return;
+    const m = msgs[idx];
+    const items = m._items || [];
+    if (items.some(it => it.status === 'uploading')) return; // still in flight
+    if (!items.length) { msgs.splice(idx, 1); render(); return; }
+    if (items.some(it => it.status === 'failed')) { render(); return; } // wait for retry/removal
+    sendImageGroupMessage(clientId);
+  }
+
+  // All photos are uploaded — create the actual chat_messages row, one
+  // group holding every item's hosted URL. Idempotent via clientId
+  // upsert, exactly like sendMessage(), so a lost response + retry can
+  // never create two grouped messages.
+  async function sendImageGroupMessage(clientId) {
+    const idx = msgs.findIndex(x => x.client_id === clientId);
+    if (idx === -1) return;
+    const m = msgs[idx];
+    const items = (m._items || []).filter(it => it.status === 'done');
+    if (!items.length) { msgs.splice(idx, 1); render(); return; }
+    m._sendFailed = false;
+    const mediaMeta = { items: items.map(it => ({ url: it.url, path: it.path })) };
+    try {
+      const saved = await api('POST', '/api/chat', {
+        coupleId: coupleId(), clientId, senderRole: myRole(),
+        type: 'image_group', mediaUrl: items[0].url, mediaMeta
+      });
+      const idx2 = msgs.findIndex(x => x.client_id === clientId);
+      if (idx2 > -1) {
+        // Server row now holds the permanent hosted URLs — release the
+        // local blob: previews so they don't leak memory.
+        (msgs[idx2]._items || []).forEach(it => { try { URL.revokeObjectURL(it.localUrl); } catch (e) {} });
+        msgs[idx2] = saved;
+      }
+      lastMsgId = Math.max(lastMsgId, saved.id);
+      render();
+      [1500, 4000, 8000].forEach(delay => setTimeout(refreshRecentStatuses, delay));
+    } catch (e) {
+      // Same reasoning as sendMessage()'s catch: the upsert is idempotent
+      // on client_id, so check whether it actually landed before showing
+      // a false "failed" state.
+      let confirmed = null;
+      try {
+        const q = lastMsgTs ? '?after=' + encodeURIComponent(lastMsgTs) : '?limit=20';
+        const rows = await api('GET', '/api/chat/' + coupleId() + q);
+        confirmed = (rows || []).find(r => r.client_id === clientId);
+      } catch (e2) {}
+      const idx2 = msgs.findIndex(x => x.client_id === clientId);
+      if (confirmed) {
+        if (idx2 > -1) {
+          (msgs[idx2]._items || []).forEach(it => { try { URL.revokeObjectURL(it.localUrl); } catch (e) {} });
+          msgs[idx2] = confirmed;
+        }
+        lastMsgId = Math.max(lastMsgId, confirmed.id);
+        render();
+      } else {
+        if (idx2 > -1) { msgs[idx2]._sendFailed = true; render(); }
+        toast('Send failed — tap to retry');
+      }
+    }
+  }
+
+  function retryImageItem(clientId, itemId) {
+    const m = msgs.find(x => x.client_id === clientId);
+    if (!m) return;
+    const it = (m._items || []).find(x => x.id === itemId);
+    if (!it || it.status === 'uploading') return;
+    uploadOneGroupItem(clientId, itemId).then(() => maybeFinalizeGroup(clientId));
+  }
+
+  function retryImageGroup(clientId) {
+    const m = msgs.find(x => x.client_id === clientId);
+    if (!m) return;
+    (m._items || []).filter(it => it.status === 'failed').forEach(it => { it.status = 'uploading'; });
+    bumpUploadRev(m); render();
+    runGroupUploads(clientId);
+  }
+
+  function removeImageItem(clientId, itemId) {
+    const m = msgs.find(x => x.client_id === clientId);
+    if (!m) return;
+    const it = (m._items || []).find(x => x.id === itemId);
+    if (it) { if (it._xhr) { try { it._xhr.abort(); } catch (e) {} } try { URL.revokeObjectURL(it.localUrl); } catch (e) {} }
+    m._items = (m._items || []).filter(x => x.id !== itemId);
+    if (!m._items.length) {
+      const idx = msgs.findIndex(x => x.client_id === clientId);
+      if (idx > -1) msgs.splice(idx, 1);
+      render();
+      return;
+    }
+    render();
+    maybeFinalizeGroup(clientId);
+  }
+
+  function retryImageGroupSend(clientId) {
+    const m = msgs.find(x => x.client_id === clientId);
+    if (!m) return;
+    m._sendFailed = false; render();
+    sendImageGroupMessage(clientId);
+  }
+
+  // Items for a rendered/confirmed image_group message, or a pending
+  // optimistic one — normalized to the same {url, ...} shape either way.
+  function groupItemsOf(m) {
+    if (m._pending) return m._items || [];
+    return (m.media_meta && m.media_meta.items) || (m.media_url ? [{ url: m.media_url }] : []);
+  }
+
+  // WhatsApp-style responsive grid: 1 full image, 2 side-by-side, 3 in a
+  // big-left/two-stacked-right layout, 4 in a 2x2, 5+ shows the first 4
+  // tiles with a "+N" overlay on the last one for the rest.
+  function renderPhotoGrid(m) {
+    const pending = !!m._pending;
+    const items = groupItemsOf(m);
+    const total = items.length;
+    if (!total) return '';
+    const showCount = Math.min(total, 4);
+    const cls = total === 1 ? 'n1' : total === 2 ? 'n2' : total === 3 ? 'n3' : 'n4';
+    const extra = total - 4;
+    let tiles = '';
+    for (let i = 0; i < showCount; i++) {
+      const it = items[i];
+      const src = pending ? (it.url || it.localUrl) : it.url;
+      let overlay = '';
+      if (pending && it.status === 'uploading') {
+        const r = 15, c = (2 * Math.PI * r).toFixed(2), off = (c - (Math.min(it.progress, 100) / 100) * c).toFixed(2);
+        overlay = `<div class="gph-progress">
+          <svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="${r}" fill="none" stroke-width="3"/><circle class="fg" cx="18" cy="18" r="${r}" fill="none" stroke-width="3" stroke-dasharray="${c}" stroke-dashoffset="${off}"/></svg>
+          <span class="gph-progress-pct">${it.progress || 0}%</span>
+        </div>`;
+      } else if (pending && it.status === 'failed') {
+        overlay = `<div class="gph-failed" onclick="event.stopPropagation();Chat.retryImageItem('${esc(m.client_id)}','${esc(it.id)}')">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v6h-6"/></svg>
+          <span class="gph-failed-label">Tap to retry</span>
+          <span class="gph-remove" title="Remove" onclick="event.stopPropagation();Chat.removeImageItem('${esc(m.client_id)}','${esc(it.id)}')">✕</span>
+        </div>`;
+      }
+      const isLastVisible = i === showCount - 1;
+      const moreOverlay = (isLastVisible && extra > 0) ? `<div class="gph-more">+${extra}</div>` : '';
+      const tapHandler = pending ? '' : `onclick="event.stopPropagation();Chat.openMediaGroupViewer('${m.id}', ${i})"`;
+      tiles += `<div class="gph" ${tapHandler}>
+        <img src="${esc(src)}" loading="lazy" draggable="false" alt="Photo">
+        ${overlay}${moreOverlay}
+      </div>`;
+    }
+    const sendFailedBanner = m._sendFailed
+      ? `<div class="gph-sendfail" onclick="event.stopPropagation();Chat.retryImageGroupSend('${esc(m.client_id)}')">⚠️ Send failed — tap to retry</div>` : '';
+    const hasFailedItems = pending && items.some(it => it.status === 'failed');
+    const retryAllBtn = hasFailedItems && items.length > 1
+      ? `<div class="gph-retry-all" onclick="event.stopPropagation();Chat.retryImageGroup('${esc(m.client_id)}')">Retry failed photos</div>` : '';
+    return `<div class="chat-photo-grid ${cls}">${tiles}</div>${sendFailedBanner}${retryAllBtn}`;
+  }
+
+  // Scoped strictly to the tapped group (matches WhatsApp: swiping a
+  // grouped-photo message only moves within that group), so the count
+  // shown ("2/6") reflects the group's own size, not the whole chat.
+  function openMediaGroupViewer(msgId, itemIdx) {
+    const m = msgs.find(x => String(x.id) === String(msgId));
+    if (!m) return;
+    const items = groupItemsOf(m);
+    if (!items.length) return;
+    const collection = items.map(it => ({ url: it.url, type: 'image' }));
+    if (window.openImgViewer) window.openImgViewer(items[itemIdx].url, collection, itemIdx);
   }
 
  function sendGif(url) { sendMessage({ type: 'gif', mediaUrl: url }); closeSheet(); }
@@ -1307,10 +1603,11 @@ function menuItemsHtml(m, id, includeSelect) {
     // Small attachment thumbnail for image/gif/sticker replies — gives
     // the reply preview the same "what am I replying to" context
     // WhatsApp shows, instead of just a text line.
-    const thumbUrl = (m.type === 'image' || m.type === 'gif') ? m.media_url : null;
+    const thumbUrl = (m.type === 'image' || m.type === 'gif') ? m.media_url
+      : m.type === 'image_group' ? (groupItemsOf(m)[0] || {}).url : null;
     let previewText = m.text;
     if (!previewText) {
-      previewText = m.type === 'image' ? '📷 Photo' : m.type === 'gif' ? '🎞️ GIF' : m.type === 'voice' ? '🎤 Voice message'
+      previewText = m.type === 'image' ? '📷 Photo' : m.type === 'image_group' ? `📷 ${groupItemsOf(m).length || ''} Photos`.trim() : m.type === 'gif' ? '🎞️ GIF' : m.type === 'voice' ? '🎤 Voice message'
         : m.type === 'audio' ? '🎵 Audio' : m.type === 'sticker' ? (m.media_meta?.emoji || '🙂') + ' Sticker'
         : m.type === 'gift' ? '🎁 Gift' : m.type === 'contact' ? '👤 Contact' : m.type === 'location' ? '📍 Location'
         : m.type === 'poll' ? '📊 Poll' : 'Message';
@@ -1483,6 +1780,7 @@ function menuItemsHtml(m, id, includeSelect) {
     return Array.from(selectedIds).map(id => msgs.find(m => m.id === id)).filter(Boolean);
   }
   function hasDownloadableMedia(m) {
+    if (m.type === 'image_group') return groupItemsOf(m).length > 0;
     return !!m.media_url && ['image', 'gif', 'voice', 'audio'].includes(m.type);
   }
   const TOOLBAR_ACTIONS = [
@@ -1646,9 +1944,7 @@ function menuItemsHtml(m, id, includeSelect) {
   // each selected media message's file and triggers a browser download.
   // Falls back to opening the URL directly if the fetch is blocked
   // (e.g. cross-origin storage host without permissive CORS).
-  async function downloadOne(m) {
-    const url = m.media_url;
-    const name = (m.media_meta && m.media_meta.name) || url.split('/').pop().split('?')[0] || 'file';
+  async function downloadUrl(url, name) {
     try {
       const res = await fetch(url);
       const blob = await res.blob();
@@ -1658,6 +1954,20 @@ function menuItemsHtml(m, id, includeSelect) {
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     } catch (e) { window.open(url, '_blank'); }
+  }
+  async function downloadOne(m) {
+    if (m.type === 'image_group') {
+      const items = groupItemsOf(m);
+      for (let i = 0; i < items.length; i++) {
+        const url = items[i].url;
+        const name = url.split('/').pop().split('?')[0] || `photo_${i + 1}.jpg`;
+        await downloadUrl(url, name);
+      }
+      return;
+    }
+    const url = m.media_url;
+    const name = (m.media_meta && m.media_meta.name) || url.split('/').pop().split('?')[0] || 'file';
+    await downloadUrl(url, name);
   }
   async function downloadSelected() {
     const ms = selectedMsgs().filter(hasDownloadableMedia);
@@ -1677,12 +1987,15 @@ function menuItemsHtml(m, id, includeSelect) {
         if (mediaMs.length && navigator.canShare) {
           const files = [];
           for (const m of mediaMs) {
-            try {
-              const res = await fetch(m.media_url);
-              const blob = await res.blob();
-              const name = (m.media_meta && m.media_meta.name) || m.media_url.split('/').pop().split('?')[0] || 'file';
-              files.push(new File([blob], name, { type: blob.type || 'application/octet-stream' }));
-            } catch (_) {}
+            const urls = m.type === 'image_group' ? groupItemsOf(m).map(it => it.url) : [m.media_url];
+            for (let i = 0; i < urls.length; i++) {
+              try {
+                const res = await fetch(urls[i]);
+                const blob = await res.blob();
+                const name = (m.media_meta && m.media_meta.name) || urls[i].split('/').pop().split('?')[0] || `file_${i + 1}`;
+                files.push(new File([blob], name, { type: blob.type || 'application/octet-stream' }));
+              } catch (_) {}
+            }
           }
           if (files.length && navigator.canShare({ files })) { await navigator.share({ files }); exitSelectMode(); return; }
         }
@@ -2371,7 +2684,7 @@ function menuItemsHtml(m, id, includeSelect) {
     const lastSeen = Number(localStorage.getItem('chat_ring_seen_ts') || 0);
     const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
     const hasUnseenMedia = msgs.some(m =>
-      !m.deleted && !isMine(m) && (m.type === 'image' || m.type === 'gif') &&
+      !m.deleted && !isMine(m) && (m.type === 'image' || m.type === 'gif' || m.type === 'image_group') &&
       new Date(m.created_at).getTime() > Math.max(lastSeen, dayAgo));
     av.classList.toggle('has-ring', hasUnseenMedia);
     let dot = av.querySelector('.status-dot');
@@ -3024,20 +3337,34 @@ function menuItemsHtml(m, id, includeSelect) {
       overlay.className = 'media-grid-overlay';
       document.body.appendChild(overlay);
     }
-    const media = msgs.filter(m => !m.deleted && (m.type === 'image' || m.type === 'gif'))
-      .slice().reverse(); // newest first for browsing
+    // Flatten both single image/gif messages and grouped-photo messages
+    // into individual tiles, each remembering which message (and, for a
+    // group, which item index) it came from so a tap opens the right
+    // viewer scoped correctly.
+    const tiles = [];
+    msgs.filter(m => !m.deleted).forEach(m => {
+      if (m.type === 'image' || m.type === 'gif') tiles.push({ url: m.media_url, msgId: m.id, itemIdx: null });
+      else if (m.type === 'image_group') groupItemsOf(m).forEach((it, i) => tiles.push({ url: it.url, msgId: m.id, itemIdx: i }));
+    });
+    tiles.reverse(); // newest first for browsing
     overlay.innerHTML = `
       <div class="media-grid-topbar">
         <button class="media-grid-back" aria-label="Close"><i data-lucide="arrow-left"></i></button>
-        <div class="media-grid-title">Shared Media <span class="media-grid-count">${media.length}</span></div>
+        <div class="media-grid-title">Shared Media <span class="media-grid-count">${tiles.length}</span></div>
       </div>
       <div class="media-grid-body">
-        ${media.length ? `<div class="media-grid">${media.map(m => `<div class="media-grid-tile" data-id="${m.id}"><img src="${esc(m.media_url)}" loading="lazy"></div>`).join('')}</div>`
+        ${tiles.length ? `<div class="media-grid">${tiles.map((t, i) => `<div class="media-grid-tile" data-i="${i}"><img src="${esc(t.url)}" loading="lazy"></div>`).join('')}</div>`
           : `<div class="media-grid-empty">📷<div>No photos yet</div></div>`}
       </div>`;
     overlay.querySelector('.media-grid-back').onclick = () => overlay.classList.remove('open');
     overlay.querySelectorAll('.media-grid-tile').forEach(tile => {
-      tile.onclick = () => { overlay.classList.remove('open'); openMediaViewer(tile.getAttribute('data-id')); };
+      tile.onclick = () => {
+        overlay.classList.remove('open');
+        const t = tiles[Number(tile.getAttribute('data-i'))];
+        if (!t) return;
+        if (t.itemIdx === null) openMediaViewer(t.msgId);
+        else openMediaGroupViewer(t.msgId, t.itemIdx);
+      };
     });
     requestAnimationFrame(() => overlay.classList.add('open'));
     if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
@@ -3104,6 +3431,7 @@ function menuItemsHtml(m, id, includeSelect) {
 
   return {
     onChatScroll, scrollToBottom, sendText, onTypingInput, onImagePick, toggleRecord,
+    retryImageItem, removeImageItem, retryImageGroup, retryImageGroupSend, openMediaGroupViewer,
     onBubbleClick, openMenu, reactTo, replyTo, closeBanner, togglePin, toggleStar,
     openStarred, deleteMsg, confirmDeleteMsg, enterSelectMode, deleteSelected, exitSelectMode,
     isSelecting, closeMsgMenuIfOpen, closeTopOverlayIfOpen, openToolbarOverflow, openMediaViewer,
