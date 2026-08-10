@@ -21,7 +21,7 @@ public class MainActivity extends BridgeActivity {
   // fresh id rather than reusing whatever channel FCM's default
   // "Miscellaneous" bucket may already have created on existing
   // installs with its own (short/no) vibration settings.
-  public static final String TOUCH_CHANNEL_ID = "touch_channel_v1";
+  public static final String TOUCH_CHANNEL_ID = "touch_channel_v2";
 
   // Must match routes/auth.js's CALLS_CHANNEL_ID. Android also locks a
   // channel's sound the first time it's created, so an incoming call push

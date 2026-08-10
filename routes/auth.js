@@ -377,7 +377,14 @@ router.post('/register-fcm-token', async (req, res) => {
 // so the channel is what actually makes the phone buzz while the app
 // is fully closed. The message-level vibrateTimingsMillis below is only
 // a fallback for the (pre-Android 8) devices that predate channels.
-const TOUCH_CHANNEL_ID = 'touch_channel_v1';
+// Bumped to v2: Android notification channels are immutable once
+// created on a device — if an earlier build ever created
+// touch_channel_v1 without vibration properly enabled (or the person
+// toggled it off in system settings), no code change or app update can
+// fix that channel's settings, only a fresh channel id can. This is
+// the actual root cause of "vibration works when the app is open (JS
+// navigator.vibrate) but not when it's closed (native channel)".
+const TOUCH_CHANNEL_ID = 'touch_channel_v2';
 
 // Must match MainActivity.CALLS_CHANNEL_ID. This channel is created
 // natively with RingtoneManager's default ringtone attached and
