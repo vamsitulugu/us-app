@@ -457,6 +457,13 @@ async function sendFCMToPartner(coupleId, senderRole, payload) {
   console.log(`[NOTIF-DEBUG][fcm] Stage2 OK — token found for couple=${coupleId} role=${partnerRole}, last updated ${tokenRow.updated_at}`);
 
   const isIncomingCall = payload.tag === 'incoming-call';
+  // High-priority FCM delivery: without this, Android can defer/batch
+  // "normal" priority data messages for minutes while the device is
+  // idle/Doze (screen off, app killed) — which is exactly why Touch was
+  // reaching Firebase fine (Stage4 OK every time in the logs) but never
+  // arriving on the closed app. Calls already got this; Touch is the
+  // same class of "must land immediately" signal and needs it too.
+  const isTimeSensitive = isIncomingCall || payload.tag === 'touch';
 
   // CENTRALIZED sender identity lookup — every notification type in the
   // app funnels through here with (coupleId, senderRole), so this is the
@@ -512,7 +519,7 @@ async function sendFCMToPartner(coupleId, senderRole, payload) {
       token: tokenRow.token,
       data: fcmData,
       android: {
-        priority: isIncomingCall ? 'high' : undefined,
+        priority: isTimeSensitive ? 'high' : undefined,
       }
     });
     console.log(`[NOTIF-DEBUG][fcm] Stage4 OK — Firebase accepted, messageId=${messageId} (${Date.now() - t0}ms) couple=${coupleId} role=${partnerRole}`);
