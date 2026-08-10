@@ -194,6 +194,78 @@ button, input, select, textarea {
   max-width: 100%;
 }
 
+/* Broaden flex/grid "shrink to fit" coverage. The rule above only
+   caught classes literally containing "-row"/"-grid"/"-flex". Many
+   pages use names like .two-col, .dr-row2, .al-two-col, .mp-row2,
+   .rank-row, .detail-grid, .kpi-grid, .photo-col-grid, .movie-grid
+   which either don't match that pattern or benefit from the same
+   shrink-safety on their direct children so long labels/numbers/
+   long names inside a two-column stat/form row wrap instead of
+   forcing the row (and the page) wider than the viewport. */
+[class*="row"] > *, [class*="grid"] > *, [class*="flex"] > *,
+[class*="col"] > *, [class*="Grid"] > *, [class*="Row"] > * {
+  min-width: 0;
+}
+
+/* Fixed multi-column grids that were authored with a hard column
+   count (e.g. "repeat(4,1fr)", "repeat(3,1fr)") for a wide desktop
+   baseline can still make each column too narrow for its content
+   on phones below ~480px if the surrounding media query didn't
+   collapse it. As a safety net (not a redesign), let any grid
+   still using 3+ hard-coded equal columns fall back to 2 columns
+   on very small phones so content stays legible; pages that already
+   define their own <480px override keep using that instead because
+   this rule has low specificity and loads before page-authored
+   breakpoints later in the cascade only if such a rule doesn't
+   already exist -- authored overrides win either way since this is
+   a single low-specificity fallback, not !important. */
+@media (max-width: 480px) {
+  [style*="grid-template-columns: repeat(3"],
+  [style*="grid-template-columns: repeat(4"],
+  [style*="grid-template-columns: repeat(5"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Headers/navbars: long titles or long partner names must not push
+   icon buttons off-screen. Generic, low-specificity guard for the
+   common header/topbar/navbar child pattern. */
+.topbar > *, .header > *, .navbar > *, [class*="-header"] > *,
+[class*="-topbar"] > *, [class*="-nav"] > * {
+  min-width: 0;
+}
+.topbar *[class*="title"], .header *[class*="title"],
+.navbar *[class*="title"], [class*="-header"] *[class*="title"] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Button/action groups: allow wrapping instead of overlap/clipping
+   when 3+ inline buttons don't fit a narrow row, unless the page
+   explicitly opted into single-line + scroll via overflow-x. */
+.btn-row, .actions, .card-actions, [class*="-actions"],
+[class*="-btn-row"], [class*="-button-row"] {
+  flex-wrap: wrap;
+}
+
+/* Toast/snackbar notifications (mmToast, colToast, mpToast, dgToast,
+   pmToast, and any future id ending in "Toast"). These are centered
+   with left:50%/translateX(-50%) and were authored with
+   white-space:nowrap and no max-width -- fine for short static
+   text, but any longer dynamic message (API error text, a long
+   filename, etc.) grows past both screen edges on narrow phones
+   since translateX(-50%) only centers, it doesn't clamp width.
+   !important is required here because 2 of the 5 occurrences are
+   inline style="" attributes, which otherwise beat this stylesheet
+   regardless of load order. */
+[id$="Toast"] {
+  max-width: calc(100vw - 48px) !important;
+  white-space: normal !important;
+  text-align: center;
+  overflow-wrap: break-word;
+}
+
 /* Small-phone breakpoint tuning (320-375px): tighten button/action
    row gaps slightly so multi-button rows (common in card headers
    and modals) stay on one line instead of wrapping mid-row. Only
