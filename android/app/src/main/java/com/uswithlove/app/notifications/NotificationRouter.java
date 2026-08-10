@@ -8,7 +8,7 @@ package com.uswithlove.app.notifications;
  */
 public class NotificationRouter {
 
-  public static final String TOUCH_CHANNEL_ID = "touch_channel_v1";
+  public static final String TOUCH_CHANNEL_ID = "touch_channel_v2";
   public static final String CALLS_CHANNEL_ID = "calls_channel_v1";
   public static final String MESSAGES_CHANNEL_ID = "messages_channel_v1";
   public static final String PARTNER_CHANNEL_ID = "partner_requests_channel_v1";
