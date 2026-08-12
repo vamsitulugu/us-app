@@ -992,7 +992,6 @@ function reanchorAfterImages() {
       if (idx > -1) msgs[idx] = saved;
       lastMsgId = Math.max(lastMsgId, saved.id);
       render();
-      loadStreak();
       // Insurance for delivered/read ticks: the normal path for a tick to
       // flip live is the partner's client broadcasting 'message_status'
       // (see startRealtime's broadcast handler) the instant they come
@@ -2871,7 +2870,6 @@ function menuItemsHtml(m, id, includeSelect) {
           const isNewIncoming = idx === -1 && !isMine(r);
           if (idx > -1) msgs[idx] = r; else msgs.push(r);
           if (isNewIncoming && r.effect) playSendEffect(r.effect);
-          if (isNewIncoming) loadStreak();
           // A late/out-of-order push can insert an older row after a newer
           // one — keep the working array sorted so render(), lastMsgTs, and
           // "last received message" all agree on what's actually newest.
@@ -2997,26 +2995,8 @@ function menuItemsHtml(m, id, includeSelect) {
     initMute();
     initNickname();
     ensureEffectUI();
-    ensureStreakBadge();
-    loadStreak();
     refreshDisappearingLabel();
     restoreDraft();
-  }
-
-  // Both injected instead of hand-edited into index.html (9,900+ lines,
-  // shared across many other pages) — keeps this feature self-contained
-  // to chat.js/chat.css and safe to add/remove without touching the SPA
-  // shell markup.
-  function ensureStreakBadge() {
-    if (document.getElementById('chatStreakBadge')) return;
-    const header = document.querySelector('.chat-header, #chatHeaderNameText')?.closest?.('.chat-header')
-      || document.getElementById('chatHeaderNameText')?.parentElement;
-    if (!header) return;
-    const badge = document.createElement('span');
-    badge.id = 'chatStreakBadge';
-    badge.className = 'chat-streak-badge';
-    badge.style.display = 'none';
-    header.appendChild(badge);
   }
 
   function ensureEffectUI() {
@@ -4153,23 +4133,6 @@ function menuItemsHtml(m, id, includeSelect) {
     setTimeout(() => { layer.innerHTML = ''; }, 2200);
   }
 
-  // ─── STREAK: daily-messaging streak in the chat header ─
-  async function loadStreak() {
-    if (!coupleId()) return;
-    try {
-      const res = await api('GET', '/api/chat/' + coupleId() + '/streak');
-      const el = document.getElementById('chatStreakBadge');
-      if (!el) return;
-      if (res.streak > 0) {
-        el.style.display = 'inline-flex';
-        el.innerHTML = `🔥 <span>${res.streak}</span>`;
-        el.title = res.activeToday ? `${res.streak}-day streak — today counts already!` : `${res.streak}-day streak — message today to keep it going`;
-      } else {
-        el.style.display = 'none';
-      }
-    } catch (e) {}
-  }
-
   // ─── SCHEDULE SEND ─────────────────────────────────────
   async function scheduleCurrentMessage() {
     const picker = document.getElementById('chatEffectPicker');
@@ -4208,7 +4171,7 @@ function menuItemsHtml(m, id, includeSelect) {
     onWallpaperFilePicked, cancelWallpaperPreview, confirmWallpaperPreview, selectWpSwatch, applyWallpaper,
     loadMessages, toggleWallpaperShared, openMediaGrid, toggleTheme, cycleVoiceSpeed,
     clearChat, toggleMute, promptNickname,
-    openViewOnce, pickEffect, clearEffect, loadStreak,
+    openViewOnce, pickEffect, clearEffect,
     setSearchFilter, exportChat,
     _pspRotate, _pspRemove, _pspCancel, _pspSend,
     scheduleCurrentMessage,
