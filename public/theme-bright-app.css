@@ -1,0 +1,330 @@
+/* ============================================================
+   theme-bright-app.css — Sky Bright theme: main app (index.html only)
+   G2  main app shell      G3  chat page
+   Load AFTER theme-bright.css. Remove the <link> to revert.
+   ============================================================ */
+
+/* ============================================================
+   G2 — MAIN APP SHELL (public/index.html)
+   These rules mirror the selectors of the dark/red block that
+   lives at the bottom of index.html and win because this file
+   loads later.
+   ============================================================ */
+
+/* ── Page + loader background ── */
+html, body { background: #EAF4FF !important; }
+
+#appLoader { background: #EAF4FF !important; }
+#appLoader::before {
+  background:
+    radial-gradient(circle at 20% 15%, rgba(120, 180, 255, 0.35), transparent 55%),
+    radial-gradient(circle at 85% 85%, rgba(255, 255, 255, 0.8), transparent 55%) !important;
+}
+.al-sk {
+  background: rgba(255, 255, 255, 0.85) !important;
+  background-image: none !important;
+  border: 1px solid rgba(47, 110, 190, 0.10) !important;
+}
+.al-sidebar { background: rgba(255, 255, 255, 0.75) !important; border-right: 1px solid rgba(47, 110, 190, 0.12) !important; }
+.al-topbar  { border-bottom: 1px solid rgba(47, 110, 190, 0.12) !important; }
+.al-progress { color: rgba(15, 23, 42, 0.45) !important; }
+.al-progress-dot { background: rgba(47, 140, 255, 0.55) !important; }
+
+/* ── Sky background ── */
+#bg {
+  background: linear-gradient(180deg, #B9DCFF 0%, #DCEEFF 40%, #F2F8FF 100%) !important;
+}
+#bg::before {
+  background:
+    radial-gradient(circle at 12% 12%, rgba(90, 170, 255, 0.38), transparent 52%),
+    radial-gradient(circle at 88% 8%,  rgba(255, 255, 255, 0.85), transparent 48%),
+    radial-gradient(circle at 70% 90%, rgba(140, 190, 255, 0.30), transparent 55%) !important;
+}
+#bg::after { opacity: 0.12 !important; }
+
+/* ── Cards ── */
+.card, .metric, .m-card, .stat-item, .profile-hero, .settings-group,
+.settings-hero, .period-hero, .storage-hero, .pstat, .fstat-box {
+  background: rgba(255, 255, 255, 0.82) !important;
+  background-image: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.95) !important;
+  box-shadow: var(--card-shadow) !important;
+}
+.card:hover, .metric:hover {
+  box-shadow: 0 16px 40px rgba(47, 140, 255, 0.18) !important;
+}
+.glass, .glass-dark { border-color: var(--border) !important; }
+
+/* ── Sidebar ── */
+.sidebar {
+  background: rgba(255, 255, 255, 0.78) !important;
+  border-right: 1px solid var(--border) !important;
+}
+.sb-logo { background: rgba(255, 255, 255, 0.9) !important; }
+.ni:hover { background: rgba(47, 140, 255, 0.08) !important; }
+.ni.active {
+  background: rgba(47, 140, 255, 0.14) !important;
+  border: 1px solid rgba(47, 140, 255, 0.28) !important;
+  color: var(--accent-d) !important;
+}
+.ni.active::before {
+  background: var(--accent) !important;
+  box-shadow: 0 0 14px var(--accent-glow) !important;
+}
+.sidebar-overlay { background: rgba(15, 23, 42, 0.35) !important; }
+
+/* ── Top bar ── */
+.topbar {
+  background: rgba(255, 255, 255, 0.72) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+/* ── Bottom navigation (mobile) ── */
+.bot-nav {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border-top: 1px solid var(--border) !important;
+  box-shadow: 0 -6px 24px rgba(47, 140, 255, 0.10) !important;
+}
+
+/* ── Modals / sheets / auth ── */
+.modal, .auth-card, .mem-sheet {
+  background: rgba(255, 255, 255, 0.94) !important;
+  background-image: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.95) !important;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22) !important;
+}
+.modal-bg, .mem-sheet-overlay, .search-overlay { background: rgba(15, 23, 42, 0.45) !important; }
+.auth-tabs { background: rgba(47, 140, 255, 0.08) !important; }
+.auth-tab.active { background: #fff !important; box-shadow: 0 2px 8px rgba(47, 140, 255, 0.15); }
+.toast {
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border2) !important;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18) !important;
+}
+
+/* ── Buttons (shape unchanged — colors only) ── */
+.btn-accent, .ic-btn.accent {
+  background: linear-gradient(135deg, #4DA3FF, #1D6FE0) !important;
+  box-shadow: 0 6px 18px rgba(47, 140, 255, 0.35) !important;
+  color: var(--on-accent) !important;
+}
+.btn-accent:hover { filter: brightness(1.06); }
+.btn-glass {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid var(--border2) !important;
+  color: var(--white) !important;
+}
+.btn-danger  { background: var(--red-bg) !important;   color: var(--red) !important; }
+.btn-success { background: var(--green-bg) !important; color: var(--green) !important; }
+
+/* ── Inputs ── */
+input[type=text], input[type=password], input[type=email], input[type=number],
+input[type=date], input[type=time], textarea, select, .chat-in {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid var(--border2) !important;
+  color: var(--white) !important;
+}
+input::placeholder, textarea::placeholder { color: rgba(15, 23, 42, 0.38) !important; }
+input:focus, textarea:focus, select:focus, .chat-in:focus {
+  border-color: var(--accent) !important;
+  background: #fff !important;
+  box-shadow: 0 0 0 3px rgba(47, 140, 255, 0.22) !important;
+}
+select option { background: #fff; color: #0F172A; }
+
+/* ── Toggles / checks / selections ── */
+.toggle.on { background: var(--accent) !important; border-color: var(--accent) !important; }
+.hc.done {
+  background: var(--accent) !important; border-color: var(--accent) !important;
+  box-shadow: 0 0 12px var(--accent-glow) !important; color: #fff !important;
+}
+.bc.done { background: var(--green) !important; border-color: var(--green) !important; color: #fff !important; }
+.mood.sel {
+  background: var(--accent) !important; border-color: var(--accent) !important;
+  box-shadow: 0 0 10px var(--accent-glow) !important; color: #fff !important;
+}
+.cd.today {
+  background: linear-gradient(135deg, #4DA3FF, #1D6FE0) !important;
+  box-shadow: 0 0 14px var(--accent-glow) !important; color: #fff !important;
+}
+.sf.active { background: var(--accent) !important; border-color: var(--accent) !important; color: #fff !important; }
+
+/* ── Avatars / brand gradients ── */
+.av1, .av-large.av1, .ai-msg.me .ai-bubble, .hug-av.a {
+  background: linear-gradient(135deg, #4DA3FF, #1D6FE0) !important; color: #fff !important;
+}
+.av2, .av-large.av2, .ai-av, .hug-av.b {
+  background: linear-gradient(135deg, #9A8CFF, #5B4BD6) !important; color: #fff !important;
+}
+.logo-heart, .touch-heart-btn {
+  background: linear-gradient(135deg, #4DA3FF, #7C6CF2) !important;
+  box-shadow: 0 4px 14px var(--accent-glow) !important; color: #fff !important;
+}
+
+/* ── Badges ── */
+.streak-badge { background: var(--yellow-bg) !important; color: #B45309 !important; }
+.badge, .games-badge {
+  background: linear-gradient(135deg, #4DA3FF, #1D6FE0) !important; color: #fff !important;
+}
+
+/* ── Love / connect cards ── */
+.love-card::before { --missglow: rgba(47, 140, 255, 0.28) !important; }
+.connect-action-btn.missyou-btn {
+  background: linear-gradient(135deg, #4DA3FF, #1D6FE0) !important;
+  box-shadow: 0 8px 22px rgba(47, 140, 255, 0.30) !important; color: #fff !important;
+}
+.connect-action-btn.hug-btn {
+  background: linear-gradient(135deg, #9A8CFF, #5B4BD6) !important;
+  box-shadow: 0 8px 22px rgba(124, 108, 242, 0.30) !important; color: #fff !important;
+}
+
+/* ── Period tracker phase tags ── */
+.phase-menstrual {
+  background: rgba(239, 68, 68, 0.12) !important; color: #DC2626 !important;
+  border-color: rgba(239, 68, 68, 0.30) !important;
+}
+.phase-luteal {
+  background: rgba(124, 108, 242, 0.14) !important; color: #5B4BD6 !important;
+  border-color: rgba(124, 108, 242, 0.32) !important;
+}
+.symptom-tag.sel {
+  background: rgba(47, 140, 255, 0.14) !important; border-color: var(--accent) !important;
+  color: var(--accent-d) !important;
+}
+
+/* ── Progress bars ── */
+.storage-bar-fill, .study-fill { background: linear-gradient(90deg, #7CBAFF, #2F8CFF) !important; }
+.storage-bar-fill::after { background: var(--accent) !important; box-shadow: 0 0 8px var(--accent-glow) !important; }
+
+/* ── Search ── */
+.search-highlight { background: rgba(47, 140, 255, 0.25) !important; color: var(--white) !important; }
+.lm-search-results { background: rgba(255, 255, 255, 0.9) !important; }
+
+/* ── Scrollbars ── */
+::-webkit-scrollbar-thumb       { background: rgba(47, 140, 255, 0.28) !important; }
+::-webkit-scrollbar-thumb:hover { background: rgba(47, 140, 255, 0.45) !important; }
+
+/* ── Full-page iframe wrappers (pages are themed in later groups) ── */
+.iframe-page-wrap, .cat-page { background: transparent !important; }
+
+/* ── G2 extras: insight banner, logo, Twin orb (CSS-only recolor) ── */
+.rel-insight-card {
+  background: linear-gradient(135deg, rgba(47, 140, 255, 0.10), rgba(124, 108, 242, 0.08)) !important;
+  border: 1px solid rgba(47, 140, 255, 0.22) !important;
+}
+/* red logo art & Twin orb canvas → blue (hue shift, no image/JS edits) */
+.logo-mark img, .sb-logo img, .tb-logo-mobile, .brand-logo img, .auth-logo img { filter: hue-rotate(205deg) saturate(1.1); }
+.twin-nav-orb { filter: hue-rotate(205deg) saturate(1.15); }
+.bot-ni--twin.active .twin-nav-orb, .ni.active .twin-nav-orb {
+  filter: hue-rotate(205deg) saturate(1.15) drop-shadow(0 0 5px rgba(47, 140, 255, 0.55)) !important;
+}
+.twin-mini-orb, .twin-dock-orb, .twin-voice canvas { filter: hue-rotate(205deg) saturate(1.1); }
+
+
+/* ============================================================
+   G3 — CHAT (chat/chat.css, composer.css, index.html chat page)
+   ============================================================ */
+.chat-header {
+  background: rgba(255, 255, 255, 0.82) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+.chat-header-av.has-ring { box-shadow: 0 0 0 2.5px #fff, 0 0 0 4.5px var(--accent) !important; }
+.chat-header-av .status-dot { border-color: #fff !important; }
+.chat-header-menu, .wp-modal {
+  background: #fff !important; background-image: none !important;
+  border: 1px solid var(--border2) !important;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.18) !important;
+}
+.wp-option-row { background: #F1F7FF !important; color: var(--white) !important; }
+.wp-option-row:hover { background: #E3EFFF !important; }
+
+/* Message input bar */
+#page-chat .uc-composer {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-top: 1px solid var(--border) !important;
+  box-shadow: 0 -6px 24px rgba(47, 140, 255, 0.10) !important;
+}
+#page-chat .uc-input, #page-chat .uc-composer textarea, #page-chat .uc-composer input {
+  color: var(--white) !important;
+}
+.chat-chat-in, .chat-in { background: #fff !important; }
+
+/* Bubbles */
+.chat-bubble.mine {
+  background: linear-gradient(135deg, #4DA3FF, #1D6FE0) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(47, 140, 255, 0.28) !important;
+}
+.chat-bubble.theirs {
+  background: #fff !important;
+  color: var(--white) !important;
+  border: 1px solid rgba(47, 110, 190, 0.10) !important;
+  box-shadow: 0 2px 10px rgba(47, 140, 255, 0.10) !important;
+}
+.chat-bubble.theirs .chat-quote { background: rgba(47, 140, 255, 0.08) !important; }
+.chat-bubble.mine .chat-quote-name { color: #fff !important; }
+.chat-row.sel-selected, .chat-row.me.sel-selected {
+  background: linear-gradient(90deg, rgba(47, 140, 255, 0.22), rgba(47, 140, 255, 0.06)) !important;
+}
+.chat-quote { border-left-color: var(--accent) !important; }
+.typing-dots span { background: var(--accent) !important; }
+
+/* Floating pills, separators, system rows */
+.chat-system-event, .chat-date-sep span, .chat-call-log {
+  background: rgba(255, 255, 255, 0.85) !important;
+  color: var(--text2) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 2px 10px rgba(47, 140, 255, 0.10) !important;
+}
+.chat-search-bar { background: rgba(255, 255, 255, 0.88) !important; }
+
+/* Menus, sheets, pickers */
+.msg-ctx-menu, .chat-action-sheet, .chat-reaction-picker, .chat-effect-picker,
+.chat-sheet, .chat-bottom-sheet, .chat-presend-sheet, .chat-inapp-browser {
+  background: rgba(255, 255, 255, 0.97) !important;
+  background-image: none !important;
+  color: var(--white) !important;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.20) !important;
+}
+.presend-tile { background: #EAF3FF !important; }
+.chat-sheet-overlay, .chat-bottom-sheet-overlay, .chat-presend-overlay, .wp-modal-overlay,
+.chat-inapp-browser-overlay { background: rgba(15, 23, 42, 0.45) !important; }
+.chat-autolock-overlay { background: #EAF4FF !important; }
+.media-grid-overlay { background: #EAF4FF !important; }
+.chat-wallpaper-dim { background: #EAF4FF !important; }
+.chat-jump-badge { border-color: #fff !important; }
+.theme-switch.on, .chat-swipe-reply-icon.armed { background: var(--accent) !important; }
+.chat-search-filters .chip.active, .presend-send { color: #fff !important; }
+
+/* ── G2/G3 extras: leftover red tints on dashboard-type pages ── */
+.habit-insight-card, .well-insight-card, .fin-insight-card, .ml-insight-card,
+.mem-insight-card, .xp-insight-card, .rel-insight-card, .study-insight-card, .fa-insight-card {
+  background: linear-gradient(135deg, rgba(47, 140, 255, 0.10), rgba(124, 108, 242, 0.08)) !important;
+  border: 1px solid rgba(47, 140, 255, 0.22) !important;
+}
+.ml-timeline::before { background: linear-gradient(180deg, var(--accent), rgba(47, 140, 255, 0.08)) !important; }
+.mem-month-bar { background: linear-gradient(180deg, #7CBAFF, #2F8CFF) !important; }
+.xp-badge.earned {
+  border-color: rgba(47, 140, 255, 0.40) !important;
+  background: linear-gradient(160deg, rgba(47, 140, 255, 0.14), rgba(47, 140, 255, 0.03)) !important;
+}
+.xp-badge-prog { background: linear-gradient(90deg, var(--accent), #8EC5FF) !important; }
+#page-ai::before, #page-chat::before {
+  background:
+    radial-gradient(circle at 15% 0%, rgba(47, 140, 255, 0.14), transparent 45%),
+    radial-gradient(circle at 90% 10%, rgba(124, 108, 242, 0.12), transparent 45%) !important;
+}
+.mem-sheet { border-color: rgba(47, 140, 255, 0.25) !important; }
+
+/* ── G2 extras: Twin AI page (orb recolor + dock) ── */
+.twin-orb-anchor canvas, .twin-orb-anchor--hero canvas, .twin-orb-anchor--dock canvas,
+.twin-orb-anchor--voice canvas, .twin-voice-orb-wrap canvas { filter: hue-rotate(205deg) saturate(1.15); }
+.twin-dock {
+  background: rgba(255, 255, 255, 0.86) !important;
+  border: 1px solid var(--border2) !important;
+  box-shadow: 0 10px 30px rgba(47, 140, 255, 0.18) !important;
+}
+.twin-voice { background: radial-gradient(circle at 50% 38%, #DCEEFF, #B9DCFF 72%) !important; }
+.ai-code-block { background: #0F172A !important; }  /* code blocks stay dark for readability */
+.love-overlay { background: rgba(15, 23, 42, 0.78) !important; }

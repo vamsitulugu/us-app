@@ -1,0 +1,77 @@
+/* theme-bright-games.css — Sky Bright overrides for games.html (auto-derived from the page's own rules, then reviewed). Remove the <link> to revert. */
+.hub-title{color:var(--white)!important}
+.rank-av{border:2px solid var(--border2)!important}
+.gcard:hover{box-shadow:0 22px 50px rgba(15,23,42,0.20)!important}
+.gcard-emoji{filter:drop-shadow(0 6px 18px rgba(15,23,42,0.20))!important}
+.gfav{background:rgba(255,255,255,0.92)!important;border:1px solid var(--border2)!important}
+.gcard-title{color:var(--white)!important}
+.gohead{background:rgba(47,140,255,0.07)!important}
+.gohead-title{color:var(--white)!important}
+.ghp-av{color:var(--white)!important;border:2px solid var(--border2)!important}
+.ghp-name{color:var(--white)!important}
+.gv-cell{background:rgba(255,255,255,0.92)!important}
+.gv-cell .gv-label{color:var(--white)!important;background:rgba(255,255,255,0.92)!important}
+.gv-status{color:var(--white)!important;background:rgba(255,255,255,0.92)!important}
+.gv-incoming-card{background:rgba(255,255,255,0.92)!important}
+.gv-incoming-text{color:var(--white)!important}
+.btn{color:var(--white)!important}
+.gtoast{box-shadow:0 8px 26px rgba(15,23,42,0.20)!important}
+.reward-pop{background:rgba(255,255,255,0.92)!important}
+.reward-card{background:rgba(47,140,255,0.07)!important}
+.reward-title{color:var(--white)!important}
+.score-pill .sp-val{color:var(--white)!important}
+.tod-bottle-svg{filter:drop-shadow(0 10px 18px rgba(15,23,42,0.23))!important}
+.tod-compose-box{color:var(--white)!important}
+.tod-answer-box{color:var(--white)!important}
+.tod-answer-reveal{color:var(--white)!important}
+.tod-card-text{color:var(--white)!important}
+.ludo-board{box-shadow:0 12px 34px rgba(15,23,42,0.23),inset 0 0 0 2px rgba(255,255,255,.08)!important}
+.ludo-sq{box-shadow:inset 0 0 0 .5px rgba(15,23,42,0.05)!important}
+.ludo-sq.lane-user1{background:linear-gradient(155deg,var(--accent-l),#ef4444)!important}
+.ludo-corner.user1{background:linear-gradient(155deg,var(--accent-l),#ef4444)!important}
+.ludo-corner-inner{box-shadow:inset 0 0 0 1px rgba(15,23,42,0.03)!important}
+.ludo-token{border:2px solid var(--border2)!important;box-shadow:0 3px 8px rgba(15,23,42,0.23)!important}
+.ludo-base-token{border:2px solid var(--border2)!important}
+.ludo-dice{box-shadow:0 8px 24px rgba(15,23,42,0.18),inset 0 -3px 0 rgba(15,23,42,0.05),inset 0 2px 0 rgba(255,255,255,.9)!important}
+.ludo-token.mine-glow{box-shadow:0 3px 8px rgba(15,23,42,0.23),0 0 0 5px var(--accent-glow)!important}
+.ludo-current-glow{box-shadow:0 0 0 3px var(--accent-glow),0 8px 24px rgba(15,23,42,0.18)!important}
+.dw-color{border:2px solid var(--border2)!important}
+.dw-guess-banner{background:rgba(255,255,255,0.92)!important;color:var(--white)!important}
+.dw-guess-in{color:var(--white)!important}
+.dw-size-dot{background:rgba(255,255,255,0.78)!important}
+.bm-hero-title{color:var(--white)!important}
+.bm-diffcard .bdc-name{color:var(--white)!important}
+.bm-stat .bs-val{color:var(--white)!important}
+.bm-timerbar{background:rgba(47,140,255,0.07)!important}
+.bm-timerfill.low{background:linear-gradient(90deg,var(--red),var(--accent-l))!important}
+.bm-cell.fogged{background:rgba(255,255,255,0.92)!important;border-color:var(--border)!important}
+.bm-chatinput{color:var(--white)!important}
+.bm-result-title{color:var(--white)!important}
+.pz-hero-title{color:var(--white)!important}
+.pz-photo-thumb{box-shadow:0 6px 16px rgba(15,23,42,0.18)!important}
+.pz-sizecard{color:var(--white)!important}
+.pz-custom-row input{color:var(--white)!important}
+.pz-progress{background:rgba(47,140,255,0.07)!important}
+.pz-board{box-shadow:0 14px 40px rgba(15,23,42,0.23)!important}
+.pz-slot{background:rgba(47,140,255,0.07)!important}
+.pz-slot.filled{background:rgba(255,255,255,0.92)!important}
+.pz-piece{box-shadow:0 4px 10px rgba(15,23,42,0.18)!important}
+.pz-rotatebtn{box-shadow:0 3px 8px rgba(15,23,42,0.18)!important}
+.pz-ghost{box-shadow:0 10px 24px rgba(15,23,42,0.23)!important}
+.pz-result-img{box-shadow:0 16px 44px rgba(15,23,42,0.25)!important}
+.pz-result-title{color:var(--white)!important}
+.mr-hero-title{color:var(--white)!important}
+.mr-compat-num .val{color:var(--white)!important}
+.mr-modecard .mmc-name{color:var(--white)!important}
+.mr-stat .ms-val{color:var(--white)!important}
+.mr-progress{background:rgba(47,140,255,0.07)!important}
+.mr-timerbar{background:rgba(47,140,255,0.07)!important}
+.mr-timerfill.low{background:linear-gradient(90deg,var(--red),var(--accent-l))!important}
+.mr-qtext{color:var(--white)!important}
+.mr-answer-box{color:var(--white)!important}
+.mr-mc-opt{color:var(--white)!important}
+.mr-flipface .ff-answer{color:var(--white)!important}
+.mr-summary-title{color:var(--white)!important}
+.mr-cat-row .cr-bar{background:rgba(47,140,255,0.07)!important}
+.mr-hist-item .hi-q{color:var(--white)!important}
+.rank-name{color:var(--white)!important}
