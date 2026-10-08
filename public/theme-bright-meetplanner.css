@@ -1,7 +1,0 @@
-/* theme-bright-meetplanner.css — Sky Bright overrides for meetplanner.html (auto-derived from the page's own rules, then reviewed). Remove the <link> to revert. */
-.mp-loc-results{background:rgba(255,255,255,0.92)!important;box-shadow:0 8px 28px rgba(15,23,42,0.20)!important}
-.mp-plan-card:hover{box-shadow:0 8px 24px rgba(15,23,42,0.11)!important}
-.mp-modal-bg{background:rgba(255,255,255,0.92)!important}
-.mp-modal{background:rgba(255,255,255,0.92)!important;box-shadow:0 24px 80px rgba(15,23,42,0.23)!important}
-.mp-spinner{border:2px solid var(--border2)!important}
-#mpToast{box-shadow:0 6px 24px rgba(15,23,42,0.18)!important;border:1px solid var(--border2)!important}

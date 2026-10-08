@@ -1,7 +1,0 @@
-/* theme-bright-dreamgoals.css — Sky Bright overrides for dreamgoals.html (auto-derived from the page's own rules, then reviewed). Remove the <link> to revert. */
-.dg-stat:hover{box-shadow:0 6px 20px rgba(15,23,42,0.09)!important}
-.dream-card:hover{box-shadow:0 16px 40px rgba(15,23,42,0.14)!important}
-.dg-modal-bg{background:rgba(255,255,255,0.92)!important}
-.dg-modal{background:rgba(255,255,255,0.92)!important;box-shadow:0 24px 80px rgba(15,23,42,0.23)!important}
-.dg-field select option{background:rgba(255,255,255,0.92)!important}
-.celeb-card{background:rgba(255,255,255,0.92)!important}
