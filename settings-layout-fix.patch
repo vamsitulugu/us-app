@@ -1,0 +1,77 @@
+diff --git a/public/index.html b/public/index.html
+index 73595b5..07055c4 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -2100,14 +2100,14 @@
+     /* ════ SETTINGS ════
+        Home = couple header + search + grouped lists. Each row opens a
+        sub-screen (.set-sub) inside #page-settings; only one is visible. */
+-    #page-settings { max-width: 640px; margin: 0 auto; }
++    #page-settings { width: 100%; max-width: none; }
+     #page-settings .si { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0 }
+     #page-settings [hidden] { display: none !important }
+     .set-home, .set-sub { animation: setIn .22s ease-out }
+     @keyframes setIn { from { opacity: 0; transform: translateX(10px) } to { opacity: 1; transform: none } }
+ 
+     /* couple header */
+-    .set-hero { display: flex; align-items: center; gap: 14px; padding: 6px 2px 16px; cursor: pointer; -webkit-tap-highlight-color: transparent }
++    .set-hero { display: flex; align-items: center; gap: 14px; padding: 6px 8px 16px; cursor: pointer; -webkit-tap-highlight-color: transparent }
+     .set-hero-av { display: flex; flex-shrink: 0 }
+     .set-hero-av > span { width: 58px; height: 58px; border-radius: 50%; overflow: hidden; border: 2px solid var(--accent); background: var(--g2); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: #fff }
+     .set-hero-av > span + span { margin-left: -16px }
+@@ -2118,22 +2118,25 @@
+     .set-hero .set-chev { color: var(--text3) }
+ 
+     /* search */
+-    .set-search { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px; margin-bottom: 18px; border-radius: 14px; background: var(--g1); border: 1px solid var(--border); color: var(--text3) }
++    .set-search { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px; margin-bottom: 18px; border-radius: 14px; background: var(--g1); border: 0; color: var(--text3) }
+     .set-search input { flex: 1; min-width: 0; background: none; border: 0; outline: 0; padding: 0; color: var(--white); font-size: 15px; box-shadow: none }
+     .set-search input::-webkit-search-cancel-button { filter: invert(1); opacity: .5 }
+ 
+-    /* section + grouped list (one container per section, rows divided by hairlines) */
+-    .set-sec { margin-bottom: 22px }
+-    .set-sec-t { margin: 0 0 8px 6px; font-size: 13px; font-weight: 600; color: var(--text2); letter-spacing: .2px }
+-    .set-list { background: var(--g1); border: 1px solid var(--border); border-radius: 16px; overflow: hidden }
+-    .set-row { display: flex; align-items: center; gap: 13px; width: 100%; min-height: 56px; padding: 10px 14px; background: none; border: 0; border-top: 1px solid var(--border); border-radius: 0; text-align: left; font: inherit; color: inherit; text-decoration: none; cursor: pointer; transition: background .15s; -webkit-tap-highlight-color: transparent }
+-    .set-row:first-child { border-top: 0 }
+-    .set-row:active { background: var(--g2) }
++    /* sections: plain text rows, no cards, no borders, no dividers.
++       Sections flow into columns on wide screens. */
++    #setSections, #setSearchResults > .set-list, .set-sub { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); column-gap: 40px; align-items: start }
++    .set-sub > .set-bar, .set-sub > .set-avatar-pick, .set-sub > .set-save, .set-sub > .set-pad { grid-column: 1 / -1 }
++    .set-sub > .set-save { max-width: 360px }
++    .set-sec { margin-bottom: 18px; min-width: 0 }
++    .set-sec-t { margin: 0 0 4px 8px; font-size: 12px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .8px }
++    .set-list { background: none; border: 0; border-radius: 0; overflow: visible }
++    .set-row { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 52px; padding: 8px; background: none; border: 0; border-radius: 12px; text-align: left; font: inherit; color: inherit; text-decoration: none; cursor: pointer; transition: background .15s; -webkit-tap-highlight-color: transparent }
++    .set-row:hover, .set-row:active { background: var(--g1) }
+     .set-row-static { cursor: default }
+-    .set-row-static:active { background: none }
+-    .set-ico { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: rgba(var(--c), .16); color: rgb(var(--c)); flex-shrink: 0 }
+-    .set-ico .si { width: 18px; height: 18px }
+-    .set-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px }
++    .set-row-static:hover, .set-row-static:active { background: none }
++    .set-ico { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; background: none; color: rgb(var(--c)); flex-shrink: 0 }
++    .set-ico .si { width: 20px; height: 20px }
++    .set-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px }
+     .set-t { font-size: 15px; font-weight: 500; color: var(--white) }
+     .set-s { font-size: 12px; line-height: 1.35; color: var(--text3) }
+     .set-val { font-size: 13px; color: var(--text3); white-space: nowrap }
+@@ -2147,13 +2150,13 @@
+     .set-bar-t p { margin: 2px 0 0; font-size: 12px; color: var(--text3) }
+ 
+     /* form rows: label left, value right */
+-    .set-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 8px 14px; border-top: 1px solid var(--border); cursor: text }
+-    .set-field:first-child { border-top: 0 }
++    .set-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 6px 8px; border-radius: 12px; cursor: text }
++    .set-field:hover, .set-field:focus-within { background: var(--g1) }
+     .set-field > span { font-size: 15px; color: var(--white); flex-shrink: 0 }
+     .set-field input, .set-field select { flex: 1; min-width: 0; max-width: 62%; text-align: right; background: none; border: 0; outline: 0; box-shadow: none; padding: 6px 0; font-size: 15px; color: var(--text2) }
+     .set-field input:focus, .set-field select:focus { color: var(--white) }
+-    .set-form { padding: 4px 14px 14px; border-top: 1px solid var(--border) }
+-    .set-form .set-field { padding-left: 0; padding-right: 0; border-top: 0 }
++    .set-form { padding: 4px 8px 12px }
++    .set-form .set-field { padding-left: 0; padding-right: 0 }
+     .set-inline-btn { width: 100% }
+     .set-save { width: 100%; margin-top: 4px; justify-content: center }
+     .set-pad { padding: 0 0 18px }
