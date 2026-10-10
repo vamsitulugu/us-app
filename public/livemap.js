@@ -151,7 +151,10 @@ const LiveMap = (() => {
     if (!S.coupleId) return;
     api('POST', '/api/tracking/safety-alert', { coupleId: S.coupleId, role: S.role, type, senderName: S.myName || S.role }).catch(() => {});
   }
+  const _SAFETY_PREF = { battery_low: 'battery', internet_lost: 'network', gps_disabled: 'gps', permission_revoked: 'gps' };
   function _armSafety(type, active) {
+    // Location Alerts screen: user can switch each heads-up to their partner off (default: all on)
+    if (active && _SAFETY_PREF[type] && S.lmAlerts && S.lmAlerts[_SAFETY_PREF[type]] === false) return;
     if (active && !_safetyLatch[type]) { _safetyLatch[type] = true; _notifyPartnerSafety(type); }
     else if (!active && _safetyLatch[type]) { _safetyLatch[type] = false; }
   }
@@ -330,12 +333,7 @@ const LiveMap = (() => {
         <button class="btn ${st.invisible ? 'btn-accent' : 'btn-glass'} btn-xs" onclick="LiveMap.toggleInvisibleMode()">🕶️ Invisible mode</button>
       </div>
       <button class="btn btn-sm" style="background:var(--red);width:100%;margin-bottom:8px" onclick="LiveMap.emergencyShare()">🚨 Emergency Share (send exact location now)</button>
-      <div id="lmBatteryNetLine" style="font-size:10px;color:var(--text3)">Checking device status…</div>
       <div style="font-size:9px;color:var(--text3);margin-top:8px">While paused or invisible, your partner sees "last seen" instead of your live position.</div>`;
-    _batteryNetworkLine().then(line => {
-      const el = document.getElementById('lmBatteryNetLine');
-      if (el) el.textContent = line || 'Battery/network status not available on this device';
-    });
   }
 
   function toggleTracking() {
@@ -478,7 +476,9 @@ const LiveMap = (() => {
         if (theirs) {
   const changed = !st.ptLast || st.ptLast.lat !== theirs.lat || st.ptLast.lng !== theirs.lng;
   const wasOnline = st.ptLast ? st.ptLast.online : null;
+  const _wasPaused = st.ptLast ? st.ptLast.status === 'paused' : false;
   st.ptLast = theirs;
+  _partnerAlerts(theirs, wasOnline, _wasPaused);
   if (changed && theirs.lat != null && theirs.lng != null) {
     S.ptLoc = { lat: theirs.lat, lng: theirs.lng, ts: Date.parse(theirs.updatedAt), moving: theirs.moving, accuracy: theirs.accuracy, heading: theirs.heading };
     if (theirs.vehicleType) S.ptVehicleType = theirs.vehicleType;
@@ -491,8 +491,33 @@ const LiveMap = (() => {
 }
       }
       _updateMyStatusUI(); _updatePtStatusUI(); _updateStatsUI();
+      if (window.LMScreens) window.LMScreens.refresh();
     } catch (e) {
       if (offlineEl) offlineEl.style.display = 'flex';
+    }
+  }
+
+  /* ── PARTNER ALERTS (Location Alerts screen) ──────────────────
+     Arrive / leave any saved place and "went offline", evaluated on each poll
+     while the app is open. First observation only records state (no alert). */
+  st.ptGeoState = st.ptGeoState || {};
+  function _alertPref(k) { return !(S.lmAlerts && S.lmAlerts[k] === false); }
+  function _partnerAlerts(theirs, wasOnline, wasPaused) {
+    const name = S.partnerName || 'Partner';
+    const ping = (title, body) => { if (window.fireBackgroundNotification) window.fireBackgroundNotification(title, body); };
+    if (theirs.lat != null && theirs.lng != null && Array.isArray(S.placesList)) {
+      S.placesList.forEach(p => {
+        const inside = haversine({ lat: theirs.lat, lng: theirs.lng }, { lat: p.lat, lng: p.lng }) * 1000 <= GEOFENCE_RADIUS_M;
+        const prev = st.ptGeoState[p.id];
+        st.ptGeoState[p.id] = inside ? 'inside' : 'outside';
+        if (!prev || prev === st.ptGeoState[p.id]) return;
+        const label = p.name || p.cat;
+        if (inside && _alertPref('arrive')) { toast(`📍 ${name} arrived at ${label}`); ping('Arrived 📍', `${name} arrived at ${label}`); }
+        else if (!inside && _alertPref('leave')) { toast(`🚶 ${name} left ${label}`); ping('Left 🚶', `${name} left ${label}`); }
+      });
+    }
+    if (wasOnline === true && !theirs.online && theirs.status !== 'paused' && !wasPaused && _alertPref('offline')) {
+      toast(`📴 ${name} went offline`);
     }
   }
 
@@ -897,6 +922,7 @@ const LiveMap = (() => {
     if (!st.map) return;
     st.placeMarkers.forEach(m => st.map.removeLayer(m));
     st.placeMarkers = [];
+    if (window.LMScreens && window.LMScreens.placesVisible && !window.LMScreens.placesVisible()) return; // "Show Place Labels" off
     (S.placesList || []).forEach(p => {
       const ico = (CATS[p.cat] || CATS.Custom).ico;
       const color = p.owner === S.role ? 'var(--accent)' : 'var(--accent2)';
@@ -913,20 +939,18 @@ const LiveMap = (() => {
     migrateLegacyPlaces();
     const mine = (S.placesList || []).filter(p => p.owner === S.role);
     const theirs = (S.placesList || []).filter(p => p.owner !== S.role);
-    const rowHtml = (p, deletable) => `
-      <div class="money-row">
-        <div class="money-ic inc">${(CATS[p.cat] || CATS.Custom).ico}</div>
-        <div style="flex:1">
-          <div style="font-size:13px;font-weight:500;color:var(--white)">${esc(p.cat)}${p.name && p.name !== p.cat ? ' · ' + esc(p.name) : ''}</div>
-          <div style="font-size:10px;color:var(--text3)">${p.address ? esc(p.address) + ' · ' : ''}${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}</div>
+    const rowHtml = (p, mine) => `
+      <div class="lms-place">
+        <div class="lms-place-ico${mine ? '' : ' lms-place-ico--pt'}">${(CATS[p.cat] || CATS.Custom).ico}</div>
+        <div class="lms-place-txt" onclick="LiveMap.flyTo(${p.lat},${p.lng})">
+          <div class="lms-place-t">${esc(p.name && p.name !== p.cat ? p.name : p.cat)}</div>
+          <div class="lms-place-s">${esc(p.address || ((p.name && p.name !== p.cat) ? p.cat : '') || (p.lat.toFixed(4) + ', ' + p.lng.toFixed(4)))}</div>
         </div>
-        <button class="btn btn-glass btn-xs" onclick="LiveMap.flyTo(${p.lat},${p.lng})">View</button>
-        ${deletable ? `<button class="del-btn" onclick="LiveMap.deletePlace('${p.id}')"><i data-lucide="trash-2"></i></button>` : ''}
+        <button type="button" class="lms-place-more" aria-label="Place options" onclick="LMScreens.placeMenu('${p.id}')"><svg class="lmi"><use href="#lmi-vdots"/></svg></button>
       </div>`;
     const myEl = document.getElementById('myPlacesList');
     if (myEl) {
       if (mine.length) myEl.innerHTML = mine.map(p => rowHtml(p, true)).join('');
-      else if (window.PS) PS.empty(myEl, { icon: 'home', title: 'No places saved yet', desc: 'Add Home, College, Office \u2014 anywhere you want a quick shortcut to.', actionLabel: 'Add Place', onAction: () => LiveMap.openPlaceModal('self'), compact: true });
       else myEl.innerHTML = '<div class="empty">No places saved yet — add Home, College, Office…</div>';
     }
     const ptEl = document.getElementById('ptPlacesList');
@@ -943,6 +967,8 @@ const LiveMap = (() => {
   // smooth native scroll — but only if it isn't already visible, so
   // nothing jumps or flickers when it's already on-screen.
   function _scrollToMapIfNeeded() {
+    // New screen-stack layout: bring the Map screen forward (closes search/places/etc.)
+    if (window.LMScreens && typeof window.LMScreens.ensureMap === 'function') { window.LMScreens.ensureMap(); return; }
     const mapEl = document.getElementById('mapView');
     if (!mapEl) return;
     const rect = mapEl.getBoundingClientRect();
@@ -2420,8 +2446,7 @@ const LiveMap = (() => {
      ══════════════════════════════════════════════════════════ */
   async function openRouteHistory(role) {
     st.routeViewRole = role || S.role;
-    openM('lmRouteModal');
-    _scrollToMapIfNeeded();
+    if (window.LMScreens) window.LMScreens.showTrackQuiet(); else openM('lmRouteModal');
     document.getElementById('lmRouteBody').innerHTML = '<div class="empty">Loading dates…</div>';
     _renderRouteRoleToggle();
     _loadRouteSettings(); // Phase 4: reflect current opt-in state each time the modal opens
@@ -2485,13 +2510,21 @@ const LiveMap = (() => {
       toast(days ? `Keeping route history for ${days} days` : 'Keeping route history forever');
     } catch (e) { toast('❌ Could not save that — try again'); }
   }
-  async function deleteMyRouteHistory() {
-    if (!confirm('Delete all of your recorded route history? This cannot be undone.')) return;
+  async function deleteMyRouteHistory(skipConfirm) {
+    if (skipConfirm !== true && !confirm('Delete all of your recorded route history? This cannot be undone.')) return;
     try {
       const r = await api('DELETE', `/api/route/${S.coupleId}/${S.role}/history`);
       toast(`🗑️ Deleted ${r.deleted ?? 'your'} recorded location${r.deleted === 1 ? '' : 's'}`);
       if (st.routeViewRole === S.role) loadRouteDay(st.routeSelectedDate || _localDateStr());
     } catch (e) { toast('❌ Could not delete — try again'); }
+  }
+  function clearRouteOverlay() {
+    if (st.playbackTimer) { clearInterval(st.playbackTimer); st.playbackTimer = null; }
+    st.playbackIdx = 0;
+    if (!st.map) return;
+    if (st.playbackMarker) { st.map.removeLayer(st.playbackMarker); st.playbackMarker = null; }
+    if (st.routeLine) { st.map.removeLayer(st.routeLine); st.routeLine = null; }
+    (st.routeStopMarkers || []).forEach(m => st.map.removeLayer(m)); st.routeStopMarkers = [];
   }
   function switchRouteRole(role) {
     if (role === st.routeViewRole) return;
@@ -2502,8 +2535,8 @@ const LiveMap = (() => {
     if (!el) return;
     const partnerRole = S.role === 'user1' ? 'user2' : 'user1';
     el.innerHTML = `
-      <div class="lm-tool-btn ${st.routeViewRole === S.role ? 'active' : ''}" onclick="LiveMap.switchRouteRole('${S.role}')"><span class="lm-tool-ico">🧍</span>${esc(S.myName || 'You')}</div>
-      <div class="lm-tool-btn ${st.routeViewRole === partnerRole ? 'active' : ''}" onclick="LiveMap.switchRouteRole('${partnerRole}')"><span class="lm-tool-ico">💜</span>${esc(S.partnerName || 'Partner')}</div>`;
+      <button type="button" class="lms-segbtn ${st.routeViewRole === S.role ? 'active' : ''}" onclick="LiveMap.switchRouteRole('${S.role}')">${esc(S.myName || 'You')}</button>
+      <button type="button" class="lms-segbtn ${st.routeViewRole === partnerRole ? 'active' : ''}" onclick="LiveMap.switchRouteRole('${partnerRole}')">${esc(S.partnerName || 'Partner')}</button>`;
   }
 
   /** Find the nearest saved place (either owner) within radius, for labeling stops. */
@@ -2537,13 +2570,13 @@ const LiveMap = (() => {
       const role = st.routeViewRole || S.role;
       const data = await api('GET', `/api/route/${S.coupleId}/${role}/${date}`);
       st.routeData = data;
-      _renderRouteStats(data);
+      if (window.LMScreens) window.LMScreens.renderTrackDay(data); else _renderRouteStats(data);
       _drawRouteOnMap(data.points);
       _renderStopsList(data.stops);
       _renderJourneySummary(data.stops);
       _loadDailyTimeline(date, role);
     } catch (e) {
-      body.innerHTML = '<div class="empty">No route data for this day yet</div>';
+      if (window.LMScreens) window.LMScreens.renderTrackDay(null); else body.innerHTML = '<div class="empty">No route data for this day yet</div>';
     }
   }
 
@@ -2577,9 +2610,9 @@ const LiveMap = (() => {
   function _renderDailyTimeline(events) {
     const el = document.getElementById('lmDailyTimeline');
     if (!el) return;
-    if (!events || !events.length) { el.innerHTML = ''; return; }
+    if (window.LMScreens && window.LMScreens.onTimeline) window.LMScreens.onTimeline(events);
+    if (!events || !events.length) { el.innerHTML = window.LMScreens ? '<div class="lms-empty">No places detected for this day</div>' : ''; return; }
     el.innerHTML = `
-      <div style="font-size:11px;font-weight:600;color:var(--text3);margin:10px 0 6px;text-transform:uppercase;letter-spacing:.4px">Today's Timeline</div>
       <div class="lm-timeline">
         ${events.map((ev, i) => {
           const icon = TIMELINE_CAT_ICON[ev.category] || TIMELINE_CAT_ICON.other;
@@ -2828,7 +2861,8 @@ const LiveMap = (() => {
     const pauseBtn = document.getElementById('lmPlaybackPauseBtn');
     if (playBtn) playBtn.style.display = playing ? 'none' : '';
     if (pauseBtn) pauseBtn.style.display = playing ? '' : 'none';
-    if (playBtn) playBtn.textContent = (st.playbackIdx > 0 && !playing) ? '▶ Resume' : '▶ Play Journey';
+    if (playBtn && !playBtn.dataset.lms) playBtn.textContent = (st.playbackIdx > 0 && !playing) ? '▶ Resume' : '▶ Play Journey';
+    const box = document.querySelector('.lms-play'); if (box) box.classList.toggle('playing', !!playing);
   }
   function _tickPlayback() {
     const points = st.routeData?.points;
@@ -2838,7 +2872,7 @@ const LiveMap = (() => {
       clearInterval(st.playbackTimer); st.playbackTimer = null;
       _setPlaybackButtons(false);
       const playBtn = document.getElementById('lmPlaybackPlayBtn');
-      if (playBtn) playBtn.textContent = '▶ Replay Journey';
+      if (playBtn && !playBtn.dataset.lms) playBtn.textContent = '▶ Replay Journey';
       st.playbackIdx = 0;
       return;
     }
@@ -2895,14 +2929,13 @@ const LiveMap = (() => {
   /* ── PAGE LIFECYCLE ──────────────────────────────────────── */
   function onEnterPage() {
   st.pageActive = true;
+  if (window.LMScreens) window.LMScreens.onEnter(); // map screen must be visible before the map is sized
   _initMap();
   migrateLegacyPlaces();
-  document.getElementById('lmMyName').textContent = S.myName || 'You';
-  document.getElementById('lmPtName').textContent = S.partnerName || 'Partner';
-  document.getElementById('lmAv1').textContent = (S.myName || 'U')[0];
-  document.getElementById('lmAv2').textContent = (S.partnerName || 'P')[0];
-  if (S.myAvatar) { const e = document.getElementById('lmAv1'); e.innerHTML = `<img src="${S.myAvatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`; }
-  if (S.partnerAvatar) { const e = document.getElementById('lmAv2'); e.innerHTML = `<img src="${S.partnerAvatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`; }
+  const _setTxt = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  _setTxt('lmMyName', S.myName || 'You');
+  _setTxt('lmPtName', S.partnerName || 'Partner');
+  if (window.LMScreens) window.LMScreens.refresh(); // paints avatars (photo or initial) everywhere
   if (S.myLoc && S.myLoc.lat != null && S.myLoc.lng != null) _animateMarker('my', S.myLoc.lat, S.myLoc.lng);
   if (S.ptLoc && S.ptLoc.lat != null && S.ptLoc.lng != null) _animateMarker('pt', S.ptLoc.lat, S.ptLoc.lng);
   _renderPlacesLists();
@@ -2915,6 +2948,7 @@ const LiveMap = (() => {
 }
   function onLeavePage() {
     st.pageActive = false;
+    if (window.LMScreens) window.LMScreens.onLeave();
     _stopPolling();
     // GPS watch (startTracking) keeps running in background so tracking is
     // continuous even off the map page (per requirement: "location updates
@@ -2948,6 +2982,8 @@ const LiveMap = (() => {
      first. Returns true if it closed something (caller should stop
      there), false if there was nothing open on this page to close. */
   function closeTopOverlayIfOpen() {
+    // 0) Sheets / popovers / sub-screens (Track, Partner, Places, More, Alerts, Privacy, Search)
+    if (window.LMScreens && window.LMScreens.closeTop()) return true;
     // 1) Floating search-result dropdowns (main map search, and the
     //    "Add Place" search inside its modal) — the most transient UI.
     const gmResults = document.getElementById('lmGmSearchResults');
@@ -3012,6 +3048,10 @@ const LiveMap = (() => {
     toggleApproxLocation, toggleInvisibleMode, emergencyShare, dismissEmergencyBanner,
     toggleNavPanel, navigateToPartner, navigateToPoint, selectNavRoute, searchAlongRoute,
     cycleCameraMode, toggleVoiceNav, setVehicleType,
+    // screen-stack helpers (used by /livemap-screens.js)
+    setCameraMode: _applyCameraMode, computeExtendedStats: _computeExtendedStats,
+    renderPlaces: _renderPlacesLists, renderFavorites: _renderFavoritesPanel, fitBoth: _fitBoth,
+    clearRouteOverlay,
     _debug: st
   };
 })();
@@ -3023,9 +3063,9 @@ const LiveMap = (() => {
     window._liveMapPatched = true;
 
     const _origGoto = window.goto;
-    window.goto = function (page) {
+    window.goto = function (page, pushHistory) {
       const wasMap = document.getElementById('page-map')?.classList.contains('active');
-      _origGoto(page);
+      _origGoto(page, pushHistory); // keep the 2nd arg: Back/popstate calls goto(page, false)
       if (page === 'map') LiveMap.onEnterPage();
       else if (wasMap) LiveMap.onLeavePage();
     };

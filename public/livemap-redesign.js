@@ -35,6 +35,9 @@
     const page = $('page-map');
     if (!page) return;
     restructured = true;
+    // New screen-stack layout (/livemap-screens.js) owns the page structure — only the
+    // call-dock + search-along-route helpers below stay active.
+    if ($('lmScreens')) return;
 
     // Grab the pieces we already have, by their existing ids/selectors —
     // nothing here is created from scratch, only moved.

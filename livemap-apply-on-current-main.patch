@@ -1,16 +1,16 @@
 diff --git a/public/index.html b/public/index.html
-index fba2d42..af27ce0 100644
+index 2259a1d..ba9e749 100644
 --- a/public/index.html
 +++ b/public/index.html
-@@ -5015,6 +5015,7 @@ select option { background: #0D0D0D; color: #fff; }
+@@ -4878,6 +4878,7 @@ select option { background: #0D0D0D; color: #fff; }
    <link rel="stylesheet" href="/dashboard.css">
    <link rel="stylesheet" href="/dashboard-widgets.css">
    <link rel="stylesheet" href="/gender-access.css">
 +  <link rel="stylesheet" href="/livemap-screens.css">
+   <link rel="stylesheet" href="/profile.css">
+   <link rel="stylesheet" href="/level.css">
  </head>
- 
- <body class="t-blue">
-@@ -6434,136 +6435,385 @@ select option { background: #0D0D0D; color: #fff; }
+@@ -6188,136 +6189,385 @@ select option { background: #0D0D0D; color: #fff; }
            </div>
          </div>
        </div>
@@ -508,7 +508,7 @@ index fba2d42..af27ce0 100644
  </div>
  
  <!-- ADD PLACE MODAL -->
-@@ -6604,44 +6854,7 @@ select option { background: #0D0D0D; color: #fff; }
+@@ -6358,44 +6608,7 @@ select option { background: #0D0D0D; color: #fff; }
    </div>
  </div>
  
@@ -554,7 +554,7 @@ index fba2d42..af27ce0 100644
  <div class="modal-bg" id="lmStreetViewModal">
    <div class="modal">
      <div class="modal-title">👁 Street View<button class="modal-close" onclick="closeM('lmStreetViewModal')"><i data-lucide="x"></i></button></div>
-@@ -13360,6 +13573,7 @@ init();
+@@ -13095,6 +13308,7 @@ init();
  
  <!-- Live Map redesign layer (additive UI only — see livemap-redesign.css) -->
  <script src="/livemap-redesign.js"></script>
@@ -1765,13 +1765,13 @@ index 0ec198b..8ce1c02 100644
        else if (wasMap) LiveMap.onLeavePage();
      };
 diff --git a/public/sw.js b/public/sw.js
-index 7013d4f..e1f9130 100644
+index e1f9130..066be0c 100644
 --- a/public/sw.js
 +++ b/public/sw.js
 @@ -1,5 +1,5 @@
  // Service Worker for Twin Hearts 💕 PWA — v5
--const CACHE = 'uwl-v8'; // bumped: purges stale cached assets (incl. old movie.css) on activate
-+const CACHE = 'uwl-v9'; // bumped: purges stale cached assets (incl. old movie.css) on activate
+-const CACHE = 'uwl-v9'; // bumped: purges stale cached assets (incl. old movie.css) on activate
++const CACHE = 'uwl-v10'; // bumped: purges stale cached assets (incl. old movie.css) on activate
  const OFFLINE_ASSETS = [
    '/',
    '/index.html',

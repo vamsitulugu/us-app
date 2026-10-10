@@ -4878,6 +4878,7 @@ select option { background: #0D0D0D; color: #fff; }
   <link rel="stylesheet" href="/dashboard.css">
   <link rel="stylesheet" href="/dashboard-widgets.css">
   <link rel="stylesheet" href="/gender-access.css">
+  <link rel="stylesheet" href="/livemap-screens.css">
   <link rel="stylesheet" href="/profile.css">
   <link rel="stylesheet" href="/level.css">
 </head>
@@ -6188,136 +6189,385 @@ select option { background: #0D0D0D; color: #fff; }
           </div>
         </div>
       </div>
-      <!-- ═══════════════════════════════════════════════════════════════
-     REPLACE the existing <div class="page" id="page-map"> ... </div>
-     block in index.html with this markup.
-     Then add <script src="/livemap.js"></script> right before the
-     closing </body> tag (after your main app script + index_patch.js).
+<!-- ═══════════════════════════════════════════════════════════════
+     LIVE MAP PAGE — screen-stack layout (Map · Track · Partner · Places
+     · More · Location Alerts · Privacy · Search), like a native map app.
+     Controller: /livemap-screens.js (LMScreens) · Styles: /livemap-screens.css
+     Engine: /livemap.js (LiveMap) — every id it needs is kept below.
      ═══════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-map">
 
-  <!-- Permission / offline banners -->
-  <div id="lmPermBanner" class="info-banner" style="display:none;border-color:rgba(248,113,113,0.3);background:rgba(248,113,113,0.08);color:var(--red)"></div>
-  <div id="lmOfflineBanner" class="info-banner" style="display:none;border-color:rgba(251,191,36,0.3);background:rgba(251,191,36,0.08);color:var(--yellow)">📡 You're offline — showing last known positions</div>
-  <div id="lmEmergencyBanner" class="info-banner" style="display:none;border-color:rgba(239,68,68,0.4);background:rgba(239,68,68,0.1);color:#ff6b6b;align-items:center;justify-content:space-between;gap:8px">
-    <span class="lm-emg-text">🚨 Emergency location share</span>
-    <button class="btn btn-glass btn-xs" onclick="LiveMap.dismissEmergencyBanner()">Dismiss</button>
-  </div>
+  <!-- icon sprite (stroke icons, currentColor) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="lmi-back" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+      <symbol id="lmi-chev" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></symbol>
+      <symbol id="lmi-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+      <symbol id="lmi-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+      <symbol id="lmi-map" viewBox="0 0 24 24"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></symbol>
+      <symbol id="lmi-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+      <symbol id="lmi-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+      <symbol id="lmi-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6-7-11a7 7 0 0114 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+      <symbol id="lmi-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+      <symbol id="lmi-locate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></symbol>
+      <symbol id="lmi-heart" viewBox="0 0 24 24"><path d="M20.8 5.6a5 5 0 00-7.1 0L12 7.3l-1.7-1.7a5 5 0 00-7.1 7.1L12 21l8.8-8.3a5 5 0 000-7.1z"/></symbol>
+      <symbol id="lmi-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14.5c3 0 5 1.5 5 4.5"/></symbol>
+      <symbol id="lmi-car" viewBox="0 0 24 24"><path d="M5 16l1.5-5a2 2 0 011.9-1.4h7.2a2 2 0 011.9 1.4L19 16"/><rect x="3" y="16" width="18" height="4" rx="1.5"/><path d="M7 18h.01M17 18h.01"/></symbol>
+      <symbol id="lmi-route" viewBox="0 0 24 24"><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="5" r="2.5"/><path d="M8.5 19H15a3.5 3.5 0 000-7H9a3.5 3.5 0 010-7h6.5"/></symbol>
+      <symbol id="lmi-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></symbol>
+      <symbol id="lmi-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></symbol>
+      <symbol id="lmi-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></symbol>
+      <symbol id="lmi-vdots" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></symbol>
+      <symbol id="lmi-cube" viewBox="0 0 24 24"><path d="M12 2l9 5v10l-9 5-9-5V7l9-5z"/><path d="M12 12l9-5M12 12L3 7M12 12v10"/></symbol>
+      <symbol id="lmi-nav" viewBox="0 0 24 24"><path d="M3 11l19-9-9 19-2-8-8-2z"/></symbol>
+      <symbol id="lmi-activity" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></symbol>
+      <symbol id="lmi-tag" viewBox="0 0 24 24"><path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/></symbol>
+      <symbol id="lmi-cloud" viewBox="0 0 24 24"><path d="M17.5 19a4.5 4.5 0 000-9 6 6 0 00-11.6 1.5A4 4 0 007 19z"/></symbol>
+      <symbol id="lmi-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></symbol>
+      <symbol id="lmi-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/></symbol>
+      <symbol id="lmi-download" viewBox="0 0 24 24"><path d="M12 3v12M7 11l5 5 5-5M4 21h16"/></symbol>
+      <symbol id="lmi-video" viewBox="0 0 24 24"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4z"/></symbol>
+      <symbol id="lmi-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></symbol>
+      <symbol id="lmi-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z" fill="currentColor"/></symbol>
+      <symbol id="lmi-pause" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor"/><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor"/></symbol>
+      <symbol id="lmi-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="lmi-star" viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></symbol>
+      <symbol id="lmi-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+      <symbol id="lmi-ruler" viewBox="0 0 24 24"><path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/></symbol>
+      <symbol id="lmi-gauge" viewBox="0 0 24 24"><path d="M4 17a8 8 0 1116 0"/><path d="M12 17l4-5"/></symbol>
+      <symbol id="lmi-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+      <symbol id="lmi-walk" viewBox="0 0 24 24"><circle cx="13" cy="4.5" r="1.8"/><path d="M9 21l2-6-2-3 2-4 4 2 2 3M11 15l3 2v4M8 11l-2 3"/></symbol>
+      <symbol id="lmi-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+      <symbol id="lmi-alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></symbol>
+      <symbol id="lmi-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+      <symbol id="lmi-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+      <symbol id="lmi-home" viewBox="0 0 24 24"><path d="M3 10.6L12 3l9 7.6V20a1 1 0 01-1 1h-5v-6.2H9V21H4a1 1 0 01-1-1z"/></symbol>
+      <symbol id="lmi-mappin2" viewBox="0 0 24 24"><path d="M12 21s-7-6-7-11a7 7 0 0114 0c0 5-7 11-7 11z"/><path d="M12 12.4l-1.9-1.9a1.3 1.3 0 011.9-1.7 1.3 1.3 0 011.9 1.7z"/></symbol>
+    </defs>
+  </svg>
 
-  <div id="lmControls"></div>
+  <div class="lms-root" id="lmScreens" data-screen="map">
 
-  <div class="card">
-    <div class="card-title">
-      📍 Live Together Map
-      <div style="display:flex;gap:6px;align-items:center">
-        <div class="toggle" id="lmTrackToggle" onclick="LiveMap.toggleTracking()" title="Live tracking on/off"></div>
-      </div>
-    </div>
+    <!-- ══════════════ SCREEN: MAP (root) ══════════════ -->
+    <section class="lms-screen active" id="lmsMap" data-screen="map">
+      <header class="lms-hdr">
+        <button class="lms-ib" type="button" aria-label="Back" onclick="LMScreens.back()"><svg class="lmi"><use href="#lmi-back"/></svg></button>
+        <div class="lms-title">Live Map<span class="lms-live" id="lmsLivePill"><i></i><b id="lmsLiveTxt">Live</b></span></div>
+        <button class="lms-ib" type="button" aria-label="Search places" onclick="LMScreens.open('search')"><svg class="lmi"><use href="#lmi-search"/></svg></button>
+        <button class="lms-ib" type="button" aria-label="More options" onclick="LMScreens.open('more')"><svg class="lmi"><use href="#lmi-gear"/></svg></button>
+      </header>
 
-    <!-- Presence row -->
-    <div style="display:flex;gap:10px;margin-bottom:12px">
-      <div style="flex:1;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;display:flex;align-items:center;gap:8px">
-        <div class="av av1" style="width:26px;height:26px;font-size:10px" id="lmAv1">U</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:11px;font-weight:600;color:var(--white)" id="lmMyName">You</div>
-          <div style="font-size:9px;color:var(--text3)" id="lmMyStatus">Starting…</div>
+      <div class="lms-body" id="lmsMapBody">
+        <!-- status banners -->
+        <div id="lmPermBanner" class="lms-banner lms-banner--err" style="display:none"></div>
+        <div id="lmOfflineBanner" class="lms-banner lms-banner--warn" style="display:none"><svg class="lmi"><use href="#lmi-alert"/></svg>You're offline — showing last known positions</div>
+        <div id="lmEmergencyBanner" class="lms-banner lms-banner--err" style="display:none">
+          <svg class="lmi"><use href="#lmi-alert"/></svg><span class="lm-emg-text">Emergency location share</span>
+          <button type="button" class="lms-mini" onclick="LiveMap.dismissEmergencyBanner()">Dismiss</button>
         </div>
-        <div id="lmMyDot" style="width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0"></div>
-      </div>
-      <div style="flex:1;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;display:flex;align-items:center;gap:8px">
-        <div class="av av2" style="width:26px;height:26px;font-size:10px" id="lmAv2">P</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:11px;font-weight:600;color:var(--white)" id="lmPtName">Partner</div>
-          <div style="font-size:9px;color:var(--text3)" id="lmPtStatus">—</div>
+
+        <!-- tabs -->
+        <nav class="lms-tabs" aria-label="Live map sections">
+          <button type="button" class="lms-tab active" onclick="LMScreens.show('map')"><svg class="lmi"><use href="#lmi-map"/></svg><span>Map</span></button>
+          <button type="button" class="lms-tab" onclick="LMScreens.open('track')"><svg class="lmi"><use href="#lmi-clock"/></svg><span>Track</span></button>
+          <button type="button" class="lms-tab" onclick="LMScreens.open('partner')"><svg class="lmi"><use href="#lmi-user"/></svg><span>Partner</span></button>
+          <button type="button" class="lms-tab" onclick="LMScreens.open('places')"><svg class="lmi"><use href="#lmi-heart"/></svg><span>Places</span></button>
+        </nav>
+
+        <!-- live together card -->
+        <div class="lms-card lms-together">
+          <div class="lms-avpair">
+            <div class="lms-av lms-av--me" id="lmAv1" data-av="me">U</div>
+            <div class="lms-av lms-av--pt" id="lmAv2" data-av="pt">P</div>
+          </div>
+          <div class="lms-together-txt">
+            <div class="lms-together-t">Live Together Map</div>
+            <div class="lms-together-s"><span id="lmPtName">Partner</span> · <span id="lmPtStatus">—</span><i class="lms-dot" id="lmPtDot"></i></div>
+            <div class="lms-together-s lms-together-s--me"><span id="lmMyName">You</span> · <span id="lmMyStatus">Starting…</span><i class="lms-dot" id="lmMyDot"></i></div>
+          </div>
+          <div class="toggle" id="lmTrackToggle" onclick="LiveMap.toggleTracking()" title="Share my live location on/off" role="switch" aria-label="Share my live location"></div>
         </div>
-        <div id="lmPtDot" style="width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0"></div>
+
+        <!-- map -->
+        <div id="lmsMapSlot">
+          <div class="lm2-map-wrap lms-mapwrap" id="lmsMapWrap">
+            <div id="mapView"></div>
+            <div class="lms-fabs">
+              <button type="button" class="lms-fab" id="lmsLayersBtn" aria-label="Map style" onclick="LMScreens.toggleStylePop()"><svg class="lmi"><use href="#lmi-layers"/></svg></button>
+              <button type="button" class="lms-fab" aria-label="Locate me" onclick="LiveMap.locateMe()"><svg class="lmi"><use href="#lmi-locate"/></svg></button>
+            </div>
+            <div class="lms-stylepop" id="lmsStylePop" role="menu">
+              <button type="button" class="lm-style-btn active" data-style="street" onclick="LiveMap.setMapStyle('street');LMScreens.toggleStylePop(false)">Map</button>
+              <button type="button" class="lm-style-btn" data-style="dark" onclick="LiveMap.setMapStyle('dark');LMScreens.toggleStylePop(false)">Dark</button>
+              <button type="button" class="lm-style-btn" data-style="satellite" onclick="LiveMap.setMapStyle('satellite');LMScreens.toggleStylePop(false)">Satellite</button>
+              <button type="button" class="lm-style-btn" data-style="hybrid" onclick="LiveMap.setMapStyle('hybrid');LMScreens.toggleStylePop(false)">Hybrid</button>
+              <button type="button" class="lm-style-btn" data-style="auto" onclick="LiveMap.setMapStyle('auto');LMScreens.toggleStylePop(false)">Auto</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- contextual panels (filled by LiveMap) -->
+        <div id="lmTogetherBanner" class="lms-pill-banner" style="display:none"><svg class="lmi"><use href="#lmi-heart"/></svg>You're together right now!</div>
+        <div id="mapTravelNote" class="lms-note" style="display:none"></div>
+        <div id="lmPlaceDetailsCard" class="lms-panel" style="display:none"></div>
+        <div id="lmDirectionsPanel" class="lms-panel" style="display:none"></div>
+        <button id="lmStartNavBtn" type="button" class="lms-cta" style="display:none" onclick="LiveMap.startQuickNav()">▶ Start</button>
+        <div id="lmNavPanel" class="lms-panel" style="display:none"></div>
+        <div id="lmMeetingSuggestions" class="lms-panel lms-panel--flush" style="display:none"></div>
+        <div id="lmWeatherPanel" class="lms-panel" style="display:none"></div>
+        <div id="lmLoveNotesPanel" class="lms-panel" style="display:none"></div>
+
+        <!-- ETA / directions bar -->
+        <div class="lms-card lms-eta">
+          <div class="lms-eta-ico"><svg class="lmi"><use href="#lmi-car"/></svg></div>
+          <div class="lms-eta-txt">
+            <div class="lms-eta-big"><span id="mapETA">—</span></div>
+            <div class="lms-eta-sub">To reach <span class="lms-ptname">partner</span> · <span id="mapDistance">—</span> away</div>
+          </div>
+          <button type="button" class="lms-cta lms-cta--sm" onclick="LiveMap.navigateToPartner()">Get Directions<svg class="lmi"><use href="#lmi-chev"/></svg></button>
+        </div>
+        <span id="mapUpdated" hidden>—</span>
+
+        <!-- quick tiles -->
+        <div class="lms-tiles">
+          <button type="button" class="lms-tile" onclick="LiveMap.locateMe()"><svg class="lmi"><use href="#lmi-user"/></svg><span>Locate Me</span></button>
+          <button type="button" class="lms-tile" onclick="LiveMap.locatePartner()"><svg class="lmi"><use href="#lmi-heart"/></svg><span>Locate Partner</span></button>
+          <button type="button" class="lms-tile" onclick="LiveMap.showMeetingPoint()"><svg class="lmi"><use href="#lmi-users"/></svg><span>Meeting Point</span></button>
+        </div>
+        <div class="lms-tiles lms-tiles--2">
+          <button type="button" class="lms-tile lms-tile--row" onclick="LiveMap.startVideoCallFromMap()"><svg class="lmi"><use href="#lmi-video"/></svg><span>Video Call</span></button>
+          <button type="button" class="lms-tile lms-tile--row" onclick="LiveMap.openLoveNoteComposer()"><svg class="lmi"><use href="#lmi-mail"/></svg><span>Love Note</span></button>
+        </div>
       </div>
-    </div>
+    </section>
 
-   <!-- GOOGLE MAPS–STYLE SEARCH: separate from the "Add Place" search below —
-        this is the primary Live Map search bar. Autocomplete via the same
-        free SearchService; picking a result drops a destination marker and
-        opens the place-details card (distance from me/partner, Directions,
-        Save, Share, Meet Here, Favorite). Recent searches + favorites are
-        persisted in S like everything else, so they sync via scheduleSave(). -->
-   <div style="position:relative;margin-bottom:10px">
-     <div style="display:flex;align-items:center;gap:6px;background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px">
-       <span id="lmGmSearchIco" style="opacity:.55;font-size:13px">🔍</span>
-       <input type="text" id="lmGmSearchInput" placeholder="Search Bengaluru, Vijayawada, restaurants, hospitals…"
-         oninput="LiveMap.gmSearchInput(this.value)" onfocus="LiveMap.gmSearchFocus()"
-         style="flex:1;min-width:0;background:transparent;border:none;outline:none;color:var(--white);font-size:12px">
-       <span id="lmGmSearchClear" style="display:none;cursor:pointer;opacity:.55;font-size:13px" onclick="LiveMap.gmSearchClear()">✕</span>
-     </div>
-     <div id="lmGmSearchResults" class="lm-search-results" style="position:absolute;left:0;right:0;top:100%;z-index:500"></div>
-   </div>
+    <!-- ══════════════ SCREEN: TRACK ══════════════ -->
+    <section class="lms-screen" id="lmsTrack" data-screen="track">
+      <header class="lms-hdr">
+        <button class="lms-ib" type="button" aria-label="Back" onclick="LMScreens.back()"><svg class="lmi"><use href="#lmi-back"/></svg></button>
+        <div class="lms-title">Tracking</div>
+        <button class="lms-ib" type="button" aria-label="Route history settings" onclick="LMScreens.toggleTrackSettings()"><svg class="lmi"><use href="#lmi-gear"/></svg></button>
+      </header>
+      <div class="lms-body">
+        <div class="lms-seg" id="lmRouteRoleToggle"></div>
 
-   <div id="lmPlaceDetailsCard" style="display:none;margin-bottom:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px"></div>
-   <div id="lmDirectionsPanel" style="display:none;margin-bottom:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px;font-size:11px;color:var(--text3)"></div>
+        <!-- route-history privacy (off by default) -->
+        <div class="lms-card" id="lmRouteSettingsPanel" style="display:none">
+          <div class="lms-row lms-row--plain">
+            <div class="lms-row-txt"><div class="lms-row-t">Record my route history</div><div class="lms-row-s">Off by default. Only your own movement is recorded, and only while this is on.</div></div>
+            <label class="lms-sw"><input type="checkbox" id="lmRouteHistoryToggle" onchange="LiveMap.setRouteHistoryEnabled(this.checked)"><span></span></label>
+          </div>
+          <div id="lmRouteRetentionRow" style="display:none;margin-top:10px">
+            <div class="lms-row-s" style="margin-bottom:6px">Keep my route history for</div>
+            <div class="lms-chips">
+              <button type="button" class="lm-chip lms-chip" data-retention="7" onclick="LiveMap.setRouteRetention(7)">7 days</button>
+              <button type="button" class="lm-chip lms-chip" data-retention="30" onclick="LiveMap.setRouteRetention(30)">30 days</button>
+              <button type="button" class="lm-chip lms-chip" data-retention="forever" onclick="LiveMap.setRouteRetention(null)">Forever</button>
+            </div>
+          </div>
+        </div>
 
-   <div id="mapView" style="width:100%;height:340px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border)"></div>
+        <div class="lms-seg lms-seg--pill" id="lmsTrackRange">
+          <button type="button" class="active" data-range="today" onclick="LMScreens.setTrackRange('today')">Today</button>
+          <button type="button" data-range="week" onclick="LMScreens.setTrackRange('week')">Week</button>
+          <button type="button" data-range="month" onclick="LMScreens.setTrackRange('month')">Month</button>
+        </div>
+        <div class="lms-chips lms-chips--scroll" id="lmRouteDatePicker"></div>
 
-   <!-- Single "Start" button — appears right after the map once a place has
-        been searched/picked, and goes straight into turn-by-turn navigation
-        (no separate Directions panel to open first). -->
-   <button id="lmStartNavBtn" class="btn btn-accent" style="display:none;width:100%;margin-top:10px;font-weight:700;font-size:14px;padding:12px" onclick="LiveMap.startQuickNav()">▶ Start</button>
+        <div id="lmRouteBody"><div class="lms-empty">Loading…</div></div>
 
-    <!-- PHASE 2: map style switcher + quick actions -->
-    <div class="lm-toolbar">
-      <div class="lm-style-seg">
-        <div class="lm-tool-btn lm-style-btn active" data-style="street" onclick="LiveMap.setMapStyle('street')"><span class="lm-tool-ico">🗺️</span>Map</div>
-        <div class="lm-tool-btn lm-style-btn" data-style="dark" onclick="LiveMap.setMapStyle('dark')"><span class="lm-tool-ico">🌙</span>Dark</div>
-        <div class="lm-tool-btn lm-style-btn" data-style="satellite" onclick="LiveMap.setMapStyle('satellite')"><span class="lm-tool-ico">🛰️</span>Satellite</div>
-        <div class="lm-tool-btn lm-style-btn" data-style="hybrid" onclick="LiveMap.setMapStyle('hybrid')"><span class="lm-tool-ico">🛰️</span>Hybrid</div>
-        <div class="lm-tool-btn lm-style-btn" data-style="auto" onclick="LiveMap.setMapStyle('auto')"><span class="lm-tool-ico">🌗</span>Auto</div>
+        <div class="lms-sec-t" id="lmsTimelineTitle">Timeline</div>
+        <div id="lmDailyTimeline"></div>
+        <div id="lmJourneySummary"></div>
+        <div id="lmsRangeList"></div>
+
+        <div id="lmsTrackMapBlock">
+          <div class="lms-sec-t">Route</div>
+          <div id="lmsTrackMapSlot"></div>
+          <div class="lms-card lms-play">
+            <button type="button" class="lms-playbtn" id="lmPlaybackPlayBtn" data-lms="1" aria-label="Play journey" onclick="LiveMap.playbackRoute()"><svg class="lmi"><use href="#lmi-play"/></svg></button>
+            <button type="button" class="lms-playbtn" id="lmPlaybackPauseBtn" data-lms="1" aria-label="Pause" style="display:none" onclick="LiveMap.pausePlayback()"><svg class="lmi"><use href="#lmi-pause"/></svg></button>
+            <div class="lms-play-mid" id="lmPlaybackProgress">
+              <div class="lms-track"><div id="lmPlaybackBar"></div></div>
+              <div class="lms-play-lbls"><span id="lmsT0">—</span><span id="lmPlaybackTime">00:00</span><span id="lmPlaybackDist">0.0 km</span><span id="lmPlaybackSpeedNow">— km/h</span><span id="lmsT1">—</span></div>
+            </div>
+            <select id="lmPlaybackSpeed" class="lms-select" aria-label="Playback speed" onchange="LiveMap.setPlaybackSpeed(this.value)">
+              <option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option>
+            </select>
+          </div>
+          <div id="lmStopsList"></div>
+        </div>
       </div>
-      <div class="lm-camera-row" style="margin-bottom:8px">
-        <div class="lm-tool-btn" id="lmCameraModeBtn" style="width:100%;justify-content:center" title="Cycle camera angle: top-down → 3D tilt → eye-level (human view)" onclick="LiveMap.cycleCameraMode()"><span class="lm-tool-ico">📐</span>3D / Eye-level view: <span id="lmCameraModeLabel" style="margin-left:4px">Top-down</span></div>
-      </div>
-      <div class="lm-action-row">
-        <div class="lm-tool-btn" onclick="LiveMap.locateMe()"><span class="lm-tool-ico">📍</span>Locate Me</div>
-        <div class="lm-tool-btn" onclick="LiveMap.locatePartner()"><span class="lm-tool-ico">💜</span>Locate Partner</div>
-        <div class="lm-tool-btn" onclick="LiveMap.showMeetingPoint()"><span class="lm-tool-ico">🤝</span>Meeting Point</div>
-        <div class="lm-tool-btn" id="lmFavBtn" onclick="LiveMap.toggleFavoritesPanel()"><span class="lm-tool-ico">⭐</span>Favorites</div>
-        <div class="lm-tool-btn" onclick="LiveMap.openRouteHistory()"><span class="lm-tool-ico">🛣️</span>Daily Route</div>
-        <div class="lm-tool-btn" id="lmPrivacyBtn" onclick="LiveMap.togglePrivacyPanel()"><span class="lm-tool-ico">🔒</span>Privacy</div>
-      </div>
-    </div>
+    </section>
 
-    <div id="lmPrivacyPanel" style="display:none;margin-top:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--text3)"></div>
-    <div id="lmWeatherPanel" style="display:none;margin-top:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--text3)"></div>
-    <div id="lmNavPanel" style="display:none;margin-top:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--text3)"></div>
-    <div id="lmFavoritesPanel" style="display:none;margin-top:10px"></div>
-    <div id="lmMeetingSuggestions" style="display:none;margin-top:10px"></div>
- 
-    <div class="period-stats" style="margin-top:14px">
-      <div class="pstat"><div class="pstat-n" id="mapDistance">—</div><div class="pstat-l">Distance</div></div>
-      <div class="pstat"><div class="pstat-n" id="mapETA">—</div><div class="pstat-l">ETA (drive)</div></div>
-      <div class="pstat"><div class="pstat-n" id="mapUpdated">—</div><div class="pstat-l">Last Updated</div></div>
-    </div>
-    <div id="mapTravelNote" class="info-banner" style="margin-top:12px;display:none"></div>
-    <div id="lmTogetherBanner" style="display:none;margin-top:12px;text-align:center;background:linear-gradient(135deg,rgba(255,60,90,.18),rgba(255,180,60,.12));border:1px solid var(--border);border-radius:var(--rs);padding:10px;font-size:12px;font-weight:700;color:var(--white)">💕 You're together right now!</div>
-    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-      <button class="btn btn-accent btn-sm" style="flex:1;min-width:120px" onclick="LiveMap.startVideoCallFromMap()">📹 Video Call</button>
-      <button class="btn btn-glass btn-sm" style="flex:1;min-width:120px" onclick="LiveMap.openLoveNoteComposer()">💌 Leave a Love Note</button>
-    </div>
-    <div id="lmLoveNotesPanel" style="display:none;margin-top:10px"></div>
+    <!-- ══════════════ SCREEN: PARTNER ══════════════ -->
+    <section class="lms-screen" id="lmsPartner" data-screen="partner">
+      <header class="lms-hdr">
+        <button class="lms-ib" type="button" aria-label="Back" onclick="LMScreens.back()"><svg class="lmi"><use href="#lmi-back"/></svg></button>
+        <div class="lms-title">Partner</div>
+      </header>
+      <div class="lms-body">
+        <div class="lms-card lms-profile">
+          <div class="lms-av lms-av--xl" data-av="pt">P</div>
+          <div class="lms-profile-txt">
+            <div class="lms-profile-name" id="lmsPName">Partner</div>
+            <div class="lms-profile-st" id="lmsPState">—</div>
+            <div class="lms-profile-seen" id="lmsPSeen">—</div>
+          </div>
+          <button type="button" class="lms-ib lms-ib--heart" aria-label="Send a love note" onclick="LiveMap.openLoveNoteComposer();LMScreens.ensureMap()"><svg class="lmi"><use href="#lmi-heart"/></svg></button>
+        </div>
+
+        <div class="lms-stats">
+          <div class="lms-stat"><svg class="lmi"><use href="#lmi-walk"/></svg><b id="lmsPMove">—</b><span>Status</span></div>
+          <div class="lms-stat"><svg class="lmi"><use href="#lmi-clock"/></svg><b id="lmsPUpd">—</b><span>Updated</span></div>
+          <div class="lms-stat"><svg class="lmi"><use href="#lmi-ruler"/></svg><b id="lmsPDist">—</b><span>Away from you</span></div>
+          <div class="lms-stat"><svg class="lmi"><use href="#lmi-car"/></svg><b id="lmsPEta">—</b><span>Drive ETA</span></div>
+        </div>
+
+        <button type="button" class="lms-card lms-near" onclick="LMScreens.viewPartnerLive()">
+          <span class="lms-near-ico"><svg class="lmi"><use href="#lmi-pin"/></svg></span>
+          <span class="lms-row-txt"><span class="lms-row-t" id="lmsPNear">Location not shared yet</span><span class="lms-row-s" id="lmsPNearSub">—</span></span>
+          <svg class="lmi lms-chev"><use href="#lmi-chev"/></svg>
+        </button>
+
+        <div class="lms-list">
+          <button type="button" class="lms-row" onclick="LMScreens.viewPartnerLive()"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-eye"/></svg></span><span class="lms-row-t">View Live Location</span><svg class="lmi lms-chev"><use href="#lmi-chev"/></svg></button>
+          <button type="button" class="lms-row" onclick="LMScreens.open('track',{role:'partner'})"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-route"/></svg></span><span class="lms-row-t">Today's Route</span><svg class="lmi lms-chev"><use href="#lmi-chev"/></svg></button>
+          <button type="button" class="lms-row" onclick="LMScreens.open('places',{tab:'partner'})"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-pin"/></svg></span><span class="lms-row-t">Important Places</span><svg class="lmi lms-chev"><use href="#lmi-chev"/></svg></button>
+          <button type="button" class="lms-row" onclick="LMScreens.open('alerts')"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-bell"/></svg></span><span class="lms-row-t">Location Alerts</span><svg class="lmi lms-chev"><use href="#lmi-chev"/></svg></button>
+          <div class="lms-row lms-row--static"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-share"/></svg></span><span class="lms-row-t">Share My Location</span>
+            <label class="lms-sw"><input type="checkbox" id="lmsShareToggle" onchange="LMScreens.onShareToggle(this.checked)"><span></span></label></div>
+          <button type="button" class="lms-row" onclick="LiveMap.startVideoCallFromMap()"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-video"/></svg></span><span class="lms-row-t">Video Call</span><svg class="lmi lms-chev"><use href="#lmi-chev"/></svg></button>
+          <button type="button" class="lms-row" onclick="LMScreens.open('more')"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-dots"/></svg></span><span class="lms-row-t">More Options</span><svg class="lmi lms-chev"><use href="#lmi-chev"/></svg></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════ SCREEN: PLACES ══════════════ -->
+    <section class="lms-screen" id="lmsPlaces" data-screen="places">
+      <header class="lms-hdr">
+        <button class="lms-ib" type="button" aria-label="Back" onclick="LMScreens.back()"><svg class="lmi"><use href="#lmi-back"/></svg></button>
+        <div class="lms-title">Places</div>
+      </header>
+      <div class="lms-body">
+        <div class="lms-seg lms-seg--pill" id="lmsPlacesTabs">
+          <button type="button" class="active" data-tab="mine" onclick="LMScreens.setPlacesTab('mine')">My Places</button>
+          <button type="button" data-tab="partner" onclick="LMScreens.setPlacesTab('partner')">Partner's</button>
+          <button type="button" data-tab="fav" onclick="LMScreens.setPlacesTab('fav')">Favorites</button>
+        </div>
+        <button type="button" class="lms-cta lms-cta--wide" id="lmsAddPlaceBtn" onclick="LiveMap.openPlaceModal('self')"><svg class="lmi"><use href="#lmi-plus"/></svg>Add Place</button>
+        <div class="lms-plist" id="myPlacesList" data-pane="mine"></div>
+        <div class="lms-plist" id="ptPlacesList" data-pane="partner" style="display:none"></div>
+        <div class="lms-plist" id="lmFavoritesPanel" data-pane="fav" style="display:none"></div>
+      </div>
+    </section>
+
+    <!-- ══════════════ SCREEN: MORE OPTIONS ══════════════ -->
+    <section class="lms-screen" id="lmsMore" data-screen="more">
+      <header class="lms-hdr">
+        <button class="lms-ib" type="button" aria-label="Back" onclick="LMScreens.back()"><svg class="lmi"><use href="#lmi-back"/></svg></button>
+        <div class="lms-title">More Options</div>
+      </header>
+      <div class="lms-body">
+        <div class="lms-card">
+          <div class="lms-card-h"><svg class="lmi"><use href="#lmi-map"/></svg>Map Type</div>
+          <div class="lms-maptypes">
+            <button type="button" class="lm-style-btn lms-mt active" data-style="street" onclick="LiveMap.setMapStyle('street')"><i class="lms-mt-th lms-mt-th--street"></i><span>Map</span></button>
+            <button type="button" class="lm-style-btn lms-mt" data-style="dark" onclick="LiveMap.setMapStyle('dark')"><i class="lms-mt-th lms-mt-th--dark"></i><span>Dark</span></button>
+            <button type="button" class="lm-style-btn lms-mt" data-style="satellite" onclick="LiveMap.setMapStyle('satellite')"><i class="lms-mt-th lms-mt-th--sat"></i><span>Satellite</span></button>
+            <button type="button" class="lm-style-btn lms-mt" data-style="hybrid" onclick="LiveMap.setMapStyle('hybrid')"><i class="lms-mt-th lms-mt-th--hyb"></i><span>Hybrid</span></button>
+            <button type="button" class="lm-style-btn lms-mt" data-style="auto" onclick="LiveMap.setMapStyle('auto')"><i class="lms-mt-th lms-mt-th--auto"></i><span>Auto</span></button>
+          </div>
+        </div>
+
+        <div class="lms-list">
+          <div class="lms-row lms-row--static"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-cube"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">3D / Eye-level View</span><span class="lms-row-s" id="lmCameraModeLabel">Top-down</span></span><label class="lms-sw"><input type="checkbox" id="lmsOpt3d" onchange="LMScreens.opt('3d',this.checked)"><span></span></label></div>
+          <div class="lms-row lms-row--static"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-nav"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">Auto Follow Partner</span><span class="lms-row-s">Camera stays on your partner as they move</span></span><label class="lms-sw"><input type="checkbox" id="lmsOptFollow" onchange="LMScreens.opt('follow',this.checked)"><span></span></label></div>
+          <div class="lms-row lms-row--static"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-activity"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">Show Route Line</span><span class="lms-row-s">Recent path of you and your partner</span></span><label class="lms-sw"><input type="checkbox" id="lmsOptTrail" onchange="LMScreens.opt('trail',this.checked)"><span></span></label></div>
+          <div class="lms-row lms-row--static"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-tag"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">Show Place Labels</span><span class="lms-row-s">Home, College and other saved places</span></span><label class="lms-sw"><input type="checkbox" id="lmsOptPlaces" onchange="LMScreens.opt('places',this.checked)"><span></span></label></div>
+          <div class="lms-row lms-row--static"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-cloud"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">Weather Layer</span><span class="lms-row-s">Weather at your location on the map</span></span><label class="lms-sw"><input type="checkbox" id="lmsOptWeather" onchange="LMScreens.opt('weather',this.checked)"><span></span></label></div>
+        </div>
+
+        <!-- native background tracking (mounted here by /js/livetrack-bridge.js) -->
+        <div id="lmControls"></div>
+
+        <div class="lms-list">
+          <button type="button" class="lms-row" onclick="LMScreens.open('privacy')"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-lock"/></svg></span><span class="lms-row-t">Location Privacy</span><svg class="lmi lms-chev"><use href="#lmi-chev"/></svg></button>
+          <button type="button" class="lms-row" onclick="LMScreens.clearHistory()"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-trash"/></svg></span><span class="lms-row-t">Clear History</span><svg class="lmi lms-chev"><use href="#lmi-chev"/></svg></button>
+          <button type="button" class="lms-row" onclick="LMScreens.exportRoute()"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-download"/></svg></span><span class="lms-row-t">Export Route</span><svg class="lmi lms-chev"><use href="#lmi-chev"/></svg></button>
+          <button type="button" class="lms-row" onclick="goto('settings')"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-gear"/></svg></span><span class="lms-row-t">Settings</span><svg class="lmi lms-chev"><use href="#lmi-chev"/></svg></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════ SCREEN: LOCATION ALERTS ══════════════ -->
+    <section class="lms-screen" id="lmsAlerts" data-screen="alerts">
+      <header class="lms-hdr">
+        <button class="lms-ib" type="button" aria-label="Back" onclick="LMScreens.back()"><svg class="lmi"><use href="#lmi-back"/></svg></button>
+        <div class="lms-title">Location Alerts</div>
+      </header>
+      <div class="lms-body">
+        <div class="lms-sec-t">Get notified when <span class="lms-ptname">partner</span>…</div>
+        <div class="lms-list">
+          <div class="lms-row lms-row--static"><span class="lms-row-ico lms-ico--green"><svg class="lmi"><use href="#lmi-home"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">Arrives at a place</span><span class="lms-row-s">Any saved place, yours or theirs</span></span><label class="lms-sw"><input type="checkbox" data-alert="arrive" onchange="LMScreens.setAlert('arrive',this.checked)"><span></span></label></div>
+          <div class="lms-row lms-row--static"><span class="lms-row-ico lms-ico--amber"><svg class="lmi"><use href="#lmi-logout"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">Leaves a place</span><span class="lms-row-s">When they leave any saved place</span></span><label class="lms-sw"><input type="checkbox" data-alert="leave" onchange="LMScreens.setAlert('leave',this.checked)"><span></span></label></div>
+          <div class="lms-row lms-row--static"><span class="lms-row-ico lms-ico--grey"><svg class="lmi"><use href="#lmi-share"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">Goes offline</span><span class="lms-row-s">Their live sharing drops</span></span><label class="lms-sw"><input type="checkbox" data-alert="offline" onchange="LMScreens.setAlert('offline',this.checked)"><span></span></label></div>
+        </div>
+        <div class="lms-hint">These alerts show while the app is open.</div>
+
+        <div class="lms-sec-t">Let <span class="lms-ptname">partner</span> know when I…</div>
+        <div class="lms-list">
+          <div class="lms-row lms-row--static"><span class="lms-row-ico lms-ico--red"><svg class="lmi"><use href="#lmi-shield"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">Low battery</span><span class="lms-row-s">Send a heads-up when my battery is low</span></span><label class="lms-sw"><input type="checkbox" data-alert="battery" onchange="LMScreens.setAlert('battery',this.checked)"><span></span></label></div>
+          <div class="lms-row lms-row--static"><span class="lms-row-ico lms-ico--red"><svg class="lmi"><use href="#lmi-alert"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">Lose internet</span><span class="lms-row-s">Send a heads-up when I go offline</span></span><label class="lms-sw"><input type="checkbox" data-alert="network" onchange="LMScreens.setAlert('network',this.checked)"><span></span></label></div>
+          <div class="lms-row lms-row--static"><span class="lms-row-ico lms-ico--red"><svg class="lmi"><use href="#lmi-locate"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">GPS or permission turns off</span><span class="lms-row-s">Send a heads-up if sharing stops working</span></span><label class="lms-sw"><input type="checkbox" data-alert="gps" onchange="LMScreens.setAlert('gps',this.checked)"><span></span></label></div>
+        </div>
+
+        <div class="lms-sec-t">Recent activity</div>
+        <div id="lmsAlertFeed" class="lms-feed"><div class="lms-empty">Loading…</div></div>
+      </div>
+    </section>
+
+    <!-- ══════════════ SCREEN: LOCATION PRIVACY ══════════════ -->
+    <section class="lms-screen" id="lmsPrivacy" data-screen="privacy">
+      <header class="lms-hdr">
+        <button class="lms-ib" type="button" aria-label="Back" onclick="LMScreens.back()"><svg class="lmi"><use href="#lmi-back"/></svg></button>
+        <div class="lms-title">Location Privacy</div>
+      </header>
+      <div class="lms-body">
+        <div id="lmPrivacyPanel" class="lms-card lms-privacy"></div>
+      </div>
+    </section>
+
+    <!-- ══════════════ SCREEN: SEARCH ══════════════ -->
+    <section class="lms-screen" id="lmsSearch" data-screen="search">
+      <header class="lms-hdr lms-hdr--search">
+        <button class="lms-ib" type="button" aria-label="Back" onclick="LMScreens.back()"><svg class="lmi"><use href="#lmi-back"/></svg></button>
+        <div class="lms-searchbar">
+          <svg class="lmi"><use href="#lmi-search"/></svg>
+          <input type="text" id="lmGmSearchInput" autocomplete="off" placeholder="Search places, restaurants, hospitals…"
+                 oninput="LiveMap.gmSearchInput(this.value)" onfocus="LiveMap.gmSearchFocus()">
+          <button type="button" id="lmGmSearchClear" class="lms-clear" style="display:none" aria-label="Clear" onclick="LiveMap.gmSearchClear()"><svg class="lmi"><use href="#lmi-x"/></svg></button>
+        </div>
+      </header>
+      <div class="lms-body">
+        <div class="lms-chips lms-chips--scroll" id="lmsSearchChips">
+          <button type="button" class="lms-chip" onclick="LMScreens.searchChip('Restaurants')">🍽️ Restaurants</button>
+          <button type="button" class="lms-chip" onclick="LMScreens.searchChip('Cafes')">☕ Cafes</button>
+          <button type="button" class="lms-chip" onclick="LMScreens.searchChip('Petrol pump')">⛽ Fuel</button>
+          <button type="button" class="lms-chip" onclick="LMScreens.searchChip('ATM')">🏧 ATM</button>
+          <button type="button" class="lms-chip" onclick="LMScreens.searchChip('Hospital')">🏥 Hospitals</button>
+          <button type="button" class="lms-chip" onclick="LMScreens.searchChip('Pharmacy')">💊 Pharmacy</button>
+          <button type="button" class="lms-chip" onclick="LMScreens.searchChip('Hotels')">🏨 Hotels</button>
+          <button type="button" class="lms-chip" onclick="LMScreens.searchChip('Parking')">🅿️ Parking</button>
+        </div>
+        <div id="lmGmSearchResults" class="lm-search-results"></div>
+      </div>
+    </section>
+
+    <!-- shared action sheet (place ⋮ menu, confirmations) -->
+    <div class="lms-sheet-bg" id="lmsSheetBg" onclick="LMScreens.closeSheet()"></div>
+    <div class="lms-sheet" id="lmsSheet" role="dialog" aria-modal="true"></div>
   </div>
-
-  <!-- MY IMPORTANT PLACES -->
-  <div class="card">
-    <div class="card-title">
-      🏠 My Important Places
-      <button class="btn btn-accent btn-sm" onclick="LiveMap.openPlaceModal('self')">+ Add Place</button>
-    </div>
-    <div id="myPlacesList"></div>
-  </div>
-
-  <!-- PARTNER IMPORTANT PLACES -->
-  <div class="card">
-    <div class="card-title">💜 Partner Important Places</div>
-    <div id="ptPlacesList"><div class="empty">Synced once your partner adds places</div></div>
-  </div>
-
 </div>
 
 <!-- ADD PLACE MODAL -->
@@ -6358,44 +6608,7 @@ select option { background: #0D0D0D; color: #fff; }
   </div>
 </div>
 
-<!-- PHASE 2: DAILY ROUTE / TIMELINE / PLAYBACK MODAL -->
-<div class="modal-bg" id="lmRouteModal">
-  <div class="modal">
-    <div class="modal-title">🛣️ Daily Route
-      <button class="modal-close" style="right:44px" title="Route History privacy settings" onclick="LiveMap.toggleRouteSettingsPanel()">⚙️</button>
-      <button class="modal-close" onclick="closeM('lmRouteModal')"><i data-lucide="x"></i></button>
-    </div>
-
-    <!-- Phase 4: privacy — off by default, each person controls only their own recording -->
-    <div id="lmRouteSettingsPanel" style="display:none;background:var(--g1);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-        <div>
-          <div style="font-weight:600;font-size:13px">Record my route history</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px">Off by default. Only your own movement is recorded, and only when this is on.</div>
-        </div>
-        <label class="lm-switch">
-          <input type="checkbox" id="lmRouteHistoryToggle" onchange="LiveMap.setRouteHistoryEnabled(this.checked)">
-          <span class="lm-switch-slider"></span>
-        </label>
-      </div>
-      <div id="lmRouteRetentionRow" style="margin-top:12px;display:none">
-        <div style="font-size:12px;color:var(--text3);margin-bottom:6px">Keep my route history for</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <div class="lm-chip" data-retention="7" onclick="LiveMap.setRouteRetention(7)">7 days</div>
-          <div class="lm-chip" data-retention="30" onclick="LiveMap.setRouteRetention(30)">30 days</div>
-          <div class="lm-chip" data-retention="forever" onclick="LiveMap.setRouteRetention(null)">Forever</div>
-        </div>
-      </div>
-      <button class="btn btn-glass btn-sm" style="margin-top:12px;color:#ff6b6b" onclick="LiveMap.deleteMyRouteHistory()">🗑️ Delete my route history</button>
-    </div>
-
-    <div id="lmRouteRoleToggle" class="lm-action-row" style="margin-bottom:10px"></div>
-    <div id="lmRouteDatePicker" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
-    <div id="lmRouteBody"><div class="empty">Loading…</div></div>
-  </div>
-</div>
-
-<!-- PHASE 2: STREET VIEW MODAL (Mapillary, graceful Google Maps fallback) -->
+<!-- STREET VIEW MODAL (Mapillary, graceful Google Maps fallback) -->
 <div class="modal-bg" id="lmStreetViewModal">
   <div class="modal">
     <div class="modal-title">👁 Street View<button class="modal-close" onclick="closeM('lmStreetViewModal')"><i data-lucide="x"></i></button></div>
@@ -13095,6 +13308,7 @@ init();
 
 <!-- Live Map redesign layer (additive UI only — see livemap-redesign.css) -->
 <script src="/livemap-redesign.js"></script>
+<script src="/livemap-screens.js"></script>
 
 </body>
 </html>

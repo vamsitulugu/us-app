@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v9'; // bumped: purges stale cached assets (incl. old movie.css) on activate
+const CACHE = 'uwl-v10'; // bumped: purges stale cached assets (incl. old movie.css) on activate
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
