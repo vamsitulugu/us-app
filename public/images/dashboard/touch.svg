@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#560a1c"/><stop offset="1" stop-color="#26091e"/></linearGradient>
+<radialGradient id="glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#e0355b" stop-opacity=".55"/><stop offset="1" stop-color="#e0355b" stop-opacity="0"/></radialGradient>
+<linearGradient id="h1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a7a"/><stop offset="1" stop-color="#d1203a"/></linearGradient>
+<linearGradient id="h2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9db8"/><stop offset="1" stop-color="#b8174f"/></linearGradient>
+<path id="heart" d="M0 -22 C0 -52 -52 -52 -52 -10 C-52 26 -10 46 0 62 C10 46 52 26 52 -10 C52 -52 0 -52 0 -22Z"/>
+</defs>
+<rect width="1600" height="900" fill="url(#bg)"/>
+<circle cx="260" cy="170" r="150" fill="url(#glow)"/><circle cx="1380" cy="260" r="190" fill="url(#glow)"/><circle cx="900" cy="780" r="220" fill="url(#glow)"/>
+<circle cx="210" cy="120" r="3" fill="#fff" opacity="0.6"/><circle cx="420" cy="260" r="2" fill="#fff" opacity="0.4"/><circle cx="1250" cy="140" r="3" fill="#fff" opacity="0.55"/><circle cx="1470" cy="380" r="2" fill="#fff" opacity="0.4"/><circle cx="700" cy="90" r="2" fill="#fff" opacity="0.35"/><circle cx="1100" cy="330" r="2" fill="#fff" opacity="0.35"/><circle cx="330" cy="520" r="2" fill="#fff" opacity="0.3"/><circle cx="1320" cy="560" r="3" fill="#fff" opacity="0.3"/>
+<g fill="none" stroke="#fff" stroke-width="5"><circle cx="800" cy="450" r="90" opacity=".6"/><circle cx="800" cy="450" r="160" opacity=".38"/><circle cx="800" cy="450" r="240" opacity=".2"/></g>
+<circle cx="800" cy="450" r="130" fill="url(#glow)"/>
+<g transform="translate(560 450) scale(3.2) rotate(-14)"><use href="#heart" fill="url(#h1)"/></g>
+<g transform="translate(1040 450) scale(3.2) rotate(14)"><use href="#heart" fill="url(#h2)"/></g>
+<circle cx="800" cy="450" r="16" fill="#fff"/>
+</svg>

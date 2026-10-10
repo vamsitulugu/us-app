@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2a1230"/><stop offset="1" stop-color="#14081f"/></linearGradient>
+<radialGradient id="glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#8b5cf6" stop-opacity=".55"/><stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/></radialGradient>
+<linearGradient id="h1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a7a"/><stop offset="1" stop-color="#d1203a"/></linearGradient>
+<linearGradient id="h2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9db8"/><stop offset="1" stop-color="#b8174f"/></linearGradient>
+<path id="heart" d="M0 -22 C0 -52 -52 -52 -52 -10 C-52 26 -10 46 0 62 C10 46 52 26 52 -10 C52 -52 0 -52 0 -22Z"/>
+</defs>
+<rect width="1600" height="900" fill="url(#bg)"/>
+<circle cx="260" cy="170" r="150" fill="url(#glow)"/><circle cx="1380" cy="260" r="190" fill="url(#glow)"/><circle cx="900" cy="780" r="220" fill="url(#glow)"/>
+<circle cx="1230" cy="300" r="4" fill="#fff" opacity=".5"/><circle cx="1330" cy="210" r="3" fill="#fff" opacity=".4"/><circle cx="420" cy="170" r="3" fill="#fff" opacity=".45"/>
+<circle cx="560" cy="450" r="280" fill="url(#glow)"/>
+<path d="M700 430 C820 330 960 330 1090 430" fill="none" stroke="#fff" stroke-opacity=".4" stroke-width="5" stroke-dasharray="3 18" stroke-linecap="round"/>
+<g transform="translate(540 450) scale(4) rotate(-6)"><use href="#heart" fill="url(#h1)"/></g>
+<path d="M600 640 C600 600 640 570 640 570 C640 570 680 600 680 640 C680 670 660 690 640 690 C620 690 600 670 600 640Z" fill="#9fd0ff" opacity=".75" transform="translate(-60 -40) scale(.8)"/>
+<g transform="translate(1180 470) scale(1.9) rotate(8)"><use href="#heart" fill="url(#h2)" opacity=".7"/></g>
+</svg>

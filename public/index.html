@@ -1155,50 +1155,6 @@
       gap: 12px
     }
 
-    /* ════ METRICS ════ */
-    .metrics {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-bottom: 18px
-    }
-
-    .metric {
-      background: var(--g1);
-      backdrop-filter: var(--blur);
-      -webkit-backdrop-filter: var(--blur);
-      border: 1px solid var(--border);
-      border-radius: var(--r);
-      padding: 18px 14px;
-      text-align: center;
-      box-shadow: 0 2px 14px rgba(20, 20, 30, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-      transition: var(--t);
-      cursor: default;
-    }
-
-    .metric:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 6px 20px rgba(20, 20, 30, 0.08)
-    }
-
-    .metric-n {
-      font-size: 30px;
-      font-weight: 700;
-      color: var(--white);
-      font-family: var(--ff-serif);
-      line-height: 1;
-      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
-    }
-
-    .metric-l {
-      font-size: 10px;
-      color: var(--text3);
-      margin-top: 6px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-      text-transform: uppercase
-    }
-
     /* ════ TABS ════ */
     .stabs {
       display: flex;
@@ -2071,10 +2027,6 @@
     .xp-badge-prog{height:100%;background:linear-gradient(90deg,var(--accent),#ff6b6b);border-radius:2px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
     .xp-badge-prog-txt{font-size:8px;color:var(--text3);margin-top:4px}
     /* ════ RELATIONSHIP INSIGHT ════ */
-    .rel-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:16px}
-    .rel-insight-ico{font-size:20px;flex-shrink:0}
-    .rel-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
-    .rel-insight-text strong{color:var(--white)}
     /* ════ FIGHT ANALYTICS ════ */
     .fa-hero{display:flex;align-items:center;gap:20px;padding:20px;margin-bottom:14px}
     .fa-ring-wrap{position:relative;width:100px;height:100px;flex-shrink:0}
@@ -3414,9 +3366,6 @@
   .content { padding: 12px 12px 100px }
 
   /* Metrics grid */
-  .metrics { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px }
-  .metric { padding: 14px 10px }
-  .metric-n { font-size: 24px }
 
   /* Layouts */
   .two-col { grid-template-columns: 1fr; gap: 10px }
@@ -3470,9 +3419,6 @@
   .pin-pad { max-width: 220px; gap: 10px }
   .pk { padding: 13px; font-size: 16px }
 
-  /* Mood graph */
-  #moodGraph { height: 70px }
-
   /* AI page pills */
 
   /* Topbar adjustments */
@@ -3483,15 +3429,12 @@
 
 /* Extra small phones */
 @media(max-width:380px) {
-  .metrics { grid-template-columns: repeat(2, 1fr) }
-  .metric-n { font-size: 20px }
   .card { padding: 12px 10px }
   
 }
 
 /* Tablets */
 @media(min-width:701px) and (max-width:1024px) {
-  .metrics { grid-template-columns: repeat(2, 1fr) }
   .sidebar { width: 180px; min-width: 180px; max-width: 180px }
   .two-col { gap: 12px }
 }
@@ -3718,13 +3661,6 @@
   width: 0 !important;
   height: 0 !important;
   overflow: visible;
-}
-/* HEARTBEAT FIX 2 — widget container must not break column width */
-#hbWidgetContainer {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
 }
 /* HEARTBEAT FIX 3 — topbar pill must be inline-flex, zero impact on layout */
 .hb-topbar-pill {
@@ -4808,11 +4744,6 @@ body {
   z-index: 9990;
 }
 
-#hbWidgetContainer {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-}
 
 .hb-topbar-pill {
   display: inline-flex !important;
@@ -5081,6 +5012,7 @@ select option { background: #0D0D0D; color: #fff; }
   <script src="/js/upload-progress-ui.js"></script>
   <script src="/safe-delete.js"></script>
   <link rel="stylesheet" href="/glass-nav.css">
+  <link rel="stylesheet" href="/dashboard.css">
 </head>
 
 <body class="t-blue">
@@ -5538,109 +5470,60 @@ select option { background: #0D0D0D; color: #fff; }
 
     <div class="content">
 
-      <!-- ════ DASHBOARD ════ -->
+      <!-- ════ DASHBOARD ════ (styles: /dashboard.css · logic: /dashboard.js) -->
       <div class="page active" id="page-dashboard">
-        <div class="metrics">
-          <div class="metric">
-            <div class="metric-n" id="daysTog" style="font-size:22px">–</div>
-            <div style="font-size:9px;color:var(--text3);margin-top:2px" id="daysHours"></div>
-            <div class="metric-l">Days Together 💕</div>
-          </div>
-          <div class="metric">
-            <div class="metric-n" id="memCount">–</div>
-            <div class="metric-l">Memories 📸</div>
-          </div>
-          <div class="metric">
-            <div class="metric-n" id="bucketCount">–</div>
-            <div class="metric-l">Dreams 🌟</div>
-          </div>
-          <div class="metric">
-            <div class="metric-n" id="habitStreak">–</div>
-            <div class="metric-l">Habit Streak</div>
-          </div>
-        </div>
-        <div class="rel-insight-card" id="relInsightCard"></div>
-        <!-- ═══ HEARTBEAT CONNECTION WIDGET ═══ -->
-        <div id="hbWidgetContainer"></div>
-          <!-- Pulse ring (global, positioned absolute by HB manager) -->
         <div id="hbPulseRing"></div>
-        <div class="card cc-card" id="connectionCard">
-  <div class="card-title" style="justify-content:center">💕 Stay Connected</div>
- 
-  <div class="cc-actions">
-    <button class="cc-btn cc-touch" id="ccTouchBtn" onclick="ConnCard.sendTouch()">
-      <span class="cc-ico">❤️</span><span class="cc-lbl">Touch</span>
-    </button>
-    <button class="cc-btn cc-hug" id="ccHugBtn" onclick="ConnCard.sendHug()">
-      <span class="cc-ico">🤗</span><span class="cc-lbl">Hug</span>
-    </button>
-    <button class="cc-btn cc-miss" id="ccMissBtn" onclick="ConnCard.sendMissYou()">
-      <span class="cc-ico">🥺</span><span class="cc-lbl">Miss You</span>
-    </button>
-  </div>
- 
-  <div id="ccBurstLayer" class="cc-burst-layer"></div>
- 
-  <div class="cc-stats">
-    <div class="cc-stat">
-      <div class="cc-stat-ico">❤️</div>
-      <div class="cc-stat-v" id="ccLastInteraction">—</div>
-      <div class="cc-stat-l">Last Interaction</div>
-    </div>
-    <div class="cc-stat">
-      <div class="cc-stat-ico">🤗</div>
-      <div class="cc-stat-v" id="ccHugTotal">–</div>
-      <div class="cc-stat-l">Hugs Shared</div>
-    </div>
-    <div class="cc-stat">
-      <div class="cc-stat-ico">🥺</div>
-      <div class="cc-stat-v" id="ccMissTotal">–</div>
-      <div class="cc-stat-l">Miss You</div>
-    </div>
-    <div class="cc-stat">
-      <div class="cc-stat-ico">🕒</div>
-      <div class="cc-stat-v" id="ccLastReceived">—</div>
-      <div class="cc-stat-l">Last Received</div>
-    </div>
-  </div>
-</div>
-        <div class="card" id="countdownCard" style="display:none">
-          <div class="card-title">🎉 Upcoming Celebrations</div>
-          <div id="countdownList"></div>
-        </div>
-        <div class="two-col" style="margin-bottom:16px">
-          <div class="card" style="margin-bottom:0">
-            <div class="card-title">💌 Recent Messages<button class="btn-ghost btn-sm" onclick="goto('chat')">Open
-                →</button></div>
-            <div id="dashRecentMsgs">
-              <div class="empty" style="padding:10px 0;font-size:12px">No messages yet</div>
+        <div class="dh">
+          <div class="dh-bg" aria-hidden="true"></div>
+
+          <header class="dh-top">
+            <div class="dh-brand">
+              <img src="/icons/icon-192.png" alt="">
+              <span>Twin Hearts</span>
             </div>
-          </div>
-          <div class="card" style="margin-bottom:0">
-            <div class="card-title">📅 Upcoming Events<button class="btn-ghost btn-sm" onclick="goto('calendar')">View
-                →</button></div>
-            <div id="dashEvents">
-              <div class="empty" style="padding:10px 0;font-size:12px"><a href="#"
-                  onclick="goto('calendar');return false" style="color:var(--text2)">Add first event →</a></div>
+            <button class="dh-profile" id="dashAv" type="button" onclick="goto('profile')" aria-label="Open profile"></button>
+          </header>
+
+          <div class="dh-intro">
+            <p class="dh-greet" id="dhGreet">Hello 👋</p>
+            <h1 class="dh-quote" id="dhQuote">Distance means so little when someone means <em>everything</em>.</h1>
+
+            <div class="dh-search-row">
+              <button class="dh-search" type="button" onclick="openSearch()">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <span>Search chats, memories…</span>
+              </button>
+              <button class="dh-menu" type="button" onclick="toggleMobSidebar()" aria-label="Open menu">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1.6"/><rect x="14" y="4" width="6" height="6" rx="1.6"/><rect x="4" y="14" width="6" height="6" rx="1.6"/><rect x="14" y="14" width="6" height="6" rx="1.6"/></svg>
+              </button>
             </div>
+
+            <nav class="dh-chips" aria-label="Shortcuts">
+              <button class="dh-chip is-primary" type="button" onclick="goto('chat')"><svg viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>Chat</button>
+              <button class="dh-chip" type="button" onclick="goto('map')"><svg viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Map</button>
+              <button class="dh-chip" type="button" onclick="goto('camera')"><svg viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Memories</button>
+              <button class="dh-chip" type="button" onclick="goto('calendar')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Calendar</button>
+              <button class="dh-chip" type="button" onclick="goto('music')"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>Music</button>
+              <button class="dh-chip" type="button" onclick="goto('ai')"><svg viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>Twin</button>
+            </nav>
           </div>
-        </div>
-        <div class="card" style="margin-bottom:18px" id="moodGraphCard">
-  <div class="card-title">💭 Mood This Week
-    <span style="font-size:10px;color:var(--text3);font-weight:400">Last 7 days</span>
-  </div>
-  <div id="moodGraph" style="display:flex;align-items:flex-end;gap:6px;height:80px;padding:4px 0 0"></div>
-  <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap" id="moodLegend"></div>
-</div>
-        <div class="two-col">
-          <div class="card" style="margin-bottom:0">
-            <div class="card-title">🩷 Period Status</div>
-            <div id="dashPeriod" style="font-size:13px;color:var(--text2)">Open Period Tracker</div>
-          </div>
-          <div class="card" style="margin-bottom:0">
-            <div class="card-title">⚡ Fight Log</div>
-            <div id="dashFights" style="font-size:13px;color:var(--text2)">No recent fights 💕</div>
-          </div>
+
+          <section class="dh-sheet" aria-label="Stay connected">
+            <h2 class="dh-sheet-title">Stay Connected</h2>
+            <div class="dh-card" id="dhCard">
+              <img class="dh-img is-on" data-k="idle"  src="/images/dashboard/idle.svg"  alt="" decoding="async">
+              <img class="dh-img"       data-k="hug"   src="/images/dashboard/hug.svg"   alt="" decoding="async">
+              <img class="dh-img"       data-k="touch" src="/images/dashboard/touch.svg" alt="" decoding="async">
+              <img class="dh-img"       data-k="miss"  src="/images/dashboard/miss.svg"  alt="" decoding="async">
+              <div class="dh-shade"></div>
+              <div class="dh-cap" id="dhCaption">Send some love 💕</div>
+              <div class="dh-actions">
+                <button class="dh-act" id="ccHugBtn"   type="button" onclick="ConnCard.sendHug()">🤗 Hug</button>
+                <button class="dh-act" id="ccTouchBtn" type="button" onclick="ConnCard.sendTouch()">❤️ Touch</button>
+                <button class="dh-act" id="ccMissBtn"  type="button" onclick="ConnCard.sendMissYou()">🥺 Miss You</button>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
       <div class="page" id="page-lovecounter">
@@ -8890,7 +8773,7 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
           pullPartnerProfile();
           const m = S.myName || 'You', p = S.partnerName || 'Partner';
           document.getElementById('coupleLabel').textContent = m + ' & ' + p;
-          setAvText('sbAv1', m[0] || 'U'); setAvText('sbAv2', p[0] || 'P');
+          setAvText('sbAv1', m[0] || 'U'); setAvText('sbAv2', p[0] || 'P'); setAvText('dashAv');
           ['jMyName', 'hMyName'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = m + "'s"; });
           ['jPtName', 'hPtName'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = p + "'s"; });
           ['jAv1', 'hAv1', 'studyAv1'].forEach(id => setAvText(id, m[0] || 'U'));
@@ -8904,7 +8787,7 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
           // the tap-to-preview handler. Two systems writing the same
           // element was why the chat header photo could look inconsistent
           // or briefly flash back to an initial/stale image.
-          if (S.myAvatar) { ['sbAv1', 'profAv1', 'settingsAv1'].forEach(id => setAvImg(id, S.myAvatar)); }
+          if (S.myAvatar) { ['sbAv1', 'profAv1', 'settingsAv1', 'dashAv'].forEach(id => setAvImg(id, S.myAvatar)); }
           if (S.partnerAvatar) { ['sbAv2', 'profAv2'].forEach(id => setAvImg(id, S.partnerAvatar)); }
           const el1 = document.getElementById('profMyName'); if (el1) el1.textContent = m;
           const el2 = document.getElementById('profPtName'); if (el2) el2.textContent = p;
@@ -8958,7 +8841,7 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
           try {
             const saved = await ProfileStore.uploadMyAvatar(input.files[0]);
             S.myAvatar = saved.avatar_url;
-            ['sbAv1', 'profAv1', 'settingsAv1'].forEach(id => setAvImg(id, S.myAvatar));
+            ['sbAv1', 'profAv1', 'settingsAv1', 'dashAv'].forEach(id => setAvImg(id, S.myAvatar));
             saveLocal(); toast('Photo updated! 📸');
           } catch (e) { toast('Upload failed: ' + e.message); }
         }
@@ -9411,7 +9294,6 @@ const p = await Notification.requestPermission();
         function renderPhotos() {
           const grid = document.getElementById('photoGrid');
           document.getElementById('photoCountTag').textContent = S.photos.length;
-          document.getElementById('memCount').textContent = S.photos.length;
           const add = '<label class="pt pt-add"><span>+</span><span style="font-size:10px">Add</span><input type="file" accept="image/*,video/*" multiple style="display:none" onchange="uploadPhotos(this)"></label>';
           grid.innerHTML = add + S.photos.map((p) => `
     <div class="pt sd-selectable" data-photo-id="${p.id}">
@@ -9919,8 +9801,6 @@ const p = await Notification.requestPermission();
           document.getElementById('pCycleLen').textContent = info.cycleLen;
           document.getElementById('pFlowDays').textContent = info.flowDays;
           document.getElementById('periodMoodNote').textContent = '💡 ' + notes[info.phase];
-          const dp = document.getElementById('dashPeriod');
-          if (dp) dp.innerHTML = `<div style="font-size:12px;color:var(--text2)">${pn[info.phase] || 'Not tracking'}</div><div style="font-size:10px;color:var(--text3);margin-top:3px">Next in ${info.daysToNext} days</div>`;
           renderPeriodCalendar();
           const today = todayStr(); const ts = (S.symptoms || {})[today] || [];
           document.querySelectorAll('.symptom-tag').forEach(el => el.classList.toggle('sel', ts.includes(el.dataset.s)));
@@ -10081,12 +9961,6 @@ const p = await Notification.requestPermission();
       </div>
     </div>`).join('');
           el.innerHTML = html;
-          const df = document.getElementById('dashFights');
-          if (df) {
-            if (open > 0) df.innerHTML = `<div style="font-size:12px;color:var(--red)">⚡ ${open} open fight${open > 1 ? 's' : ''}</div><div style="font-size:10px;color:var(--text3);margin-top:3px">Try reconnect activities 💚</div>`;
-            else if (S.fights.length) df.innerHTML = `<div style="font-size:12px;color:var(--green)">✅ All ${S.fights.length} fight${S.fights.length > 1 ? 's' : ''} resolved 💕</div>`;
-            else df.innerHTML = '<div style="font-size:12px;color:var(--text3)">No fights logged 💕</div>';
-          }
           const ae = document.getElementById('reconnectActivities');
           if (ae) ae.innerHTML = ACTIVITIES.map(a => `
     <div style="display:flex;align-items:flex-start;gap:11px;padding:12px;background:var(--green-bg);border:1px solid rgba(52,211,153,0.2);border-radius:var(--rs);margin-bottom:8px;cursor:pointer;transition:var(--t)" onclick="this.style.opacity=this.style.opacity==='0.7'?'1':'0.7';toast('Try: ${a.t} 💕')">
@@ -10420,7 +10294,7 @@ const p = await Notification.requestPermission();
         function toggleHabit(id) { const h = S.habits.find(x => x.id === id); if (!h) return; const today = todayStr(); if (!h.doneToday) { h.doneToday = true; if (!h.doneDates) h.doneDates = []; if (!h.doneDates.includes(today)) h.doneDates.push(today); h.streak = calcStreak(h.doneDates); spawnPetals(3); addXP(5); } else { h.doneToday = false; h.doneDates = (h.doneDates || []).filter(d => d !== today); h.streak = calcStreak(h.doneDates); } renderHabits(); scheduleSave(); }
         function calcStreak(dates) { if (!dates || !dates.length) return 0; let streak = 0, cur = new Date(); if (!dates.includes(todayStr())) cur.setDate(cur.getDate() - 1); for (let i = 0; i < 365; i++) { const d = cur.toISOString().slice(0, 10); if (dates.includes(d)) { streak++; cur.setDate(cur.getDate() - 1); } else break; } return streak; }
         function delHabit(id) { confirmDelete({ itemType: 'habit', message: 'This habit and its streak history will be permanently deleted.', onConfirm: () => { S.habits = S.habits.filter(h => h.id !== id); renderHabits(); scheduleSave(); } }); }
-        function renderHabits() { const el = document.getElementById('myHabitsList'); if (!S.habits.length) { PS.empty(el, { icon: 'generic', title: 'No habits yet', desc: 'Track small daily habits together and build streaks.', actionLabel: 'Add Habit', onAction: () => openM('habitModal'), compact: true }); renderHabitAnalytics(); return; } const today = todayStr(); S.habits.forEach(h => h.doneToday = (h.doneDates || []).includes(today)); el.innerHTML = S.habits.map(h => `<div class="habit-row sd-selectable" data-habit-id="${h.id}"><div class="sd-check"><i data-lucide="check"></i></div><div class="hc${h.doneToday ? ' done' : ''}" onclick="toggleHabit(${h.id})">${h.doneToday ? '✓' : ''}</div><span style="font-size:16px">${esc(h.emoji)}</span><span style="font-size:13px;flex:1;color:var(--text)">${esc(h.name)}</span><span class="streak-badge">${h.streak}🔥</span><button class="del-btn" onclick="delHabit(${h.id})"><i data-lucide="trash-2"></i></button></div>`).join(''); const max = Math.max(0, ...S.habits.map(h => h.streak || 0)); document.getElementById('habitStreak').textContent = max + '🔥'; renderHabitAnalytics(); if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } habitsWireSelection(); }
+        function renderHabits() { const el = document.getElementById('myHabitsList'); if (!S.habits.length) { PS.empty(el, { icon: 'generic', title: 'No habits yet', desc: 'Track small daily habits together and build streaks.', actionLabel: 'Add Habit', onAction: () => openM('habitModal'), compact: true }); renderHabitAnalytics(); return; } const today = todayStr(); S.habits.forEach(h => h.doneToday = (h.doneDates || []).includes(today)); el.innerHTML = S.habits.map(h => `<div class="habit-row sd-selectable" data-habit-id="${h.id}"><div class="sd-check"><i data-lucide="check"></i></div><div class="hc${h.doneToday ? ' done' : ''}" onclick="toggleHabit(${h.id})">${h.doneToday ? '✓' : ''}</div><span style="font-size:16px">${esc(h.emoji)}</span><span style="font-size:13px;flex:1;color:var(--text)">${esc(h.name)}</span><span class="streak-badge">${h.streak}🔥</span><button class="del-btn" onclick="delHabit(${h.id})"><i data-lucide="trash-2"></i></button></div>`).join(''); renderHabitAnalytics(); if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } habitsWireSelection(); }
 
         /* ── Long-press multi-select for Habits (page-scoped) ── */
         let habitsSelection = null;
@@ -10796,7 +10670,7 @@ const p = await Notification.requestPermission();
             }
           });
         }
-        function renderBucket() { const el = document.getElementById('bucketList'); const done = S.bucket.filter(b => b.done).length; document.getElementById('bucketTag').textContent = done + '/' + S.bucket.length; document.getElementById('bucketCount').textContent = S.bucket.length; if (!S.bucket.length) { PS.empty(el, { icon: 'dream', title: 'Nothing on the list yet', desc: 'Add your first dream together \u2014 a trip, an experience, anything you want to chase as a team.', actionLabel: 'Add Dream', onAction: () => openM('bucketModal') }); return; } const ce = { Travel: '✈️', Experience: '🎭', Achievement: '🏆', Home: '🏠', Romance: '💕', Adventure: '🏔️', Other: '💫' }; el.innerHTML = S.bucket.filter(b => canSeeItem(b)).map(b => `<div class="bucket-row sd-selectable" data-bucket-id="${b.id}"><div class="sd-check"><i data-lucide="check"></i></div><div class="bc${b.done ? ' done' : ''}" onclick="toggleBucket(${b.id})">${b.done ? '✓' : ''}</div><div class="bt${b.done ? ' done' : ''}"><span style="margin-right:6px">${ce[b.cat] || '💫'}</span>${esc(b.title)}${privBadgeHtml(b.visibility)}</div>${b.date ? `<span style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDateShort(b.date)}</span>` : ''}<button class="del-btn" onclick="delBucket(${b.id})"><i data-lucide="trash-2"></i></button></div>`).join(''); if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } bucketWireSelection(); }
+        function renderBucket() { const el = document.getElementById('bucketList'); const done = S.bucket.filter(b => b.done).length; document.getElementById('bucketTag').textContent = done + '/' + S.bucket.length; if (!S.bucket.length) { PS.empty(el, { icon: 'dream', title: 'Nothing on the list yet', desc: 'Add your first dream together \u2014 a trip, an experience, anything you want to chase as a team.', actionLabel: 'Add Dream', onAction: () => openM('bucketModal') }); return; } const ce = { Travel: '✈️', Experience: '🎭', Achievement: '🏆', Home: '🏠', Romance: '💕', Adventure: '🏔️', Other: '💫' }; el.innerHTML = S.bucket.filter(b => canSeeItem(b)).map(b => `<div class="bucket-row sd-selectable" data-bucket-id="${b.id}"><div class="sd-check"><i data-lucide="check"></i></div><div class="bc${b.done ? ' done' : ''}" onclick="toggleBucket(${b.id})">${b.done ? '✓' : ''}</div><div class="bt${b.done ? ' done' : ''}"><span style="margin-right:6px">${ce[b.cat] || '💫'}</span>${esc(b.title)}${privBadgeHtml(b.visibility)}</div>${b.date ? `<span style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDateShort(b.date)}</span>` : ''}<button class="del-btn" onclick="delBucket(${b.id})"><i data-lucide="trash-2"></i></button></div>`).join(''); if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } bucketWireSelection(); }
 
         /* ── Long-press multi-select for Bucket List (page-scoped) ── */
         let bucketSelection = null;
@@ -10890,11 +10764,10 @@ const p = await Notification.requestPermission();
           document.getElementById('calDays').innerHTML = html;
           const today2 = todayStr(); const up = S.events.filter(e => e.date >= today2).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 10);
           const evEl = document.getElementById('eventList'); const ce = { 'Anniversary': '💕', 'Date': '🌹', 'Birthday': '🎂', 'Trip': '✈️', 'Special': '⭐', 'Study': '📚', 'Other': '📌' };
-          if (!up.length) { PS.empty(evEl, { icon: 'generic', title: 'No upcoming events', desc: 'Add a date so you both know what\u2019s coming up.', actionLabel: 'Add Event', onAction: () => openM('eventModal'), compact: true }); renderDashEvents(); return; }
+          if (!up.length) { PS.empty(evEl, { icon: 'generic', title: 'No upcoming events', desc: 'Add a date so you both know what\u2019s coming up.', actionLabel: 'Add Event', onAction: () => openM('eventModal'), compact: true }); return; }
           evEl.innerHTML = up.map(e => `<div class="bucket-row sd-selectable" data-event-id="${e.id}"><div class="sd-check"><i data-lucide="check"></i></div><div style="font-size:17px">${ce[e.cat] || '📌'}</div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--white)">${esc(e.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(e.date)}${e.time ? ' · ' + esc(e.time) : ''}${e.alarm ? ' · 🔔' : ''}</div></div><button class="del-btn" onclick="delEvent(${e.id})"><i data-lucide="trash-2"></i></button></div>`).join('');
           if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
           calWireSelection();
-          renderDashEvents();
         }
         function showDayEvents(date) { const evs = S.events.filter(e => e.date === date); if (!evs.length) { toast('No events on ' + fmtDateShort(date)); return; } toast(evs.map(e => e.title + (e.time ? ' ' + e.time : '')).join(' · '), 3500); }
         function delEvent(id) {
@@ -11913,78 +11786,8 @@ const p = await Notification.requestPermission();
           sendBtn?.removeAttribute('disabled');
           msgsEl.scrollTop = msgsEl.scrollHeight;
         }
-        // ─── DASHBOARD ───────────────────────────────────────────
-        function renderDashboard() {
-          
-          if (S.anniversary) { const days = Math.max(0, Math.floor((Date.now() - new Date(S.anniversary).getTime()) / 86400000)); document.getElementById('daysTog').textContent = days; }
-          // Show hours too for a live feeling
-          if (S.anniversary) {
-            const ms = Date.now() - new Date(S.anniversary).getTime();
-            const h = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const el = document.getElementById('daysHours');
-            if (el) el.textContent = h + ' hrs';
-          }
-          document.getElementById('memCount').textContent = S.photos.length;
-          document.getElementById('bucketCount').textContent = S.bucket.length;
-          renderDashEvents();
-          if (S.periods && S.periods.length) renderPeriodPage();
-          renderFights();
-          renderMoodGraph();
-          renderCountdowns();
-          renderRelInsight();
-        }
-        function renderRelInsight() {
-          const el = document.getElementById('relInsightCard'); if (!el) return;
-          const days = S.anniversary ? Math.max(0, Math.floor((Date.now() - new Date(S.anniversary).getTime()) / 86400000)) : 0;
-          const hugs = (S.hugStats && S.hugStats.total) || 0;
-          const touches = (S.touchStats && S.touchStats.total) || 0;
-          const openFights = (S.fights || []).filter(f => f.status === 'open').length;
-          const habits = S.habits || [];
-          const today = todayStr();
-          const last7 = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); last7.push(d.toISOString().slice(0, 10)); }
-          const possible = habits.length * 7;
-          const actual = habits.reduce((s, h) => s + last7.filter(d => (h.doneDates || []).includes(d)).length, 0);
-          const consistency = possible > 0 ? Math.round((actual / possible) * 100) : null;
-          let text, ico = '💕';
-          if (openFights > 0) { ico = '💭'; text = `You have <strong>${openFights}</strong> open conflict${openFights === 1 ? '' : 's'} — a reconnect activity could help this week.`; }
-          else if (consistency !== null && consistency >= 70) { ico = '🔥'; text = `Great week — <strong>${consistency}%</strong> habit consistency and no open conflicts.`; }
-          else if (hugs + touches > 0) { ico = '🤗'; text = `You've shared <strong>${hugs + touches}</strong> touch/hug moments together so far.`; }
-          else if (days > 0) { ico = '💍'; text = `<strong>${days}</strong> days together and counting — keep building your story.`; }
-          else { text = 'Add your anniversary date to start tracking your journey together.'; }
-          el.innerHTML = `<div class="rel-insight-ico">${ico}</div><div class="rel-insight-text">${text}</div>`;
-        }
-        function daysUntilNext(dateStr) {
-  if (!dateStr) return null;
-  const today = new Date(); today.setHours(0,0,0,0);
-  const d = new Date(dateStr + 'T00:00:00');
-  const next = new Date(today.getFullYear(), d.getMonth(), d.getDate());
-  if (next < today) next.setFullYear(today.getFullYear() + 1);
-  return Math.round((next - today) / 86400000);
-}
-function renderCountdowns() {
-  const card = document.getElementById('countdownCard');
-  const list = document.getElementById('countdownList');
-  if (!card || !list) return;
-  const items = [];
-  if (S.anniversary) {
-    const d = daysUntilNext(S.anniversary);
-    items.push({ emoji: '💍', label: 'Anniversary', days: d });
-  }
-  if (S.myBday) items.push({ emoji: '🎂', label: (S.myName || 'Your') + "'s Birthday", days: daysUntilNext(S.myBday) });
-  if (S.ptBday) items.push({ emoji: '🎂', label: (S.partnerName || "Partner's") + "'s Birthday", days: daysUntilNext(S.ptBday) });
-  if (!items.length) { card.style.display = 'none'; return; }
-  card.style.display = 'block';
-  items.sort((a,b) => a.days - b.days);
-  list.innerHTML = items.map(i => `
-    <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)">
-      <div style="font-size:24px">${i.emoji}</div>
-      <div style="flex:1">
-        <div style="font-size:13px;color:var(--white);font-weight:500">${esc(i.label)}</div>
-        <div style="font-size:11px;color:var(--text3)">${i.days === 0 ? '🎉 Today!' : i.days + ' day' + (i.days === 1 ? '' : 's') + ' away'}</div>
-      </div>
-    </div>`).join('');
-}
-        function renderDashEvents() { const el = document.getElementById('dashEvents'); if (!el) return; const today = todayStr(); const up = S.events.filter(e => e.date >= today).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3); if (!up.length) { el.innerHTML = '<div class="empty" style="padding:6px 0;font-size:12px"><a href="#" onclick="goto(\'calendar\');return false" style="color:var(--text2)">Add first event →</a></div>'; return; } el.innerHTML = up.map(e => `<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)"><div style="width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:6px"></div><div style="flex:1;font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.title)}</div><div style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDateShort(e.date)}</div></div>`).join(''); }
+        // ─── DASHBOARD ─── (markup in #page-dashboard; logic in /dashboard.js)
+        function renderDashboard() { if (window.Dashboard) Dashboard.render(); }
 
         // ─── EXPORT / CLEAR ──────────────────────────────────────
         function exportData() {
@@ -12025,9 +11828,8 @@ function logOut() {
         function renderAll() {
           applyNames();  renderPhotos(); renderBucket(); renderHabits();
           renderJournal(); renderNotes(); renderMoney(); renderCalendar();
-          renderDashboard(); renderCountdowns(); renderWellnessMoods(); renderWellnessSummary();
+          renderDashboard(); renderWellnessMoods(); renderWellnessSummary();
           renderFights(); renderStudyPage(); renderReminders(); renderMissYouStats(); renderHugStats();
-          if (S.anniversary) { const d = Math.max(0, Math.floor((Date.now() - new Date(S.anniversary).getTime()) / 86400000)); document.getElementById('daysTog').textContent = d; }
           const today = todayStr(); const w = (S.wellness || {})[today] || {};
           const wi = document.getElementById('waterIn'), si = document.getElementById('sleepIn'), ei = document.getElementById('exerciseIn');
           if (wi) wi.value = w.water || ''; if (si) si.value = w.sleep || ''; if (ei) ei.value = w.exercise || '';
@@ -12234,7 +12036,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
           if (window.ProfileStore && S.userId) {
             ProfileStore.init(S.userId).then(() => {
               const mine = ProfileStore.get('me'), theirs = ProfileStore.get('partner');
-              if (mine && mine.avatar_url) { S.myAvatar = mine.avatar_url; ['sbAv1','profAv1','settingsAv1'].forEach(id => setAvImg(id, S.myAvatar)); }
+              if (mine && mine.avatar_url) { S.myAvatar = mine.avatar_url; ['sbAv1','profAv1','settingsAv1','dashAv'].forEach(id => setAvImg(id, S.myAvatar)); }
               if (theirs && theirs.avatar_url) { S.partnerAvatar = theirs.avatar_url; ['sbAv2','profAv2','chatHeaderAv'].forEach(id => setAvImg(id, S.partnerAvatar)); }
             }).catch(e => console.warn('[ProfileStore] init failed', e));
             // Keep every mounted Avatar-component instance and the legacy
@@ -12242,7 +12044,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
             // per-page wiring required.
             ProfileStore.onChange((owner, profile) => {
               if (!profile) return;
-              if (owner === 'me') { S.myAvatar = profile.avatar_url || S.myAvatar; ['sbAv1','profAv1','settingsAv1'].forEach(id => setAvImg(id, S.myAvatar)); }
+              if (owner === 'me') { S.myAvatar = profile.avatar_url || S.myAvatar; ['sbAv1','profAv1','settingsAv1','dashAv'].forEach(id => setAvImg(id, S.myAvatar)); }
               else { S.partnerAvatar = profile.avatar_url || S.partnerAvatar; ['sbAv2','profAv2','chatHeaderAv'].forEach(id => setAvImg(id, S.partnerAvatar)); }
             });
           }
@@ -12842,58 +12644,6 @@ function renderSurprises() {
           const v = item.visibility || 'both';
           return v === 'both' || v === 'partner';
         }
-        function renderMoodGraph() {
-  const el = document.getElementById('moodGraph');
-  const leg = document.getElementById('moodLegend');
-  if (!el) return;
-  // Collect last 7 days
-  const days = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(); d.setDate(d.getDate() - i);
-    const ds = d.toISOString().slice(0, 10);
-    const dayName = d.toLocaleDateString('en', { weekday: 'short' });
-    const w = (S.wellness || {})[ds];
-    days.push({ ds, dayName, mood: w?.mood || null });
-  }
-  // Count moods for legend
-  const moodCounts = {};
-  days.forEach(d => { if (d.mood) { const key = d.mood.split(' ')[0]; moodCounts[key] = (moodCounts[key] || 0) + 1; } });
-  const moodColors = {
-    '😊': 'var(--yellow)', '🥰': '#ff6b9d', '😌': 'var(--green)',
-    '😔': '#a78bfa', '😤': 'var(--red)', '🤩': 'var(--accent)',
-    '🥱': 'var(--text3)'
-  };
-  const moodHeights = {
-    '😊': 70, '🥰': 85, '😌': 60, '😔': 30, '😤': 45, '🤩': 95, '🥱': 25
-  };
-  el.innerHTML = days.map(d => {
-    const emoji = d.mood ? d.mood.split(' ')[0] : null;
-    const h = emoji ? (moodHeights[emoji] || 50) : 8;
-    const color = emoji ? (moodColors[emoji] || 'var(--accent)') : 'var(--g2)';
-    const label = d.dayName;
-    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0">
-      <div style="font-size:13px;height:20px;display:flex;align-items:center">${emoji || ''}</div>
-      <div style="width:100%;max-width:32px;border-radius:6px 6px 3px 3px;background:${color};transition:height 0.6s cubic-bezier(0.34,1.56,0.64,1);opacity:${emoji?1:0.25}"
-           title="${d.mood||'No mood logged'}"
-           data-h="${h}"
-           class="mood-bar"></div>
-      <div style="font-size:9px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.3px">${label}</div>
-    </div>`;
-  }).join('');
-  // Animate bars after render
-  setTimeout(() => {
-    el.querySelectorAll('.mood-bar').forEach(bar => {
-      const h = bar.dataset.h || 8;
-      bar.style.height = h + 'px';
-    });
-  }, 50);
-  // Legend
-  if (leg) {
-    const entries = Object.entries(moodCounts).sort((a,b)=>b[1]-a[1]);
-    leg.innerHTML = entries.map(([em, n]) => `<div style="display:inline-flex;align-items:center;gap:4px;background:var(--g1);border:1px solid var(--border);border-radius:20px;padding:3px 9px;font-size:11px"><span>${em}</span><span style="color:var(--text2)">${n}x</span></div>`).join('');
-    if (!entries.length) leg.innerHTML = `<div style="font-size:11px;color:var(--text3)">Log your mood daily to see trends 💕</div>`;
-  }
-}
 // ─── STORAGE MANAGEMENT ──────────────────────────────────
 function calcStorageStats() {
   const stats = {
@@ -13580,7 +13330,7 @@ init();
 <script src="/js/livetrack-bridge.js"></script>
 <script src="/chat/chat.js"></script>
 <script src="/chat/call.js"></script>
-<script src="/dashboard_chat_patch.js"></script>
+<script src="/dashboard.js"></script>
 <script src="/app-polish.js"></script>
 
 <!-- Premium Sound System (additive, non-invasive) -->
