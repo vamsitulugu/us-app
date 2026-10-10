@@ -1,136 +1,129 @@
 diff --git a/public/dashboard-home.css b/public/dashboard-home.css
 new file mode 100644
-index 0000000..4eca6e9
+index 0000000..ea6d5eb
 --- /dev/null
 +++ b/public/dashboard-home.css
-@@ -0,0 +1,121 @@
-+/* ═══ Dashboard (Home) — structure from the travel-app reference, colours from the app theme ═══
-+   Everything uses the app's CSS variables (--accent, --g1/--g2, --border, --white, --text2…),
-+   so it follows whichever theme/accent the user picks. Scoped to #page-dashboard. */
+@@ -0,0 +1,114 @@
++/* ═══ Dashboard (Home) redesign — blue hero + white sheet ═══
++   Scoped to #page-dashboard. Legacy widgets live (hidden) in #dashLegacy. */
 +.main:has(#page-dashboard.active) .topbar { display: none; }
 +.content:has(#page-dashboard.active) { padding: 0; overflow-x: hidden; }
-+#page-dashboard.active { display: flex; flex-direction: column; min-height: 100%; }
 +
-+/* top "hero" area — accent glow fading into the app background */
++#page-dashboard.active { display: flex; flex-direction: column; min-height: 100%; background: #fff; }
++
 +.dx-hero {
 +  position: relative;
-+  padding: calc(env(safe-area-inset-top, 0px) + 14px) 18px 50px;
++  padding: calc(env(safe-area-inset-top, 0px) + 22px) 18px 52px;
 +  background:
-+    radial-gradient(110% 70% at 100% -10%, var(--accent-glow) 0%, transparent 62%),
-+    linear-gradient(180deg, var(--accent-glow) 0%, transparent 100%);
++    radial-gradient(120% 60% at 85% -10%, rgba(255,255,255,.35) 0%, transparent 60%),
++    radial-gradient(90% 50% at 0% 100%, rgba(255,255,255,.22) 0%, transparent 65%),
++    linear-gradient(180deg, #2b84f2 0%, #4a9dfb 55%, #86c0ff 100%);
++  color: #fff;
 +}
 +.dx-hero-in, .dx-sheet-in { max-width: 520px; margin: 0 auto; }
 +
-+/* top row: logo (left) · profile image (right) */
-+.dx-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
-+.dx-logo { height: 40px; width: auto; display: block; filter: drop-shadow(0 0 8px var(--accent-glow)); }
-+.dx-avbtn { border: 0; background: none; padding: 0; cursor: pointer; border-radius: 50%; }
-+.dx-av {
-+  width: 42px; height: 42px; border-radius: 50%; position: relative; overflow: hidden;
-+  display: flex; align-items: center; justify-content: center;
-+  font-size: 15px; font-weight: 600; color: var(--white);
-+  background: linear-gradient(135deg, var(--accent), var(--accent-d));
-+  border: 2px solid var(--border2); box-shadow: 0 4px 14px var(--accent-glow);
-+}
-+
-+.dx-greet { font-size: 14px; font-weight: 500; color: var(--text2); margin-bottom: 8px; }
++.dx-greet { font-size: 14px; font-weight: 500; opacity: .95; margin-bottom: 8px; }
 +.dx-quote {
 +  font-family: var(--ff-sans, Inter, system-ui, sans-serif);
-+  font-size: clamp(25px, 7vw, 32px); font-weight: 600; line-height: 1.2; letter-spacing: -.5px;
-+  color: var(--white); margin: 0 0 20px; text-wrap: balance;
++  font-size: clamp(26px, 7.2vw, 34px);
++  font-weight: 600; line-height: 1.18; letter-spacing: -.5px;
++  margin: 0 0 20px; text-wrap: balance;
 +}
-+.dx-quote em { font-family: var(--ff-serif, Georgia, serif); font-style: italic; font-weight: 400; color: var(--accent-l); }
++.dx-quote em {
++  font-family: var(--ff-serif, Georgia, serif);
++  font-style: italic; font-weight: 400; color: #ffe66d;
++}
 +
-+/* search + menu */
 +.dx-searchrow { display: flex; gap: 10px; align-items: center; }
 +.dx-search {
-+  flex: 1; min-width: 0; height: 50px; border-radius: 999px; cursor: pointer; text-align: left;
-+  display: flex; align-items: center; gap: 10px; padding: 0 18px;
-+  background: var(--g2); border: 1px solid var(--border2); color: var(--text2);
-+  font: inherit; font-size: 14px;
-+  backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm);
++  flex: 1; min-width: 0; height: 50px; border: 0; border-radius: 999px;
++  background: #fff; color: #7b8aa0; font: inherit; font-size: 14px;
++  display: flex; align-items: center; gap: 10px; padding: 0 18px; cursor: pointer;
++  box-shadow: 0 6px 18px rgba(20,80,170,.18); text-align: left;
 +}
 +.dx-search svg, .dx-menu svg { width: 20px; height: 20px; flex-shrink: 0; }
 +.dx-search span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 +.dx-menu {
-+  display: none; width: 50px; height: 50px; border-radius: 50%; flex-shrink: 0; cursor: pointer;
-+  align-items: center; justify-content: center;
-+  background: var(--g2); border: 1px solid var(--border2); color: var(--white);
-+  backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm);
++  width: 50px; height: 50px; border-radius: 50%; border: 0; cursor: pointer;
++  background: #fff; color: #2b84f2; display: none; align-items: center; justify-content: center;
++  box-shadow: 0 6px 18px rgba(20,80,170,.18); flex-shrink: 0;
 +}
 +@media (max-width: 700px) { .dx-menu { display: flex; } }
 +
-+/* shortcut buttons */
++/* quick shortcuts */
 +.dx-chips {
 +  display: flex; gap: 10px; margin: 18px -18px 0; padding: 4px 18px 6px;
 +  overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity;
 +}
 +.dx-chips::-webkit-scrollbar { display: none; }
 +.dx-chip {
-+  flex: 0 0 auto; width: 68px; height: 74px; border-radius: 18px; cursor: pointer; scroll-snap-align: start;
++  flex: 0 0 auto; width: 68px; height: 74px; border: 0; border-radius: 18px; cursor: pointer;
++  background: rgba(255,255,255,.92); color: #1b3a63; font: inherit; font-size: 11.5px; font-weight: 500;
 +  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
-+  background: var(--g2); border: 1px solid var(--border2); color: var(--text);
-+  font: inherit; font-size: 11.5px; font-weight: 500; transition: transform .15s ease, background .2s;
++  box-shadow: 0 6px 16px rgba(20,80,170,.14); scroll-snap-align: start;
++  transition: transform .15s ease;
 +}
-+.dx-chip:active { transform: scale(.94); background: var(--g3); }
-+.dx-chip svg { width: 22px; height: 22px; color: var(--accent-l); }
++.dx-chip:active { transform: scale(.94); }
++.dx-chip svg { width: 22px; height: 22px; color: #2b84f2; }
 +
-+/* bottom sheet */
++/* white sheet */
 +.dx-sheet {
-+  position: relative; flex: 1; margin-top: -28px;
++  position: relative; flex: 1; margin-top: -28px; background: #fff;
 +  border-radius: 28px 28px 0 0; padding: 22px 18px calc(110px + env(safe-area-inset-bottom, 0px));
-+  background: linear-gradient(180deg, #181818, #0d0d0d);
-+  border: 1px solid var(--border); border-bottom: 0;
-+  box-shadow: 0 -10px 34px rgba(0, 0, 0, .45);
++  box-shadow: 0 -8px 30px rgba(20,80,170,.10);
 +}
-+.dx-sheet::before { content: ''; display: block; width: 40px; height: 4px; border-radius: 4px; background: var(--border2); margin: -8px auto 16px; }
++.dx-sheet::before {
++  content: ''; display: block; width: 40px; height: 4px; border-radius: 4px;
++  background: #d9e3f1; margin: -8px auto 16px;
++}
 +.dx-sec { margin-bottom: 14px; }
-+.dx-sec h3 { margin: 0; font-size: 18px; font-weight: 600; color: var(--white); font-family: var(--ff-sans, Inter, system-ui, sans-serif); }
-+.dx-sec p { margin: 3px 0 0; font-size: 12.5px; color: var(--text3); }
++.dx-sec h3 { margin: 0; font-size: 18px; font-weight: 600; color: #0f2540; font-family: var(--ff-sans, Inter, system-ui, sans-serif); }
++.dx-sec p { margin: 3px 0 0; font-size: 12.5px; color: #6b7f99; }
 +
-+/* 16:9 image card */
 +.dx-stage {
-+  position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 22px; overflow: hidden;
-+  background: linear-gradient(135deg, var(--accent-glow), var(--accent2-glow));
-+  border: 1px solid var(--border2); box-shadow: 0 14px 34px rgba(0, 0, 0, .45);
++  position: relative; width: 100%; aspect-ratio: 4 / 4.4; max-height: 56vh;
++  border-radius: 26px; overflow: hidden; background: #e8f2ff;
++  box-shadow: 0 14px 34px rgba(30,100,200,.18);
 +}
 +.dx-slide {
-+  position: absolute; inset: 0; opacity: 0; transform: scale(1.04); pointer-events: none;
-+  transition: opacity .45s ease, transform .6s ease; display: flex; align-items: center; justify-content: center;
++  position: absolute; inset: 0; opacity: 0; transform: scale(1.04);
++  transition: opacity .45s ease, transform .6s ease; pointer-events: none;
++  display: flex; align-items: center; justify-content: center;
++  background: linear-gradient(160deg, #cfe5ff, #eaf4ff);
 +}
 +.dx-slide.on { opacity: 1; transform: scale(1); }
 +.dx-slide img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-+.dx-slide .dx-ph { font-size: 64px; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .35)); }
++.dx-slide .dx-ph { font-size: 76px; filter: drop-shadow(0 6px 10px rgba(30,100,200,.25)); }
 +.dx-slide img:not([hidden]) ~ .dx-ph { display: none; }
 +.dx-tag {
-+  position: absolute; left: 12px; bottom: 12px; padding: 6px 12px; border-radius: 999px;
-+  background: rgba(0, 0, 0, .5); color: #fff; font-size: 12.5px; font-weight: 600;
++  position: absolute; left: 14px; bottom: 14px; padding: 8px 14px; border-radius: 999px;
++  background: rgba(255,255,255,.9); color: #0f2540; font-size: 13px; font-weight: 600;
 +  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 +}
 +
-+/* 3 buttons */
 +.dx-acts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
 +.dx-act {
-+  height: 62px; border-radius: 18px; cursor: pointer; font: inherit; font-size: 13px; font-weight: 600;
++  height: 62px; border-radius: 20px; border: 1.5px solid #dbe8fb; background: #f5f9ff; color: #1b3a63;
++  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
 +  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-+  background: var(--g1); border: 1px solid var(--border2); color: var(--text);
-+  transition: transform .15s ease, background .2s, box-shadow .2s;
++  transition: transform .15s ease, background .2s, color .2s, box-shadow .2s;
++  -webkit-tap-highlight-color: transparent;
 +}
 +.dx-act .dx-ico { font-size: 22px; line-height: 1; }
 +.dx-act:active { transform: scale(.95); }
 +.dx-act.on {
-+  background: linear-gradient(135deg, var(--accent), var(--accent-d)); border-color: transparent; color: #fff;
-+  box-shadow: 0 8px 20px var(--accent-glow);
++  background: linear-gradient(135deg, #3b92fb, #1f6fe0); border-color: transparent; color: #fff;
++  box-shadow: 0 8px 20px rgba(31,111,224,.35);
 +}
 +.dx-act.cc-sent { animation: dxPop .6s ease; }
 +@keyframes dxPop { 0% { transform: scale(1); } 30% { transform: scale(1.09); } 100% { transform: scale(1); } }
 +@media (prefers-reduced-motion: reduce) { .dx-slide, .dx-act { transition: none; animation: none; } }
 diff --git a/public/dashboard-home.js b/public/dashboard-home.js
 new file mode 100644
-index 0000000..b04f0a5
+index 0000000..d88cb05
 --- /dev/null
 +++ b/public/dashboard-home.js
-@@ -0,0 +1,69 @@
+@@ -0,0 +1,68 @@
 +/* Dashboard (Home) redesign — hero greeting/quote + love-image card.
 +   Tap Hug / Miss You / Touch -> existing ConnCard send logic runs AND the
 +   matching image shows. Images go in /public/images/dashboard/{hug,miss,touch}.png */
@@ -160,7 +153,6 @@ index 0000000..b04f0a5
 +    if (!g || !q) return;
 +    const name = (window.S && S.myName) ? S.myName : 'love';
 +    g.textContent = greeting() + ', ' + name + ' 💕';
-+    if (typeof setAvImg === 'function' && window.S) { try { setAvImg('dxAv', S.myAvatar || ''); } catch (_) {} }
 +    const day = Math.floor(Date.now() / 86400000);
 +    const [pre, accent, post] = QUOTES[day % QUOTES.length];
 +    q.textContent = '';
@@ -200,175 +192,14 @@ index 0000000..b04f0a5
 +  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
 +  else init();
 +})();
-diff --git a/public/dashboard_chat_patch.js b/public/dashboard_chat_patch.js
-index 72e59ff..ed10e2a 100644
---- a/public/dashboard_chat_patch.js
-+++ b/public/dashboard_chat_patch.js
-@@ -100,17 +100,6 @@
-    ══════════════════════════════════════════════════════════════ */
- const ConnCard = (() => {
- 
--  function fmtAgo(ts) {
--    if (!ts) return '—';
--    const s = Math.floor((Date.now() - ts) / 1000);
--    if (s < 10) return 'now';
--    if (s < 60) return s + 's ago';
--    const m = Math.floor(s / 60);
--    if (m < 60) return m + 'm ago';
--    const h = Math.floor(m / 60);
--    if (h < 24) return h + 'h ago';
--    return Math.floor(h / 24) + 'd ago';
--  }
- 
-   function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
- 
-@@ -154,24 +143,8 @@ const ConnCard = (() => {
-     scheduleSave(); render();
-   }
- 
--  const TYPE_LABEL = { touch: '❤️ Touch', hug: '🤗 Hug', missyou: '🥺 Miss You' };
--
--  function render() {
--    if (!window.S) return;
--    const li = S.lastInteraction;
--    const el1 = document.getElementById('ccLastInteraction');
--    if (el1) el1.textContent = li ? (TYPE_LABEL[li.type] || li.type) + ' · ' + fmtAgo(li.ts) : '—';
--
--    const hugTotal = (S.hugStats || {}).total || 0;
--    const el2 = document.getElementById('ccHugTotal'); if (el2) el2.textContent = hugTotal;
--
--    const missMine = (S.missCounts || {})[S.role] || 0;
--    const missTheirs = (S.missCounts || {})[S.role === 'user1' ? 'user2' : 'user1'] || 0;
--    const el3 = document.getElementById('ccMissTotal'); if (el3) el3.textContent = missMine + missTheirs;
- 
--    const lr = S.lastReceivedInteraction;
--    const el4 = document.getElementById('ccLastReceived'); if (el4) el4.textContent = lr ? fmtAgo(lr.ts) : '—';
--  }
-+  function render() { /* dashboard stats removed — nothing to refresh */ }
- 
-   /* Preserve originals, then wrap */
-   let _origSendTouch, _origSendHug, _origSendMissYou;
 diff --git a/public/images/dashboard/.gitkeep b/public/images/dashboard/.gitkeep
 new file mode 100644
 index 0000000..e69de29
 diff --git a/public/index.html b/public/index.html
-index 16a9da1..9a25860 100644
+index 16a9da1..64e0719 100644
 --- a/public/index.html
 +++ b/public/index.html
-@@ -1156,48 +1156,10 @@
-     }
- 
-     /* ════ METRICS ════ */
--    .metrics {
--      display: grid;
--      grid-template-columns: repeat(4, 1fr);
--      gap: 12px;
--      margin-bottom: 18px
--    }
- 
--    .metric {
--      background: var(--g1);
--      backdrop-filter: var(--blur);
--      -webkit-backdrop-filter: var(--blur);
--      border: 1px solid var(--border);
--      border-radius: var(--r);
--      padding: 18px 14px;
--      text-align: center;
--      box-shadow: 0 2px 14px rgba(20, 20, 30, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.6);
--      transition: var(--t);
--      cursor: default;
--    }
- 
--    .metric:hover {
--      transform: translateY(-3px);
--      box-shadow: 0 6px 20px rgba(20, 20, 30, 0.08)
--    }
- 
--    .metric-n {
--      font-size: 30px;
--      font-weight: 700;
--      color: var(--white);
--      font-family: var(--ff-serif);
--      line-height: 1;
--      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
--    }
- 
--    .metric-l {
--      font-size: 10px;
--      color: var(--text3);
--      margin-top: 6px;
--      font-weight: 600;
--      letter-spacing: 0.5px;
--      text-transform: uppercase
--    }
- 
-     /* ════ TABS ════ */
-     .stabs {
-@@ -2071,10 +2033,6 @@
-     .xp-badge-prog{height:100%;background:linear-gradient(90deg,var(--accent),#ff6b6b);border-radius:2px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
-     .xp-badge-prog-txt{font-size:8px;color:var(--text3);margin-top:4px}
-     /* ════ RELATIONSHIP INSIGHT ════ */
--    .rel-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:16px}
--    .rel-insight-ico{font-size:20px;flex-shrink:0}
--    .rel-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
--    .rel-insight-text strong{color:var(--white)}
-     /* ════ FIGHT ANALYTICS ════ */
-     .fa-hero{display:flex;align-items:center;gap:20px;padding:20px;margin-bottom:14px}
-     .fa-ring-wrap{position:relative;width:100px;height:100px;flex-shrink:0}
-@@ -3414,9 +3372,6 @@
-   .content { padding: 12px 12px 100px }
- 
-   /* Metrics grid */
--  .metrics { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px }
--  .metric { padding: 14px 10px }
--  .metric-n { font-size: 24px }
- 
-   /* Layouts */
-   .two-col { grid-template-columns: 1fr; gap: 10px }
-@@ -3471,7 +3426,6 @@
-   .pk { padding: 13px; font-size: 16px }
- 
-   /* Mood graph */
--  #moodGraph { height: 70px }
- 
-   /* AI page pills */
- 
-@@ -3483,15 +3437,12 @@
- 
- /* Extra small phones */
- @media(max-width:380px) {
--  .metrics { grid-template-columns: repeat(2, 1fr) }
--  .metric-n { font-size: 20px }
-   .card { padding: 12px 10px }
-   
- }
- 
- /* Tablets */
- @media(min-width:701px) and (max-width:1024px) {
--  .metrics { grid-template-columns: repeat(2, 1fr) }
-   .sidebar { width: 180px; min-width: 180px; max-width: 180px }
-   .two-col { gap: 12px }
- }
-@@ -4881,7 +4832,6 @@ vercel-live-feedback {
- 
- /* ── Cards (overrides the later "glass fix" block too) ── */
- .card,
--.metric,
- .m-card,
- .stat-item,
- .profile-hero,
-@@ -4898,10 +4848,6 @@ vercel-live-feedback {
-               inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
- }
- .card:hover,
--.metric:hover {
--  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.55) !important;
--  transform: translateY(-2px);
--}
- 
- /* ── Sidebar ── */
- .sidebar {
-@@ -5081,6 +5027,7 @@ select option { background: #0D0D0D; color: #fff; }
+@@ -5081,6 +5081,7 @@ select option { background: #0D0D0D; color: #fff; }
    <script src="/js/upload-progress-ui.js"></script>
    <script src="/safe-delete.js"></script>
    <link rel="stylesheet" href="/glass-nav.css">
@@ -376,37 +207,73 @@ index 16a9da1..9a25860 100644
  </head>
  
  <body class="t-blue">
-@@ -5540,108 +5487,45 @@ select option { background: #0D0D0D; color: #fff; }
+@@ -5540,6 +5541,62 @@ select option { background: #0D0D0D; color: #fff; }
  
        <!-- ════ DASHBOARD ════ -->
        <div class="page active" id="page-dashboard">
--        <div class="metrics">
--          <div class="metric">
--            <div class="metric-n" id="daysTog" style="font-size:22px">–</div>
--            <div style="font-size:9px;color:var(--text3);margin-top:2px" id="daysHours"></div>
--            <div class="metric-l">Days Together 💕</div>
--          </div>
--          <div class="metric">
--            <div class="metric-n" id="memCount">–</div>
--            <div class="metric-l">Memories 📸</div>
--          </div>
--          <div class="metric">
--            <div class="metric-n" id="bucketCount">–</div>
--            <div class="metric-l">Dreams 🌟</div>
--          </div>
--          <div class="metric">
--            <div class="metric-n" id="habitStreak">–</div>
--            <div class="metric-l">Habit Streak</div>
--          </div>
--        </div>
--        <div class="rel-insight-card" id="relInsightCard"></div>
--        <!-- ═══ HEARTBEAT CONNECTION WIDGET ═══ -->
--        <div id="hbWidgetContainer"></div>
--          <!-- Pulse ring (global, positioned absolute by HB manager) -->
--        <div id="hbPulseRing"></div>
--        <div class="card cc-card" id="connectionCard">
--  <div class="card-title" style="justify-content:center">💕 Stay Connected</div>
-- 
++        <!-- ═══ HOME: blue hero ═══ -->
++        <section class="dx-hero">
++          <div class="dx-hero-in">
++            <div class="dx-greet" id="dxGreet">Good day 💕</div>
++            <h1 class="dx-quote" id="dxQuote">Distance means so little when <em>someone</em> means so much</h1>
++            <div class="dx-searchrow">
++              <button class="dx-search" onclick="openSearch()" aria-label="Search">
++                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
++                <span>Search memories, chats, plans…</span>
++              </button>
++              <button class="dx-menu" onclick="toggleMobSidebar()" aria-label="Menu">
++                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
++              </button>
++            </div>
++            <div class="dx-chips">
++          <button class="dx-chip" onclick="goto('camera')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg><span>Memories</span></button>
++          <button class="dx-chip" onclick="goto('music')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg><span>Music</span></button>
++          <button class="dx-chip" onclick="goto('globe')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg><span>Globe</span></button>
++          <button class="dx-chip" onclick="goto('virtualhome')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span>Our Home</span></button>
++          <button class="dx-chip" onclick="goto('meetplanner')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>Meet</span></button>
++            </div>
++          </div>
++        </section>
++
++        <!-- ═══ HOME: white sheet ═══ -->
++        <section class="dx-sheet">
++          <div class="dx-sheet-in">
++            <div class="dx-sec">
++              <h3>Stay Connected</h3>
++              <p>Tap to send a little love</p>
++            </div>
++            <div class="dx-stage" id="dxStage">
++              <div class="dx-slide on" data-type="hug">
++                <img src="/images/dashboard/hug.png" alt="Hug" loading="lazy" decoding="async"><div class="dx-ph">🤗</div>
++                <div class="dx-tag">🤗 Hug</div>
++              </div>
++              <div class="dx-slide" data-type="miss">
++                <img src="/images/dashboard/miss.png" alt="Miss you" loading="lazy" decoding="async"><div class="dx-ph">🥺</div>
++                <div class="dx-tag">🥺 Miss You</div>
++              </div>
++              <div class="dx-slide" data-type="touch">
++                <img src="/images/dashboard/touch.png" alt="Touch" loading="lazy" decoding="async"><div class="dx-ph">❤️</div>
++                <div class="dx-tag">❤️ Touch</div>
++              </div>
++            </div>
++            <div class="dx-acts" id="dxActs">
++              <button class="dx-act cc-hug on" id="ccHugBtn" data-type="hug" aria-pressed="true" onclick="DashLove.tap('hug')"><span class="dx-ico">🤗</span>Hug</button>
++              <button class="dx-act cc-miss" id="ccMissBtn" data-type="miss" aria-pressed="false" onclick="DashLove.tap('miss')"><span class="dx-ico">🥺</span>Miss You</button>
++              <button class="dx-act cc-touch" id="ccTouchBtn" data-type="touch" aria-pressed="false" onclick="DashLove.tap('touch')"><span class="dx-ico">❤️</span>Touch</button>
++            </div>
++          </div>
++        </section>
++
++        <!-- Old dashboard widgets: hidden, NOT deleted, so existing JS (renderDashboard,
++             ConnCard, heartbeat, etc.) keeps finding its element ids without errors. -->
++        <div id="dashLegacy" style="display:none" aria-hidden="true">
+         <div class="metrics">
+           <div class="metric">
+             <div class="metric-n" id="daysTog" style="font-size:22px">–</div>
+@@ -5567,18 +5624,6 @@ select option { background: #0D0D0D; color: #fff; }
+         <div class="card cc-card" id="connectionCard">
+   <div class="card-title" style="justify-content:center">💕 Stay Connected</div>
+  
 -  <div class="cc-actions">
 -    <button class="cc-btn cc-touch" id="ccTouchBtn" onclick="ConnCard.sendTouch()">
 -      <span class="cc-ico">❤️</span><span class="cc-lbl">Touch</span>
@@ -419,331 +286,26 @@ index 16a9da1..9a25860 100644
 -    </button>
 -  </div>
 - 
--  <div id="ccBurstLayer" class="cc-burst-layer"></div>
-- 
--  <div class="cc-stats">
--    <div class="cc-stat">
--      <div class="cc-stat-ico">❤️</div>
--      <div class="cc-stat-v" id="ccLastInteraction">—</div>
--      <div class="cc-stat-l">Last Interaction</div>
--    </div>
--    <div class="cc-stat">
--      <div class="cc-stat-ico">🤗</div>
--      <div class="cc-stat-v" id="ccHugTotal">–</div>
--      <div class="cc-stat-l">Hugs Shared</div>
--    </div>
--    <div class="cc-stat">
--      <div class="cc-stat-ico">🥺</div>
--      <div class="cc-stat-v" id="ccMissTotal">–</div>
--      <div class="cc-stat-l">Miss You</div>
--    </div>
--    <div class="cc-stat">
--      <div class="cc-stat-ico">🕒</div>
--      <div class="cc-stat-v" id="ccLastReceived">—</div>
--      <div class="cc-stat-l">Last Received</div>
--    </div>
--  </div>
--</div>
--        <div class="card" id="countdownCard" style="display:none">
--          <div class="card-title">🎉 Upcoming Celebrations</div>
--          <div id="countdownList"></div>
--        </div>
--        <div class="two-col" style="margin-bottom:16px">
--          <div class="card" style="margin-bottom:0">
--            <div class="card-title">💌 Recent Messages<button class="btn-ghost btn-sm" onclick="goto('chat')">Open
--                →</button></div>
--            <div id="dashRecentMsgs">
--              <div class="empty" style="padding:10px 0;font-size:12px">No messages yet</div>
-+        <section class="dx-hero">
-+          <div class="dx-hero-in">
-+            <div class="dx-top">
-+              <img class="dx-logo" src="/icons/icon-192.png" alt="Twin Hearts">
-+              <button class="dx-avbtn" onclick="goto('profile')" aria-label="Profile"><div class="dx-av" id="dxAv">U</div></button>
-             </div>
--          </div>
--          <div class="card" style="margin-bottom:0">
--            <div class="card-title">📅 Upcoming Events<button class="btn-ghost btn-sm" onclick="goto('calendar')">View
--                →</button></div>
--            <div id="dashEvents">
--              <div class="empty" style="padding:10px 0;font-size:12px"><a href="#"
--                  onclick="goto('calendar');return false" style="color:var(--text2)">Add first event →</a></div>
-+            <div class="dx-greet" id="dxGreet">Good day 💕</div>
-+            <h1 class="dx-quote" id="dxQuote">Distance means so little when <em>someone</em> means so much</h1>
-+            <div class="dx-searchrow">
-+              <button class="dx-search" onclick="openSearch()" aria-label="Search">
-+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-+                <span>Search memories, chats, plans…</span>
-+              </button>
-+              <button class="dx-menu" onclick="toggleMobSidebar()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
-+            </div>
-+            <div class="dx-chips">
-+            <button class="dx-chip" onclick="goto('camera')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg><span>Memories</span></button>
-+            <button class="dx-chip" onclick="goto('music')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg><span>Music</span></button>
-+            <button class="dx-chip" onclick="goto('globe')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg><span>Globe</span></button>
-+            <button class="dx-chip" onclick="goto('virtualhome')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span>Our Home</span></button>
-+            <button class="dx-chip" onclick="goto('meetplanner')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>Meet</span></button>
-             </div>
+   <div id="ccBurstLayer" class="cc-burst-layer"></div>
+  
+   <div class="cc-stats">
+@@ -5643,6 +5688,7 @@ select option { background: #0D0D0D; color: #fff; }
            </div>
--        </div>
--        <div class="card" style="margin-bottom:18px" id="moodGraphCard">
--  <div class="card-title">💭 Mood This Week
--    <span style="font-size:10px;color:var(--text3);font-weight:400">Last 7 days</span>
--  </div>
--  <div id="moodGraph" style="display:flex;align-items:flex-end;gap:6px;height:80px;padding:4px 0 0"></div>
--  <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap" id="moodLegend"></div>
--</div>
--        <div class="two-col">
--          <div class="card" style="margin-bottom:0">
--            <div class="card-title">🩷 Period Status</div>
--            <div id="dashPeriod" style="font-size:13px;color:var(--text2)">Open Period Tracker</div>
--          </div>
--          <div class="card" style="margin-bottom:0">
--            <div class="card-title">⚡ Fight Log</div>
--            <div id="dashFights" style="font-size:13px;color:var(--text2)">No recent fights 💕</div>
-+        </section>
-+        <section class="dx-sheet">
-+          <div class="dx-sheet-in">
-+            <div class="dx-sec"><h3>Stay Connected</h3><p>Tap to send a little love</p></div>
-+            <div class="dx-stage" id="dxStage">
-+              <div class="dx-slide on" data-type="hug"><img src="/images/dashboard/hug.png" alt="Hug" loading="lazy" decoding="async"><div class="dx-ph">🤗</div><div class="dx-tag">🤗 Hug</div></div>
-+              <div class="dx-slide" data-type="miss"><img src="/images/dashboard/miss.png" alt="Miss you" loading="lazy" decoding="async"><div class="dx-ph">🥺</div><div class="dx-tag">🥺 Miss You</div></div>
-+              <div class="dx-slide" data-type="touch"><img src="/images/dashboard/touch.png" alt="Touch" loading="lazy" decoding="async"><div class="dx-ph">❤️</div><div class="dx-tag">❤️ Touch</div></div>
-+            </div>
-+            <div class="dx-acts" id="dxActs">
-+              <button class="dx-act cc-hug on" id="ccHugBtn" data-type="hug" aria-pressed="true" onclick="DashLove.tap('hug')"><span class="dx-ico">🤗</span>Hug</button>
-+              <button class="dx-act cc-miss" id="ccMissBtn" data-type="miss" aria-pressed="false" onclick="DashLove.tap('miss')"><span class="dx-ico">🥺</span>Miss You</button>
-+              <button class="dx-act cc-touch" id="ccTouchBtn" data-type="touch" aria-pressed="false" onclick="DashLove.tap('touch')"><span class="dx-ico">❤️</span>Touch</button>
-+            </div>
-           </div>
--        </div>
-+        </section>
+         </div>
        </div>
++      </div>
        <div class="page" id="page-lovecounter">
    <div class="iframe-page-wrap">
-@@ -8904,7 +8788,7 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
-           // the tap-to-preview handler. Two systems writing the same
-           // element was why the chat header photo could look inconsistent
-           // or briefly flash back to an initial/stale image.
--          if (S.myAvatar) { ['sbAv1', 'profAv1', 'settingsAv1'].forEach(id => setAvImg(id, S.myAvatar)); }
-+          if (S.myAvatar) { ['sbAv1', 'profAv1', 'settingsAv1', 'dxAv'].forEach(id => setAvImg(id, S.myAvatar)); }
-           if (S.partnerAvatar) { ['sbAv2', 'profAv2'].forEach(id => setAvImg(id, S.partnerAvatar)); }
-           const el1 = document.getElementById('profMyName'); if (el1) el1.textContent = m;
-           const el2 = document.getElementById('profPtName'); if (el2) el2.textContent = p;
-@@ -8958,7 +8842,7 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
-           try {
-             const saved = await ProfileStore.uploadMyAvatar(input.files[0]);
-             S.myAvatar = saved.avatar_url;
--            ['sbAv1', 'profAv1', 'settingsAv1'].forEach(id => setAvImg(id, S.myAvatar));
-+            ['sbAv1', 'profAv1', 'settingsAv1', 'dxAv'].forEach(id => setAvImg(id, S.myAvatar));
-             saveLocal(); toast('Photo updated! 📸');
-           } catch (e) { toast('Upload failed: ' + e.message); }
-         }
-@@ -9411,7 +9295,6 @@ const p = await Notification.requestPermission();
-         function renderPhotos() {
-           const grid = document.getElementById('photoGrid');
-           document.getElementById('photoCountTag').textContent = S.photos.length;
--          document.getElementById('memCount').textContent = S.photos.length;
-           const add = '<label class="pt pt-add"><span>+</span><span style="font-size:10px">Add</span><input type="file" accept="image/*,video/*" multiple style="display:none" onchange="uploadPhotos(this)"></label>';
-           grid.innerHTML = add + S.photos.map((p) => `
-     <div class="pt sd-selectable" data-photo-id="${p.id}">
-@@ -9919,8 +9802,6 @@ const p = await Notification.requestPermission();
-           document.getElementById('pCycleLen').textContent = info.cycleLen;
-           document.getElementById('pFlowDays').textContent = info.flowDays;
-           document.getElementById('periodMoodNote').textContent = '💡 ' + notes[info.phase];
--          const dp = document.getElementById('dashPeriod');
--          if (dp) dp.innerHTML = `<div style="font-size:12px;color:var(--text2)">${pn[info.phase] || 'Not tracking'}</div><div style="font-size:10px;color:var(--text3);margin-top:3px">Next in ${info.daysToNext} days</div>`;
-           renderPeriodCalendar();
-           const today = todayStr(); const ts = (S.symptoms || {})[today] || [];
-           document.querySelectorAll('.symptom-tag').forEach(el => el.classList.toggle('sel', ts.includes(el.dataset.s)));
-@@ -10081,12 +9962,6 @@ const p = await Notification.requestPermission();
-       </div>
-     </div>`).join('');
-           el.innerHTML = html;
--          const df = document.getElementById('dashFights');
--          if (df) {
--            if (open > 0) df.innerHTML = `<div style="font-size:12px;color:var(--red)">⚡ ${open} open fight${open > 1 ? 's' : ''}</div><div style="font-size:10px;color:var(--text3);margin-top:3px">Try reconnect activities 💚</div>`;
--            else if (S.fights.length) df.innerHTML = `<div style="font-size:12px;color:var(--green)">✅ All ${S.fights.length} fight${S.fights.length > 1 ? 's' : ''} resolved 💕</div>`;
--            else df.innerHTML = '<div style="font-size:12px;color:var(--text3)">No fights logged 💕</div>';
--          }
-           const ae = document.getElementById('reconnectActivities');
-           if (ae) ae.innerHTML = ACTIVITIES.map(a => `
-     <div style="display:flex;align-items:flex-start;gap:11px;padding:12px;background:var(--green-bg);border:1px solid rgba(52,211,153,0.2);border-radius:var(--rs);margin-bottom:8px;cursor:pointer;transition:var(--t)" onclick="this.style.opacity=this.style.opacity==='0.7'?'1':'0.7';toast('Try: ${a.t} 💕')">
-@@ -10894,7 +10769,6 @@ const p = await Notification.requestPermission();
-           evEl.innerHTML = up.map(e => `<div class="bucket-row sd-selectable" data-event-id="${e.id}"><div class="sd-check"><i data-lucide="check"></i></div><div style="font-size:17px">${ce[e.cat] || '📌'}</div><div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--white)">${esc(e.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(e.date)}${e.time ? ' · ' + esc(e.time) : ''}${e.alarm ? ' · 🔔' : ''}</div></div><button class="del-btn" onclick="delEvent(${e.id})"><i data-lucide="trash-2"></i></button></div>`).join('');
-           if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
-           calWireSelection();
--          renderDashEvents();
-         }
-         function showDayEvents(date) { const evs = S.events.filter(e => e.date === date); if (!evs.length) { toast('No events on ' + fmtDateShort(date)); return; } toast(evs.map(e => e.title + (e.time ? ' ' + e.time : '')).join(' · '), 3500); }
-         function delEvent(id) {
-@@ -11914,77 +11788,7 @@ const p = await Notification.requestPermission();
-           msgsEl.scrollTop = msgsEl.scrollHeight;
+     <iframe id="lovecounterFrame" src="/lovecounter.html" title="Love Counter" loading="lazy"></iframe>
+@@ -11915,6 +11961,7 @@ const p = await Notification.requestPermission();
          }
          // ─── DASHBOARD ───────────────────────────────────────────
--        function renderDashboard() {
--          
--          if (S.anniversary) { const days = Math.max(0, Math.floor((Date.now() - new Date(S.anniversary).getTime()) / 86400000)); document.getElementById('daysTog').textContent = days; }
--          // Show hours too for a live feeling
--          if (S.anniversary) {
--            const ms = Date.now() - new Date(S.anniversary).getTime();
--            const h = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
--            const el = document.getElementById('daysHours');
--            if (el) el.textContent = h + ' hrs';
--          }
--          document.getElementById('memCount').textContent = S.photos.length;
--          document.getElementById('bucketCount').textContent = S.bucket.length;
--          renderDashEvents();
--          if (S.periods && S.periods.length) renderPeriodPage();
--          renderFights();
--          renderMoodGraph();
--          renderCountdowns();
--          renderRelInsight();
--        }
--        function renderRelInsight() {
--          const el = document.getElementById('relInsightCard'); if (!el) return;
--          const days = S.anniversary ? Math.max(0, Math.floor((Date.now() - new Date(S.anniversary).getTime()) / 86400000)) : 0;
--          const hugs = (S.hugStats && S.hugStats.total) || 0;
--          const touches = (S.touchStats && S.touchStats.total) || 0;
--          const openFights = (S.fights || []).filter(f => f.status === 'open').length;
--          const habits = S.habits || [];
--          const today = todayStr();
--          const last7 = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); last7.push(d.toISOString().slice(0, 10)); }
--          const possible = habits.length * 7;
--          const actual = habits.reduce((s, h) => s + last7.filter(d => (h.doneDates || []).includes(d)).length, 0);
--          const consistency = possible > 0 ? Math.round((actual / possible) * 100) : null;
--          let text, ico = '💕';
--          if (openFights > 0) { ico = '💭'; text = `You have <strong>${openFights}</strong> open conflict${openFights === 1 ? '' : 's'} — a reconnect activity could help this week.`; }
--          else if (consistency !== null && consistency >= 70) { ico = '🔥'; text = `Great week — <strong>${consistency}%</strong> habit consistency and no open conflicts.`; }
--          else if (hugs + touches > 0) { ico = '🤗'; text = `You've shared <strong>${hugs + touches}</strong> touch/hug moments together so far.`; }
--          else if (days > 0) { ico = '💍'; text = `<strong>${days}</strong> days together and counting — keep building your story.`; }
--          else { text = 'Add your anniversary date to start tracking your journey together.'; }
--          el.innerHTML = `<div class="rel-insight-ico">${ico}</div><div class="rel-insight-text">${text}</div>`;
--        }
--        function daysUntilNext(dateStr) {
--  if (!dateStr) return null;
--  const today = new Date(); today.setHours(0,0,0,0);
--  const d = new Date(dateStr + 'T00:00:00');
--  const next = new Date(today.getFullYear(), d.getMonth(), d.getDate());
--  if (next < today) next.setFullYear(today.getFullYear() + 1);
--  return Math.round((next - today) / 86400000);
--}
--function renderCountdowns() {
--  const card = document.getElementById('countdownCard');
--  const list = document.getElementById('countdownList');
--  if (!card || !list) return;
--  const items = [];
--  if (S.anniversary) {
--    const d = daysUntilNext(S.anniversary);
--    items.push({ emoji: '💍', label: 'Anniversary', days: d });
--  }
--  if (S.myBday) items.push({ emoji: '🎂', label: (S.myName || 'Your') + "'s Birthday", days: daysUntilNext(S.myBday) });
--  if (S.ptBday) items.push({ emoji: '🎂', label: (S.partnerName || "Partner's") + "'s Birthday", days: daysUntilNext(S.ptBday) });
--  if (!items.length) { card.style.display = 'none'; return; }
--  card.style.display = 'block';
--  items.sort((a,b) => a.days - b.days);
--  list.innerHTML = items.map(i => `
--    <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)">
--      <div style="font-size:24px">${i.emoji}</div>
--      <div style="flex:1">
--        <div style="font-size:13px;color:var(--white);font-weight:500">${esc(i.label)}</div>
--        <div style="font-size:11px;color:var(--text3)">${i.days === 0 ? '🎉 Today!' : i.days + ' day' + (i.days === 1 ? '' : 's') + ' away'}</div>
--      </div>
--    </div>`).join('');
--}
--        function renderDashEvents() { const el = document.getElementById('dashEvents'); if (!el) return; const today = todayStr(); const up = S.events.filter(e => e.date >= today).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3); if (!up.length) { el.innerHTML = '<div class="empty" style="padding:6px 0;font-size:12px"><a href="#" onclick="goto(\'calendar\');return false" style="color:var(--text2)">Add first event →</a></div>'; return; } el.innerHTML = up.map(e => `<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)"><div style="width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:6px"></div><div style="flex:1;font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.title)}</div><div style="font-size:10px;color:var(--text3);white-space:nowrap">${fmtDateShort(e.date)}</div></div>`).join(''); }
-+        function renderDashboard() { if (window.renderDashHero) renderDashHero(); }
- 
-         // ─── EXPORT / CLEAR ──────────────────────────────────────
-         function exportData() {
-@@ -12025,9 +11829,8 @@ function logOut() {
-         function renderAll() {
-           applyNames();  renderPhotos(); renderBucket(); renderHabits();
-           renderJournal(); renderNotes(); renderMoney(); renderCalendar();
--          renderDashboard(); renderCountdowns(); renderWellnessMoods(); renderWellnessSummary();
-+          renderDashboard(); renderWellnessMoods(); renderWellnessSummary();
-           renderFights(); renderStudyPage(); renderReminders(); renderMissYouStats(); renderHugStats();
--          if (S.anniversary) { const d = Math.max(0, Math.floor((Date.now() - new Date(S.anniversary).getTime()) / 86400000)); document.getElementById('daysTog').textContent = d; }
-           const today = todayStr(); const w = (S.wellness || {})[today] || {};
-           const wi = document.getElementById('waterIn'), si = document.getElementById('sleepIn'), ei = document.getElementById('exerciseIn');
-           if (wi) wi.value = w.water || ''; if (si) si.value = w.sleep || ''; if (ei) ei.value = w.exercise || '';
-@@ -12234,7 +12037,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
-           if (window.ProfileStore && S.userId) {
-             ProfileStore.init(S.userId).then(() => {
-               const mine = ProfileStore.get('me'), theirs = ProfileStore.get('partner');
--              if (mine && mine.avatar_url) { S.myAvatar = mine.avatar_url; ['sbAv1','profAv1','settingsAv1'].forEach(id => setAvImg(id, S.myAvatar)); }
-+              if (mine && mine.avatar_url) { S.myAvatar = mine.avatar_url; ['sbAv1','profAv1','settingsAv1','dxAv'].forEach(id => setAvImg(id, S.myAvatar)); }
-               if (theirs && theirs.avatar_url) { S.partnerAvatar = theirs.avatar_url; ['sbAv2','profAv2','chatHeaderAv'].forEach(id => setAvImg(id, S.partnerAvatar)); }
-             }).catch(e => console.warn('[ProfileStore] init failed', e));
-             // Keep every mounted Avatar-component instance and the legacy
-@@ -12242,7 +12045,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
-             // per-page wiring required.
-             ProfileStore.onChange((owner, profile) => {
-               if (!profile) return;
--              if (owner === 'me') { S.myAvatar = profile.avatar_url || S.myAvatar; ['sbAv1','profAv1','settingsAv1'].forEach(id => setAvImg(id, S.myAvatar)); }
-+              if (owner === 'me') { S.myAvatar = profile.avatar_url || S.myAvatar; ['sbAv1','profAv1','settingsAv1','dxAv'].forEach(id => setAvImg(id, S.myAvatar)); }
-               else { S.partnerAvatar = profile.avatar_url || S.partnerAvatar; ['sbAv2','profAv2','chatHeaderAv'].forEach(id => setAvImg(id, S.partnerAvatar)); }
-             });
-           }
-@@ -12842,58 +12645,6 @@ function renderSurprises() {
-           const v = item.visibility || 'both';
-           return v === 'both' || v === 'partner';
-         }
--        function renderMoodGraph() {
--  const el = document.getElementById('moodGraph');
--  const leg = document.getElementById('moodLegend');
--  if (!el) return;
--  // Collect last 7 days
--  const days = [];
--  for (let i = 6; i >= 0; i--) {
--    const d = new Date(); d.setDate(d.getDate() - i);
--    const ds = d.toISOString().slice(0, 10);
--    const dayName = d.toLocaleDateString('en', { weekday: 'short' });
--    const w = (S.wellness || {})[ds];
--    days.push({ ds, dayName, mood: w?.mood || null });
--  }
--  // Count moods for legend
--  const moodCounts = {};
--  days.forEach(d => { if (d.mood) { const key = d.mood.split(' ')[0]; moodCounts[key] = (moodCounts[key] || 0) + 1; } });
--  const moodColors = {
--    '😊': 'var(--yellow)', '🥰': '#ff6b9d', '😌': 'var(--green)',
--    '😔': '#a78bfa', '😤': 'var(--red)', '🤩': 'var(--accent)',
--    '🥱': 'var(--text3)'
--  };
--  const moodHeights = {
--    '😊': 70, '🥰': 85, '😌': 60, '😔': 30, '😤': 45, '🤩': 95, '🥱': 25
--  };
--  el.innerHTML = days.map(d => {
--    const emoji = d.mood ? d.mood.split(' ')[0] : null;
--    const h = emoji ? (moodHeights[emoji] || 50) : 8;
--    const color = emoji ? (moodColors[emoji] || 'var(--accent)') : 'var(--g2)';
--    const label = d.dayName;
--    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0">
--      <div style="font-size:13px;height:20px;display:flex;align-items:center">${emoji || ''}</div>
--      <div style="width:100%;max-width:32px;border-radius:6px 6px 3px 3px;background:${color};transition:height 0.6s cubic-bezier(0.34,1.56,0.64,1);opacity:${emoji?1:0.25}"
--           title="${d.mood||'No mood logged'}"
--           data-h="${h}"
--           class="mood-bar"></div>
--      <div style="font-size:9px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.3px">${label}</div>
--    </div>`;
--  }).join('');
--  // Animate bars after render
--  setTimeout(() => {
--    el.querySelectorAll('.mood-bar').forEach(bar => {
--      const h = bar.dataset.h || 8;
--      bar.style.height = h + 'px';
--    });
--  }, 50);
--  // Legend
--  if (leg) {
--    const entries = Object.entries(moodCounts).sort((a,b)=>b[1]-a[1]);
--    leg.innerHTML = entries.map(([em, n]) => `<div style="display:inline-flex;align-items:center;gap:4px;background:var(--g1);border:1px solid var(--border);border-radius:20px;padding:3px 9px;font-size:11px"><span>${em}</span><span style="color:var(--text2)">${n}x</span></div>`).join('');
--    if (!entries.length) leg.innerHTML = `<div style="font-size:11px;color:var(--text3)">Log your mood daily to see trends 💕</div>`;
--  }
--}
- // ─── STORAGE MANAGEMENT ──────────────────────────────────
- function calcStorageStats() {
-   const stats = {
-@@ -13581,6 +13332,7 @@ init();
+         function renderDashboard() {
++          if (window.renderDashHero) renderDashHero();
+           
+           if (S.anniversary) { const days = Math.max(0, Math.floor((Date.now() - new Date(S.anniversary).getTime()) / 86400000)); document.getElementById('daysTog').textContent = days; }
+           // Show hours too for a live feeling
+@@ -13581,6 +13628,7 @@ init();
  <script src="/chat/chat.js"></script>
  <script src="/chat/call.js"></script>
  <script src="/dashboard_chat_patch.js"></script>
@@ -752,13 +314,13 @@ index 16a9da1..9a25860 100644
  
  <!-- Premium Sound System (additive, non-invasive) -->
 diff --git a/public/sw.js b/public/sw.js
-index 7ffabcb..e1f9130 100644
+index 7ffabcb..7013d4f 100644
 --- a/public/sw.js
 +++ b/public/sw.js
 @@ -1,5 +1,5 @@
  // Service Worker for Twin Hearts 💕 PWA — v5
 -const CACHE = 'uwl-v7'; // bumped: purges stale cached assets (incl. old movie.css) on activate
-+const CACHE = 'uwl-v9'; // bumped: purges stale cached assets (incl. old movie.css) on activate
++const CACHE = 'uwl-v8'; // bumped: purges stale cached assets (incl. old movie.css) on activate
  const OFFLINE_ASSETS = [
    '/',
    '/index.html',
