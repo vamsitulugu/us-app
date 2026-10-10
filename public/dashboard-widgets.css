@@ -98,7 +98,7 @@
   transition: transform .15s ease, background .2s ease;
 }
 .dw-page:active { transform: scale(.94); background: rgba(255, 255, 255, .12); }
-.dw-page .e { font-size: 19px; line-height: 1; }
+.dw-page .e, .dw-page svg { width: 21px; height: 21px; stroke-width: 1.9; color: rgba(255, 255, 255, .92); display: block; }
 .dw-page .l { font: 600 10px var(--ff-sans); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── Closing quote ── */
@@ -227,3 +227,22 @@
 .dw-legend .pt::before { border-top: 2px dashed #ffc4b8; }
 .dw-ptline { margin: 12px 0 0; font: 600 13px var(--ff-sans); color: rgba(255, 255, 255, .7); }
 .dw-ptline.big { font-size: 20px; color: #fff; margin: 4px 0 8px; }
+
+/* ── Mood card: one-tap emojis + date-wise emoji columns ── */
+.dw-mood { cursor: pointer; }
+.dw-quick { display: flex; gap: 8px; margin-top: 12px; }
+.dw-q1 {
+  flex: 1; height: 44px; padding: 0; border-radius: 14px; font-size: 22px; line-height: 1; cursor: pointer;
+  border: 1.5px solid rgba(255, 255, 255, .14); background: rgba(255, 255, 255, .07);
+  -webkit-tap-highlight-color: transparent; transition: transform .15s ease, background .2s ease;
+}
+.dw-q1:active { transform: scale(.9); }
+.dw-q1.is-sel { border-color: var(--mc); background: color-mix(in srgb, var(--mc) 30%, transparent); }
+.dw-daycols { display: grid; grid-template-columns: repeat(7, 1fr); margin-top: 4px; text-align: center; }
+.dw-col { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; }
+.dw-col .em { font-size: 18px; line-height: 24px; height: 24px; }
+.dw-col .em.pt { font-size: 14px; line-height: 20px; height: 20px; min-width: 24px; border-radius: 10px; background: rgba(255, 196, 184, .14); }
+.dw-col .em.none { opacity: .3; font-size: 14px; }
+.dw-col .wd { font: 500 10px var(--ff-sans); color: rgba(255, 255, 255, .5); margin-top: 2px; }
+.dw-col .dn { font: 600 11px var(--ff-sans); color: rgba(255, 255, 255, .75); }
+.dw-col.is-today .wd, .dw-col.is-today .dn { color: #fff; font-weight: 700; }

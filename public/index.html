@@ -5420,14 +5420,6 @@ select option { background: #0D0D0D; color: #fff; }
     <div class="nav-group">
       <div class="nav-label">Home</div>
       <div class="ni active" data-page="dashboard"><span class="ico">🏠</span>Dashboard</div>
-      <div class="card" style="margin-bottom:2px;pointer-events:auto;cursor:default">
-        <div class="card-title">💭 Quick Mood Check-in</div>
-        <div class="mood-row" id="dashMoodRow" style="margin-bottom:0;flex-wrap:nowrap;gap:6px">
-          <div class="mood" style="flex:1;text-align:center;padding:8px 2px;font-size:10.5px;white-space:nowrap" onclick="quickMood(this,'😊 Happy')">😊<br>Happy</div>
-          <div class="mood" style="flex:1;text-align:center;padding:8px 2px;font-size:10.5px;white-space:nowrap" onclick="quickMood(this,'😢 Sad')">😢<br>Sad</div>
-          <div class="mood" style="flex:1;text-align:center;padding:8px 2px;font-size:10.5px;white-space:nowrap" onclick="quickMood(this,'😡 Angry')">😡<br>Angry</div>
-        </div>
-      </div>
     </div>
     <div class="nav-group" style="padding-top:0">
       <div class="nav-label" style="padding-top:2px">Main</div>
@@ -5534,7 +5526,7 @@ select option { background: #0D0D0D; color: #fff; }
             </div>
 
             <div class="dw-block">
-              <button class="dw-mood" id="dwMood" type="button" aria-label="Open mood calendar"></button>
+              <div class="dw-mood" id="dwMood" role="button" tabindex="0" aria-label="Open mood calendar"></div>
             </div>
 
             <div class="dw-block">

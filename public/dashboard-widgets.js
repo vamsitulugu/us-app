@@ -208,16 +208,17 @@ const DashWidgets = (() => {
     return n;
   }
 
+  const QUICK = ['Happy', 'Loved', 'Peaceful', 'Sad', 'Angry'];   // the 5 one-tap moods on the card (all 8 are in the calendar)
+
   function renderMood() {
     const card = $('dwMood');
     if (!card) return;
-    const days = lastDays(7);
+    const days = lastDays(7), pair = hasPartner(), tk = todayKey();
     const W = 280, colW = W / 7;
     const y = s => 64 - ((s - 1) / 4) * 56;
 
     const svg = svgEl('svg', { viewBox: '0 0 280 72', class: 'dw-graph', 'aria-hidden': 'true', preserveAspectRatio: 'none' });
     [8, 36, 64].forEach(gy => svg.append(svgEl('line', { x1: 0, x2: W, y1: gy, y2: gy, class: 'g-grid' })));
-
     const draw = (rk, cls, r, ring) => {
       const pts = days.map((d, i) => { const k = moodOf(rk, iso(d)); return k ? { x: colW * (i + .5), y: y(MOODS[k].s), c: MOODS[k].c } : null; });
       let run = [];
@@ -226,21 +227,38 @@ const DashWidgets = (() => {
       flush();
       pts.forEach(p => { if (p) svg.append(svgEl('circle', { cx: p.x, cy: p.y, r, fill: p.c, stroke: ring, 'stroke-width': ring === '#fff' ? 1.5 : 2 })); });
     };
-    const pair = hasPartner();
     if (pair) draw(ptRk(), 'g-line g-pt', 4.5, '#fff');
     draw(myRk(), 'g-line', 6, '#1b121a');
 
-    const labels = el('div', 'dw-days');
-    days.forEach((d, i) => labels.append(el('span', i === 6 ? 'is-today' : '', i === 6 ? 'Today' : ['S', 'M', 'T', 'W', 'T', 'F', 'S'][d.getDay()])));
+    // date-wise emojis: one column per day (mine, then partner's), with weekday + date number
+    const cols = el('div', 'dw-daycols');
+    days.forEach((d, i) => {
+      const col = el('div', 'dw-col' + (i === 6 ? ' is-today' : ''));
+      const a = moodOf(myRk(), iso(d));
+      col.append(el('span', 'em' + (a ? '' : ' none'), a ? MOODS[a].e : '·'));
+      if (pair) { const b = moodOf(ptRk(), iso(d)); col.append(el('span', 'em pt' + (b ? '' : ' none'), b ? MOODS[b].e : '·')); }
+      col.append(el('span', 'wd', i === 6 ? 'Today' : d.toLocaleDateString('en', { weekday: 'short' })), el('span', 'dn', String(d.getDate())));
+      cols.append(col);
+    });
 
-    const tk = todayKey(), a = moodOf(myRk(), tk), b = pair ? moodOf(ptRk(), tk) : null, n = streak(myRk());
+    const a = moodOf(myRk(), tk), b = pair ? moodOf(ptRk(), tk) : null, n = streak(myRk());
     const top = el('div', 'dw-mood-top');
     top.append(el('b', '', 'Mood'), el('span', 'dw-mood-streak', n >= 2 ? `🔥 ${n}-day streak` : 'Calendar ›'));
+
+    // 5 one-tap emojis for today (tap the same one again to clear)
+    const quick = el('div', 'dw-quick');
+    QUICK.forEach(k => {
+      const btn = el('button', 'dw-q1' + (a === k ? ' is-sel' : ''), MOODS[k].e);
+      btn.type = 'button'; btn.title = k; btn.setAttribute('aria-label', k);
+      btn.style.setProperty('--mc', MOODS[k].c);
+      btn.onclick = e => { e.stopPropagation(); setMood(tk, a === k ? null : k); if (a !== k) say(`Mood saved ${MOODS[k].e}`); };
+      quick.append(btn);
+    });
 
     let sub;
     if (!pair) sub = a ? `Today: ${MOODS[a].e} ${a}` : 'How are you feeling today?';
     else sub = `You ${a ? MOODS[a].e : '—'}  ·  ${ptName()} ${b ? MOODS[b].e : '—'}`;
-    const kids = [top, el('p', 'dw-mood-sub', sub), svg, labels];
+    const kids = [top, quick, el('p', 'dw-mood-sub', sub), svg, cols];
     if (pair) {
       const lg = el('div', 'dw-legend');
       lg.append(el('span', 'you', 'You'), el('span', 'pt', ptName()));
@@ -606,13 +624,12 @@ const DashWidgets = (() => {
   });
 
   /* ───────────────────────── ALL PAGES + QUOTE ───────────────────────── */
+  // Lucide icon names (the app already loads lucide for its other screens)
   const PAGES = [
-    ['chat', '💬', 'Chat'], ['map', '📍', 'Live Map'], ['ai', '🤖', 'Twin'], ['lovecounter', '❤️', 'Love Counter'],
-    ['profile', '💑', 'Profile'], ['level', '🏆', 'Level'], ['fights', '🥊', 'Fight Log'], ['globe', '🌍', 'Globe'],
-    ['places', '📌', 'Places'], ['collection', '🎁', 'Collection'], ['capsule', '💌', 'Capsule'], ['surprise', '🎉', 'Surprises'],
-    ['money', '💰', 'Money'], ['games', '🎮', 'Games'], ['study', '📚', 'Study'], ['dreamgoals', '🎯', 'Dream Goals'],
-    ['dreamhome', '🏡', 'Dream Home'], ['virtualhome', '🏠', '3D Home'], ['myspace', '🌸', 'My Space'], ['period', '🌙', 'Period'],
-    ['vault', '🔒', 'Vault'], ['settings', '⚙️', 'Settings'],
+    ['lovecounter', 'heart', 'Love Counter'], ['level', 'trophy', 'Level'], ['fights', 'swords', 'Fight Log'], ['globe', 'globe', 'Globe'],
+    ['places', 'map-pin', 'Places'], ['collection', 'gift', 'Collection'], ['capsule', 'hourglass', 'Capsule'], ['surprise', 'party-popper', 'Surprises'],
+    ['money', 'wallet', 'Money'], ['games', 'gamepad-2', 'Games'], ['study', 'book-open', 'Study'], ['dreamgoals', 'target', 'Dream Goals'],
+    ['dreamhome', 'house', 'Dream Home'], ['virtualhome', 'box', '3D Home'], ['myspace', 'flower-2', 'My Space'], ['vault', 'lock', 'Vault'],
   ];
   const FOOT_QUOTES = [
     'Love is not about how many miles are between us, but how close we stay in our hearts.',
@@ -627,15 +644,26 @@ const DashWidgets = (() => {
     'Somewhere between hello and goodnight, I fall for you again.',
   ];
 
+  function paintIcons() {
+    if (window.lucide && typeof lucide.createIcons === 'function') { try { lucide.createIcons(); } catch (_) {} return; }
+    // lucide loads deferred from a CDN — try again until it is there
+    let n = 0;
+    const iv = setInterval(() => {
+      if (window.lucide && typeof lucide.createIcons === 'function') { clearInterval(iv); try { lucide.createIcons(); } catch (_) {} }
+      else if (++n > 40) clearInterval(iv);
+    }, 250);
+  }
   function renderPages() {
     const g = $('dwPages');
     if (!g || g.childElementCount) return;               // static list — build once
-    PAGES.forEach(([page, emoji, label]) => {
+    PAGES.forEach(([page, icon, label]) => {
       const b = el('button', 'dw-page'); b.type = 'button';
-      b.append(el('span', 'e', emoji), el('span', 'l', label));
+      const i = el('i', 'e'); i.setAttribute('data-lucide', icon);
+      b.append(i, el('span', 'l', label));
       b.onclick = () => goto(page);
       g.append(b);
     });
+    paintIcons();
   }
   function renderQuote() {
     const q = $('dwQuote');
@@ -657,7 +685,8 @@ const DashWidgets = (() => {
   function init() {
     hookLegacy();
     const edit = $('dhEditBtn'); if (edit) edit.onclick = () => openPhotos(photoSlotForCard());
-    const mood = $('dwMood'); if (mood) mood.onclick = openMood;
+    const mood = $('dwMood');
+    if (mood) { mood.onclick = openMood; mood.onkeydown = e => { if (e.target === mood && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openMood(); } }; }
     const ml = $('dwMoodLink'); if (ml) ml.onclick = openMood;
     // keep "in N days" / streak fresh across midnight while the tab stays open
     setInterval(() => { if (!document.hidden) render(); }, 5 * 60 * 1000);
