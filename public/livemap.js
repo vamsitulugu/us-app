@@ -20,7 +20,6 @@ const LiveMap = (() => {
   const PING_MIN_INTERVAL_MS = 8000;   // never ping more than once per 8s
   const PING_MIN_DISTANCE_M  = 15;     // or unless moved >15m
   const POLL_INTERVAL_MS     = 8000;   // partner-location poll cadence (unchanged — safety net)
-  const ONLINE_WINDOW_MS     = 60000;
 
   // ── Realtime "changed" ping ──────────────────────────────────────────
   // This is purely additive: it triggers an immediate _pollOnce() the moment
@@ -297,20 +296,6 @@ const LiveMap = (() => {
         toast('🚨 Emergency location sent to ' + (S.partnerName || 'your partner'));
       }).catch(() => toast('Couldn\'t send right now — check your connection'));
     }, () => toast('Couldn\'t get a GPS fix for emergency share'), { enableHighAccuracy: true, timeout: 10000 });
-  }
-  async function _batteryNetworkLine() {
-    let batteryTxt = '', netTxt = '';
-    try {
-      if (navigator.getBattery) {
-        const b = await navigator.getBattery();
-        batteryTxt = `🔋 ${Math.round(b.level * 100)}%${b.charging ? ' (charging)' : ''}`;
-      }
-    } catch (e) {}
-    try {
-      const c = navigator.connection || navigator.webkitConnection || navigator.mozConnection;
-      if (c) netTxt = `📶 ${(c.effectiveType || 'unknown').toUpperCase()}`;
-    } catch (e) {}
-    return [batteryTxt, netTxt].filter(Boolean).join(' · ') || null;
   }
   function _renderPrivacyPanel() {
     const panel = document.getElementById('lmPrivacyPanel');
@@ -894,21 +879,6 @@ const LiveMap = (() => {
   // Lets a person declare how they're actually travelling (walking isn't
   // guessable the way a booked car/bus is) — synced to the partner via
   // the existing ping payload / vehicle_type column.
-  function setVehicleType(type) {
-    const allowed = ['auto', 'walking', 'bike', 'car', 'bus'];
-    if (!allowed.includes(type)) return;
-    S.myVehicleType = type;
-    st.lastPingPos = null; // force an immediate re-ping so the change propagates now
-    if (S.coupleId && S.myLoc && S.myLoc.lat != null && S.myLoc.lng != null) {
-      api('POST', '/api/location/ping', {
-        coupleId: S.coupleId, role: S.role, lat: S.myLoc.lat, lng: S.myLoc.lng,
-        accuracy: S.myLoc.accuracy || null, heading: S.myLoc.heading || null,
-        moving: !!S.myLoc.moving, localDate: _localDateStr(), vehicleType: type
-      }).catch(() => {});
-    }
-    toast('🚦 Travel mode set: ' + type);
-  }
-
  function _fitBoth() {
   if (!st.map) return;
   const pts = [];
@@ -1245,14 +1215,6 @@ const LiveMap = (() => {
   }
 
   /* ── FAVORITES PANEL — list of saved favorite places with quick actions ── */
-  function toggleFavoritesPanel() {
-    const panel = document.getElementById('lmFavoritesPanel');
-    if (!panel) return;
-    const opening = panel.style.display !== 'block';
-    panel.style.display = opening ? 'block' : 'none';
-    document.getElementById('lmFavBtn')?.classList.toggle('active', opening);
-    if (opening) _renderFavoritesPanel();
-  }
   function _renderFavoritesPanel() {
     const panel = document.getElementById('lmFavoritesPanel');
     if (!panel || panel.style.display !== 'block') return;
@@ -1310,7 +1272,6 @@ const LiveMap = (() => {
     const f = (S.favorites || [])[i];
     if (!f) return;
     document.getElementById('lmFavoritesPanel').style.display = 'none';
-    document.getElementById('lmFavBtn')?.classList.remove('active');
     _openPlaceDetails(f);
   }
   function removeFavorite(i) {
@@ -1439,13 +1400,6 @@ const LiveMap = (() => {
   let _dirRoutesCache = null; // { routes, dest, origin, prof }
   let _dirActiveIdx = 0;
 
-  function openDirections() {
-    if (!_gmActivePlace) return;
-    if (!S.myLoc && !_dirOrigin) toast('Enable location, or set a custom starting point');
-    document.getElementById('lmDirectionsPanel').style.display = 'block';
-    _renderDirectionsPanel(null);
-    _runDirections();
-  }
   function pickCustomOrigin() {
     _gmPickingOrigin = true;
     const input = document.getElementById('lmGmSearchInput');
@@ -1706,7 +1660,6 @@ const LiveMap = (() => {
      ══════════════════════════════════════════════════════════ */
   const CAMERA_MODES = ['top', 'tilt', 'eye'];
   const CAMERA_LABELS = { top: 'Top', tilt: '3D', eye: 'Eye level' };
-  const CAMERA_ICONS  = { top: '🗺️', tilt: '🏙️', eye: '👁️' };
   function cycleCameraMode() {
     if (!st.map || typeof st.map.setCameraMode !== 'function') { toast('3D camera needs a browser that supports WebGL'); return; }
     const cur = st.map.getCameraMode ? st.map.getCameraMode() : 'top';
@@ -1721,8 +1674,6 @@ const LiveMap = (() => {
     st.map.setCameraMode(mode, { center, bearing });
     const btn = document.getElementById('lmCameraModeLabel');
     if (btn) btn.textContent = CAMERA_LABELS[mode] || 'Top';
-    const ico = document.querySelector('#lmCameraModeBtn .lm-tool-ico');
-    if (ico) ico.textContent = CAMERA_ICONS[mode] || '🗺️';
   }
   // Called whenever a fresh "my" GPS fix comes in (hooked below in the
   // main location handler) so eye-level mode keeps facing the direction
@@ -1892,13 +1843,6 @@ const LiveMap = (() => {
     }
     return bestCum;
   }
-  function _sampleRouteCoords(coords, n) {
-    if (!coords || coords.length <= n) return coords || [];
-    const out = [];
-    for (let i = 0; i < n; i++) out.push(coords[Math.round(i * (coords.length - 1) / (n - 1))]);
-    return out;
-  }
-
   async function searchAlongRoute(key) {
     const t = ROUTE_POI_TYPES[key];
     if (!t) return;
@@ -3034,8 +2978,8 @@ const LiveMap = (() => {
     onSearchInput, searchByChip, pickSearchResult,
     gmSearchInput, gmSearchFocus, gmSearchClear, gmPickResult, gmPickRecent,
     closePlaceDetails, toggleFavoritePlace, saveGmPlace, shareGmPlace, meetHereGmPlace,
-    openDirections, pickCustomOrigin, resetOriginToCurrent, setDirMode, selectDirRoute, startDirNavigation, startQuickNav,
-    toggleFavoritesPanel, openFavorite, removeFavorite, moveFavorite, renameFavorite,
+    pickCustomOrigin, resetOriginToCurrent, setDirMode, selectDirRoute, startDirNavigation, startQuickNav,
+    openFavorite, removeFavorite, moveFavorite, renameFavorite,
     startVideoCallFromMap, openLoveNoteComposer, sendLoveNote, foundLoveNote,
     flyTo,
     // Phase 2
@@ -3047,8 +2991,7 @@ const LiveMap = (() => {
     pauseSharing, resumeSharing, togglePrivacyPanel,
     toggleApproxLocation, toggleInvisibleMode, emergencyShare, dismissEmergencyBanner,
     toggleNavPanel, navigateToPartner, navigateToPoint, selectNavRoute, searchAlongRoute,
-    cycleCameraMode, toggleVoiceNav, setVehicleType,
-    // screen-stack helpers (used by /livemap-screens.js)
+    cycleCameraMode, toggleVoiceNav,     // screen-stack helpers (used by /livemap-screens.js)
     setCameraMode: _applyCameraMode, computeExtendedStats: _computeExtendedStats,
     renderPlaces: _renderPlacesLists, renderFavorites: _renderFavoritesPanel, fitBoth: _fitBoth,
     clearRouteOverlay,

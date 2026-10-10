@@ -39,7 +39,6 @@
 .lms-body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 4px var(--lms-pad) var(--lms-nav); display: flex; flex-direction: column; gap: 12px; scroll-behavior: auto; }
 .lms-body > * { flex-shrink: 0; }
 body[data-immersive="1"] .lms-body { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
-@media (min-width: 701px) { .lms-body { padding-bottom: 28px; max-width: 760px; width: 100%; margin: 0 auto; } .lms-hdr { max-width: 760px; width: 100%; margin: 0 auto; } }
 
 /* ── cards / rows ───────────────────────────────────────────────── */
 .lms-card { background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .028)); border: 1px solid var(--border); border-radius: var(--lms-r); padding: 14px; box-shadow: 0 8px 28px rgba(0, 0, 0, .28); }
@@ -65,7 +64,7 @@ button.lms-row:active { background: var(--g1); }
 .lms-ico--red   { background: rgba(229, 9, 20, .13); color: var(--accent-l); }
 
 /* ── switch ─────────────────────────────────────────────────────── */
-.lms-sw { position: relative; width: 48px; height: 28px; flex-shrink: 0; display: inline-block; }
+.lms-sw { position: relative; width: 48px; height: 28px; flex-shrink: 0; display: inline-block !important; margin: 0 !important; }
 .lms-sw input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; cursor: pointer; z-index: 2; }
 .lms-sw span { position: absolute; inset: 0; border-radius: 999px; background: var(--g3); border: 1px solid var(--border2); transition: background .2s, border-color .2s; }
 .lms-sw span::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .4); transition: transform .22s cubic-bezier(.34, 1.56, .64, 1); }
@@ -285,4 +284,76 @@ button.lms-row:active { background: var(--g1); }
   .lms-maptypes { grid-template-columns: repeat(3, 1fr); }
   .lms-tile { font-size: 11.5px; }
   .lms-ts b { font-size: 21px; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   RESPONSIVE — phone (default) → tablet (≥700) → laptop/desktop (≥1024)
+   The page always uses 100% of the width next to the sidebar; nothing is
+   capped to a fixed max-width. Wide screens get real multi-column layouts.
+   ════════════════════════════════════════════════════════════════════ */
+.lms-mapcol, .lms-trk-main { display: contents; }
+
+/* short landscape phones: keep the map usable */
+@media (max-height: 520px) and (orientation: landscape) {
+  .lms-mapwrap #mapView { height: clamp(220px, 64dvh, 420px) !important; min-height: 220px; }
+}
+
+/* playback card: global select{width:100%} must not stretch the speed picker */
+.lms-play { min-width: 0; }
+.lms-play .lms-select { width: auto; max-width: 92px; flex: 0 0 auto; }
+
+/* tablet */
+@media (min-width: 700px) {
+  #page-map { --lms-pad: 22px; }
+  .lms-mapwrap #mapView { height: clamp(340px, 52dvh, 640px) !important; }
+  .lms-plist { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; align-content: start; }
+  .lms-plist > .empty, .lms-plist > .lms-empty { grid-column: 1 / -1; }
+  #lmsAddPlaceBtn { width: auto; min-width: 240px; align-self: flex-start; }
+  #lmsPlacesTabs, #lmsTrackRange, #lmRouteRoleToggle { max-width: 560px; }
+  .lms-stats { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* settings-style screens: wide, but content stays readable and centred */
+@media (min-width: 900px) {
+  #lmsAlerts .lms-body, #lmsPrivacy .lms-body, #lmsSearch .lms-body {
+    padding-left: max(var(--lms-pad), calc((100% - 960px) / 2));
+    padding-right: max(var(--lms-pad), calc((100% - 960px) / 2));
+  }
+  #lmsMore .lms-body, #lmsPartner .lms-body {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px; align-content: start; align-items: start;
+  }
+  #lmsMore .lms-body > * { min-width: 0; }
+  #lmsPartner .lms-body > * { grid-column: 1; min-width: 0; }
+  #lmsPartner .lms-body > .lms-list { grid-column: 2; grid-row: 1 / span 3; }
+  #lmsPartner .lms-stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* laptop / desktop */
+@media (min-width: 1024px) {
+  #page-map { --lms-pad: 28px; }
+
+  /* Map screen: full-width banners/tabs/share card on top, then map | side column */
+  #lmsMapBody {
+    display: grid; grid-template-columns: minmax(0, 1fr) clamp(340px, 30vw, 460px);
+    column-gap: 18px; row-gap: 12px; align-content: start; align-items: start;
+  }
+  #lmsMapBody > * { grid-column: 1 / -1; min-width: 0; }
+  #lmsMapBody > .lms-tabs { max-width: 680px; }
+  #lmsMapBody > #lmsMapSlot { grid-column: 1; }
+  #lmsMapBody > .lms-mapcol { grid-column: 2; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .lms-mapwrap #mapView { height: clamp(420px, calc(100dvh - 330px), 920px) !important; }
+  .lms-tiles { grid-template-columns: repeat(3, 1fr); }
+
+  /* Track screen: stats + timeline on the left, route map pinned on the right */
+  #lmsTrack .lms-body {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+    column-gap: 18px; align-content: start; align-items: start;
+  }
+  #lmsTrack .lms-trk-main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  #lmsTrack #lmsTrackMapBlock { position: sticky; top: 0; min-width: 0; }
+  #lmsTrackMapSlot .lms-mapwrap #mapView { height: clamp(320px, 58dvh, 620px) !important; }
+}
+
+@media (min-width: 1600px) {
+  #page-map { --lms-pad: 36px; }
 }

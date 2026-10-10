@@ -1,0 +1,1376 @@
+diff --git a/public/index.html b/public/index.html
+index ba9e749..1ebd658 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -4108,7 +4108,6 @@
+   color: #ddd; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); white-space: nowrap;
+ }
+ .lm-search-chips .lm-chip.active { background: #ff3c5a; color: #fff; border-color: #ff3c5a; }
+-.lm-search-status { font-size: 11px; color: var(--text3, #999); padding: 4px 2px; }
+ 
+ /* Search-along-route chips (inside the Navigate panel) — same look as search chips */
+ .lm-poi-chip {
+@@ -4117,50 +4116,6 @@
+ }
+ .lm-poi-chip.active { background: #ff3c5a; color: #fff; border-color: #ff3c5a; }
+ 
+-/* ── PHASE 2: Live Map toolbar (style switch + quick actions) ── */
+-.lm-toolbar { margin-top: 12px; }
+-.lm-style-seg {
+-  display: flex; gap: 4px; padding: 4px; border-radius: 14px;
+-  background: rgba(255,255,255,0.04); border: 1px solid var(--gb, rgba(255,255,255,0.06));
+-  margin-bottom: 8px;
+-}
+-/* Fix: on narrow screens, 5 buttons with icon+label text and the base
+-   .lm-tool-btn padding/gap couldn't shrink below their content's natural
+-   width (flex items default to min-width:auto), so the row's total
+-   min-content width exceeded the container and the last button ("Auto")
+-   was pushed outside it. min-width:0 lets flex-shrink actually shrink
+-   these items to fit; the tighter padding/gap and clamp()'d font-size
+-   keep all five equally sized and legible without wrapping or clipping
+-   at any mobile width. */
+-.lm-style-seg .lm-tool-btn {
+-  flex: 1 1 0; min-width: 0; justify-content: center;
+-  padding: 9px 4px; gap: 3px; font-size: clamp(9.5px, 2.6vw, 12px);
+-  overflow: hidden;
+-}
+-.lm-style-seg .lm-tool-btn .lm-tool-ico { font-size: clamp(12px, 3.2vw, 15px); flex-shrink: 0; }
+-.lm-tool-btn {
+-  display: inline-flex; align-items: center; gap: 6px;
+-  padding: 9px 13px; border-radius: 11px; cursor: pointer;
+-  background: rgba(255,255,255,0.045); border: 1px solid var(--gb, rgba(255,255,255,0.07));
+-  color: var(--text2, #ccc); font-size: 12px; font-weight: 600;
+-  transition: transform .15s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;
+-  user-select: none; white-space: nowrap;
+-}
+-.lm-tool-btn .lm-tool-ico {
+-  font-size: 15px; line-height: 1; display: inline-flex;
+-}
+-.lm-tool-btn:active { transform: scale(0.96); }
+-.lm-tool-btn:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.16); }
+-.lm-tool-btn.active {
+-  background: linear-gradient(135deg, var(--accent), var(--accent-d));
+-  border-color: var(--accent); color: #fff;
+-  box-shadow: 0 4px 14px var(--accent-glow);
+-}
+-.lm-action-row {
+-  display: flex; gap: 8px; flex-wrap: wrap;
+-}
+-.lm-action-row .lm-tool-btn { background: var(--g1); }
+-.lm-action-row .lm-tool-btn:hover { background: var(--g2); }
+ .lm-journey-line {
+   font-size: 12px; font-weight: 600; color: var(--white);
+   background: var(--g1); border: 1px solid var(--gb, rgba(255,255,255,0.07));
+@@ -6306,6 +6261,8 @@ select option { background: #0D0D0D; color: #fff; }
+           </div>
+         </div>
+ 
++        <!-- side column: a real column on desktop, display:contents on phones/tablets -->
++        <div class="lms-mapcol">
+         <!-- contextual panels (filled by LiveMap) -->
+         <div id="lmTogetherBanner" class="lms-pill-banner" style="display:none"><svg class="lmi"><use href="#lmi-heart"/></svg>You're together right now!</div>
+         <div id="mapTravelNote" class="lms-note" style="display:none"></div>
+@@ -6338,6 +6295,7 @@ select option { background: #0D0D0D; color: #fff; }
+           <button type="button" class="lms-tile lms-tile--row" onclick="LiveMap.startVideoCallFromMap()"><svg class="lmi"><use href="#lmi-video"/></svg><span>Video Call</span></button>
+           <button type="button" class="lms-tile lms-tile--row" onclick="LiveMap.openLoveNoteComposer()"><svg class="lmi"><use href="#lmi-mail"/></svg><span>Love Note</span></button>
+         </div>
++        </div><!-- /.lms-mapcol -->
+       </div>
+     </section>
+ 
+@@ -6349,6 +6307,7 @@ select option { background: #0D0D0D; color: #fff; }
+         <button class="lms-ib" type="button" aria-label="Route history settings" onclick="LMScreens.toggleTrackSettings()"><svg class="lmi"><use href="#lmi-gear"/></svg></button>
+       </header>
+       <div class="lms-body">
++        <div class="lms-trk-main">
+         <div class="lms-seg" id="lmRouteRoleToggle"></div>
+ 
+         <!-- route-history privacy (off by default) -->
+@@ -6381,6 +6340,7 @@ select option { background: #0D0D0D; color: #fff; }
+         <div id="lmJourneySummary"></div>
+         <div id="lmsRangeList"></div>
+ 
++        </div><!-- /.lms-trk-main -->
+         <div id="lmsTrackMapBlock">
+           <div class="lms-sec-t">Route</div>
+           <div id="lmsTrackMapSlot"></div>
+diff --git a/public/livemap-redesign.css b/public/livemap-redesign.css
+index dbdfe6e..dd7a89f 100644
+--- a/public/livemap-redesign.css
++++ b/public/livemap-redesign.css
+@@ -1,14 +1,9 @@
+ /* public/livemap-redesign.css
+    ────────────────────────────────────────────────────────────────
+-   Live Map — visual redesign layer (Google Maps + Find My + WhatsApp
+-   style). Purely additive: does not touch livemap.js logic, Supabase
+-   sync, GPS/tracking, or routing. Loaded AFTER every other stylesheet
+-   so its rules win on #page-map without needing !important sprinkled
+-   everywhere. Structural re-parenting (header / partner row / search /
+-   map / bottom sheet) is done by livemap-redesign.js; this file only
+-   styles the resulting classes.
++   Live Map — shared dark theme tokens, legacy-panel polish (search
++   results, directions list, timeline) and the video-call split-view
++   dock. The page layout itself is in livemap-screens.css.
+    ──────────────────────────────────────────────────────────────── */
+-
+ #page-map{
+   --lm2-bg-dropdown:#0B0B0B;
+   --lm2-border:rgba(255,255,255,.08);
+@@ -17,7 +12,6 @@
+ 
+   --lm2-text-main:#FFFFFF;
+   --lm2-text-secondary:#CFCFCF;
+-  --lm2-text-address:#B4B4B4;
+   --lm2-text-hint:#999999;
+   --lm2-text-disabled:#777777;
+ 
+@@ -37,7 +31,6 @@
+ 
+   --lm2-anim:250ms cubic-bezier(.4,0,.2,1);
+ }
+-
+ /* ── 1 & 2. Search dropdown + text contrast ─────────────────────── */
+ #page-map .lm-search-results{
+   background:var(--lm2-bg-dropdown)!important;
+@@ -53,7 +46,6 @@
+ #page-map .lm-search-results *{
+   color:var(--lm2-text-main);
+ }
+-#page-map .lm-search-results .lm-sr-row,
+ #page-map .lm-search-results > div{
+   display:flex;align-items:center;gap:10px;
+   padding:12px 14px;
+@@ -67,30 +59,24 @@
+ #page-map .lm-search-results > div.selected,
+ #page-map .lm-search-results > div.active{background:var(--lm2-selected-bg)!important}
+ #page-map .lm-sr-name{color:var(--lm2-text-main);font-weight:600;font-size:13px}
+-#page-map .lm-sr-addr{color:var(--lm2-text-address);font-size:11px}
+-#page-map .lm-sr-dist{color:var(--lm2-text-hint);font-size:10px}
+-
+ /* Global text-contrast pass, scoped to the map page only */
+ #page-map{color:var(--lm2-text-secondary)}
+ #page-map .card-title{color:var(--lm2-text-main)}
+ #page-map [style*="color:var(--text3)"],
+ #page-map [style*="color: var(--text3)"]{color:var(--lm2-text-hint)!important}
+ #page-map input::placeholder{color:var(--lm2-text-hint);opacity:1}
+-#page-map [disabled],#page-map .disabled{color:var(--lm2-text-disabled)!important;opacity:.85}
+-
++#page-map [disabled],
++#page-map .disabled{color:var(--lm2-text-disabled)!important;opacity:.85}
+ /* ── 6. Cards ────────────────────────────────────────────────────── */
+-#page-map .card,
+-#page-map .lm2-card{
++#page-map .card{
+   background:var(--lm2-card-bg)!important;
+   border-radius:var(--lm2-card-radius)!important;
+   padding:var(--lm2-card-pad)!important;
+   box-shadow:var(--lm2-card-shadow)!important;
+   border:var(--lm2-card-border)!important;
+ }
+-
+ /* ── 7. Buttons ──────────────────────────────────────────────────── */
+-#page-map .btn-accent,
+-#page-map .lm2-btn-primary{
++#page-map .btn-accent{
+   background:var(--lm2-primary-grad)!important;
+   border:none!important;
+   height:var(--lm2-btn-h);
+@@ -98,13 +84,11 @@
+   color:#fff;font-weight:700;
+   transition:transform var(--lm2-anim),box-shadow var(--lm2-anim);
+ }
+-#page-map .btn-accent:hover,
+-#page-map .lm2-btn-primary:hover{
++#page-map .btn-accent:hover{
+   transform:translateY(-2px);
+   box-shadow:0 10px 26px rgba(255,32,32,.35);
+ }
+-#page-map .btn-glass,
+-#page-map .lm2-btn-secondary{
++#page-map .btn-glass{
+   background:var(--lm2-secondary-bg)!important;
+   border:1px solid var(--lm2-border)!important;
+   height:var(--lm2-btn-h);
+@@ -112,81 +96,15 @@
+   color:var(--lm2-text-main);
+   transition:transform var(--lm2-anim),background var(--lm2-anim);
+ }
+-#page-map .btn-glass:hover,
+-#page-map .lm2-btn-secondary:hover{
++#page-map .btn-glass:hover{
+   background:#2b2b2b!important;
+   transform:translateY(-1px);
+ }
+-#page-map .lm-tool-btn{
+-  transition:transform var(--lm2-anim),box-shadow var(--lm2-anim),background var(--lm2-anim);
+-}
+-#page-map .lm-tool-btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+-#page-map .lm-tool-btn.active,
+ #page-map .lm-style-btn.active{box-shadow:0 0 0 1px rgba(255,32,32,.5) inset}
+-
+ /* ── 8. Icons ────────────────────────────────────────────────────── */
+-#page-map .lm2-ico{width:20px;height:20px;color:#fff;flex-shrink:0}
+-#page-map .lm2-ico svg{width:20px;height:20px;stroke:#fff}
+-
+ /* ── 5. Header ───────────────────────────────────────────────────── */
+-.lm2-header{
+-  display:flex;align-items:center;gap:10px;
+-  padding:14px 16px;
+-  background:var(--lm2-card-bg);
+-  border:var(--lm2-card-border);
+-  border-radius:var(--lm2-card-radius);
+-  box-shadow:var(--lm2-card-shadow);
+-  margin-bottom:12px;
+-  animation:lm2-fade var(--lm2-anim) both;
+-}
+-.lm2-header-title{font-weight:800;font-size:15px;color:var(--lm2-text-main);display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+-.lm2-header-sub{font-size:10px;color:var(--lm2-text-hint);font-weight:500}
+-.lm2-header-actions{display:flex;align-items:center;gap:6px}
+-.lm2-icon-btn{
+-  width:40px;height:40px;border-radius:12px;
+-  background:var(--lm2-secondary-bg);
+-  display:flex;align-items:center;justify-content:center;
+-  cursor:pointer;border:1px solid var(--lm2-border);
+-  transition:transform var(--lm2-anim),background var(--lm2-anim);
+-}
+-.lm2-icon-btn svg{width:18px;height:18px;stroke-width:2}
+-.lm2-icon-btn:hover{transform:translateY(-2px) scale(1.04);background:#2b2b2b}
+-.lm2-icon-btn.active{box-shadow:0 0 0 1px rgba(255,32,32,.6) inset,0 4px 14px rgba(255,32,32,.35)}
+-.lm2-sync-dot{width:8px;height:8px;border-radius:50%;background:#3ddc84;box-shadow:0 0 8px #3ddc84}
+-.lm2-sync-dot.offline{background:#f87171;box-shadow:0 0 8px #f87171}
+-
+ /* ── 5. Partner cards row ────────────────────────────────────────── */
+-.lm2-partner-row{display:flex;gap:10px;margin-bottom:12px}
+-.lm2-partner-card{
+-  flex:1;min-width:0;
+-  background:var(--lm2-card-bg);
+-  border:var(--lm2-card-border);
+-  border-radius:var(--lm2-card-radius);
+-  box-shadow:var(--lm2-card-shadow);
+-  padding:14px;
+-  display:flex;flex-direction:column;gap:6px;
+-  animation:lm2-fade var(--lm2-anim) both;
+-}
+-.lm2-partner-card-top{display:flex;align-items:center;gap:10px}
+-.lm2-partner-name{font-size:13px;font-weight:700;color:var(--lm2-text-main)}
+-.lm2-partner-meta{display:flex;flex-wrap:wrap;gap:8px;font-size:10px;color:var(--lm2-text-hint)}
+-.lm2-partner-meta span{display:flex;align-items:center;gap:4px}
+-
+ /* ── 5. Search bar ───────────────────────────────────────────────── */
+-.lm2-search-wrap{position:relative;margin-bottom:12px}
+-.lm2-search-bar{
+-  display:flex;align-items:center;gap:8px;
+-  background:var(--lm2-card-bg);
+-  border:1px solid var(--lm2-border);
+-  border-radius:999px;
+-  padding:12px 16px;
+-  box-shadow:var(--lm2-card-shadow);
+-}
+-.lm2-search-bar input{
+-  flex:1;min-width:0;background:transparent;border:none;outline:none;
+-  color:var(--lm2-text-main);font-size:13px;
+-}
+-
+ /* ── 5. Map (dominant element) ──────────────────────────────────── */
+ .lm2-map-wrap{
+   position:relative;
+@@ -215,7 +133,7 @@
+   overscroll-behavior:contain;
+ }
+ @media (max-width:700px){
+-  .lm2-map-wrap #mapView{height:65vh!important}
++.lm2-map-wrap #mapView{height:65vh!important}
+ }
+ /* Issue 1 fix: on phones held upright, 65vh is too tall — it pushes
+    the partner cards / search bar off-screen and forces an extra,
+@@ -224,83 +142,14 @@
+    laptop, where max-width:700px never even matches) the taller
+    65vh/560px sizing above still applies untouched. */
+ @media (max-width:700px) and (orientation:portrait){
+-  .lm2-map-wrap #mapView{height:42vh!important;max-height:380px!important;min-height:260px!important}
+-}
+-.lm2-map-shimmer{
+-  position:absolute;inset:0;z-index:5;
+-  background:linear-gradient(100deg,#141414 30%,#1c1c1c 50%,#141414 70%);
+-  background-size:200% 100%;
+-  animation:lm2-shimmer 1.4s ease-in-out infinite;
++.lm2-map-wrap #mapView{height:42vh!important;max-height:380px!important;min-height:260px!important}
+ }
+-
+ /* ── 5. Bottom sheet ─────────────────────────────────────────────── */
+-.lm2-sheet{
+-  background:var(--lm2-card-bg);
+-  border:var(--lm2-card-border);
+-  border-radius:var(--lm2-card-radius);
+-  box-shadow:var(--lm2-card-shadow);
+-  overflow:hidden;
+-}
+-.lm2-sheet-tabs{
+-  display:flex;gap:4px;overflow-x:auto;
+-  padding:10px 10px 0;
+-  scrollbar-width:none;
+-}
+-.lm2-sheet-tabs::-webkit-scrollbar{display:none}
+-.lm2-sheet-tab{
+-  flex-shrink:0;
+-  padding:9px 14px;
+-  font-size:12px;font-weight:700;
+-  color:var(--lm2-text-hint);
+-  border-radius:12px 12px 0 0;
+-  cursor:pointer;
+-  transition:color var(--lm2-anim),background var(--lm2-anim);
+-}
+-.lm2-sheet-tab.active{color:var(--lm2-text-main);background:var(--lm2-secondary-bg)}
+-.lm2-sheet-body{padding:16px}
+ /* All sections stay part of the single page scroll now — tabs act as
+    "jump to" shortcuts (scrollIntoView) rather than show/hide switches,
+    so everything is reachable by scrolling alone. */
+-.lm2-sheet-section{display:block;margin-bottom:22px;animation:lm2-fade var(--lm2-anim) both}
+-.lm2-sheet-section:last-child{margin-bottom:0}
+-.lm2-sheet-section-title{font-size:11px;font-weight:700;color:var(--lm2-text-hint);text-transform:uppercase;letter-spacing:.04em;margin:14px 0 8px}
+-.lm2-sheet-section-title:first-child{margin-top:0}
+-
+ /* ── 5/3. Nearby chips (horizontal scroll) ──────────────────────── */
+-.lm2-chip-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+-.lm2-chip-row::-webkit-scrollbar{display:none}
+-.lm2-chip{
+-  flex-shrink:0;display:flex;align-items:center;gap:6px;
+-  padding:9px 14px;border-radius:999px;
+-  background:var(--lm2-secondary-bg);
+-  border:1px solid var(--lm2-border);
+-  color:var(--lm2-text-secondary);font-size:12px;font-weight:600;
+-  cursor:pointer;min-height:40px;
+-  transition:transform var(--lm2-anim),background var(--lm2-anim),box-shadow var(--lm2-anim);
+-}
+-.lm2-chip:hover{transform:translateY(-2px)}
+-.lm2-chip.active{
+-  background:var(--lm2-primary-grad);
+-  color:#fff;border-color:transparent;
+-  box-shadow:0 6px 18px rgba(255,32,32,.35);
+-}
+-.lm2-chip .lm2-chip-skel{width:14px;height:14px;border-radius:4px;background:rgba(255,255,255,.15);animation:lm2-pulse 1s ease-in-out infinite}
+-
+ /* ── 9. Route cards ──────────────────────────────────────────────── */
+-.lm2-route-cards{display:flex;gap:10px;overflow-x:auto;padding-bottom:2px}
+-.lm2-route-card{
+-  flex:1;min-width:150px;
+-  background:var(--lm2-secondary-bg);
+-  border:1px solid var(--lm2-border);
+-  border-radius:14px;padding:12px 14px;cursor:pointer;
+-  transition:transform var(--lm2-anim),border-color var(--lm2-anim);
+-}
+-.lm2-route-card:hover{transform:translateY(-2px)}
+-.lm2-route-card.selected{border-color:#ff2020;box-shadow:0 0 0 1px #ff2020 inset}
+-.lm2-route-card-label{font-size:10px;color:var(--lm2-text-hint);font-weight:700;text-transform:uppercase}
+-.lm2-route-card-time{font-size:18px;font-weight:800;color:var(--lm2-text-main);margin:2px 0}
+-.lm2-route-card-meta{font-size:11px;color:var(--lm2-text-address);display:flex;gap:8px}
+-
+ /* ── 9. Route cards (restyles the existing #lmDirRoutes list into
+    horizontally-scrolling cards, no JS/markup changes needed) ──────── */
+ #page-map #lmDirRoutes{display:flex;gap:10px;overflow-x:auto;padding-bottom:2px}
+@@ -314,67 +163,32 @@
+ #page-map #lmDirRoutes .lm-sr-body{display:flex;flex-direction:column;gap:2px}
+ #page-map #lmDirRoutes .lm-sr-name{font-size:13px;font-weight:800;color:var(--lm2-text-main)}
+ #page-map #lmDirRoutes .lm-sr-meta{font-size:10px;color:var(--lm2-text-hint);text-transform:uppercase;letter-spacing:.03em}
+-
+ /* ── 10. Loading / skeletons ─────────────────────────────────────── */
+-.lm2-skel-row{display:flex;align-items:center;gap:10px;padding:10px 0}
+-.lm2-skel-circle{width:32px;height:32px;border-radius:50%;background:#1f1f1f;animation:lm2-pulse 1.1s ease-in-out infinite}
+-.lm2-skel-line{height:10px;border-radius:6px;background:#1f1f1f;animation:lm2-pulse 1.1s ease-in-out infinite;flex:1}
+-.lm2-retry-btn{
+-  display:inline-flex;align-items:center;gap:6px;
+-  margin-top:8px;padding:8px 14px;border-radius:12px;
+-  background:var(--lm2-secondary-bg);color:var(--lm2-text-main);
+-  font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--lm2-border);
+-}
+-
+ /* ── 11. Animations ──────────────────────────────────────────────── */
+-@keyframes lm2-fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+-@keyframes lm2-pulse{0%,100%{opacity:.5}50%{opacity:1}}
+-@keyframes lm2-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+-.lm2-scale-tap{transition:transform 150ms ease}
+-.lm2-scale-tap:active{transform:scale(.96)}
+-
+ /* FIX: stray red tap-highlight rectangle appearing on chips/toolbar
+    buttons on mobile — the global `-webkit-tap-highlight-color:transparent`
+    in index.html doesn't reliably suppress it on every mobile browser for
+    plain <div> "buttons", so belt-and-suspenders it here on the exact
+    elements users tap in this redesign. */
+-#page-map .lm2-chip,
+-#page-map .lm2-icon-btn,
+-#page-map .lm-tool-btn,
+-#page-map .lm2-sort-chip,
+ #page-map button{
+   -webkit-tap-highlight-color:transparent;
+   -webkit-touch-callout:none;
+   outline:none;
+   user-select:none;
+ }
+-#page-map .lm2-chip:focus,#page-map .lm2-chip:active,
+-#page-map .lm2-icon-btn:focus,#page-map .lm2-icon-btn:active,
+-#page-map .lm-tool-btn:focus,#page-map .lm-tool-btn:active,
+-#page-map .lm2-sort-chip:focus,#page-map .lm2-sort-chip:active,
+-#page-map button:focus,#page-map button:active{
++#page-map button:focus,
++#page-map button:active{
+   outline:none;
+   box-shadow:none;
+ }
+-
+ /* ── 13. Accessibility ───────────────────────────────────────────── */
+ #page-map{font-size:14px}
+-#page-map .lm2-icon-btn,
+-#page-map .lm2-chip,
+-#page-map .lm2-btn-primary,
+-#page-map .lm2-btn-secondary,
+-#page-map .lm-tool-btn{min-height:40px}
+-#page-map button,#page-map .lm2-chip,#page-map .lm2-icon-btn{min-width:40px}
+-
++#page-map button{min-width:40px}
+ /* ── 12. Responsive layout ───────────────────────────────────────── */
+-@media (min-width:701px) and (max-width:1100px){
+-  .lm2-partner-row{flex-wrap:wrap}
+-}
+ /* Issue: the bottom sheet used to be pinned to the viewport bottom and the
+    search bar pinned to the top — both created "fixed content" the user
+    explicitly asked to remove. The Live Map page is now one continuous
+    scroll, so nothing below the map should stay fixed in place. */
+-
+ /* ── 4. Video call docked split-view (map + call share the page) ───
+    #lm2CallDock holds two panes — the real #mapView and the real
+    #callOverlay, moved in place (not cloned) — plus a draggable
+@@ -394,7 +208,7 @@
+   position:relative;
+ }
+ @media (min-width:701px){
+-  .lm2-call-dock{ flex-direction:row; height:min(70vh,600px); }
++.lm2-call-dock{ flex-direction:row; height:min(70vh,600px); }
+ }
+ .lm2-dock-pane{ position:relative; overflow:hidden; min-height:0; min-width:0; }
+ .lm2-dock-map{ flex:0 0 calc(100% * var(--lm2-split-ratio)); }
+@@ -406,12 +220,11 @@
+    never squeezed out of the visible area. */
+ .lm2-dock-call{ flex:1 1 auto; min-height:150px; background:#0b0410; }
+ @media (min-width:701px){
+-  .lm2-dock-map{ flex-basis:calc(100% * var(--lm2-split-ratio)); }
++.lm2-dock-map{ flex-basis:calc(100% * var(--lm2-split-ratio)); }
+ }
+ /* the moved map wrap/mapView just fills its pane */
+ .lm2-dock-map .lm2-map-wrap{ margin:0; height:100%; border:none; border-radius:0; box-shadow:none; }
+ .lm2-dock-map .lm2-map-wrap #mapView{ height:100%!important; }
+-
+ /* the moved call overlay drops its fixed-fullscreen positioning and
+    just fills its pane instead */
+ .call-overlay.lm2-docked{
+@@ -437,7 +250,6 @@
+ .call-overlay.lm2-docked .call-btn-end{ width:46px; height:46px; font-size:18px; }
+ .call-overlay.lm2-docked .call-local-video{ width:64px; height:92px; top:8px; right:8px; }
+ .call-overlay.lm2-docked .call-topbar-full{ padding:8px 10px; }
+-
+ .lm2-dock-resizer{
+   position:absolute;
+   z-index:20;
+@@ -461,18 +273,9 @@
+ }
+ .lm2-call-dock.lm2-dock-row .lm2-dock-resizer::before{ width:4px;height:40px; }
+ /* Phase 4: Route History privacy toggle (opt-in switch + retention chips) */
+-.lm-switch{position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0}
+-.lm-switch input{opacity:0;width:0;height:0}
+-.lm-switch-slider{position:absolute;cursor:pointer;inset:0;background:rgba(255,255,255,.15);border-radius:24px;transition:.2s}
+-.lm-switch-slider::before{content:'';position:absolute;height:18px;width:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+-.lm-switch input:checked + .lm-switch-slider{background:var(--accent,#ff2020)}
+-.lm-switch input:checked + .lm-switch-slider::before{transform:translateX(18px)}
+ #lmRouteRetentionRow .lm-chip.active{box-shadow:0 0 0 1px rgba(255,32,32,.5) inset;background:rgba(255,32,32,.12)}
+-
+ /* Phase 5: voice-nav toggle + camera-mode button active states */
+ .lm-voice-nav-btn.active{background:rgba(91,155,255,.25);border-color:#5b9bff}
+-#lmCameraModeBtn.active{box-shadow:0 0 0 1px rgba(255,32,32,.5) inset}
+-
+ /* Daily narrative timeline (item 2) — vertical chain of place_visits
+    with per-category icon, matches existing dark-glass premium tokens. */
+ .lm-timeline{display:flex;flex-direction:column}
+@@ -487,4 +290,4 @@
+ .lm-timeline-time{font-size:10px;color:var(--text3,rgba(255,255,255,.5));margin-top:1px}
+ .lm-timeline-connector{width:1px;height:12px;background:var(--border,rgba(255,255,255,.12));margin-left:14px}
+ .lm-journey-line{font-size:12px;color:var(--white,#fff);line-height:1.6}
+-.lm-journey-arrow{color:var(--accent,#ff2020);margin:0 2px}
+\ No newline at end of file
++.lm-journey-arrow{color:var(--accent,#ff2020);margin:0 2px}
+diff --git a/public/livemap-redesign.js b/public/livemap-redesign.js
+index 3d2f225..3845a2d 100644
+--- a/public/livemap-redesign.js
++++ b/public/livemap-redesign.js
+@@ -1,581 +1,19 @@
+ /* public/livemap-redesign.js
+    ────────────────────────────────────────────────────────────────
+-   Live Map UI redesign — loaded AFTER livemap.js and chat/call.js.
+-   Everything here is additive:
+-     • re-parents existing #page-map elements into the new
+-       header / partner-row / search / map / bottom-sheet layout
+-       (same IDs, same onclick="" handlers — nothing is cloned or
+-       rebuilt, so LiveMap's own logic keeps working untouched)
+-     • wraps LiveMap.searchAlongRoute with a route → destination →
+-       current-location fallback chain, plus radius/sort controls,
+-       debounce, caching and a retry affordance
+-     • docks the call UI as a resizable split-screen panel over the
+-       map instead of fullscreen, while a call is active on the map page
+-   No Supabase table, GPS/tracking loop, or routing math is touched.
++   Live Map — video-call split view only. Loaded AFTER livemap.js and
++   chat/call.js. (The page layout itself lives in livemap-screens.js /
++   livemap-screens.css; the old restructure / nearby-search code that
++   used to live here has been removed.)
++   While a call is active on the map page this docks the call UI
++   beside the map as a resizable split-screen panel.
+    ──────────────────────────────────────────────────────────────── */
+ (function () {
+   'use strict';
+ 
+-  /* ── tiny helpers ─────────────────────────────────────────────── */
+   function $(id) { return document.getElementById(id); }
+-  function esc(s) { return (s || '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+-  function haversineKm(a, b) {
+-    const R = 6371, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180;
+-    const s = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+-    return R * 2 * Math.asin(Math.sqrt(s));
+-  }
+-
+-  /* ════════════════════════════════════════════════════════════════
+-     A. STRUCTURAL REDESIGN — header / partner row / search / map /
+-        bottom sheet. Runs once, the first time #page-map exists.
+-     ════════════════════════════════════════════════════════════════ */
+-  let restructured = false;
+-  function restructure() {
+-    if (restructured) return;
+-    const page = $('page-map');
+-    if (!page) return;
+-    restructured = true;
+-    // New screen-stack layout (/livemap-screens.js) owns the page structure — only the
+-    // call-dock + search-along-route helpers below stay active.
+-    if ($('lmScreens')) return;
+-
+-    // Grab the pieces we already have, by their existing ids/selectors —
+-    // nothing here is created from scratch, only moved.
+-    const presenceRow = page.querySelector('#lmAv1')?.closest('div[style*="display:flex"][style*="gap:10px"]');
+-    const searchWrap = page.querySelector('#lmGmSearchInput')?.closest('div[style*="position:relative"]');
+-    const mapCard = $('mapView')?.closest('.card');
+-    const mapView = $('mapView');
+-    const toolbar = mapCard?.querySelector('.lm-toolbar');
+-    const mainTitleCard = mapCard; // the big "📍 Live Together Map" card
+-
+-    // ── Header ──────────────────────────────────────────────────
+-    const header = document.createElement('div');
+-    header.className = 'lm2-header';
+-    header.innerHTML = `
+-      <div class="lm2-header-title">
+-        <span class="lm2-sync-dot" id="lm2SyncDot" title="Sync status"></span>
+-        <span>Live Together Map</span>
+-      </div>
+-      <div class="lm2-header-actions">
+-        <div class="lm2-icon-btn lm2-scale-tap" title="Search" id="lm2HdrSearchBtn">🔍</div>
+-        <div class="lm2-icon-btn lm2-scale-tap" title="Layers / map style" id="lm2HdrLayersBtn">🗺️</div>
+-        <div class="lm2-icon-btn lm2-scale-tap" title="Follow me — camera stays centered on your live position" id="lm2HdrFollowBtn"><i data-lucide="navigation"></i></div>
+-        <div class="lm2-icon-btn lm2-scale-tap" title="Locate me" id="lm2HdrLocateBtn">📍</div>
+-        <div class="lm2-icon-btn lm2-scale-tap" title="Live tracking on/off" id="lm2HdrTrackWrap"></div>
+-      </div>`;
+-    page.insertBefore(header, page.firstChild);
+-    header.querySelector('#lm2HdrSearchBtn').onclick = () => { $('lmGmSearchInput')?.focus(); };
+-    header.querySelector('#lm2HdrLocateBtn').onclick = () => window.LiveMap?.locateMe();
+-    header.querySelector('#lm2HdrLayersBtn').onclick = () => toolbar?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+-    wireFollowButton(header.querySelector('#lm2HdrFollowBtn'));
+-    const trackToggle = $('lmTrackToggle');
+-    if (trackToggle) header.querySelector('#lm2HdrTrackWrap').replaceWith(trackToggle);
+-
+-    // ── Partner presence row ───────────────────────────────────
+-    if (presenceRow) {
+-      presenceRow.classList.add('lm2-partner-row');
+-      presenceRow.removeAttribute('style');
+-      Array.from(presenceRow.children).forEach(card => {
+-        card.classList.add('lm2-partner-card');
+-        card.removeAttribute('style');
+-      });
+-      page.insertBefore(presenceRow, mainTitleCard || null);
+-    }
+-
+-    // ── Search bar ──────────────────────────────────────────────
+-    if (searchWrap) {
+-      searchWrap.classList.add('lm2-search-wrap');
+-      const bar = searchWrap.querySelector('div');
+-      if (bar) { bar.classList.add('lm2-search-bar'); bar.removeAttribute('style'); }
+-      page.insertBefore(searchWrap, mainTitleCard || null);
+-    }
+-
+-    // ── Map (dominant element) ─────────────────────────────────
+-    if (mapView) {
+-      const mapWrap = document.createElement('div');
+-      mapWrap.className = 'lm2-map-wrap';
+-      mapView.parentNode.insertBefore(mapWrap, mapView);
+-      mapWrap.appendChild(mapView);
+-      page.insertBefore(mapWrap, mainTitleCard || null);
+-
+-      const shimmer = document.createElement('div');
+-      shimmer.className = 'lm2-map-shimmer';
+-      shimmer.id = 'lm2MapShimmer';
+-      mapWrap.appendChild(shimmer);
+-      // Leaflet paints tiles asynchronously — fade the shimmer once the
+-      // map fires its first render, falling back to a timeout so it never
+-      // gets stuck showing on a slow connection.
+-      const killShimmer = () => { shimmer.style.transition = 'opacity .3s ease'; shimmer.style.opacity = '0'; setTimeout(() => shimmer.remove(), 320); };
+-      const st = window.LiveMap?._debug;
+-      if (st && st.map) st.map.whenReady ? st.map.whenReady(killShimmer) : setTimeout(killShimmer, 800);
+-      else setTimeout(killShimmer, 1200);
+-    }
+-
+-    // ── Reorder the "route" content vs. the "toolbar" content ─────
+-    // Requested layout: right after the map — the Start button, then the
+-    // driving/walking/cycling route panel (lmNavPanel), the distance/ETA
+-    // stats, the travel note / "together" banner, and the Video Call /
+-    // Leave a Love Note row. THEN, below all of that, the map-style row
+-    // (Map/Dark/Satellite/Hybrid/Auto) + the 3D/Eye-level toggle + the
+-    // Locate Me/Partner/Meeting/Favorites/Daily Route/Privacy action row.
+-    // Nothing is cloned or rebuilt — same elements, same ids/handlers,
+-    // just moved earlier in the DOM (CSS/JS that targets them by id is
+-    // unaffected).
+-    if (toolbar && mainTitleCard) {
+-      const periodStats = mainTitleCard.querySelector('.period-stats');
+-      const travelNote = $('mapTravelNote');
+-      const togetherBanner = $('lmTogetherBanner');
+-      const navPanel = $('lmNavPanel');
+-      const loveNotesPanel = $('lmLoveNotesPanel');
+-      const callBtn = mainTitleCard.querySelector('[onclick="LiveMap.startVideoCallFromMap()"]');
+-      const actionRow = callBtn ? callBtn.closest('div') : null;
+-      [navPanel, periodStats, travelNote, togetherBanner, actionRow, loveNotesPanel].forEach(el => {
+-        if (el) toolbar.parentNode.insertBefore(el, toolbar);
+-      });
+-    }
+-
+-    // ── Bottom sheet: only Partner / Saved / Weather need a dedicated tab
+-    // now — the toolbar, Start button, Directions/Nav panels and place
+-    // details card all stay exactly where they already are in the markup:
+-    // directly after the map, inside mainTitleCard. Nothing here relocates
+-    // them anymore, which is what keeps them "right after the map" instead
+-    // of scrolled far down the page.
+-    const sheet = document.createElement('div');
+-    sheet.className = 'lm2-sheet';
+-    sheet.innerHTML = `
+-      <div class="lm2-sheet-tabs" id="lm2SheetTabs">
+-        <div class="lm2-sheet-tab active" data-tab="partner">Partner</div>
+-        <div class="lm2-sheet-tab" data-tab="saved">Saved</div>
+-        <div class="lm2-sheet-tab" data-tab="weather">Weather</div>
+-      </div>
+-      <div class="lm2-sheet-body">
+-        <div class="lm2-sheet-section active" data-section="partner"></div>
+-        <div class="lm2-sheet-section" data-section="saved"></div>
+-        <div class="lm2-sheet-section" data-section="weather"></div>
+-      </div>`;
+-    page.appendChild(sheet);
+-
+-    // Tabs no longer hide/show sections — every section stays visible and
+-    // part of the single page scroll. Tapping a tab just jumps to (and
+-    // highlights) that section, like an in-page anchor link.
+-    sheet.querySelectorAll('.lm2-sheet-tab').forEach(tab => {
+-      tab.onclick = () => {
+-        sheet.querySelectorAll('.lm2-sheet-tab').forEach(t => t.classList.toggle('active', t === tab));
+-        const target = sheet.querySelector(`.lm2-sheet-section[data-section="${tab.dataset.tab}"]`);
+-        // The Weather tab's fetch used to only run once, at page-build
+-        // time — if GPS hadn't resolved yet the panel got stuck on
+-        // "Waiting for your location…" forever, since nothing on the tab
+-        // itself ever re-triggered a fetch. Re-run (forced, so it doesn't
+-        // just toggle the panel closed) every time this tab is selected.
+-        if (tab.dataset.tab === 'weather') window.LiveMap?.getWeather?.(true);
+-        target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+-      };
+-    });
+-
+-    const partnerSection = sheet.querySelector('[data-section="partner"]');
+-    const savedSection = sheet.querySelector('[data-section="saved"]');
+-    const weatherSection = sheet.querySelector('[data-section="weather"]');
+-
+-    // Partner: presence/status only — the actual actions (Video Call,
+-    // Meeting Point, Love Note, Locate Partner) already live right above,
+-    // directly under the map — repeating them here was pure visual
+-    // duplication, not a second feature.
+-    partnerSection.innerHTML = `<div class="lm2-sheet-section-title">Stay close</div>
+-      <div style="font-size:11px;color:var(--lm2-text-hint);margin-bottom:8px">Quick actions are right above, under the map ⬆️</div>`;
+-
+-    // Saved: favorites panel + important-places cards
+-    savedSection.innerHTML = `<div class="lm2-sheet-section-title">Favorites</div>`;
+-    const favPanel = $('lmFavoritesPanel'); if (favPanel) { favPanel.style.display = 'block'; savedSection.appendChild(favPanel); }
+-    const meetSug = $('lmMeetingSuggestions'); if (meetSug) savedSection.appendChild(meetSug);
+-    const myPlacesCard = page.querySelector('#myPlacesList')?.closest('.card');
+-    const ptPlacesCard = page.querySelector('#ptPlacesList')?.closest('.card');
+-    if (myPlacesCard) { savedSection.appendChild(document.createElement('div')).outerHTML = '<div class="lm2-sheet-section-title">My important places</div>'; savedSection.appendChild(myPlacesCard); }
+-    if (ptPlacesCard) { const t = document.createElement('div'); t.className = 'lm2-sheet-section-title'; t.textContent = "Partner's places"; savedSection.appendChild(t); savedSection.appendChild(ptPlacesCard); }
+-
+-    // Weather panel
+-    const weatherPanel = $('lmWeatherPanel');
+-    weatherSection.innerHTML = `<div class="lm2-sheet-section-title">Weather</div>`;
+-    if (weatherPanel) { weatherPanel.style.display = 'block'; weatherSection.appendChild(weatherPanel); window.LiveMap?.getWeather?.(); }
+-
+-    // Banners stay at the very top of the page (above the header)
+-    ['lmPermBanner', 'lmOfflineBanner', 'lmEmergencyBanner'].forEach(id => { const el = $(id); if (el) page.insertBefore(el, header); });
+-
+-    // mainTitleCard keeps the Start button / toolbar / privacy / directions
+-    // & nav panels / place details card / video-call+love-note row / period
+-    // stats exactly as they already are in the markup, right after the map —
+-    // nothing here empties it out, so don't remove it.
+-   if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }}
+-
+-  /* Close the floating search-results dropdown when the user taps
+-     anywhere outside it or the search input. Selecting a result or
+-     clearing the search already close it (handled in livemap.js); this
+-     only adds the "tap outside" case, without touching any search/GPS
+-     logic. */
+-  document.addEventListener('click', (e) => {
+-    const results = $('lmGmSearchResults');
+-    const input = $('lmGmSearchInput');
+-    if (!results || !results.classList.contains('show')) return;
+-    if (results.contains(e.target) || input?.contains(e.target)) return;
+-    results.classList.remove('show');
+-  }, true);
+-
+-  /* ════════════════════════════════════════════════════════════════
+-     F. AUTO-FOLLOW CAMERA — keeps the map centered on the user's live
+-        position as it updates, with smooth panning (not a hard jump).
+-        Purely additive: reads S.myLoc / st.map that livemap.js already
+-        maintains, never writes tracking state. Disengages the moment
+-        the user manually drags/zooms the map, like every real nav app.
+-     ════════════════════════════════════════════════════════════════ */
+-  let followOn = false, followTimer = null, followUserInteracted = false;
+-
+-  function wireFollowButton(btn) {
+-    if (!btn) return;
+-    btn.onclick = () => {
+-      followOn = !followOn;
+-      btn.classList.toggle('active', followOn);
+-      btn.style.background = followOn ? 'linear-gradient(135deg,#ff2020,#b60000)' : '';
+-      if (followOn) { followUserInteracted = false; startFollowLoop(); }
+-      else stopFollowLoop();
+-    };
+-  }
+-
+-  function startFollowLoop() {
+-    stopFollowLoop();
+-    const st = window.LiveMap?._debug;
+-    if (st?.map) {
+-      // Any manual pan/zoom while following is on disengages it — same
+-      // behavior as Google Maps / Uber's "recenter" arrow.
+-      st.map.on('dragstart', onFollowInterrupt);
+-      st.map.on('zoomstart', onFollowInterrupt);
+-      // 3D upgrade: tilt into a chase-cam angle while following, like
+-      // Google Maps/Uber navigation mode. No-op on plain Leaflet.
+-      if (typeof st.map.set3D === 'function') st.map.set3D(true);
+-    }
+-    followTimer = setInterval(() => {
+-      if (!followOn || followUserInteracted) return;
+-      const st2 = window.LiveMap?._debug;
+-      const loc = window.S?.myLoc;
+-      if (!st2?.map || !loc || loc.lat == null) return;
+-      st2.map.panTo([loc.lat, loc.lng], { animate: true, duration: 0.8, easeLinearity: 0.4 });
+-    }, 1500);
+-  }
+-
+-  function onFollowInterrupt() {
+-    if (!followOn) return;
+-    followUserInteracted = true;
+-    const btn = $('lm2HdrFollowBtn');
+-    if (btn) { followOn = false; btn.classList.remove('active'); btn.style.background = ''; }
+-    stopFollowLoop();
+-  }
+-
+-  function stopFollowLoop() {
+-    if (followTimer) { clearInterval(followTimer); followTimer = null; }
+-    const st = window.LiveMap?._debug;
+-    if (st?.map) {
+-      st.map.off('dragstart', onFollowInterrupt);
+-      st.map.off('zoomstart', onFollowInterrupt);
+-      if (typeof st.map.set3D === 'function') st.map.set3D(false);
+-    }
+-  }
+-
+-
+-  const POI_TYPES = {
+-    food:     { tag: '"amenity"~"restaurant|fast_food"', icon: '🍽️', label: 'Food' },
+-    coffee:   { tag: '"amenity"="cafe"',                 icon: '☕', label: 'Coffee' },
+-    atm:      { tag: '"amenity"="atm"',                  icon: '🏧', label: 'ATM' },
+-    bank:     { tag: '"amenity"="bank"',                  icon: '🏦', label: 'Bank' },
+-    parking:  { tag: '"amenity"="parking"',               icon: '🅿️', label: 'Parking' },
+-    hospital: { tag: '"amenity"="hospital"',               icon: '🏥', label: 'Hospital' },
+-    pharmacy: { tag: '"amenity"="pharmacy"',               icon: '💊', label: 'Pharmacy' },
+-    fuel:     { tag: '"amenity"="fuel"',                   icon: '⛽', label: 'Fuel' },
+-    hotel:    { tag: '"tourism"~"hotel|guest_house"',     icon: '🏨', label: 'Hotels' },
+-    shopping: { tag: '"shop"~"mall|supermarket"',          icon: '🛍️', label: 'Shopping' },
+-    ev:       { tag: '"amenity"="charging_station"',      icon: '🔌', label: 'EV Charging' }
+-  };
+-  let nearbyActive = null, nearbySort = 'distance', nearbyRadius = 1500;
+-  const nearbyCache = new Map(); // key: type|sort|radius|centerRounded → results
+-  let debounceTimer = null;
+ 
+-  function buildNearbyChips() {
+-    const row = $('lm2NearbyChips');
+-    if (!row) return;
+-    row.innerHTML = Object.keys(POI_TYPES).map(k => {
+-      const t = POI_TYPES[k];
+-      return `<div class="lm2-chip lm2-scale-tap" data-poi="${k}">${t.icon} ${t.label}</div>`;
+-    }).join('');
+-    row.querySelectorAll('.lm2-chip').forEach(chip => {
+-      chip.onclick = () => runNearbySearch(chip.dataset.poi);
+-    });
+-    document.querySelectorAll('.lm2-sort-chip').forEach(chip => {
+-      if (chip.dataset.sort === 'rating') {
+-        // OSM/Overpass has no ratings field — showing this as a working
+-        // sort would be faking data. Disable it honestly instead, with
+-        // a tooltip explaining why, rather than silently doing nothing.
+-        chip.style.opacity = '0.4';
+-        chip.style.cursor = 'not-allowed';
+-        chip.title = 'Ratings aren\'t available from free map data — tap "View on Google Maps" on any result for real ratings/reviews';
+-        chip.onclick = (e) => e.preventDefault();
+-        return;
+-      }
+-      chip.onclick = () => {
+-        document.querySelectorAll('.lm2-sort-chip').forEach(c => c.classList.toggle('active', c === chip));
+-        nearbySort = chip.dataset.sort;
+-        if (nearbyActive) runNearbySearch(nearbyActive, true);
+-      };
+-    });
+-  }
+-
+-  function skeletonHtml() {
+-    return Array.from({ length: 4 }).map(() => `
+-      <div class="lm2-skel-row">
+-        <div class="lm2-skel-circle"></div>
+-        <div class="lm2-skel-line"></div>
+-      </div>`).join('');
+-  }
+-
+-  // Decide the search center, in priority order: an active nav route
+-  // corridor > the picked destination (search pin / nav target) > current
+-  // GPS location. Never returns null unless we truly have nothing yet.
+-  function resolveSearchContext() {
+-    const st = window.LiveMap?._debug;
+-    if (!st) return null;
+-    if (st.navRouteCoords && st.navRouteCoords.length > 1) {
+-      return { mode: 'route', coords: st.navRouteCoords };
+-    }
+-    // st.destMarker is the pin dropped by picking a search result (see
+-    // livemap.js:_openPlaceDetails) — the best "destination" proxy we
+-    // have from outside the module's closures.
+-    if (st.destMarker && typeof st.destMarker.getLatLng === 'function') {
+-      const ll = st.destMarker.getLatLng();
+-      return { mode: 'destination', center: { lat: ll.lat, lng: ll.lng } };
+-    }
+-    if (window.S?.myLoc) return { mode: 'current', center: window.S.myLoc };
+-    return null;
+-  }
+-
+-  function sampleRoute(coords, n) {
+-    if (coords.length <= n) return coords;
+-    const out = [];
+-    for (let i = 0; i < n; i++) out.push(coords[Math.round(i * (coords.length - 1) / (n - 1))]);
+-    return out;
+-  }
+-
+-  // FIX (Phase 3): these two used to POST straight to a single hardcoded
+-  // 'overpass-api.de' endpoint with no timeout and no fallback — that
+-  // exact server has been overloaded/shedding load, so any nearby search
+-  // would just hang or fail outright when it was slow/down. They now go
+-  // through window.OverpassService, which already races 7 independent
+-  // mirrors + a backend proxy + an offline cache (see overpass-service.js).
+-  // Same input/output shape as before, so nothing downstream changes.
+-  async function overpassNear(tag, center, radius) {
+-    if (!window.OverpassService) throw new Error('search engine not loaded');
+-    const query = `[out:json][timeout:20];(node[${tag}](around:${radius},${center.lat},${center.lng});way[${tag}](around:${radius},${center.lat},${center.lng}));out center 30;`;
+-    const data = await window.OverpassService.runQuery(query);
+-    return (data.elements || []).map(e => ({
+-      id: e.id, name: e.tags?.name, lat: e.lat ?? e.center?.lat, lon: e.lon ?? e.center?.lon,
+-      openingHours: e.tags?.opening_hours
+-    })).filter(p => p.lat != null && p.lon != null);
+-  }
+-
+-  async function overpassAlongRoute(tag, coords, radius) {
+-    if (!window.OverpassService) throw new Error('search engine not loaded');
+-    const samples = sampleRoute(coords, 8);
+-    const filters = samples.map(c => `node[${tag}](around:${radius},${c[0]},${c[1]});`).join('');
+-    const query = `[out:json][timeout:20];(${filters});out center 40;`;
+-    const data = await window.OverpassService.runQuery(query);
+-    const seen = new Set();
+-    return (data.elements || []).filter(e => e.lat != null && e.lon != null && !seen.has(e.id) && seen.add(e.id))
+-      .map(e => ({ id: e.id, name: e.tags?.name, lat: e.lat, lon: e.lon, openingHours: e.tags?.opening_hours }));
+-  }
+-
+-  // Real best-effort parser for OSM's opening_hours syntax (covers the
+-  // vast majority of real-world tags: "Mo-Fr 09:00-18:00; Sa 10:00-14:00",
+-  // "24/7", "Mo-Su 08:00-22:00", overnight spans like "18:00-02:00").
+-  // Returns true (assume open) when the tag is missing or genuinely too
+-  // exotic to parse — we never hide a place just because we couldn't
+-  // read its hours.
+-  const DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+-  function isOpenNow(hoursStr) {
+-    if (!hoursStr) return null; // unknown — caller shows no badge
+-    if (/24\/7/i.test(hoursStr)) return true;
+-    try {
+-      const now = new Date();
+-      const todayCode = DOW[now.getDay()];
+-      const minutesNow = now.getHours() * 60 + now.getMinutes();
+-      const rules = hoursStr.split(';').map(r => r.trim()).filter(Boolean);
+-      let matched = false, open = false;
+-      for (const rule of rules) {
+-        if (/off|closed/i.test(rule)) continue;
+-        const m = rule.match(/^((?:[A-Za-z]{2}(?:-[A-Za-z]{2})?,?\s*)+)\s+(.+)$/);
+-        if (!m) continue;
+-        const dayPart = m[1].trim(), timePart = m[2].trim();
+-        const dayCodes = new Set();
+-        dayPart.split(',').forEach(seg => {
+-          seg = seg.trim();
+-          const range = seg.match(/^([A-Za-z]{2})-([A-Za-z]{2})$/);
+-          if (range) {
+-            let i = DOW.indexOf(range[1]), end = DOW.indexOf(range[2]);
+-            if (i === -1 || end === -1) return;
+-            while (true) { dayCodes.add(DOW[i]); if (i === end) break; i = (i + 1) % 7; }
+-          } else if (DOW.includes(seg)) dayCodes.add(seg);
+-        });
+-        if (!dayCodes.has(todayCode)) continue;
+-        matched = true;
+-        timePart.split(',').forEach(span => {
+-          const t = span.trim().match(/^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$/);
+-          if (!t) return;
+-          const start = (+t[1]) * 60 + (+t[2]);
+-          let end = (+t[3]) * 60 + (+t[4]);
+-          if (end <= start) end += 24 * 60; // overnight span (e.g. 18:00-02:00)
+-          if (minutesNow >= start && minutesNow <= end) open = true;
+-        });
+-      }
+-      return matched ? open : null; // today not mentioned at all — unknown, not closed
+-    } catch (e) {
+-      return null;
+-    }
+-  }
+-
+-  async function runNearbySearch(key, force) {
+-    const resultsEl = $('lm2NearbyResults');
+-    if (!resultsEl) return;
+-    nearbyActive = key;
+-    document.querySelectorAll('#lm2NearbyChips .lm2-chip').forEach(c => c.classList.toggle('active', c.dataset.poi === key));
+-
+-    clearTimeout(debounceTimer);
+-    resultsEl.innerHTML = skeletonHtml();
+-
+-    debounceTimer = setTimeout(async () => {
+-      const t = POI_TYPES[key];
+-      let ctx = resolveSearchContext();
+-      if (!ctx) {
+-        // Background tracker just hasn't produced a fix yet (or the
+-        // person opened Nearby before location permission settled) —
+-        // ask the browser for a one-off fix right now instead of just
+-        // giving up and blaming "location is off".
+-        ctx = await new Promise((resolve) => {
+-          if (!navigator.geolocation) return resolve(null);
+-          navigator.geolocation.getCurrentPosition(
+-            (pos) => {
+-              const fix = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+-              if (window.S) window.S.myLoc = window.S.myLoc || fix;
+-              resolve({ mode: 'current', center: fix });
+-            },
+-            () => resolve(null),
+-            { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+-          );
+-        });
+-      }
+-      if (!ctx) { resultsEl.innerHTML = `<div class="empty">Couldn't get your location — check the browser's location permission for this site.</div>`; return; }
+-
+-      const centerKey = ctx.mode === 'route'
+-        ? 'route:' + ctx.coords.length
+-        : `${ctx.center.lat.toFixed(3)},${ctx.center.lng.toFixed(3)}`;
+-      const cacheKey = [key, nearbySort, nearbyRadius, ctx.mode, centerKey].join('|');
+-      if (!force && nearbyCache.has(cacheKey)) { renderNearby(nearbyCache.get(cacheKey), t, ctx); return; }
+-
+-      try {
+-        let places = [];
+-        let usedMode = ctx.mode;
+-        // 1) along the active route
+-        if (ctx.mode === 'route') {
+-          places = await overpassAlongRoute(t.tag, ctx.coords, nearbyRadius);
+-        }
+-        // 2) fall back to the destination if the route search came up empty
+-        if (!places.length) {
+-          const fallbackCtx = ctx.mode === 'route' ? resolveDestinationOnly() : ctx;
+-          if (fallbackCtx) {
+-            places = await overpassNear(t.tag, fallbackCtx.center, nearbyRadius);
+-            usedMode = fallbackCtx === ctx ? ctx.mode : 'destination';
+-          }
+-        }
+-        // 3) fall back to current location if still empty
+-        if (!places.length && window.S?.myLoc) {
+-          places = await overpassNear(t.tag, window.S.myLoc, nearbyRadius);
+-          usedMode = 'current';
+-        }
+-
+-        const myLoc = window.S?.myLoc;
+-        places.forEach(p => { p._distKm = myLoc ? haversineKm(myLoc, { lat: p.lat, lng: p.lon }) : null; });
+-        places = sortPlaces(places);
+-        places = places.slice(0, 20);
+-
+-        nearbyCache.set(cacheKey, { places, usedMode });
+-        renderNearby({ places, usedMode }, t, ctx);
+-      } catch (e) {
+-        resultsEl.innerHTML = `
+-          <div class="empty">Couldn't reach the search service.</div>
+-          <div class="lm2-retry-btn" id="lm2NearbyRetry">↻ Retry</div>`;
+-        const retry = $('lm2NearbyRetry');
+-        if (retry) retry.onclick = () => runNearbySearch(key, true);
+-      }
+-    }, 350); // debounce
+-  }
+-
+-  function resolveDestinationOnly() {
+-    const st = window.LiveMap?._debug;
+-    if (st?.destMarker && typeof st.destMarker.getLatLng === 'function') {
+-      const ll = st.destMarker.getLatLng();
+-      return { center: { lat: ll.lat, lng: ll.lng } };
+-    }
+-    return null;
+-  }
+-
+-  function sortPlaces(places) {
+-    if (nearbySort === 'distance') return places.slice().sort((a, b) => (a._distKm ?? 1e9) - (b._distKm ?? 1e9));
+-    if (nearbySort === 'open') {
+-      const open = places.filter(p => isOpenNow(p.openingHours) === true);
+-      const unknown = places.filter(p => isOpenNow(p.openingHours) === null);
+-      const closed = places.filter(p => isOpenNow(p.openingHours) === false);
+-      return open.concat(unknown, closed);
+-    }
+-    return places; // 'rating' — OSM has no reliable rating field; chip is disabled in the UI (see buildNearbyChips)
+-  }
+-
+-  function renderNearby(result, t, ctx) {
+-    const resultsEl = $('lm2NearbyResults');
+-    if (!resultsEl) return;
+-    const { places, usedMode } = result;
+-    if (!places.length) {
+-      resultsEl.innerHTML = `
+-        <div class="empty">No ${t.label.toLowerCase()} found nearby.</div>
+-        <div class="lm2-retry-btn" id="lm2NearbyRetry">↻ Retry</div>`;
+-      const retry = $('lm2NearbyRetry');
+-      if (retry) retry.onclick = () => runNearbySearch(nearbyActive, true);
+-      return;
+-    }
+-    const modeNote = usedMode === 'route' ? 'along your route'
+-      : usedMode === 'destination' ? 'near your destination'
+-      : 'near your current location';
+-    resultsEl.innerHTML = `<div style="font-size:10px;color:var(--lm2-text-hint);margin-bottom:8px">Showing results ${modeNote}</div>` +
+-      places.map(p => {
+-        const openState = isOpenNow(p.openingHours); // true / false / null(unknown)
+-        const badge = openState === true ? `<span style="color:#3ddc84;font-weight:700">● Open</span>`
+-          : openState === false ? `<span style="color:#f87171;font-weight:700">● Closed</span>`
+-          : '';
+-        // No $0 source has real ratings for a place — rather than fake a
+-        // number, link straight to Google Maps' own listing (no API key
+-        // needed, just a query deep-link) so the user can see real
+-        // ratings/reviews there if they want them.
+-        const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name || t.label)}&query_place_id=&center=${p.lat},${p.lon}`;
+-        return `
+-        <div class="money-row">
+-          <div class="money-ic inc">${t.icon}</div>
+-          <div style="flex:1;min-width:0">
+-            <div style="font-size:12px;font-weight:600;color:var(--lm2-text-main)">${esc(p.name || t.label)}</div>
+-            <div style="font-size:10px;color:var(--lm2-text-hint);display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+-              ${p._distKm != null ? p._distKm.toFixed(1) + ' km away' : ''}${badge ? ' · ' + badge : ''}
+-              · <a href="${gmapsUrl}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">★ View on Google Maps ↗</a>
+-            </div>
+-          </div>
+-          <button class="btn btn-glass btn-xs lm2-scale-tap" onclick="LiveMap.flyTo(${p.lat},${p.lon})">View</button>
+-          <button class="btn btn-accent btn-xs lm2-scale-tap" onclick="LiveMap.navigateToPoint(${p.lat},${p.lon},'${esc(p.name || t.label).replace(/'/g, "\\'")}')"><i data-lucide="navigation"></i></button>
+-        </div>`;
+-      }).join('');
+-   if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }}
+-
+-  /* ════════════════════════════════════════════════════════════════
+-     E. VIDEO CALL SPLIT VIEW — while a call is active on the Live Map
++    /* ════════════════════════════════════════════════════════════════
++     VIDEO CALL SPLIT VIEW — while a call is active on the Live Map
+         page, dock the call alongside the map (instead of the normal
+         fullscreen call UI) so the map stays fully usable:
+           • mobile / narrow:  map on top,  call on bottom
+@@ -681,29 +119,4 @@
+     }
+   });
+   callObserver.observe(document.body, { childList: true, subtree: true });
+-
+-  /* ════════════════════════════════════════════════════════════════
+-     Boot: restructure once LiveMap + #page-map are ready, and again
+-     whenever the map page becomes active (covers first paint if the
+-     app boots directly onto another page).
+-     ════════════════════════════════════════════════════════════════ */
+-  function boot() {
+-    if ($('page-map')) restructure();
+-    else { setTimeout(boot, 300); return; }
+-  }
+-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(boot, 700));
+-  else setTimeout(boot, 700);
+-
+-  // Re-run chip wiring / weather fetch each time the user re-enters the
+-  // map page (cheap — just re-binds click handlers, no network spam).
+-  const _origGotoWatcher = setInterval(() => {
+-    if (typeof window.goto === 'function') {
+-      clearInterval(_origGotoWatcher);
+-      const prev = window.goto;
+-      window.goto = function (page) {
+-        prev(page);
+-        if (page === 'map') { restructure(); }
+-      };
+-    }
+-  }, 500);
+-})();
+\ No newline at end of file
++})();
+diff --git a/public/livemap-screens.css b/public/livemap-screens.css
+index 7e32234..e841b5a 100644
+--- a/public/livemap-screens.css
++++ b/public/livemap-screens.css
+@@ -39,7 +39,6 @@
+ .lms-body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 4px var(--lms-pad) var(--lms-nav); display: flex; flex-direction: column; gap: 12px; scroll-behavior: auto; }
+ .lms-body > * { flex-shrink: 0; }
+ body[data-immersive="1"] .lms-body { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
+-@media (min-width: 701px) { .lms-body { padding-bottom: 28px; max-width: 760px; width: 100%; margin: 0 auto; } .lms-hdr { max-width: 760px; width: 100%; margin: 0 auto; } }
+ 
+ /* ── cards / rows ───────────────────────────────────────────────── */
+ .lms-card { background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .028)); border: 1px solid var(--border); border-radius: var(--lms-r); padding: 14px; box-shadow: 0 8px 28px rgba(0, 0, 0, .28); }
+@@ -65,7 +64,7 @@ button.lms-row:active { background: var(--g1); }
+ .lms-ico--red   { background: rgba(229, 9, 20, .13); color: var(--accent-l); }
+ 
+ /* ── switch ─────────────────────────────────────────────────────── */
+-.lms-sw { position: relative; width: 48px; height: 28px; flex-shrink: 0; display: inline-block; }
++.lms-sw { position: relative; width: 48px; height: 28px; flex-shrink: 0; display: inline-block !important; margin: 0 !important; }
+ .lms-sw input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; cursor: pointer; z-index: 2; }
+ .lms-sw span { position: absolute; inset: 0; border-radius: 999px; background: var(--g3); border: 1px solid var(--border2); transition: background .2s, border-color .2s; }
+ .lms-sw span::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .4); transition: transform .22s cubic-bezier(.34, 1.56, .64, 1); }
+@@ -286,3 +285,75 @@ button.lms-row:active { background: var(--g1); }
+   .lms-tile { font-size: 11.5px; }
+   .lms-ts b { font-size: 21px; }
+ }
++
++/* ════════════════════════════════════════════════════════════════════
++   RESPONSIVE — phone (default) → tablet (≥700) → laptop/desktop (≥1024)
++   The page always uses 100% of the width next to the sidebar; nothing is
++   capped to a fixed max-width. Wide screens get real multi-column layouts.
++   ════════════════════════════════════════════════════════════════════ */
++.lms-mapcol, .lms-trk-main { display: contents; }
++
++/* short landscape phones: keep the map usable */
++@media (max-height: 520px) and (orientation: landscape) {
++  .lms-mapwrap #mapView { height: clamp(220px, 64dvh, 420px) !important; min-height: 220px; }
++}
++
++/* playback card: global select{width:100%} must not stretch the speed picker */
++.lms-play { min-width: 0; }
++.lms-play .lms-select { width: auto; max-width: 92px; flex: 0 0 auto; }
++
++/* tablet */
++@media (min-width: 700px) {
++  #page-map { --lms-pad: 22px; }
++  .lms-mapwrap #mapView { height: clamp(340px, 52dvh, 640px) !important; }
++  .lms-plist { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; align-content: start; }
++  .lms-plist > .empty, .lms-plist > .lms-empty { grid-column: 1 / -1; }
++  #lmsAddPlaceBtn { width: auto; min-width: 240px; align-self: flex-start; }
++  #lmsPlacesTabs, #lmsTrackRange, #lmRouteRoleToggle { max-width: 560px; }
++  .lms-stats { grid-template-columns: repeat(4, 1fr); }
++}
++
++/* settings-style screens: wide, but content stays readable and centred */
++@media (min-width: 900px) {
++  #lmsAlerts .lms-body, #lmsPrivacy .lms-body, #lmsSearch .lms-body {
++    padding-left: max(var(--lms-pad), calc((100% - 960px) / 2));
++    padding-right: max(var(--lms-pad), calc((100% - 960px) / 2));
++  }
++  #lmsMore .lms-body, #lmsPartner .lms-body {
++    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px; align-content: start; align-items: start;
++  }
++  #lmsMore .lms-body > * { min-width: 0; }
++  #lmsPartner .lms-body > * { grid-column: 1; min-width: 0; }
++  #lmsPartner .lms-body > .lms-list { grid-column: 2; grid-row: 1 / span 3; }
++  #lmsPartner .lms-stats { grid-template-columns: repeat(2, 1fr); }
++}
++
++/* laptop / desktop */
++@media (min-width: 1024px) {
++  #page-map { --lms-pad: 28px; }
++
++  /* Map screen: full-width banners/tabs/share card on top, then map | side column */
++  #lmsMapBody {
++    display: grid; grid-template-columns: minmax(0, 1fr) clamp(340px, 30vw, 460px);
++    column-gap: 18px; row-gap: 12px; align-content: start; align-items: start;
++  }
++  #lmsMapBody > * { grid-column: 1 / -1; min-width: 0; }
++  #lmsMapBody > .lms-tabs { max-width: 680px; }
++  #lmsMapBody > #lmsMapSlot { grid-column: 1; }
++  #lmsMapBody > .lms-mapcol { grid-column: 2; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
++  .lms-mapwrap #mapView { height: clamp(420px, calc(100dvh - 330px), 920px) !important; }
++  .lms-tiles { grid-template-columns: repeat(3, 1fr); }
++
++  /* Track screen: stats + timeline on the left, route map pinned on the right */
++  #lmsTrack .lms-body {
++    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
++    column-gap: 18px; align-content: start; align-items: start;
++  }
++  #lmsTrack .lms-trk-main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
++  #lmsTrack #lmsTrackMapBlock { position: sticky; top: 0; min-width: 0; }
++  #lmsTrackMapSlot .lms-mapwrap #mapView { height: clamp(320px, 58dvh, 620px) !important; }
++}
++
++@media (min-width: 1600px) {
++  #page-map { --lms-pad: 36px; }
++}
+diff --git a/public/livemap.js b/public/livemap.js
+index 8ce1c02..449003e 100644
+--- a/public/livemap.js
++++ b/public/livemap.js
+@@ -20,7 +20,6 @@ const LiveMap = (() => {
+   const PING_MIN_INTERVAL_MS = 8000;   // never ping more than once per 8s
+   const PING_MIN_DISTANCE_M  = 15;     // or unless moved >15m
+   const POLL_INTERVAL_MS     = 8000;   // partner-location poll cadence (unchanged — safety net)
+-  const ONLINE_WINDOW_MS     = 60000;
+ 
+   // ── Realtime "changed" ping ──────────────────────────────────────────
+   // This is purely additive: it triggers an immediate _pollOnce() the moment
+@@ -298,20 +297,6 @@ const LiveMap = (() => {
+       }).catch(() => toast('Couldn\'t send right now — check your connection'));
+     }, () => toast('Couldn\'t get a GPS fix for emergency share'), { enableHighAccuracy: true, timeout: 10000 });
+   }
+-  async function _batteryNetworkLine() {
+-    let batteryTxt = '', netTxt = '';
+-    try {
+-      if (navigator.getBattery) {
+-        const b = await navigator.getBattery();
+-        batteryTxt = `🔋 ${Math.round(b.level * 100)}%${b.charging ? ' (charging)' : ''}`;
+-      }
+-    } catch (e) {}
+-    try {
+-      const c = navigator.connection || navigator.webkitConnection || navigator.mozConnection;
+-      if (c) netTxt = `📶 ${(c.effectiveType || 'unknown').toUpperCase()}`;
+-    } catch (e) {}
+-    return [batteryTxt, netTxt].filter(Boolean).join(' · ') || null;
+-  }
+   function _renderPrivacyPanel() {
+     const panel = document.getElementById('lmPrivacyPanel');
+     if (!panel || panel.style.display !== 'block') return;
+@@ -894,21 +879,6 @@ const LiveMap = (() => {
+   // Lets a person declare how they're actually travelling (walking isn't
+   // guessable the way a booked car/bus is) — synced to the partner via
+   // the existing ping payload / vehicle_type column.
+-  function setVehicleType(type) {
+-    const allowed = ['auto', 'walking', 'bike', 'car', 'bus'];
+-    if (!allowed.includes(type)) return;
+-    S.myVehicleType = type;
+-    st.lastPingPos = null; // force an immediate re-ping so the change propagates now
+-    if (S.coupleId && S.myLoc && S.myLoc.lat != null && S.myLoc.lng != null) {
+-      api('POST', '/api/location/ping', {
+-        coupleId: S.coupleId, role: S.role, lat: S.myLoc.lat, lng: S.myLoc.lng,
+-        accuracy: S.myLoc.accuracy || null, heading: S.myLoc.heading || null,
+-        moving: !!S.myLoc.moving, localDate: _localDateStr(), vehicleType: type
+-      }).catch(() => {});
+-    }
+-    toast('🚦 Travel mode set: ' + type);
+-  }
+-
+  function _fitBoth() {
+   if (!st.map) return;
+   const pts = [];
+@@ -1245,14 +1215,6 @@ const LiveMap = (() => {
+   }
+ 
+   /* ── FAVORITES PANEL — list of saved favorite places with quick actions ── */
+-  function toggleFavoritesPanel() {
+-    const panel = document.getElementById('lmFavoritesPanel');
+-    if (!panel) return;
+-    const opening = panel.style.display !== 'block';
+-    panel.style.display = opening ? 'block' : 'none';
+-    document.getElementById('lmFavBtn')?.classList.toggle('active', opening);
+-    if (opening) _renderFavoritesPanel();
+-  }
+   function _renderFavoritesPanel() {
+     const panel = document.getElementById('lmFavoritesPanel');
+     if (!panel || panel.style.display !== 'block') return;
+@@ -1310,7 +1272,6 @@ const LiveMap = (() => {
+     const f = (S.favorites || [])[i];
+     if (!f) return;
+     document.getElementById('lmFavoritesPanel').style.display = 'none';
+-    document.getElementById('lmFavBtn')?.classList.remove('active');
+     _openPlaceDetails(f);
+   }
+   function removeFavorite(i) {
+@@ -1439,13 +1400,6 @@ const LiveMap = (() => {
+   let _dirRoutesCache = null; // { routes, dest, origin, prof }
+   let _dirActiveIdx = 0;
+ 
+-  function openDirections() {
+-    if (!_gmActivePlace) return;
+-    if (!S.myLoc && !_dirOrigin) toast('Enable location, or set a custom starting point');
+-    document.getElementById('lmDirectionsPanel').style.display = 'block';
+-    _renderDirectionsPanel(null);
+-    _runDirections();
+-  }
+   function pickCustomOrigin() {
+     _gmPickingOrigin = true;
+     const input = document.getElementById('lmGmSearchInput');
+@@ -1706,7 +1660,6 @@ const LiveMap = (() => {
+      ══════════════════════════════════════════════════════════ */
+   const CAMERA_MODES = ['top', 'tilt', 'eye'];
+   const CAMERA_LABELS = { top: 'Top', tilt: '3D', eye: 'Eye level' };
+-  const CAMERA_ICONS  = { top: '🗺️', tilt: '🏙️', eye: '👁️' };
+   function cycleCameraMode() {
+     if (!st.map || typeof st.map.setCameraMode !== 'function') { toast('3D camera needs a browser that supports WebGL'); return; }
+     const cur = st.map.getCameraMode ? st.map.getCameraMode() : 'top';
+@@ -1721,8 +1674,6 @@ const LiveMap = (() => {
+     st.map.setCameraMode(mode, { center, bearing });
+     const btn = document.getElementById('lmCameraModeLabel');
+     if (btn) btn.textContent = CAMERA_LABELS[mode] || 'Top';
+-    const ico = document.querySelector('#lmCameraModeBtn .lm-tool-ico');
+-    if (ico) ico.textContent = CAMERA_ICONS[mode] || '🗺️';
+   }
+   // Called whenever a fresh "my" GPS fix comes in (hooked below in the
+   // main location handler) so eye-level mode keeps facing the direction
+@@ -1892,13 +1843,6 @@ const LiveMap = (() => {
+     }
+     return bestCum;
+   }
+-  function _sampleRouteCoords(coords, n) {
+-    if (!coords || coords.length <= n) return coords || [];
+-    const out = [];
+-    for (let i = 0; i < n; i++) out.push(coords[Math.round(i * (coords.length - 1) / (n - 1))]);
+-    return out;
+-  }
+-
+   async function searchAlongRoute(key) {
+     const t = ROUTE_POI_TYPES[key];
+     if (!t) return;
+@@ -3034,8 +2978,8 @@ const LiveMap = (() => {
+     onSearchInput, searchByChip, pickSearchResult,
+     gmSearchInput, gmSearchFocus, gmSearchClear, gmPickResult, gmPickRecent,
+     closePlaceDetails, toggleFavoritePlace, saveGmPlace, shareGmPlace, meetHereGmPlace,
+-    openDirections, pickCustomOrigin, resetOriginToCurrent, setDirMode, selectDirRoute, startDirNavigation, startQuickNav,
+-    toggleFavoritesPanel, openFavorite, removeFavorite, moveFavorite, renameFavorite,
++    pickCustomOrigin, resetOriginToCurrent, setDirMode, selectDirRoute, startDirNavigation, startQuickNav,
++    openFavorite, removeFavorite, moveFavorite, renameFavorite,
+     startVideoCallFromMap, openLoveNoteComposer, sendLoveNote, foundLoveNote,
+     flyTo,
+     // Phase 2
+@@ -3047,8 +2991,7 @@ const LiveMap = (() => {
+     pauseSharing, resumeSharing, togglePrivacyPanel,
+     toggleApproxLocation, toggleInvisibleMode, emergencyShare, dismissEmergencyBanner,
+     toggleNavPanel, navigateToPartner, navigateToPoint, selectNavRoute, searchAlongRoute,
+-    cycleCameraMode, toggleVoiceNav, setVehicleType,
+-    // screen-stack helpers (used by /livemap-screens.js)
++    cycleCameraMode, toggleVoiceNav,     // screen-stack helpers (used by /livemap-screens.js)
+     setCameraMode: _applyCameraMode, computeExtendedStats: _computeExtendedStats,
+     renderPlaces: _renderPlacesLists, renderFavorites: _renderFavoritesPanel, fitBoth: _fitBoth,
+     clearRouteOverlay,
+diff --git a/public/sw.js b/public/sw.js
+index 066be0c..9feeaf2 100644
+--- a/public/sw.js
++++ b/public/sw.js
+@@ -1,5 +1,5 @@
+ // Service Worker for Twin Hearts 💕 PWA — v5
+-const CACHE = 'uwl-v10'; // bumped: purges stale cached assets (incl. old movie.css) on activate
++const CACHE = 'uwl-v11'; // bumped: purges stale cached assets (incl. old movie.css) on activate
+ const OFFLINE_ASSETS = [
+   '/',
+   '/index.html',
