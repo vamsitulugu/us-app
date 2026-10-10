@@ -1,0 +1,1368 @@
+From 2c5470c41883896362ebce8589b40cd6bf6468cd Mon Sep 17 00:00:00 2001
+From: Vamsi Tulugu <vamsi@example.com>
+Date: Sat, 10 Oct 2026 08:36:58 +0000
+Subject: [PATCH] Dashboard: events row, per-person mood graph/calendar, card
+ photo editor, quick pages; Girl/Boy signup + Period page access
+
+- Dashboard: shortcuts now Memories/Calendar/Music/Movie/Meet Planner/Bucket List/Daily Routine
+- Dashboard: 'Coming up' row (birthdays, anniversary, monthly + day milestones, calendar events)
+- Dashboard: mood card with both partners' 7-day graph + full-screen mood calendar (You / Partner)
+- Dashboard: 16:9 crop photo editor for the Hug/Touch/Miss card (saved as links, synced)
+- Dashboard: all-pages quick grid and closing quote
+- Signup: Girl/Boy option; stored in shared profile; changeable in Settings
+- Period page: girl edits, boy sees everything read-only (client + server guard)
+- Server: only the sender can change their own profile entry (stops stale overwrites)
+---
+ public/dashboard-widgets.css | 229 ++++++++++++
+ public/dashboard-widgets.js  | 677 +++++++++++++++++++++++++++++++++++
+ public/dashboard.js          |   2 +-
+ public/gender-access.css     |  22 ++
+ public/gender-access.js      | 131 +++++++
+ public/index.html            |  45 ++-
+ public/landing.html          |  14 +-
+ routes/data.js               |  21 ++
+ 8 files changed, 1130 insertions(+), 11 deletions(-)
+ create mode 100644 public/dashboard-widgets.css
+ create mode 100644 public/dashboard-widgets.js
+ create mode 100644 public/gender-access.css
+ create mode 100644 public/gender-access.js
+
+diff --git a/public/dashboard-widgets.css b/public/dashboard-widgets.css
+new file mode 100644
+index 0000000..9cb39fa
+--- /dev/null
++++ b/public/dashboard-widgets.css
+@@ -0,0 +1,229 @@
++/* ══════════════════════════════════════════════════════════════
++   DASHBOARD WIDGETS — extra blocks inside .dh-sheet (see dashboard-widgets.js)
++   · photo-edit button on the love card + full-screen photo editor
++   · "Coming up" events row
++   · Mood card + full-screen mood calendar
++   · "All pages" quick-open grid
++   · closing quote
++   Colours come from the app theme vars (--accent, --accent-d, --ff-*).
++   ══════════════════════════════════════════════════════════════ */
++
++.dw-block { margin-top: 20px; }
++.dw-head { display: flex; align-items: center; justify-content: space-between; margin: 0 0 10px; }
++.dw-title { margin: 0; font-size: 15px; font-weight: 600; color: var(--white, #fff); }
++.dw-link {
++  border: 0; background: none; padding: 4px 0 4px 8px; cursor: pointer;
++  font: 600 12px var(--ff-sans); color: rgba(255, 255, 255, .6);
++  -webkit-tap-highlight-color: transparent;
++}
++.dw-link:active { color: #fff; }
++
++/* ── Edit-photo button on the love card ── */
++.dh-edit {
++  position: absolute; top: 10px; right: 10px; z-index: 3;
++  width: 36px; height: 36px; padding: 0;
++  display: flex; align-items: center; justify-content: center;
++  border-radius: 50%;
++  border: 1px solid rgba(255, 255, 255, .3);
++  background: rgba(0, 0, 0, .34);
++  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
++  color: #fff; cursor: pointer;
++  -webkit-tap-highlight-color: transparent;
++  transition: transform .15s ease;
++}
++.dh-edit:active { transform: scale(.9); }
++.dh-edit svg { width: 18px; height: 18px; }
++.dh-cap { max-width: calc(100% - 64px); }
++
++/* ── Events row ── */
++.dw-events {
++  display: flex; gap: 10px; overflow-x: auto;
++  margin: 0 calc(var(--pad, 18px) * -1); padding: 2px var(--pad, 18px);
++  scroll-snap-type: x proximity; scroll-padding: 0 var(--pad, 18px);
++  scrollbar-width: none;
++}
++.dw-events::-webkit-scrollbar { display: none; }
++.dw-ev {
++  flex: 0 0 auto; scroll-snap-align: start;
++  min-width: 168px; max-width: 230px; height: 56px;
++  display: flex; align-items: center; gap: 10px; padding: 0 12px 0 10px;
++  border-radius: 18px;
++  border: 1px solid rgba(255, 255, 255, .12);
++  background: rgba(255, 255, 255, .07);
++  color: #fff; text-align: left; cursor: pointer;
++  -webkit-tap-highlight-color: transparent;
++  transition: transform .15s ease, background .2s ease;
++}
++.dw-ev:active { transform: scale(.96); }
++.dw-ev-ico {
++  width: 36px; height: 36px; flex-shrink: 0; border-radius: 12px;
++  display: flex; align-items: center; justify-content: center;
++  font-size: 18px; background: rgba(255, 255, 255, .1);
++}
++.dw-ev-tx { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
++.dw-ev-tx b { font: 600 12.5px var(--ff-sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
++.dw-ev-tx i { font: 500 11px var(--ff-sans); font-style: normal; color: rgba(255, 255, 255, .58); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
++.dw-ev-d { font: 700 12px var(--ff-sans); color: #ffc4b8; flex-shrink: 0; }
++.dw-ev.is-today { background: rgba(255, 255, 255, .95); border-color: #fff; color: #1c0f14; }
++.dw-ev.is-today .dw-ev-ico { background: rgba(0, 0, 0, .07); }
++.dw-ev.is-today .dw-ev-tx i { color: rgba(28, 15, 20, .6); }
++.dw-ev.is-today .dw-ev-d { color: var(--accent-d); }
++.dw-ev.is-empty { min-width: 100%; max-width: none; }
++
++/* ── Mood card ── */
++.dw-mood {
++  width: 100%; display: block; padding: 14px 14px 10px; text-align: left;
++  border-radius: 22px; border: 1px solid rgba(255, 255, 255, .12);
++  background: rgba(255, 255, 255, .07); color: #fff; cursor: pointer;
++  -webkit-tap-highlight-color: transparent; transition: transform .15s ease;
++}
++.dw-mood:active { transform: scale(.985); }
++.dw-mood-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
++.dw-mood-top b { font: 600 15px var(--ff-sans); }
++.dw-mood-streak { font: 600 11.5px var(--ff-sans); color: #ffc4b8; white-space: nowrap; }
++.dw-mood-sub { margin: 2px 0 0; font: 500 11.5px var(--ff-sans); color: rgba(255, 255, 255, .55); }
++.dw-graph { display: block; width: 100%; height: 72px; margin-top: 8px; overflow: visible; }
++.dw-graph .g-line { fill: none; stroke: rgba(255, 255, 255, .55); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
++.dw-graph .g-grid { stroke: rgba(255, 255, 255, .08); stroke-width: 1; }
++.dw-days { display: grid; grid-template-columns: repeat(7, 1fr); margin-top: 2px; text-align: center; }
++.dw-days span { font: 500 10.5px var(--ff-sans); color: rgba(255, 255, 255, .5); }
++.dw-days span.is-today { color: #fff; font-weight: 700; }
++
++/* ── All pages grid ── */
++.dw-pages { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
++.dw-page {
++  height: 60px; padding: 0 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
++  border-radius: 16px; border: 1px solid rgba(255, 255, 255, .1); background: rgba(255, 255, 255, .06);
++  color: rgba(255, 255, 255, .86); cursor: pointer; -webkit-tap-highlight-color: transparent;
++  transition: transform .15s ease, background .2s ease;
++}
++.dw-page:active { transform: scale(.94); background: rgba(255, 255, 255, .12); }
++.dw-page .e { font-size: 19px; line-height: 1; }
++.dw-page .l { font: 600 10px var(--ff-sans); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
++
++/* ── Closing quote ── */
++.dw-quote { margin: 26px 8px 0; text-align: center; }
++.dw-quote p { margin: 0; font: italic 400 15px/1.45 var(--ff-serif); color: rgba(255, 255, 255, .72); text-wrap: balance; }
++.dw-quote p::before { content: '\201C'; display: block; font-size: 30px; line-height: .6; color: #ffc4b8; margin-bottom: 4px; }
++
++/* ── Chip label wrap (two-word shortcuts) ── */
++.dh-chip { white-space: normal; text-align: center; line-height: 1.15; padding: 0 4px; }
++
++/* ── Full-screen overlays (mood calendar + photo editor) ── */
++.dw-overlay {
++  position: fixed; inset: 0; z-index: 3000;
++  display: flex; flex-direction: column;
++  background: #130c12; color: #fff;
++  padding-top: env(safe-area-inset-top, 0px);
++  transform: translateY(100%); visibility: hidden;
++  transition: transform .32s cubic-bezier(.2, .8, .2, 1), visibility 0s linear .32s;
++}
++.dw-overlay.open { transform: none; visibility: visible; transition: transform .32s cubic-bezier(.2, .8, .2, 1); }
++.dw-bar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; flex-shrink: 0; }
++.dw-bar h2 { flex: 1; margin: 0; text-align: center; font: 600 16px var(--ff-sans); }
++.dw-icon {
++  width: 40px; height: 40px; padding: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
++  border-radius: 50%; border: 0; background: rgba(255, 255, 255, .08); color: #fff; cursor: pointer;
++  -webkit-tap-highlight-color: transparent;
++}
++.dw-icon:active { background: rgba(255, 255, 255, .18); }
++.dw-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
++.dw-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 4px 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
++.dw-foot {
++  flex-shrink: 0; display: flex; gap: 10px; padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0px));
++  border-top: 1px solid rgba(255, 255, 255, .08); background: #130c12;
++}
++.dw-btn {
++  flex: 1; height: 50px; border-radius: 25px; border: 1px solid rgba(255, 255, 255, .2);
++  background: rgba(255, 255, 255, .08); color: #fff; font: 600 15px var(--ff-sans); cursor: pointer;
++  display: flex; align-items: center; justify-content: center; gap: 8px; -webkit-tap-highlight-color: transparent;
++}
++.dw-btn:active { transform: scale(.97); }
++.dw-btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-d)); border-color: transparent; }
++.dw-btn:disabled { opacity: .38; pointer-events: none; }
++.dw-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
++
++/* Mood calendar */
++.dw-q { margin: 6px 0 12px; font: 600 17px var(--ff-sans); }
++.dw-moodchips { display: flex; flex-wrap: wrap; gap: 8px; }
++.dw-mc {
++  display: flex; align-items: center; gap: 6px; height: 38px; padding: 0 14px 0 10px; border-radius: 19px;
++  border: 1.5px solid rgba(255, 255, 255, .16); background: rgba(255, 255, 255, .05); color: #fff;
++  font: 600 13px var(--ff-sans); cursor: pointer; -webkit-tap-highlight-color: transparent;
++}
++.dw-mc.is-sel { background: var(--mc); border-color: var(--mc); color: #1c0f14; }
++.dw-mc:disabled { opacity: .35; pointer-events: none; }
++.dw-monthbar { display: flex; align-items: center; justify-content: space-between; margin: 22px 0 10px; }
++.dw-monthbar b { font: 600 15px var(--ff-sans); }
++.dw-cal { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 6px; text-align: center; }
++.dw-cal .h { font: 600 11px var(--ff-sans); color: rgba(255, 255, 255, .5); padding-bottom: 4px; }
++.dw-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 0; border: 0; background: none; color: rgba(255, 255, 255, .7); cursor: pointer; -webkit-tap-highlight-color: transparent; }
++.dw-cell .n { font: 500 11px var(--ff-sans); }
++.dw-cell .c {
++  width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
++  font-size: 17px; border: 1.5px solid rgba(255, 255, 255, .14);
++}
++.dw-cell .c.has { border-color: var(--mc); background: color-mix(in srgb, var(--mc) 24%, transparent); }
++.dw-cell.is-today .n { color: #fff; font-weight: 700; }
++.dw-cell.is-today .c { box-shadow: 0 0 0 2px #130c12, 0 0 0 3.5px rgba(255, 255, 255, .8); }
++.dw-cell.is-sel .n { color: #fff; font-weight: 700; }
++.dw-cell.is-sel .c { border-color: #fff; }
++.dw-cell.is-future { opacity: .35; pointer-events: none; }
++.dw-cell.is-blank { visibility: hidden; pointer-events: none; }
++.dw-stats { margin-top: 22px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, .08); }
++.dw-stats-n { font: 700 34px var(--ff-sans); letter-spacing: -1px; }
++.dw-stats-l { margin: 0 0 12px; font: 500 13px var(--ff-sans); color: rgba(255, 255, 255, .6); }
++.dw-stat-row { display: flex; flex-wrap: wrap; gap: 8px 18px; }
++.dw-stat { display: flex; align-items: center; gap: 6px; font: 600 14px var(--ff-sans); }
++.dw-stat i { width: 8px; height: 8px; border-radius: 50%; background: var(--mc); }
++.dw-stat span { font-weight: 500; font-size: 12px; color: rgba(255, 255, 255, .55); }
++
++/* Photo editor */
++.dw-seg { display: flex; gap: 6px; padding: 4px; border-radius: 16px; background: rgba(255, 255, 255, .07); margin-bottom: 16px; }
++.dw-seg button {
++  flex: 1; height: 38px; border: 0; border-radius: 12px; background: none; color: rgba(255, 255, 255, .6);
++  font: 600 12.5px var(--ff-sans); cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent;
++}
++.dw-seg button.is-on { background: rgba(255, 255, 255, .95); color: #1c0f14; }
++.dw-stage {
++  position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 18px;
++  background: #000; touch-action: none; user-select: none; -webkit-user-select: none;
++  border: 1px solid rgba(255, 255, 255, .16);
++}
++.dw-stage > img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; -webkit-user-drag: none; pointer-events: none; }
++.dw-stage > img.static { width: 100%; height: 100%; object-fit: cover; }
++.dw-stage .grid {
++  position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .2s;
++  background:
++    linear-gradient(to right, transparent calc(33.33% - .5px), rgba(255, 255, 255, .45) calc(33.33% - .5px) calc(33.33% + .5px), transparent calc(33.33% + .5px) calc(66.66% - .5px), rgba(255, 255, 255, .45) calc(66.66% - .5px) calc(66.66% + .5px), transparent calc(66.66% + .5px)),
++    linear-gradient(to bottom, transparent calc(33.33% - .5px), rgba(255, 255, 255, .45) calc(33.33% - .5px) calc(33.33% + .5px), transparent calc(33.33% + .5px) calc(66.66% - .5px), rgba(255, 255, 255, .45) calc(66.66% - .5px) calc(66.66% + .5px), transparent calc(66.66% + .5px));
++}
++.dw-stage.is-crop .grid { opacity: 1; }
++.dw-badge { position: absolute; left: 10px; top: 10px; padding: 4px 9px; border-radius: 99px; background: rgba(0, 0, 0, .5); font: 700 11px var(--ff-sans); pointer-events: none; }
++.dw-hint { margin: 12px 0 0; text-align: center; font: 500 12.5px var(--ff-sans); color: rgba(255, 255, 255, .55); }
++.dw-zoom { display: flex; align-items: center; gap: 10px; margin-top: 18px; visibility: hidden; }
++.dw-zoom.on { visibility: visible; }
++.dw-zoom svg { width: 18px; height: 18px; fill: none; stroke: rgba(255, 255, 255, .6); stroke-width: 2; stroke-linecap: round; flex-shrink: 0; }
++.dw-zoom input { flex: 1; accent-color: var(--accent); height: 28px; }
++.dw-reset { display: block; margin: 14px auto 0; padding: 8px 14px; border: 0; background: none; color: #ffc4b8; font: 600 13px var(--ff-sans); cursor: pointer; }
++.dw-reset[hidden] { display: none; }
++
++@media (min-width: 701px) {
++  .dw-pages { grid-template-columns: repeat(6, minmax(0, 1fr)); }
++  .dw-events { margin: 0; padding: 2px 0; }
++  .dw-overlay { align-items: center; background: rgba(0, 0, 0, .6); justify-content: center; }
++  .dw-panel { width: min(520px, 100%); height: min(860px, 100%); display: flex; flex-direction: column; background: #130c12; border-radius: 28px; overflow: hidden; }
++}
++@media (max-width: 700px) { .dw-panel { display: contents; } }
++@media (min-width: 861px) { .dh-chips { grid-template-columns: repeat(7, minmax(0, 1fr)) !important; } }
++@media (min-width: 701px) and (max-width: 860px) { .dh-chips { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; } }
++@media (prefers-reduced-motion: reduce) { .dw-overlay, .dw-ev, .dw-mood, .dw-page { transition: none; } }
++
++/* ── Two-person mood graph + calendar switcher ── */
++.dw-graph .g-pt { stroke: #ffc4b8; stroke-dasharray: 4 4; stroke-opacity: .85; }
++.dw-legend { display: flex; gap: 16px; margin-top: 8px; font: 600 11px var(--ff-sans); color: rgba(255, 255, 255, .62); }
++.dw-legend span { display: flex; align-items: center; gap: 6px; }
++.dw-legend span::before { content: ''; width: 16px; border-top: 2px solid rgba(255, 255, 255, .6); }
++.dw-legend .pt::before { border-top: 2px dashed #ffc4b8; }
++.dw-ptline { margin: 12px 0 0; font: 600 13px var(--ff-sans); color: rgba(255, 255, 255, .7); }
++.dw-ptline.big { font-size: 20px; color: #fff; margin: 4px 0 8px; }
+diff --git a/public/dashboard-widgets.js b/public/dashboard-widgets.js
+new file mode 100644
+index 0000000..b9fe55a
+--- /dev/null
++++ b/public/dashboard-widgets.js
+@@ -0,0 +1,677 @@
++/* ══════════════════════════════════════════════════════════════
++   DASHBOARD WIDGETS — extends #page-dashboard (see dashboard.js)
++   DashWidgets.render()   events row · mood card · custom card photos
++   DashWidgets.openMood() full-screen mood calendar (also logs today's mood)
++   DashWidgets.openPhotos() 16:9 photo editor for the Hug/Touch/Miss card
++
++   Data it reads/writes on the global state S (synced by the app):
++     S.anniversary, S.myBday, S.ptBday, S.events, S.milestones   (read)
++     S.profile.u1|u2.moods = { 'YYYY-MM-DD': 'Happy' }            (each person writes only their own;
++                                                                   both are shown on the dashboard)
++     S.dashImgs = { idle|hug|touch|miss: { url, path } }          (read/write, URLs only)
++   Needs app globals: S, scheduleSave, goto, toast, todayStr, uploadMediaFile, API.
++   ══════════════════════════════════════════════════════════════ */
++'use strict';
++
++const DashWidgets = (() => {
++  const $ = id => document.getElementById(id);
++  const pad = n => String(n).padStart(2, '0');
++  const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
++  const parseISO = s => {
++    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || '');
++    return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
++  };
++  const midnight = () => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); };
++  const dayDiff = (a, b) => Math.round((b - a) / 86400000);
++  const todayKey = () => (typeof window.todayStr === 'function' ? window.todayStr() : iso(new Date()));
++  const fmtShort = d => d.toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' });
++  const ordinal = n => { const v = n % 100; return n + (['th', 'st', 'nd', 'rd'][(v - 20) % 10] || ['th', 'st', 'nd', 'rd'][v] || 'th'); };
++  const save = () => { if (typeof scheduleSave === 'function') scheduleSave(); };
++  const say = m => { if (typeof toast === 'function') toast(m); };
++
++  function el(tag, cls, text) {
++    const n = document.createElement(tag);
++    if (cls) n.className = cls;
++    if (text != null) n.textContent = text;      // textContent only — event titles are user text
++    return n;
++  }
++  const SVG = 'http://www.w3.org/2000/svg';
++  const svgEl = (tag, attrs) => { const n = document.createElementNS(SVG, tag); Object.entries(attrs || {}).forEach(([k, v]) => n.setAttribute(k, v)); return n; };
++  const ICON = {
++    close: '<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>',
++    prev: '<svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>',
++    next: '<svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>',
++    image: '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="9" cy="9" r="1.8"/><path d="m21 15-4.5-4.5L5 21"/></svg>',
++    check: '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>',
++    minus: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M8 11h6"/></svg>',
++    plus: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M8 11h6M11 8v6"/></svg>',
++  };
++  const stateOK = () => typeof window.S !== 'undefined' && window.S;
++
++  /* ───────────────────────── EVENTS ROW ───────────────────────── */
++  const EV_ICON = { Anniversary: '💕', Date: '🌹', Birthday: '🎂', Trip: '✈️', Special: '⭐', Study: '📚', Other: '📌' };
++  const DAY_MARKS = [100, 200, 300, 365, 500, 730, 1000, 1500, 2000, 2500, 3000, 3650];
++
++  function nextYearly(d, today) {
++    let n = new Date(today.getFullYear(), d.getMonth(), d.getDate());
++    if (n < today) n = new Date(today.getFullYear() + 1, d.getMonth(), d.getDate());
++    return n;
++  }
++
++  function collectEvents() {
++    const today = midnight(), out = [];
++    const add = (icon, title, date, page, sub) => out.push({ icon, title, date, page, sub, days: dayDiff(today, date) });
++
++    const mine = parseISO(S.myBday), pt = parseISO(S.ptBday);
++    if (mine) add('🎂', 'Your birthday', nextYearly(mine, today), 'lovecounter');
++    if (pt) add('🎂', `${S.partnerName || 'Partner'}'s birthday`, nextYearly(pt, today), 'lovecounter');
++
++    const an = parseISO(S.anniversary);
++    if (an && an <= today) {
++      const yr = nextYearly(an, today);
++      const years = yr.getFullYear() - an.getFullYear();
++      if (years > 0) add('💕', `${ordinal(years)} anniversary`, yr, 'lovecounter');
++
++      // monthly anniversary
++      let y = today.getFullYear(), m = today.getMonth();
++      const mk = (yy, mm) => new Date(yy, mm, Math.min(an.getDate(), new Date(yy, mm + 1, 0).getDate()));
++      let nm = mk(y, m);
++      if (nm < today) { m++; if (m > 11) { m = 0; y++; } nm = mk(y, m); }
++      const months = (nm.getFullYear() - an.getFullYear()) * 12 + nm.getMonth() - an.getMonth();
++      if (months > 0 && months % 12 !== 0) add('🥂', `${months} months together`, nm, 'lovecounter');
++
++      // next "day N" milestone
++      const together = dayDiff(an, today);
++      const mark = DAY_MARKS.find(n => n >= together);
++      if (mark) add('✨', `Day ${mark} together`, new Date(an.getFullYear(), an.getMonth(), an.getDate() + mark), 'lovecounter');
++    }
++
++    (S.events || []).forEach(e => {
++      const d = parseISO(e.date);
++      if (d && d >= today && e.title) add(EV_ICON[e.cat] || '📌', e.title, d, 'calendar', e.time || '');
++    });
++    (S.milestones || []).forEach(m => {
++      const d = parseISO(m.date);
++      if (d && d >= today && m.title) add(m.type || '💫', m.title, d, 'lovecounter');
++    });
++
++    out.sort((a, b) => a.days - b.days);
++    return out.slice(0, 8);
++  }
++
++  function renderEvents() {
++    const row = $('dwEvents');
++    if (!row) return;
++    const items = collectEvents();
++    row.replaceChildren();
++    if (!items.length) {
++      const b = el('button', 'dw-ev is-empty');
++      b.type = 'button';
++      b.append(el('span', 'dw-ev-ico', '📅'));
++      const t = el('span', 'dw-ev-tx');
++      t.append(el('b', '', 'Nothing planned yet'), el('i', '', 'Add a birthday, anniversary or plan'));
++      b.append(t);
++      b.onclick = () => goto('calendar');
++      row.append(b);
++      return;
++    }
++    items.forEach(it => {
++      const b = el('button', 'dw-ev' + (it.days === 0 ? ' is-today' : ''));
++      b.type = 'button';
++      b.append(el('span', 'dw-ev-ico', it.icon));
++      const t = el('span', 'dw-ev-tx');
++      const when = it.days === 0 ? 'Today' : it.days === 1 ? 'Tomorrow' : `in ${it.days} days`;
++      t.append(el('b', '', it.title), el('i', '', `${when} · ${fmtShort(it.date)}${it.sub ? ' · ' + it.sub : ''}`));
++      b.append(t, el('span', 'dw-ev-d', it.days === 0 ? '🎉' : it.days + 'd'));
++      b.onclick = () => goto(it.page);
++      row.append(b);
++    });
++  }
++
++  /* ───────────────────────── MOODS (one set per person) ─────────────────────────
++     Stored at S.profile.u1|u2.moods = { 'YYYY-MM-DD': 'Happy' }.
++     Each person only ever writes their own entry (the server enforces this too),
++     so the two moods never overwrite each other. */
++  const MOODS = {
++    Excited:  { e: '🤩', c: '#f5b301', s: 5 },
++    Loved:    { e: '🥰', c: '#ff7aa8', s: 5 },
++    Happy:    { e: '😊', c: '#ffd43b', s: 4 },
++    Peaceful: { e: '😌', c: '#8fc46a', s: 4 },
++    Tired:    { e: '🥱', c: '#b08968', s: 2 },
++    Stressed: { e: '😤', c: '#ff9248', s: 2 },
++    Sad:      { e: '😔', c: '#a779f2', s: 1 },
++    Angry:    { e: '😡', c: '#ef5350', s: 1 },
++  };
++  const moodKey = str => {
++    const w = String(str || '').replace(/^[^A-Za-z]+/, '').trim().toLowerCase();
++    return Object.keys(MOODS).find(k => k.toLowerCase() === w) || null;
++  };
++  const myRk = () => (S.role === 'user2' ? 'u2' : 'u1');
++  const ptRk = () => (S.role === 'user2' ? 'u1' : 'u2');
++  const ptName = () => S.partnerName || 'Partner';
++  const hasPartner = () => !!S.paired;
++  const moodOf = (rk, dateKey) => {
++    const m = S.profile && S.profile[rk] && S.profile[rk].moods;
++    const k = m && m[dateKey];
++    return MOODS[k] ? k : null;
++  };
++
++  // Writes MY mood only. mirror=true also keeps the older shared Wellness/Journal field in step.
++  function writeMine(dateKey, mk, mirror) {
++    if (!S.profile) S.profile = {};
++    const rk = myRk();
++    const entry = { ...(S.profile[rk] || {}) };
++    const moods = { ...(entry.moods || {}) };
++    if (mk) moods[dateKey] = mk; else delete moods[dateKey];
++    entry.moods = moods;
++    S.profile[rk] = entry;
++    if (mirror) {
++      if (!S.wellness) S.wellness = {};
++      if (!S.wellness[dateKey]) S.wellness[dateKey] = {};
++      if (mk) {
++        S.wellness[dateKey].mood = `${MOODS[mk].e} ${mk}`;
++        if (dateKey === todayKey()) S.selectedMood = S.wellness[dateKey].mood;
++      } else delete S.wellness[dateKey].mood;
++    }
++    save();
++  }
++  function setMood(dateKey, mk) { writeMine(dateKey, mk, true); renderMood(); renderCal(); }
++
++  // Other parts of the app set today's mood too (sidebar quick mood, Wellness save) — mirror those into my set.
++  function hookLegacy() {
++    [['quickMood', a => a[1]], ['saveWellness', () => S.selectedMood]].forEach(([name, pick]) => {
++      const fn = window[name];
++      if (typeof fn !== 'function' || fn._dw) return;
++      const wrapped = function () {
++        const r = fn.apply(this, arguments);
++        try { const mk = moodKey(pick(arguments)); if (mk) { writeMine(todayKey(), mk, false); renderMood(); } } catch (_) { /* never break the app's own handler */ }
++        return r;
++      };
++      wrapped._dw = true;
++      window[name] = wrapped;
++    });
++  }
++
++  function lastDays(n) {            // oldest → newest, ending today (app's own "today")
++    const end = parseISO(todayKey()) || midnight(), out = [];
++    for (let i = n - 1; i >= 0; i--) out.push(new Date(end.getFullYear(), end.getMonth(), end.getDate() - i));
++    return out;
++  }
++
++  function streak(rk) {
++    const end = parseISO(todayKey()) || midnight();
++    let i = moodOf(rk, iso(end)) ? 0 : 1, n = 0;
++    for (; i < 400; i++) {
++      if (!moodOf(rk, iso(new Date(end.getFullYear(), end.getMonth(), end.getDate() - i)))) break;
++      n++;
++    }
++    return n;
++  }
++
++  function renderMood() {
++    const card = $('dwMood');
++    if (!card) return;
++    const days = lastDays(7);
++    const W = 280, colW = W / 7;
++    const y = s => 64 - ((s - 1) / 4) * 56;
++
++    const svg = svgEl('svg', { viewBox: '0 0 280 72', class: 'dw-graph', 'aria-hidden': 'true', preserveAspectRatio: 'none' });
++    [8, 36, 64].forEach(gy => svg.append(svgEl('line', { x1: 0, x2: W, y1: gy, y2: gy, class: 'g-grid' })));
++
++    const draw = (rk, cls, r, ring) => {
++      const pts = days.map((d, i) => { const k = moodOf(rk, iso(d)); return k ? { x: colW * (i + .5), y: y(MOODS[k].s), c: MOODS[k].c } : null; });
++      let run = [];
++      const flush = () => { if (run.length > 1) svg.append(svgEl('path', { class: cls, d: run.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ') })); run = []; };
++      pts.forEach(p => { if (p) run.push(p); else flush(); });
++      flush();
++      pts.forEach(p => { if (p) svg.append(svgEl('circle', { cx: p.x, cy: p.y, r, fill: p.c, stroke: ring, 'stroke-width': ring === '#fff' ? 1.5 : 2 })); });
++    };
++    const pair = hasPartner();
++    if (pair) draw(ptRk(), 'g-line g-pt', 4.5, '#fff');
++    draw(myRk(), 'g-line', 6, '#1b121a');
++
++    const labels = el('div', 'dw-days');
++    days.forEach((d, i) => labels.append(el('span', i === 6 ? 'is-today' : '', i === 6 ? 'Today' : ['S', 'M', 'T', 'W', 'T', 'F', 'S'][d.getDay()])));
++
++    const tk = todayKey(), a = moodOf(myRk(), tk), b = pair ? moodOf(ptRk(), tk) : null, n = streak(myRk());
++    const top = el('div', 'dw-mood-top');
++    top.append(el('b', '', 'Mood'), el('span', 'dw-mood-streak', n >= 2 ? `🔥 ${n}-day streak` : 'Calendar ›'));
++
++    let sub;
++    if (!pair) sub = a ? `Today: ${MOODS[a].e} ${a}` : 'How are you feeling today?';
++    else sub = `You ${a ? MOODS[a].e : '—'}  ·  ${ptName()} ${b ? MOODS[b].e : '—'}`;
++    const kids = [top, el('p', 'dw-mood-sub', sub), svg, labels];
++    if (pair) {
++      const lg = el('div', 'dw-legend');
++      lg.append(el('span', 'you', 'You'), el('span', 'pt', ptName()));
++      kids.push(lg);
++    }
++    card.replaceChildren(...kids);
++  }
++
++  /* ── Mood calendar overlay ── */
++  let moodOv = null;
++  const cal = { y: 0, m: 0, sel: '', who: 'me' };
++
++  function buildMoodOverlay() {
++    const ov = el('div', 'dw-overlay');
++    ov.id = 'dwMoodOv';
++    ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Mood calendar');
++    const panel = el('div', 'dw-panel');
++    const bar = el('div', 'dw-bar');
++    const close = el('button', 'dw-icon'); close.type = 'button'; close.setAttribute('aria-label', 'Close'); close.innerHTML = ICON.close;
++    close.onclick = () => closeOv(ov);
++    const spacer = el('span'); spacer.style.width = '40px';
++    bar.append(close, el('h2', '', 'Mood Calendar'), spacer);
++    const sc = el('div', 'dw-scroll');
++    const seg = el('div', 'dw-seg dw-who');
++    ['me', 'pt'].forEach(w => {
++      const b = el('button'); b.type = 'button'; b.dataset.w = w;
++      b.onclick = () => { cal.who = w; renderCal(); };
++      seg.append(b);
++    });
++    sc.append(seg, el('p', 'dw-q'), el('div', 'dw-moodchips'), el('p', 'dw-ptline'));
++    const hint = el('p', 'dw-hint');
++    hint.style.textAlign = 'left';
++    const mb = el('div', 'dw-monthbar');
++    const p = el('button', 'dw-icon'); p.type = 'button'; p.innerHTML = ICON.prev; p.setAttribute('aria-label', 'Previous month');
++    const nx = el('button', 'dw-icon'); nx.type = 'button'; nx.innerHTML = ICON.next; nx.setAttribute('aria-label', 'Next month');
++    p.onclick = () => { cal.m--; if (cal.m < 0) { cal.m = 11; cal.y--; } renderCal(); };
++    nx.onclick = () => { cal.m++; if (cal.m > 11) { cal.m = 0; cal.y++; } renderCal(); };
++    mb.append(p, el('b'), nx);
++    sc.append(hint, mb, el('div', 'dw-cal'), el('div', 'dw-stats'));
++    panel.append(bar, sc);
++    ov.append(panel);
++    ov.addEventListener('click', e => { if (e.target === ov) closeOv(ov); });
++    document.body.append(ov);
++    return ov;
++  }
++
++  function renderCal() {
++    if (!moodOv) return;
++    const tk = todayKey(), pair = hasPartner();
++    if (!pair) cal.who = 'me';
++    const mine = cal.who === 'me', rk = mine ? myRk() : ptRk();
++    const sc = moodOv.querySelector('.dw-scroll');
++    const seg = sc.querySelector('.dw-who'), q = sc.querySelector('.dw-q'), chips = sc.querySelector('.dw-moodchips');
++    const ptLine = sc.querySelector('.dw-ptline'), hint = sc.querySelector('.dw-hint');
++    const monthB = sc.querySelector('.dw-monthbar b'), grid = sc.querySelector('.dw-cal'), stats = sc.querySelector('.dw-stats');
++    const nextBtn = sc.querySelectorAll('.dw-monthbar .dw-icon')[1];
++    const selD = parseISO(cal.sel), dayTxt = selD ? fmtShort(selD) : 'this day';
++
++    seg.style.display = pair ? '' : 'none';
++    seg.querySelector('[data-w="me"]').textContent = 'You';
++    seg.querySelector('[data-w="pt"]').textContent = ptName();
++    seg.querySelectorAll('button').forEach(b => b.classList.toggle('is-on', b.dataset.w === cal.who));
++
++    q.textContent = mine
++      ? (cal.sel === tk ? 'How are you feeling today?' : `How did you feel on ${dayTxt}?`)
++      : `${ptName()} on ${dayTxt}`;
++    const cur = moodOf(rk, cal.sel);
++
++    chips.replaceChildren();
++    chips.style.display = mine ? '' : 'none';
++    if (mine) {
++      Object.entries(MOODS).forEach(([k, v]) => {
++        const b = el('button', 'dw-mc' + (cur === k ? ' is-sel' : ''), `${v.e} ${k}`);
++        b.type = 'button'; b.style.setProperty('--mc', v.c);
++        b.onclick = () => setMood(cal.sel, cur === k ? null : k);
++        chips.append(b);
++      });
++    }
++    // the other person's mood for the selected day
++    const other = mine ? moodOf(ptRk(), cal.sel) : cur;
++    ptLine.style.display = (pair && (mine || true)) ? '' : 'none';
++    if (pair) {
++      if (mine) ptLine.textContent = other ? `${ptName()} felt ${MOODS[other].e} ${other}` : `${ptName()} hasn't logged this day`;
++      else ptLine.textContent = cur ? `${MOODS[cur].e} ${cur}` : 'No mood logged this day';
++      ptLine.classList.toggle('big', !mine);
++    }
++    hint.textContent = mine
++      ? 'Tap a day to log or change its mood. Tap the same mood again to clear it.'
++      : `Viewing ${ptName()}'s moods — only they can change them.`;
++
++    monthB.textContent = new Date(cal.y, cal.m, 1).toLocaleDateString('en', { month: 'long', year: 'numeric' });
++    const tD = parseISO(tk) || midnight();
++    nextBtn.disabled = cal.y > tD.getFullYear() || (cal.y === tD.getFullYear() && cal.m >= tD.getMonth());
++    nextBtn.style.opacity = nextBtn.disabled ? .3 : 1;
++
++    grid.replaceChildren();
++    ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach(h => grid.append(el('div', 'h', h)));
++    const lead = (new Date(cal.y, cal.m, 1).getDay() + 6) % 7;
++    const dim = new Date(cal.y, cal.m + 1, 0).getDate();
++    for (let i = 0; i < lead; i++) grid.append(el('div', 'dw-cell is-blank'));
++    const counts = {}; let total = 0;
++    for (let d = 1; d <= dim; d++) {
++      const key = `${cal.y}-${pad(cal.m + 1)}-${pad(d)}`;
++      const mk = moodOf(rk, key);
++      const b = el('button', 'dw-cell' + (key === tk ? ' is-today' : '') + (key === cal.sel ? ' is-sel' : '') + (key > tk ? ' is-future' : ''));
++      b.type = 'button';
++      const c = el('span', 'c' + (mk ? ' has' : ''), mk ? MOODS[mk].e : '');
++      if (mk) { c.style.setProperty('--mc', MOODS[mk].c); counts[mk] = (counts[mk] || 0) + 1; total++; }
++      b.append(el('span', 'n', String(d)), c);
++      b.onclick = () => { cal.sel = key; renderCal(); };
++      grid.append(b);
++    }
++
++    const monthName = new Date(cal.y, cal.m, 1).toLocaleDateString('en', { month: 'long' });
++    stats.replaceChildren(el('div', 'dw-stats-n', String(total)), el('p', 'dw-stats-l', `mood${total === 1 ? '' : 's'} logged in ${monthName}${mine ? '' : ' by ' + ptName()}`));
++    const row = el('div', 'dw-stat-row');
++    Object.entries(counts).sort((a, b) => b[1] - a[1]).forEach(([k, n]) => {
++      const s = el('div', 'dw-stat'); s.style.setProperty('--mc', MOODS[k].c);
++      s.append(el('i'), document.createTextNode(String(n) + ' '), el('span', '', k));
++      row.append(s);
++    });
++    if (total) stats.append(row);
++  }
++
++  function openMood() {
++    if (!stateOK()) return;
++    if (!moodOv) moodOv = buildMoodOverlay();
++    const t = parseISO(todayKey()) || midnight();
++    cal.y = t.getFullYear(); cal.m = t.getMonth(); cal.sel = todayKey(); cal.who = 'me';
++    renderCal();
++    requestAnimationFrame(() => moodOv.classList.add('open'));
++  }
++
++  /* ───────────────────────── PHOTO EDITOR ───────────────────────── */
++  const SLOTS = [
++    ['idle', 'Idle', '/images/dashboard/idle.svg'],
++    ['hug', 'Hug', '/images/dashboard/hug.svg'],
++    ['touch', 'Touch', '/images/dashboard/touch.svg'],
++    ['miss', 'Miss You', '/images/dashboard/miss.svg'],
++  ];
++  const OUT_W = 1280, OUT_H = 720, MAX_Z = 4;
++  let photoOv = null, ph = null;
++  const pending = {};                          // slot -> { url, img, nw, nh, z, x, y, W, H, base, file }
++  let slot = 'idle', busy = false;
++
++  function applyImages() {
++    if (!stateOK()) return;
++    SLOTS.forEach(([k, , def]) => {
++      const img = document.querySelector(`#dhCard .dh-img[data-k="${k}"]`);
++      const url = (S.dashImgs && S.dashImgs[k] && S.dashImgs[k].url) || def;
++      if (img && img.getAttribute('src') !== url) img.setAttribute('src', url);
++    });
++  }
++  const currentUrl = k => (S.dashImgs && S.dashImgs[k] && S.dashImgs[k].url) || SLOTS.find(s => s[0] === k)[2];
++
++  function buildPhotoOverlay() {
++    const ov = el('div', 'dw-overlay');
++    ov.id = 'dwPhotoOv';
++    ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Change card photos');
++    const panel = el('div', 'dw-panel');
++
++    const bar = el('div', 'dw-bar');
++    const close = el('button', 'dw-icon'); close.type = 'button'; close.innerHTML = ICON.close; close.setAttribute('aria-label', 'Close');
++    close.onclick = () => closeOv(ov);
++    const sp = el('span'); sp.style.width = '40px';
++    bar.append(close, el('h2', '', 'Card photos'), sp);
++
++    const sc = el('div', 'dw-scroll');
++    const seg = el('div', 'dw-seg');
++    const segBtns = {};
++    SLOTS.forEach(([k, label]) => {
++      const b = el('button', '', label); b.type = 'button';
++      b.onclick = () => { if (!busy) { slot = k; refreshEditor(); } };
++      segBtns[k] = b; seg.append(b);
++    });
++
++    const stage = el('div', 'dw-stage');
++    const stat = el('img', 'static'); stat.alt = ''; stat.draggable = false;
++    const crop = el('img', 'crop'); crop.alt = ''; crop.draggable = false; crop.style.display = 'none';
++    stage.append(stat, crop, el('div', 'grid'), el('div', 'dw-badge', '16:9'));
++
++    const hint = el('p', 'dw-hint');
++    const zoom = el('div', 'dw-zoom');
++    const zin = el('input'); zin.type = 'range'; zin.min = '100'; zin.max = String(MAX_Z * 100); zin.value = '100'; zin.setAttribute('aria-label', 'Zoom');
++    const zi1 = el('span'); zi1.innerHTML = ICON.minus; const zi2 = el('span'); zi2.innerHTML = ICON.plus;
++    zoom.append(zi1.firstChild, zin, zi2.firstChild);
++    const reset = el('button', 'dw-reset', 'Use default picture'); reset.type = 'button'; reset.hidden = true;
++    sc.append(seg, stage, hint, zoom, reset);
++
++    const foot = el('div', 'dw-foot');
++    const change = el('button', 'dw-btn'); change.type = 'button'; change.innerHTML = ICON.image + '<span>Change photo</span>';
++    const saveB = el('button', 'dw-btn primary'); saveB.type = 'button'; saveB.innerHTML = ICON.check + '<span>Save</span>';
++    foot.append(change, saveB);
++
++    const file = el('input'); file.type = 'file'; file.accept = 'image/*'; file.style.display = 'none';
++    panel.append(bar, sc, foot, file);
++    ov.append(panel);
++    ov.addEventListener('click', e => { if (e.target === ov) closeOv(ov); });
++    document.body.append(ov);
++
++    ph = { ov, segBtns, stage, stat, crop, hint, zoom, zin, reset, change, saveB, file };
++    wireEditor();
++    return ov;
++  }
++
++  function cur() { return pending[slot] || null; }
++  function geom(p) { const r = ph.stage.getBoundingClientRect(); p.W = r.width; p.H = r.height; p.base = Math.max(p.W / p.nw, p.H / p.nh); }
++  function clampP(p) {
++    const s = p.base * p.z;
++    p.x = Math.min(0, Math.max(p.W - p.nw * s, p.x));
++    p.y = Math.min(0, Math.max(p.H - p.nh * s, p.y));
++  }
++  function paint(p) {
++    const s = p.base * p.z;
++    ph.crop.style.width = p.nw + 'px'; ph.crop.style.height = p.nh + 'px';
++    ph.crop.style.transform = `translate(${p.x}px,${p.y}px) scale(${s})`;
++    ph.zin.value = String(Math.round(p.z * 100));
++  }
++  function zoomAt(p, z, px, py) {
++    z = Math.min(MAX_Z, Math.max(1, z));
++    const so = p.base * p.z, ix = (px - p.x) / so, iy = (py - p.y) / so;
++    p.z = z;
++    const sn = p.base * p.z;
++    p.x = px - ix * sn; p.y = py - iy * sn;
++    clampP(p); paint(p);
++  }
++
++  function wireEditor() {
++    const { stage, zin, file, change, saveB, reset } = ph;
++    const ptrs = new Map(); let pinch = null;
++    const rel = e => { const r = stage.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
++
++    stage.addEventListener('pointerdown', e => {
++      if (!cur()) return;
++      stage.setPointerCapture(e.pointerId);
++      ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
++      if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: cur().z }; }
++    });
++    stage.addEventListener('pointermove', e => {
++      const p = cur(); if (!p || !ptrs.has(e.pointerId)) return;
++      const prev = ptrs.get(e.pointerId);
++      ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
++      if (ptrs.size === 1) {
++        p.x += e.clientX - prev.x; p.y += e.clientY - prev.y;
++        clampP(p); paint(p);
++      } else if (ptrs.size === 2 && pinch) {
++        const [a, b] = [...ptrs.values()];
++        const d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
++        const r = stage.getBoundingClientRect();
++        zoomAt(p, pinch.z * d / pinch.d, (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top);
++      }
++    });
++    const up = e => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; };
++    stage.addEventListener('pointerup', up);
++    stage.addEventListener('pointercancel', up);
++    stage.addEventListener('wheel', e => {
++      const p = cur(); if (!p) return;
++      e.preventDefault();
++      const o = rel(e);
++      zoomAt(p, p.z * Math.exp(-e.deltaY * 0.0015), o.x, o.y);
++    }, { passive: false });
++    zin.addEventListener('input', () => { const p = cur(); if (p) zoomAt(p, zin.value / 100, p.W / 2, p.H / 2); });
++
++    change.onclick = () => { if (!busy) file.click(); };
++    file.onchange = () => { const f = file.files && file.files[0]; file.value = ''; if (f) loadFile(f); };
++    saveB.onclick = saveSlot;
++    reset.onclick = resetSlot;
++    window.addEventListener('resize', () => { const p = cur(); if (p && ph.ov.classList.contains('open')) { const s0 = p.base * p.z; geom(p); p.z = Math.max(1, Math.min(MAX_Z, s0 / p.base)); clampP(p); paint(p); } });
++  }
++
++  function loadFile(f) {
++    if (!/^image\//.test(f.type)) { say('Please choose an image'); return; }
++    if (f.size > 30 * 1024 * 1024) { say('That photo is too large (max 30 MB)'); return; }
++    const url = URL.createObjectURL(f), img = new Image();
++    img.onload = () => {
++      if (pending[slot]) URL.revokeObjectURL(pending[slot].url);
++      const p = { url, img, nw: img.naturalWidth, nh: img.naturalHeight, z: 1, x: 0, y: 0 };
++      pending[slot] = p;
++      ph.crop.src = url;
++      refreshEditor();                                    // makes crop visible so geom() can measure the stage
++      geom(p);
++      p.x = (p.W - p.nw * p.base) / 2; p.y = (p.H - p.nh * p.base) / 2;
++      clampP(p); paint(p);
++    };
++    img.onerror = () => { URL.revokeObjectURL(url); say("Couldn't open that image"); };
++    img.src = url;
++  }
++
++  function refreshEditor() {
++    if (!ph) return;
++    SLOTS.forEach(([k]) => ph.segBtns[k].classList.toggle('is-on', k === slot));
++    const p = cur();
++    ph.stage.classList.toggle('is-crop', !!p);
++    ph.crop.style.display = p ? 'block' : 'none';
++    if (p) { ph.crop.src = p.url; geom(p); clampP(p); paint(p); }
++    ph.stat.style.display = p ? 'none' : 'block';
++    ph.stat.src = currentUrl(slot);
++    ph.zoom.classList.toggle('on', !!p);
++    ph.hint.textContent = p ? 'Drag to move · pinch or use the slider to zoom' : 'Tap “Change photo” to pick a new picture for this card';
++    ph.saveB.disabled = !p || busy;
++    ph.change.disabled = busy;
++    ph.reset.hidden = !!p || !(S.dashImgs && S.dashImgs[slot]);
++  }
++
++  async function saveSlot() {
++    const p = cur();
++    if (!p || busy) return;
++    if (typeof uploadMediaFile !== 'function' || !S.coupleId) { say('Please sign in to save photos'); return; }
++    busy = true; refreshEditor();
++    const label = ph.saveB.querySelector('span'); label.textContent = 'Saving…';
++    try {
++      const s = p.base * p.z;
++      const c = document.createElement('canvas'); c.width = OUT_W; c.height = OUT_H;
++      const ctx = c.getContext('2d');
++      ctx.imageSmoothingQuality = 'high';
++      ctx.drawImage(p.img, -p.x / s, -p.y / s, p.W / s, p.H / s, 0, 0, OUT_W, OUT_H);
++      const blob = await new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('Could not process the image')), 'image/jpeg', 0.88));
++      const up = await uploadMediaFile(blob, `dashboard-${slot}.jpg`, 'image');
++      const old = S.dashImgs && S.dashImgs[slot];
++      if (!S.dashImgs) S.dashImgs = {};
++      S.dashImgs[slot] = { url: up.url, path: up.path || '' };
++      save();
++      deleteOld(old);
++      URL.revokeObjectURL(p.url); delete pending[slot];
++      applyImages();
++      say('Photo saved 💕');
++    } catch (err) {
++      say(err && err.message ? err.message : 'Could not save the photo');
++    } finally {
++      busy = false; label.textContent = 'Save'; refreshEditor();
++    }
++  }
++
++  function deleteOld(old) {
++    if (!old || !old.path || typeof API === 'undefined') return;
++    try {
++      fetch(API + '/api/media/delete', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: old.path, coupleId: S.coupleId }) }).catch(() => {});
++    } catch (_) { /* best effort */ }
++  }
++
++  function resetSlot() {
++    const old = S.dashImgs && S.dashImgs[slot];
++    if (!old) return;
++    delete S.dashImgs[slot];
++    save(); deleteOld(old); applyImages(); refreshEditor();
++    say('Back to the default picture');
++  }
++
++  function openPhotos(which) {
++    if (!stateOK()) return;
++    if (!photoOv) photoOv = buildPhotoOverlay();
++    slot = SLOTS.some(s => s[0] === which) ? which : 'idle';
++    photoOv.classList.add('open');
++    requestAnimationFrame(refreshEditor);
++  }
++
++  /* ───────────────────────── shared ───────────────────────── */
++  function closeOv(ov) { ov.classList.remove('open'); }
++  document.addEventListener('keydown', e => {
++    if (e.key !== 'Escape') return;
++    const o = document.querySelector('.dw-overlay.open');
++    if (o) closeOv(o);
++  });
++
++  /* ───────────────────────── ALL PAGES + QUOTE ───────────────────────── */
++  const PAGES = [
++    ['chat', '💬', 'Chat'], ['map', '📍', 'Live Map'], ['ai', '🤖', 'Twin'], ['lovecounter', '❤️', 'Love Counter'],
++    ['profile', '💑', 'Profile'], ['level', '🏆', 'Level'], ['fights', '🥊', 'Fight Log'], ['globe', '🌍', 'Globe'],
++    ['places', '📌', 'Places'], ['collection', '🎁', 'Collection'], ['capsule', '💌', 'Capsule'], ['surprise', '🎉', 'Surprises'],
++    ['money', '💰', 'Money'], ['games', '🎮', 'Games'], ['study', '📚', 'Study'], ['dreamgoals', '🎯', 'Dream Goals'],
++    ['dreamhome', '🏡', 'Dream Home'], ['virtualhome', '🏠', '3D Home'], ['myspace', '🌸', 'My Space'], ['period', '🌙', 'Period'],
++    ['vault', '🔒', 'Vault'], ['settings', '⚙️', 'Settings'],
++  ];
++  const FOOT_QUOTES = [
++    'Love is not about how many miles are between us, but how close we stay in our hearts.',
++    'The best part of my day is the moment I get to talk to you.',
++    'Distance is just a test of how far love can travel.',
++    'Every “good morning” from you makes the day softer.',
++    'Waiting for you is hard, but you are worth every day of it.',
++    'Two places, one heart.',
++    'I carry you with me, wherever the map says I am.',
++    'Small moments with you become my favourite memories.',
++    'Love grows quietly, one message at a time.',
++    'Somewhere between hello and goodnight, I fall for you again.',
++  ];
++
++  function renderPages() {
++    const g = $('dwPages');
++    if (!g || g.childElementCount) return;               // static list — build once
++    PAGES.forEach(([page, emoji, label]) => {
++      const b = el('button', 'dw-page'); b.type = 'button';
++      b.append(el('span', 'e', emoji), el('span', 'l', label));
++      b.onclick = () => goto(page);
++      g.append(b);
++    });
++  }
++  function renderQuote() {
++    const q = $('dwQuote');
++    if (!q) return;
++    const day = Math.floor(Date.now() / 86400000);
++    q.textContent = FOOT_QUOTES[(day * 3 + 1) % FOOT_QUOTES.length];   // offset so it differs from the hero quote
++  }
++
++  /* ───────────────────────── public ───────────────────────── */
++  function render() {
++    if (!stateOK()) return;
++    applyImages();
++    renderEvents();
++    renderMood();
++    renderPages();
++    renderQuote();
++  }
++
++  function init() {
++    hookLegacy();
++    const edit = $('dhEditBtn'); if (edit) edit.onclick = () => openPhotos(photoSlotForCard());
++    const mood = $('dwMood'); if (mood) mood.onclick = openMood;
++    const ml = $('dwMoodLink'); if (ml) ml.onclick = openMood;
++    // keep "in N days" / streak fresh across midnight while the tab stays open
++    setInterval(() => { if (!document.hidden) render(); }, 5 * 60 * 1000);
++  }
++  function photoSlotForCard() {
++    const on = document.querySelector('#dhCard .dh-img.is-on');
++    return on ? on.dataset.k : 'idle';
++  }
++
++  return { render, init, openMood, openPhotos };
++})();
++
++window.DashWidgets = DashWidgets;
++(function autoInit() {
++  const go = () => { DashWidgets.init(); DashWidgets.render(); };
++  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
++})();
+diff --git a/public/dashboard.js b/public/dashboard.js
+index 17b71d9..1233236 100644
+--- a/public/dashboard.js
++++ b/public/dashboard.js
+@@ -47,7 +47,7 @@ const Dashboard = (() => {
+     if (typeof setAvImg === 'function') setAvImg('dashAv', window.S && S.myAvatar);
+   }
+ 
+-  function render() { renderHero(); ConnCard.render(); }
++  function render() { renderHero(); ConnCard.render(); if (window.DashWidgets) DashWidgets.render(); }
+   return { render };
+ })();
+ 
+diff --git a/public/gender-access.css b/public/gender-access.css
+new file mode 100644
+index 0000000..4e7bb3c
+--- /dev/null
++++ b/public/gender-access.css
+@@ -0,0 +1,22 @@
++/* Girl/Boy chooser sheet + Period page read-only mode (see gender-access.js) */
++.ga-overlay { position: fixed; inset: 0; z-index: 3100; display: flex; align-items: flex-end; justify-content: center; background: rgba(0, 0, 0, .55); opacity: 0; visibility: hidden; transition: opacity .25s ease, visibility 0s linear .25s; }
++.ga-overlay.open { opacity: 1; visibility: visible; transition: opacity .25s ease; }
++.ga-sheet { width: min(460px, 100%); padding: 10px 22px calc(22px + env(safe-area-inset-bottom, 0px)); border-radius: 28px 28px 0 0; background: #1a1019; color: #fff; text-align: center; transform: translateY(40px); transition: transform .3s cubic-bezier(.2, .8, .2, 1); }
++.ga-overlay.open .ga-sheet { transform: none; }
++.ga-grab { width: 40px; height: 4px; margin: 0 auto 16px; border-radius: 4px; background: rgba(255, 255, 255, .25); }
++.ga-sheet h3 { margin: 0 0 8px; font: 600 20px var(--ff-sans); }
++.ga-sheet p { margin: 0 0 20px; font: 400 13.5px/1.5 var(--ff-sans); color: rgba(255, 255, 255, .65); }
++.ga-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
++.ga-row button { height: 108px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border-radius: 22px; border: 1.5px solid rgba(255, 255, 255, .18); background: rgba(255, 255, 255, .06); color: #fff; font: 600 15px var(--ff-sans); cursor: pointer; -webkit-tap-highlight-color: transparent; }
++.ga-row button span { font-size: 34px; line-height: 1; }
++.ga-row button:active { transform: scale(.96); background: rgba(255, 255, 255, .14); }
++.ga-later { margin-top: 14px; padding: 10px 16px; border: 0; background: none; color: rgba(255, 255, 255, .55); font: 600 13px var(--ff-sans); cursor: pointer; }
++
++.ga-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding: 12px 14px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, .14); background: rgba(255, 255, 255, .07); font: 500 12.5px/1.45 var(--ff-sans); color: var(--text2, rgba(255, 255, 255, .7)); }
++.ga-banner[hidden] { display: none; }
++.ga-banner button { flex-shrink: 0; height: 32px; padding: 0 14px; border-radius: 16px; border: 0; background: var(--accent); color: #fff; font: 600 12px var(--ff-sans); cursor: pointer; }
++
++/* view-only: hide every control that changes data */
++#page-period.is-readonly .btn,
++#page-period.is-readonly .del-btn { display: none !important; }
++#page-period.is-readonly .symptom-tag { pointer-events: none; }
+diff --git a/public/gender-access.js b/public/gender-access.js
+new file mode 100644
+index 0000000..f68b021
+--- /dev/null
++++ b/public/gender-access.js
+@@ -0,0 +1,131 @@
++/* ══════════════════════════════════════════════════════════════
++   GENDER ACCESS — "Girl / Boy" choice and what it controls.
++   Stored in the shared state at S.profile.u1|u2.gender ('female' | 'male')
++   (same per-person profile entry the app already uses for name/bday/avatar).
++   The signup screen (landing.html) remembers the choice on this device as
++   localStorage 'uwl_gender_<userId>'; it is copied into the profile on first load.
++
++   Period page rule:
++     girl  → can log periods, save symptoms, delete entries (full access)
++     boy   → sees everything, read-only
++     not chosen yet → read-only, and we ask once ("Not now" is allowed)
++   The server also refuses period/symptom changes from an account marked 'male'
++   (routes/data.js), so a stale copy on a boy's device can't overwrite her data.
++   ══════════════════════════════════════════════════════════════ */
++'use strict';
++
++const Gender = (() => {
++  const valid = g => g === 'female' || g === 'male';
++  const rk = () => (window.S && S.role === 'user2' ? 'u2' : 'u1');
++  const otherRk = () => (rk() === 'u1' ? 'u2' : 'u1');
++  const lsKey = () => 'uwl_gender_' + (window.S && S.userId);
++  const say = m => { if (typeof toast === 'function') toast(m); };
++  const partnerName = () => (window.S && S.partnerName) || 'your partner';
++
++  function mine() {
++    if (!window.S) return '';
++    const g = S.profile && S.profile[rk()] && S.profile[rk()].gender;
++    if (valid(g)) return g;
++    try { const l = localStorage.getItem(lsKey()); if (valid(l)) return l; } catch (_) { /* private mode */ }
++    return '';
++  }
++  function partner() {
++    const g = window.S && S.profile && S.profile[otherRk()] && S.profile[otherRk()].gender;
++    return valid(g) ? g : '';
++  }
++  function set(g) {
++    if (!valid(g) || !window.S) return;
++    if (!S.profile) S.profile = {};
++    S.profile[rk()] = { ...(S.profile[rk()] || {}), gender: g };
++    try { localStorage.setItem(lsKey(), g); } catch (_) { /* ignore */ }
++    if (typeof scheduleSave === 'function') scheduleSave();
++    applyPeriodAccess();
++  }
++  const canEditPeriod = () => mine() === 'female';
++
++  function guardPeriod() {
++    if (canEditPeriod()) return true;
++    say(mine() ? 'Only the girl can change the period data 💗' : 'Choose Girl or Boy first to edit this page');
++    return false;
++  }
++
++  /* ── Period page: view-only mode + banner ── */
++  function applyPeriodAccess() {
++    const page = document.getElementById('page-period');
++    if (!page || !window.S) return;
++    const edit = canEditPeriod();
++    page.classList.toggle('is-readonly', !edit);
++    let b = page.querySelector(':scope > .ga-banner');
++    if (!b) { b = document.createElement('div'); b.className = 'ga-banner'; page.prepend(b); }
++    b.hidden = edit;
++    if (edit) return;
++    b.replaceChildren();
++    const t = document.createElement('span');
++    if (mine() === 'male') {
++      t.textContent = `👀 View only — ${partnerName()} manages this page. You can follow everything they log.`;
++      b.append(t);
++    } else {
++      t.textContent = 'Tell us if you are a girl or a boy to set up this page.';
++      const btn = document.createElement('button');
++      btn.type = 'button'; btn.textContent = 'Choose';
++      btn.onclick = () => choose();
++      b.append(t, btn);
++    }
++  }
++
++  /* ── Chooser sheet ── */
++  let sheet = null;
++  function choose() {
++    if (sheet) { sheet.classList.add('open'); return; }
++    sheet = document.createElement('div');
++    sheet.className = 'ga-overlay';
++    sheet.innerHTML = `
++      <div class="ga-sheet" role="dialog" aria-label="Choose Girl or Boy">
++        <div class="ga-grab"></div>
++        <h3>One quick thing 💕</h3>
++        <p>Are you a girl or a boy? This sets the right access on the Period page. You can change it later in Settings.</p>
++        <div class="ga-row">
++          <button type="button" data-g="female"><span>👩</span>Girl</button>
++          <button type="button" data-g="male"><span>👨</span>Boy</button>
++        </div>
++        <button type="button" class="ga-later">Not now</button>
++      </div>`;
++    sheet.addEventListener('click', e => {
++      const g = e.target.closest('[data-g]');
++      if (g) { set(g.dataset.g); sheet.classList.remove('open'); say('Saved 💕'); return; }
++      if (e.target.closest('.ga-later') || e.target === sheet) { sheet.classList.remove('open'); try { sessionStorage.setItem('uwl_gender_later', '1'); } catch (_) {} }
++    });
++    document.body.append(sheet);
++    requestAnimationFrame(() => sheet.classList.add('open'));
++  }
++
++  /* ── On load: copy the signup choice into the profile; ask once if still unknown ── */
++  function ensure() {
++    if (!window.S || !S.userId) return false;
++    const g = mine();
++    if (g) {
++      if (!(S.profile && S.profile[rk()] && S.profile[rk()].gender === g)) set(g);   // push local choice into the shared profile
++      applyPeriodAccess();
++      return true;
++    }
++    applyPeriodAccess();
++    let later = false; try { later = sessionStorage.getItem('uwl_gender_later') === '1'; } catch (_) {}
++    if (!later) choose();
++    return true;
++  }
++
++  function init() {
++    let tries = 0;
++    const iv = setInterval(() => {
++      tries++;
++      // wait for the cloud copy of the profile to arrive before deciding the gender is unknown
++      if (window.S && S.userId && S.setupDone && tries >= 6) { clearInterval(iv); ensure(); }
++      else if (tries > 40) clearInterval(iv);
++    }, 1000);
++  }
++
++  return { mine, partner, set, canEditPeriod, guardPeriod, applyPeriodAccess, choose, ensure, init };
++})();
++
++window.Gender = Gender;
++if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', Gender.init); else Gender.init();
+diff --git a/public/index.html b/public/index.html
+index 9c37c1d..c5723f9 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -5013,6 +5013,8 @@ select option { background: #0D0D0D; color: #fff; }
+   <script src="/safe-delete.js"></script>
+   <link rel="stylesheet" href="/glass-nav.css">
+   <link rel="stylesheet" href="/dashboard.css">
++  <link rel="stylesheet" href="/dashboard-widgets.css">
++  <link rel="stylesheet" href="/gender-access.css">
+ </head>
+ 
+ <body class="t-blue">
+@@ -5499,12 +5501,13 @@ select option { background: #0D0D0D; color: #fff; }
+             </div>
+ 
+             <nav class="dh-chips" aria-label="Shortcuts">
+-              <button class="dh-chip is-primary" type="button" onclick="goto('chat')"><svg viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>Chat</button>
+-              <button class="dh-chip" type="button" onclick="goto('map')"><svg viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Map</button>
+-              <button class="dh-chip" type="button" onclick="goto('camera')"><svg viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Memories</button>
++              <button class="dh-chip is-primary" type="button" onclick="goto('camera')"><svg viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Memories</button>
+               <button class="dh-chip" type="button" onclick="goto('calendar')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Calendar</button>
+               <button class="dh-chip" type="button" onclick="goto('music')"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>Music</button>
+-              <button class="dh-chip" type="button" onclick="goto('ai')"><svg viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>Twin</button>
++              <button class="dh-chip" type="button" onclick="goto('movie')"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.2"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5"/></svg>Movie</button>
++              <button class="dh-chip" type="button" onclick="goto('meetplanner')"><svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>Meet Planner</button>
++              <button class="dh-chip" type="button" onclick="goto('bucket')"><svg viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8M13 12h8M13 18h8"/></svg>Bucket List</button>
++              <button class="dh-chip" type="button" onclick="goto('dailyroutine')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Daily Routine</button>
+             </nav>
+           </div>
+ 
+@@ -5515,6 +5518,7 @@ select option { background: #0D0D0D; color: #fff; }
+               <img class="dh-img"       data-k="hug"   src="/images/dashboard/hug.svg"   alt="" decoding="async">
+               <img class="dh-img"       data-k="touch" src="/images/dashboard/touch.svg" alt="" decoding="async">
+               <img class="dh-img"       data-k="miss"  src="/images/dashboard/miss.svg"  alt="" decoding="async">
++              <button class="dh-edit" id="dhEditBtn" type="button" aria-label="Change card photos"><svg viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></button>
+               <div class="dh-shade"></div>
+               <div class="dh-cap" id="dhCaption">Send some love 💕</div>
+               <div class="dh-actions">
+@@ -5523,6 +5527,22 @@ select option { background: #0D0D0D; color: #fff; }
+                 <button class="dh-act" id="ccMissBtn"  type="button" onclick="ConnCard.sendMissYou()">🥺 Miss You</button>
+               </div>
+             </div>
++
++            <div class="dw-block">
++              <div class="dw-head"><h2 class="dw-title">Coming up</h2><button class="dw-link" type="button" onclick="goto('calendar')">Calendar ›</button></div>
++              <div class="dw-events" id="dwEvents"></div>
++            </div>
++
++            <div class="dw-block">
++              <button class="dw-mood" id="dwMood" type="button" aria-label="Open mood calendar"></button>
++            </div>
++
++            <div class="dw-block">
++              <div class="dw-head"><h2 class="dw-title">All pages</h2></div>
++              <div class="dw-pages" id="dwPages"></div>
++            </div>
++
++            <div class="dw-quote"><p id="dwQuote"></p></div>
+           </section>
+         </div>
+       </div>
+@@ -6788,6 +6808,7 @@ select option { background: #0D0D0D; color: #fff; }
+             </div>
+             <div class="field" style="width:100%;margin-bottom:8px"><label>📅 Anniversary / Together Since</label><input
+     type="date" id="setAnniv"></div>
++<div class="field" style="width:100%;margin-bottom:8px"><label>🙋 I am</label><select id="setMyGender"><option value="">Choose…</option><option value="female">👩 Girl</option><option value="male">👨 Boy</option></select></div>
+ <div class="row2" style="width:100%">
+   <div class="field" style="margin-bottom:0"><label>🎂 Your Birthday</label><input type="date" id="setMyBday"></div>
+   <div class="field" style="margin-bottom:0"><label>🎂 Partner's Birthday</label><input type="date" id="setPtBday"></div>
+@@ -7588,7 +7609,7 @@ function roleKey() { return S.role === 'user1' ? 'u1' : 'u2'; }
+ function otherKey() { return S.role === 'user1' ? 'u2' : 'u1'; }
+ function pushMyProfile() {
+   if (!S.profile) S.profile = {};
+-  S.profile[roleKey()] = { name: S.myName || '', bday: S.myBday || '', avatar: S.myAvatar || '' };
++  S.profile[roleKey()] = { ...(S.profile[roleKey()] || {}), name: S.myName || '', bday: S.myBday || '', avatar: S.myAvatar || '' };   // spread keeps gender + moods
+ }
+ function pullPartnerProfile() {
+   const p = (S.profile || {})[otherKey()];
+@@ -8672,7 +8693,7 @@ function setJustPairedAt(ts) {
+                 window.TwinVoice.exit(); return;
+               }
+               // 1) An open modal takes priority — just close it.
+-              const openModal = document.querySelector('.modal-bg.open');
++              const openModal = document.querySelector('.modal-bg.open, .dw-overlay.open');
+               if (openModal) { openModal.classList.remove('open'); return; }
+               // 2) Not on the dashboard — step back ONE entry through the
+               //    real navigation stack (same stack goto() has been
+@@ -8856,6 +8877,7 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
+           document.getElementById('setAnniv').value = S.anniversary || '';
+           document.getElementById('setMyBday').value = S.myBday || '';
+           document.getElementById('setPtBday').value = S.ptBday || '';
++          { const sg = document.getElementById('setMyGender'); if (sg && window.Gender) sg.value = Gender.mine(); }
+           if (S.myAvatar) setAvImg('settingsAv1', S.myAvatar);
+           // Toggle states
+           ['autoLockToggle', 'dndToggle', 'celebToggle', 'reducedMotionToggle', 'autoSaveToggle', 'autoPlayVoice', 'aiContextToggle'].forEach(id => {
+@@ -8974,6 +8996,7 @@ const p = await Notification.requestPermission();
+   S.anniversary = document.getElementById('setAnniv').value || '';
+   S.myBday = document.getElementById('setMyBday').value || '';
+   S.ptBday = document.getElementById('setPtBday').value || '';
++  { const sg = document.getElementById('setMyGender'); if (sg && sg.value && window.Gender) Gender.set(sg.value); }
+   pushMyProfile();
+   applyNames(); scheduleSave(); renderDashboard(); toast('Settings saved! 💕'); spawnPetals(5);
+   syncLoveCounterToFrame();
+@@ -9770,6 +9793,7 @@ const p = await Notification.requestPermission();
+ 
+         // ─── PERIOD TRACKER ──────────────────────────────────────
+         function logPeriod() {
++          if (window.Gender && !Gender.guardPeriod()) return;
+           const start = document.getElementById('periodStart').value; if (!start) { toast('Enter start date'); return; }
+           if (!S.periods) S.periods = [];
+           S.periods.unshift({ id: Date.now(), start, flow: parseInt(document.getElementById('periodFlow').value) || 5, cycle: parseInt(document.getElementById('periodCycle').value) || 28, note: document.getElementById('periodNote').value });
+@@ -9777,8 +9801,8 @@ const p = await Notification.requestPermission();
+           ['periodStart', 'periodFlow', 'periodCycle', 'periodNote'].forEach(id => document.getElementById(id).value = '');
+           closeM('periodModal'); renderPeriodPage(); renderPeriodAnalytics(); scheduleSave(); toast('Period logged! 🩷');
+         }
+-        function toggleSymptom(el) { el.classList.toggle('sel'); }
+-        function saveSymptoms() { if (!S.symptoms) S.symptoms = {}; const t = todayStr(); S.symptoms[t] = Array.from(document.querySelectorAll('.symptom-tag.sel')).map(el => el.dataset.s); renderPeriodAnalytics(); scheduleSave(); toast('Symptoms saved!'); }
++        function toggleSymptom(el) { if (window.Gender && !Gender.guardPeriod()) return; el.classList.toggle('sel'); }
++        function saveSymptoms() { if (window.Gender && !Gender.guardPeriod()) return; if (!S.symptoms) S.symptoms = {}; const t = todayStr(); S.symptoms[t] = Array.from(document.querySelectorAll('.symptom-tag.sel')).map(el => el.dataset.s); renderPeriodAnalytics(); scheduleSave(); toast('Symptoms saved!'); }
+         function getPeriodPhase() {
+           if (!S.periods || !S.periods.length) return { phase: 'unknown', daysToNext: '—', cycleLen: 28, flowDays: 5 };
+           const last = S.periods[0]; const sd = new Date(last.start + 'T00:00:00'); const today = new Date(); today.setHours(0, 0, 0, 0);
+@@ -9790,6 +9814,7 @@ const p = await Notification.requestPermission();
+           return { phase, daysToNext, cycleLen: cycle, flowDays: flow };
+         }
+         function renderPeriodPage() {
++          if (window.Gender) Gender.applyPeriodAccess();
+           if (!S.periods) S.periods = [];
+           const info = getPeriodPhase();
+           const pn = { menstrual: '🔴 Menstrual', follicular: '🌼 Follicular', ovulation: '🌟 Ovulation', luteal: '🌙 Luteal', unknown: '📊 Start Tracking' };
+@@ -9876,7 +9901,7 @@ const p = await Notification.requestPermission();
+             }
+           }
+         }
+-        function delPeriod(id) { confirmDelete({ itemType: 'period entry', message: 'This period entry will be permanently deleted.', onConfirm: () => { S.periods = (S.periods || []).filter(p => p.id !== id); renderPeriodPage(); scheduleSave(); } }); }
++        function delPeriod(id) { if (window.Gender && !Gender.guardPeriod()) return; confirmDelete({ itemType: 'period entry', message: 'This period entry will be permanently deleted.', onConfirm: () => { S.periods = (S.periods || []).filter(p => p.id !== id); renderPeriodPage(); scheduleSave(); } }); }
+         function renderPeriodCalendar() {
+           const calEl = document.getElementById('periodCalDays'); if (!calEl) return;
+           const now = new Date(); const year = now.getFullYear(); const month = now.getMonth();
+@@ -13331,6 +13356,8 @@ init();
+ <script src="/chat/chat.js"></script>
+ <script src="/chat/call.js"></script>
+ <script src="/dashboard.js"></script>
++<script src="/gender-access.js"></script>
++<script src="/dashboard-widgets.js"></script>
+ <script src="/app-polish.js"></script>
+ 
+ <!-- Premium Sound System (additive, non-invasive) -->
+diff --git a/public/landing.html b/public/landing.html
+index 431fe26..f652736 100644
+--- a/public/landing.html
++++ b/public/landing.html
+@@ -308,6 +308,9 @@ body.native-auth-only #authModal .modal-close{display:none}
+ .field label{display:block;font-size:11px;color:var(--text2);margin-bottom:6px;font-weight:600;letter-spacing:.4px;text-transform:uppercase}
+ .field input,.field select{width:100%;border:1px solid var(--border);border-radius:var(--rs);padding:11px 14px;font-size:13px;font-family:var(--ff-sans);outline:none;background:var(--g1);color:var(--white);transition:all .2s}
+ .field input::placeholder{color:var(--text3)}
++.gender-pick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
++.gender-pick button{height:46px;border-radius:var(--rs);border:1px solid var(--border);background:var(--g1);color:var(--text);font:600 14px var(--ff-sans);cursor:pointer}
++.gender-pick button.on{border-color:var(--accent);background:var(--accent);color:#fff}
+ .field input:focus{border-color:var(--accent);background:var(--g2);box-shadow:0 0 0 3px rgba(188,4,29,.25)}
+ .auth-btn{width:100%;padding:14px;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--ff-sans);background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 6px 24px var(--accent-glow);transition:all .2s;margin-top:4px}
+ .auth-btn:hover{filter:brightness(1.12);transform:translateY(-1px)}
+@@ -540,6 +543,7 @@ body.native-auth-only #authModal .modal-close{display:none}
+       <div class="field"><label>Email</label><input type="email" id="regEmail" placeholder="your@email.com" autocomplete="email"></div>
+       <div class="field"><label>Password (min 6 chars)</label><input type="password" id="regPassword" placeholder="Create a password"></div>
+       <div class="field"><label>Your Name</label><input type="text" id="regMyName" placeholder="Your name" autocomplete="off"></div>
++      <div class="field"><label>I am</label><div class="gender-pick" id="regGender"><button type="button" data-g="female" onclick="pickGender('female')">👩 Girl</button><button type="button" data-g="male" onclick="pickGender('male')">👨 Boy</button></div></div>
+       <div class="field"><label>Phone Number</label><input type="tel" id="regPhone" placeholder="e.g. 1234567890" autocomplete="tel"></div>
+       <div style="font-size:11.5px;color:var(--text3);margin:-6px 0 14px;line-height:1.5">This number is only used so your partner can find you. It is never used for login.</div>
+       <button class="auth-btn" id="registerBtn" onclick="doEmailRegister()">Create Account ✨</button>
+@@ -720,6 +724,11 @@ async function doEmailLogin(){
+   }catch(e){ err.textContent=e.message; err.style.display='block'; }
+   finally{ btn.textContent='Sign In 💕'; btn.disabled=false; }
+ }
++let regGenderValue='';
++function pickGender(g){
++  regGenderValue=g;
++  document.querySelectorAll('#regGender button').forEach(b=>b.classList.toggle('on',b.dataset.g===g));
++}
+ async function doEmailRegister(){
+   const email=document.getElementById('regEmail').value.trim();
+   const pass=document.getElementById('regPassword').value;
+@@ -728,13 +737,14 @@ async function doEmailRegister(){
+   const err=document.getElementById('registerErr');
+   if(!email||!pass||!name||!phone){ err.textContent='Fill in all fields'; err.style.display='block'; return; }
+   if(pass.length<6){ err.textContent='Password must be at least 6 characters'; err.style.display='block'; return; }
++  if(!regGenderValue){ err.textContent='Please choose Girl or Boy'; err.style.display='block'; return; }
+   err.style.display='none';
+   const btn=document.getElementById('registerBtn'); btn.textContent='Creating...'; btn.disabled=true;
+   try{
+     const r=await fetch(API+'/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass,myName:name,phoneNumber:phone})});
+     const data=await r.json();
+     if(!r.ok) throw new Error(data.error||'Registration failed');
+-    saveAndGo({...data,email});
++    saveAndGo({...data,email,gender:regGenderValue});
+   }catch(e){ err.textContent=e.message; err.style.display='block'; }
+   finally{ btn.textContent='Create Account ✨'; btn.disabled=false; }
+ }
+@@ -745,6 +755,8 @@ function saveAndGo(data){
+     role:data.role||'user1', setupDone:true, paired:data.paired||false, theme:'t-blue'
+   };
+   localStorage.setItem('uwl_v5', JSON.stringify(freshState));
++  // remembered on this device; the app copies it into the shared profile on first load
++  if(data.gender){ try{ localStorage.setItem('uwl_gender_'+data.userId, data.gender); }catch(e){} }
+   try { sessionStorage.setItem('uwl_just_authenticated', data.userId); } catch(e){}
+   // Remember this account so a later reinstall can offer it in the
+   // account picker if other accounts are also signed in on this device.
+diff --git a/routes/data.js b/routes/data.js
+index 090c413..88eb5b6 100644
+--- a/routes/data.js
++++ b/routes/data.js
+@@ -185,6 +185,27 @@ router.post('/state', async (req, res) => {
+     merged.profile = { ...((prevState || {}).profile || {}), ...state.profile };
+   }
+ 
++  // Per-person data lives in profile.u1 / profile.u2 (name, bday, avatar,
++  // gender, moods). Only the person who is saving may change THEIR entry;
++  // the other person's entry always keeps what the server already has, so a
++  // device holding an out-of-date copy can never overwrite their partner's
++  // moods or profile. (Skipped when the sender is unknown — old behaviour.)
++  const senderKey = senderRole === 'user1' ? 'u1' : senderRole === 'user2' ? 'u2' : null;
++  const prevProfile = (prevState || {}).profile || {};
++  if (senderKey && state.profile) {
++    const otherKey = senderKey === 'u1' ? 'u2' : 'u1';
++    if (prevProfile[otherKey]) merged.profile[otherKey] = prevProfile[otherKey];
++  }
++
++  // Period tracker: an account marked 'male' (Girl/Boy chosen at signup) is
++  // read-only for period data. Whatever it sends for these keys is ignored.
++  const senderGender = senderKey && ((prevProfile[senderKey] || {}).gender || ((state.profile || {})[senderKey] || {}).gender);
++  if (senderGender === 'male' && prevState) {
++    ['periods', 'symptoms'].forEach(k => {
++      if (prevState[k] !== undefined) merged[k] = prevState[k];
++    });
++  }
++
+   const { error } = await supabase.from('app_state').upsert({
+     couple_id:  coupleId,
+     state:      merged,
+-- 
+2.43.0
+
