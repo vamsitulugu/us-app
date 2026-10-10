@@ -54,11 +54,11 @@
 
   var IMMERSIVE_PAGES = [
     'chat',        // messaging + in-thread call controls
-    'map',         // live map, edge-to-edge
+    // 'map' removed — Live Map is now a bottom-nav tab, so the bar must stay visible
     'camera',      // camera capture / video preview
     'globe',       // memory globe — embedded 3D iframe experience
     'virtualhome', // virtual home — embedded 3D iframe experience
-    'ai',          // AI love guide — fullscreen conversation
+    // 'ai' removed — Twin (orb) is now a bottom-nav tab, so the bar must stay visible
     'profile'      // profile editing
   ];
 

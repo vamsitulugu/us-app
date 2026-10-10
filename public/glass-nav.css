@@ -1,0 +1,193 @@
+/* ════════════════════════════════════════════════════════════════════
+   GLASS BOTTOM NAV  —  Home · Map · [Twin orb] · Movies · Settings
+   ────────────────────────────────────────────────────────────────────
+   Loaded LAST in <head> (after the inline <style> and app-polish.css).
+   Every rule is scoped under #botNav, so it out-ranks the legacy
+   .bot-nav / .bot-ni rules in index.html and app-polish.css without
+   having to delete them.
+
+   Hooks that existing code still relies on (do not rename):
+     #botNav · .bot-ni · [data-page] · .bot-ni--twin · canvas.twin-nav-orb
+     (goto/syncBotNav toggle .active, twin-mini-orb.js animates the orb,
+      app-polish.js hides the bar via body[data-immersive="1"]).
+
+   Tuning knobs — change these four numbers to resize the whole bar.
+════════════════════════════════════════════════════════════════════ */
+:root {
+  --gn-h: 60px;            /* height of the glass pill                     */
+  --gn-gap: 10px;          /* gap between pill and bottom of the screen    */
+  --gn-orb: 54px;          /* diameter of the twin orb                     */
+  --gn-orb-drop: 3px;      /* how far the orb centre sits BELOW the pill top */
+  --gn-notch: 35px;        /* radius of the circular cut-out around the orb */
+
+  /* Space pages must leave free at the bottom (pill + gap + orb overhang) */
+  --nav-reserve: calc(var(--gn-h) + var(--gn-gap) + 26px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ── Container: floating, centred, never wider than a phone ─────────── */
+#botNav.bot-nav {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: calc(var(--gn-gap) + env(safe-area-inset-bottom, 0px));
+  width: calc(100% - 24px);
+  max-width: 440px;
+  margin: 0 auto;
+  height: var(--gn-h);
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr 76px 1fr 1fr;
+  align-items: stretch;
+  justify-content: initial;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  z-index: 100;
+  will-change: transform;
+}
+
+/* ── Drop shadow lives on its own layer: a mask would clip it ───────── */
+#botNav .gn-shadow {
+  position: absolute; inset: 0;
+  border-radius: calc(var(--gn-h) / 2);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .55), 0 2px 8px rgba(0, 0, 0, .35);
+  pointer-events: none;
+}
+
+/* ── The glass itself: blur + tint + hairline, with the orb notch cut
+      out by a radial mask (this is the curved dip from your reference) ─ */
+#botNav .gn-glass {
+  position: absolute; inset: 0;
+  border-radius: calc(var(--gn-h) / 2);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .16) 0%, rgba(255, 255, 255, .05) 55%, rgba(255, 255, 255, .02) 100%),
+    rgba(18, 8, 12, .42);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  backdrop-filter: blur(24px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, .16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .28),
+    inset 0 -1px 0 rgba(0, 0, 0, .25);
+  -webkit-mask-image: radial-gradient(circle var(--gn-notch) at 50% var(--gn-orb-drop),
+                        transparent calc(var(--gn-notch) - 1px), #000 var(--gn-notch));
+          mask-image: radial-gradient(circle var(--gn-notch) at 50% var(--gn-orb-drop),
+                        transparent calc(var(--gn-notch) - 1px), #000 var(--gn-notch));
+  pointer-events: none;
+}
+/* Browsers without backdrop-filter get a solid, still-readable bar */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  #botNav .gn-glass { background: rgba(24, 12, 16, .94); }
+}
+
+/* ── Items ─────────────────────────────────────────────────────────── */
+#botNav .bot-ni {
+  position: relative;
+  appearance: none; -webkit-appearance: none;
+  background: none; border: 0; margin: 0;
+  font: inherit;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 3px;
+  min-height: 0; min-width: 0;
+  padding: 0;
+  flex: none;
+  border-radius: 18px;
+  color: rgba(255, 255, 255, .52);
+  font-size: 10px; font-weight: 600; line-height: 1;
+  letter-spacing: .1px;
+  text-transform: none;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color .2s ease, transform .15s ease;
+}
+#botNav .bot-ni:active { transform: scale(.92); }
+#botNav .bot-ni:focus-visible { outline: 2px solid rgba(255, 255, 255, .6); outline-offset: -4px; }
+
+#botNav .bot-ni .gn-ico {
+  display: block; width: 24px; height: 24px;
+  fill: none; stroke: currentColor; stroke-width: 1.7;
+  stroke-linecap: round; stroke-linejoin: round;
+  transition: filter .25s ease;
+}
+#botNav .bot-ni .gn-lbl { display: block; }
+
+/* Active: white icon (filled where the shape allows), white bold label,
+   soft accent glow — same idea as the filled "Home" in your reference. */
+#botNav .bot-ni.active { color: #fff; font-weight: 700; }
+#botNav .bot-ni.active .gn-ico {
+  stroke-width: 1.9;
+  filter: drop-shadow(0 0 6px var(--accent, rgba(255, 45, 85, .9)));
+}
+#botNav .bot-ni.active .gn-fill { fill: currentColor; fill-rule: evenodd; }
+@media (hover: hover) and (pointer: fine) {
+  #botNav .bot-ni:hover { color: #fff; }
+}
+
+/* ── Centre: raised twin orb sitting in the notch ──────────────────── */
+/* label baseline = same as the other four (pill 60px, icon 24 + gap 3 + label 10 → 11.5px from bottom) */
+#botNav .bot-ni--twin { font-weight: 700; justify-content: flex-end; padding-bottom: 11.5px; }
+#botNav .bot-ni--twin.active::after { content: none; }      /* drop the legacy underline */
+
+#botNav .bot-ni--twin .nav-twin-ico {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--gn-orb-drop) - var(--gn-orb) / 2);
+  width: var(--gn-orb); height: var(--gn-orb);
+  transform: translateX(-50%);
+  display: block; overflow: visible;
+}
+#botNav .bot-ni--twin .twin-nav-orb {
+  width: var(--gn-orb); height: var(--gn-orb);
+  position: relative; z-index: 1;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .5), 0 0 18px rgba(200, 20, 40, .35);
+}
+/* hairline ring between orb and notch edge */
+#botNav .bot-ni--twin .nav-twin-ico::before {
+  content: ''; position: absolute; left: 50%; top: 50%;
+  width: calc(var(--gn-orb) + 10px); height: calc(var(--gn-orb) + 10px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, .22);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, .04);
+  transition: border-color .25s ease, box-shadow .25s ease;
+}
+#botNav .bot-ni--twin.active .nav-twin-ico::before {
+  border-color: rgba(255, 70, 100, .65);
+  box-shadow: 0 0 14px rgba(255, 45, 85, .55);
+}
+#botNav .bot-ni--twin.active .twin-nav-orb {
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 6px rgba(220, 20, 40, .6));
+}
+
+/* ── Hide on "immersive" pages (chat, camera, globe, calls …) — the
+      app already toggles body[data-immersive]; re-state it here because
+      the #botNav rules above out-rank app-polish.css's version. ───────── */
+#botNav.bot-nav { transition: transform .28s cubic-bezier(.4, 0, .2, 1), opacity .2s ease; }
+body[data-immersive="1"] #botNav.bot-nav {
+  transform: translateY(calc(100% + var(--gn-gap) + 40px + env(safe-area-inset-bottom, 0px)));
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Make room: every page keeps its content clear of the floating bar ─ */
+body .content { padding-bottom: calc(var(--nav-reserve) + 8px) !important; }
+body[data-immersive="1"] .content { padding-bottom: max(12px, env(safe-area-inset-bottom)) !important; }
+
+/* Iframe pages (Movies, Games, Music …) + the AI page size themselves from
+   --nav-reserve; bleed the same amount the content padding adds back. */
+body:not([data-immersive="1"]) .iframe-page-wrap { margin-bottom: calc(-1 * (var(--nav-reserve) + 8px)) !important; }
+@media (max-width: 700px) {
+  #page-ai.active { height: calc(100dvh - var(--topbar-h-mobile, 52px) - var(--nav-reserve)); }
+}
+
+/* Very narrow phones */
+@media (max-width: 340px) {
+  #botNav.bot-nav { grid-template-columns: 1fr 1fr 70px 1fr 1fr; }
+  #botNav .bot-ni { font-size: 9px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #botNav, #botNav * { transition: none !important; }
+}

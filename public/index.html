@@ -5214,6 +5214,7 @@ select option { background: #0D0D0D; color: #fff; }
   <script src="/js/upload-queue.js"></script>
   <script src="/js/upload-progress-ui.js"></script>
   <script src="/safe-delete.js"></script>
+  <link rel="stylesheet" href="/glass-nav.css">
 </head>
 
 <body class="t-blue">
@@ -7400,15 +7401,38 @@ select option { background: #0D0D0D; color: #fff; }
         </div>
       </div>
 
-      <!-- Mobile Bottom Nav -->
-      <nav class="bot-nav" id="botNav">
-        <div class="bot-ni active" data-page="dashboard"><span class="ico">🏠</span>Home</div>
-<div class="bot-ni" data-page="chat"><span class="ico">💬</span>Chat<span data-chat-badge></span></div>
-<div class="bot-ni" data-page="globe"><span class="ico">🌍</span>Globe</div>
-<div class="bot-ni bot-ni--twin" data-page="ai"><span class="ico nav-twin-ico nav-twin-ico--mini"><canvas class="twin-nav-orb" aria-hidden="true"></canvas></span>Twin</div>
-<div class="bot-ni" data-page="games"><span class="ico">🎮</span>Games</div>
-<div class="bot-ni" data-page="movie"><span class="ico">🎬</span>Watch</div>
-<div class="bot-ni" data-page="settings"><span class="ico">⚙️</span>More</div>
+      <!-- Mobile Bottom Nav — glass pill, 5 destinations:
+           Home · Map · Twin orb (AI) · Movies · Settings.
+           Styles: /glass-nav.css.  Keep the .bot-ni / data-page / twin-nav-orb
+           hooks: goto(), syncBotNav(), twin-mini-orb.js and app-polish.js use them. -->
+      <nav class="bot-nav" id="botNav" aria-label="Main navigation">
+        <span class="gn-shadow" aria-hidden="true"></span>
+        <span class="gn-glass" aria-hidden="true"></span>
+
+        <button type="button" class="bot-ni active" data-page="dashboard" aria-label="Home">
+          <svg class="gn-ico" viewBox="0 0 24 24" aria-hidden="true"><path class="gn-fill" d="M3 10.6 12 3l9 7.6V20a1 1 0 0 1-1 1h-5v-6.2H9V21H4a1 1 0 0 1-1-1z"/></svg>
+          <span class="gn-lbl">Home</span>
+        </button>
+
+        <button type="button" class="bot-ni" data-page="map" aria-label="Live map">
+          <svg class="gn-ico" viewBox="0 0 24 24" aria-hidden="true"><path class="gn-fill" d="M12 21.5s-7-6.1-7-11.6a7 7 0 0 1 14 0c0 5.5-7 11.6-7 11.6zM12 7.3a2.6 2.6 0 1 0 0 5.2 2.6 2.6 0 0 0 0-5.2z"/></svg>
+          <span class="gn-lbl">Map</span>
+        </button>
+
+        <button type="button" class="bot-ni bot-ni--twin" data-page="ai" aria-label="Twin AI">
+          <span class="nav-twin-ico" aria-hidden="true"><canvas class="twin-nav-orb"></canvas></span>
+          <span class="gn-lbl">Twin</span>
+        </button>
+
+        <button type="button" class="bot-ni" data-page="movie" aria-label="Watch together">
+          <svg class="gn-ico" viewBox="0 0 24 24" aria-hidden="true"><path class="gn-fill" d="M6 4.8h12A3.2 3.2 0 0 1 21.2 8v8a3.2 3.2 0 0 1-3.2 3.2H6A3.2 3.2 0 0 1 2.8 16V8A3.2 3.2 0 0 1 6 4.8zM10 9v6l5.2-3z"/></svg>
+          <span class="gn-lbl">Movies</span>
+        </button>
+
+        <button type="button" class="bot-ni" data-page="settings" aria-label="Settings">
+          <svg class="gn-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span class="gn-lbl">Settings</span>
+        </button>
       </nav>
 
       <!-- ════════ MODALS ════════ -->
@@ -8500,15 +8524,15 @@ function setJustPairedAt(ts) {
         // multiple red destinations accumulating over time. Fixing this
         // requires goto() itself to own bottom-nav state, not another
         // click-handler patch.
-        // Only these 7 page ids are actually represented in the bottom
+        // Only these 5 page ids are actually represented in the bottom
         // nav; anything else (e.g. Calendar, opened from a dashboard card)
         // correctly leaves the bottom nav showing no active destination,
         // matching its own previous state — this list intentionally exists
         // so any subpage of a bottom-nav destination can map back to its
         // owner in one place instead of duplicating logic per page.
         const NAV_ROUTE_MAP = {
-          dashboard: 'dashboard', chat: 'chat', globe: 'globe', ai: 'ai',
-          games: 'games', movie: 'movie', settings: 'settings'
+          dashboard: 'dashboard', map: 'map', ai: 'ai',
+          movie: 'movie', settings: 'settings'
         };
         function syncBotNav(page) {
           const owner = NAV_ROUTE_MAP[page] || null;
