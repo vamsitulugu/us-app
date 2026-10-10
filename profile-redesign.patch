@@ -1,0 +1,1340 @@
+diff --git a/public/index.html b/public/index.html
+index fba2d42..7ab5f9b 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -1554,30 +1554,6 @@
+       font-size: 14px
+     }
+ 
+-    /* ════ PROFILE HERO ════ */
+-    .profile-hero {
+-      background: var(--g1);
+-      backdrop-filter: var(--blur);
+-      border: 1px solid var(--border);
+-      border-radius: var(--r);
+-      padding: 28px;
+-      margin-bottom: 18px;
+-      text-align: center;
+-      position: relative;
+-      overflow: hidden;
+-    }
+-
+-    .profile-hero::before {
+-      content: '💕';
+-      font-size: 100px;
+-      opacity: 0.04;
+-      position: absolute;
+-      top: 50%;
+-      left: 50%;
+-      transform: translate(-50%, -50%);
+-      pointer-events: none;
+-    }
+-
+     .av-large {
+       width: 90px;
+       height: 90px;
+@@ -1610,37 +1586,6 @@
+       border-radius: 50%
+     }
+ 
+-    .stat-grid {
+-      display: grid;
+-      grid-template-columns: repeat(3, 1fr);
+-      gap: 10px;
+-      margin-top: 16px
+-    }
+-
+-    .stat-item {
+-      background: var(--g1);
+-      border-radius: var(--rs);
+-      padding: 12px;
+-      text-align: center;
+-      border: 1px solid var(--border)
+-    }
+-
+-    .stat-n {
+-      font-size: 20px;
+-      font-weight: 700;
+-      color: var(--white);
+-      font-family: var(--ff-serif)
+-    }
+-
+-    .stat-l {
+-      font-size: 9px;
+-      color: var(--text3);
+-      margin-top: 3px;
+-      font-weight: 600;
+-      text-transform: uppercase;
+-      letter-spacing: 0.5px
+-    }
+-
+     .timeline-dot {
+       width: 10px;
+       height: 10px;
+@@ -1973,29 +1918,6 @@
+     .period-symptom-freq-row:last-child{border-bottom:none}
+     .period-symptom-bar-wrap{flex:1;height:6px;background:var(--g2);border-radius:3px;margin:0 10px;overflow:hidden}
+     .period-symptom-bar{height:100%;background:linear-gradient(90deg,#ff6b9d,#c2185b);border-radius:3px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+-    /* ════ MILESTONE TIMELINE (DEEP) ════ */
+-    .ml-stats-row{display:flex;gap:10px;margin-bottom:14px}
+-    .ml-stat-box{flex:1;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px 8px;text-align:center}
+-    .ml-stat-n{font-family:var(--ff-serif);font-size:20px;color:var(--white);line-height:1}
+-    .ml-stat-l{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;margin-top:4px}
+-    .ml-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+-    .ml-insight-ico{font-size:20px;flex-shrink:0}
+-    .ml-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+-    .ml-insight-text strong{color:var(--white)}
+-    .ml-timeline{position:relative;padding-left:26px}
+-    .ml-timeline::before{content:'';position:absolute;left:9px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--accent),rgba(229,9,20,0.08))}
+-    .ml-year-header{font-family:var(--ff-serif);font-size:15px;color:var(--white);margin:18px 0 10px;position:relative}
+-    .ml-year-header:first-child{margin-top:0}
+-    .ml-year-header::before{content:'';position:absolute;left:-26px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--white);border:3px solid var(--accent)}
+-    .ml-item{position:relative;margin-bottom:16px}
+-    .ml-item::before{content:'';position:absolute;left:-21px;top:6px;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+-    .ml-card{background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;transition:var(--t)}
+-    .ml-card:hover{border-color:var(--border2);transform:translateX(2px)}
+-    .ml-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+-    .ml-card-title{font-size:13px;font-weight:600;color:var(--white)}
+-    .ml-card-date{font-size:9px;color:var(--text3);white-space:nowrap;text-transform:uppercase;letter-spacing:0.3px}
+-    .ml-card-note{font-size:12px;color:var(--text2);margin-top:5px;line-height:1.55}
+-    .ml-card-gap{font-size:9px;color:var(--text3);margin-top:6px;font-style:italic}
+     /* ════ MEMORIES ANALYTICS ════ */
+     .mem-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+     .mem-insight-ico{font-size:20px;flex-shrink:0}
+@@ -3383,11 +3305,8 @@
+   .modal { padding: 18px 16px; border-radius: 18px; max-height: 85dvh }
+   .modal-title { font-size: 16px }
+ 
+-  /* Profile */
+-  .profile-hero { padding: 18px 14px }
++  /* Settings avatar */
+   .av-large { width: 72px; height: 72px; font-size: 24px }
+-  .stat-grid { gap: 6px }
+-  .stat-n { font-size: 17px }
+ 
+   /* Period stats */
+   .period-stats { gap: 6px }
+@@ -3742,60 +3661,6 @@
+     }
+ 
+     /* ════ TIMELINE STORIES ════ */
+-    .timeline-stories {
+-      display: flex;
+-      gap: 14px;
+-      overflow-x: auto;
+-      padding: 6px 2px 10px;
+-    }
+-
+-    .timeline-stories::-webkit-scrollbar {
+-      height: 0
+-    }
+-
+-    .ts-item {
+-      flex-shrink: 0;
+-      width: 64px;
+-      text-align: center;
+-      cursor: pointer;
+-    }
+-
+-    .ts-ring {
+-      width: 58px;
+-      height: 58px;
+-      border-radius: 50%;
+-      background: linear-gradient(135deg, var(--accent), var(--accent2));
+-      display: flex;
+-      align-items: center;
+-      justify-content: center;
+-      margin: 0 auto 6px;
+-      padding: 3px;
+-      box-shadow: 0 4px 14px var(--accent-glow);
+-    }
+-
+-    .ts-ring-inner {
+-      width: 100%;
+-      height: 100%;
+-      border-radius: 50%;
+-      background: #fff;
+-      display: flex;
+-      align-items: center;
+-      justify-content: center;
+-      font-size: 22px;
+-    }
+-
+-    .ts-label {
+-      font-size: 9px;
+-      color: var(--text3);
+-      font-weight: 700;
+-      text-transform: uppercase;
+-      letter-spacing: 0.3px;
+-      white-space: nowrap;
+-      overflow: hidden;
+-      text-overflow: ellipsis;
+-      max-width: 64px;
+-    }
+-
+     /* ════ SKELETON LOADER ════ */
+     .skel {
+       background: linear-gradient(90deg, var(--g1) 25%, var(--g2) 50%, var(--g1) 75%);
+@@ -4814,8 +4679,6 @@ vercel-live-feedback {
+ .card,
+ .metric,
+ .m-card,
+-.stat-item,
+-.profile-hero,
+ .settings-group,
+ .settings-hero,
+ .period-hero,
+@@ -5015,6 +4878,7 @@ select option { background: #0D0D0D; color: #fff; }
+   <link rel="stylesheet" href="/dashboard.css">
+   <link rel="stylesheet" href="/dashboard-widgets.css">
+   <link rel="stylesheet" href="/gender-access.css">
++  <link rel="stylesheet" href="/profile.css">
+ </head>
+ 
+ <body class="t-blue">
+@@ -5829,120 +5693,9 @@ select option { background: #0D0D0D; color: #fff; }
+         </div>
+       </div>
+ 
+-      <!-- ════ PROFILE ════ -->
++      <!-- ════ PROFILE ════ (styles: /profile.css · logic: /profile.js) -->
+       <div class="page" id="page-profile">
+-        <div class="profile-hero">
+-          <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:16px">
+-            <div>
+-              <div class="av-large av1" id="profAv1" style="margin:0 auto 8px" onclick="pickAvatar('my')">U</div>
+-              <input type="file" id="myAvatarInput" accept="image/*" style="display:none"
+-                onchange="setAvatar('my',this)">
+-              <div style="font-size:13px;font-weight:600;color:var(--white);text-align:center" id="profMyName">You</div>
+-              <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:2px">tap to change</div>
+-            </div>
+-            <div class="prof-heart-ico" style="font-size:28px">💕</div>
+-            <div>
+-              <div class="av-large av2" id="profAv2" style="margin:0 auto 8px" onclick="viewAvatar('pt')">P</div>
+-              <div style="font-size:13px;font-weight:600;color:var(--white);text-align:center" id="profPtName">Partner
+-              </div>
+-              <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:2px">tap to view</div>
+-            </div>
+-          </div>
+-         <div style="font-size:13px;color:var(--text2);margin-bottom:4px" id="profAnnivText">Together since —</div>
+-<button class="btn btn-glass btn-sm" style="margin-top:8px" onclick="openM('milestoneModal')">💫 Add Milestone</button>
+-<button class="btn btn-accent btn-sm" style="margin-top:8px;margin-left:8px" onclick="openM('eventModal')">📅 Add Date</button>
+-<button class="btn btn-glass btn-sm" style="margin-top:8px;margin-left:8px" onclick="goto('bucket')">🌟 Add Dream</button>
+-          <div class="stat-grid">
+-            <div class="stat-item">
+-              <div class="stat-n" id="profDays">0</div>
+-              <div class="stat-l">Days</div>
+-            </div>
+-            <div class="stat-item">
+-              <div class="stat-n" id="profPhotos">0</div>
+-              <div class="stat-l">Memories</div>
+-            </div>
+-            <div class="stat-item">
+-              <div class="stat-n" id="profDreams">0</div>
+-              <div class="stat-l">Dreams</div>
+-            </div>
+-          </div>
+-          <div class="stat-grid" style="margin-top:10px">
+-            <div class="stat-item">
+-              <div class="stat-n" id="profFights">0</div>
+-              <div class="stat-l">Fights</div>
+-            </div>
+-            <div class="stat-item">
+-              <div class="stat-n" id="profHabits">0</div>
+-              <div class="stat-l">Habits</div>
+-            </div>
+-            <div class="stat-item">
+-              <div class="stat-n" id="profEntries">0</div>
+-              <div class="stat-l">Journal</div>
+-            </div>
+-          </div>
+-        </div>
+-        <div class="two-col">
+-          <div class="card" style="margin-bottom:0" id="partnerConnectionCard">
+-            <div class="card-title">❤️ Partner Connection</div>
+-            <div id="partnerConnectionBody">
+-              <div style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.65">Find your partner using their phone number.</div>
+-              <div class="field"><label>Partner Phone Number</label><input type="tel" id="profPartnerPhone" placeholder="10-digit phone number" inputmode="numeric" maxlength="10" autocomplete="off" style="letter-spacing:1px;font-size:16px"></div>
+-              <button class="btn btn-accent btn-sm" onclick="sendPartnerRequestFromProfile()">Send Connection Request ❤️</button>
+-              <div id="profPairStatus" style="font-size:11px;color:var(--text3);margin-top:10px">Not Connected</div>
+-            </div>
+-          </div>
+-          <div class="card" style="margin-bottom:0">
+-            <div class="card-title">🌹 Our Story</div>
+-            <div class="field"><label>Your Bio</label><textarea id="myBio" placeholder="Write something sweet..."
+-                style="min-height:60px" oninput="scheduleSave()"></textarea></div>
+-            <div class="field"><label>Partner's Bio</label><textarea id="ptBio" placeholder="About your partner..."
+-                style="min-height:60px" oninput="scheduleSave()"></textarea></div>
+-            <button class="btn btn-accent btn-sm" onclick="saveBios()">Save 💕</button>
+-          </div>
+-        </div>
+-        <div class="card" style="margin-top:16px">
+-          <div class="card-title">💞 Love Languages</div>
+-          <div class="row2">
+-            <div class="field"><label>Your Love Language</label>
+-              <select id="myLoveLang" onchange="saveLoveLang()">
+-                <option value="">Select yours...</option>
+-                <option value="Words of Affirmation">💬 Words of Affirmation</option>
+-                <option value="Quality Time">⏰ Quality Time</option>
+-                <option value="Acts of Service">🛠️ Acts of Service</option>
+-                <option value="Physical Touch">🤗 Physical Touch</option>
+-                <option value="Receiving Gifts">🎁 Receiving Gifts</option>
+-              </select>
+-            </div>
+-            <div class="field"><label>Partner's Love Language</label>
+-              <select id="ptLoveLang" onchange="saveLoveLang()">
+-                <option value="">Select theirs...</option>
+-                <option value="Words of Affirmation">💬 Words of Affirmation</option>
+-                <option value="Quality Time">⏰ Quality Time</option>
+-                <option value="Acts of Service">🛠️ Acts of Service</option>
+-                <option value="Physical Touch">🤗 Physical Touch</option>
+-                <option value="Receiving Gifts">🎁 Receiving Gifts</option>
+-              </select>
+-            </div>
+-          </div>
+-          <div id="loveLangTip"
+-            style="display:none;font-size:12px;margin-top:8px;padding:10px 14px;background:var(--g1);border-radius:var(--rs);color:var(--text2);border:1px solid var(--border);line-height:1.7">
+-          </div>
+-        </div>
+-        <div class="card" style="margin-top:16px">
+-          <div class="card-title">📖 Our Timeline</div>
+-          <div class="timeline-stories" id="timelineStories"></div>
+-        </div>
+-        <div class="card" style="margin-top:16px">
+-          <div class="card-title">💫 Love Milestones<button class="btn-ghost btn-sm" onclick="openM('milestoneModal')">+
+-              Add</button></div>
+-          <div class="ml-stats-row" id="mlStatsRow"></div>
+-          <div class="ml-insight-card" id="mlInsightCard"></div>
+-          <div id="milestonesEl">
+-            <div class="empty" style="padding:14px 0">
+-              <div class="empty-ico">💫</div>Add special moments!
+-            </div>
+-          </div>
+-        </div>
++        <div class="pf" id="pf"></div>
+       </div>
+       <div class="page" id="page-level">
+         <div id="levelPageContent"></div>
+@@ -8005,16 +7758,11 @@ async function saveToCloud() {
+           const rpb = document.getElementById('removePartnerBtn');
+           if (rpb) rpb.style.display = S.paired ? 'inline-flex' : 'none';
+ 
+-          const profForm = document.getElementById('profPartnerRequestForm') || document.getElementById('partnerConnectionBody');
+           const settingsForm = document.getElementById('settingsPartnerRequestForm');
+           const showForm = !S.paired && !S.partnerRequestSent;
+-          const profInput = document.getElementById('profPartnerPhone');
+-          if (profInput) profInput.closest('.field') && (profInput.closest('.field').style.display = showForm ? 'block' : 'none');
+-          const profBtnEl = document.querySelector('#partnerConnectionBody .btn-accent');
+-          if (profBtnEl) profBtnEl.style.display = showForm ? 'inline-flex' : 'none';
+           if (settingsForm) settingsForm.style.display = showForm ? 'block' : 'none';
++          if (window.Prof) Prof.refresh();
+ 
+-          const p1 = document.getElementById('profPairStatus'); if (p1) p1.textContent = msg + (S.paired ? ' — ' + (S.partnerName || 'Partner') : '');
+           const p2 = document.getElementById('settingsPairStatus'); if (p2) p2.textContent = msg + (S.paired ? ' — ' + (S.partnerName || 'Partner') : '');
+           renderPartnerLastSeen();
+           renderSettingsWaitingCard();
+@@ -8485,6 +8233,7 @@ function setJustPairedAt(ts) {
+         // where history.back() doesn't produce a popstate at all — a
+         // category page must never become a dead end.
+         function goBack() {
++          if (window.Prof && Prof.handleBack()) return; // step out of a profile sub-screen first
+           const activeBefore = document.querySelector('.page.active')?.id;
+           if (__navStack.length > 1) {
+             history.back();
+@@ -8801,7 +8550,7 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
+           // element was why the chat header photo could look inconsistent
+           // or briefly flash back to an initial/stale image.
+           if (S.myAvatar) { ['sbAv1', 'profAv1', 'settingsAv1', 'dashAv'].forEach(id => setAvImg(id, S.myAvatar)); }
+-          if (S.partnerAvatar) { ['sbAv2', 'profAv2'].forEach(id => setAvImg(id, S.partnerAvatar)); }
++          if (S.partnerAvatar) { ['sbAv2', 'profAv2', 'profAv3'].forEach(id => setAvImg(id, S.partnerAvatar)); }
+           const el1 = document.getElementById('profMyName'); if (el1) el1.textContent = m;
+           const el2 = document.getElementById('profPtName'); if (el2) el2.textContent = p;
+           ['studyMyName', 'studyMyNameTT'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = m + "'s"; });
+@@ -8841,23 +8590,13 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
+         // approach that silently bloated/corrupted the shared state row.
+         function pickAvatar(who) {
+           if (who !== 'my') { console.warn('[avatar] blocked: partner avatar is not editable'); return; }
+-          if (window.Avatar) { Avatar.openPicker(); return; }
+-          document.getElementById('myAvatarInput').click(); // fallback if avatar-system.js hasn't loaded yet
++          if (window.Avatar) Avatar.openPicker();
+         }
+         function viewAvatar(who) {
+           const url = who === 'my' ? S.myAvatar : S.partnerAvatar;
+           if (!url) return;
+           if (window.Avatar) Avatar.openViewer(url); else openImgViewer(url);
+         }
+-        async function setAvatar(who, input) {
+-          if (who !== 'my' || !input.files[0]) return;
+-          try {
+-            const saved = await ProfileStore.uploadMyAvatar(input.files[0]);
+-            S.myAvatar = saved.avatar_url;
+-            ['sbAv1', 'profAv1', 'settingsAv1', 'dashAv'].forEach(id => setAvImg(id, S.myAvatar));
+-            saveLocal(); toast('Photo updated! 📸');
+-          } catch (e) { toast('Upload failed: ' + e.message); }
+-        }
+         function updateNamesLive() { S.myName = document.getElementById('setMyName').value || 'You'; S.partnerName = document.getElementById('setPtName').value || 'Partner'; applyNames(); }
+         function loadSettings() {
+           if (window.SoundSettingsUI) {
+@@ -9677,111 +9416,15 @@ const p = await Notification.requestPermission();
+           }
+         }
+ 
+-        // ─── PROFILE ─────────────────────────────────────────────
+-        function renderProfile() {
+-          applyNames();
+-          document.getElementById('myBio').value = S.myBio || '';
+-          document.getElementById('ptBio').value = S.partnerBio || '';
+-          const days = S.anniversary ? Math.max(0, Math.floor((Date.now() - new Date(S.anniversary).getTime()) / 86400000)) : 0;
+-          document.getElementById('profDays').textContent = days;
+-          document.getElementById('profPhotos').textContent = S.photos.length;
+-          document.getElementById('profDreams').textContent = S.bucket.length;
+-          document.getElementById('profFights').textContent = (S.fights || []).length;
+-          document.getElementById('profHabits').textContent = (S.habits || []).length;
+-          document.getElementById('profEntries').textContent = (S.journal || []).length;
+-          const ae = document.getElementById('profAnnivText');
+-          if (ae) ae.textContent = S.anniversary ? 'Together since ' + fmtDate(S.anniversary) : 'Together since —';
+-          renderMilestones(); loadLoveLang();
+-        }
+-        function saveBios() { S.myBio = document.getElementById('myBio').value; S.partnerBio = document.getElementById('ptBio').value; scheduleSave(); toast('Saved 💕'); }
++        // ─── PROFILE MILESTONES (screen lives in /profile.js) ────
+         function addMilestone() {
+           const title = document.getElementById('msTitle').value.trim(), date = document.getElementById('msDate').value;
+           if (!title || !date) { toast('Title and date required'); return; }
+           S.milestones.push({ id: Date.now(), title, date, note: document.getElementById('msNote').value, type: document.getElementById('msType').value || '💫' });
+           ['msTitle', 'msDate', 'msNote'].forEach(id => document.getElementById(id).value = '');
+-          closeM('milestoneModal'); renderMilestones(); scheduleSave(); toast('Milestone saved! 💫'); spawnPetals(8);
+-        }
+-        function renderMilestones() {
+-          renderTimelineStories();
+-          const el = document.getElementById('milestonesEl');
+-          const statsEl = document.getElementById('mlStatsRow'), insEl = document.getElementById('mlInsightCard');
+-          const all = [...(S.milestones || []), ...(S.events || []).filter(e => ['Anniversary', 'Date'].includes(e.cat))].sort((a, b) => a.date.localeCompare(b.date));
+-          if (!all.length) {
+-            PS.empty(el, { icon: 'heart', title: 'No milestones yet', desc: 'Mark the moments that matter \u2014 anniversaries, firsts, anything worth remembering.', actionLabel: 'Add Milestone', onAction: () => openM('milestoneModal'), compact: true });
+-            if (statsEl) statsEl.style.display = 'none';
+-            if (insEl) insEl.style.display = 'none';
+-            return;
+-          }
+-          if (statsEl) statsEl.style.display = '';
+-          if (insEl) insEl.style.display = '';
+-
+-          // Stats
+-          const thisYear = new Date().getFullYear();
+-          const thisYearCount = all.filter(m => new Date(m.date + 'T00:00:00').getFullYear() === thisYear).length;
+-          const years = new Set(all.map(m => new Date(m.date + 'T00:00:00').getFullYear()));
+-          if (statsEl) statsEl.innerHTML = `
+-            <div class="ml-stat-box"><div class="ml-stat-n">${all.length}</div><div class="ml-stat-l">Total</div></div>
+-            <div class="ml-stat-box"><div class="ml-stat-n" style="color:var(--accent)">${thisYearCount}</div><div class="ml-stat-l">This Year</div></div>
+-            <div class="ml-stat-box"><div class="ml-stat-n" style="color:var(--green)">${years.size}</div><div class="ml-stat-l">Years Spanned</div></div>`;
+-
+-          // Insight
+-          if (insEl) {
+-            const mostRecent = all[all.length - 1];
+-            const daysSince = Math.floor((Date.now() - new Date(mostRecent.date + 'T00:00:00').getTime()) / 86400000);
+-            let text, ico = '💫';
+-            if (daysSince <= 30) { ico = '✨'; text = `Your most recent milestone — "<strong>${esc(mostRecent.title)}</strong>" — was just ${daysSince === 0 ? 'today' : daysSince + ' day' + (daysSince === 1 ? '' : 's') + ' ago'}.`; }
+-            else { ico = '📖'; text = `It's been <strong>${daysSince} days</strong> since your last milestone ("${esc(mostRecent.title)}") — maybe it's time to mark a new one.`; }
+-            insEl.innerHTML = `<div class="ml-insight-ico">${ico}</div><div class="ml-insight-text">${text}</div>`;
+-          }
+-
+-          // Grouped, reverse-chronological timeline with gap notes
+-          const desc = [...all].reverse();
+-          let html = '', lastYear = null, prevDate = null;
+-          desc.forEach(m => {
+-            const y = new Date(m.date + 'T00:00:00').getFullYear();
+-            if (y !== lastYear) { html += `<div class="ml-year-header">${y}</div>`; lastYear = y; prevDate = null; }
+-            let gapHtml = '';
+-            if (prevDate) {
+-              const gapDays = Math.round((new Date(prevDate) - new Date(m.date + 'T00:00:00')) / 86400000);
+-              if (gapDays >= 60) gapHtml = `<div class="ml-card-gap">↑ ${Math.round(gapDays / 30)} months later</div>`;
+-            }
+-            prevDate = m.date + 'T00:00:00';
+-            html += `
+-    <div class="ml-item">
+-      <div class="ml-card">
+-        <div class="ml-card-top">
+-          <div class="ml-card-title">${m.type ? esc(m.type) + ' ' : ''}${esc(m.title)}</div>
+-          <div class="ml-card-date">${fmtDateShort(m.date)}</div>
+-        </div>
+-        ${m.note ? `<div class="ml-card-note">${esc(m.note)}</div>` : ''}
+-        ${gapHtml}
+-        <button class="del-btn" style="margin-top:6px" onclick="delMilestone(${m.id})"><i data-lucide="trash-2"></i></button>
+-      </div>
+-    </div>`;
+-          });
+-          el.innerHTML = `<div class="ml-timeline">${html}</div>`;
+-         if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }}
+-        function delMilestone(id) { confirmDelete({ itemType: 'milestone', message: 'This milestone will be permanently deleted.', onConfirm: () => { S.milestones = (S.milestones||[]).filter(m=>m.id!==id); renderMilestones(); scheduleSave(); toast('Removed'); } }); }
+-        function renderTimelineStories() {
+-          const el = document.getElementById('timelineStories'); if (!el) return;
+-          const all = [...(S.milestones || [])].sort((a, b) => a.date.localeCompare(b.date));
+-          let html = `<div class="ts-item" onclick="openM('milestoneModal')">
+-    <div class="ts-ring" style="background:var(--g2)"><div class="ts-ring-inner" style="background:transparent;color:var(--accent);font-size:26px">+</div></div>
+-    <div class="ts-label">Add</div>
+-  </div>`;
+-          html += all.map(m => `<div class="ts-item" onclick="showMilestoneDetail(${m.id})">
+-    <div class="ts-ring"><div class="ts-ring-inner">${esc(m.type || '💫')}</div></div>
+-    <div class="ts-label">${esc(m.title)}</div>
+-  </div>`).join('');
+-          el.innerHTML = html;
+-        }
+-        function showMilestoneDetail(id) {
+-          const m = (S.milestones || []).find(x => x.id === id); if (!m) return;
+-          toast(`${m.type || '💫'} ${m.title} — ${fmtDate(m.date)}${m.note ? ' · ' + m.note : ''}`, 4500);
++          closeM('milestoneModal'); if (window.Prof) Prof.refresh(); scheduleSave(); toast('Milestone saved! 💫'); spawnPetals(8);
+         }
+-        const LOVE_LANG_TIPS = { 'Words of Affirmation + Quality Time': 'Say "I love you" during your quality time — compliments land deepest when you\'re fully present together.', 'Words of Affirmation + Acts of Service': 'Leave sweet notes when you help with tasks — combine words with actions for maximum impact.', 'Quality Time + Physical Touch': 'Cuddle while watching something together — your partner feels most loved when you\'re close AND present.', 'Quality Time + Words of Affirmation': 'Plan date nights where you express feelings out loud. Undivided attention + kind words = their ideal love.', 'Acts of Service + Receiving Gifts': 'Surprise them with a small gift AND do something helpful — both fill their love tank equally.', 'Physical Touch + Receiving Gifts': 'A warm hug when you give them even a small gift makes it 10x more meaningful.', 'default': 'Understanding each other\'s love language is the first step. Try expressing love in their language every day this week!' };
+-        function saveLoveLang() { S.myLoveLang = document.getElementById('myLoveLang').value; S.ptLoveLang = document.getElementById('ptLoveLang').value; const tipEl = document.getElementById('loveLangTip'); if (S.myLoveLang && S.ptLoveLang) { const key = S.myLoveLang + ' + ' + S.ptLoveLang; tipEl.style.display = 'block'; tipEl.textContent = '💡 ' + (LOVE_LANG_TIPS[key] || LOVE_LANG_TIPS['default']); toast('Love languages saved! 💕'); } scheduleSave(); }
+-        function loadLoveLang() { if (S.myLoveLang) { const el = document.getElementById('myLoveLang'); if (el) el.value = S.myLoveLang; } if (S.ptLoveLang) { const el = document.getElementById('ptLoveLang'); if (el) el.value = S.ptLoveLang; saveLoveLang(); } }
++        function delMilestone(id) { confirmDelete({ itemType: 'milestone', message: 'This milestone will be permanently deleted.', onConfirm: () => { S.milestones = (S.milestones||[]).filter(m=>m.id!==id); if (window.Prof) Prof.refresh(); scheduleSave(); toast('Removed'); } }); }
+ 
+         // ─── PERIOD TRACKER ──────────────────────────────────────
+         function logPeriod() {
+@@ -12054,7 +11697,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
+             ProfileStore.init(S.userId).then(() => {
+               const mine = ProfileStore.get('me'), theirs = ProfileStore.get('partner');
+               if (mine && mine.avatar_url) { S.myAvatar = mine.avatar_url; ['sbAv1','profAv1','settingsAv1','dashAv'].forEach(id => setAvImg(id, S.myAvatar)); }
+-              if (theirs && theirs.avatar_url) { S.partnerAvatar = theirs.avatar_url; ['sbAv2','profAv2','chatHeaderAv'].forEach(id => setAvImg(id, S.partnerAvatar)); }
++              if (theirs && theirs.avatar_url) { S.partnerAvatar = theirs.avatar_url; ['sbAv2','profAv2','profAv3','chatHeaderAv'].forEach(id => setAvImg(id, S.partnerAvatar)); }
+             }).catch(e => console.warn('[ProfileStore] init failed', e));
+             // Keep every mounted Avatar-component instance and the legacy
+             // setAvImg() ids in sync automatically, forever, with no
+@@ -12062,7 +11705,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
+             ProfileStore.onChange((owner, profile) => {
+               if (!profile) return;
+               if (owner === 'me') { S.myAvatar = profile.avatar_url || S.myAvatar; ['sbAv1','profAv1','settingsAv1','dashAv'].forEach(id => setAvImg(id, S.myAvatar)); }
+-              else { S.partnerAvatar = profile.avatar_url || S.partnerAvatar; ['sbAv2','profAv2','chatHeaderAv'].forEach(id => setAvImg(id, S.partnerAvatar)); }
++              else { S.partnerAvatar = profile.avatar_url || S.partnerAvatar; ['sbAv2','profAv2','profAv3','chatHeaderAv'].forEach(id => setAvImg(id, S.partnerAvatar)); }
+             });
+           }
+           checkIncomingTouch();
+@@ -13346,6 +12989,7 @@ init();
+      included on this page until now. Must load after livemap.js. -->
+ <script src="/js/livetrack-bridge.js"></script>
+ <script src="/chat/chat.js"></script>
++<script src="/profile.js"></script>
+ <script src="/chat/call.js"></script>
+ <script src="/dashboard.js"></script>
+ <script src="/gender-access.js"></script>
+diff --git a/public/profile.css b/public/profile.css
+new file mode 100644
+index 0000000..4319ea8
+--- /dev/null
++++ b/public/profile.css
+@@ -0,0 +1,353 @@
++/* ══════════════════════════════════════════════════════════════
++   PROFILE PAGE — styles for #page-profile  (logic: /profile.js)
++   Native-app layout: full-bleed header, tappable tiles, list rows,
++   bottom-sheet editors. Colours come only from the app theme
++   variables (--accent*, --border*, --text*, --ff-*).
++   ══════════════════════════════════════════════════════════════ */
++
++/* Own header instead of the global top bar; page padding handled here */
++.main:has(#page-profile.active) > .topbar { display: none; }
++.content:has(#page-profile.active) { padding-top: 0 !important; }
++
++.pf {
++  --pf-card: linear-gradient(180deg, #181818, #0d0d0d);
++  --pf-tint: rgba(193, 18, 31, .16);
++  max-width: 560px;
++  margin: 0 auto;
++  padding-bottom: 24px;
++}
++.pf-view[hidden] { display: none; }
++.pf-i { width: 20px; height: 20px; flex-shrink: 0; }
++
++/* ── Header ── */
++.pf-bar {
++  position: sticky;
++  top: 0;
++  z-index: 5;
++  display: flex;
++  align-items: center;
++  gap: 12px;
++  padding: max(12px, env(safe-area-inset-top)) 4px 12px;
++  background: linear-gradient(180deg, rgba(5, 5, 5, .96) 70%, rgba(5, 5, 5, 0));
++  backdrop-filter: blur(14px);
++  -webkit-backdrop-filter: blur(14px);
++}
++.pf-bar h1 {
++  flex: 1;
++  min-width: 0;
++  margin: 0;
++  font-family: var(--ff-sans);
++  font-size: 20px;
++  font-weight: 600;
++  color: var(--white);
++  white-space: nowrap;
++  overflow: hidden;
++  text-overflow: ellipsis;
++}
++.pf-brand { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
++.pf-brand img { width: 34px; height: 34px; border-radius: 10px; }
++.pf-icon-btn {
++  width: 40px;
++  height: 40px;
++  display: grid;
++  place-items: center;
++  flex-shrink: 0;
++  border-radius: 50%;
++  border: 1px solid var(--border);
++  background: rgba(255, 255, 255, .04);
++  color: var(--white);
++  cursor: pointer;
++  transition: var(--t);
++}
++.pf-icon-btn:active { transform: scale(.92); background: var(--g2); }
++.pf-body { padding: 4px 2px 0; display: flex; flex-direction: column; gap: 14px; }
++
++/* ── Shared card / tappable surfaces ── */
++.pf-card {
++  background: var(--pf-card);
++  border: 1px solid var(--border);
++  border-radius: 18px;
++  padding: 14px 16px;
++  box-shadow: 0 10px 30px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .03);
++}
++.pf-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
++.pf-card-head h2 { margin: 0; font-size: 14px; font-weight: 600; color: var(--white); font-family: var(--ff-sans); }
++.pf-link-btn {
++  display: inline-flex;
++  align-items: center;
++  gap: 2px;
++  background: none;
++  border: 0;
++  padding: 4px 0 4px 8px;
++  color: var(--text2);
++  font: inherit;
++  font-size: 12px;
++  cursor: pointer;
++}
++.pf-link-btn .pf-i { width: 14px; height: 14px; }
++.pf-chip {
++  width: 38px;
++  height: 38px;
++  display: grid;
++  place-items: center;
++  flex-shrink: 0;
++  border-radius: 11px;
++  background: var(--pf-tint);
++  color: var(--accent-l);
++}
++
++/* ── Hero (couple) ── */
++.pf-hero {
++  position: relative;
++  overflow: hidden;
++  padding: 18px 14px 14px;
++  border-radius: 22px;
++  border: 1px solid rgba(193, 18, 31, .35);
++  background:
++    radial-gradient(120% 90% at 50% 0%, rgba(193, 18, 31, .30), transparent 70%),
++    linear-gradient(180deg, #1a0e10, #0d0809);
++  box-shadow: 0 14px 40px rgba(0, 0, 0, .45);
++}
++.pf-couple { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 4px; }
++.pf-person { display: flex; flex-direction: column; align-items: center; min-width: 0; }
++.pf-av-wrap { position: relative; width: 84px; height: 84px; }
++.pf-av {
++  position: relative;
++  width: 100%;
++  height: 100%;
++  padding: 0;
++  display: grid;
++  place-items: center;
++  overflow: hidden;
++  border-radius: 50%;
++  border: 3px solid var(--accent);
++  box-shadow: 0 0 0 3px rgba(193, 18, 31, .2), 0 8px 24px rgba(0, 0, 0, .5);
++  cursor: pointer;
++  color: var(--white);
++  transition: var(--t-spring);
++}
++.pf-av:active { transform: scale(.95); }
++.pf-cam {
++  position: absolute;
++  right: -2px;
++  bottom: 2px;
++  width: 26px;
++  height: 26px;
++  display: grid;
++  place-items: center;
++  border-radius: 50%;
++  background: #111;
++  border: 2px solid var(--accent);
++  color: var(--white);
++  pointer-events: none;
++}
++.pf-cam .pf-i { width: 12px; height: 12px; }
++.pf-name {
++  margin-top: 8px;
++  max-width: 100%;
++  font-size: 15px;
++  font-weight: 600;
++  color: var(--white);
++  white-space: nowrap;
++  overflow: hidden;
++  text-overflow: ellipsis;
++}
++.pf-presence { min-height: 16px; display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
++.pf-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); }
++.pf-dot.on { background: var(--green); box-shadow: 0 0 6px var(--green); }
++.pf-mid { display: flex; flex-direction: column; align-items: center; padding-top: 14px; min-width: 112px; }
++.pf-heart-link { position: relative; display: grid; place-items: center; width: 100%; height: 56px; color: var(--accent); }
++.pf-heart-link::before {
++  content: '';
++  position: absolute;
++  left: -10px;
++  right: -10px;
++  top: 50%;
++  height: 1px;
++  background: linear-gradient(90deg, transparent, rgba(255, 59, 48, .6), transparent);
++}
++.pf-heart-link .pf-i { position: relative; width: 48px; height: 48px; fill: rgba(193, 18, 31, .25); filter: drop-shadow(0 0 10px rgba(255, 59, 48, .6)); background: #120a0b; border-radius: 50%; padding: 6px; box-sizing: content-box; }
++.pf-since-l { margin-top: 6px; font-size: 11px; color: var(--text2); }
++.pf-since-d {
++  display: inline-flex;
++  align-items: center;
++  gap: 5px;
++  margin-top: 2px;
++  padding: 2px 4px;
++  background: none;
++  border: 0;
++  color: var(--white);
++  font: inherit;
++  font-size: 14px;
++  font-weight: 600;
++  cursor: pointer;
++}
++.pf-since-d .pf-i { width: 13px; height: 13px; color: var(--accent-l); }
++.pf-span { margin-top: 12px; text-align: center; font-size: 12.5px; color: var(--text2); }
++
++/* ── Quick action buttons ── */
++.pf-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
++.pf-act {
++  display: flex;
++  flex-direction: column;
++  align-items: center;
++  gap: 6px;
++  padding: 14px 6px 12px;
++  border-radius: 16px;
++  border: 1px solid var(--border);
++  background: var(--pf-card);
++  color: var(--white);
++  font: inherit;
++  font-size: 12px;
++  font-weight: 500;
++  cursor: pointer;
++  transition: var(--t);
++}
++.pf-act:active { transform: scale(.96); }
++.pf-act.is-primary { background: linear-gradient(180deg, var(--accent), var(--accent-d)); border-color: transparent; box-shadow: 0 6px 18px var(--accent-glow); }
++
++/* ── Stat tiles ── */
++.pf-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
++.pf-stat {
++  display: flex;
++  align-items: center;
++  gap: 12px;
++  padding: 12px;
++  text-align: left;
++  border-radius: 16px;
++  border: 1px solid var(--border);
++  background: var(--pf-card);
++  color: var(--white);
++  font: inherit;
++  cursor: pointer;
++  transition: var(--t);
++}
++.pf-stat:active { transform: scale(.97); }
++.pf-stat-n { display: block; font-size: 20px; font-weight: 700; line-height: 1.1; }
++.pf-stat-l { display: block; margin-top: 2px; font-size: 12px; color: var(--text2); }
++
++/* ── Next important date ── */
++.pf-next { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 14px; background: rgba(193, 18, 31, .10); border: 1px solid rgba(193, 18, 31, .25); cursor: pointer; }
++.pf-next-t { flex: 1; min-width: 0; }
++.pf-next-t b { display: block; font-size: 14px; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
++.pf-next-t span { font-size: 12px; color: var(--text2); }
++.pf-days { min-width: 58px; padding: 6px 8px; text-align: center; border-radius: 12px; background: linear-gradient(180deg, var(--accent), var(--accent-d)); color: var(--white); }
++.pf-days b { display: block; font-size: 18px; line-height: 1.1; }
++.pf-days span { font-size: 10px; opacity: .9; }
++.pf-empty { margin: 0; padding: 6px 0; font-size: 13px; color: var(--text2); }
++
++/* ── Our story preview ── */
++.pf-story { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; }
++.pf-story-t { flex: 1; min-width: 0; }
++.pf-story-t b { display: flex; align-items: center; justify-content: space-between; font-size: 15px; color: var(--white); }
++.pf-story-t p {
++  margin: 4px 0 0;
++  font-size: 13px;
++  line-height: 1.5;
++  color: var(--text2);
++  display: -webkit-box;
++  -webkit-line-clamp: 3;
++  -webkit-box-orient: vertical;
++  overflow: hidden;
++}
++
++/* ── Grouped list rows (settings + detail lists) ── */
++.pf-group-t { margin: 6px 4px -6px; font-size: 12px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: var(--text2); }
++.pf-list { background: var(--pf-card); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; }
++.pf-row {
++  display: flex;
++  align-items: center;
++  gap: 12px;
++  width: 100%;
++  padding: 12px 14px;
++  text-align: left;
++  background: none;
++  border: 0;
++  border-bottom: 1px solid var(--border);
++  color: var(--white);
++  font: inherit;
++  cursor: pointer;
++  transition: background .15s;
++}
++.pf-row:last-child { border-bottom: 0; }
++.pf-row:active { background: var(--g2); }
++.pf-row.is-static { cursor: default; }
++.pf-row-t { flex: 1; min-width: 0; }
++.pf-row-t b { display: block; font-size: 14px; font-weight: 500; }
++.pf-row-t span { display: block; margin-top: 1px; font-size: 12px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; }
++.pf-row-v { max-width: 48%; font-size: 13px; color: var(--text2); text-align: right; }
++.pf-row .pf-chev { width: 16px; height: 16px; color: var(--text3); }
++.pf-row.is-danger { color: var(--red); }
++.pf-row.is-danger .pf-chip { background: var(--red-bg); color: var(--red); }
++
++/* ── Partner screen ── */
++.pf-pcard { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; align-items: center; }
++.pf-pcard .pf-av-wrap { width: 92px; height: 92px; grid-row: 1 / 3; }
++.pf-pname { margin: 0; font-size: 22px; font-weight: 600; color: var(--white); font-family: var(--ff-sans); }
++.pf-pill { display: inline-flex; align-items: center; gap: 6px; width: fit-content; padding: 4px 10px; border-radius: 999px; font-size: 12px; background: var(--g2); color: var(--text2); }
++.pf-pill.ok { background: var(--green-bg); color: var(--green); }
++.pf-pbtns { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
++.pf-btn {
++  display: inline-flex;
++  align-items: center;
++  justify-content: center;
++  gap: 8px;
++  padding: 12px;
++  border-radius: 14px;
++  border: 1px solid var(--border2);
++  background: rgba(255, 255, 255, .05);
++  color: var(--white);
++  font: inherit;
++  font-size: 14px;
++  font-weight: 500;
++  cursor: pointer;
++}
++.pf-btn:active { transform: scale(.97); }
++.pf-btn.is-primary { background: linear-gradient(180deg, var(--accent), var(--accent-d)); border-color: transparent; }
++.pf-btn[hidden] { display: none; }
++.pf-hint { margin: 0 0 10px; font-size: 12.5px; line-height: 1.6; color: var(--text2); }
++
++/* ── Milestones ── */
++.pf-tl { position: relative; padding-left: 24px; }
++.pf-tl::before { content: ''; position: absolute; left: 7px; top: 6px; bottom: 6px; width: 2px; background: linear-gradient(180deg, var(--accent), rgba(193, 18, 31, .06)); }
++.pf-year { position: relative; margin: 18px 0 10px; font-size: 14px; font-weight: 600; color: var(--white); }
++.pf-year:first-child { margin-top: 0; }
++.pf-year::before { content: ''; position: absolute; left: -24px; top: 3px; width: 10px; height: 10px; border-radius: 50%; background: #fff; border: 3px solid var(--accent); box-sizing: content-box; margin-left: -3px; }
++.pf-ms { position: relative; display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--pf-card); }
++.pf-ms-e { font-size: 22px; line-height: 1.2; }
++.pf-ms-t { flex: 1; min-width: 0; }
++.pf-ms-t b { display: block; font-size: 14px; color: var(--white); }
++.pf-ms-t small { display: block; margin-top: 2px; font-size: 11px; color: var(--text3); }
++.pf-ms-t p { margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: var(--text2); }
++.pf-del { width: 34px; height: 34px; display: grid; place-items: center; flex-shrink: 0; border: 0; border-radius: 10px; background: none; color: var(--text3); cursor: pointer; }
++.pf-del:active { background: var(--red-bg); color: var(--red); }
++.pf-del .pf-i { width: 17px; height: 17px; }
++
++/* ── Love languages ── */
++.pf-opt { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; background: none; border: 0; border-bottom: 1px solid var(--border); color: var(--white); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
++.pf-opt:last-child { border-bottom: 0; }
++.pf-opt .pf-radio { margin-left: auto; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border2); display: grid; place-items: center; }
++.pf-opt.is-on { background: rgba(193, 18, 31, .12); }
++.pf-opt.is-on .pf-radio { border-color: var(--accent); background: var(--accent); }
++.pf-opt.is-on .pf-radio::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #fff; }
++.pf-tip { display: flex; gap: 10px; padding: 12px 14px; border-radius: 14px; font-size: 13px; line-height: 1.6; color: var(--text2); background: rgba(193, 18, 31, .10); border: 1px solid rgba(193, 18, 31, .22); }
++
++/* ── Story editor ── */
++.pf-ta { width: 100%; min-height: 110px; resize: vertical; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--border2); background: rgba(255, 255, 255, .04); color: var(--white); font: inherit; font-size: 14px; line-height: 1.5; }
++
++/* ── Bottom sheet (reuses the app's .modal-bg / .modal) ── */
++.modal-bg.pf-sheet-bg { align-items: flex-end; padding: 0; }
++.pf-sheet-bg .modal.pf-sheet {
++  max-width: 560px;
++  border-radius: 24px 24px 0 0;
++  padding: 10px 18px max(18px, env(safe-area-inset-bottom));
++  animation: pfSheetUp .28s cubic-bezier(.2, .8, .2, 1);
++}
++.pf-grab { width: 40px; height: 4px; margin: 0 auto 14px; border-radius: 4px; background: var(--border2); }
++@keyframes pfSheetUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
++
++@media (max-width: 380px) {
++  .pf-av-wrap { width: 72px; height: 72px; }
++  .pf-mid { min-width: 96px; }
++  .pf-stat-n { font-size: 18px; }
++}
+diff --git a/public/profile.js b/public/profile.js
+new file mode 100644
+index 0000000..440898b
+--- /dev/null
++++ b/public/profile.js
+@@ -0,0 +1,446 @@
++/* ══════════════════════════════════════════════════════════════
++   PROFILE PAGE — views, editors and actions for #page-profile
++   Styles: /profile.css
++
++   Screens (all inside the one #page-profile, switched in place):
++     main        overview: couple hero, quick actions, stats, next date, story
++     partner     partner details + connection
++     settings    "Profile & Settings" grouped list
++     milestones  relationship timeline
++     love        love languages
++     story       "Our Story" / about bios
++
++   Data lives in the shared state `S` (myName, partnerName, anniversary,
++   myBday, ptBday, myBio, partnerBio, myLoveLang, ptLoveLang, milestones,
++   events, photos, bucket) — nothing new is stored. Avatars are kept in
++   sync by the existing ids profAv1 / profAv2 / profAv3 (see applyNames()
++   and the ProfileStore listener in index.html).
++   ══════════════════════════════════════════════════════════════ */
++'use strict';
++
++(function () {
++  const $ = id => document.getElementById(id);
++  const DAY = 864e5;
++
++  /* ── Icons (24px stroke set, inline so they never wait on a CDN) ── */
++  const P = {
++    gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
++    back: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
++    chev: '<path d="m9 18 6-6-6-6"/>',
++    plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
++    x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
++    user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
++    users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
++    calendar: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
++    star: '<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>',
++    image: '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
++    heart: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
++    book: '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
++    target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
++    lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
++    bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
++    cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
++    palette: '<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>',
++    download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
++    pencil: '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
++    message: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
++    gift: '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/>',
++    camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
++    cake: '<path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v3"/><path d="M12 8v3"/><path d="M17 8v3"/>',
++    clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
++    trash: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
++    unlink: '<path d="M2 21a8 8 0 0 1 13.292-6"/><circle cx="10" cy="8" r="5"/><path d="M22 19h-6"/>'
++  };
++  const ico = (n, c) => '<svg class="pf-i' + (c ? ' ' + c : '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + P[n] + '</svg>';
++  const chip = n => '<span class="pf-chip">' + ico(n) + '</span>';
++
++  /* ── Love languages ── */
++  const LANGS = [
++    ['Words of Affirmation', '💬'], ['Quality Time', '⏰'], ['Acts of Service', '🛠️'],
++    ['Physical Touch', '🤗'], ['Receiving Gifts', '🎁']
++  ];
++  const TIPS = {
++    'Words of Affirmation + Quality Time': 'Say "I love you" during your quality time — compliments land deepest when you\'re fully present together.',
++    'Words of Affirmation + Acts of Service': 'Leave sweet notes when you help with tasks — combine words with actions for maximum impact.',
++    'Quality Time + Physical Touch': 'Cuddle while watching something together — your partner feels most loved when you\'re close AND present.',
++    'Quality Time + Words of Affirmation': 'Plan date nights where you express feelings out loud. Undivided attention + kind words = their ideal love.',
++    'Acts of Service + Receiving Gifts': 'Surprise them with a small gift AND do something helpful — both fill their love tank equally.',
++    'Physical Touch + Receiving Gifts': 'A warm hug when you give them even a small gift makes it 10x more meaningful.',
++    'default': 'Understanding each other\'s love language is the first step. Try expressing love in their language every day this week!'
++  };
++
++  /* ── Settings list (title, subtitle, icon, action) ── */
++  const MENU = [
++    ['Profile & Partner', [
++      ['Personal Profile', 'Edit your name, bio, photo and dates', 'user', 'editMe'],
++      ['Partner Connection', 'View and manage partner details', 'users', 'open:partner']
++    ]],
++    ['Relationship', [
++      ['Special Dates', 'Birthdays, anniversaries and events', 'calendar', 'go:calendar'],
++      ['Milestones', 'View and add relationship milestones', 'star', 'open:milestones'],
++      ['Memories', 'Your shared photos and videos', 'image', 'go:camera'],
++      ['Our Story', 'Write and edit your love story', 'book', 'open:story'],
++      ['Love Languages', 'Yours and your partner\'s', 'heart', 'open:love'],
++      ['Relationship Goals', 'Set and track goals together', 'target', 'go:dreamgoals']
++    ]],
++    ['App Settings', [
++      ['Notifications', 'Message and date reminders', 'bell', 'setting:notifications'],
++      ['Privacy & Security', 'Lock, PIN and visibility', 'lock', 'setting:privacy'],
++      ['Backup & Sync', 'Keep your data safe across devices', 'cloud', 'setting:backup'],
++      ['Theme & Appearance', 'Choose app theme and style', 'palette', 'setting:appearance'],
++      ['Export My Data', 'Download your memories and data', 'download', 'exportData']
++    ]]
++  ];
++
++  /* ── Small helpers ── */
++  const today = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
++  const parseD = s => new Date(s + 'T00:00:00');
++  const isoDate = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
++  const partnerName = () => S.partnerName || 'Partner';
++  const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
++
++  function togetherSpan(from) {
++    if (!from) return '';
++    const a = parseD(from), t = today();
++    if (a > t) return 'Starts ' + fmtDate(from);
++    let y = t.getFullYear() - a.getFullYear(), m = t.getMonth() - a.getMonth(), d = t.getDate() - a.getDate();
++    if (d < 0) { m--; d += new Date(t.getFullYear(), t.getMonth(), 0).getDate(); }
++    if (m < 0) { y--; m += 12; }
++    const parts = [];
++    if (y) parts.push(plural(y, 'Year'));
++    if (m) parts.push(plural(m, 'Month'));
++    if (d || !parts.length) parts.push(plural(d, 'Day'));
++    return parts.join(' • ');
++  }
++
++  function zodiac(s) {
++    if (!s) return '';
++    const d = parseD(s), m = d.getMonth() + 1, day = d.getDate();
++    const starts = [[1, 20, 'Aquarius ♒'], [2, 19, 'Pisces ♓'], [3, 21, 'Aries ♈'], [4, 20, 'Taurus ♉'], [5, 21, 'Gemini ♊'], [6, 21, 'Cancer ♋'],
++      [7, 23, 'Leo ♌'], [8, 23, 'Virgo ♍'], [9, 23, 'Libra ♎'], [10, 23, 'Scorpio ♏'], [11, 22, 'Sagittarius ♐'], [12, 22, 'Capricorn ♑']];
++    let sign = 'Capricorn ♑';
++    starts.forEach(([mo, sd, name]) => { if (m > mo || (m === mo && day >= sd)) sign = name; });
++    return sign;
++  }
++
++  // Next time a yearly date (birthday / anniversary) comes round, today included.
++  function nextYearly(s) {
++    const d = parseD(s), t = today();
++    let n = new Date(t.getFullYear(), d.getMonth(), d.getDate());
++    if (n < t) n = new Date(t.getFullYear() + 1, d.getMonth(), d.getDate());
++    return n;
++  }
++
++  function nextImportant() {
++    const t = today(), list = [];
++    (S.events || []).forEach(e => { if (e.date && parseD(e.date) >= t) list.push({ title: e.title, date: parseD(e.date), icon: e.cat === 'Birthday' ? 'cake' : 'gift' }); });
++    if (S.anniversary) list.push({ title: 'Anniversary', date: nextYearly(S.anniversary), icon: 'heart' });
++    if (S.myBday) list.push({ title: 'Your Birthday', date: nextYearly(S.myBday), icon: 'cake' });
++    if (S.ptBday) list.push({ title: partnerName() + '\'s Birthday', date: nextYearly(S.ptBday), icon: 'cake' });
++    list.sort((a, b) => a.date - b.date);
++    return list[0] || null;
++  }
++
++  /* ── Views ── */
++  const VIEWS = ['main', 'partner', 'settings', 'milestones', 'love', 'story'];
++  let stack = ['main'];
++  let built = false;
++
++  const bar = (title, right) =>
++    '<header class="pf-bar"><button class="pf-icon-btn" data-act="back" aria-label="Back">' + ico('back') + '</button><h1>' + title + '</h1>' + (right || '') + '</header>';
++
++  function build() {
++    const root = $('pf');
++    if (!root || built) return;
++    built = true;
++
++    const menu = MENU.map(([title, rows]) =>
++      '<div class="pf-group-t">' + title + '</div><div class="pf-list">' +
++      rows.map(([t, sub, icon, act]) =>
++        '<button class="pf-row" data-act="' + act + '">' + chip(icon) +
++        '<span class="pf-row-t"><b>' + t + '</b><span>' + sub + '</span></span>' + ico('chev', 'pf-chev') + '</button>').join('') +
++      '</div>').join('');
++
++    root.innerHTML =
++      /* main */
++      '<section class="pf-view" data-view="main">' +
++        '<header class="pf-bar"><div class="pf-brand"><img src="/icons/icon-192.png" alt=""><h1>Twin Hearts</h1></div>' +
++        '<button class="pf-icon-btn" data-act="open:settings" aria-label="Profile and settings">' + ico('gear') + '</button></header>' +
++        '<div class="pf-body">' +
++          '<div class="pf-hero"><div class="pf-couple">' +
++            '<div class="pf-person"><div class="pf-av-wrap"><button type="button" class="pf-av av1" id="profAv1" data-act="pickAvatar" aria-label="Change your photo"></button><span class="pf-cam">' + ico('camera') + '</span></div>' +
++              '<div class="pf-name" id="profMyName">You</div></div>' +
++            '<div class="pf-mid"><div class="pf-heart-link">' + ico('heart') + '</div>' +
++              '<span class="pf-since-l">Together since</span>' +
++              '<button class="pf-since-d" data-act="editMe"><span id="profAnnivText">—</span>' + ico('pencil') + '</button></div>' +
++            '<div class="pf-person"><div class="pf-av-wrap"><button type="button" class="pf-av av2" id="profAv2" data-act="viewAvatar" aria-label="View partner photo"></button></div>' +
++              '<div class="pf-name" id="profPtName">Partner</div><div class="pf-presence" id="pfPresence"></div></div>' +
++          '</div><div class="pf-span" id="pfSpan"></div></div>' +
++          '<div class="pf-actions">' +
++            '<button class="pf-act" data-act="editMe">' + ico('user') + 'Edit Profile</button>' +
++            '<button class="pf-act" data-act="open:partner">' + ico('users') + 'Partner Details</button>' +
++            '<button class="pf-act is-primary" data-act="addDate">' + ico('calendar') + 'Add Date</button>' +
++          '</div>' +
++          '<div class="pf-stats">' +
++            '<button class="pf-stat" data-act="go:camera">' + chip('image') + '<span><span class="pf-stat-n" id="pfStPhotos">0</span><span class="pf-stat-l">Memories</span></span></button>' +
++            '<button class="pf-stat" data-act="open:milestones">' + chip('star') + '<span><span class="pf-stat-n" id="pfStMiles">0</span><span class="pf-stat-l">Milestones</span></span></button>' +
++            '<button class="pf-stat" data-act="go:calendar">' + chip('calendar') + '<span><span class="pf-stat-n" id="pfStDates">0</span><span class="pf-stat-l">Special Dates</span></span></button>' +
++            '<button class="pf-stat" data-act="go:bucket">' + chip('heart') + '<span><span class="pf-stat-n" id="pfStDreams">0</span><span class="pf-stat-l">Dreams</span></span></button>' +
++          '</div>' +
++          '<div class="pf-card"><div class="pf-card-head"><h2>Next Important Date</h2><button class="pf-link-btn" data-act="go:calendar">View All' + ico('chev') + '</button></div><div id="pfNext"></div></div>' +
++          '<div class="pf-card pf-story" data-act="open:story">' + chip('book') +
++            '<div class="pf-story-t"><b>Our Story<span class="pf-link-btn">Edit' + ico('chev') + '</span></b><p id="pfStoryPrev"></p></div></div>' +
++        '</div>' +
++      '</section>' +
++
++      /* partner */
++      '<section class="pf-view" data-view="partner" hidden>' + bar('Partner Details') +
++        '<div class="pf-body">' +
++          '<div class="pf-card pf-pcard">' +
++            '<div class="pf-av-wrap"><button type="button" class="pf-av av2" id="profAv3" data-act="viewAvatar" aria-label="View partner photo"></button></div>' +
++            '<div><h2 class="pf-pname" id="pfPName">Partner</h2></div><div><span class="pf-pill" id="pfPPill"></span></div>' +
++            '<div class="pf-pbtns"><button class="pf-btn is-primary" id="pfMsgBtn" data-act="go:chat">' + ico('message') + 'Message</button>' +
++            '<button class="pf-btn" data-act="editPartner">' + ico('pencil') + 'Edit Details</button></div>' +
++          '</div>' +
++          '<div class="pf-list" id="pfPList"></div>' +
++          '<div class="pf-card" id="partnerConnectionBody">' +
++            '<div class="pf-card-head"><h2>Partner Connection</h2></div>' +
++            '<div id="pfConnectForm"><p class="pf-hint">Find your partner using their phone number.</p>' +
++            '<div class="field"><label>Partner Phone Number</label><input type="tel" id="profPartnerPhone" placeholder="10-digit phone number" inputmode="numeric" maxlength="10" autocomplete="off"></div>' +
++            '<button class="btn btn-accent" data-act="sendRequest">Send Connection Request</button></div>' +
++            '<div id="profPairStatus" class="pf-hint" style="margin:10px 0 0">Not Connected</div>' +
++          '</div>' +
++          '<div class="pf-list" id="pfRemove" hidden><button class="pf-row is-danger" data-act="removePartner">' + chip('unlink') +
++            '<span class="pf-row-t"><b>Remove Partner</b><span>Disconnect — your data stays safe</span></span></button></div>' +
++        '</div>' +
++      '</section>' +
++
++      /* settings */
++      '<section class="pf-view" data-view="settings" hidden>' + bar('Profile & Settings') + '<div class="pf-body">' + menu + '</div></section>' +
++
++      /* milestones */
++      '<section class="pf-view" data-view="milestones" hidden>' +
++        bar('Milestones', '<button class="pf-icon-btn" data-act="addMilestone" aria-label="Add milestone">' + ico('plus') + '</button>') +
++        '<div class="pf-body" id="pfMilestones"></div></section>' +
++
++      /* love languages */
++      '<section class="pf-view" data-view="love" hidden>' + bar('Love Languages') + '<div class="pf-body" id="pfLove"></div></section>' +
++
++      /* story */
++      '<section class="pf-view" data-view="story" hidden>' + bar('Our Story') +
++        '<div class="pf-body">' +
++          '<div class="field"><label>About you</label><textarea class="pf-ta" id="pfBioMe" placeholder="Write something sweet..."></textarea></div>' +
++          '<div class="field"><label id="pfBioPtLabel">About your partner</label><textarea class="pf-ta" id="pfBioPt" placeholder="About your partner..."></textarea></div>' +
++          '<button class="btn btn-accent" data-act="saveStory">Save</button>' +
++        '</div></section>';
++
++    root.addEventListener('click', onClick);
++  }
++
++  /* ── Navigation between screens ── */
++  function show(view) {
++    VIEWS.forEach(v => { const s = document.querySelector('#pf [data-view="' + v + '"]'); if (s) s.hidden = v !== view; });
++    renderView(view);
++    const c = document.querySelector('.content'); if (c) c.scrollTop = 0;
++  }
++  function open(view) { stack.push(view); show(view); }
++  function back() { if (stack.length > 1) { stack.pop(); show(stack[stack.length - 1]); } else goBack(); }
++  // Called by goBack() so the hardware Back button steps out of a sub-screen first.
++  function handleBack() {
++    const active = document.getElementById('page-profile');
++    if (!active || !active.classList.contains('active') || stack.length < 2) return false;
++    back(); return true;
++  }
++
++  /* ── Renderers ── */
++  function renderView(v) {
++    ({ main: renderMain, partner: renderPartner, milestones: renderMilestones, love: renderLove, story: renderStory })[v]?.();
++  }
++
++  function renderMain() {
++    applyNames(); // names + avatar images for profAv1 / profAv2
++    $('profAnnivText').textContent = S.anniversary ? fmtDate(S.anniversary) : 'Set date';
++    $('pfSpan').textContent = togetherSpan(S.anniversary);
++    $('pfStPhotos').textContent = (S.photos || []).length;
++    $('pfStMiles').textContent = (S.milestones || []).length;
++    $('pfStDates').textContent = (S.events || []).length;
++    $('pfStDreams').textContent = (S.bucket || []).length;
++
++    const pres = $('pfPresence'), ts = (S.ptLoc || {}).ts;
++    if (S.paired && ts && Date.now() - ts < 5 * 60e3) pres.innerHTML = '<span class="pf-dot on"></span>Online';
++    else if (S.paired && ts) pres.innerHTML = '<span class="pf-dot"></span>' + esc(fmtLastSeen(ts) || '');
++    else pres.textContent = S.paired ? '' : 'Not connected';
++
++    const n = nextImportant();
++    $('pfNext').innerHTML = n
++      ? (() => {
++          const left = Math.round((n.date - today()) / DAY);
++          return '<div class="pf-next" data-act="go:calendar">' + chip(n.icon) +
++            '<div class="pf-next-t"><b>' + esc(n.title) + '</b><span>' + fmtDate(isoDate(n.date)) + '</span></div>' +
++            '<div class="pf-days"><b>' + (left === 0 ? 'Today' : left) + '</b>' + (left === 0 ? '' : '<span>' + (left === 1 ? 'Day left' : 'Days left') + '</span>') + '</div></div>';
++        })()
++      : '<p class="pf-empty">No upcoming dates yet — tap Add Date to create one.</p>';
++
++    $('pfStoryPrev').textContent = S.myBio || 'Write a few lines about the two of you.';
++  }
++
++  function renderPartner() {
++    applyNames();
++    setAvImg('profAv3', S.partnerAvatar);
++    $('pfPName').textContent = partnerName();
++    const pill = $('pfPPill');
++    pill.className = 'pf-pill' + (S.paired ? ' ok' : '');
++    pill.textContent = S.paired ? 'Connected' : (S.partnerRequestSent ? 'Waiting for partner' : 'Not connected');
++    $('pfMsgBtn').hidden = !S.paired;
++    $('pfConnectForm').hidden = S.paired || !!S.partnerRequestSent;
++    $('pfRemove').hidden = !S.paired;
++    $('profPairStatus').textContent = S.paired ? 'Connected with ' + partnerName() : (S.partnerRequestSent ? 'Waiting for Partner' : 'Not Connected');
++
++    const rows = [];
++    const row = (icon, label, value, act) =>
++      '<' + (act ? 'button' : 'div') + ' class="pf-row' + (act ? '' : ' is-static') + '"' + (act ? ' data-act="' + act + '"' : '') + '>' + chip(icon) +
++      '<span class="pf-row-t"><b>' + label + '</b><span>' + esc(value) + '</span></span>' + (act ? ico('chev', 'pf-chev') : '') + '</' + (act ? 'button' : 'div') + '>';
++    rows.push(row('cake', 'Birthday', S.ptBday ? fmtDate(S.ptBday) : 'Not added', 'editPartner'));
++    if (S.ptBday) rows.push(row('star', 'Zodiac', zodiac(S.ptBday)));
++    rows.push(row('heart', 'Love Language', S.ptLoveLang || 'Not chosen', 'open:love'));
++    rows.push(row('book', 'About ' + esc(partnerName()), S.partnerBio || 'Add a few words', 'editPartner'));
++    const ts = (S.ptLoc || {}).ts;
++    if (S.paired && ts) rows.push(row('clock', 'Last active', fmtLastSeen(ts) || ''));
++    $('pfPList').innerHTML = rows.join('');
++  }
++
++  function renderMilestones() {
++    const el = $('pfMilestones');
++    const all = [...(S.milestones || [])].sort((a, b) => b.date.localeCompare(a.date));
++    if (!all.length) {
++      PS.empty(el, { icon: 'heart', title: 'No milestones yet', desc: 'Mark the moments that matter — firsts, trips, anniversaries.', actionLabel: 'Add Milestone', onAction: () => openM('milestoneModal'), compact: true });
++      return;
++    }
++    let html = '', year = null;
++    all.forEach(m => {
++      const y = parseD(m.date).getFullYear();
++      if (y !== year) { html += '<div class="pf-year">' + y + '</div>'; year = y; }
++      html += '<div class="pf-ms"><span class="pf-ms-e">' + esc(m.type || '💫') + '</span><div class="pf-ms-t"><b>' + esc(m.title) + '</b><small>' + fmtDate(m.date) + '</small>' +
++        (m.note ? '<p>' + esc(m.note) + '</p>' : '') + '</div><button class="pf-del" data-act="delMilestone:' + m.id + '" aria-label="Delete milestone">' + ico('trash') + '</button></div>';
++    });
++    el.innerHTML = '<div class="pf-tl">' + html + '</div>';
++  }
++
++  function renderLove() {
++    const card = (who, title, current) =>
++      '<div class="pf-group-t">' + esc(title) + '</div><div class="pf-list">' +
++      LANGS.map(([name, emoji]) =>
++        '<button class="pf-opt' + (current === name ? ' is-on' : '') + '" data-act="love:' + who + '|' + name + '"><span>' + emoji + '</span>' + name + '<span class="pf-radio"></span></button>').join('') +
++      '</div>';
++    const both = S.myLoveLang && S.ptLoveLang;
++    $('pfLove').innerHTML = card('me', 'Your love language', S.myLoveLang) + card('pt', partnerName() + '\'s love language', S.ptLoveLang) +
++      (both ? '<div class="pf-tip">💡<span>' + esc(TIPS[S.myLoveLang + ' + ' + S.ptLoveLang] || TIPS.default) + '</span></div>' : '');
++  }
++
++  function renderStory() {
++    $('pfBioMe').value = S.myBio || '';
++    $('pfBioPt').value = S.partnerBio || '';
++    $('pfBioPtLabel').textContent = 'About ' + partnerName();
++  }
++
++  /* ── Bottom-sheet editors ── */
++  function sheet(title, body, onSave) {
++    let bg = $('pfSheet');
++    if (!bg) { bg = document.createElement('div'); bg.id = 'pfSheet'; bg.className = 'modal-bg pf-sheet-bg'; document.body.appendChild(bg); }
++    bg.innerHTML = '<div class="modal pf-sheet"><div class="pf-grab"></div><div class="modal-title">' + title +
++      '<button class="modal-close" data-sheet="close" aria-label="Close">' + ico('x') + '</button></div>' + body +
++      '<button class="btn btn-accent" style="width:100%;justify-content:center" data-sheet="save">Save</button></div>';
++    bg.onclick = e => {
++      if (e.target === bg || e.target.closest('[data-sheet="close"]')) { closeM('pfSheet'); return; }
++      if (e.target.closest('[data-sheet="save"]')) { onSave(); closeM('pfSheet'); }
++    };
++    openM('pfSheet');
++  }
++  const field = (label, input) => '<div class="field"><label>' + label + '</label>' + input + '</div>';
++  const val = id => $(id).value;
++
++  function afterEdit() {
++    applyNames(); scheduleSave();
++    if (typeof renderDashboard === 'function') renderDashboard();
++    if (typeof syncLoveCounterToFrame === 'function') syncLoveCounterToFrame();
++    renderView(stack[stack.length - 1]);
++  }
++
++  function editMe() {
++    const g = window.Gender ? Gender.mine() : '';
++    sheet('Edit Profile',
++      field('Your name', '<input type="text" id="pfEName" maxlength="40" value="' + esc(S.myName === 'You' ? '' : S.myName) + '" placeholder="Your name">') +
++      field('Your birthday', '<input type="date" id="pfEBday" value="' + esc(S.myBday || '') + '">') +
++      field('Together since', '<input type="date" id="pfEAnniv" value="' + esc(S.anniversary || '') + '">') +
++      field('I am', '<select id="pfEGender"><option value="">Choose…</option><option value="female"' + (g === 'female' ? ' selected' : '') + '>Girl</option><option value="male"' + (g === 'male' ? ' selected' : '') + '>Boy</option></select>') +
++      field('Bio', '<textarea id="pfEBio" maxlength="300" placeholder="Write something sweet...">' + esc(S.myBio || '') + '</textarea>'),
++      () => {
++        S.myName = val('pfEName').trim() || 'You';
++        S.myBday = val('pfEBday'); S.anniversary = val('pfEAnniv'); S.myBio = val('pfEBio');
++        const g2 = val('pfEGender'); if (g2 && window.Gender) Gender.set(g2);
++        pushMyProfile(); afterEdit(); toast('Profile saved 💕');
++      });
++  }
++
++  function editPartner() {
++    // When connected, name + birthday come from the partner's own profile, so only the shared notes are editable.
++    const own = S.paired;
++    sheet('Edit Details',
++      (own ? '' :
++        field('Name', '<input type="text" id="pfPEName" maxlength="40" value="' + esc(S.partnerName === 'Partner' ? '' : S.partnerName) + '" placeholder="Partner name">') +
++        field('Birthday', '<input type="date" id="pfPEBday" value="' + esc(S.ptBday || '') + '">')) +
++      field('About ' + esc(partnerName()), '<textarea id="pfPEBio" maxlength="300" placeholder="About your partner...">' + esc(S.partnerBio || '') + '</textarea>'),
++      () => {
++        if (!own) { S.partnerName = val('pfPEName').trim() || 'Partner'; S.ptBday = val('pfPEBday'); }
++        S.partnerBio = val('pfPEBio');
++        afterEdit(); toast('Saved 💕');
++      });
++  }
++
++  /* ── Actions ── */
++  function openAppSetting(key) {
++    goto('settings');
++    setTimeout(() => {
++      const h = [...document.querySelectorAll('#page-settings .settings-group-header')].find(x => x.textContent.toLowerCase().includes(key));
++      if (h) h.closest('.settings-group').scrollIntoView({ behavior: 'smooth', block: 'start' });
++    }, 80);
++  }
++
++  const ACTIONS = {
++    open, back, editMe, editPartner,
++    go: p => goto(p),
++    setting: openAppSetting,
++    addDate: () => openM('eventModal'),
++    addMilestone: () => openM('milestoneModal'),
++    pickAvatar: () => pickAvatar('my'),
++    viewAvatar: () => viewAvatar('pt'),
++    exportData: () => exportData(),
++    sendRequest: () => sendPartnerRequestFromProfile(),
++    removePartner: () => confirmRemovePartner(),
++    delMilestone: id => delMilestone(Number(id)),
++    love: arg => {
++      const [who, name] = arg.split('|');
++      if (who === 'me') S.myLoveLang = S.myLoveLang === name ? '' : name; else S.ptLoveLang = S.ptLoveLang === name ? '' : name;
++      scheduleSave(); renderLove();
++    },
++    saveStory: () => {
++      S.myBio = val('pfBioMe'); S.partnerBio = val('pfBioPt');
++      scheduleSave(); toast('Saved 💕'); back();
++    }
++  };
++
++  function onClick(e) {
++    const el = e.target.closest('[data-act]'); if (!el) return;
++    const s = el.dataset.act, i = s.indexOf(':');
++    const fn = ACTIONS[i < 0 ? s : s.slice(0, i)];
++    if (fn) fn(i < 0 ? undefined : s.slice(i + 1));
++  }
++
++  /* ── Public entry points ── */
++  function render() { build(); stack = ['main']; show('main'); }
++  // Refresh whichever screen is showing (called after milestones change, etc.)
++  function refresh() { if (built) renderView(stack[stack.length - 1]); }
++
++  window.renderProfile = render;
++  window.Prof = { render, refresh, open, back, handleBack };
++})();
+diff --git a/public/sw.js b/public/sw.js
+index 7013d4f..e1f9130 100644
+--- a/public/sw.js
++++ b/public/sw.js
+@@ -1,5 +1,5 @@
+ // Service Worker for Twin Hearts 💕 PWA — v5
+-const CACHE = 'uwl-v8'; // bumped: purges stale cached assets (incl. old movie.css) on activate
++const CACHE = 'uwl-v9'; // bumped: purges stale cached assets (incl. old movie.css) on activate
+ const OFFLINE_ASSETS = [
+   '/',
+   '/index.html',

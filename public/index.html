@@ -1554,30 +1554,6 @@
       font-size: 14px
     }
 
-    /* ════ PROFILE HERO ════ */
-    .profile-hero {
-      background: var(--g1);
-      backdrop-filter: var(--blur);
-      border: 1px solid var(--border);
-      border-radius: var(--r);
-      padding: 28px;
-      margin-bottom: 18px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .profile-hero::before {
-      content: '💕';
-      font-size: 100px;
-      opacity: 0.04;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-    }
-
     .av-large {
       width: 90px;
       height: 90px;
@@ -1608,37 +1584,6 @@
       position: absolute;
       inset: 0;
       border-radius: 50%
-    }
-
-    .stat-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin-top: 16px
-    }
-
-    .stat-item {
-      background: var(--g1);
-      border-radius: var(--rs);
-      padding: 12px;
-      text-align: center;
-      border: 1px solid var(--border)
-    }
-
-    .stat-n {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--white);
-      font-family: var(--ff-serif)
-    }
-
-    .stat-l {
-      font-size: 9px;
-      color: var(--text3);
-      margin-top: 3px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px
     }
 
     .timeline-dot {
@@ -1973,29 +1918,6 @@
     .period-symptom-freq-row:last-child{border-bottom:none}
     .period-symptom-bar-wrap{flex:1;height:6px;background:var(--g2);border-radius:3px;margin:0 10px;overflow:hidden}
     .period-symptom-bar{height:100%;background:linear-gradient(90deg,#ff6b9d,#c2185b);border-radius:3px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
-    /* ════ MILESTONE TIMELINE (DEEP) ════ */
-    .ml-stats-row{display:flex;gap:10px;margin-bottom:14px}
-    .ml-stat-box{flex:1;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px 8px;text-align:center}
-    .ml-stat-n{font-family:var(--ff-serif);font-size:20px;color:var(--white);line-height:1}
-    .ml-stat-l{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;margin-top:4px}
-    .ml-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
-    .ml-insight-ico{font-size:20px;flex-shrink:0}
-    .ml-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
-    .ml-insight-text strong{color:var(--white)}
-    .ml-timeline{position:relative;padding-left:26px}
-    .ml-timeline::before{content:'';position:absolute;left:9px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--accent),rgba(229,9,20,0.08))}
-    .ml-year-header{font-family:var(--ff-serif);font-size:15px;color:var(--white);margin:18px 0 10px;position:relative}
-    .ml-year-header:first-child{margin-top:0}
-    .ml-year-header::before{content:'';position:absolute;left:-26px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--white);border:3px solid var(--accent)}
-    .ml-item{position:relative;margin-bottom:16px}
-    .ml-item::before{content:'';position:absolute;left:-21px;top:6px;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
-    .ml-card{background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;transition:var(--t)}
-    .ml-card:hover{border-color:var(--border2);transform:translateX(2px)}
-    .ml-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
-    .ml-card-title{font-size:13px;font-weight:600;color:var(--white)}
-    .ml-card-date{font-size:9px;color:var(--text3);white-space:nowrap;text-transform:uppercase;letter-spacing:0.3px}
-    .ml-card-note{font-size:12px;color:var(--text2);margin-top:5px;line-height:1.55}
-    .ml-card-gap{font-size:9px;color:var(--text3);margin-top:6px;font-style:italic}
     /* ════ MEMORIES ANALYTICS ════ */
     .mem-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
     .mem-insight-ico{font-size:20px;flex-shrink:0}
@@ -3383,11 +3305,8 @@
   .modal { padding: 18px 16px; border-radius: 18px; max-height: 85dvh }
   .modal-title { font-size: 16px }
 
-  /* Profile */
-  .profile-hero { padding: 18px 14px }
+  /* Settings avatar */
   .av-large { width: 72px; height: 72px; font-size: 24px }
-  .stat-grid { gap: 6px }
-  .stat-n { font-size: 17px }
 
   /* Period stats */
   .period-stats { gap: 6px }
@@ -3742,60 +3661,6 @@
     }
 
     /* ════ TIMELINE STORIES ════ */
-    .timeline-stories {
-      display: flex;
-      gap: 14px;
-      overflow-x: auto;
-      padding: 6px 2px 10px;
-    }
-
-    .timeline-stories::-webkit-scrollbar {
-      height: 0
-    }
-
-    .ts-item {
-      flex-shrink: 0;
-      width: 64px;
-      text-align: center;
-      cursor: pointer;
-    }
-
-    .ts-ring {
-      width: 58px;
-      height: 58px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 6px;
-      padding: 3px;
-      box-shadow: 0 4px 14px var(--accent-glow);
-    }
-
-    .ts-ring-inner {
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      background: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-    }
-
-    .ts-label {
-      font-size: 9px;
-      color: var(--text3);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 64px;
-    }
-
     /* ════ SKELETON LOADER ════ */
     .skel {
       background: linear-gradient(90deg, var(--g1) 25%, var(--g2) 50%, var(--g1) 75%);
@@ -4814,8 +4679,6 @@ vercel-live-feedback {
 .card,
 .metric,
 .m-card,
-.stat-item,
-.profile-hero,
 .settings-group,
 .settings-hero,
 .period-hero,
@@ -5015,6 +4878,7 @@ select option { background: #0D0D0D; color: #fff; }
   <link rel="stylesheet" href="/dashboard.css">
   <link rel="stylesheet" href="/dashboard-widgets.css">
   <link rel="stylesheet" href="/gender-access.css">
+  <link rel="stylesheet" href="/profile.css">
 </head>
 
 <body class="t-blue">
@@ -5829,120 +5693,9 @@ select option { background: #0D0D0D; color: #fff; }
         </div>
       </div>
 
-      <!-- ════ PROFILE ════ -->
+      <!-- ════ PROFILE ════ (styles: /profile.css · logic: /profile.js) -->
       <div class="page" id="page-profile">
-        <div class="profile-hero">
-          <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:16px">
-            <div>
-              <div class="av-large av1" id="profAv1" style="margin:0 auto 8px" onclick="pickAvatar('my')">U</div>
-              <input type="file" id="myAvatarInput" accept="image/*" style="display:none"
-                onchange="setAvatar('my',this)">
-              <div style="font-size:13px;font-weight:600;color:var(--white);text-align:center" id="profMyName">You</div>
-              <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:2px">tap to change</div>
-            </div>
-            <div class="prof-heart-ico" style="font-size:28px">💕</div>
-            <div>
-              <div class="av-large av2" id="profAv2" style="margin:0 auto 8px" onclick="viewAvatar('pt')">P</div>
-              <div style="font-size:13px;font-weight:600;color:var(--white);text-align:center" id="profPtName">Partner
-              </div>
-              <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:2px">tap to view</div>
-            </div>
-          </div>
-         <div style="font-size:13px;color:var(--text2);margin-bottom:4px" id="profAnnivText">Together since —</div>
-<button class="btn btn-glass btn-sm" style="margin-top:8px" onclick="openM('milestoneModal')">💫 Add Milestone</button>
-<button class="btn btn-accent btn-sm" style="margin-top:8px;margin-left:8px" onclick="openM('eventModal')">📅 Add Date</button>
-<button class="btn btn-glass btn-sm" style="margin-top:8px;margin-left:8px" onclick="goto('bucket')">🌟 Add Dream</button>
-          <div class="stat-grid">
-            <div class="stat-item">
-              <div class="stat-n" id="profDays">0</div>
-              <div class="stat-l">Days</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-n" id="profPhotos">0</div>
-              <div class="stat-l">Memories</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-n" id="profDreams">0</div>
-              <div class="stat-l">Dreams</div>
-            </div>
-          </div>
-          <div class="stat-grid" style="margin-top:10px">
-            <div class="stat-item">
-              <div class="stat-n" id="profFights">0</div>
-              <div class="stat-l">Fights</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-n" id="profHabits">0</div>
-              <div class="stat-l">Habits</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-n" id="profEntries">0</div>
-              <div class="stat-l">Journal</div>
-            </div>
-          </div>
-        </div>
-        <div class="two-col">
-          <div class="card" style="margin-bottom:0" id="partnerConnectionCard">
-            <div class="card-title">❤️ Partner Connection</div>
-            <div id="partnerConnectionBody">
-              <div style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.65">Find your partner using their phone number.</div>
-              <div class="field"><label>Partner Phone Number</label><input type="tel" id="profPartnerPhone" placeholder="10-digit phone number" inputmode="numeric" maxlength="10" autocomplete="off" style="letter-spacing:1px;font-size:16px"></div>
-              <button class="btn btn-accent btn-sm" onclick="sendPartnerRequestFromProfile()">Send Connection Request ❤️</button>
-              <div id="profPairStatus" style="font-size:11px;color:var(--text3);margin-top:10px">Not Connected</div>
-            </div>
-          </div>
-          <div class="card" style="margin-bottom:0">
-            <div class="card-title">🌹 Our Story</div>
-            <div class="field"><label>Your Bio</label><textarea id="myBio" placeholder="Write something sweet..."
-                style="min-height:60px" oninput="scheduleSave()"></textarea></div>
-            <div class="field"><label>Partner's Bio</label><textarea id="ptBio" placeholder="About your partner..."
-                style="min-height:60px" oninput="scheduleSave()"></textarea></div>
-            <button class="btn btn-accent btn-sm" onclick="saveBios()">Save 💕</button>
-          </div>
-        </div>
-        <div class="card" style="margin-top:16px">
-          <div class="card-title">💞 Love Languages</div>
-          <div class="row2">
-            <div class="field"><label>Your Love Language</label>
-              <select id="myLoveLang" onchange="saveLoveLang()">
-                <option value="">Select yours...</option>
-                <option value="Words of Affirmation">💬 Words of Affirmation</option>
-                <option value="Quality Time">⏰ Quality Time</option>
-                <option value="Acts of Service">🛠️ Acts of Service</option>
-                <option value="Physical Touch">🤗 Physical Touch</option>
-                <option value="Receiving Gifts">🎁 Receiving Gifts</option>
-              </select>
-            </div>
-            <div class="field"><label>Partner's Love Language</label>
-              <select id="ptLoveLang" onchange="saveLoveLang()">
-                <option value="">Select theirs...</option>
-                <option value="Words of Affirmation">💬 Words of Affirmation</option>
-                <option value="Quality Time">⏰ Quality Time</option>
-                <option value="Acts of Service">🛠️ Acts of Service</option>
-                <option value="Physical Touch">🤗 Physical Touch</option>
-                <option value="Receiving Gifts">🎁 Receiving Gifts</option>
-              </select>
-            </div>
-          </div>
-          <div id="loveLangTip"
-            style="display:none;font-size:12px;margin-top:8px;padding:10px 14px;background:var(--g1);border-radius:var(--rs);color:var(--text2);border:1px solid var(--border);line-height:1.7">
-          </div>
-        </div>
-        <div class="card" style="margin-top:16px">
-          <div class="card-title">📖 Our Timeline</div>
-          <div class="timeline-stories" id="timelineStories"></div>
-        </div>
-        <div class="card" style="margin-top:16px">
-          <div class="card-title">💫 Love Milestones<button class="btn-ghost btn-sm" onclick="openM('milestoneModal')">+
-              Add</button></div>
-          <div class="ml-stats-row" id="mlStatsRow"></div>
-          <div class="ml-insight-card" id="mlInsightCard"></div>
-          <div id="milestonesEl">
-            <div class="empty" style="padding:14px 0">
-              <div class="empty-ico">💫</div>Add special moments!
-            </div>
-          </div>
-        </div>
+        <div class="pf" id="pf"></div>
       </div>
       <div class="page" id="page-level">
         <div id="levelPageContent"></div>
@@ -8005,16 +7758,11 @@ async function saveToCloud() {
           const rpb = document.getElementById('removePartnerBtn');
           if (rpb) rpb.style.display = S.paired ? 'inline-flex' : 'none';
 
-          const profForm = document.getElementById('profPartnerRequestForm') || document.getElementById('partnerConnectionBody');
           const settingsForm = document.getElementById('settingsPartnerRequestForm');
           const showForm = !S.paired && !S.partnerRequestSent;
-          const profInput = document.getElementById('profPartnerPhone');
-          if (profInput) profInput.closest('.field') && (profInput.closest('.field').style.display = showForm ? 'block' : 'none');
-          const profBtnEl = document.querySelector('#partnerConnectionBody .btn-accent');
-          if (profBtnEl) profBtnEl.style.display = showForm ? 'inline-flex' : 'none';
           if (settingsForm) settingsForm.style.display = showForm ? 'block' : 'none';
+          if (window.Prof) Prof.refresh();
 
-          const p1 = document.getElementById('profPairStatus'); if (p1) p1.textContent = msg + (S.paired ? ' — ' + (S.partnerName || 'Partner') : '');
           const p2 = document.getElementById('settingsPairStatus'); if (p2) p2.textContent = msg + (S.paired ? ' — ' + (S.partnerName || 'Partner') : '');
           renderPartnerLastSeen();
           renderSettingsWaitingCard();
@@ -8485,6 +8233,7 @@ function setJustPairedAt(ts) {
         // where history.back() doesn't produce a popstate at all — a
         // category page must never become a dead end.
         function goBack() {
+          if (window.Prof && Prof.handleBack()) return; // step out of a profile sub-screen first
           const activeBefore = document.querySelector('.page.active')?.id;
           if (__navStack.length > 1) {
             history.back();
@@ -8801,7 +8550,7 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
           // element was why the chat header photo could look inconsistent
           // or briefly flash back to an initial/stale image.
           if (S.myAvatar) { ['sbAv1', 'profAv1', 'settingsAv1', 'dashAv'].forEach(id => setAvImg(id, S.myAvatar)); }
-          if (S.partnerAvatar) { ['sbAv2', 'profAv2'].forEach(id => setAvImg(id, S.partnerAvatar)); }
+          if (S.partnerAvatar) { ['sbAv2', 'profAv2', 'profAv3'].forEach(id => setAvImg(id, S.partnerAvatar)); }
           const el1 = document.getElementById('profMyName'); if (el1) el1.textContent = m;
           const el2 = document.getElementById('profPtName'); if (el2) el2.textContent = p;
           ['studyMyName', 'studyMyNameTT'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = m + "'s"; });
@@ -8841,22 +8590,12 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
         // approach that silently bloated/corrupted the shared state row.
         function pickAvatar(who) {
           if (who !== 'my') { console.warn('[avatar] blocked: partner avatar is not editable'); return; }
-          if (window.Avatar) { Avatar.openPicker(); return; }
-          document.getElementById('myAvatarInput').click(); // fallback if avatar-system.js hasn't loaded yet
+          if (window.Avatar) Avatar.openPicker();
         }
         function viewAvatar(who) {
           const url = who === 'my' ? S.myAvatar : S.partnerAvatar;
           if (!url) return;
           if (window.Avatar) Avatar.openViewer(url); else openImgViewer(url);
-        }
-        async function setAvatar(who, input) {
-          if (who !== 'my' || !input.files[0]) return;
-          try {
-            const saved = await ProfileStore.uploadMyAvatar(input.files[0]);
-            S.myAvatar = saved.avatar_url;
-            ['sbAv1', 'profAv1', 'settingsAv1', 'dashAv'].forEach(id => setAvImg(id, S.myAvatar));
-            saveLocal(); toast('Photo updated! 📸');
-          } catch (e) { toast('Upload failed: ' + e.message); }
         }
         function updateNamesLive() { S.myName = document.getElementById('setMyName').value || 'You'; S.partnerName = document.getElementById('setPtName').value || 'Partner'; applyNames(); }
         function loadSettings() {
@@ -9677,111 +9416,15 @@ const p = await Notification.requestPermission();
           }
         }
 
-        // ─── PROFILE ─────────────────────────────────────────────
-        function renderProfile() {
-          applyNames();
-          document.getElementById('myBio').value = S.myBio || '';
-          document.getElementById('ptBio').value = S.partnerBio || '';
-          const days = S.anniversary ? Math.max(0, Math.floor((Date.now() - new Date(S.anniversary).getTime()) / 86400000)) : 0;
-          document.getElementById('profDays').textContent = days;
-          document.getElementById('profPhotos').textContent = S.photos.length;
-          document.getElementById('profDreams').textContent = S.bucket.length;
-          document.getElementById('profFights').textContent = (S.fights || []).length;
-          document.getElementById('profHabits').textContent = (S.habits || []).length;
-          document.getElementById('profEntries').textContent = (S.journal || []).length;
-          const ae = document.getElementById('profAnnivText');
-          if (ae) ae.textContent = S.anniversary ? 'Together since ' + fmtDate(S.anniversary) : 'Together since —';
-          renderMilestones(); loadLoveLang();
-        }
-        function saveBios() { S.myBio = document.getElementById('myBio').value; S.partnerBio = document.getElementById('ptBio').value; scheduleSave(); toast('Saved 💕'); }
+        // ─── PROFILE MILESTONES (screen lives in /profile.js) ────
         function addMilestone() {
           const title = document.getElementById('msTitle').value.trim(), date = document.getElementById('msDate').value;
           if (!title || !date) { toast('Title and date required'); return; }
           S.milestones.push({ id: Date.now(), title, date, note: document.getElementById('msNote').value, type: document.getElementById('msType').value || '💫' });
           ['msTitle', 'msDate', 'msNote'].forEach(id => document.getElementById(id).value = '');
-          closeM('milestoneModal'); renderMilestones(); scheduleSave(); toast('Milestone saved! 💫'); spawnPetals(8);
+          closeM('milestoneModal'); if (window.Prof) Prof.refresh(); scheduleSave(); toast('Milestone saved! 💫'); spawnPetals(8);
         }
-        function renderMilestones() {
-          renderTimelineStories();
-          const el = document.getElementById('milestonesEl');
-          const statsEl = document.getElementById('mlStatsRow'), insEl = document.getElementById('mlInsightCard');
-          const all = [...(S.milestones || []), ...(S.events || []).filter(e => ['Anniversary', 'Date'].includes(e.cat))].sort((a, b) => a.date.localeCompare(b.date));
-          if (!all.length) {
-            PS.empty(el, { icon: 'heart', title: 'No milestones yet', desc: 'Mark the moments that matter \u2014 anniversaries, firsts, anything worth remembering.', actionLabel: 'Add Milestone', onAction: () => openM('milestoneModal'), compact: true });
-            if (statsEl) statsEl.style.display = 'none';
-            if (insEl) insEl.style.display = 'none';
-            return;
-          }
-          if (statsEl) statsEl.style.display = '';
-          if (insEl) insEl.style.display = '';
-
-          // Stats
-          const thisYear = new Date().getFullYear();
-          const thisYearCount = all.filter(m => new Date(m.date + 'T00:00:00').getFullYear() === thisYear).length;
-          const years = new Set(all.map(m => new Date(m.date + 'T00:00:00').getFullYear()));
-          if (statsEl) statsEl.innerHTML = `
-            <div class="ml-stat-box"><div class="ml-stat-n">${all.length}</div><div class="ml-stat-l">Total</div></div>
-            <div class="ml-stat-box"><div class="ml-stat-n" style="color:var(--accent)">${thisYearCount}</div><div class="ml-stat-l">This Year</div></div>
-            <div class="ml-stat-box"><div class="ml-stat-n" style="color:var(--green)">${years.size}</div><div class="ml-stat-l">Years Spanned</div></div>`;
-
-          // Insight
-          if (insEl) {
-            const mostRecent = all[all.length - 1];
-            const daysSince = Math.floor((Date.now() - new Date(mostRecent.date + 'T00:00:00').getTime()) / 86400000);
-            let text, ico = '💫';
-            if (daysSince <= 30) { ico = '✨'; text = `Your most recent milestone — "<strong>${esc(mostRecent.title)}</strong>" — was just ${daysSince === 0 ? 'today' : daysSince + ' day' + (daysSince === 1 ? '' : 's') + ' ago'}.`; }
-            else { ico = '📖'; text = `It's been <strong>${daysSince} days</strong> since your last milestone ("${esc(mostRecent.title)}") — maybe it's time to mark a new one.`; }
-            insEl.innerHTML = `<div class="ml-insight-ico">${ico}</div><div class="ml-insight-text">${text}</div>`;
-          }
-
-          // Grouped, reverse-chronological timeline with gap notes
-          const desc = [...all].reverse();
-          let html = '', lastYear = null, prevDate = null;
-          desc.forEach(m => {
-            const y = new Date(m.date + 'T00:00:00').getFullYear();
-            if (y !== lastYear) { html += `<div class="ml-year-header">${y}</div>`; lastYear = y; prevDate = null; }
-            let gapHtml = '';
-            if (prevDate) {
-              const gapDays = Math.round((new Date(prevDate) - new Date(m.date + 'T00:00:00')) / 86400000);
-              if (gapDays >= 60) gapHtml = `<div class="ml-card-gap">↑ ${Math.round(gapDays / 30)} months later</div>`;
-            }
-            prevDate = m.date + 'T00:00:00';
-            html += `
-    <div class="ml-item">
-      <div class="ml-card">
-        <div class="ml-card-top">
-          <div class="ml-card-title">${m.type ? esc(m.type) + ' ' : ''}${esc(m.title)}</div>
-          <div class="ml-card-date">${fmtDateShort(m.date)}</div>
-        </div>
-        ${m.note ? `<div class="ml-card-note">${esc(m.note)}</div>` : ''}
-        ${gapHtml}
-        <button class="del-btn" style="margin-top:6px" onclick="delMilestone(${m.id})"><i data-lucide="trash-2"></i></button>
-      </div>
-    </div>`;
-          });
-          el.innerHTML = `<div class="ml-timeline">${html}</div>`;
-         if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }}
-        function delMilestone(id) { confirmDelete({ itemType: 'milestone', message: 'This milestone will be permanently deleted.', onConfirm: () => { S.milestones = (S.milestones||[]).filter(m=>m.id!==id); renderMilestones(); scheduleSave(); toast('Removed'); } }); }
-        function renderTimelineStories() {
-          const el = document.getElementById('timelineStories'); if (!el) return;
-          const all = [...(S.milestones || [])].sort((a, b) => a.date.localeCompare(b.date));
-          let html = `<div class="ts-item" onclick="openM('milestoneModal')">
-    <div class="ts-ring" style="background:var(--g2)"><div class="ts-ring-inner" style="background:transparent;color:var(--accent);font-size:26px">+</div></div>
-    <div class="ts-label">Add</div>
-  </div>`;
-          html += all.map(m => `<div class="ts-item" onclick="showMilestoneDetail(${m.id})">
-    <div class="ts-ring"><div class="ts-ring-inner">${esc(m.type || '💫')}</div></div>
-    <div class="ts-label">${esc(m.title)}</div>
-  </div>`).join('');
-          el.innerHTML = html;
-        }
-        function showMilestoneDetail(id) {
-          const m = (S.milestones || []).find(x => x.id === id); if (!m) return;
-          toast(`${m.type || '💫'} ${m.title} — ${fmtDate(m.date)}${m.note ? ' · ' + m.note : ''}`, 4500);
-        }
-        const LOVE_LANG_TIPS = { 'Words of Affirmation + Quality Time': 'Say "I love you" during your quality time — compliments land deepest when you\'re fully present together.', 'Words of Affirmation + Acts of Service': 'Leave sweet notes when you help with tasks — combine words with actions for maximum impact.', 'Quality Time + Physical Touch': 'Cuddle while watching something together — your partner feels most loved when you\'re close AND present.', 'Quality Time + Words of Affirmation': 'Plan date nights where you express feelings out loud. Undivided attention + kind words = their ideal love.', 'Acts of Service + Receiving Gifts': 'Surprise them with a small gift AND do something helpful — both fill their love tank equally.', 'Physical Touch + Receiving Gifts': 'A warm hug when you give them even a small gift makes it 10x more meaningful.', 'default': 'Understanding each other\'s love language is the first step. Try expressing love in their language every day this week!' };
-        function saveLoveLang() { S.myLoveLang = document.getElementById('myLoveLang').value; S.ptLoveLang = document.getElementById('ptLoveLang').value; const tipEl = document.getElementById('loveLangTip'); if (S.myLoveLang && S.ptLoveLang) { const key = S.myLoveLang + ' + ' + S.ptLoveLang; tipEl.style.display = 'block'; tipEl.textContent = '💡 ' + (LOVE_LANG_TIPS[key] || LOVE_LANG_TIPS['default']); toast('Love languages saved! 💕'); } scheduleSave(); }
-        function loadLoveLang() { if (S.myLoveLang) { const el = document.getElementById('myLoveLang'); if (el) el.value = S.myLoveLang; } if (S.ptLoveLang) { const el = document.getElementById('ptLoveLang'); if (el) el.value = S.ptLoveLang; saveLoveLang(); } }
+        function delMilestone(id) { confirmDelete({ itemType: 'milestone', message: 'This milestone will be permanently deleted.', onConfirm: () => { S.milestones = (S.milestones||[]).filter(m=>m.id!==id); if (window.Prof) Prof.refresh(); scheduleSave(); toast('Removed'); } }); }
 
         // ─── PERIOD TRACKER ──────────────────────────────────────
         function logPeriod() {
@@ -12054,7 +11697,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
             ProfileStore.init(S.userId).then(() => {
               const mine = ProfileStore.get('me'), theirs = ProfileStore.get('partner');
               if (mine && mine.avatar_url) { S.myAvatar = mine.avatar_url; ['sbAv1','profAv1','settingsAv1','dashAv'].forEach(id => setAvImg(id, S.myAvatar)); }
-              if (theirs && theirs.avatar_url) { S.partnerAvatar = theirs.avatar_url; ['sbAv2','profAv2','chatHeaderAv'].forEach(id => setAvImg(id, S.partnerAvatar)); }
+              if (theirs && theirs.avatar_url) { S.partnerAvatar = theirs.avatar_url; ['sbAv2','profAv2','profAv3','chatHeaderAv'].forEach(id => setAvImg(id, S.partnerAvatar)); }
             }).catch(e => console.warn('[ProfileStore] init failed', e));
             // Keep every mounted Avatar-component instance and the legacy
             // setAvImg() ids in sync automatically, forever, with no
@@ -12062,7 +11705,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
             ProfileStore.onChange((owner, profile) => {
               if (!profile) return;
               if (owner === 'me') { S.myAvatar = profile.avatar_url || S.myAvatar; ['sbAv1','profAv1','settingsAv1','dashAv'].forEach(id => setAvImg(id, S.myAvatar)); }
-              else { S.partnerAvatar = profile.avatar_url || S.partnerAvatar; ['sbAv2','profAv2','chatHeaderAv'].forEach(id => setAvImg(id, S.partnerAvatar)); }
+              else { S.partnerAvatar = profile.avatar_url || S.partnerAvatar; ['sbAv2','profAv2','profAv3','chatHeaderAv'].forEach(id => setAvImg(id, S.partnerAvatar)); }
             });
           }
           checkIncomingTouch();
@@ -13346,6 +12989,7 @@ init();
      included on this page until now. Must load after livemap.js. -->
 <script src="/js/livetrack-bridge.js"></script>
 <script src="/chat/chat.js"></script>
+<script src="/profile.js"></script>
 <script src="/chat/call.js"></script>
 <script src="/dashboard.js"></script>
 <script src="/gender-access.js"></script>
