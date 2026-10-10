@@ -1,5 +1,5 @@
 diff --git a/public/index.html b/public/index.html
-index fba2d42..7ab5f9b 100644
+index fba2d42..bbec8d7 100644
 --- a/public/index.html
 +++ b/public/index.html
 @@ -1554,30 +1554,6 @@
@@ -188,7 +188,7 @@ index fba2d42..7ab5f9b 100644
    <link rel="stylesheet" href="/dashboard.css">
    <link rel="stylesheet" href="/dashboard-widgets.css">
    <link rel="stylesheet" href="/gender-access.css">
-+  <link rel="stylesheet" href="/profile.css">
++  <link rel="stylesheet" href="/profile.css?v=3">
  </head>
  
  <body class="t-blue">
@@ -315,6 +315,15 @@ index fba2d42..7ab5f9b 100644
        </div>
        <div class="page" id="page-level">
          <div id="levelPageContent"></div>
+@@ -7496,7 +7249,7 @@ select option { background: #0D0D0D; color: #fff; }
+     }
+   } catch (e) { console.warn('[shared supabase client] init failed:', e.message); }
+ </script>
+-<script src="/js/avatar-system.js"></script>
++<script src="/js/avatar-system.js?v=3"></script>
+       <!-- ════════════════════════════════════════════
+      JAVASCRIPT
+ ════════════════════════════════════════════ -->
 @@ -8005,16 +7758,11 @@ async function saveToCloud() {
            const rpb = document.getElementById('removePartnerBtn');
            if (rpb) rpb.style.display = S.paired ? 'inline-flex' : 'none';
@@ -512,10 +521,151 @@ index fba2d42..7ab5f9b 100644
       included on this page until now. Must load after livemap.js. -->
  <script src="/js/livetrack-bridge.js"></script>
  <script src="/chat/chat.js"></script>
-+<script src="/profile.js"></script>
++<script src="/profile.js?v=3"></script>
  <script src="/chat/call.js"></script>
  <script src="/dashboard.js"></script>
  <script src="/gender-access.js"></script>
+diff --git a/public/js/avatar-system.js b/public/js/avatar-system.js
+index e85b013..86ecd43 100644
+--- a/public/js/avatar-system.js
++++ b/public/js/avatar-system.js
+@@ -229,6 +229,27 @@
+       '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+   }
+ 
++  let _cropStyled = false;
++  function injectCropStyles() {
++    if (_cropStyled) return; _cropStyled = true;
++    const st = document.createElement('style');
++    st.textContent =
++      '.avcrop{position:fixed;inset:0;z-index:100000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;' +
++      'padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom));background:rgba(0,0,0,.94);color:#fff;font-family:var(--ff-sans,system-ui,sans-serif)}' +
++      '.avcrop-t{font-size:15px;font-weight:600}' +
++      '.avcrop-stage{position:relative;overflow:hidden;border-radius:14px;background:#111;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}' +
++      '.avcrop-stage:active{cursor:grabbing}' +
++      '.avcrop-stage img{position:absolute;left:0;top:0;max-width:none;transform-origin:0 0;pointer-events:none}' +
++      '.avcrop-grid{position:absolute;inset:0;pointer-events:none;border:2px solid rgba(255,255,255,.9);border-radius:14px;' +
++      'background:linear-gradient(90deg,transparent calc(33.3% - .5px),rgba(255,255,255,.35) 33.3%,transparent calc(33.3% + .5px),transparent calc(66.6% - .5px),rgba(255,255,255,.35) 66.6%,transparent calc(66.6% + .5px)),' +
++      'linear-gradient(0deg,transparent calc(33.3% - .5px),rgba(255,255,255,.35) 33.3%,transparent calc(33.3% + .5px),transparent calc(66.6% - .5px),rgba(255,255,255,.35) 66.6%,transparent calc(66.6% + .5px))}' +
++      '.avcrop-zoom{accent-color:var(--accent,#c1121f)}' +
++      '.avcrop-btns{display:flex;gap:10px}' +
++      '.avcrop-btns button{flex:1;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer}' +
++      '.avcrop-btns button.ok{background:var(--accent,#c1121f);border-color:transparent}';
++    document.head.appendChild(st);
++  }
++
+   const Avatar = {
+     // Mount (or re-mount) an avatar into #id. owner: 'me' | 'partner'.
+     // editable is auto-inferred from owner unless explicitly overridden
+@@ -259,9 +280,13 @@
+         document.body.appendChild(input);
+       }
+       input.onchange = async () => {
+-        const file = input.files[0];
++        const picked = input.files[0];
+         input.value = '';
+-        if (!file) return;
++        if (!picked) return;
++        let file;
++        try { file = await Avatar.crop(picked); }
++        catch (e) { if (global.toast) global.toast('Could not open that photo'); return; }
++        if (!file) return; // cancelled in the cropper
+         try {
+           await ProfileStore.uploadMyAvatar(file);
+           if (global.toast) global.toast('Photo updated! 📸');
+@@ -272,6 +297,92 @@
+       input.click();
+     },
+ 
++    // Square crop. Resolves with a square JPEG File, or null if cancelled.
++    // Drag to move, pinch / wheel / slider to zoom. Everything stays inside
++    // the frame (the photo can never leave an empty gap).
++    crop(file) {
++      return new Promise((resolve, reject) => {
++        const url = URL.createObjectURL(file);
++        const img = new Image();
++        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('bad image')); };
++        img.onload = () => {
++          injectCropStyles();
++          const SIZE = Math.max(220, Math.min(window.innerWidth - 40, window.innerHeight - 280, 460));
++          const nw = img.naturalWidth, nh = img.naturalHeight;
++          const minScale = SIZE / Math.min(nw, nh);   // photo always covers the frame
++          let zoom = 1, x = 0, y = 0;
++          const scale = () => minScale * zoom;
++
++          const ov = document.createElement('div');
++          ov.className = 'avcrop';
++          ov.innerHTML =
++            '<div class="avcrop-t">Move and zoom to crop</div>' +
++            '<div class="avcrop-stage" style="width:' + SIZE + 'px;height:' + SIZE + 'px"><img alt=""><div class="avcrop-grid"></div></div>' +
++            '<input class="avcrop-zoom" type="range" min="1" max="4" step="0.01" value="1" aria-label="Zoom" style="width:' + SIZE + 'px">' +
++            '<div class="avcrop-btns" style="width:' + SIZE + 'px"><button type="button" data-a="cancel">Cancel</button><button type="button" class="ok" data-a="ok">Use photo</button></div>';
++          document.body.appendChild(ov);
++          const stage = ov.querySelector('.avcrop-stage'), view = stage.querySelector('img'), slider = ov.querySelector('.avcrop-zoom');
++          view.src = url; view.draggable = false;
++
++          const clamp = () => {
++            x = Math.min(0, Math.max(SIZE - nw * scale(), x));
++            y = Math.min(0, Math.max(SIZE - nh * scale(), y));
++          };
++          const paint = () => {
++            clamp();
++            view.style.width = nw * scale() + 'px'; view.style.height = nh * scale() + 'px';
++            view.style.transform = 'translate(' + x + 'px,' + y + 'px)';
++            slider.value = zoom;
++          };
++          // Zoom keeping the point (px,py) of the frame fixed under the finger / cursor.
++          const zoomAt = (nz, px, py) => {
++            nz = Math.min(4, Math.max(1, nz));
++            const r = nz / zoom;
++            x = px - (px - x) * r; y = py - (py - y) * r; zoom = nz; paint();
++          };
++          x = (SIZE - nw * scale()) / 2; y = (SIZE - nh * scale()) / 2; paint();
++
++          const pts = new Map(); let lastDist = 0;
++          const local = e => { const r = stage.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
++          stage.addEventListener('pointerdown', e => { stage.setPointerCapture(e.pointerId); pts.set(e.pointerId, local(e)); lastDist = 0; });
++          stage.addEventListener('pointermove', e => {
++            if (!pts.has(e.pointerId)) return;
++            const prev = pts.get(e.pointerId), cur = local(e);
++            pts.set(e.pointerId, cur);
++            if (pts.size === 1) { x += cur[0] - prev[0]; y += cur[1] - prev[1]; paint(); }
++            else if (pts.size === 2) {
++              const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
++              if (lastDist) zoomAt(zoom * d / lastDist, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
++              lastDist = d;
++            }
++          });
++          const up = e => { pts.delete(e.pointerId); lastDist = 0; };
++          stage.addEventListener('pointerup', up); stage.addEventListener('pointercancel', up);
++          stage.addEventListener('wheel', e => { e.preventDefault(); const [px, py] = local(e); zoomAt(zoom * (e.deltaY < 0 ? 1.08 : 1 / 1.08), px, py); }, { passive: false });
++          slider.addEventListener('input', () => zoomAt(parseFloat(slider.value), SIZE / 2, SIZE / 2));
++
++          const done = result => {
++            document.removeEventListener('keydown', onKey);
++            ov.remove(); URL.revokeObjectURL(url); resolve(result);
++          };
++          const onKey = e => { if (e.key === 'Escape') done(null); };
++          document.addEventListener('keydown', onKey);
++          ov.addEventListener('click', e => {
++            const a = e.target.closest('[data-a]'); if (!a) return;
++            if (a.dataset.a === 'cancel') return done(null);
++            // Crop the visible square out of the original pixels.
++            const sw = SIZE / scale(), out = Math.round(Math.min(720, sw));
++            const cv = document.createElement('canvas'); cv.width = cv.height = out;
++            const ctx = cv.getContext('2d');
++            ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, out, out);
++            ctx.drawImage(img, -x / scale(), -y / scale(), sw, sw, 0, 0, out, out);
++            cv.toBlob(b => done(b ? new File([b], 'avatar.jpg', { type: 'image/jpeg' }) : null), 'image/jpeg', 0.92);
++          });
++        };
++        img.src = url;
++      });
++    },
++
+     openViewer(url, sourceEl, ownerForLabel) {
+       // Reuses the app's real, already-proven full-screen viewer
+       // (gallery-viewer.js, wired up as global openImgViewer() in
 diff --git a/public/profile.css b/public/profile.css
 new file mode 100644
 index 0000000..932f39d
@@ -1341,13 +1491,13 @@ index 0000000..366b6bd
 +  window.Prof = { render, refresh, open, back, handleBack };
 +})();
 diff --git a/public/sw.js b/public/sw.js
-index 7013d4f..e1f9130 100644
+index 7013d4f..066be0c 100644
 --- a/public/sw.js
 +++ b/public/sw.js
 @@ -1,5 +1,5 @@
  // Service Worker for Twin Hearts 💕 PWA — v5
 -const CACHE = 'uwl-v8'; // bumped: purges stale cached assets (incl. old movie.css) on activate
-+const CACHE = 'uwl-v9'; // bumped: purges stale cached assets (incl. old movie.css) on activate
++const CACHE = 'uwl-v10'; // bumped: purges stale cached assets (incl. old movie.css) on activate
  const OFFLINE_ASSETS = [
    '/',
    '/index.html',
