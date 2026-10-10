@@ -4879,6 +4879,7 @@ select option { background: #0D0D0D; color: #fff; }
   <link rel="stylesheet" href="/dashboard-widgets.css">
   <link rel="stylesheet" href="/gender-access.css">
   <link rel="stylesheet" href="/profile.css">
+  <link rel="stylesheet" href="/level.css">
 </head>
 
 <body class="t-blue">
@@ -12214,46 +12215,136 @@ function renderSurprises() {
         function levelFromXP(xp) { return Math.floor(Math.sqrt(xp / 25)) + 1; }
         function xpForLevel(lv) { return Math.pow(lv - 1, 2) * 25; }
         const BADGES = [
-          { xp: 50, name: 'Sweet Start', emoji: '🌱' },
-          { xp: 150, name: 'Getting Close', emoji: '💞' },
-          { xp: 300, name: 'Best Friends', emoji: '🤝' },
-          { xp: 600, name: 'Soulmates', emoji: '💍' },
-          { xp: 1000, name: 'Forever Us', emoji: '👑' },
+          { xp: 50, name: 'Sweet Start', emoji: '🌱', ico: 'sprout', sub: 'Our first step', blurb: 'Your first step in our journey' },
+          { xp: 150, name: 'Getting Close', emoji: '💞', ico: 'handshake', sub: 'Growing together', blurb: 'Closer with every shared moment' },
+          { xp: 300, name: 'Best Friends', emoji: '🤝', ico: 'users', sub: 'More than just love', blurb: 'More than love, a true team' },
+          { xp: 600, name: 'Soulmates', emoji: '💍', ico: 'gem', sub: 'Unbreakable bond', blurb: 'An unbreakable bond' },
+          { xp: 1000, name: 'Forever Us', emoji: '👑', ico: 'crown', sub: 'Always together', blurb: 'Forever, together' },
         ];
+        const XP_ACTIONS = [
+          { ico: 'chat', t: 'Chatting', d: 'Send messages', xp: 1, c: '#22d3ee' },
+          { ico: 'check', t: 'Habit done', d: 'Complete a habit', xp: 5, c: '#34d399' },
+          { ico: 'zap', t: 'Fight resolved', d: 'Solve a conflict', xp: 6, c: '#fbbf24' },
+          { ico: 'music', t: 'Share a song', d: 'Share music together', xp: 5, c: '#60a5fa' },
+          { ico: 'pulse', t: 'Wellness logged', d: 'Log health or wellness', xp: 2, c: '#ff5a6a' },
+          { ico: 'capsule', t: 'Love capsule', d: 'Create a love capsule', xp: 15, c: '#ff5a6a' },
+          { ico: 'star', t: 'Dream completed', d: 'Complete a dream', xp: 8, c: '#fbbf24' },
+          { ico: 'gift', t: 'Surprise', d: 'Send a surprise', xp: 10, c: '#ff5a6a' },
+        ];
+        // Inline line icons (24px grid) so the page never waits on an icon CDN
+        const LV_ICO = {
+          crown: '<path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294l4.277-3.664a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/>',
+          heart: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+          target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+          chev: '<path d="m9 18 6-6-6-6"/>',
+          zap: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
+          lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+          sprout: '<path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>',
+          handshake: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M12 5 9.04 7.96a2.17 2.17 0 0 0 0 3.08c.82.82 2.13.85 3 .07l2.07-1.9a2.82 2.82 0 0 1 3.79 0l2.96 2.66"/><path d="m18 15-2-2"/><path d="m15 18-2-2"/>',
+          users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+          gem: '<path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/>',
+          award: '<path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526"/><circle cx="12" cy="8" r="6"/><path d="M12 6.4c.7-.9 2.2-.5 2.2.7 0 1-1.200 1.700-2.200 2.500-1-.8-2.200-1.500-2.200-2.500 0-1.200 1.500-1.600 2.200-.7z"/>',
+          chat: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+          check: '<path d="M20 6 9 17l-5-5"/>',
+          music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+          pulse: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>',
+          capsule: '<path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/>',
+          star: '<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>',
+          gift: '<path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>',
+        };
+        function lvIco(name, cls) {
+          return '<svg class="lv-i ' + (cls || '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (LV_ICO[name] || '') + '</svg>';
+        }
         function renderLevelPage() {
-          const xp = S.xp || 0, lvl = levelFromXP(xp);
-          const curBase = xpForLevel(lvl), nextBase = xpForLevel(lvl + 1);
-          const pct = Math.min(100, Math.round((xp - curBase) / (nextBase - curBase) * 100));
           const el = document.getElementById('levelPageContent'); if (!el) return;
+          const xp = Math.max(0, Number(S.xp) || 0), lvl = levelFromXP(xp);
+          const nextBase = xpForLevel(lvl + 1);
+          const lvlPct = Math.min(100, Math.round(xp / nextBase * 100));
+          const toNext = Math.max(0, nextBase - xp);
           const earned = BADGES.filter(b => xp >= b.xp), locked = BADGES.filter(b => xp < b.xp);
-          const r = 60, circ = 2 * Math.PI * r, offset = circ - (pct / 100) * circ;
           const nextBadge = locked[0];
-          let insText, insIco = '💡';
-          if (!xp) { insIco = '🌱'; insText = 'Chat, log habits, and complete dreams together to start earning XP.'; }
-          else if (nextBadge) { const remain = nextBadge.xp - xp; insIco = '🎯'; insText = `<strong>${remain} XP</strong> away from unlocking "${nextBadge.name}" ${nextBadge.emoji}`; }
-          else { insIco = '👑'; insText = `You've unlocked every badge — <strong>${xp} XP</strong> and counting!`; }
+          const r = 60, circ = 2 * Math.PI * r;
+
+          // Insight row under the hero. Tapping it scrolls to what to do next.
+          let insIco = 'target', insText, insTarget = 'lvNext';
+          if (!xp) { insIco = 'sprout'; insText = 'Chat, log habits, and complete dreams together to start earning XP.'; insTarget = 'lvEarn'; }
+          else if (nextBadge) { insText = `<strong>${nextBadge.xp - xp} XP</strong> away from unlocking “${esc(nextBadge.name)}” ${nextBadge.emoji}`; }
+          else { insIco = 'crown'; insText = `You’ve unlocked every badge — <strong>${xp} XP</strong> and counting!`; insTarget = ''; }
+          const insInner = lvIco(insIco) + `<span>${insText}</span>` + (insTarget ? lvIco('chev', 'lv-chev') : '');
+          const insight = insTarget
+            ? `<button type="button" class="lv-insight" data-scroll="${insTarget}">${insInner}</button>`
+            : `<div class="lv-insight">${insInner}</div>`;
+
+          const hex = '<svg class="lv-hexbg" viewBox="0 0 100 100" fill="rgba(255,255,255,.03)" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" aria-hidden="true"><path d="M50 5 89 27.500v45L50 95 11 72.500v-45z"/></svg>';
+          const nextCard = nextBadge ? (() => {
+            const left = nextBadge.xp - xp, p = Math.min(100, Math.round(xp / nextBadge.xp * 100));
+            return `<section class="lv-card lv-next" id="lvNext" aria-label="Next unlock">
+        <div class="lv-hex">${hex}${lvIco(nextBadge.ico)}</div>
+        <div class="lv-next-body">
+          <div class="lv-next-top"><span class="lv-kicker">Next unlock</span><span class="lv-chip">${left} XP left</span></div>
+          <h3>${esc(nextBadge.name)}</h3>
+          <p class="lv-next-sub">${esc(nextBadge.blurb)} ❤️</p>
+          <div class="lv-next-prog"><div class="lv-bar" role="progressbar" aria-label="Progress to ${esc(nextBadge.name)}" aria-valuemin="0" aria-valuemax="${nextBadge.xp}" aria-valuenow="${xp}"><i data-p="${p}"></i></div><span>${xp} / ${nextBadge.xp} XP</span></div>
+        </div></section>`;
+          })() : `<section class="lv-card lv-next" id="lvNext"><div class="lv-done">${lvIco('crown')}<div><b>Every badge unlocked</b><span>Keep earning XP to keep levelling up together.</span></div></div></section>`;
+
+          const lockedCard = locked.length ? `<section class="lv-card lv-locked" aria-label="Locked badges">
+        <div class="lv-card-head">${lvIco('lock')}<h3>Locked badges</h3><p>Complete activities to unlock</p></div>
+        <div class="lv-row" role="list" tabindex="0" aria-label="Locked badges">${locked.map((b, i) => `<div class="lv-badge${i === 0 ? ' is-next' : ''}" role="listitem">${i === 0 ? '' : lvIco('lock', 'lv-lock')}${lvIco(b.ico, 'lv-b-ico')}<b>${esc(b.name)}</b><small>${esc(b.sub)}</small><span class="lv-xpchip">${lvIco('lock')}${b.xp} XP</span></div>`).join('')}</div></section>`
+            : `<section class="lv-card lv-locked"><div class="lv-card-head">${lvIco('lock')}<h3>Locked badges</h3></div><div class="lv-empty">${lvIco('crown')}<div><b>Nothing left to unlock</b><span>You have every badge.</span></div></div></section>`;
+
+          const earnedCard = `<section class="lv-card lv-earned" aria-label="Badges earned">
+        <div class="lv-card-head">${lvIco('award')}<h3>Badges earned</h3><p>${earned.length ? earned.length + ' of ' + BADGES.length + ' unlocked' : 'Your unlocked badges will appear here'}</p></div>
+        ${earned.length
+              ? `<div class="lv-row" role="list">${earned.map(b => `<div class="lv-badge is-earned" role="listitem">${lvIco(b.ico, 'lv-b-ico')}<b>${esc(b.name)}</b><small>${esc(b.sub)}</small><span class="lv-xpchip">${b.xp} XP</span></div>`).join('')}</div>`
+              : `<div class="lv-empty">${lvIco('award')}<div><b>No badges earned yet</b><span>Earn XP to unlock your first badge!</span></div></div>`}
+      </section>`;
+
           el.innerHTML = `
-    <div class="card xp-hero">
-      <div class="xp-ring-wrap">
-        <svg viewBox="0 0 140 140" width="140" height="140">
-          <circle cx="70" cy="70" r="${r}" fill="none" stroke="var(--g2)" stroke-width="10"/>
-          <circle cx="70" cy="70" r="${r}" fill="none" stroke="url(#xpGrad)" stroke-width="10"
-            stroke-dasharray="${circ}" stroke-dashoffset="${circ}" stroke-linecap="round"
-            style="transition:stroke-dashoffset 1.2s cubic-bezier(0.34,1.56,0.64,1)" id="xpRingCircle"/>
-          <defs><linearGradient id="xpGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="#ff6b6b"/>
-          </linearGradient></defs>
-        </svg>
-        <div class="xp-ring-text"><div class="xp-ring-lvl">${lvl}</div><div class="xp-ring-label">Couple Level</div></div>
+    <div class="lv">
+      <header class="lv-head">${lvIco('crown')}<div><h2>Couple Level</h2><p>Grow together with every moment ❤️</p></div></header>
+      <div class="lv-grid">
+        <div class="lv-col">
+        <section class="lv-card lv-hero" aria-label="Your couple level">
+          <div class="lv-ring" role="img" aria-label="Couple level ${lvl}, ${xp} of ${nextBase} XP">
+            <svg viewBox="0 0 140 140" aria-hidden="true">
+              <defs><linearGradient id="lvGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="var(--accent, #ff3b4e)"/><stop offset="100%" stop-color="var(--accent-l, #ff7a86)"/></linearGradient></defs>
+              <circle class="lv-track" cx="70" cy="70" r="${r}" fill="none" stroke-width="10"/>
+              <circle class="lv-arc" id="lvRingArc" cx="70" cy="70" r="${r}" fill="none" stroke="url(#lvGrad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${circ}"/>
+            </svg>
+            <div class="lv-ring-text"><div class="lv-ring-num">${lvl}</div><div class="lv-ring-lbl">Couple level</div></div>
+          </div>
+          <div class="lv-hero-main">
+            <span class="lv-heart">${lvIco('heart')}</span>
+            <div class="lv-xp"><b>${xp} XP</b><span>/ ${nextBase} XP</span></div>
+            <div class="lv-bar" role="progressbar" aria-label="XP to level ${lvl + 1}" aria-valuemin="0" aria-valuemax="${nextBase}" aria-valuenow="${xp}"><i data-p="${lvlPct}"></i></div>
+            <div class="lv-pill">${lvIco('zap')}${toNext} XP to next level</div>
+          </div>
+          ${insight}
+        </section>
+        ${nextCard}
+        </div>
+        <div class="lv-col">
+        ${lockedCard}
+        ${earnedCard}
+        </div>
+        <section class="lv-card lv-earn" id="lvEarn" aria-label="How to earn XP">
+          <div class="lv-card-head">${lvIco('sprout')}<h3>How to earn XP</h3></div>
+          <ul class="lv-earn-list">${XP_ACTIONS.map(a => `<li class="lv-earn-item" style="--c:${a.c}">${lvIco(a.ico)}<div><b>${a.t}</b><small>${a.d}</small></div><em>+${a.xp} XP</em></li>`).join('')}</ul>
+        </section>
       </div>
-      <div class="xp-hero-sub">${xp} XP · ${nextBase - xp > 0 ? (nextBase - xp) + ' XP to next level' : 'Max reached'}</div>
-    </div>
-    <div class="xp-insight-card"><div class="xp-insight-ico">${insIco}</div><div class="xp-insight-text">${insText}</div></div>
-    <div class="card"><div class="card-title">🏅 Badges Earned</div><div class="xp-badge-grid">${earned.length ? earned.map(b => `<div class="xp-badge earned"><div class="xp-badge-emoji">${b.emoji}</div><div class="xp-badge-name">${esc(b.name)}</div></div>`).join('') : '<div class="empty">Earn XP to unlock badges!</div>'}</div></div>
-    <div class="card"><div class="card-title">🔒 Locked Badges</div><div class="xp-badge-grid">${locked.map(b => { const prevXp = [0, ...BADGES.map(x => x.xp)][BADGES.indexOf(b)]; const bpct = Math.min(100, Math.round(((xp - prevXp) / (b.xp - prevXp)) * 100)); return `<div class="xp-badge xp-badge-locked"><div class="xp-badge-emoji">${b.emoji}</div><div class="xp-badge-name">${esc(b.name)}</div><div class="xp-badge-prog-wrap"><div class="xp-badge-prog" style="width:${Math.max(0, bpct)}%"></div></div><div class="xp-badge-prog-txt">${xp}/${b.xp} XP</div></div>`; }).join('')}</div></div>
-    <div class="card"><div class="card-title">✨ How to earn XP</div><div style="font-size:12px;color:var(--text2);line-height:2">💬 Chatting +1 · ✅ Habit done +5 · 💧 Wellness logged +2 · 🌟 Dream completed +8 · ⚡ Fight resolved +6 · 🎵 Share a song +5 · 💌 Love capsule +15 · 🎁 Surprise +10</div></div>`;
+    </div>`;
+
+          // Tap the insight row to jump to the section it talks about
+          const jump = el.querySelector('[data-scroll]');
+          if (jump) jump.onclick = () => {
+            const t = document.getElementById(jump.dataset.scroll); if (!t) return;
+            t.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+          };
+          // Animate the ring and bars from empty to their value
           requestAnimationFrame(() => requestAnimationFrame(() => {
-            const c = document.getElementById('xpRingCircle'); if (c) c.style.strokeDashoffset = offset;
+            const arc = document.getElementById('lvRingArc'); if (arc) arc.style.strokeDashoffset = circ - (lvlPct / 100) * circ;
+            el.querySelectorAll('.lv-bar > i[data-p]').forEach(i => { i.style.setProperty('--p', i.dataset.p + '%'); });
           }));
         }
         let dreamCurTab = 'House';
