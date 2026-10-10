@@ -1,0 +1,1777 @@
+diff --git a/public/index.html b/public/index.html
+index fba2d42..af27ce0 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -5015,6 +5015,7 @@ select option { background: #0D0D0D; color: #fff; }
+   <link rel="stylesheet" href="/dashboard.css">
+   <link rel="stylesheet" href="/dashboard-widgets.css">
+   <link rel="stylesheet" href="/gender-access.css">
++  <link rel="stylesheet" href="/livemap-screens.css">
+ </head>
+ 
+ <body class="t-blue">
+@@ -6434,136 +6435,385 @@ select option { background: #0D0D0D; color: #fff; }
+           </div>
+         </div>
+       </div>
+-      <!-- ═══════════════════════════════════════════════════════════════
+-     REPLACE the existing <div class="page" id="page-map"> ... </div>
+-     block in index.html with this markup.
+-     Then add <script src="/livemap.js"></script> right before the
+-     closing </body> tag (after your main app script + index_patch.js).
++<!-- ═══════════════════════════════════════════════════════════════
++     LIVE MAP PAGE — screen-stack layout (Map · Track · Partner · Places
++     · More · Location Alerts · Privacy · Search), like a native map app.
++     Controller: /livemap-screens.js (LMScreens) · Styles: /livemap-screens.css
++     Engine: /livemap.js (LiveMap) — every id it needs is kept below.
+      ═══════════════════════════════════════════════════════════════ -->
+ <div class="page" id="page-map">
+ 
+-  <!-- Permission / offline banners -->
+-  <div id="lmPermBanner" class="info-banner" style="display:none;border-color:rgba(248,113,113,0.3);background:rgba(248,113,113,0.08);color:var(--red)"></div>
+-  <div id="lmOfflineBanner" class="info-banner" style="display:none;border-color:rgba(251,191,36,0.3);background:rgba(251,191,36,0.08);color:var(--yellow)">📡 You're offline — showing last known positions</div>
+-  <div id="lmEmergencyBanner" class="info-banner" style="display:none;border-color:rgba(239,68,68,0.4);background:rgba(239,68,68,0.1);color:#ff6b6b;align-items:center;justify-content:space-between;gap:8px">
+-    <span class="lm-emg-text">🚨 Emergency location share</span>
+-    <button class="btn btn-glass btn-xs" onclick="LiveMap.dismissEmergencyBanner()">Dismiss</button>
+-  </div>
++  <!-- icon sprite (stroke icons, currentColor) -->
++  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
++    <defs>
++      <symbol id="lmi-back" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
++      <symbol id="lmi-chev" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></symbol>
++      <symbol id="lmi-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
++      <symbol id="lmi-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
++      <symbol id="lmi-map" viewBox="0 0 24 24"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></symbol>
++      <symbol id="lmi-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
++      <symbol id="lmi-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
++      <symbol id="lmi-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6-7-11a7 7 0 0114 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></symbol>
++      <symbol id="lmi-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
++      <symbol id="lmi-locate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></symbol>
++      <symbol id="lmi-heart" viewBox="0 0 24 24"><path d="M20.8 5.6a5 5 0 00-7.1 0L12 7.3l-1.7-1.7a5 5 0 00-7.1 7.1L12 21l8.8-8.3a5 5 0 000-7.1z"/></symbol>
++      <symbol id="lmi-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14.5c3 0 5 1.5 5 4.5"/></symbol>
++      <symbol id="lmi-car" viewBox="0 0 24 24"><path d="M5 16l1.5-5a2 2 0 011.9-1.4h7.2a2 2 0 011.9 1.4L19 16"/><rect x="3" y="16" width="18" height="4" rx="1.5"/><path d="M7 18h.01M17 18h.01"/></symbol>
++      <symbol id="lmi-route" viewBox="0 0 24 24"><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="5" r="2.5"/><path d="M8.5 19H15a3.5 3.5 0 000-7H9a3.5 3.5 0 010-7h6.5"/></symbol>
++      <symbol id="lmi-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></symbol>
++      <symbol id="lmi-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></symbol>
++      <symbol id="lmi-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></symbol>
++      <symbol id="lmi-vdots" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></symbol>
++      <symbol id="lmi-cube" viewBox="0 0 24 24"><path d="M12 2l9 5v10l-9 5-9-5V7l9-5z"/><path d="M12 12l9-5M12 12L3 7M12 12v10"/></symbol>
++      <symbol id="lmi-nav" viewBox="0 0 24 24"><path d="M3 11l19-9-9 19-2-8-8-2z"/></symbol>
++      <symbol id="lmi-activity" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></symbol>
++      <symbol id="lmi-tag" viewBox="0 0 24 24"><path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/></symbol>
++      <symbol id="lmi-cloud" viewBox="0 0 24 24"><path d="M17.5 19a4.5 4.5 0 000-9 6 6 0 00-11.6 1.5A4 4 0 007 19z"/></symbol>
++      <symbol id="lmi-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></symbol>
++      <symbol id="lmi-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/></symbol>
++      <symbol id="lmi-download" viewBox="0 0 24 24"><path d="M12 3v12M7 11l5 5 5-5M4 21h16"/></symbol>
++      <symbol id="lmi-video" viewBox="0 0 24 24"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4z"/></symbol>
++      <symbol id="lmi-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></symbol>
++      <symbol id="lmi-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z" fill="currentColor"/></symbol>
++      <symbol id="lmi-pause" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor"/><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor"/></symbol>
++      <symbol id="lmi-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
++      <symbol id="lmi-star" viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></symbol>
++      <symbol id="lmi-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
++      <symbol id="lmi-ruler" viewBox="0 0 24 24"><path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/></symbol>
++      <symbol id="lmi-gauge" viewBox="0 0 24 24"><path d="M4 17a8 8 0 1116 0"/><path d="M12 17l4-5"/></symbol>
++      <symbol id="lmi-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
++      <symbol id="lmi-walk" viewBox="0 0 24 24"><circle cx="13" cy="4.5" r="1.8"/><path d="M9 21l2-6-2-3 2-4 4 2 2 3M11 15l3 2v4M8 11l-2 3"/></symbol>
++      <symbol id="lmi-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
++      <symbol id="lmi-alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></symbol>
++      <symbol id="lmi-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
++      <symbol id="lmi-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
++      <symbol id="lmi-home" viewBox="0 0 24 24"><path d="M3 10.6L12 3l9 7.6V20a1 1 0 01-1 1h-5v-6.2H9V21H4a1 1 0 01-1-1z"/></symbol>
++      <symbol id="lmi-mappin2" viewBox="0 0 24 24"><path d="M12 21s-7-6-7-11a7 7 0 0114 0c0 5-7 11-7 11z"/><path d="M12 12.4l-1.9-1.9a1.3 1.3 0 011.9-1.7 1.3 1.3 0 011.9 1.7z"/></symbol>
++    </defs>
++  </svg>
++
++  <div class="lms-root" id="lmScreens" data-screen="map">
++
++    <!-- ══════════════ SCREEN: MAP (root) ══════════════ -->
++    <section class="lms-screen active" id="lmsMap" data-screen="map">
++      <header class="lms-hdr">
++        <button class="lms-ib" type="button" aria-label="Back" onclick="LMScreens.back()"><svg class="lmi"><use href="#lmi-back"/></svg></button>
++        <div class="lms-title">Live Map<span class="lms-live" id="lmsLivePill"><i></i><b id="lmsLiveTxt">Live</b></span></div>
++        <button class="lms-ib" type="button" aria-label="Search places" onclick="LMScreens.open('search')"><svg class="lmi"><use href="#lmi-search"/></svg></button>
++        <button class="lms-ib" type="button" aria-label="More options" onclick="LMScreens.open('more')"><svg class="lmi"><use href="#lmi-gear"/></svg></button>
++      </header>
++
++      <div class="lms-body" id="lmsMapBody">
++        <!-- status banners -->
++        <div id="lmPermBanner" class="lms-banner lms-banner--err" style="display:none"></div>
++        <div id="lmOfflineBanner" class="lms-banner lms-banner--warn" style="display:none"><svg class="lmi"><use href="#lmi-alert"/></svg>You're offline — showing last known positions</div>
++        <div id="lmEmergencyBanner" class="lms-banner lms-banner--err" style="display:none">
++          <svg class="lmi"><use href="#lmi-alert"/></svg><span class="lm-emg-text">Emergency location share</span>
++          <button type="button" class="lms-mini" onclick="LiveMap.dismissEmergencyBanner()">Dismiss</button>
++        </div>
+ 
+-  <div id="lmControls"></div>
++        <!-- tabs -->
++        <nav class="lms-tabs" aria-label="Live map sections">
++          <button type="button" class="lms-tab active" onclick="LMScreens.show('map')"><svg class="lmi"><use href="#lmi-map"/></svg><span>Map</span></button>
++          <button type="button" class="lms-tab" onclick="LMScreens.open('track')"><svg class="lmi"><use href="#lmi-clock"/></svg><span>Track</span></button>
++          <button type="button" class="lms-tab" onclick="LMScreens.open('partner')"><svg class="lmi"><use href="#lmi-user"/></svg><span>Partner</span></button>
++          <button type="button" class="lms-tab" onclick="LMScreens.open('places')"><svg class="lmi"><use href="#lmi-heart"/></svg><span>Places</span></button>
++        </nav>
++
++        <!-- live together card -->
++        <div class="lms-card lms-together">
++          <div class="lms-avpair">
++            <div class="lms-av lms-av--me" id="lmAv1" data-av="me">U</div>
++            <div class="lms-av lms-av--pt" id="lmAv2" data-av="pt">P</div>
++          </div>
++          <div class="lms-together-txt">
++            <div class="lms-together-t">Live Together Map</div>
++            <div class="lms-together-s"><span id="lmPtName">Partner</span> · <span id="lmPtStatus">—</span><i class="lms-dot" id="lmPtDot"></i></div>
++            <div class="lms-together-s lms-together-s--me"><span id="lmMyName">You</span> · <span id="lmMyStatus">Starting…</span><i class="lms-dot" id="lmMyDot"></i></div>
++          </div>
++          <div class="toggle" id="lmTrackToggle" onclick="LiveMap.toggleTracking()" title="Share my live location on/off" role="switch" aria-label="Share my live location"></div>
++        </div>
+ 
+-  <div class="card">
+-    <div class="card-title">
+-      📍 Live Together Map
+-      <div style="display:flex;gap:6px;align-items:center">
+-        <div class="toggle" id="lmTrackToggle" onclick="LiveMap.toggleTracking()" title="Live tracking on/off"></div>
+-      </div>
+-    </div>
++        <!-- map -->
++        <div id="lmsMapSlot">
++          <div class="lm2-map-wrap lms-mapwrap" id="lmsMapWrap">
++            <div id="mapView"></div>
++            <div class="lms-fabs">
++              <button type="button" class="lms-fab" id="lmsLayersBtn" aria-label="Map style" onclick="LMScreens.toggleStylePop()"><svg class="lmi"><use href="#lmi-layers"/></svg></button>
++              <button type="button" class="lms-fab" aria-label="Locate me" onclick="LiveMap.locateMe()"><svg class="lmi"><use href="#lmi-locate"/></svg></button>
++            </div>
++            <div class="lms-stylepop" id="lmsStylePop" role="menu">
++              <button type="button" class="lm-style-btn active" data-style="street" onclick="LiveMap.setMapStyle('street');LMScreens.toggleStylePop(false)">Map</button>
++              <button type="button" class="lm-style-btn" data-style="dark" onclick="LiveMap.setMapStyle('dark');LMScreens.toggleStylePop(false)">Dark</button>
++              <button type="button" class="lm-style-btn" data-style="satellite" onclick="LiveMap.setMapStyle('satellite');LMScreens.toggleStylePop(false)">Satellite</button>
++              <button type="button" class="lm-style-btn" data-style="hybrid" onclick="LiveMap.setMapStyle('hybrid');LMScreens.toggleStylePop(false)">Hybrid</button>
++              <button type="button" class="lm-style-btn" data-style="auto" onclick="LiveMap.setMapStyle('auto');LMScreens.toggleStylePop(false)">Auto</button>
++            </div>
++          </div>
++        </div>
+ 
+-    <!-- Presence row -->
+-    <div style="display:flex;gap:10px;margin-bottom:12px">
+-      <div style="flex:1;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;display:flex;align-items:center;gap:8px">
+-        <div class="av av1" style="width:26px;height:26px;font-size:10px" id="lmAv1">U</div>
+-        <div style="flex:1;min-width:0">
+-          <div style="font-size:11px;font-weight:600;color:var(--white)" id="lmMyName">You</div>
+-          <div style="font-size:9px;color:var(--text3)" id="lmMyStatus">Starting…</div>
++        <!-- contextual panels (filled by LiveMap) -->
++        <div id="lmTogetherBanner" class="lms-pill-banner" style="display:none"><svg class="lmi"><use href="#lmi-heart"/></svg>You're together right now!</div>
++        <div id="mapTravelNote" class="lms-note" style="display:none"></div>
++        <div id="lmPlaceDetailsCard" class="lms-panel" style="display:none"></div>
++        <div id="lmDirectionsPanel" class="lms-panel" style="display:none"></div>
++        <button id="lmStartNavBtn" type="button" class="lms-cta" style="display:none" onclick="LiveMap.startQuickNav()">▶ Start</button>
++        <div id="lmNavPanel" class="lms-panel" style="display:none"></div>
++        <div id="lmMeetingSuggestions" class="lms-panel lms-panel--flush" style="display:none"></div>
++        <div id="lmWeatherPanel" class="lms-panel" style="display:none"></div>
++        <div id="lmLoveNotesPanel" class="lms-panel" style="display:none"></div>
++
++        <!-- ETA / directions bar -->
++        <div class="lms-card lms-eta">
++          <div class="lms-eta-ico"><svg class="lmi"><use href="#lmi-car"/></svg></div>
++          <div class="lms-eta-txt">
++            <div class="lms-eta-big"><span id="mapETA">—</span></div>
++            <div class="lms-eta-sub">To reach <span class="lms-ptname">partner</span> · <span id="mapDistance">—</span> away</div>
++          </div>
++          <button type="button" class="lms-cta lms-cta--sm" onclick="LiveMap.navigateToPartner()">Get Directions<svg class="lmi"><use href="#lmi-chev"/></svg></button>
++        </div>
++        <span id="mapUpdated" hidden>—</span>
++
++        <!-- quick tiles -->
++        <div class="lms-tiles">
++          <button type="button" class="lms-tile" onclick="LiveMap.locateMe()"><svg class="lmi"><use href="#lmi-user"/></svg><span>Locate Me</span></button>
++          <button type="button" class="lms-tile" onclick="LiveMap.locatePartner()"><svg class="lmi"><use href="#lmi-heart"/></svg><span>Locate Partner</span></button>
++          <button type="button" class="lms-tile" onclick="LiveMap.showMeetingPoint()"><svg class="lmi"><use href="#lmi-users"/></svg><span>Meeting Point</span></button>
++        </div>
++        <div class="lms-tiles lms-tiles--2">
++          <button type="button" class="lms-tile lms-tile--row" onclick="LiveMap.startVideoCallFromMap()"><svg class="lmi"><use href="#lmi-video"/></svg><span>Video Call</span></button>
++          <button type="button" class="lms-tile lms-tile--row" onclick="LiveMap.openLoveNoteComposer()"><svg class="lmi"><use href="#lmi-mail"/></svg><span>Love Note</span></button>
+         </div>
+-        <div id="lmMyDot" style="width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0"></div>
+       </div>
+-      <div style="flex:1;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;display:flex;align-items:center;gap:8px">
+-        <div class="av av2" style="width:26px;height:26px;font-size:10px" id="lmAv2">P</div>
+-        <div style="flex:1;min-width:0">
+-          <div style="font-size:11px;font-weight:600;color:var(--white)" id="lmPtName">Partner</div>
+-          <div style="font-size:9px;color:var(--text3)" id="lmPtStatus">—</div>
++    </section>
++
++    <!-- ══════════════ SCREEN: TRACK ══════════════ -->
++    <section class="lms-screen" id="lmsTrack" data-screen="track">
++      <header class="lms-hdr">
++        <button class="lms-ib" type="button" aria-label="Back" onclick="LMScreens.back()"><svg class="lmi"><use href="#lmi-back"/></svg></button>
++        <div class="lms-title">Tracking</div>
++        <button class="lms-ib" type="button" aria-label="Route history settings" onclick="LMScreens.toggleTrackSettings()"><svg class="lmi"><use href="#lmi-gear"/></svg></button>
++      </header>
++      <div class="lms-body">
++        <div class="lms-seg" id="lmRouteRoleToggle"></div>
++
++        <!-- route-history privacy (off by default) -->
++        <div class="lms-card" id="lmRouteSettingsPanel" style="display:none">
++          <div class="lms-row lms-row--plain">
++            <div class="lms-row-txt"><div class="lms-row-t">Record my route history</div><div class="lms-row-s">Off by default. Only your own movement is recorded, and only while this is on.</div></div>
++            <label class="lms-sw"><input type="checkbox" id="lmRouteHistoryToggle" onchange="LiveMap.setRouteHistoryEnabled(this.checked)"><span></span></label>
++          </div>
++          <div id="lmRouteRetentionRow" style="display:none;margin-top:10px">
++            <div class="lms-row-s" style="margin-bottom:6px">Keep my route history for</div>
++            <div class="lms-chips">
++              <button type="button" class="lm-chip lms-chip" data-retention="7" onclick="LiveMap.setRouteRetention(7)">7 days</button>
++              <button type="button" class="lm-chip lms-chip" data-retention="30" onclick="LiveMap.setRouteRetention(30)">30 days</button>
++              <button type="button" class="lm-chip lms-chip" data-retention="forever" onclick="LiveMap.setRouteRetention(null)">Forever</button>
++            </div>
++          </div>
++        </div>
++
++        <div class="lms-seg lms-seg--pill" id="lmsTrackRange">
++          <button type="button" class="active" data-range="today" onclick="LMScreens.setTrackRange('today')">Today</button>
++          <button type="button" data-range="week" onclick="LMScreens.setTrackRange('week')">Week</button>
++          <button type="button" data-range="month" onclick="LMScreens.setTrackRange('month')">Month</button>
++        </div>
++        <div class="lms-chips lms-chips--scroll" id="lmRouteDatePicker"></div>
++
++        <div id="lmRouteBody"><div class="lms-empty">Loading…</div></div>
++
++        <div class="lms-sec-t" id="lmsTimelineTitle">Timeline</div>
++        <div id="lmDailyTimeline"></div>
++        <div id="lmJourneySummary"></div>
++        <div id="lmsRangeList"></div>
++
++        <div id="lmsTrackMapBlock">
++          <div class="lms-sec-t">Route</div>
++          <div id="lmsTrackMapSlot"></div>
++          <div class="lms-card lms-play">
++            <button type="button" class="lms-playbtn" id="lmPlaybackPlayBtn" data-lms="1" aria-label="Play journey" onclick="LiveMap.playbackRoute()"><svg class="lmi"><use href="#lmi-play"/></svg></button>
++            <button type="button" class="lms-playbtn" id="lmPlaybackPauseBtn" data-lms="1" aria-label="Pause" style="display:none" onclick="LiveMap.pausePlayback()"><svg class="lmi"><use href="#lmi-pause"/></svg></button>
++            <div class="lms-play-mid" id="lmPlaybackProgress">
++              <div class="lms-track"><div id="lmPlaybackBar"></div></div>
++              <div class="lms-play-lbls"><span id="lmsT0">—</span><span id="lmPlaybackTime">00:00</span><span id="lmPlaybackDist">0.0 km</span><span id="lmPlaybackSpeedNow">— km/h</span><span id="lmsT1">—</span></div>
++            </div>
++            <select id="lmPlaybackSpeed" class="lms-select" aria-label="Playback speed" onchange="LiveMap.setPlaybackSpeed(this.value)">
++              <option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option>
++            </select>
++          </div>
++          <div id="lmStopsList"></div>
+         </div>
+-        <div id="lmPtDot" style="width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0"></div>
+       </div>
+-    </div>
++    </section>
++
++    <!-- ══════════════ SCREEN: PARTNER ══════════════ -->
++    <section class="lms-screen" id="lmsPartner" data-screen="partner">
++      <header class="lms-hdr">
++        <button class="lms-ib" type="button" aria-label="Back" onclick="LMScreens.back()"><svg class="lmi"><use href="#lmi-back"/></svg></button>
++        <div class="lms-title">Partner</div>
++      </header>
++      <div class="lms-body">
++        <div class="lms-card lms-profile">
++          <div class="lms-av lms-av--xl" data-av="pt">P</div>
++          <div class="lms-profile-txt">
++            <div class="lms-profile-name" id="lmsPName">Partner</div>
++            <div class="lms-profile-st" id="lmsPState">—</div>
++            <div class="lms-profile-seen" id="lmsPSeen">—</div>
++          </div>
++          <button type="button" class="lms-ib lms-ib--heart" aria-label="Send a love note" onclick="LiveMap.openLoveNoteComposer();LMScreens.ensureMap()"><svg class="lmi"><use href="#lmi-heart"/></svg></button>
++        </div>
++
++        <div class="lms-stats">
++          <div class="lms-stat"><svg class="lmi"><use href="#lmi-walk"/></svg><b id="lmsPMove">—</b><span>Status</span></div>
++          <div class="lms-stat"><svg class="lmi"><use href="#lmi-clock"/></svg><b id="lmsPUpd">—</b><span>Updated</span></div>
++          <div class="lms-stat"><svg class="lmi"><use href="#lmi-ruler"/></svg><b id="lmsPDist">—</b><span>Away from you</span></div>
++          <div class="lms-stat"><svg class="lmi"><use href="#lmi-car"/></svg><b id="lmsPEta">—</b><span>Drive ETA</span></div>
++        </div>
+ 
+-   <!-- GOOGLE MAPS–STYLE SEARCH: separate from the "Add Place" search below —
+-        this is the primary Live Map search bar. Autocomplete via the same
+-        free SearchService; picking a result drops a destination marker and
+-        opens the place-details card (distance from me/partner, Directions,
+-        Save, Share, Meet Here, Favorite). Recent searches + favorites are
+-        persisted in S like everything else, so they sync via scheduleSave(). -->
+-   <div style="position:relative;margin-bottom:10px">
+-     <div style="display:flex;align-items:center;gap:6px;background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px">
+-       <span id="lmGmSearchIco" style="opacity:.55;font-size:13px">🔍</span>
+-       <input type="text" id="lmGmSearchInput" placeholder="Search Bengaluru, Vijayawada, restaurants, hospitals…"
+-         oninput="LiveMap.gmSearchInput(this.value)" onfocus="LiveMap.gmSearchFocus()"
+-         style="flex:1;min-width:0;background:transparent;border:none;outline:none;color:var(--white);font-size:12px">
+-       <span id="lmGmSearchClear" style="display:none;cursor:pointer;opacity:.55;font-size:13px" onclick="LiveMap.gmSearchClear()">✕</span>
+-     </div>
+-     <div id="lmGmSearchResults" class="lm-search-results" style="position:absolute;left:0;right:0;top:100%;z-index:500"></div>
+-   </div>
+-
+-   <div id="lmPlaceDetailsCard" style="display:none;margin-bottom:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px"></div>
+-   <div id="lmDirectionsPanel" style="display:none;margin-bottom:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px;font-size:11px;color:var(--text3)"></div>
+-
+-   <div id="mapView" style="width:100%;height:340px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border)"></div>
+-
+-   <!-- Single "Start" button — appears right after the map once a place has
+-        been searched/picked, and goes straight into turn-by-turn navigation
+-        (no separate Directions panel to open first). -->
+-   <button id="lmStartNavBtn" class="btn btn-accent" style="display:none;width:100%;margin-top:10px;font-weight:700;font-size:14px;padding:12px" onclick="LiveMap.startQuickNav()">▶ Start</button>
+-
+-    <!-- PHASE 2: map style switcher + quick actions -->
+-    <div class="lm-toolbar">
+-      <div class="lm-style-seg">
+-        <div class="lm-tool-btn lm-style-btn active" data-style="street" onclick="LiveMap.setMapStyle('street')"><span class="lm-tool-ico">🗺️</span>Map</div>
+-        <div class="lm-tool-btn lm-style-btn" data-style="dark" onclick="LiveMap.setMapStyle('dark')"><span class="lm-tool-ico">🌙</span>Dark</div>
+-        <div class="lm-tool-btn lm-style-btn" data-style="satellite" onclick="LiveMap.setMapStyle('satellite')"><span class="lm-tool-ico">🛰️</span>Satellite</div>
+-        <div class="lm-tool-btn lm-style-btn" data-style="hybrid" onclick="LiveMap.setMapStyle('hybrid')"><span class="lm-tool-ico">🛰️</span>Hybrid</div>
+-        <div class="lm-tool-btn lm-style-btn" data-style="auto" onclick="LiveMap.setMapStyle('auto')"><span class="lm-tool-ico">🌗</span>Auto</div>
++        <button type="button" class="lms-card lms-near" onclick="LMScreens.viewPartnerLive()">
++          <span class="lms-near-ico"><svg class="lmi"><use href="#lmi-pin"/></svg></span>
++          <span class="lms-row-txt"><span class="lms-row-t" id="lmsPNear">Location not shared yet</span><span class="lms-row-s" id="lmsPNearSub">—</span></span>
++          <svg class="lmi lms-chev"><use href="#lmi-chev"/></svg>
++        </button>
++
++        <div class="lms-list">
++          <button type="button" class="lms-row" onclick="LMScreens.viewPartnerLive()"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-eye"/></svg></span><span class="lms-row-t">View Live Location</span><svg class="lmi lms-chev"><use href="#lmi-chev"/></svg></button>
++          <button type="button" class="lms-row" onclick="LMScreens.open('track',{role:'partner'})"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-route"/></svg></span><span class="lms-row-t">Today's Route</span><svg class="lmi lms-chev"><use href="#lmi-chev"/></svg></button>
++          <button type="button" class="lms-row" onclick="LMScreens.open('places',{tab:'partner'})"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-pin"/></svg></span><span class="lms-row-t">Important Places</span><svg class="lmi lms-chev"><use href="#lmi-chev"/></svg></button>
++          <button type="button" class="lms-row" onclick="LMScreens.open('alerts')"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-bell"/></svg></span><span class="lms-row-t">Location Alerts</span><svg class="lmi lms-chev"><use href="#lmi-chev"/></svg></button>
++          <div class="lms-row lms-row--static"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-share"/></svg></span><span class="lms-row-t">Share My Location</span>
++            <label class="lms-sw"><input type="checkbox" id="lmsShareToggle" onchange="LMScreens.onShareToggle(this.checked)"><span></span></label></div>
++          <button type="button" class="lms-row" onclick="LiveMap.startVideoCallFromMap()"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-video"/></svg></span><span class="lms-row-t">Video Call</span><svg class="lmi lms-chev"><use href="#lmi-chev"/></svg></button>
++          <button type="button" class="lms-row" onclick="LMScreens.open('more')"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-dots"/></svg></span><span class="lms-row-t">More Options</span><svg class="lmi lms-chev"><use href="#lmi-chev"/></svg></button>
++        </div>
+       </div>
+-      <div class="lm-camera-row" style="margin-bottom:8px">
+-        <div class="lm-tool-btn" id="lmCameraModeBtn" style="width:100%;justify-content:center" title="Cycle camera angle: top-down → 3D tilt → eye-level (human view)" onclick="LiveMap.cycleCameraMode()"><span class="lm-tool-ico">📐</span>3D / Eye-level view: <span id="lmCameraModeLabel" style="margin-left:4px">Top-down</span></div>
++    </section>
++
++    <!-- ══════════════ SCREEN: PLACES ══════════════ -->
++    <section class="lms-screen" id="lmsPlaces" data-screen="places">
++      <header class="lms-hdr">
++        <button class="lms-ib" type="button" aria-label="Back" onclick="LMScreens.back()"><svg class="lmi"><use href="#lmi-back"/></svg></button>
++        <div class="lms-title">Places</div>
++      </header>
++      <div class="lms-body">
++        <div class="lms-seg lms-seg--pill" id="lmsPlacesTabs">
++          <button type="button" class="active" data-tab="mine" onclick="LMScreens.setPlacesTab('mine')">My Places</button>
++          <button type="button" data-tab="partner" onclick="LMScreens.setPlacesTab('partner')">Partner's</button>
++          <button type="button" data-tab="fav" onclick="LMScreens.setPlacesTab('fav')">Favorites</button>
++        </div>
++        <button type="button" class="lms-cta lms-cta--wide" id="lmsAddPlaceBtn" onclick="LiveMap.openPlaceModal('self')"><svg class="lmi"><use href="#lmi-plus"/></svg>Add Place</button>
++        <div class="lms-plist" id="myPlacesList" data-pane="mine"></div>
++        <div class="lms-plist" id="ptPlacesList" data-pane="partner" style="display:none"></div>
++        <div class="lms-plist" id="lmFavoritesPanel" data-pane="fav" style="display:none"></div>
+       </div>
+-      <div class="lm-action-row">
+-        <div class="lm-tool-btn" onclick="LiveMap.locateMe()"><span class="lm-tool-ico">📍</span>Locate Me</div>
+-        <div class="lm-tool-btn" onclick="LiveMap.locatePartner()"><span class="lm-tool-ico">💜</span>Locate Partner</div>
+-        <div class="lm-tool-btn" onclick="LiveMap.showMeetingPoint()"><span class="lm-tool-ico">🤝</span>Meeting Point</div>
+-        <div class="lm-tool-btn" id="lmFavBtn" onclick="LiveMap.toggleFavoritesPanel()"><span class="lm-tool-ico">⭐</span>Favorites</div>
+-        <div class="lm-tool-btn" onclick="LiveMap.openRouteHistory()"><span class="lm-tool-ico">🛣️</span>Daily Route</div>
+-        <div class="lm-tool-btn" id="lmPrivacyBtn" onclick="LiveMap.togglePrivacyPanel()"><span class="lm-tool-ico">🔒</span>Privacy</div>
++    </section>
++
++    <!-- ══════════════ SCREEN: MORE OPTIONS ══════════════ -->
++    <section class="lms-screen" id="lmsMore" data-screen="more">
++      <header class="lms-hdr">
++        <button class="lms-ib" type="button" aria-label="Back" onclick="LMScreens.back()"><svg class="lmi"><use href="#lmi-back"/></svg></button>
++        <div class="lms-title">More Options</div>
++      </header>
++      <div class="lms-body">
++        <div class="lms-card">
++          <div class="lms-card-h"><svg class="lmi"><use href="#lmi-map"/></svg>Map Type</div>
++          <div class="lms-maptypes">
++            <button type="button" class="lm-style-btn lms-mt active" data-style="street" onclick="LiveMap.setMapStyle('street')"><i class="lms-mt-th lms-mt-th--street"></i><span>Map</span></button>
++            <button type="button" class="lm-style-btn lms-mt" data-style="dark" onclick="LiveMap.setMapStyle('dark')"><i class="lms-mt-th lms-mt-th--dark"></i><span>Dark</span></button>
++            <button type="button" class="lm-style-btn lms-mt" data-style="satellite" onclick="LiveMap.setMapStyle('satellite')"><i class="lms-mt-th lms-mt-th--sat"></i><span>Satellite</span></button>
++            <button type="button" class="lm-style-btn lms-mt" data-style="hybrid" onclick="LiveMap.setMapStyle('hybrid')"><i class="lms-mt-th lms-mt-th--hyb"></i><span>Hybrid</span></button>
++            <button type="button" class="lm-style-btn lms-mt" data-style="auto" onclick="LiveMap.setMapStyle('auto')"><i class="lms-mt-th lms-mt-th--auto"></i><span>Auto</span></button>
++          </div>
++        </div>
++
++        <div class="lms-list">
++          <div class="lms-row lms-row--static"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-cube"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">3D / Eye-level View</span><span class="lms-row-s" id="lmCameraModeLabel">Top-down</span></span><label class="lms-sw"><input type="checkbox" id="lmsOpt3d" onchange="LMScreens.opt('3d',this.checked)"><span></span></label></div>
++          <div class="lms-row lms-row--static"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-nav"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">Auto Follow Partner</span><span class="lms-row-s">Camera stays on your partner as they move</span></span><label class="lms-sw"><input type="checkbox" id="lmsOptFollow" onchange="LMScreens.opt('follow',this.checked)"><span></span></label></div>
++          <div class="lms-row lms-row--static"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-activity"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">Show Route Line</span><span class="lms-row-s">Recent path of you and your partner</span></span><label class="lms-sw"><input type="checkbox" id="lmsOptTrail" onchange="LMScreens.opt('trail',this.checked)"><span></span></label></div>
++          <div class="lms-row lms-row--static"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-tag"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">Show Place Labels</span><span class="lms-row-s">Home, College and other saved places</span></span><label class="lms-sw"><input type="checkbox" id="lmsOptPlaces" onchange="LMScreens.opt('places',this.checked)"><span></span></label></div>
++          <div class="lms-row lms-row--static"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-cloud"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">Weather Layer</span><span class="lms-row-s">Weather at your location on the map</span></span><label class="lms-sw"><input type="checkbox" id="lmsOptWeather" onchange="LMScreens.opt('weather',this.checked)"><span></span></label></div>
++        </div>
++
++        <!-- native background tracking (mounted here by /js/livetrack-bridge.js) -->
++        <div id="lmControls"></div>
++
++        <div class="lms-list">
++          <button type="button" class="lms-row" onclick="LMScreens.open('privacy')"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-lock"/></svg></span><span class="lms-row-t">Location Privacy</span><svg class="lmi lms-chev"><use href="#lmi-chev"/></svg></button>
++          <button type="button" class="lms-row" onclick="LMScreens.clearHistory()"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-trash"/></svg></span><span class="lms-row-t">Clear History</span><svg class="lmi lms-chev"><use href="#lmi-chev"/></svg></button>
++          <button type="button" class="lms-row" onclick="LMScreens.exportRoute()"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-download"/></svg></span><span class="lms-row-t">Export Route</span><svg class="lmi lms-chev"><use href="#lmi-chev"/></svg></button>
++          <button type="button" class="lms-row" onclick="goto('settings')"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-gear"/></svg></span><span class="lms-row-t">Settings</span><svg class="lmi lms-chev"><use href="#lmi-chev"/></svg></button>
++        </div>
+       </div>
+-    </div>
++    </section>
++
++    <!-- ══════════════ SCREEN: LOCATION ALERTS ══════════════ -->
++    <section class="lms-screen" id="lmsAlerts" data-screen="alerts">
++      <header class="lms-hdr">
++        <button class="lms-ib" type="button" aria-label="Back" onclick="LMScreens.back()"><svg class="lmi"><use href="#lmi-back"/></svg></button>
++        <div class="lms-title">Location Alerts</div>
++      </header>
++      <div class="lms-body">
++        <div class="lms-sec-t">Get notified when <span class="lms-ptname">partner</span>…</div>
++        <div class="lms-list">
++          <div class="lms-row lms-row--static"><span class="lms-row-ico lms-ico--green"><svg class="lmi"><use href="#lmi-home"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">Arrives at a place</span><span class="lms-row-s">Any saved place, yours or theirs</span></span><label class="lms-sw"><input type="checkbox" data-alert="arrive" onchange="LMScreens.setAlert('arrive',this.checked)"><span></span></label></div>
++          <div class="lms-row lms-row--static"><span class="lms-row-ico lms-ico--amber"><svg class="lmi"><use href="#lmi-logout"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">Leaves a place</span><span class="lms-row-s">When they leave any saved place</span></span><label class="lms-sw"><input type="checkbox" data-alert="leave" onchange="LMScreens.setAlert('leave',this.checked)"><span></span></label></div>
++          <div class="lms-row lms-row--static"><span class="lms-row-ico lms-ico--grey"><svg class="lmi"><use href="#lmi-share"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">Goes offline</span><span class="lms-row-s">Their live sharing drops</span></span><label class="lms-sw"><input type="checkbox" data-alert="offline" onchange="LMScreens.setAlert('offline',this.checked)"><span></span></label></div>
++        </div>
++        <div class="lms-hint">These alerts show while the app is open.</div>
+ 
+-    <div id="lmPrivacyPanel" style="display:none;margin-top:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--text3)"></div>
+-    <div id="lmWeatherPanel" style="display:none;margin-top:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--text3)"></div>
+-    <div id="lmNavPanel" style="display:none;margin-top:10px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--text3)"></div>
+-    <div id="lmFavoritesPanel" style="display:none;margin-top:10px"></div>
+-    <div id="lmMeetingSuggestions" style="display:none;margin-top:10px"></div>
+- 
+-    <div class="period-stats" style="margin-top:14px">
+-      <div class="pstat"><div class="pstat-n" id="mapDistance">—</div><div class="pstat-l">Distance</div></div>
+-      <div class="pstat"><div class="pstat-n" id="mapETA">—</div><div class="pstat-l">ETA (drive)</div></div>
+-      <div class="pstat"><div class="pstat-n" id="mapUpdated">—</div><div class="pstat-l">Last Updated</div></div>
+-    </div>
+-    <div id="mapTravelNote" class="info-banner" style="margin-top:12px;display:none"></div>
+-    <div id="lmTogetherBanner" style="display:none;margin-top:12px;text-align:center;background:linear-gradient(135deg,rgba(255,60,90,.18),rgba(255,180,60,.12));border:1px solid var(--border);border-radius:var(--rs);padding:10px;font-size:12px;font-weight:700;color:var(--white)">💕 You're together right now!</div>
+-    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+-      <button class="btn btn-accent btn-sm" style="flex:1;min-width:120px" onclick="LiveMap.startVideoCallFromMap()">📹 Video Call</button>
+-      <button class="btn btn-glass btn-sm" style="flex:1;min-width:120px" onclick="LiveMap.openLoveNoteComposer()">💌 Leave a Love Note</button>
+-    </div>
+-    <div id="lmLoveNotesPanel" style="display:none;margin-top:10px"></div>
+-  </div>
++        <div class="lms-sec-t">Let <span class="lms-ptname">partner</span> know when I…</div>
++        <div class="lms-list">
++          <div class="lms-row lms-row--static"><span class="lms-row-ico lms-ico--red"><svg class="lmi"><use href="#lmi-shield"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">Low battery</span><span class="lms-row-s">Send a heads-up when my battery is low</span></span><label class="lms-sw"><input type="checkbox" data-alert="battery" onchange="LMScreens.setAlert('battery',this.checked)"><span></span></label></div>
++          <div class="lms-row lms-row--static"><span class="lms-row-ico lms-ico--red"><svg class="lmi"><use href="#lmi-alert"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">Lose internet</span><span class="lms-row-s">Send a heads-up when I go offline</span></span><label class="lms-sw"><input type="checkbox" data-alert="network" onchange="LMScreens.setAlert('network',this.checked)"><span></span></label></div>
++          <div class="lms-row lms-row--static"><span class="lms-row-ico lms-ico--red"><svg class="lmi"><use href="#lmi-locate"/></svg></span><span class="lms-row-txt"><span class="lms-row-t">GPS or permission turns off</span><span class="lms-row-s">Send a heads-up if sharing stops working</span></span><label class="lms-sw"><input type="checkbox" data-alert="gps" onchange="LMScreens.setAlert('gps',this.checked)"><span></span></label></div>
++        </div>
+ 
+-  <!-- MY IMPORTANT PLACES -->
+-  <div class="card">
+-    <div class="card-title">
+-      🏠 My Important Places
+-      <button class="btn btn-accent btn-sm" onclick="LiveMap.openPlaceModal('self')">+ Add Place</button>
+-    </div>
+-    <div id="myPlacesList"></div>
+-  </div>
++        <div class="lms-sec-t">Recent activity</div>
++        <div id="lmsAlertFeed" class="lms-feed"><div class="lms-empty">Loading…</div></div>
++      </div>
++    </section>
++
++    <!-- ══════════════ SCREEN: LOCATION PRIVACY ══════════════ -->
++    <section class="lms-screen" id="lmsPrivacy" data-screen="privacy">
++      <header class="lms-hdr">
++        <button class="lms-ib" type="button" aria-label="Back" onclick="LMScreens.back()"><svg class="lmi"><use href="#lmi-back"/></svg></button>
++        <div class="lms-title">Location Privacy</div>
++      </header>
++      <div class="lms-body">
++        <div id="lmPrivacyPanel" class="lms-card lms-privacy"></div>
++      </div>
++    </section>
++
++    <!-- ══════════════ SCREEN: SEARCH ══════════════ -->
++    <section class="lms-screen" id="lmsSearch" data-screen="search">
++      <header class="lms-hdr lms-hdr--search">
++        <button class="lms-ib" type="button" aria-label="Back" onclick="LMScreens.back()"><svg class="lmi"><use href="#lmi-back"/></svg></button>
++        <div class="lms-searchbar">
++          <svg class="lmi"><use href="#lmi-search"/></svg>
++          <input type="text" id="lmGmSearchInput" autocomplete="off" placeholder="Search places, restaurants, hospitals…"
++                 oninput="LiveMap.gmSearchInput(this.value)" onfocus="LiveMap.gmSearchFocus()">
++          <button type="button" id="lmGmSearchClear" class="lms-clear" style="display:none" aria-label="Clear" onclick="LiveMap.gmSearchClear()"><svg class="lmi"><use href="#lmi-x"/></svg></button>
++        </div>
++      </header>
++      <div class="lms-body">
++        <div class="lms-chips lms-chips--scroll" id="lmsSearchChips">
++          <button type="button" class="lms-chip" onclick="LMScreens.searchChip('Restaurants')">🍽️ Restaurants</button>
++          <button type="button" class="lms-chip" onclick="LMScreens.searchChip('Cafes')">☕ Cafes</button>
++          <button type="button" class="lms-chip" onclick="LMScreens.searchChip('Petrol pump')">⛽ Fuel</button>
++          <button type="button" class="lms-chip" onclick="LMScreens.searchChip('ATM')">🏧 ATM</button>
++          <button type="button" class="lms-chip" onclick="LMScreens.searchChip('Hospital')">🏥 Hospitals</button>
++          <button type="button" class="lms-chip" onclick="LMScreens.searchChip('Pharmacy')">💊 Pharmacy</button>
++          <button type="button" class="lms-chip" onclick="LMScreens.searchChip('Hotels')">🏨 Hotels</button>
++          <button type="button" class="lms-chip" onclick="LMScreens.searchChip('Parking')">🅿️ Parking</button>
++        </div>
++        <div id="lmGmSearchResults" class="lm-search-results"></div>
++      </div>
++    </section>
+ 
+-  <!-- PARTNER IMPORTANT PLACES -->
+-  <div class="card">
+-    <div class="card-title">💜 Partner Important Places</div>
+-    <div id="ptPlacesList"><div class="empty">Synced once your partner adds places</div></div>
++    <!-- shared action sheet (place ⋮ menu, confirmations) -->
++    <div class="lms-sheet-bg" id="lmsSheetBg" onclick="LMScreens.closeSheet()"></div>
++    <div class="lms-sheet" id="lmsSheet" role="dialog" aria-modal="true"></div>
+   </div>
+-
+ </div>
+ 
+ <!-- ADD PLACE MODAL -->
+@@ -6604,44 +6854,7 @@ select option { background: #0D0D0D; color: #fff; }
+   </div>
+ </div>
+ 
+-<!-- PHASE 2: DAILY ROUTE / TIMELINE / PLAYBACK MODAL -->
+-<div class="modal-bg" id="lmRouteModal">
+-  <div class="modal">
+-    <div class="modal-title">🛣️ Daily Route
+-      <button class="modal-close" style="right:44px" title="Route History privacy settings" onclick="LiveMap.toggleRouteSettingsPanel()">⚙️</button>
+-      <button class="modal-close" onclick="closeM('lmRouteModal')"><i data-lucide="x"></i></button>
+-    </div>
+-
+-    <!-- Phase 4: privacy — off by default, each person controls only their own recording -->
+-    <div id="lmRouteSettingsPanel" style="display:none;background:var(--g1);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
+-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+-        <div>
+-          <div style="font-weight:600;font-size:13px">Record my route history</div>
+-          <div style="font-size:11px;color:var(--text3);margin-top:2px">Off by default. Only your own movement is recorded, and only when this is on.</div>
+-        </div>
+-        <label class="lm-switch">
+-          <input type="checkbox" id="lmRouteHistoryToggle" onchange="LiveMap.setRouteHistoryEnabled(this.checked)">
+-          <span class="lm-switch-slider"></span>
+-        </label>
+-      </div>
+-      <div id="lmRouteRetentionRow" style="margin-top:12px;display:none">
+-        <div style="font-size:12px;color:var(--text3);margin-bottom:6px">Keep my route history for</div>
+-        <div style="display:flex;gap:6px;flex-wrap:wrap">
+-          <div class="lm-chip" data-retention="7" onclick="LiveMap.setRouteRetention(7)">7 days</div>
+-          <div class="lm-chip" data-retention="30" onclick="LiveMap.setRouteRetention(30)">30 days</div>
+-          <div class="lm-chip" data-retention="forever" onclick="LiveMap.setRouteRetention(null)">Forever</div>
+-        </div>
+-      </div>
+-      <button class="btn btn-glass btn-sm" style="margin-top:12px;color:#ff6b6b" onclick="LiveMap.deleteMyRouteHistory()">🗑️ Delete my route history</button>
+-    </div>
+-
+-    <div id="lmRouteRoleToggle" class="lm-action-row" style="margin-bottom:10px"></div>
+-    <div id="lmRouteDatePicker" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
+-    <div id="lmRouteBody"><div class="empty">Loading…</div></div>
+-  </div>
+-</div>
+-
+-<!-- PHASE 2: STREET VIEW MODAL (Mapillary, graceful Google Maps fallback) -->
++<!-- STREET VIEW MODAL (Mapillary, graceful Google Maps fallback) -->
+ <div class="modal-bg" id="lmStreetViewModal">
+   <div class="modal">
+     <div class="modal-title">👁 Street View<button class="modal-close" onclick="closeM('lmStreetViewModal')"><i data-lucide="x"></i></button></div>
+@@ -13360,6 +13573,7 @@ init();
+ 
+ <!-- Live Map redesign layer (additive UI only — see livemap-redesign.css) -->
+ <script src="/livemap-redesign.js"></script>
++<script src="/livemap-screens.js"></script>
+ 
+ </body>
+ </html>
+\ No newline at end of file
+diff --git a/public/livemap-redesign.js b/public/livemap-redesign.js
+index e83e308..3d2f225 100644
+--- a/public/livemap-redesign.js
++++ b/public/livemap-redesign.js
+@@ -35,6 +35,9 @@
+     const page = $('page-map');
+     if (!page) return;
+     restructured = true;
++    // New screen-stack layout (/livemap-screens.js) owns the page structure — only the
++    // call-dock + search-along-route helpers below stay active.
++    if ($('lmScreens')) return;
+ 
+     // Grab the pieces we already have, by their existing ids/selectors —
+     // nothing here is created from scratch, only moved.
+diff --git a/public/livemap-screens.css b/public/livemap-screens.css
+new file mode 100644
+index 0000000..7e32234
+--- /dev/null
++++ b/public/livemap-screens.css
+@@ -0,0 +1,288 @@
++/* ════════════════════════════════════════════════════════════════════
++   LIVE MAP — screen-stack layout (Map · Track · Partner · Places · More
++   · Alerts · Privacy · Search). Uses the app's own burgundy theme tokens
++   (--accent / --accent-d / --g1 / --g2 / --border / --text*) — no new palette.
++   Loaded after every other stylesheet. Scoped to #page-map.
++   ════════════════════════════════════════════════════════════════════ */
++
++/* Full-bleed page: hide the global top bar (like the dashboard does) and let
++   the page own the whole viewport; every screen scrolls on its own. */
++.main:has(#page-map.active) > .topbar { display: none; }
++.main .content:has(#page-map.active) { padding: 0 !important; overflow: hidden !important; }
++#page-map { --lms-r: 18px; --lms-pad: 16px; --lms-nav: calc(var(--nav-reserve, 96px) + 10px); }
++#page-map.active { display: block; position: relative; height: 100%; min-height: 100dvh; }
++#page-map .lmi { width: 20px; height: 20px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
++
++.lms-root { position: absolute; inset: 0; overflow: hidden; color: var(--text); font-family: var(--ff-sans, system-ui, sans-serif); }
++.lms-screen { position: absolute; inset: 0; display: none; flex-direction: column; min-height: 0; }
++.lms-screen.active { display: flex; animation: lmsIn .22s cubic-bezier(.4, 0, .2, 1); }
++.lms-screen.lms-push.active { animation: lmsPush .26s cubic-bezier(.4, 0, .2, 1); }
++.lms-screen.lms-pop.active { animation: lmsPop .22s cubic-bezier(.4, 0, .2, 1); }
++@keyframes lmsIn   { from { opacity: 0; } to { opacity: 1; } }
++@keyframes lmsPush { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
++@keyframes lmsPop  { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: none; } }
++@media (prefers-reduced-motion: reduce) { .lms-screen.active { animation: none !important; } }
++
++/* ── header ─────────────────────────────────────────────────────── */
++.lms-hdr { display: flex; align-items: center; gap: 10px; padding: calc(10px + env(safe-area-inset-top, 0px)) var(--lms-pad) 10px; flex-shrink: 0; }
++.lms-title { flex: 1; min-width: 0; font-size: 20px; font-weight: 700; color: var(--white); letter-spacing: -.2px; display: flex; align-items: center; gap: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
++.lms-ib { width: 42px; height: 42px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--g1); border: 1px solid var(--border); color: var(--white); cursor: pointer; flex-shrink: 0; padding: 0; transition: transform .15s, background .15s; -webkit-tap-highlight-color: transparent; }
++.lms-ib:active { transform: scale(.92); background: var(--g2); }
++.lms-ib--heart { color: var(--accent-l); border-color: rgba(255, 77, 77, .35); background: rgba(229, 9, 20, .12); }
++.lms-live { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: var(--accent-l); background: rgba(229, 9, 20, .14); border: 1px solid rgba(255, 77, 77, .35); border-radius: 999px; padding: 3px 9px; }
++.lms-live i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: lmsPulse 1.6s ease-in-out infinite; }
++.lms-live.paused { color: var(--yellow); background: rgba(251, 191, 36, .12); border-color: rgba(251, 191, 36, .35); }
++.lms-live.paused i { background: var(--yellow); box-shadow: none; animation: none; }
++@keyframes lmsPulse { 50% { opacity: .35; } }
++
++/* ── scrolling body ─────────────────────────────────────────────── */
++.lms-body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 4px var(--lms-pad) var(--lms-nav); display: flex; flex-direction: column; gap: 12px; scroll-behavior: auto; }
++.lms-body > * { flex-shrink: 0; }
++body[data-immersive="1"] .lms-body { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
++@media (min-width: 701px) { .lms-body { padding-bottom: 28px; max-width: 760px; width: 100%; margin: 0 auto; } .lms-hdr { max-width: 760px; width: 100%; margin: 0 auto; } }
++
++/* ── cards / rows ───────────────────────────────────────────────── */
++.lms-card { background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .028)); border: 1px solid var(--border); border-radius: var(--lms-r); padding: 14px; box-shadow: 0 8px 28px rgba(0, 0, 0, .28); }
++.lms-card-h { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--white); margin-bottom: 12px; }
++.lms-sec-t { font-size: 12px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--text3); margin: 8px 2px 0; }
++.lms-hint { font-size: 11px; color: var(--text3); margin: -4px 2px 0; }
++.lms-empty { text-align: center; color: var(--text3); font-size: 13px; padding: 22px 12px; }
++.lms-list { background: linear-gradient(180deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .025)); border: 1px solid var(--border); border-radius: var(--lms-r); overflow: hidden; }
++.lms-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px; min-height: 56px; background: transparent; border: 0; border-bottom: 1px solid var(--border); color: var(--white); text-align: left; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
++.lms-list > .lms-row:last-child { border-bottom: 0; }
++button.lms-row:active { background: var(--g1); }
++.lms-row--static { cursor: default; }
++.lms-row--plain { padding: 0; border: 0; min-height: 0; }
++.lms-row-ico { width: 36px; height: 36px; border-radius: 11px; display: inline-flex; align-items: center; justify-content: center; background: rgba(229, 9, 20, .13); color: var(--accent-l); flex-shrink: 0; }
++.lms-row-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
++.lms-row-t { flex: 1; font-size: 14.5px; font-weight: 600; color: var(--white); min-width: 0; }
++.lms-row-txt .lms-row-t { flex: none; }
++.lms-row-s { font-size: 11.5px; color: var(--text3); line-height: 1.35; }
++.lms-chev { color: var(--text3); width: 18px !important; height: 18px !important; }
++.lms-ico--green { background: rgba(52, 211, 153, .14); color: var(--green); }
++.lms-ico--amber { background: rgba(251, 191, 36, .14); color: var(--yellow); }
++.lms-ico--grey  { background: var(--g2); color: var(--text2); }
++.lms-ico--red   { background: rgba(229, 9, 20, .13); color: var(--accent-l); }
++
++/* ── switch ─────────────────────────────────────────────────────── */
++.lms-sw { position: relative; width: 48px; height: 28px; flex-shrink: 0; display: inline-block; }
++.lms-sw input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; cursor: pointer; z-index: 2; }
++.lms-sw span { position: absolute; inset: 0; border-radius: 999px; background: var(--g3); border: 1px solid var(--border2); transition: background .2s, border-color .2s; }
++.lms-sw span::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .4); transition: transform .22s cubic-bezier(.34, 1.56, .64, 1); }
++.lms-sw input:checked + span { background: linear-gradient(135deg, var(--accent), var(--accent-d)); border-color: var(--accent); box-shadow: 0 0 14px var(--accent-glow); }
++.lms-sw input:checked + span::after { transform: translateX(20px); }
++.lms-sw input:focus-visible + span { outline: 2px solid var(--accent-l); outline-offset: 2px; }
++
++/* ── tabs / segmented ───────────────────────────────────────────── */
++.lms-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
++.lms-tab { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 4px 9px; border-radius: 15px; background: var(--g1); border: 1px solid var(--border); color: var(--text2); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .18s; -webkit-tap-highlight-color: transparent; }
++.lms-tab:active { transform: scale(.96); }
++.lms-tab.active { color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-d)); border-color: var(--accent); box-shadow: 0 6px 20px var(--accent-glow); }
++.lms-seg { display: flex; gap: 8px; }
++.lms-seg:empty { display: none; }
++.lms-seg > button, .lms-seg > .lms-segbtn { flex: 1; padding: 11px 8px; border-radius: 999px; background: var(--g1); border: 1px solid var(--border); color: var(--text2); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; text-align: center; transition: all .18s; }
++.lms-seg > button.active, .lms-seg > .lms-segbtn.active { color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-d)); border-color: var(--accent); box-shadow: 0 4px 16px var(--accent-glow); }
++.lms-chips { display: flex; flex-wrap: wrap; gap: 8px; }
++.lms-chips:empty { display: none; }
++.lms-chips--scroll { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
++.lms-chips--scroll::-webkit-scrollbar { display: none; }
++.lms-chip, #page-map .lm-chip { flex-shrink: 0; padding: 8px 14px; border-radius: 999px; background: var(--g1); border: 1px solid var(--border); color: var(--text2); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
++.lms-chip.active, #page-map .lm-chip.active { color: #fff; background: var(--accent); border-color: var(--accent); }
++
++/* ── buttons ────────────────────────────────────────────────────── */
++.lms-cta { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 14px; padding: 13px 18px; font: inherit; font-size: 14.5px; font-weight: 700; color: #fff; cursor: pointer; background: linear-gradient(135deg, var(--accent), var(--accent-d)); box-shadow: 0 8px 22px var(--accent-glow); -webkit-tap-highlight-color: transparent; }
++.lms-cta:active { transform: scale(.97); }
++.lms-cta--sm { padding: 11px 14px; font-size: 13px; border-radius: 12px; white-space: nowrap; flex-shrink: 0; }
++.lms-cta--sm .lmi { width: 16px; height: 16px; }
++.lms-cta--wide { width: 100%; padding: 15px; font-size: 15.5px; }
++.lms-mini { margin-left: auto; padding: 6px 12px; border-radius: 999px; font: inherit; font-size: 11.5px; font-weight: 700; color: #fff; background: rgba(255, 255, 255, .14); border: 1px solid var(--border2); cursor: pointer; }
++.lms-select { background: var(--g2); border: 1px solid var(--border); color: var(--white); border-radius: 10px; padding: 7px 8px; font: inherit; font-size: 12px; flex-shrink: 0; }
++
++/* ── banners / notes ────────────────────────────────────────────── */
++.lms-banner { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 14px; font-size: 12.5px; font-weight: 600; }
++.lms-banner--err { background: rgba(229, 9, 20, .13); border: 1px solid rgba(255, 77, 77, .4); color: #ff8a8a; }
++.lms-banner--warn { background: rgba(251, 191, 36, .1); border: 1px solid rgba(251, 191, 36, .32); color: var(--yellow); }
++.lms-pill-banner { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px; border-radius: 14px; font-size: 13px; font-weight: 700; color: #fff; background: linear-gradient(135deg, rgba(229, 9, 20, .3), rgba(143, 0, 0, .25)); border: 1px solid rgba(255, 77, 77, .35); }
++.lms-note { font-size: 12px; color: var(--text2); background: var(--g1); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
++.lms-panel { background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .03)); border: 1px solid var(--border); border-radius: var(--lms-r); padding: 14px; font-size: 12px; color: var(--text2); }
++.lms-panel--flush { background: transparent; border: 0; padding: 0; }
++
++/* ── live together card ─────────────────────────────────────────── */
++.lms-together { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
++.lms-avpair { display: flex; flex-shrink: 0; }
++.lms-avpair .lms-av + .lms-av { margin-left: -12px; }
++.lms-av { width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent2-d)); border: 2px solid #15090b; overflow: hidden; flex-shrink: 0; }
++.lms-av--pt { background: linear-gradient(135deg, var(--accent2), var(--accent2-d)); }
++.lms-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
++.lms-av--xl { width: 78px; height: 78px; font-size: 28px; border: 3px solid var(--accent); box-shadow: 0 0 0 4px rgba(229, 9, 20, .18), 0 8px 24px var(--accent-glow); }
++.lms-together-txt { flex: 1; min-width: 0; }
++.lms-together-t { font-size: 15px; font-weight: 700; color: var(--white); }
++.lms-together-s { font-size: 11.5px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; margin-top: 2px; }
++.lms-together-s--me { color: var(--text3); }
++.lms-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); flex-shrink: 0; display: inline-block; }
++#page-map .toggle { width: 48px; height: 28px; border-radius: 999px; }
++#page-map .toggle::after { width: 20px; height: 20px; top: 3px; left: 3px; }
++#page-map .toggle.on { background: linear-gradient(135deg, var(--accent), var(--accent-d)); box-shadow: 0 0 14px var(--accent-glow); }
++#page-map .toggle.on::after { left: 24px; }
++
++/* ── map block ──────────────────────────────────────────────────── */
++.lms-mapwrap { position: relative; border-radius: 20px; overflow: hidden; border: 1px solid var(--border2); box-shadow: 0 10px 34px rgba(0, 0, 0, .45); margin-bottom: 0; }
++.lms-mapwrap #mapView { height: clamp(300px, 46dvh, 520px) !important; min-height: 300px; }
++#lmsTrackMapSlot .lms-mapwrap #mapView { height: 260px !important; min-height: 220px; }
++.lms-fabs { position: absolute; right: 12px; top: 12px; z-index: 600; display: flex; flex-direction: column; gap: 10px; }
++.lms-fab { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border2); background: rgba(14, 8, 9, .82); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); color: var(--white); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 18px rgba(0, 0, 0, .45); padding: 0; }
++.lms-fab:active { transform: scale(.93); }
++.lms-stylepop { position: absolute; right: 64px; top: 12px; z-index: 610; display: none; flex-direction: column; min-width: 138px; padding: 6px; border-radius: 16px; background: rgba(14, 8, 9, .94); border: 1px solid var(--border2); box-shadow: 0 14px 40px rgba(0, 0, 0, .6); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
++.lms-stylepop.open { display: flex; }
++.lms-stylepop button { background: transparent; border: 0; color: var(--text2); font: inherit; font-size: 13.5px; font-weight: 600; text-align: left; padding: 11px 12px; border-radius: 11px; cursor: pointer; }
++.lms-stylepop button.active { color: #fff; background: rgba(229, 9, 20, .22); }
++
++/* ── ETA bar + tiles ────────────────────────────────────────────── */
++.lms-eta { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
++.lms-eta-ico { width: 44px; height: 44px; border-radius: 14px; background: var(--g2); display: inline-flex; align-items: center; justify-content: center; color: var(--white); flex-shrink: 0; }
++.lms-eta-ico .lmi { width: 24px; height: 24px; }
++.lms-eta-txt { flex: 1; min-width: 0; }
++.lms-eta-big { font-size: 18px; font-weight: 800; color: var(--white); }
++.lms-eta-sub { font-size: 11.5px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
++.lms-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
++.lms-tiles--2 { grid-template-columns: repeat(2, 1fr); }
++.lms-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 15px 6px; border-radius: 16px; background: var(--g1); border: 1px solid var(--border); color: var(--white); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; }
++.lms-tile .lmi { width: 24px; height: 24px; color: var(--accent-l); }
++.lms-tile:active { transform: scale(.96); background: var(--g2); }
++.lms-tile--row { flex-direction: row; gap: 10px; padding: 14px 8px; }
++.lms-tile--row .lmi { width: 20px; height: 20px; }
++
++/* ── partner screen ─────────────────────────────────────────────── */
++.lms-profile { display: flex; align-items: center; gap: 16px; padding: 18px 16px; background: linear-gradient(135deg, rgba(229, 9, 20, .16), rgba(255, 255, 255, .03)); }
++.lms-profile-txt { flex: 1; min-width: 0; }
++.lms-profile-name { font-size: 21px; font-weight: 800; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
++.lms-profile-st { font-size: 14px; font-weight: 700; margin-top: 3px; color: var(--green); }
++.lms-profile-st.off { color: var(--text2); }
++.lms-profile-st.pause { color: var(--yellow); }
++.lms-profile-seen { font-size: 12px; color: var(--text2); margin-top: 2px; }
++.lms-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
++.lms-stat { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 8px; border-radius: 16px; background: var(--g1); border: 1px solid var(--border); text-align: center; }
++.lms-stat .lmi { width: 26px; height: 26px; color: var(--accent-l); margin-bottom: 2px; }
++.lms-stat b { font-size: 16px; font-weight: 800; color: var(--white); }
++.lms-stat span { font-size: 11.5px; color: var(--text3); }
++.lms-near { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; padding: 14px; }
++.lms-near-ico { width: 40px; height: 40px; border-radius: 12px; background: rgba(229, 9, 20, .15); color: var(--accent-l); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
++
++/* ── places ─────────────────────────────────────────────────────── */
++.lms-plist { display: flex; flex-direction: column; gap: 10px; }
++.lms-place { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: var(--g1); border: 1px solid var(--border); position: relative; }
++.lms-place-ico { width: 44px; height: 44px; border-radius: 13px; display: inline-flex; align-items: center; justify-content: center; font-size: 21px; flex-shrink: 0; background: rgba(229, 9, 20, .15); }
++.lms-place-ico--pt { background: rgba(143, 0, 0, .28); }
++.lms-place-txt { flex: 1; min-width: 0; cursor: pointer; }
++.lms-place-t { font-size: 15px; font-weight: 700; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
++.lms-place-s { font-size: 11.5px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
++.lms-place-more { width: 36px; height: 36px; border-radius: 50%; background: transparent; border: 0; color: var(--text2); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; padding: 0; }
++.lms-place-more:active { background: var(--g2); }
++/* legacy rows rendered by LiveMap (favorites) */
++#page-map .lms-plist .money-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: var(--g1); border: 1px solid var(--border); margin: 0; }
++#page-map .lms-plist .money-ic { width: 44px; height: 44px; border-radius: 13px; display: inline-flex; align-items: center; justify-content: center; font-size: 20px; background: rgba(229, 9, 20, .15); flex-shrink: 0; }
++#page-map .lms-plist .btn { border-radius: 999px; }
++#page-map .lms-plist .del-btn { background: transparent; border: 0; color: var(--text2); cursor: pointer; padding: 6px; }
++#page-map .lms-plist .empty { text-align: center; color: var(--text3); font-size: 13px; padding: 26px 12px; }
++
++/* ── track ──────────────────────────────────────────────────────── */
++.lms-trackstats { display: grid; grid-template-columns: repeat(2, 1fr); border-radius: var(--lms-r); border: 1px solid var(--border); background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .028)); overflow: hidden; }
++.lms-ts { padding: 15px 16px; border-bottom: 1px solid var(--border); }
++.lms-ts:nth-child(odd) { border-right: 1px solid var(--border); }
++.lms-ts:nth-last-child(-n+2) { border-bottom: 0; }
++.lms-ts span { display: block; font-size: 12px; color: var(--text3); }
++.lms-ts b { display: block; font-size: 24px; font-weight: 800; color: var(--white); margin-top: 3px; letter-spacing: -.3px; }
++.lms-ts b small { font-size: 13px; font-weight: 700; color: var(--text2); margin-left: 2px; }
++.lm-timeline, #lmDailyTimeline .lm-timeline { display: flex; flex-direction: column; padding: 4px 2px; }
++.lm-timeline-item { display: flex; align-items: center; gap: 14px; }
++.lm-timeline-dot { width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; background: rgba(229, 9, 20, .18); border: 1px solid rgba(255, 77, 77, .32); }
++.lm-timeline-body { min-width: 0; }
++.lm-timeline-place { font-size: 15px; font-weight: 700; color: var(--white); }
++.lm-timeline-time { font-size: 12px; color: var(--text3); margin-top: 1px; }
++.lm-timeline-connector { width: 2px; height: 16px; margin: 2px 0 2px 19px; background: linear-gradient(var(--accent), rgba(229, 9, 20, .15)); border-radius: 2px; }
++.lm-journey-line { font-size: 12.5px; color: var(--text2); margin-top: 8px; }
++.lm-journey-arrow { color: var(--accent-l); font-weight: 800; }
++#lmJourneySummary > div:not(.lm-journey-line) { color: var(--text3); }
++.lms-play { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-top: 10px; }
++.lms-playbtn { width: 46px; height: 46px; border-radius: 50%; border: 0; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: #fff; cursor: pointer; background: linear-gradient(135deg, var(--accent), var(--accent-d)); box-shadow: 0 6px 18px var(--accent-glow); padding: 0; }
++.lms-play-mid { flex: 1; min-width: 0; display: block !important; }
++.lms-track { height: 6px; border-radius: 99px; background: var(--g3); overflow: hidden; }
++#lmPlaybackBar { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent-d), var(--accent-l)); border-radius: 99px; transition: width .15s linear; }
++.lms-play-lbls { display: flex; justify-content: space-between; gap: 6px; font-size: 10.5px; color: var(--text3); margin-top: 6px; }
++.lms-play-lbls #lmPlaybackTime, .lms-play-lbls #lmPlaybackDist, .lms-play-lbls #lmPlaybackSpeedNow { display: none; }
++.lms-play.playing .lms-play-lbls #lmPlaybackTime, .lms-play.playing .lms-play-lbls #lmPlaybackDist, .lms-play.playing .lms-play-lbls #lmPlaybackSpeedNow { display: inline; }
++#lmStopsList .money-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: var(--g1); border: 1px solid var(--border); margin-top: 8px; }
++#lmStopsList .money-ic { width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; background: rgba(229, 9, 20, .15); flex-shrink: 0; }
++#lmStopsList .btn { border-radius: 999px; }
++.lms-range-row { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-radius: 14px; background: var(--g1); border: 1px solid var(--border); margin-top: 8px; cursor: pointer; }
++.lms-range-row b { color: var(--white); font-size: 14px; }
++.lms-range-row span { color: var(--text3); font-size: 12px; }
++.lms-range-row .lms-row-txt { gap: 1px; }
++.lms-range-r { margin-left: auto; text-align: right; font-size: 13px; font-weight: 700; color: var(--white); }
++
++/* ── more options ───────────────────────────────────────────────── */
++.lms-maptypes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
++.lms-mt { background: transparent; border: 2px solid transparent; border-radius: 14px; padding: 4px; color: var(--text2); font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; }
++.lms-mt.active { border-color: var(--accent); color: #fff; box-shadow: 0 0 16px var(--accent-glow); }
++.lms-mt-th { width: 100%; aspect-ratio: 1; border-radius: 10px; display: block; border: 1px solid var(--border2); }
++.lms-mt-th--street { background: linear-gradient(135deg, #e9e6df 0 38%, #f5c97a 38% 44%, #e9e6df 44% 62%, #9cc6e8 62% 100%); }
++.lms-mt-th--dark { background: linear-gradient(135deg, #14161b 0 38%, #3b4048 38% 44%, #14161b 44% 62%, #1f3144 62% 100%); }
++.lms-mt-th--sat { background: linear-gradient(135deg, #3d5a2f 0 40%, #6e5b3e 40% 62%, #20476b 62% 100%); }
++.lms-mt-th--hyb { background: linear-gradient(135deg, #3d5a2f 0 40%, #6e5b3e 40% 62%, #20476b 62% 100%); box-shadow: inset 0 0 0 5px rgba(255, 255, 255, .22); }
++.lms-mt-th--auto { background: linear-gradient(135deg, #e9e6df 0 50%, #14161b 50% 100%); }
++#lmControls #ltbPanel { margin: 0 !important; border-radius: var(--lms-r) !important; padding: 14px !important; background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .028)) !important; }
++#lmControls:empty { display: none; }
++
++/* ── privacy ────────────────────────────────────────────────────── */
++.lms-privacy { font-size: 13px; color: var(--text2); }
++.lms-privacy .btn { border-radius: 999px; padding: 10px 14px; font-size: 12.5px; }
++.lms-privacy .btn-xs { padding: 9px 13px; }
++.lms-privacy > div { margin-bottom: 12px; }
++
++/* ── search ─────────────────────────────────────────────────────── */
++.lms-hdr--search { padding-bottom: 6px; }
++.lms-searchbar { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px; border-radius: 999px; background: var(--g2); border: 1px solid var(--border2); color: var(--text2); }
++.lms-searchbar input { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; color: var(--white); font: inherit; font-size: 15px; }
++.lms-searchbar input::placeholder { color: var(--text3); }
++.lms-clear { background: transparent; border: 0; color: var(--text2); cursor: pointer; padding: 4px; display: inline-flex; }
++#lmsSearch .lm-search-results { position: static !important; display: block !important; max-height: none !important; background: transparent !important; border: 0 !important; box-shadow: none !important; padding: 0; }
++#lmsSearch .lm-search-results > div { padding: 13px 4px !important; }
++#lmsSearch .lm-search-results .lm-sr-empty { color: var(--text3); }
++
++/* ── alerts feed ────────────────────────────────────────────────── */
++.lms-feed { display: flex; flex-direction: column; gap: 8px; }
++.lms-feed-i { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--g1); border: 1px solid var(--border); font-size: 13.5px; color: var(--text2); }
++.lms-feed-i b { color: var(--white); }
++.lms-feed-i time { margin-left: auto; font-size: 11.5px; color: var(--text3); flex-shrink: 0; }
++
++/* ── bottom sheet ───────────────────────────────────────────────── */
++.lms-sheet-bg { position: absolute; inset: 0; z-index: 900; background: rgba(0, 0, 0, .55); opacity: 0; pointer-events: none; transition: opacity .2s; }
++.lms-sheet-bg.open { opacity: 1; pointer-events: auto; }
++.lms-sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 910; max-width: 560px; margin: 0 auto; padding: 10px 14px calc(18px + env(safe-area-inset-bottom, 0px)); border-radius: 22px 22px 0 0; background: #160a0c; border: 1px solid var(--border2); border-bottom: 0; box-shadow: 0 -16px 50px rgba(0, 0, 0, .6); transform: translateY(105%); transition: transform .26s cubic-bezier(.4, 0, .2, 1); }
++.lms-sheet.open { transform: none; }
++.lms-sheet::before { content: ''; display: block; width: 40px; height: 4px; border-radius: 4px; background: var(--g3); margin: 0 auto 12px; }
++.lms-sheet-t { font-size: 16px; font-weight: 700; color: var(--white); padding: 2px 6px 8px; }
++.lms-sheet-s { font-size: 12.5px; color: var(--text2); padding: 0 6px 12px; }
++.lms-sheet .lms-row { border-radius: 14px; border-bottom: 0; }
++.lms-sheet .lms-row.danger .lms-row-t, .lms-sheet .lms-row.danger .lmi { color: #ff6b6b; }
++.lms-sheet-btns { display: flex; gap: 10px; padding-top: 4px; }
++.lms-sheet-btns button { flex: 1; padding: 13px; border-radius: 14px; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; border: 1px solid var(--border2); background: var(--g2); color: var(--white); }
++.lms-sheet-btns button.primary { background: linear-gradient(135deg, var(--accent), var(--accent-d)); border-color: var(--accent); }
++
++/* ── legacy panels rendered by livemap.js, restyled for this theme ── */
++#page-map .lms-panel .btn, #page-map .lms-panel--flush .btn { border-radius: 999px; }
++#page-map .lms-panel .btn-accent, #page-map .lms-panel--flush .btn-accent { background: linear-gradient(135deg, var(--accent), var(--accent-d)); }
++#page-map .lm-search-results { background: #160a0c; border: 1px solid var(--border2); border-radius: 16px; }
++#page-map .lm-search-results .lm-sr-item:hover, #page-map .lm-search-results .lm-sr-item.active { background: rgba(229, 9, 20, .16); }
++#page-map .money-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
++#page-map .lm-tool-btn, #page-map .lm-chip { -webkit-tap-highlight-color: transparent; }
++
++/* map markers/popups keep the app theme */
++#page-map .maplibregl-popup-content, #page-map .leaflet-popup-content-wrapper { background: #160a0c; color: var(--white); border: 1px solid var(--border2); border-radius: 14px; }
++#page-map .maplibregl-popup-tip, #page-map .leaflet-popup-tip { background: #160a0c; }
++
++@media (max-width: 380px) {
++  .lms-maptypes { grid-template-columns: repeat(3, 1fr); }
++  .lms-tile { font-size: 11.5px; }
++  .lms-ts b { font-size: 21px; }
++}
+diff --git a/public/livemap-screens.js b/public/livemap-screens.js
+new file mode 100644
+index 0000000..12491e6
+--- /dev/null
++++ b/public/livemap-screens.js
+@@ -0,0 +1,614 @@
++/* ══════════════════════════════════════════════════════════════════
++   LMScreens — screen-stack controller for the Live Map page.
++   Screens: map (root) · track · partner · places · more · alerts ·
++            privacy · search.   Every screen has a back button; the
++   hardware/gesture Back (Capacitor) walks the same stack, and when the
++   stack is empty it falls through to the app's own goBack().
++
++   Load AFTER /livemap.js (it needs window.LiveMap) and after the page
++   markup. It never touches GPS, Supabase or routing — all of that stays
++   in LiveMap; this file is navigation + presentation + a few small
++   options (follow / route line / place labels / weather / export).
++   ══════════════════════════════════════════════════════════════════ */
++(function () {
++  'use strict';
++
++  const $ = id => document.getElementById(id);
++  const LM = () => window.LiveMap;
++  const ST = () => (window.LiveMap && window.LiveMap._debug) || {};
++  const APP = () => window.S || {};
++  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
++  const say = m => { try { window.toast ? window.toast(m) : console.log(m); } catch (_) {} };
++  const hav = (a, b) => {
++    if (!a || !b || a.lat == null || b.lat == null) return null;
++    const R = 6371, dL = (b.lat - a.lat) * Math.PI / 180, dG = (b.lng - a.lng) * Math.PI / 180;
++    const x = Math.sin(dL / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dG / 2) ** 2;
++    return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
++  };
++  const localDate = (d) => { d = d || new Date(); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
++  const ago = (ts) => {
++    if (!ts) return '—';
++    const s = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
++    if (s < 10) return 'just now';
++    if (s < 60) return s + 's ago';
++    const m = Math.floor(s / 60); if (m < 60) return m + ' min ago';
++    const h = Math.floor(m / 60); if (h < 24) return h + 'h ago';
++    return Math.floor(h / 24) + 'd ago';
++  };
++  const fmtDur = (min) => { min = Math.max(0, Math.round(min || 0)); const h = Math.floor(min / 60), m = min % 60; return h ? (h + 'h ' + String(m).padStart(2, '0') + 'm') : (m + 'm'); };
++  const fmtDist = (km) => km == null ? '—' : (km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1) + ' km');
++  const clock = (iso) => iso ? new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '—';
++  const partnerRole = () => APP().role === 'user1' ? 'user2' : 'user1';
++
++  /* ── persisted UI options (device-level, not synced) ─────────────── */
++  const UI_KEY = 'lms_ui_v1';
++  let ui = { trail: false, places: true, weather: false };
++  try { Object.assign(ui, JSON.parse(localStorage.getItem(UI_KEY) || '{}')); } catch (_) {}
++  const saveUi = () => { try { localStorage.setItem(UI_KEY, JSON.stringify({ trail: ui.trail, places: ui.places, weather: ui.weather })); } catch (_) {} };
++
++  /* ══════════════════════════════════════════════════════════════════
++     NAVIGATION STACK
++     ══════════════════════════════════════════════════════════════════ */
++  const stack = ['map'];
++  let quiet = false;
++  const cur = () => stack[stack.length - 1];
++  const screenEl = n => document.querySelector('#lmScreens .lms-screen[data-screen="' + n + '"]');
++
++  function placeMap(where) {
++    const wrap = $('lmsMapWrap'); if (!wrap) return;
++    if ($('lm2CallDock')) return; // a call is docked beside the map — leave it alone
++    const slot = $(where === 'track' ? 'lmsTrackMapSlot' : 'lmsMapSlot');
++    if (slot && wrap.parentNode !== slot) slot.appendChild(wrap);
++    invalidate();
++  }
++  function invalidate() {
++    const m = ST().map;
++    if (m && m.invalidateSize) { requestAnimationFrame(() => requestAnimationFrame(() => { try { m.invalidateSize(); } catch (_) {} })); }
++  }
++
++  function show(name, dir) {
++    const root = $('lmScreens'); const target = screenEl(name);
++    if (!root || !target) return;
++    root.querySelectorAll('.lms-screen').forEach(s => s.classList.remove('active', 'lms-push', 'lms-pop'));
++    target.classList.add('active');
++    if (dir === 'push') target.classList.add('lms-push'); else if (dir === 'pop') target.classList.add('lms-pop');
++    root.dataset.screen = name;
++    placeMap(name === 'track' ? 'track' : 'map');
++    closeSheet(); toggleStylePop(false);
++    if (dir === 'push') { const b = target.querySelector('.lms-body'); if (b) b.scrollTop = 0; }
++    onShown(name);
++  }
++
++  function open(name, opts) {
++    opts = opts || {};
++    if (!screenEl(name)) return;
++    if (cur() !== name) { stack.push(name); show(name, 'push'); }
++    enter(name, opts);
++  }
++
++  function leave(name) {
++    if (name === 'search') { const r = $('lmGmSearchResults'); if (r) r.classList.remove('show'); const i = $('lmGmSearchInput'); if (i) i.blur(); }
++    if (name === 'privacy') { const p = $('lmPrivacyPanel'); if (p) p.style.display = 'none'; }
++    if (name === 'track') {
++      try { LM().clearRouteOverlay(); } catch (_) {}
++      const rs = $('lmRouteSettingsPanel'); if (rs) rs.style.display = 'none';
++      range = 'today'; syncRangeButtons();
++    }
++  }
++
++  function pop() {
++    if (stack.length <= 1) return false;
++    const leaving = stack.pop();
++    leave(leaving);
++    show(cur(), 'pop');
++    if (cur() === 'map') { try { LM().fitBoth(); } catch (_) {} }
++    return true;
++  }
++
++  /** Closes the single topmost transient thing. Returns true if it closed something. */
++  function closeTop() {
++    const sh = $('lmsSheet'); if (sh && sh.classList.contains('open')) { closeSheet(); return true; }
++    const sp = $('lmsStylePop'); if (sp && sp.classList.contains('open')) { toggleStylePop(false); return true; }
++    if (cur() !== 'map') return pop();
++    return false;
++  }
++
++  /** Header back arrow: close one layer inside Live Map, else go to the previous app page. */
++  function back() {
++    try { if (LM() && LM().closeTopOverlayIfOpen && LM().closeTopOverlayIfOpen()) return; } catch (_) {}
++    if (typeof window.goBack === 'function') window.goBack();
++    else if (typeof window.goto === 'function') window.goto('dashboard');
++  }
++
++  /** Called by LiveMap whenever it needs the map in view (locate, search pick, directions…). */
++  function ensureMap() {
++    if (cur() === 'map') return;
++    const left = stack.splice(1); left.reverse().forEach(leave);
++    show('map', 'pop');
++  }
++  /** Used by LiveMap.openRouteHistory so it never re-enters this controller. */
++  function showTrackQuiet() {
++    if (cur() !== 'track') { stack.push('track'); quiet = true; show('track', 'push'); quiet = false; }
++  }
++
++  /* ── per-screen entry work ──────────────────────────────────────── */
++  function onShown(name) {
++    refresh();
++    if (name === 'map') { syncOpts(); }
++  }
++  function enter(name, opts) {
++    if (quiet) return;
++    if (name === 'track') {
++      const role = opts.role === 'partner' ? partnerRole() : APP().role;
++      range = 'today'; syncRangeButtons();
++      setBlocksForRange();
++      try { LM().openRouteHistory(role); } catch (e) { console.warn(e); }
++    } else if (name === 'places') {
++      setPlacesTab(opts.tab || 'mine');
++    } else if (name === 'more') {
++      syncOpts();
++    } else if (name === 'alerts') {
++      syncAlerts(); loadAlertFeed();
++    } else if (name === 'privacy') {
++      const p = $('lmPrivacyPanel');
++      if (p) { p.style.display = 'none'; try { LM().togglePrivacyPanel(); } catch (_) {} }
++    } else if (name === 'search') {
++      setTimeout(() => { const i = $('lmGmSearchInput'); if (i) { i.focus(); try { LM().gmSearchFocus(); } catch (_) {} } }, 140);
++    } else if (name === 'partner') {
++      refresh(true);
++    }
++  }
++
++  /* ══════════════════════════════════════════════════════════════════
++     LIVE REFRESH (header pill, avatars, partner screen, share toggle)
++     ══════════════════════════════════════════════════════════════════ */
++  function activityLabel(speedMps) {
++    const k = (speedMps || 0) * 3.6;
++    if (k < 1) return 'Stationary';
++    if (k < 7) return 'Walking';
++    if (k < 15) return 'Running';
++    if (k < 35) return 'Cycling';
++    return 'Driving';
++  }
++  function paintAvatars() {
++    const S = APP();
++    document.querySelectorAll('#lmScreens [data-av]').forEach(el => {
++      const mine = el.dataset.av === 'me';
++      const src = mine ? S.myAvatar : S.partnerAvatar;
++      const name = (mine ? S.myName : S.partnerName) || (mine ? 'You' : 'Partner');
++      const key = (src || '') + '|' + name;
++      if (el.__k === key) return; el.__k = key;
++      if (src) el.innerHTML = '<img alt="" src="' + esc(src) + '">'; else el.textContent = (name[0] || '?').toUpperCase();
++    });
++  }
++  function nearestSaved(lat, lng, r) {
++    let best = null, bd = Infinity;
++    (APP().placesList || []).forEach(p => { const d = hav({ lat, lng }, p) * 1000; if (d <= (r || 150) && d < bd) { bd = d; best = p; } });
++    return best;
++  }
++  const geoCache = new Map(); let geoBusy = false, geoLast = 0;
++  function reverseGeo(lat, lng, cb) {
++    const key = lat.toFixed(3) + ',' + lng.toFixed(3);
++    if (geoCache.has(key)) return geoCache.get(key);
++    if (geoBusy || Date.now() - geoLast < 15000) return null;
++    geoBusy = true; geoLast = Date.now();
++    fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=17&addressdetails=1&lat=' + lat + '&lon=' + lng, { headers: { 'Accept': 'application/json' } })
++      .then(r => r.ok ? r.json() : null)
++      .then(j => {
++        if (!j) return;
++        const a = j.address || {};
++        const main = a.neighbourhood || a.suburb || a.road || a.village || a.town || a.city_district || a.city || (j.name || '');
++        const sub = [a.suburb && a.suburb !== main ? a.suburb : null, a.city || a.town || a.village || a.county, a.state].filter(Boolean).join(', ');
++        geoCache.set(key, { main: main || 'Unknown area', sub: sub || (j.display_name || '').split(',').slice(0, 3).join(',') });
++        if (cb) cb();
++      })
++      .catch(() => {})
++      .finally(() => { geoBusy = false; });
++    return null;
++  }
++
++  function refresh(force) {
++    const S = APP(), s = ST();
++    if (!$('lmScreens')) return;
++    paintAvatars();
++    const pn = S.partnerName || 'Partner';
++    document.querySelectorAll('#lmScreens .lms-ptname').forEach(e => { e.textContent = pn; });
++    const pName = $('lmsPName'); if (pName) pName.textContent = pn;
++
++    // header pill + share toggle
++    const pill = $('lmsLivePill'), txt = $('lmsLiveTxt');
++    if (pill && txt) {
++      const paused = !s.tracking, invis = !!s.invisible;
++      pill.classList.toggle('paused', paused || invis);
++      txt.textContent = paused ? 'Paused' : (invis ? 'Invisible' : 'Live');
++    }
++    const sh = $('lmsShareToggle'); if (sh) sh.checked = !!s.tracking;
++
++    // partner screen
++    const pt = s.ptLast;
++    const stEl = $('lmsPState'), seen = $('lmsPSeen');
++    if (stEl && seen) {
++      let label = 'No location yet', cls = 'off', seenTxt = 'Hasn\u2019t shared a location yet';
++      if (!S.paired) { label = 'Not paired yet'; seenTxt = '—'; }
++      else if (pt && pt.status === 'paused') { label = 'Sharing paused'; cls = 'pause'; seenTxt = 'Last seen: ' + ago(pt.updatedAt); }
++      else if (pt && pt.online) { label = 'Online'; cls = ''; seenTxt = 'Last seen: Just now'; }
++      else if (pt) { label = 'Offline'; seenTxt = 'Last seen: ' + ago(pt.updatedAt); }
++      stEl.textContent = label; stEl.className = 'lms-profile-st' + (cls ? ' ' + cls : ''); seen.textContent = seenTxt;
++    }
++    const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
++    set('lmsPMove', pt && pt.online ? (pt.moving ? activityLabel(pt.speed) : 'Stationary') : '—');
++    set('lmsPUpd', pt ? ago(pt.updatedAt) : '—');
++    const d = hav(S.myLoc, S.ptLoc);
++    set('lmsPDist', fmtDist(d));
++    set('lmsPEta', d == null ? '—' : Math.max(1, Math.round(d / 40 * 60)) + ' min');
++
++    // "Near …" card
++    const near = $('lmsPNear'), nearSub = $('lmsPNearSub');
++    if (near && nearSub) {
++      if (!S.ptLoc || S.ptLoc.lat == null) { near.textContent = 'Location not shared yet'; nearSub.textContent = 'Ask ' + pn + ' to turn on sharing'; }
++      else {
++        const sp = nearestSaved(S.ptLoc.lat, S.ptLoc.lng, 150);
++        if (sp) { near.textContent = 'At ' + (sp.name || sp.cat); nearSub.textContent = sp.address || 'Saved place'; }
++        else {
++          const g = reverseGeo(S.ptLoc.lat, S.ptLoc.lng, () => refresh());
++          if (g) { near.textContent = 'Near ' + g.main; nearSub.textContent = g.sub || 'Tap to view on the map'; }
++          else { near.textContent = 'Shared location'; nearSub.textContent = S.ptLoc.lat.toFixed(4) + ', ' + S.ptLoc.lng.toFixed(4); }
++        }
++      }
++    }
++  }
++
++  /* ══════════════════════════════════════════════════════════════════
++     PARTNER SCREEN ACTIONS
++     ══════════════════════════════════════════════════════════════════ */
++  function viewPartnerLive() {
++    ensureMap();
++    setTimeout(() => { try { LM().locatePartner(); } catch (_) {} }, 60);
++  }
++  function onShareToggle(on) {
++    const s = ST();
++    if (!!s.tracking !== !!on) { try { LM().toggleTracking(); } catch (_) {} }
++    setTimeout(refresh, 50);
++  }
++
++  /* ══════════════════════════════════════════════════════════════════
++     PLACES SCREEN
++     ══════════════════════════════════════════════════════════════════ */
++  let placesTab = 'mine';
++  function setPlacesTab(tab) {
++    placesTab = tab;
++    document.querySelectorAll('#lmsPlacesTabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
++    const map = { mine: 'myPlacesList', partner: 'ptPlacesList', fav: 'lmFavoritesPanel' };
++    Object.keys(map).forEach(k => { const e = $(map[k]); if (e) e.style.display = (k === tab) ? (k === 'fav' ? 'block' : 'flex') : 'none'; });
++    const add = $('lmsAddPlaceBtn'); if (add) add.style.display = tab === 'mine' ? '' : 'none';
++    try { LM().renderPlaces(); if (tab === 'fav') LM().renderFavorites(); } catch (_) {}
++  }
++
++  function placeMenu(id) {
++    const S = APP(); const p = (S.placesList || []).find(x => x.id === id); if (!p) return;
++    const mine = p.owner === S.role;
++    openSheet(`
++      <div class="lms-sheet-t">${esc(p.name || p.cat)}</div>
++      <div class="lms-sheet-s">${esc(p.address || (p.cat + ' · ' + p.lat.toFixed(4) + ', ' + p.lng.toFixed(4)))}</div>
++      <button type="button" class="lms-row" onclick="LMScreens.placeAction('view','${esc(id)}')"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-map"/></svg></span><span class="lms-row-t">View on map</span></button>
++      <button type="button" class="lms-row" onclick="LMScreens.placeAction('go','${esc(id)}')"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-nav"/></svg></span><span class="lms-row-t">Get directions</span></button>
++      <button type="button" class="lms-row" onclick="LMScreens.placeAction('street','${esc(id)}')"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-eye"/></svg></span><span class="lms-row-t">Street view</span></button>
++      ${mine ? `<button type="button" class="lms-row danger" onclick="LMScreens.placeAction('del','${esc(id)}')"><span class="lms-row-ico"><svg class="lmi"><use href="#lmi-trash"/></svg></span><span class="lms-row-t">Delete place</span></button>` : ''}`);
++  }
++  function placeAction(kind, id) {
++    const p = (APP().placesList || []).find(x => x.id === id); if (!p) { closeSheet(); return; }
++    if (kind === 'view') { closeSheet(); LM().flyTo(p.lat, p.lng); }
++    else if (kind === 'go') { closeSheet(); ensureMap(); setTimeout(() => LM().navigateToPoint(p.lat, p.lng, p.name || p.cat), 60); }
++    else if (kind === 'street') { closeSheet(); LM().openStreetView(p.lat, p.lng); }
++    else if (kind === 'del') {
++      confirmSheet('Delete this place?', (p.name || p.cat) + ' will be removed for both of you.', 'Delete', () => { LM().deletePlace(id); say('Place deleted'); });
++    }
++  }
++
++  /* ══════════════════════════════════════════════════════════════════
++     TRACK SCREEN
++     ══════════════════════════════════════════════════════════════════ */
++  let range = 'today';
++  function syncRangeButtons() {
++    document.querySelectorAll('#lmsTrackRange button').forEach(b => b.classList.toggle('active', b.dataset.range === range));
++  }
++  function setBlocksForRange() {
++    const today = range === 'today';
++    const mb = $('lmsTrackMapBlock'); if (mb) mb.style.display = today ? '' : 'none';
++    ['lmsTimelineTitle', 'lmDailyTimeline', 'lmJourneySummary'].forEach(id => { const e = $(id); if (e) e.style.display = today ? '' : 'none'; });
++    const dp = $('lmRouteDatePicker'); if (dp) dp.style.display = today ? '' : 'none';
++    const rl = $('lmsRangeList'); if (rl) { rl.style.display = today ? 'none' : ''; if (today) rl.innerHTML = ''; }
++  }
++  function setTrackRange(r) {
++    range = r; syncRangeButtons(); setBlocksForRange();
++    if (r === 'today') {
++      const s = ST();
++      try { LM().loadRouteDay(s.routeSelectedDate || localDate()); } catch (_) {}
++    } else {
++      try { LM().clearRouteOverlay(); } catch (_) {}
++      loadRange(r);
++    }
++  }
++  function statsHtml(o) {
++    return `<div class="lms-trackstats">
++      <div class="lms-ts"><span>Total Distance</span><b>${o.dist}<small>km</small></b></div>
++      <div class="lms-ts"><span>Total Time</span><b>${o.time}</b></div>
++      <div class="lms-ts"><span>Places Visited</span><b id="lmsPlacesVisited">${o.places}</b></div>
++      <div class="lms-ts"><span>Avg Speed</span><b>${o.avg}<small>km/h</small></b></div>
++    </div>`;
++  }
++  function routeOffNotice(isMine) {
++    const s = ST();
++    const off = isMine && s.routeHistorySettings && s.routeHistorySettings.enabled === false;
++    if (off) return `<div class="lms-card" style="text-align:center"><div class="lms-row-t" style="margin-bottom:6px">Route history is off</div><div class="lms-row-s" style="margin-bottom:12px">Turn it on to see where you go each day — only you can see and control your own recording.</div><button type="button" class="lms-cta lms-cta--sm" onclick="LMScreens.toggleTrackSettings()">Turn on in settings</button></div>`;
++    return `<div class="lms-empty">No movement recorded for this day${isMine ? '' : ' — ' + esc(APP().partnerName || 'your partner') + ' may have route history turned off'}</div>`;
++  }
++  /** Called by LiveMap.loadRouteDay once a day's data arrives. */
++  function renderTrackDay(data) {
++    if (range !== 'today') { range = 'today'; syncRangeButtons(); setBlocksForRange(); }
++    const body = $('lmRouteBody'); if (!body) return;
++    const s = ST(); const isMine = (s.routeViewRole || APP().role) === APP().role;
++    const mb = $('lmsTrackMapBlock');
++    if (!data || !data.points || !data.points.length) {
++      body.innerHTML = routeOffNotice(isMine);
++      if (mb) mb.style.display = 'none';
++      return;
++    }
++    if (mb) mb.style.display = '';
++    const ext = LM().computeExtendedStats(data.points, data.stats.durationMin);
++    body.innerHTML = statsHtml({
++      dist: (+data.stats.distanceKm).toFixed(1), time: fmtDur(data.stats.durationMin),
++      places: (data.stops || []).length, avg: Math.round(ext.avgKmh || 0)
++    });
++    const t0 = $('lmsT0'), t1 = $('lmsT1');
++    if (t0) t0.textContent = clock(data.points[0].created_at);
++    if (t1) t1.textContent = clock(data.points[data.points.length - 1].created_at);
++    invalidate();
++  }
++  /** Called when the daily timeline loads — gives the real "places visited" count. */
++  function onTimeline(events) {
++    const e = $('lmsPlacesVisited');
++    if (e && events && events.length) e.textContent = events.length;
++  }
++
++  async function loadRange(r) {
++    const S = APP(), s = ST();
++    const role = s.routeViewRole || S.role; const days = r === 'week' ? 7 : 30;
++    const body = $('lmRouteBody'), list = $('lmsRangeList');
++    if (body) body.innerHTML = '<div class="lms-empty">Loading…</div>';
++    if (list) list.innerHTML = '';
++    const cutoff = localDate(new Date(Date.now() - (days - 1) * 86400000));
++    const dates = (s.routeDates || []).filter(d => d >= cutoff).sort().reverse();
++    if (!dates.length) { if (body) body.innerHTML = routeOffNotice(role === S.role); return; }
++    const get = (p) => window.api('GET', p).catch(() => null);
++    const [reports, timelines] = await Promise.all([
++      Promise.all(dates.map(d => get('/api/tracking/' + S.coupleId + '/' + role + '/daily-report/' + d))),
++      Promise.all(dates.map(d => get('/api/tracking/' + S.coupleId + '/' + role + '/timeline/' + d)))
++    ]);
++    if (range !== r) return; // user switched tab while loading
++    let dist = 0, mins = 0, places = 0, wsum = 0, wdur = 0;
++    const rows = [];
++    dates.forEach((d, i) => {
++      const rep = reports[i]; const ev = (timelines[i] && timelines[i].events) || [];
++      places += ev.length;
++      if (rep) {
++        dist += +rep.distance_km || 0; mins += +rep.duration_min || 0;
++        wsum += (+rep.avg_speed_kmh || 0) * (+rep.duration_min || 0); wdur += (+rep.duration_min || 0);
++      }
++      rows.push({ d, km: rep ? +rep.distance_km || 0 : 0, min: rep ? +rep.duration_min || 0 : 0, n: ev.length });
++    });
++    const avg = wdur ? Math.round(wsum / wdur) : (mins ? Math.round(dist / (mins / 60)) : 0);
++    if (body) body.innerHTML = statsHtml({ dist: dist.toFixed(1), time: fmtDur(mins), places, avg });
++    if (list) {
++      const label = d => d === localDate() ? 'Today' : d === localDate(new Date(Date.now() - 86400000)) ? 'Yesterday' : new Date(d + 'T00:00').toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
++      list.innerHTML = '<div class="lms-sec-t" style="margin-bottom:2px">Days</div>' + rows.map(r2 => `
++        <div class="lms-range-row" onclick="LMScreens.openDay('${r2.d}')">
++          <span class="lms-row-txt"><b>${label(r2.d)}</b><span>${r2.n} place${r2.n === 1 ? '' : 's'} visited</span></span>
++          <span class="lms-range-r">${r2.km.toFixed(1)} km<br><span>${fmtDur(r2.min)}</span></span>
++        </div>`).join('');
++    }
++  }
++  function openDay(d) { range = 'today'; syncRangeButtons(); setBlocksForRange(); try { LM().loadRouteDay(d); } catch (_) {} }
++  function toggleTrackSettings() { try { LM().toggleRouteSettingsPanel(); } catch (_) {} }
++
++  /* ── export / clear ─────────────────────────────────────────────── */
++  async function exportRoute() {
++    const S = APP(), s = ST();
++    let data = s.routeData;
++    if (!data || !data.points || !data.points.length) {
++      try { data = await window.api('GET', '/api/route/' + S.coupleId + '/' + S.role + '/' + localDate()); } catch (_) { data = null; }
++    }
++    if (!data || !data.points || !data.points.length) { say('No route recorded to export yet'); return; }
++    const who = (s.routeViewRole && s.routeViewRole !== S.role) ? (S.partnerName || 'partner') : (S.myName || 'me');
++    const gpx = '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Twin Hearts" xmlns="http://www.topografix.com/GPX/1/1">\n<trk><name>' + esc(who + ' ' + data.date) + '</name><trkseg>\n' +
++      data.points.map(p => '<trkpt lat="' + p.lat + '" lon="' + p.lng + '">' + (p.altitude != null ? '<ele>' + p.altitude + '</ele>' : '') + '<time>' + new Date(p.created_at).toISOString() + '</time></trkpt>').join('\n') +
++      '\n</trkseg></trk></gpx>';
++    const name = 'route-' + data.date + '.gpx';
++    try {
++      const file = new File([gpx], name, { type: 'application/gpx+xml' });
++      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Route ' + data.date }); return; }
++    } catch (e) { if (e && e.name === 'AbortError') return; }
++    const a = document.createElement('a');
++    a.href = URL.createObjectURL(new Blob([gpx], { type: 'application/gpx+xml' }));
++    a.download = name; document.body.appendChild(a); a.click();
++    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
++    say('Route exported 📥');
++  }
++  function clearHistory() {
++    confirmSheet('Clear your route history?', 'All of your recorded locations will be deleted. This can\u2019t be undone.', 'Delete', () => { LM().deleteMyRouteHistory(true); });
++  }
++
++  /* ══════════════════════════════════════════════════════════════════
++     MORE OPTIONS
++     ══════════════════════════════════════════════════════════════════ */
++  function toggleStylePop(force) {
++    const p = $('lmsStylePop'); if (!p) return;
++    p.classList.toggle('open', typeof force === 'boolean' ? force : !p.classList.contains('open'));
++  }
++
++  function syncOpts() {
++    const s = ST(); const set = (id, v) => { const e = $(id); if (e) e.checked = !!v; };
++    set('lmsOpt3d', s.cameraMode && s.cameraMode !== 'top');
++    set('lmsOptFollow', followOn);
++    set('lmsOptTrail', ui.trail);
++    set('lmsOptPlaces', ui.places);
++    set('lmsOptWeather', ui.weather);
++    const lab = $('lmCameraModeLabel'); if (lab && !s.cameraMode) lab.textContent = 'Top';
++    refresh();
++  }
++
++  function opt(key, on) {
++    if (key === '3d') {
++      const m = ST().map;
++      if (!m || typeof m.setCameraMode !== 'function') { say('3D camera needs a browser that supports WebGL'); const e = $('lmsOpt3d'); if (e) e.checked = false; return; }
++      LM().setCameraMode(on ? 'tilt' : 'top');
++    } else if (key === 'follow') { on ? startFollow() : stopFollow(); }
++    else if (key === 'trail') { ui.trail = on; saveUi(); on ? startTrail() : stopTrail(); }
++    else if (key === 'places') { ui.places = on; saveUi(); try { LM().renderPlaces(); } catch (_) {} }
++    else if (key === 'weather') { ui.weather = on; saveUi(); applyWeather(); }
++  }
++  const placesVisible = () => ui.places !== false;
++
++  function applyWeather() {
++    const p = $('lmWeatherPanel'); if (!p) return;
++    if (ui.weather) { try { LM().getWeather(true); } catch (_) {} } else { p.style.display = 'none'; }
++  }
++
++  /* auto-follow partner */
++  let followOn = false, followTimer = null;
++  function startFollow() {
++    const S = APP(), m = ST().map;
++    if (!S.ptLoc || S.ptLoc.lat == null) { say('Partner hasn\u2019t shared their location yet'); followOn = false; const e = $('lmsOptFollow'); if (e) e.checked = false; return; }
++    followOn = true; stopFollowTimer();
++    if (m) { m.on('dragstart', userMoved); }
++    followTimer = setInterval(() => {
++      const loc = APP().ptLoc, mm = ST().map;
++      if (!followOn || !mm || !loc || loc.lat == null) return;
++      if (!ST().pageActive || cur() !== 'map') return;
++      try { mm.panTo([loc.lat, loc.lng], { animate: true, duration: 0.8, easeLinearity: 0.4 }); } catch (_) {}
++    }, 1500);
++    say('Following ' + (S.partnerName || 'partner') + ' 💜');
++  }
++  function stopFollowTimer() { if (followTimer) { clearInterval(followTimer); followTimer = null; } }
++  function stopFollow() {
++    followOn = false; stopFollowTimer();
++    const m = ST().map; if (m && m.off) { try { m.off('dragstart', userMoved); } catch (_) {} }
++    const e = $('lmsOptFollow'); if (e) e.checked = false;
++  }
++  function userMoved() { if (followOn) { stopFollow(); say('Auto-follow off'); } }
++
++  /* live route line (recent breadcrumb trail of both people) */
++  let trailTimer = null, trailLayers = [];
++  const LL = () => window.MapLibreLeafletShim || window.L;
++  async function drawTrail() {
++    const S = APP(), m = ST().map, L = LL();
++    if (!ui.trail || !m || !L || !S.coupleId || !ST().pageActive) return;
++    try {
++      const roles = [[S.role, '#E50914'], [partnerRole(), '#ff9a9a']];
++      const res = await Promise.all(roles.map(r => window.api('GET', '/api/location/' + S.coupleId + '/trail/' + r[0]).catch(() => [])));
++      trailLayers.forEach(l => { try { m.removeLayer(l); } catch (_) {} }); trailLayers = [];
++      res.forEach((pts, i) => {
++        if (!Array.isArray(pts) || pts.length < 2) return;
++        const line = L.polyline(pts.map(p => [p.lat, p.lng]), { color: roles[i][1], weight: 4, opacity: .85, lineCap: 'round', lineJoin: 'round' }).addTo(m);
++        trailLayers.push(line);
++      });
++    } catch (_) {}
++  }
++  function startTrail() { stopTrailTimer(); drawTrail(); trailTimer = setInterval(drawTrail, 15000); }
++  function stopTrailTimer() { if (trailTimer) { clearInterval(trailTimer); trailTimer = null; } }
++  function stopTrail() {
++    stopTrailTimer(); const m = ST().map;
++    trailLayers.forEach(l => { try { m && m.removeLayer(l); } catch (_) {} }); trailLayers = [];
++  }
++
++  /* ══════════════════════════════════════════════════════════════════
++     LOCATION ALERTS
++     ══════════════════════════════════════════════════════════════════ */
++  function alertOn(k) { const a = APP().lmAlerts; return !a || a[k] !== false; }
++  function setAlert(k, v) {
++    const S = APP(); S.lmAlerts = S.lmAlerts || {}; S.lmAlerts[k] = !!v;
++    try { window.scheduleSave && window.scheduleSave(); } catch (_) {}
++  }
++  function syncAlerts() { document.querySelectorAll('#lmsAlerts [data-alert]').forEach(i => { i.checked = alertOn(i.dataset.alert); }); }
++  async function loadAlertFeed() {
++    const box = $('lmsAlertFeed'); if (!box) return; const S = APP();
++    if (!S.coupleId) { box.innerHTML = '<div class="lms-empty">Pair with your partner to see activity</div>'; return; }
++    try {
++      const ev = await window.api('GET', '/api/tracking/' + S.coupleId + '/' + partnerRole() + '/geofence-events');
++      if (!Array.isArray(ev) || !ev.length) { box.innerHTML = '<div class="lms-empty">No place activity yet — it appears here when ' + esc(S.partnerName || 'your partner') + ' arrives at or leaves a saved place.</div>'; return; }
++      box.innerHTML = ev.slice(0, 12).map(e => {
++        const enter = e.event_type === 'enter';
++        return `<div class="lms-feed-i"><span class="lms-row-ico ${enter ? 'lms-ico--green' : 'lms-ico--amber'}"><svg class="lmi"><use href="#${enter ? 'lmi-pin' : 'lmi-logout'}"/></svg></span><span>${enter ? 'Arrived at' : 'Left'} <b>${esc(e.label || 'a place')}</b></span><time>${esc(ago(e.occurred_at))}</time></div>`;
++      }).join('');
++    } catch (_) { box.innerHTML = '<div class="lms-empty">Couldn\u2019t load activity right now</div>'; }
++  }
++
++  /* ══════════════════════════════════════════════════════════════════
++     SEARCH SCREEN
++     ══════════════════════════════════════════════════════════════════ */
++  function searchChip(q) {
++    const i = $('lmGmSearchInput'); if (!i) return;
++    i.value = q; try { LM().gmSearchInput(q); } catch (_) {} i.focus();
++  }
++
++  /* ══════════════════════════════════════════════════════════════════
++     BOTTOM SHEET
++     ══════════════════════════════════════════════════════════════════ */
++  function openSheet(html) {
++    const sh = $('lmsSheet'), bg = $('lmsSheetBg'); if (!sh || !bg) return;
++    sh.innerHTML = html; sh.classList.add('open'); bg.classList.add('open');
++  }
++  function closeSheet() {
++    const sh = $('lmsSheet'), bg = $('lmsSheetBg');
++    if (sh) sh.classList.remove('open'); if (bg) bg.classList.remove('open');
++  }
++  let confirmCb = null;
++  function confirmSheet(title, text, okLabel, cb) {
++    confirmCb = cb;
++    openSheet(`<div class="lms-sheet-t">${esc(title)}</div><div class="lms-sheet-s">${esc(text)}</div>
++      <div class="lms-sheet-btns"><button type="button" onclick="LMScreens.closeSheet()">Cancel</button><button type="button" class="primary" onclick="LMScreens.confirmOk()">${esc(okLabel || 'OK')}</button></div>`);
++  }
++  function confirmOk() { const cb = confirmCb; confirmCb = null; closeSheet(); if (cb) cb(); }
++
++  /* ══════════════════════════════════════════════════════════════════
++     PAGE LIFECYCLE (called from LiveMap.onEnterPage / onLeavePage)
++     ══════════════════════════════════════════════════════════════════ */
++  let ticker = null;
++  function onEnter() {
++    // entering the Map tab always starts at the root screen, like a tab bar
++    if (cur() !== 'map' || stack.length > 1) { const left = stack.splice(1); left.reverse().forEach(leave); }
++    show('map');
++    syncOpts(); applyWeather();
++    if (ui.trail) startTrail();
++    if (!ticker) ticker = setInterval(() => { if (ST().pageActive) refresh(); }, 20000);
++  }
++  function onLeave() {
++    stopTrailTimer(); stopFollow();
++    if (ticker) { clearInterval(ticker); ticker = null; }
++    closeSheet(); toggleStylePop(false);
++  }
++
++  /* tap outside the style popover closes it */
++  document.addEventListener('click', (e) => {
++    const p = $('lmsStylePop'); if (!p || !p.classList.contains('open')) return;
++    if (p.contains(e.target) || (e.target.closest && e.target.closest('#lmsLayersBtn'))) return;
++    p.classList.remove('open');
++  }, true);
++
++  /* camera label doubles as a "tap to switch 3D / eye-level" control */
++  document.addEventListener('click', (e) => {
++    const t = e.target && e.target.closest && e.target.closest('#lmCameraModeLabel'); if (!t) return;
++    try { LM().cycleCameraMode(); } catch (_) {}
++    setTimeout(syncOpts, 60);
++  });
++
++  window.LMScreens = {
++    open, show, back, closeTop, ensureMap, showTrackQuiet, refresh,
++    onEnter, onLeave, renderTrackDay, onTimeline,
++    setTrackRange, openDay, toggleTrackSettings, exportRoute, clearHistory,
++    setPlacesTab, placeMenu, placeAction,
++    viewPartnerLive, onShareToggle, setAlert, alertOn, opt, placesVisible,
++    toggleStylePop, searchChip, closeSheet, confirmOk, openSheet,
++    current: cur
++  };
++})();
+diff --git a/public/livemap.js b/public/livemap.js
+index 0ec198b..8ce1c02 100644
+--- a/public/livemap.js
++++ b/public/livemap.js
+@@ -151,7 +151,10 @@ const LiveMap = (() => {
+     if (!S.coupleId) return;
+     api('POST', '/api/tracking/safety-alert', { coupleId: S.coupleId, role: S.role, type, senderName: S.myName || S.role }).catch(() => {});
+   }
++  const _SAFETY_PREF = { battery_low: 'battery', internet_lost: 'network', gps_disabled: 'gps', permission_revoked: 'gps' };
+   function _armSafety(type, active) {
++    // Location Alerts screen: user can switch each heads-up to their partner off (default: all on)
++    if (active && _SAFETY_PREF[type] && S.lmAlerts && S.lmAlerts[_SAFETY_PREF[type]] === false) return;
+     if (active && !_safetyLatch[type]) { _safetyLatch[type] = true; _notifyPartnerSafety(type); }
+     else if (!active && _safetyLatch[type]) { _safetyLatch[type] = false; }
+   }
+@@ -330,12 +333,7 @@ const LiveMap = (() => {
+         <button class="btn ${st.invisible ? 'btn-accent' : 'btn-glass'} btn-xs" onclick="LiveMap.toggleInvisibleMode()">🕶️ Invisible mode</button>
+       </div>
+       <button class="btn btn-sm" style="background:var(--red);width:100%;margin-bottom:8px" onclick="LiveMap.emergencyShare()">🚨 Emergency Share (send exact location now)</button>
+-      <div id="lmBatteryNetLine" style="font-size:10px;color:var(--text3)">Checking device status…</div>
+       <div style="font-size:9px;color:var(--text3);margin-top:8px">While paused or invisible, your partner sees "last seen" instead of your live position.</div>`;
+-    _batteryNetworkLine().then(line => {
+-      const el = document.getElementById('lmBatteryNetLine');
+-      if (el) el.textContent = line || 'Battery/network status not available on this device';
+-    });
+   }
+ 
+   function toggleTracking() {
+@@ -478,7 +476,9 @@ const LiveMap = (() => {
+         if (theirs) {
+   const changed = !st.ptLast || st.ptLast.lat !== theirs.lat || st.ptLast.lng !== theirs.lng;
+   const wasOnline = st.ptLast ? st.ptLast.online : null;
++  const _wasPaused = st.ptLast ? st.ptLast.status === 'paused' : false;
+   st.ptLast = theirs;
++  _partnerAlerts(theirs, wasOnline, _wasPaused);
+   if (changed && theirs.lat != null && theirs.lng != null) {
+     S.ptLoc = { lat: theirs.lat, lng: theirs.lng, ts: Date.parse(theirs.updatedAt), moving: theirs.moving, accuracy: theirs.accuracy, heading: theirs.heading };
+     if (theirs.vehicleType) S.ptVehicleType = theirs.vehicleType;
+@@ -491,11 +491,36 @@ const LiveMap = (() => {
+ }
+       }
+       _updateMyStatusUI(); _updatePtStatusUI(); _updateStatsUI();
++      if (window.LMScreens) window.LMScreens.refresh();
+     } catch (e) {
+       if (offlineEl) offlineEl.style.display = 'flex';
+     }
+   }
+ 
++  /* ── PARTNER ALERTS (Location Alerts screen) ──────────────────
++     Arrive / leave any saved place and "went offline", evaluated on each poll
++     while the app is open. First observation only records state (no alert). */
++  st.ptGeoState = st.ptGeoState || {};
++  function _alertPref(k) { return !(S.lmAlerts && S.lmAlerts[k] === false); }
++  function _partnerAlerts(theirs, wasOnline, wasPaused) {
++    const name = S.partnerName || 'Partner';
++    const ping = (title, body) => { if (window.fireBackgroundNotification) window.fireBackgroundNotification(title, body); };
++    if (theirs.lat != null && theirs.lng != null && Array.isArray(S.placesList)) {
++      S.placesList.forEach(p => {
++        const inside = haversine({ lat: theirs.lat, lng: theirs.lng }, { lat: p.lat, lng: p.lng }) * 1000 <= GEOFENCE_RADIUS_M;
++        const prev = st.ptGeoState[p.id];
++        st.ptGeoState[p.id] = inside ? 'inside' : 'outside';
++        if (!prev || prev === st.ptGeoState[p.id]) return;
++        const label = p.name || p.cat;
++        if (inside && _alertPref('arrive')) { toast(`📍 ${name} arrived at ${label}`); ping('Arrived 📍', `${name} arrived at ${label}`); }
++        else if (!inside && _alertPref('leave')) { toast(`🚶 ${name} left ${label}`); ping('Left 🚶', `${name} left ${label}`); }
++      });
++    }
++    if (wasOnline === true && !theirs.online && theirs.status !== 'paused' && !wasPaused && _alertPref('offline')) {
++      toast(`📴 ${name} went offline`);
++    }
++  }
++
+   /* ── STATUS UI ────────────────────────────────────────────── */
+   /** Classify movement from speed (m/s): stationary / walking / running / cycling / driving. */
+   function _activityFromSpeed(speedMps) {
+@@ -897,6 +922,7 @@ const LiveMap = (() => {
+     if (!st.map) return;
+     st.placeMarkers.forEach(m => st.map.removeLayer(m));
+     st.placeMarkers = [];
++    if (window.LMScreens && window.LMScreens.placesVisible && !window.LMScreens.placesVisible()) return; // "Show Place Labels" off
+     (S.placesList || []).forEach(p => {
+       const ico = (CATS[p.cat] || CATS.Custom).ico;
+       const color = p.owner === S.role ? 'var(--accent)' : 'var(--accent2)';
+@@ -913,20 +939,18 @@ const LiveMap = (() => {
+     migrateLegacyPlaces();
+     const mine = (S.placesList || []).filter(p => p.owner === S.role);
+     const theirs = (S.placesList || []).filter(p => p.owner !== S.role);
+-    const rowHtml = (p, deletable) => `
+-      <div class="money-row">
+-        <div class="money-ic inc">${(CATS[p.cat] || CATS.Custom).ico}</div>
+-        <div style="flex:1">
+-          <div style="font-size:13px;font-weight:500;color:var(--white)">${esc(p.cat)}${p.name && p.name !== p.cat ? ' · ' + esc(p.name) : ''}</div>
+-          <div style="font-size:10px;color:var(--text3)">${p.address ? esc(p.address) + ' · ' : ''}${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}</div>
++    const rowHtml = (p, mine) => `
++      <div class="lms-place">
++        <div class="lms-place-ico${mine ? '' : ' lms-place-ico--pt'}">${(CATS[p.cat] || CATS.Custom).ico}</div>
++        <div class="lms-place-txt" onclick="LiveMap.flyTo(${p.lat},${p.lng})">
++          <div class="lms-place-t">${esc(p.name && p.name !== p.cat ? p.name : p.cat)}</div>
++          <div class="lms-place-s">${esc(p.address || ((p.name && p.name !== p.cat) ? p.cat : '') || (p.lat.toFixed(4) + ', ' + p.lng.toFixed(4)))}</div>
+         </div>
+-        <button class="btn btn-glass btn-xs" onclick="LiveMap.flyTo(${p.lat},${p.lng})">View</button>
+-        ${deletable ? `<button class="del-btn" onclick="LiveMap.deletePlace('${p.id}')"><i data-lucide="trash-2"></i></button>` : ''}
++        <button type="button" class="lms-place-more" aria-label="Place options" onclick="LMScreens.placeMenu('${p.id}')"><svg class="lmi"><use href="#lmi-vdots"/></svg></button>
+       </div>`;
+     const myEl = document.getElementById('myPlacesList');
+     if (myEl) {
+       if (mine.length) myEl.innerHTML = mine.map(p => rowHtml(p, true)).join('');
+-      else if (window.PS) PS.empty(myEl, { icon: 'home', title: 'No places saved yet', desc: 'Add Home, College, Office \u2014 anywhere you want a quick shortcut to.', actionLabel: 'Add Place', onAction: () => LiveMap.openPlaceModal('self'), compact: true });
+       else myEl.innerHTML = '<div class="empty">No places saved yet — add Home, College, Office…</div>';
+     }
+     const ptEl = document.getElementById('ptPlacesList');
+@@ -943,6 +967,8 @@ const LiveMap = (() => {
+   // smooth native scroll — but only if it isn't already visible, so
+   // nothing jumps or flickers when it's already on-screen.
+   function _scrollToMapIfNeeded() {
++    // New screen-stack layout: bring the Map screen forward (closes search/places/etc.)
++    if (window.LMScreens && typeof window.LMScreens.ensureMap === 'function') { window.LMScreens.ensureMap(); return; }
+     const mapEl = document.getElementById('mapView');
+     if (!mapEl) return;
+     const rect = mapEl.getBoundingClientRect();
+@@ -2420,8 +2446,7 @@ const LiveMap = (() => {
+      ══════════════════════════════════════════════════════════ */
+   async function openRouteHistory(role) {
+     st.routeViewRole = role || S.role;
+-    openM('lmRouteModal');
+-    _scrollToMapIfNeeded();
++    if (window.LMScreens) window.LMScreens.showTrackQuiet(); else openM('lmRouteModal');
+     document.getElementById('lmRouteBody').innerHTML = '<div class="empty">Loading dates…</div>';
+     _renderRouteRoleToggle();
+     _loadRouteSettings(); // Phase 4: reflect current opt-in state each time the modal opens
+@@ -2485,14 +2510,22 @@ const LiveMap = (() => {
+       toast(days ? `Keeping route history for ${days} days` : 'Keeping route history forever');
+     } catch (e) { toast('❌ Could not save that — try again'); }
+   }
+-  async function deleteMyRouteHistory() {
+-    if (!confirm('Delete all of your recorded route history? This cannot be undone.')) return;
++  async function deleteMyRouteHistory(skipConfirm) {
++    if (skipConfirm !== true && !confirm('Delete all of your recorded route history? This cannot be undone.')) return;
+     try {
+       const r = await api('DELETE', `/api/route/${S.coupleId}/${S.role}/history`);
+       toast(`🗑️ Deleted ${r.deleted ?? 'your'} recorded location${r.deleted === 1 ? '' : 's'}`);
+       if (st.routeViewRole === S.role) loadRouteDay(st.routeSelectedDate || _localDateStr());
+     } catch (e) { toast('❌ Could not delete — try again'); }
+   }
++  function clearRouteOverlay() {
++    if (st.playbackTimer) { clearInterval(st.playbackTimer); st.playbackTimer = null; }
++    st.playbackIdx = 0;
++    if (!st.map) return;
++    if (st.playbackMarker) { st.map.removeLayer(st.playbackMarker); st.playbackMarker = null; }
++    if (st.routeLine) { st.map.removeLayer(st.routeLine); st.routeLine = null; }
++    (st.routeStopMarkers || []).forEach(m => st.map.removeLayer(m)); st.routeStopMarkers = [];
++  }
+   function switchRouteRole(role) {
+     if (role === st.routeViewRole) return;
+     openRouteHistory(role);
+@@ -2502,8 +2535,8 @@ const LiveMap = (() => {
+     if (!el) return;
+     const partnerRole = S.role === 'user1' ? 'user2' : 'user1';
+     el.innerHTML = `
+-      <div class="lm-tool-btn ${st.routeViewRole === S.role ? 'active' : ''}" onclick="LiveMap.switchRouteRole('${S.role}')"><span class="lm-tool-ico">🧍</span>${esc(S.myName || 'You')}</div>
+-      <div class="lm-tool-btn ${st.routeViewRole === partnerRole ? 'active' : ''}" onclick="LiveMap.switchRouteRole('${partnerRole}')"><span class="lm-tool-ico">💜</span>${esc(S.partnerName || 'Partner')}</div>`;
++      <button type="button" class="lms-segbtn ${st.routeViewRole === S.role ? 'active' : ''}" onclick="LiveMap.switchRouteRole('${S.role}')">${esc(S.myName || 'You')}</button>
++      <button type="button" class="lms-segbtn ${st.routeViewRole === partnerRole ? 'active' : ''}" onclick="LiveMap.switchRouteRole('${partnerRole}')">${esc(S.partnerName || 'Partner')}</button>`;
+   }
+ 
+   /** Find the nearest saved place (either owner) within radius, for labeling stops. */
+@@ -2537,13 +2570,13 @@ const LiveMap = (() => {
+       const role = st.routeViewRole || S.role;
+       const data = await api('GET', `/api/route/${S.coupleId}/${role}/${date}`);
+       st.routeData = data;
+-      _renderRouteStats(data);
++      if (window.LMScreens) window.LMScreens.renderTrackDay(data); else _renderRouteStats(data);
+       _drawRouteOnMap(data.points);
+       _renderStopsList(data.stops);
+       _renderJourneySummary(data.stops);
+       _loadDailyTimeline(date, role);
+     } catch (e) {
+-      body.innerHTML = '<div class="empty">No route data for this day yet</div>';
++      if (window.LMScreens) window.LMScreens.renderTrackDay(null); else body.innerHTML = '<div class="empty">No route data for this day yet</div>';
+     }
+   }
+ 
+@@ -2577,9 +2610,9 @@ const LiveMap = (() => {
+   function _renderDailyTimeline(events) {
+     const el = document.getElementById('lmDailyTimeline');
+     if (!el) return;
+-    if (!events || !events.length) { el.innerHTML = ''; return; }
++    if (window.LMScreens && window.LMScreens.onTimeline) window.LMScreens.onTimeline(events);
++    if (!events || !events.length) { el.innerHTML = window.LMScreens ? '<div class="lms-empty">No places detected for this day</div>' : ''; return; }
+     el.innerHTML = `
+-      <div style="font-size:11px;font-weight:600;color:var(--text3);margin:10px 0 6px;text-transform:uppercase;letter-spacing:.4px">Today's Timeline</div>
+       <div class="lm-timeline">
+         ${events.map((ev, i) => {
+           const icon = TIMELINE_CAT_ICON[ev.category] || TIMELINE_CAT_ICON.other;
+@@ -2828,7 +2861,8 @@ const LiveMap = (() => {
+     const pauseBtn = document.getElementById('lmPlaybackPauseBtn');
+     if (playBtn) playBtn.style.display = playing ? 'none' : '';
+     if (pauseBtn) pauseBtn.style.display = playing ? '' : 'none';
+-    if (playBtn) playBtn.textContent = (st.playbackIdx > 0 && !playing) ? '▶ Resume' : '▶ Play Journey';
++    if (playBtn && !playBtn.dataset.lms) playBtn.textContent = (st.playbackIdx > 0 && !playing) ? '▶ Resume' : '▶ Play Journey';
++    const box = document.querySelector('.lms-play'); if (box) box.classList.toggle('playing', !!playing);
+   }
+   function _tickPlayback() {
+     const points = st.routeData?.points;
+@@ -2838,7 +2872,7 @@ const LiveMap = (() => {
+       clearInterval(st.playbackTimer); st.playbackTimer = null;
+       _setPlaybackButtons(false);
+       const playBtn = document.getElementById('lmPlaybackPlayBtn');
+-      if (playBtn) playBtn.textContent = '▶ Replay Journey';
++      if (playBtn && !playBtn.dataset.lms) playBtn.textContent = '▶ Replay Journey';
+       st.playbackIdx = 0;
+       return;
+     }
+@@ -2895,14 +2929,13 @@ const LiveMap = (() => {
+   /* ── PAGE LIFECYCLE ──────────────────────────────────────── */
+   function onEnterPage() {
+   st.pageActive = true;
++  if (window.LMScreens) window.LMScreens.onEnter(); // map screen must be visible before the map is sized
+   _initMap();
+   migrateLegacyPlaces();
+-  document.getElementById('lmMyName').textContent = S.myName || 'You';
+-  document.getElementById('lmPtName').textContent = S.partnerName || 'Partner';
+-  document.getElementById('lmAv1').textContent = (S.myName || 'U')[0];
+-  document.getElementById('lmAv2').textContent = (S.partnerName || 'P')[0];
+-  if (S.myAvatar) { const e = document.getElementById('lmAv1'); e.innerHTML = `<img src="${S.myAvatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`; }
+-  if (S.partnerAvatar) { const e = document.getElementById('lmAv2'); e.innerHTML = `<img src="${S.partnerAvatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`; }
++  const _setTxt = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
++  _setTxt('lmMyName', S.myName || 'You');
++  _setTxt('lmPtName', S.partnerName || 'Partner');
++  if (window.LMScreens) window.LMScreens.refresh(); // paints avatars (photo or initial) everywhere
+   if (S.myLoc && S.myLoc.lat != null && S.myLoc.lng != null) _animateMarker('my', S.myLoc.lat, S.myLoc.lng);
+   if (S.ptLoc && S.ptLoc.lat != null && S.ptLoc.lng != null) _animateMarker('pt', S.ptLoc.lat, S.ptLoc.lng);
+   _renderPlacesLists();
+@@ -2915,6 +2948,7 @@ const LiveMap = (() => {
+ }
+   function onLeavePage() {
+     st.pageActive = false;
++    if (window.LMScreens) window.LMScreens.onLeave();
+     _stopPolling();
+     // GPS watch (startTracking) keeps running in background so tracking is
+     // continuous even off the map page (per requirement: "location updates
+@@ -2948,6 +2982,8 @@ const LiveMap = (() => {
+      first. Returns true if it closed something (caller should stop
+      there), false if there was nothing open on this page to close. */
+   function closeTopOverlayIfOpen() {
++    // 0) Sheets / popovers / sub-screens (Track, Partner, Places, More, Alerts, Privacy, Search)
++    if (window.LMScreens && window.LMScreens.closeTop()) return true;
+     // 1) Floating search-result dropdowns (main map search, and the
+     //    "Add Place" search inside its modal) — the most transient UI.
+     const gmResults = document.getElementById('lmGmSearchResults');
+@@ -3012,6 +3048,10 @@ const LiveMap = (() => {
+     toggleApproxLocation, toggleInvisibleMode, emergencyShare, dismissEmergencyBanner,
+     toggleNavPanel, navigateToPartner, navigateToPoint, selectNavRoute, searchAlongRoute,
+     cycleCameraMode, toggleVoiceNav, setVehicleType,
++    // screen-stack helpers (used by /livemap-screens.js)
++    setCameraMode: _applyCameraMode, computeExtendedStats: _computeExtendedStats,
++    renderPlaces: _renderPlacesLists, renderFavorites: _renderFavoritesPanel, fitBoth: _fitBoth,
++    clearRouteOverlay,
+     _debug: st
+   };
+ })();
+@@ -3023,9 +3063,9 @@ const LiveMap = (() => {
+     window._liveMapPatched = true;
+ 
+     const _origGoto = window.goto;
+-    window.goto = function (page) {
++    window.goto = function (page, pushHistory) {
+       const wasMap = document.getElementById('page-map')?.classList.contains('active');
+-      _origGoto(page);
++      _origGoto(page, pushHistory); // keep the 2nd arg: Back/popstate calls goto(page, false)
+       if (page === 'map') LiveMap.onEnterPage();
+       else if (wasMap) LiveMap.onLeavePage();
+     };
+diff --git a/public/sw.js b/public/sw.js
+index 7013d4f..e1f9130 100644
+--- a/public/sw.js
++++ b/public/sw.js
+@@ -1,5 +1,5 @@
+ // Service Worker for Twin Hearts 💕 PWA — v5
+-const CACHE = 'uwl-v8'; // bumped: purges stale cached assets (incl. old movie.css) on activate
++const CACHE = 'uwl-v9'; // bumped: purges stale cached assets (incl. old movie.css) on activate
+ const OFFLINE_ASSETS = [
+   '/',
+   '/index.html',
