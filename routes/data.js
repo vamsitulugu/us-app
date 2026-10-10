@@ -185,6 +185,27 @@ router.post('/state', async (req, res) => {
     merged.profile = { ...((prevState || {}).profile || {}), ...state.profile };
   }
 
+  // Per-person data lives in profile.u1 / profile.u2 (name, bday, avatar,
+  // gender, moods). Only the person who is saving may change THEIR entry;
+  // the other person's entry always keeps what the server already has, so a
+  // device holding an out-of-date copy can never overwrite their partner's
+  // moods or profile. (Skipped when the sender is unknown — old behaviour.)
+  const senderKey = senderRole === 'user1' ? 'u1' : senderRole === 'user2' ? 'u2' : null;
+  const prevProfile = (prevState || {}).profile || {};
+  if (senderKey && state.profile) {
+    const otherKey = senderKey === 'u1' ? 'u2' : 'u1';
+    if (prevProfile[otherKey]) merged.profile[otherKey] = prevProfile[otherKey];
+  }
+
+  // Period tracker: an account marked 'male' (Girl/Boy chosen at signup) is
+  // read-only for period data. Whatever it sends for these keys is ignored.
+  const senderGender = senderKey && ((prevProfile[senderKey] || {}).gender || ((state.profile || {})[senderKey] || {}).gender);
+  if (senderGender === 'male' && prevState) {
+    ['periods', 'symptoms'].forEach(k => {
+      if (prevState[k] !== undefined) merged[k] = prevState[k];
+    });
+  }
+
   const { error } = await supabase.from('app_state').upsert({
     couple_id:  coupleId,
     state:      merged,

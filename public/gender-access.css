@@ -1,0 +1,22 @@
+/* Girl/Boy chooser sheet + Period page read-only mode (see gender-access.js) */
+.ga-overlay { position: fixed; inset: 0; z-index: 3100; display: flex; align-items: flex-end; justify-content: center; background: rgba(0, 0, 0, .55); opacity: 0; visibility: hidden; transition: opacity .25s ease, visibility 0s linear .25s; }
+.ga-overlay.open { opacity: 1; visibility: visible; transition: opacity .25s ease; }
+.ga-sheet { width: min(460px, 100%); padding: 10px 22px calc(22px + env(safe-area-inset-bottom, 0px)); border-radius: 28px 28px 0 0; background: #1a1019; color: #fff; text-align: center; transform: translateY(40px); transition: transform .3s cubic-bezier(.2, .8, .2, 1); }
+.ga-overlay.open .ga-sheet { transform: none; }
+.ga-grab { width: 40px; height: 4px; margin: 0 auto 16px; border-radius: 4px; background: rgba(255, 255, 255, .25); }
+.ga-sheet h3 { margin: 0 0 8px; font: 600 20px var(--ff-sans); }
+.ga-sheet p { margin: 0 0 20px; font: 400 13.5px/1.5 var(--ff-sans); color: rgba(255, 255, 255, .65); }
+.ga-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ga-row button { height: 108px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border-radius: 22px; border: 1.5px solid rgba(255, 255, 255, .18); background: rgba(255, 255, 255, .06); color: #fff; font: 600 15px var(--ff-sans); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.ga-row button span { font-size: 34px; line-height: 1; }
+.ga-row button:active { transform: scale(.96); background: rgba(255, 255, 255, .14); }
+.ga-later { margin-top: 14px; padding: 10px 16px; border: 0; background: none; color: rgba(255, 255, 255, .55); font: 600 13px var(--ff-sans); cursor: pointer; }
+
+.ga-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding: 12px 14px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, .14); background: rgba(255, 255, 255, .07); font: 500 12.5px/1.45 var(--ff-sans); color: var(--text2, rgba(255, 255, 255, .7)); }
+.ga-banner[hidden] { display: none; }
+.ga-banner button { flex-shrink: 0; height: 32px; padding: 0 14px; border-radius: 16px; border: 0; background: var(--accent); color: #fff; font: 600 12px var(--ff-sans); cursor: pointer; }
+
+/* view-only: hide every control that changes data */
+#page-period.is-readonly .btn,
+#page-period.is-readonly .del-btn { display: none !important; }
+#page-period.is-readonly .symptom-tag { pointer-events: none; }

@@ -47,7 +47,7 @@ const Dashboard = (() => {
     if (typeof setAvImg === 'function') setAvImg('dashAv', window.S && S.myAvatar);
   }
 
-  function render() { renderHero(); ConnCard.render(); }
+  function render() { renderHero(); ConnCard.render(); if (window.DashWidgets) DashWidgets.render(); }
   return { render };
 })();
 

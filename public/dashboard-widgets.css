@@ -1,0 +1,229 @@
+/* ══════════════════════════════════════════════════════════════
+   DASHBOARD WIDGETS — extra blocks inside .dh-sheet (see dashboard-widgets.js)
+   · photo-edit button on the love card + full-screen photo editor
+   · "Coming up" events row
+   · Mood card + full-screen mood calendar
+   · "All pages" quick-open grid
+   · closing quote
+   Colours come from the app theme vars (--accent, --accent-d, --ff-*).
+   ══════════════════════════════════════════════════════════════ */
+
+.dw-block { margin-top: 20px; }
+.dw-head { display: flex; align-items: center; justify-content: space-between; margin: 0 0 10px; }
+.dw-title { margin: 0; font-size: 15px; font-weight: 600; color: var(--white, #fff); }
+.dw-link {
+  border: 0; background: none; padding: 4px 0 4px 8px; cursor: pointer;
+  font: 600 12px var(--ff-sans); color: rgba(255, 255, 255, .6);
+  -webkit-tap-highlight-color: transparent;
+}
+.dw-link:active { color: #fff; }
+
+/* ── Edit-photo button on the love card ── */
+.dh-edit {
+  position: absolute; top: 10px; right: 10px; z-index: 3;
+  width: 36px; height: 36px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, .3);
+  background: rgba(0, 0, 0, .34);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  color: #fff; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .15s ease;
+}
+.dh-edit:active { transform: scale(.9); }
+.dh-edit svg { width: 18px; height: 18px; }
+.dh-cap { max-width: calc(100% - 64px); }
+
+/* ── Events row ── */
+.dw-events {
+  display: flex; gap: 10px; overflow-x: auto;
+  margin: 0 calc(var(--pad, 18px) * -1); padding: 2px var(--pad, 18px);
+  scroll-snap-type: x proximity; scroll-padding: 0 var(--pad, 18px);
+  scrollbar-width: none;
+}
+.dw-events::-webkit-scrollbar { display: none; }
+.dw-ev {
+  flex: 0 0 auto; scroll-snap-align: start;
+  min-width: 168px; max-width: 230px; height: 56px;
+  display: flex; align-items: center; gap: 10px; padding: 0 12px 0 10px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  background: rgba(255, 255, 255, .07);
+  color: #fff; text-align: left; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .15s ease, background .2s ease;
+}
+.dw-ev:active { transform: scale(.96); }
+.dw-ev-ico {
+  width: 36px; height: 36px; flex-shrink: 0; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; background: rgba(255, 255, 255, .1);
+}
+.dw-ev-tx { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.dw-ev-tx b { font: 600 12.5px var(--ff-sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dw-ev-tx i { font: 500 11px var(--ff-sans); font-style: normal; color: rgba(255, 255, 255, .58); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dw-ev-d { font: 700 12px var(--ff-sans); color: #ffc4b8; flex-shrink: 0; }
+.dw-ev.is-today { background: rgba(255, 255, 255, .95); border-color: #fff; color: #1c0f14; }
+.dw-ev.is-today .dw-ev-ico { background: rgba(0, 0, 0, .07); }
+.dw-ev.is-today .dw-ev-tx i { color: rgba(28, 15, 20, .6); }
+.dw-ev.is-today .dw-ev-d { color: var(--accent-d); }
+.dw-ev.is-empty { min-width: 100%; max-width: none; }
+
+/* ── Mood card ── */
+.dw-mood {
+  width: 100%; display: block; padding: 14px 14px 10px; text-align: left;
+  border-radius: 22px; border: 1px solid rgba(255, 255, 255, .12);
+  background: rgba(255, 255, 255, .07); color: #fff; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; transition: transform .15s ease;
+}
+.dw-mood:active { transform: scale(.985); }
+.dw-mood-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dw-mood-top b { font: 600 15px var(--ff-sans); }
+.dw-mood-streak { font: 600 11.5px var(--ff-sans); color: #ffc4b8; white-space: nowrap; }
+.dw-mood-sub { margin: 2px 0 0; font: 500 11.5px var(--ff-sans); color: rgba(255, 255, 255, .55); }
+.dw-graph { display: block; width: 100%; height: 72px; margin-top: 8px; overflow: visible; }
+.dw-graph .g-line { fill: none; stroke: rgba(255, 255, 255, .55); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.dw-graph .g-grid { stroke: rgba(255, 255, 255, .08); stroke-width: 1; }
+.dw-days { display: grid; grid-template-columns: repeat(7, 1fr); margin-top: 2px; text-align: center; }
+.dw-days span { font: 500 10.5px var(--ff-sans); color: rgba(255, 255, 255, .5); }
+.dw-days span.is-today { color: #fff; font-weight: 700; }
+
+/* ── All pages grid ── */
+.dw-pages { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.dw-page {
+  height: 60px; padding: 0 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  border-radius: 16px; border: 1px solid rgba(255, 255, 255, .1); background: rgba(255, 255, 255, .06);
+  color: rgba(255, 255, 255, .86); cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: transform .15s ease, background .2s ease;
+}
+.dw-page:active { transform: scale(.94); background: rgba(255, 255, 255, .12); }
+.dw-page .e { font-size: 19px; line-height: 1; }
+.dw-page .l { font: 600 10px var(--ff-sans); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Closing quote ── */
+.dw-quote { margin: 26px 8px 0; text-align: center; }
+.dw-quote p { margin: 0; font: italic 400 15px/1.45 var(--ff-serif); color: rgba(255, 255, 255, .72); text-wrap: balance; }
+.dw-quote p::before { content: '\201C'; display: block; font-size: 30px; line-height: .6; color: #ffc4b8; margin-bottom: 4px; }
+
+/* ── Chip label wrap (two-word shortcuts) ── */
+.dh-chip { white-space: normal; text-align: center; line-height: 1.15; padding: 0 4px; }
+
+/* ── Full-screen overlays (mood calendar + photo editor) ── */
+.dw-overlay {
+  position: fixed; inset: 0; z-index: 3000;
+  display: flex; flex-direction: column;
+  background: #130c12; color: #fff;
+  padding-top: env(safe-area-inset-top, 0px);
+  transform: translateY(100%); visibility: hidden;
+  transition: transform .32s cubic-bezier(.2, .8, .2, 1), visibility 0s linear .32s;
+}
+.dw-overlay.open { transform: none; visibility: visible; transition: transform .32s cubic-bezier(.2, .8, .2, 1); }
+.dw-bar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; flex-shrink: 0; }
+.dw-bar h2 { flex: 1; margin: 0; text-align: center; font: 600 16px var(--ff-sans); }
+.dw-icon {
+  width: 40px; height: 40px; padding: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; border: 0; background: rgba(255, 255, 255, .08); color: #fff; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.dw-icon:active { background: rgba(255, 255, 255, .18); }
+.dw-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.dw-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 4px 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
+.dw-foot {
+  flex-shrink: 0; display: flex; gap: 10px; padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid rgba(255, 255, 255, .08); background: #130c12;
+}
+.dw-btn {
+  flex: 1; height: 50px; border-radius: 25px; border: 1px solid rgba(255, 255, 255, .2);
+  background: rgba(255, 255, 255, .08); color: #fff; font: 600 15px var(--ff-sans); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px; -webkit-tap-highlight-color: transparent;
+}
+.dw-btn:active { transform: scale(.97); }
+.dw-btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-d)); border-color: transparent; }
+.dw-btn:disabled { opacity: .38; pointer-events: none; }
+.dw-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Mood calendar */
+.dw-q { margin: 6px 0 12px; font: 600 17px var(--ff-sans); }
+.dw-moodchips { display: flex; flex-wrap: wrap; gap: 8px; }
+.dw-mc {
+  display: flex; align-items: center; gap: 6px; height: 38px; padding: 0 14px 0 10px; border-radius: 19px;
+  border: 1.5px solid rgba(255, 255, 255, .16); background: rgba(255, 255, 255, .05); color: #fff;
+  font: 600 13px var(--ff-sans); cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.dw-mc.is-sel { background: var(--mc); border-color: var(--mc); color: #1c0f14; }
+.dw-mc:disabled { opacity: .35; pointer-events: none; }
+.dw-monthbar { display: flex; align-items: center; justify-content: space-between; margin: 22px 0 10px; }
+.dw-monthbar b { font: 600 15px var(--ff-sans); }
+.dw-cal { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 6px; text-align: center; }
+.dw-cal .h { font: 600 11px var(--ff-sans); color: rgba(255, 255, 255, .5); padding-bottom: 4px; }
+.dw-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 0; border: 0; background: none; color: rgba(255, 255, 255, .7); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.dw-cell .n { font: 500 11px var(--ff-sans); }
+.dw-cell .c {
+  width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 17px; border: 1.5px solid rgba(255, 255, 255, .14);
+}
+.dw-cell .c.has { border-color: var(--mc); background: color-mix(in srgb, var(--mc) 24%, transparent); }
+.dw-cell.is-today .n { color: #fff; font-weight: 700; }
+.dw-cell.is-today .c { box-shadow: 0 0 0 2px #130c12, 0 0 0 3.5px rgba(255, 255, 255, .8); }
+.dw-cell.is-sel .n { color: #fff; font-weight: 700; }
+.dw-cell.is-sel .c { border-color: #fff; }
+.dw-cell.is-future { opacity: .35; pointer-events: none; }
+.dw-cell.is-blank { visibility: hidden; pointer-events: none; }
+.dw-stats { margin-top: 22px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, .08); }
+.dw-stats-n { font: 700 34px var(--ff-sans); letter-spacing: -1px; }
+.dw-stats-l { margin: 0 0 12px; font: 500 13px var(--ff-sans); color: rgba(255, 255, 255, .6); }
+.dw-stat-row { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.dw-stat { display: flex; align-items: center; gap: 6px; font: 600 14px var(--ff-sans); }
+.dw-stat i { width: 8px; height: 8px; border-radius: 50%; background: var(--mc); }
+.dw-stat span { font-weight: 500; font-size: 12px; color: rgba(255, 255, 255, .55); }
+
+/* Photo editor */
+.dw-seg { display: flex; gap: 6px; padding: 4px; border-radius: 16px; background: rgba(255, 255, 255, .07); margin-bottom: 16px; }
+.dw-seg button {
+  flex: 1; height: 38px; border: 0; border-radius: 12px; background: none; color: rgba(255, 255, 255, .6);
+  font: 600 12.5px var(--ff-sans); cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent;
+}
+.dw-seg button.is-on { background: rgba(255, 255, 255, .95); color: #1c0f14; }
+.dw-stage {
+  position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 18px;
+  background: #000; touch-action: none; user-select: none; -webkit-user-select: none;
+  border: 1px solid rgba(255, 255, 255, .16);
+}
+.dw-stage > img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; -webkit-user-drag: none; pointer-events: none; }
+.dw-stage > img.static { width: 100%; height: 100%; object-fit: cover; }
+.dw-stage .grid {
+  position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .2s;
+  background:
+    linear-gradient(to right, transparent calc(33.33% - .5px), rgba(255, 255, 255, .45) calc(33.33% - .5px) calc(33.33% + .5px), transparent calc(33.33% + .5px) calc(66.66% - .5px), rgba(255, 255, 255, .45) calc(66.66% - .5px) calc(66.66% + .5px), transparent calc(66.66% + .5px)),
+    linear-gradient(to bottom, transparent calc(33.33% - .5px), rgba(255, 255, 255, .45) calc(33.33% - .5px) calc(33.33% + .5px), transparent calc(33.33% + .5px) calc(66.66% - .5px), rgba(255, 255, 255, .45) calc(66.66% - .5px) calc(66.66% + .5px), transparent calc(66.66% + .5px));
+}
+.dw-stage.is-crop .grid { opacity: 1; }
+.dw-badge { position: absolute; left: 10px; top: 10px; padding: 4px 9px; border-radius: 99px; background: rgba(0, 0, 0, .5); font: 700 11px var(--ff-sans); pointer-events: none; }
+.dw-hint { margin: 12px 0 0; text-align: center; font: 500 12.5px var(--ff-sans); color: rgba(255, 255, 255, .55); }
+.dw-zoom { display: flex; align-items: center; gap: 10px; margin-top: 18px; visibility: hidden; }
+.dw-zoom.on { visibility: visible; }
+.dw-zoom svg { width: 18px; height: 18px; fill: none; stroke: rgba(255, 255, 255, .6); stroke-width: 2; stroke-linecap: round; flex-shrink: 0; }
+.dw-zoom input { flex: 1; accent-color: var(--accent); height: 28px; }
+.dw-reset { display: block; margin: 14px auto 0; padding: 8px 14px; border: 0; background: none; color: #ffc4b8; font: 600 13px var(--ff-sans); cursor: pointer; }
+.dw-reset[hidden] { display: none; }
+
+@media (min-width: 701px) {
+  .dw-pages { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .dw-events { margin: 0; padding: 2px 0; }
+  .dw-overlay { align-items: center; background: rgba(0, 0, 0, .6); justify-content: center; }
+  .dw-panel { width: min(520px, 100%); height: min(860px, 100%); display: flex; flex-direction: column; background: #130c12; border-radius: 28px; overflow: hidden; }
+}
+@media (max-width: 700px) { .dw-panel { display: contents; } }
+@media (min-width: 861px) { .dh-chips { grid-template-columns: repeat(7, minmax(0, 1fr)) !important; } }
+@media (min-width: 701px) and (max-width: 860px) { .dh-chips { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; } }
+@media (prefers-reduced-motion: reduce) { .dw-overlay, .dw-ev, .dw-mood, .dw-page { transition: none; } }
+
+/* ── Two-person mood graph + calendar switcher ── */
+.dw-graph .g-pt { stroke: #ffc4b8; stroke-dasharray: 4 4; stroke-opacity: .85; }
+.dw-legend { display: flex; gap: 16px; margin-top: 8px; font: 600 11px var(--ff-sans); color: rgba(255, 255, 255, .62); }
+.dw-legend span { display: flex; align-items: center; gap: 6px; }
+.dw-legend span::before { content: ''; width: 16px; border-top: 2px solid rgba(255, 255, 255, .6); }
+.dw-legend .pt::before { border-top: 2px dashed #ffc4b8; }
+.dw-ptline { margin: 12px 0 0; font: 600 13px var(--ff-sans); color: rgba(255, 255, 255, .7); }
+.dw-ptline.big { font-size: 20px; color: #fff; margin: 4px 0 8px; }
