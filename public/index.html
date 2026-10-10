@@ -5081,7 +5081,6 @@ select option { background: #0D0D0D; color: #fff; }
   <script src="/js/upload-progress-ui.js"></script>
   <script src="/safe-delete.js"></script>
   <link rel="stylesheet" href="/glass-nav.css">
-  <link rel="stylesheet" href="/dashboard-home.css">
 </head>
 
 <body class="t-blue">
@@ -5541,62 +5540,6 @@ select option { background: #0D0D0D; color: #fff; }
 
       <!-- ════ DASHBOARD ════ -->
       <div class="page active" id="page-dashboard">
-        <!-- ═══ HOME: blue hero ═══ -->
-        <section class="dx-hero">
-          <div class="dx-hero-in">
-            <div class="dx-greet" id="dxGreet">Good day 💕</div>
-            <h1 class="dx-quote" id="dxQuote">Distance means so little when <em>someone</em> means so much</h1>
-            <div class="dx-searchrow">
-              <button class="dx-search" onclick="openSearch()" aria-label="Search">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-                <span>Search memories, chats, plans…</span>
-              </button>
-              <button class="dx-menu" onclick="toggleMobSidebar()" aria-label="Menu">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
-              </button>
-            </div>
-            <div class="dx-chips">
-          <button class="dx-chip" onclick="goto('camera')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg><span>Memories</span></button>
-          <button class="dx-chip" onclick="goto('music')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg><span>Music</span></button>
-          <button class="dx-chip" onclick="goto('globe')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg><span>Globe</span></button>
-          <button class="dx-chip" onclick="goto('virtualhome')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span>Our Home</span></button>
-          <button class="dx-chip" onclick="goto('meetplanner')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>Meet</span></button>
-            </div>
-          </div>
-        </section>
-
-        <!-- ═══ HOME: white sheet ═══ -->
-        <section class="dx-sheet">
-          <div class="dx-sheet-in">
-            <div class="dx-sec">
-              <h3>Stay Connected</h3>
-              <p>Tap to send a little love</p>
-            </div>
-            <div class="dx-stage" id="dxStage">
-              <div class="dx-slide on" data-type="hug">
-                <img src="/images/dashboard/hug.png" alt="Hug" loading="lazy" decoding="async"><div class="dx-ph">🤗</div>
-                <div class="dx-tag">🤗 Hug</div>
-              </div>
-              <div class="dx-slide" data-type="miss">
-                <img src="/images/dashboard/miss.png" alt="Miss you" loading="lazy" decoding="async"><div class="dx-ph">🥺</div>
-                <div class="dx-tag">🥺 Miss You</div>
-              </div>
-              <div class="dx-slide" data-type="touch">
-                <img src="/images/dashboard/touch.png" alt="Touch" loading="lazy" decoding="async"><div class="dx-ph">❤️</div>
-                <div class="dx-tag">❤️ Touch</div>
-              </div>
-            </div>
-            <div class="dx-acts" id="dxActs">
-              <button class="dx-act cc-hug on" id="ccHugBtn" data-type="hug" aria-pressed="true" onclick="DashLove.tap('hug')"><span class="dx-ico">🤗</span>Hug</button>
-              <button class="dx-act cc-miss" id="ccMissBtn" data-type="miss" aria-pressed="false" onclick="DashLove.tap('miss')"><span class="dx-ico">🥺</span>Miss You</button>
-              <button class="dx-act cc-touch" id="ccTouchBtn" data-type="touch" aria-pressed="false" onclick="DashLove.tap('touch')"><span class="dx-ico">❤️</span>Touch</button>
-            </div>
-          </div>
-        </section>
-
-        <!-- Old dashboard widgets: hidden, NOT deleted, so existing JS (renderDashboard,
-             ConnCard, heartbeat, etc.) keeps finding its element ids without errors. -->
-        <div id="dashLegacy" style="display:none" aria-hidden="true">
         <div class="metrics">
           <div class="metric">
             <div class="metric-n" id="daysTog" style="font-size:22px">–</div>
@@ -5623,6 +5566,18 @@ select option { background: #0D0D0D; color: #fff; }
         <div id="hbPulseRing"></div>
         <div class="card cc-card" id="connectionCard">
   <div class="card-title" style="justify-content:center">💕 Stay Connected</div>
+ 
+  <div class="cc-actions">
+    <button class="cc-btn cc-touch" id="ccTouchBtn" onclick="ConnCard.sendTouch()">
+      <span class="cc-ico">❤️</span><span class="cc-lbl">Touch</span>
+    </button>
+    <button class="cc-btn cc-hug" id="ccHugBtn" onclick="ConnCard.sendHug()">
+      <span class="cc-ico">🤗</span><span class="cc-lbl">Hug</span>
+    </button>
+    <button class="cc-btn cc-miss" id="ccMissBtn" onclick="ConnCard.sendMissYou()">
+      <span class="cc-ico">🥺</span><span class="cc-lbl">Miss You</span>
+    </button>
+  </div>
  
   <div id="ccBurstLayer" class="cc-burst-layer"></div>
  
@@ -5687,7 +5642,6 @@ select option { background: #0D0D0D; color: #fff; }
             <div id="dashFights" style="font-size:13px;color:var(--text2)">No recent fights 💕</div>
           </div>
         </div>
-      </div>
       </div>
       <div class="page" id="page-lovecounter">
   <div class="iframe-page-wrap">
@@ -11961,7 +11915,6 @@ const p = await Notification.requestPermission();
         }
         // ─── DASHBOARD ───────────────────────────────────────────
         function renderDashboard() {
-          if (window.renderDashHero) renderDashHero();
           
           if (S.anniversary) { const days = Math.max(0, Math.floor((Date.now() - new Date(S.anniversary).getTime()) / 86400000)); document.getElementById('daysTog').textContent = days; }
           // Show hours too for a live feeling
@@ -13628,7 +13581,6 @@ init();
 <script src="/chat/chat.js"></script>
 <script src="/chat/call.js"></script>
 <script src="/dashboard_chat_patch.js"></script>
-<script src="/dashboard-home.js"></script>
 <script src="/app-polish.js"></script>
 
 <!-- Premium Sound System (additive, non-invasive) -->
