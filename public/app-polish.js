@@ -58,7 +58,7 @@
     'camera',      // camera capture / video preview
     'globe',       // memory globe — embedded 3D iframe experience
     'virtualhome', // virtual home — embedded 3D iframe experience
-    // 'ai' removed — Twin (orb) is now a bottom-nav tab, so the bar must stay visible
+    'ai',          // AI love guide — fullscreen conversation
     'profile'      // profile editing
   ];
 
