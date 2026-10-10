@@ -400,10 +400,7 @@
   /* ── Actions ── */
   function openAppSetting(key) {
     goto('settings');
-    setTimeout(() => {
-      const h = [...document.querySelectorAll('#page-settings .settings-group-header')].find(x => x.textContent.toLowerCase().includes(key));
-      if (h) h.closest('.settings-group').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 80);
+    SettingsUI.open(key);
   }
 
   const ACTIONS = {

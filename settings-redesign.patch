@@ -1,0 +1,1317 @@
+diff --git a/public/index.html b/public/index.html
+index 1ebd658..73595b5 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -2097,79 +2097,73 @@
+     @media(max-width:700px){
+       .study-hero{flex-direction:column;text-align:center;padding:16px}
+     }
+-    /* ════ SETTINGS (Premium) ════ */
+-    .settings-group {
+-      background: var(--g1);
+-      backdrop-filter: var(--blur);
+-      border: 1px solid var(--border);
+-      border-radius: var(--r);
+-      overflow: hidden;
+-      margin-bottom: 14px;
+-    }
+-
+-    .settings-group-header {
+-      padding: 14px 18px;
+-      border-bottom: 1px solid var(--border);
+-      font-size: 12px;
+-      font-weight: 700;
+-      color: var(--text2);
+-      text-transform: uppercase;
+-      letter-spacing: 1px;
+-      display: flex;
+-      align-items: center;
+-      gap: 8px;
+-    }
+-
+-    .settings-row {
+-      display: flex;
+-      align-items: center;
+-      gap: 12px;
+-      padding: 14px 18px;
+-      border-bottom: 1px solid var(--border);
+-      cursor: pointer;
+-      transition: var(--t);
+-    }
+-
+-    .settings-row:last-child {
+-      border-bottom: none
+-    }
+-
+-    .settings-row:hover {
+-      background: var(--g1)
+-    }
+-
+-    .settings-row-ico {
+-      width: 36px;
+-      height: 36px;
+-      border-radius: 10px;
+-      background: var(--g2);
+-      display: flex;
+-      align-items: center;
+-      justify-content: center;
+-      font-size: 16px;
+-      flex-shrink: 0;
+-    }
+-
+-    .settings-row-content {
+-      flex: 1
+-    }
+-
+-    .settings-row-title {
+-      font-size: 13px;
+-      color: var(--white);
+-      font-weight: 500
+-    }
+-
+-    .settings-row-sub {
+-      font-size: 11px;
+-      color: var(--text3);
+-      margin-top: 1px
+-    }
+-
+-    .settings-row-action {
+-      color: var(--text3);
+-      font-size: 13px
+-    }
++    /* ════ SETTINGS ════
++       Home = couple header + search + grouped lists. Each row opens a
++       sub-screen (.set-sub) inside #page-settings; only one is visible. */
++    #page-settings { max-width: 640px; margin: 0 auto; }
++    #page-settings .si { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0 }
++    #page-settings [hidden] { display: none !important }
++    .set-home, .set-sub { animation: setIn .22s ease-out }
++    @keyframes setIn { from { opacity: 0; transform: translateX(10px) } to { opacity: 1; transform: none } }
++
++    /* couple header */
++    .set-hero { display: flex; align-items: center; gap: 14px; padding: 6px 2px 16px; cursor: pointer; -webkit-tap-highlight-color: transparent }
++    .set-hero-av { display: flex; flex-shrink: 0 }
++    .set-hero-av > span { width: 58px; height: 58px; border-radius: 50%; overflow: hidden; border: 2px solid var(--accent); background: var(--g2); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: #fff }
++    .set-hero-av > span + span { margin-left: -16px }
++    .set-hero-av img { width: 100%; height: 100%; object-fit: cover }
++    .set-hero-txt { flex: 1; min-width: 0 }
++    .set-hero-names { font-size: 18px; font-weight: 700; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
++    .set-hero-sub { font-size: 12px; color: var(--text2); margin-top: 3px }
++    .set-hero .set-chev { color: var(--text3) }
++
++    /* search */
++    .set-search { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px; margin-bottom: 18px; border-radius: 14px; background: var(--g1); border: 1px solid var(--border); color: var(--text3) }
++    .set-search input { flex: 1; min-width: 0; background: none; border: 0; outline: 0; padding: 0; color: var(--white); font-size: 15px; box-shadow: none }
++    .set-search input::-webkit-search-cancel-button { filter: invert(1); opacity: .5 }
++
++    /* section + grouped list (one container per section, rows divided by hairlines) */
++    .set-sec { margin-bottom: 22px }
++    .set-sec-t { margin: 0 0 8px 6px; font-size: 13px; font-weight: 600; color: var(--text2); letter-spacing: .2px }
++    .set-list { background: var(--g1); border: 1px solid var(--border); border-radius: 16px; overflow: hidden }
++    .set-row { display: flex; align-items: center; gap: 13px; width: 100%; min-height: 56px; padding: 10px 14px; background: none; border: 0; border-top: 1px solid var(--border); border-radius: 0; text-align: left; font: inherit; color: inherit; text-decoration: none; cursor: pointer; transition: background .15s; -webkit-tap-highlight-color: transparent }
++    .set-row:first-child { border-top: 0 }
++    .set-row:active { background: var(--g2) }
++    .set-row-static { cursor: default }
++    .set-row-static:active { background: none }
++    .set-ico { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: rgba(var(--c), .16); color: rgb(var(--c)); flex-shrink: 0 }
++    .set-ico .si { width: 18px; height: 18px }
++    .set-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px }
++    .set-t { font-size: 15px; font-weight: 500; color: var(--white) }
++    .set-s { font-size: 12px; line-height: 1.35; color: var(--text3) }
++    .set-val { font-size: 13px; color: var(--text3); white-space: nowrap }
++    .set-chev { width: 16px !important; height: 16px !important; color: var(--text3) }
++    .set-row-danger .set-t { color: var(--red) }
++
++    /* sub-screen header */
++    .set-bar { display: flex; align-items: center; gap: 10px; padding: 2px 0 18px }
++    .set-back { width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--g1); color: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0 }
++    .set-bar-t h2 { margin: 0; font-size: 20px; font-weight: 700; color: var(--white) }
++    .set-bar-t p { margin: 2px 0 0; font-size: 12px; color: var(--text3) }
++
++    /* form rows: label left, value right */
++    .set-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 8px 14px; border-top: 1px solid var(--border); cursor: text }
++    .set-field:first-child { border-top: 0 }
++    .set-field > span { font-size: 15px; color: var(--white); flex-shrink: 0 }
++    .set-field input, .set-field select { flex: 1; min-width: 0; max-width: 62%; text-align: right; background: none; border: 0; outline: 0; box-shadow: none; padding: 6px 0; font-size: 15px; color: var(--text2) }
++    .set-field input:focus, .set-field select:focus { color: var(--white) }
++    .set-form { padding: 4px 14px 14px; border-top: 1px solid var(--border) }
++    .set-form .set-field { padding-left: 0; padding-right: 0; border-top: 0 }
++    .set-inline-btn { width: 100% }
++    .set-save { width: 100%; margin-top: 4px; justify-content: center }
++    .set-pad { padding: 0 0 18px }
++    .set-empty { font-size: 13px; color: var(--text3); padding: 6px 6px }
++    .set-avatar-pick { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 0 0 22px; cursor: pointer; font-size: 13px; color: var(--accent) }
++    .set-avatar-pick .av-large { margin: 0 }
++    .set-nores { text-align: center; padding: 36px 0; font-size: 14px; color: var(--text3) }
++
++    /* reduced-motion setting (Appearance) */
++    html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important }
+ 
+     .toggle {
+       width: 44px;
+@@ -3328,11 +3322,6 @@
+   /* Study grid — collapse on mobile */
+   .study-grid { gap: 10px }
+ 
+-  /* Settings */
+-  .settings-row { padding: 12px 14px }
+-  .settings-group { margin-bottom: 10px }
+-  .settings-hero { padding: 18px 14px 16px }
+-  .sh-avatar { width: 76px; height: 76px }
+ 
+   /* Pin pad */
+   .pin-pad { max-width: 220px; gap: 10px }
+@@ -3427,151 +3416,6 @@
+       }
+     }
+ 
+-    /* ════ SETTINGS PHOTO HERO ════ */
+-    .settings-hero {
+-      position: relative;
+-      border-radius: 24px;
+-      overflow: hidden;
+-      margin-bottom: 4px;
+-      background: var(--g1);
+-      backdrop-filter: var(--blur);
+-      border: 1px solid var(--border2);
+-      box-shadow: 0 10px 32px rgba(20, 20, 30, 0.08);
+-      padding: 24px 20px 20px;
+-      display: flex;
+-      align-items: center;
+-      justify-content: center;
+-      gap: 0;
+-    }
+-
+-    .settings-hero::before {
+-      content: '';
+-      position: absolute;
+-      inset: 0;
+-      background: radial-gradient(ellipse at 50% 0%, var(--accent-glow) 0%, transparent 70%);
+-      pointer-events: none;
+-    }
+-
+-    .sh-avatar {
+-      width: 100px;
+-      height: 100px;
+-      border-radius: 50%;
+-      overflow: hidden;
+-      position: relative;
+-      flex-shrink: 0;
+-      border: 3px solid rgba(255, 255, 255, 0.3);
+-      box-shadow: 0 6px 20px rgba(20, 20, 30, 0.12), 0 0 0 0 var(--accent-glow);
+-      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease;
+-      cursor: pointer;
+-    }
+-
+-    .sh-avatar:hover {
+-      transform: scale(1.06);
+-      box-shadow: 0 10px 28px rgba(20, 20, 30, 0.16), 0 0 0 6px var(--accent-glow);
+-    }
+-
+-    .sh-avatar img,
+-    .sh-avatar-inner {
+-      width: 100%;
+-      height: 100%;
+-      object-fit: cover;
+-      display: flex;
+-      align-items: center;
+-      justify-content: center;
+-      font-size: 36px;
+-      font-weight: 700;
+-      color: #fff;
+-    }
+-
+-    .sh-avatar-1 {
+-      animation: floatLeft 4s ease-in-out infinite;
+-    }
+-
+-    .sh-avatar-2 {
+-      animation: floatRight 4s ease-in-out infinite;
+-    }
+-
+-    @keyframes floatLeft {
+-
+-      0%,
+-      100% {
+-        transform: translateY(0) rotate(-2deg)
+-      }
+-
+-      50% {
+-        transform: translateY(-6px) rotate(-2deg)
+-      }
+-    }
+-
+-    @keyframes floatRight {
+-
+-      0%,
+-      100% {
+-        transform: translateY(-4px) rotate(2deg)
+-      }
+-
+-      50% {
+-        transform: translateY(2px) rotate(2deg)
+-      }
+-    }
+-
+-    .sh-heart {
+-      font-size: 28px;
+-      margin: 0 -10px;
+-      z-index: 2;
+-      animation: heartBeat 2s ease-in-out infinite;
+-      filter: drop-shadow(0 4px 12px var(--accent-glow));
+-    }
+-
+-    @keyframes heartBeat {
+-
+-      0%,
+-      100% {
+-        transform: scale(1)
+-      }
+-
+-      15% {
+-        transform: scale(1.25)
+-      }
+-
+-      30% {
+-        transform: scale(1.1)
+-      }
+-
+-      45% {
+-        transform: scale(1.18)
+-      }
+-
+-      60% {
+-        transform: scale(1)
+-      }
+-    }
+-
+-    .sh-info {
+-      text-align: center;
+-      margin-top: 14px;
+-    }
+-
+-    .sh-names {
+-      font-family: var(--ff-serif);
+-      font-size: 20px;
+-      color: var(--white);
+-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+-      margin-bottom: 4px;
+-    }
+-
+-    .sh-days {
+-      display: inline-flex;
+-      align-items: center;
+-      gap: 6px;
+-      background: var(--g2);
+-      border: 1px solid var(--border2);
+-      border-radius: 20px;
+-      padding: 4px 14px;
+-      font-size: 12px;
+-      color: var(--text2);
+-      font-weight: 500;
+-    }
+ /* HEARTBEAT FIX 1 — pulse ring must never occupy flow space */
+ #hbPulseRing {
+   position: fixed !important;
+@@ -4634,8 +4478,6 @@ vercel-live-feedback {
+ .card,
+ .metric,
+ .m-card,
+-.settings-group,
+-.settings-hero,
+ .period-hero,
+ .storage-hero,
+ .pstat,
+@@ -6705,252 +6547,371 @@ select option { background: #0D0D0D; color: #fff; }
+       <!-- ════ SETTINGS ════ -->
+       <div class="page" id="page-settings">
+ 
+-        <!-- COUPLE PHOTOS HERO -->
+-        <div id="settingsPhotoHero" style="margin-bottom:20px"></div>
+-
+-        <!-- PROFILE -->
+-        <div class="settings-group">
+-          <div class="settings-group-header">👤 Your Profiles</div>
+-          <div class="settings-row" style="cursor:default;flex-direction:column;align-items:flex-start;gap:14px">
+-            <div style="display:flex;gap:16px;align-items:center;width:100%;flex-wrap:wrap">
+-              <div style="text-align:center;cursor:pointer" onclick="pickAvatar('my')">
+-                <div class="av-large av1" id="settingsAv1"
+-                  style="width:60px;height:60px;font-size:22px;margin:0 auto 6px">U</div>
+-                <div style="font-size:10px;color:var(--text3)">tap to change</div>
++        <!-- Icon sprite (stroke icons, inherits currentColor) -->
++        <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
++          <defs>
++            <symbol id="si-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
++            <symbol id="si-heart" viewBox="0 0 24 24"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></symbol>
++            <symbol id="si-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
++            <symbol id="si-palette" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.7-.8 1.7-1.7 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.8-1.7 1.7-1.7H16c3.3 0 6-2.7 6-6 0-4.9-4.5-8.4-10-8.4Z"/></symbol>
++            <symbol id="si-message" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></symbol>
++            <symbol id="si-sparkles" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></symbol>
++            <symbol id="si-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.7 8.9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1Z"/><path d="m9 12 2 2 4-4"/></symbol>
++            <symbol id="si-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></symbol>
++            <symbol id="si-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
++            <symbol id="si-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
++            <symbol id="si-chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
++            <symbol id="si-back" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
++            <symbol id="si-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
++            <symbol id="si-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
++            <symbol id="si-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></symbol>
++            <symbol id="si-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
++            <symbol id="si-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></symbol>
++            <symbol id="si-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></symbol>
++            <symbol id="si-cloud" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9Z"/></symbol>
++            <symbol id="si-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></symbol>
++            <symbol id="si-volume" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></symbol>
++            <symbol id="si-wand" viewBox="0 0 24 24"><path d="m3 21 9-9"/><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="m17.8 11.8 1.4 1.4"/><path d="m17.8 6.2 1.4-1.4"/><path d="m12.2 6.2-1.4-1.4"/></symbol>
++            <symbol id="si-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
++          </defs>
++        </svg>
++
++        <!-- ───────────── HOME ───────────── -->
++        <div class="set-home" id="setHome">
++
++          <!-- Couple header (tap → Profile & Partner) -->
++          <div id="settingsPhotoHero"></div>
++
++          <div class="set-search">
++            <svg class="si"><use href="#si-search" /></svg>
++            <input id="setSearch" type="search" placeholder="Search settings" autocomplete="off" enterkeyhint="search"
++              aria-label="Search settings" oninput="SettingsUI.search(this.value)">
++          </div>
++
++          <!-- Search results (shown instead of the sections while typing) -->
++          <div id="setSearchResults" hidden></div>
++
++          <div id="setSections">
++
++            <section class="set-sec">
++              <h3 class="set-sec-t">Account</h3>
++              <div class="set-list">
++                <button type="button" class="set-row" onclick="SettingsUI.open('profile')">
++                  <span class="set-ico" style="--c:229,9,20"><svg class="si"><use href="#si-user" /></svg></span>
++                  <span class="set-txt"><span class="set-t">Profile</span><span class="set-s">Names, photo and important dates</span></span>
++                  <svg class="si set-chev"><use href="#si-chev" /></svg>
++                </button>
++                <button type="button" class="set-row" onclick="SettingsUI.open('partner')">
++                  <span class="set-ico" style="--c:236,72,153"><svg class="si"><use href="#si-heart" /></svg></span>
++                  <span class="set-txt"><span class="set-t">Partner Connection</span><span class="set-s">Link, requests and removal</span></span>
++                  <span class="set-val" id="setValPartner"></span>
++                  <svg class="si set-chev"><use href="#si-chev" /></svg>
++                </button>
++              </div>
++            </section>
++
++            <section class="set-sec">
++              <h3 class="set-sec-t">Preferences</h3>
++              <div class="set-list">
++                <button type="button" class="set-row" onclick="SettingsUI.open('notifications')">
++                  <span class="set-ico" style="--c:245,158,11"><svg class="si"><use href="#si-bell" /></svg></span>
++                  <span class="set-txt"><span class="set-t">Notifications</span><span class="set-s">Push alerts and quiet hours</span></span>
++                  <span class="set-val" id="setValNotif"></span>
++                  <svg class="si set-chev"><use href="#si-chev" /></svg>
++                </button>
++                <button type="button" class="set-row" onclick="SettingsUI.open('appearance')">
++                  <span class="set-ico" style="--c:168,85,247"><svg class="si"><use href="#si-palette" /></svg></span>
++                  <span class="set-txt"><span class="set-t">Appearance</span><span class="set-s">Motion and animations</span></span>
++                  <svg class="si set-chev"><use href="#si-chev" /></svg>
++                </button>
++                <button type="button" class="set-row" onclick="SettingsUI.open('chatmedia')">
++                  <span class="set-ico" style="--c:59,130,246"><svg class="si"><use href="#si-message" /></svg></span>
++                  <span class="set-txt"><span class="set-t">Chat &amp; Media</span><span class="set-s">Photos and voice messages</span></span>
++                  <svg class="si set-chev"><use href="#si-chev" /></svg>
++                </button>
++                <button type="button" class="set-row" onclick="SettingsUI.open('twin')">
++                  <span class="set-ico" style="--c:20,184,166"><svg class="si"><use href="#si-sparkles" /></svg></span>
++                  <span class="set-txt"><span class="set-t">Twin AI</span><span class="set-s">Couple assistant preferences</span></span>
++                  <svg class="si set-chev"><use href="#si-chev" /></svg>
++                </button>
+               </div>
+-              <div style="flex:1;min-width:180px">
+-                <div class="field" style="margin-bottom:8px"><label>Your Name</label><input type="text" id="setMyName"
+-                    placeholder="Your name" oninput="updateNamesLive()"></div>
+-                <div class="field" style="margin-bottom:0"><label>Partner's Name</label><input type="text"
+-                    id="setPtName" placeholder="Partner name" oninput="updateNamesLive()"></div>
++            </section>
++
++            <section class="set-sec">
++              <h3 class="set-sec-t">Security</h3>
++              <div class="set-list">
++                <button type="button" class="set-row" onclick="SettingsUI.open('privacy')">
++                  <span class="set-ico" style="--c:52,211,153"><svg class="si"><use href="#si-shield" /></svg></span>
++                  <span class="set-txt"><span class="set-t">Privacy &amp; Security</span><span class="set-s">App lock and vault PIN</span></span>
++                  <svg class="si set-chev"><use href="#si-chev" /></svg>
++                </button>
+               </div>
+-            </div>
+-            <div class="field" style="width:100%;margin-bottom:8px"><label>📅 Anniversary / Together Since</label><input
+-    type="date" id="setAnniv"></div>
+-<div class="field" style="width:100%;margin-bottom:8px"><label>🙋 I am</label><select id="setMyGender"><option value="">Choose…</option><option value="female">👩 Girl</option><option value="male">👨 Boy</option></select></div>
+-<div class="row2" style="width:100%">
+-  <div class="field" style="margin-bottom:0"><label>🎂 Your Birthday</label><input type="date" id="setMyBday"></div>
+-  <div class="field" style="margin-bottom:0"><label>🎂 Partner's Birthday</label><input type="date" id="setPtBday"></div>
+-</div>
+-          </div>
+-          <div class="settings-row">
+-            <button class="btn btn-accent btn-sm" onclick="saveSettings()">Save Profile 💕</button>
++            </section>
++
++            <section class="set-sec">
++              <h3 class="set-sec-t">Data</h3>
++              <div class="set-list">
++                <button type="button" class="set-row" onclick="SettingsUI.open('storage')">
++                  <span class="set-ico" style="--c:14,165,233"><svg class="si"><use href="#si-database" /></svg></span>
++                  <span class="set-txt"><span class="set-t">Storage &amp; Data</span><span class="set-s">Storage, backup and cloud sync</span></span>
++                  <svg class="si set-chev"><use href="#si-chev" /></svg>
++                </button>
++              </div>
++            </section>
++
++            <section class="set-sec">
++              <h3 class="set-sec-t">About</h3>
++              <div class="set-list">
++                <button type="button" class="set-row" onclick="SettingsUI.open('about')">
++                  <span class="set-ico" style="--c:148,163,184"><svg class="si"><use href="#si-info" /></svg></span>
++                  <span class="set-txt"><span class="set-t">App Info</span><span class="set-s">Version and privacy</span></span>
++                  <svg class="si set-chev"><use href="#si-chev" /></svg>
++                </button>
++              </div>
++            </section>
++
++            <section class="set-sec">
++              <div class="set-list">
++                <button type="button" class="set-row set-row-danger" onclick="logOut()">
++                  <span class="set-ico" style="--c:248,113,113"><svg class="si"><use href="#si-logout" /></svg></span>
++                  <span class="set-txt"><span class="set-t">Log Out</span><span class="set-s">Your cloud data stays safe</span></span>
++                </button>
++              </div>
++            </section>
+           </div>
+         </div>
+ 
+-        <!-- NOTIFICATIONS -->
+-        <div class="settings-group">
+-          <div class="settings-group-header">🔔 Notifications & Alarms</div>
+-<div class="settings-row" style="cursor:default">
+-  <div class="settings-row-ico">🔔</div>
+-  <div class="settings-row-content">
+-    <div class="settings-row-title">Push Notifications</div>
+-    <div class="settings-row-sub" id="notifStatus">Tap to enable</div>
+-  </div>
+-  <div class="toggle" id="notifToggle" onclick="toggleNotifications()"></div>
+-</div>
+-         <div class="settings-row" style="cursor:default">
+-  <div class="settings-row-ico">⏰</div>
+-  <div class="settings-row-content">
+-    <div class="settings-row-title">DND Hours</div>
+-    <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+-      <input type="time" id="dndStart" value="22:00" style="width:110px;font-size:12px" oninput="saveDND()">
+-      <span style="color:var(--text3);line-height:2.2">to</span>
+-      <input type="time" id="dndEnd" value="08:00" style="width:110px;font-size:12px" oninput="saveDND()">
+-    </div>
+-  </div>
+-</div>
+-        </div>
++        <!-- ───────────── PROFILE ───────────── -->
++        <section class="set-sub" id="setSub-profile" hidden>
++          <header class="set-bar">
++            <button type="button" class="set-back" aria-label="Back" onclick="SettingsUI.back()"><svg class="si"><use href="#si-back" /></svg></button>
++            <div class="set-bar-t"><h2>Profile</h2><p>How you appear in the app</p></div>
++          </header>
+ 
+-        <!-- PRIVACY & SECURITY -->
+-        <div class="settings-group">
+-          <div class="settings-group-header">🔐 Privacy & Security</div>
+-          <div class="settings-row">
+-            <div class="settings-row-ico">🔒</div>
+-            <div class="settings-row-content">
+-              <div class="settings-row-title">Lock App on Background</div>
+-              <div class="settings-row-sub">Ask for PIN when you return to the app</div>
+-            </div>
+-            <div class="toggle" id="autoLockToggle" onclick="toggleAutoLock()"></div>
++          <div class="set-avatar-pick" onclick="pickAvatar('my')">
++            <div class="av-large av1" id="settingsAv1" style="width:88px;height:88px;font-size:30px">U</div>
++            <span>Change photo</span>
+           </div>
+-          <div class="settings-row" style="cursor:default;flex-direction:column;align-items:flex-start">
+-            <div style="font-size:13px;color:var(--white);font-weight:500;margin-bottom:10px">🔑 Change Vault PIN</div>
+-            <div class="row2" style="width:100%;margin-bottom:10px">
+-              <div class="field" style="margin-bottom:0"><label>Current PIN</label><input type="password" id="curPin"
+-                  maxlength="4" placeholder="Current PIN"></div>
+-              <div class="field" style="margin-bottom:0"><label>New PIN (4 digits)</label><input type="password"
+-                  id="newPin" maxlength="4" placeholder="New PIN"></div>
++
++          <section class="set-sec">
++            <h3 class="set-sec-t">Names</h3>
++            <div class="set-list">
++              <label class="set-field"><span>Your name</span><input type="text" id="setMyName" placeholder="Your name" oninput="updateNamesLive()"></label>
++              <label class="set-field"><span>Partner's name</span><input type="text" id="setPtName" placeholder="Partner name" oninput="updateNamesLive()"></label>
++              <label class="set-field"><span>I am</span>
++                <select id="setMyGender"><option value="">Choose…</option><option value="female">Girl</option><option value="male">Boy</option></select>
++              </label>
+             </div>
+-            <button class="btn btn-glass btn-sm" onclick="changePin()">Update PIN</button>
+-            <div id="pinChangeResult" style="display:none;margin-top:8px" class="conn-test"></div>
+-          </div>
+-        </div>
++          </section>
+ 
+-        <!-- PARTNER CONNECT -->
+-        <div class="settings-group">
+-          <div class="settings-group-header">❤️ Partner Connection Status</div>
+-          <div class="settings-row" style="cursor:default;flex-direction:column;align-items:flex-start">
+-            <div id="settingsPairStatus" style="font-size:13px;color:var(--white);margin-bottom:12px">Not Connected</div>
+-            <div id="settingsPartnerRequestForm" style="width:100%">
+-              <div class="field" style="margin-bottom:8px"><label>Partner Phone Number</label><input type="tel" id="settingsPartnerPhone" placeholder="10-digit phone number" inputmode="numeric" maxlength="10" autocomplete="off" style="letter-spacing:1px;font-size:16px"></div>
+-              <button class="btn btn-accent btn-sm" onclick="sendPartnerRequestFromSettings()">Send Connection Request ❤️</button>
++          <section class="set-sec">
++            <h3 class="set-sec-t">Important dates</h3>
++            <div class="set-list">
++              <label class="set-field"><span>Together since</span><input type="date" id="setAnniv"></label>
++              <label class="set-field"><span>Your birthday</span><input type="date" id="setMyBday"></label>
++              <label class="set-field"><span>Partner's birthday</span><input type="date" id="setPtBday"></label>
+             </div>
+-            <div id="settingsWaitingCard" style="display:none;width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px;margin-top:4px"></div>
+-            <button class="btn btn-danger btn-sm" id="removePartnerBtn" style="margin-top:12px;display:none" onclick="confirmRemovePartner()">💔 Remove Partner</button>
+-          </div>
+-        </div>
++          </section>
+ 
+-        <!-- PARTNER REQUESTS (pending invitations received) -->
+-        <div class="settings-group">
+-          <div class="settings-group-header">❤️ Partner Requests</div>
+-          <div id="settingsPendingRequestsList" style="padding:2px 0 4px">
+-            <div style="font-size:12px;color:rgba(255,255,255,.45);padding:8px 2px">No pending partner requests.</div>
+-          </div>
+-        </div>
++          <button type="button" class="btn btn-accent set-save" onclick="saveSettings()">Save changes</button>
++        </section>
+ 
+-        <!-- MEDIA -->
+-        <div class="settings-group">
+-          <div class="settings-group-header">📸 Media</div>
+-          <div class="settings-row">
+-            <div class="settings-row-ico">📸</div>
+-            <div class="settings-row-content">
+-              <div class="settings-row-title">Auto-Save Photos to Device</div>
+-              <div class="settings-row-sub">Save snapped photos to phone gallery</div>
+-            </div>
+-            <div class="toggle" id="autoSaveToggle" onclick="toggleSetting('autoSavePhotos','autoSaveToggle')"></div>
+-          </div>
+-          <div class="settings-row">
+-            <div class="settings-row-ico">🔊</div>
+-            <div class="settings-row-content">
+-              <div class="settings-row-title">Voice Message Playback</div>
+-              <div class="settings-row-sub">Auto-play voice messages on open</div>
+-            </div>
+-            <div class="toggle" id="autoPlayVoice" onclick="toggleSetting('autoPlayVoice','autoPlayVoice')"></div>
+-          </div>
+-        </div>
++        <!-- ───────────── PARTNER ───────────── -->
++        <section class="set-sub" id="setSub-partner" hidden>
++          <header class="set-bar">
++            <button type="button" class="set-back" aria-label="Back" onclick="SettingsUI.back()"><svg class="si"><use href="#si-back" /></svg></button>
++            <div class="set-bar-t"><h2>Partner Connection</h2><p>Link your account with your partner</p></div>
++          </header>
+ 
+-        <!-- AI SETTINGS -->
+-        <div class="settings-group">
+-          <div class="settings-group-header">✨ Twin</div>
+-          <div class="settings-row" style="cursor:default">
+-            <div class="settings-row-ico">✨</div>
+-            <div class="settings-row-content">
+-              <div class="settings-row-title">AI Status</div>
+-              <div class="settings-row-sub">Powered by Anthropic Claude</div>
+-            </div>
+-            <div id="aiStatusText" style="font-size:11px;color:var(--green);font-weight:600">Checking...</div>
+-          </div>
+-          <div class="settings-row">
+-            <div class="settings-row-ico">🗃️</div>
+-            <div class="settings-row-content">
+-              <div class="settings-row-title">Use Relationship Context</div>
+-              <div class="settings-row-sub">Share your mood & data with AI for better advice</div>
++          <section class="set-sec">
++            <div class="set-list">
++              <div class="set-row set-row-static">
++                <span class="set-ico" style="--c:236,72,153"><svg class="si"><use href="#si-link" /></svg></span>
++                <span class="set-txt"><span class="set-t">Status</span><span class="set-s" id="settingsPairStatus">Not Connected</span></span>
++              </div>
++              <div id="settingsPartnerRequestForm" class="set-form">
++                <label class="set-field"><span>Partner's phone</span>
++                  <input type="tel" id="settingsPartnerPhone" placeholder="10-digit number" inputmode="numeric" maxlength="10" autocomplete="off">
++                </label>
++                <button type="button" class="btn btn-accent btn-sm set-inline-btn" onclick="sendPartnerRequestFromSettings()">Send connection request</button>
++              </div>
++              <div id="settingsWaitingCard" class="set-form" style="display:none"></div>
++              <button type="button" class="set-row set-row-danger" id="removePartnerBtn" style="display:none" onclick="confirmRemovePartner()">
++                <span class="set-ico" style="--c:248,113,113"><svg class="si"><use href="#si-heart" /></svg></span>
++                <span class="set-txt"><span class="set-t">Remove partner</span><span class="set-s">Unlink from your partner</span></span>
++              </button>
+             </div>
+-            <div class="toggle on" id="aiContextToggle" onclick="toggleSetting('aiUseContext','aiContextToggle')"></div>
+-          </div>
+-        </div>
+-
+-        <!-- SOUND -->
+-        <div class="settings-group">
+-          <div class="settings-group-header">🔊 Sound</div>
+-          <div id="soundSettingsContent" style="padding:4px 18px 14px"></div>
+-        </div>
++          </section>
+ 
+-        <!-- APPEARANCE -->
+-        <div class="settings-group">
+-          <div class="settings-group-header">✨ Appearance</div>
+-          <div class="settings-row">
+-            <div class="settings-row-ico">💫</div>
+-            <div class="settings-row-content">
+-              <div class="settings-row-title">Celebration Animations</div>
+-              <div class="settings-row-sub">Floating hearts when you complete goals</div>
++          <section class="set-sec">
++            <h3 class="set-sec-t">Requests received</h3>
++            <div id="settingsPendingRequestsList" class="set-pad">
++              <div class="set-empty">No pending partner requests.</div>
+             </div>
+-            <div class="toggle on" id="celebToggle" onclick="toggleSetting('celebAnimations','celebToggle')"></div>
+-          </div>
+-          <div class="settings-row">
+-            <div class="settings-row-ico">🎭</div>
+-            <div class="settings-row-content">
+-              <div class="settings-row-title">Reduced Motion</div>
+-              <div class="settings-row-sub">Minimize animations for battery saving</div>
++          </section>
++        </section>
++
++        <!-- ───────────── NOTIFICATIONS ───────────── -->
++        <section class="set-sub" id="setSub-notifications" hidden>
++          <header class="set-bar">
++            <button type="button" class="set-back" aria-label="Back" onclick="SettingsUI.back()"><svg class="si"><use href="#si-back" /></svg></button>
++            <div class="set-bar-t"><h2>Notifications</h2><p>Stay connected with the moments that matter</p></div>
++          </header>
++          <section class="set-sec">
++            <div class="set-list">
++              <div class="set-row" onclick="toggleNotifications()">
++                <span class="set-ico" style="--c:245,158,11"><svg class="si"><use href="#si-bell" /></svg></span>
++                <span class="set-txt"><span class="set-t">Push notifications</span><span class="set-s" id="notifStatus">Tap to enable</span></span>
++                <div class="toggle" id="notifToggle" role="switch" aria-checked="false"></div>
++              </div>
+             </div>
+-            <div class="toggle" id="reducedMotionToggle" onclick="toggleSetting('reducedMotion','reducedMotionToggle')">
++          </section>
++          <section class="set-sec">
++            <h3 class="set-sec-t">Quiet hours</h3>
++            <div class="set-list">
++              <label class="set-field"><span>From</span><input type="time" id="dndStart" value="22:00" oninput="saveDND()"></label>
++              <label class="set-field"><span>To</span><input type="time" id="dndEnd" value="08:00" oninput="saveDND()"></label>
+             </div>
+-          </div>
+-        </div>
++          </section>
++        </section>
+ 
+-        <!-- SOUND -->
+-<div class="settings-group">
+-  <div class="settings-group-header">🔊 Sound</div>
+-  <div id="soundSettingsContent" style="padding:4px 18px 14px"></div>
+-</div>
+-         <!-- STORAGE MANAGEMENT -->
+-        <div class="settings-group">
+-          <div class="settings-group-header">📦 Storage & Data</div>
+-          <div id="storagePageContent" style="padding:14px 18px">
+-            <div style="text-align:center;color:var(--text3);font-size:12px;padding:10px 0">
+-              <span style="font-size:20px">📦</span><br>
+-              <button class="btn btn-glass btn-sm" style="margin-top:8px" onclick="loadStorageStats()">Calculate Storage</button>
++        <!-- ───────────── APPEARANCE ───────────── -->
++        <section class="set-sub" id="setSub-appearance" hidden>
++          <header class="set-bar">
++            <button type="button" class="set-back" aria-label="Back" onclick="SettingsUI.back()"><svg class="si"><use href="#si-back" /></svg></button>
++            <div class="set-bar-t"><h2>Appearance</h2><p>Customize your app experience</p></div>
++          </header>
++          <section class="set-sec">
++            <div class="set-list">
++              <div class="set-row" onclick="toggleSetting('reducedMotion','reducedMotionToggle')">
++                <span class="set-ico" style="--c:168,85,247"><svg class="si"><use href="#si-wand" /></svg></span>
++                <span class="set-txt"><span class="set-t">Reduce motion</span><span class="set-s">Minimize animations and save battery</span></span>
++                <div class="toggle" id="reducedMotionToggle" role="switch" aria-checked="false"></div>
++              </div>
+             </div>
+-          </div>
+-        </div>
+-        <!-- DATA & BACKUP -->
+-        <div class="settings-group">
+-          <div class="settings-group-header">💾 Data & Backup</div>
+-          <div class="settings-row" onclick="exportData()">
+-            <div class="settings-row-ico">📤</div>
+-            <div class="settings-row-content">
+-              <div class="settings-row-title">Export Backup</div>
+-              <div class="settings-row-sub">Download all your data as JSON</div>
++          </section>
++        </section>
++
++        <!-- ───────────── CHAT & MEDIA ───────────── -->
++        <section class="set-sub" id="setSub-chatmedia" hidden>
++          <header class="set-bar">
++            <button type="button" class="set-back" aria-label="Back" onclick="SettingsUI.back()"><svg class="si"><use href="#si-back" /></svg></button>
++            <div class="set-bar-t"><h2>Chat &amp; Media</h2><p>Manage how your media is handled</p></div>
++          </header>
++          <section class="set-sec">
++            <div class="set-list">
++              <div class="set-row" onclick="toggleSetting('autoSavePhotos','autoSaveToggle')">
++                <span class="set-ico" style="--c:59,130,246"><svg class="si"><use href="#si-image" /></svg></span>
++                <span class="set-txt"><span class="set-t">Auto-save photos</span><span class="set-s">Save snapped photos to your gallery</span></span>
++                <div class="toggle" id="autoSaveToggle" role="switch" aria-checked="false"></div>
++              </div>
++              <div class="set-row" onclick="toggleSetting('autoPlayVoice','autoPlayVoice')">
++                <span class="set-ico" style="--c:59,130,246"><svg class="si"><use href="#si-volume" /></svg></span>
++                <span class="set-txt"><span class="set-t">Voice message playback</span><span class="set-s">Auto-play voice messages on open</span></span>
++                <div class="toggle" id="autoPlayVoice" role="switch" aria-checked="false"></div>
++              </div>
+             </div>
+-            <div class="settings-row-action">›</div>
+-          </div>
+-          <div class="settings-row" onclick="importData()">
+-            <div class="settings-row-ico">📥</div>
+-            <div class="settings-row-content">
+-              <div class="settings-row-title">Import Backup</div>
+-              <div class="settings-row-sub">Restore from a previous backup file</div>
++          </section>
++        </section>
++
++        <!-- ───────────── TWIN AI ───────────── -->
++        <section class="set-sub" id="setSub-twin" hidden>
++          <header class="set-bar">
++            <button type="button" class="set-back" aria-label="Back" onclick="SettingsUI.back()"><svg class="si"><use href="#si-back" /></svg></button>
++            <div class="set-bar-t"><h2>Twin AI</h2><p>Personalized couple assistant</p></div>
++          </header>
++          <section class="set-sec">
++            <div class="set-list">
++              <div class="set-row" onclick="toggleSetting('aiUseContext','aiContextToggle')">
++                <span class="set-ico" style="--c:20,184,166"><svg class="si"><use href="#si-sparkles" /></svg></span>
++                <span class="set-txt"><span class="set-t">Use relationship context</span><span class="set-s">Share your mood and data with Twin for better advice</span></span>
++                <div class="toggle" id="aiContextToggle" role="switch" aria-checked="false"></div>
++              </div>
+             </div>
+-            <div class="settings-row-action">›</div>
+-          </div>
+-          <div class="settings-row">
+-            <div class="settings-row-ico">☁️</div>
+-            <div class="settings-row-content">
+-              <div class="settings-row-title">Cloud Storage</div>
+-              <div class="settings-row-sub" id="cloudStorageInfo">Synced to Supabase</div>
++          </section>
++        </section>
++
++        <!-- ───────────── PRIVACY & SECURITY ───────────── -->
++        <section class="set-sub" id="setSub-privacy" hidden>
++          <header class="set-bar">
++            <button type="button" class="set-back" aria-label="Back" onclick="SettingsUI.back()"><svg class="si"><use href="#si-back" /></svg></button>
++            <div class="set-bar-t"><h2>Privacy &amp; Security</h2><p>Your data and memories are safe with us</p></div>
++          </header>
++          <section class="set-sec">
++            <div class="set-list">
++              <div class="set-row" onclick="toggleSetting('autoLock','autoLockToggle')">
++                <span class="set-ico" style="--c:52,211,153"><svg class="si"><use href="#si-lock" /></svg></span>
++                <span class="set-txt"><span class="set-t">Lock app on background</span><span class="set-s">Ask for PIN when you return to the app</span></span>
++                <div class="toggle" id="autoLockToggle" role="switch" aria-checked="false"></div>
++              </div>
+             </div>
+-            <button class="btn btn-glass btn-xs" onclick="syncNow()">Sync Now</button>
+-          </div>
+-          <div class="settings-row" onclick="logOut()">
+-            <div class="settings-row-ico" style="background:var(--red-bg)">🚪</div>
+-            <div class="settings-row-content">
+-              <div class="settings-row-title" style="color:var(--red)">Log Out</div>
+-              <div class="settings-row-sub">Returns to sign in screen. Cloud data stays safe.</div>
++          </section>
++          <section class="set-sec">
++            <h3 class="set-sec-t">Change vault PIN</h3>
++            <div class="set-list">
++              <label class="set-field"><span>Current PIN</span><input type="password" id="curPin" maxlength="4" inputmode="numeric" placeholder="••••" autocomplete="off"></label>
++              <label class="set-field"><span>New PIN</span><input type="password" id="newPin" maxlength="4" inputmode="numeric" placeholder="4 digits" autocomplete="off"></label>
+             </div>
+-            <div class="settings-row-action" style="color:var(--red)">›</div>
+-          </div>
+-        </div>
++            <button type="button" class="btn btn-glass set-save" onclick="changePin()">Update PIN</button>
++            <div id="pinChangeResult" style="display:none;margin-top:10px" class="conn-test"></div>
++          </section>
++        </section>
++
++        <!-- ───────────── STORAGE & DATA ───────────── -->
++        <section class="set-sub" id="setSub-storage" hidden>
++          <header class="set-bar">
++            <button type="button" class="set-back" aria-label="Back" onclick="SettingsUI.back()"><svg class="si"><use href="#si-back" /></svg></button>
++            <div class="set-bar-t"><h2>Storage &amp; Data</h2><p>Manage your storage and keep your memories safe</p></div>
++          </header>
+ 
+-        <!-- APP INFO -->
+-        <div class="settings-group">
+-          <div class="settings-group-header">ℹ️ App Info</div>
+-          <div class="settings-row" style="cursor:default">
+-            <div class="settings-row-ico">💕</div>
+-            <div class="settings-row-content">
+-              <div class="settings-row-title">Us<span style="color:var(--accent2)">.</span> With Love</div>
+-              <div class="settings-row-sub">Together. Always. · Version 2.1 💕</div>
++          <div id="storagePageContent" class="set-pad"></div>
++
++          <section class="set-sec">
++            <h3 class="set-sec-t">Backup &amp; sync</h3>
++            <div class="set-list">
++              <button type="button" class="set-row" onclick="exportData()">
++                <span class="set-ico" style="--c:14,165,233"><svg class="si"><use href="#si-upload" /></svg></span>
++                <span class="set-txt"><span class="set-t">Export backup</span><span class="set-s">Download all your data as JSON</span></span>
++                <svg class="si set-chev"><use href="#si-chev" /></svg>
++              </button>
++              <button type="button" class="set-row" onclick="importData()">
++                <span class="set-ico" style="--c:14,165,233"><svg class="si"><use href="#si-download" /></svg></span>
++                <span class="set-txt"><span class="set-t">Import backup</span><span class="set-s">Restore from a previous backup file</span></span>
++                <svg class="si set-chev"><use href="#si-chev" /></svg>
++              </button>
++              <div class="set-row set-row-static">
++                <span class="set-ico" style="--c:14,165,233"><svg class="si"><use href="#si-cloud" /></svg></span>
++                <span class="set-txt"><span class="set-t">Cloud sync</span><span class="set-s" id="cloudStorageInfo">Synced to Supabase</span></span>
++                <button type="button" class="btn btn-glass btn-xs" onclick="syncNow()">Sync now</button>
++              </div>
+             </div>
+-          </div>
+-          <div class="settings-row" style="cursor:default">
+-            <div class="settings-row-ico">🔒</div>
+-            <div class="settings-row-content">
+-              <div class="settings-row-title">Privacy</div>
+-              <div class="settings-row-sub">All data is private to your couple only</div>
++          </section>
++        </section>
++
++        <!-- ───────────── ABOUT ───────────── -->
++        <section class="set-sub" id="setSub-about" hidden>
++          <header class="set-bar">
++            <button type="button" class="set-back" aria-label="Back" onclick="SettingsUI.back()"><svg class="si"><use href="#si-back" /></svg></button>
++            <div class="set-bar-t"><h2>App Info</h2><p>Version, credits and privacy</p></div>
++          </header>
++          <section class="set-sec">
++            <div class="set-list">
++              <div class="set-row set-row-static">
++                <span class="set-ico" style="--c:229,9,20"><svg class="si"><use href="#si-heart" /></svg></span>
++                <span class="set-txt"><span class="set-t">Twin Hearts</span><span class="set-s">Together. Always. · Version 2.1</span></span>
++              </div>
++              <a class="set-row" href="/privacy-policy.html" target="_blank" rel="noopener">
++                <span class="set-ico" style="--c:52,211,153"><svg class="si"><use href="#si-shield" /></svg></span>
++                <span class="set-txt"><span class="set-t">Privacy policy</span><span class="set-s">All data is private to your couple only</span></span>
++                <svg class="si set-chev"><use href="#si-chev" /></svg>
++              </a>
+             </div>
+-          </div>
+-        </div>
++          </section>
++        </section>
+ 
+       </div>
+-<!-- ════ GAMES PAGE ════ -->
++
++      <!-- ════ GAMES PAGE ════ -->
+       <div class="page" id="page-games">
+         <div class="iframe-page-wrap">
+           <iframe id="gamesFrame" src="/games.html" title="Couple Games" allow="autoplay" loading="lazy"></iframe>
+@@ -7938,6 +7899,7 @@ async function saveToCloud() {
+           if (window.Prof) Prof.refresh();
+ 
+           const p2 = document.getElementById('settingsPairStatus'); if (p2) p2.textContent = msg + (S.paired ? ' — ' + (S.partnerName || 'Partner') : '');
++          if (window.SettingsUI) SettingsUI.refresh();
+           renderPartnerLastSeen();
+           renderSettingsWaitingCard();
+           loadPendingRequestsList();
+@@ -8484,6 +8446,8 @@ function setJustPairedAt(ts) {
+               if (typeof habitsSelectMode !== 'undefined' && habitsSelectMode) { habitsExitSelectMode(); return; }
+               if (typeof notesSelectMode !== 'undefined' && notesSelectMode) { notesExitSelectMode(); return; }
+               if (typeof remindersSelectMode !== 'undefined' && remindersSelectMode) { remindersExitSelectMode(); return; }
++              // 0.565b) Settings sub-screen open — Back returns to the settings list.
++              if (window.SettingsUI && SettingsUI.handleBack()) { return; }
+               // 0.57) Chat's own overlays take priority — context menus, the
+               //       wallpaper settings/preview flow, attach-sheet panels,
+               //       search bar, header dropdown, and multi-select mode.
+@@ -8772,11 +8736,15 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
+           if (window.Avatar) Avatar.openViewer(url); else openImgViewer(url);
+         }
+         function updateNamesLive() { S.myName = document.getElementById('setMyName').value || 'You'; S.partnerName = document.getElementById('setPtName').value || 'Partner'; applyNames(); }
++        // toggle element id → [S.settings key, default]
++        const SETTING_TOGGLES = {
++          autoLockToggle: ['autoLock', false],
++          reducedMotionToggle: ['reducedMotion', false],
++          autoSaveToggle: ['autoSavePhotos', false],
++          autoPlayVoice: ['autoPlayVoice', false],
++          aiContextToggle: ['aiUseContext', true]
++        };
+         function loadSettings() {
+-          if (window.SoundSettingsUI) {
+-    const soundContainer = document.getElementById('soundSettingsContent');
+-    if (soundContainer) SoundSettingsUI.renderInto(soundContainer);
+-  }
+           document.getElementById('setMyName').value = S.myName || '';
+           document.getElementById('setPtName').value = S.partnerName || '';
+           document.getElementById('setAnniv').value = S.anniversary || '';
+@@ -8784,48 +8752,35 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
+           document.getElementById('setPtBday').value = S.ptBday || '';
+           { const sg = document.getElementById('setMyGender'); if (sg && window.Gender) sg.value = Gender.mine(); }
+           if (S.myAvatar) setAvImg('settingsAv1', S.myAvatar);
+-          // Toggle states
+-          ['autoLockToggle', 'dndToggle', 'celebToggle', 'reducedMotionToggle', 'autoSaveToggle', 'autoPlayVoice', 'aiContextToggle'].forEach(id => {
+-            const el = document.getElementById(id); if (!el) return;
+-            const key = el.id.replace('Toggle', '').replace('toggle', '');
+-            el.classList.toggle('on', !!(S.settings || {})[key]);
+-          });
+-          // Force-on defaults
+           if (!S.settings) S.settings = {};
+-          if (S.settings.celebAnimations === undefined) S.settings.celebAnimations = true;
+-          if (S.settings.aiUseContext === undefined) S.settings.aiUseContext = true;
+-          const ct = document.getElementById('celebToggle'); if (ct) ct.classList.toggle('on', S.settings.celebAnimations !== false);
+-          const ai = document.getElementById('aiContextToggle'); if (ai) ai.classList.toggle('on', S.settings.aiUseContext !== false);
+-          // DND
++          Object.entries(SETTING_TOGGLES).forEach(([id, [key, def]]) => {
++            // Default-on settings must be written back, otherwise the first tap
++            // (undefined → !undefined) would "enable" a switch that already shows ON.
++            if (S.settings[key] === undefined && def) S.settings[key] = true;
++            const on = !!S.settings[key];
++            const el = document.getElementById(id);
++            if (el) { el.classList.toggle('on', on); el.setAttribute('aria-checked', on); }
++          });
+           if (S.settings.dndStart) document.getElementById('dndStart').value = S.settings.dndStart;
+           if (S.settings.dndEnd) document.getElementById('dndEnd').value = S.settings.dndEnd;
+-          // Chat count
+-          
+-          // AI status
+-          fetch(API + '/api/ai/status').then(r => r.json()).then(d => {
+-            const el = document.getElementById('aiStatusText');
+-            if (!el) return;
+-            if (d.configured) { el.textContent = '✅ Active'; el.style.color = 'var(--green)'; }
+-            else { el.textContent = '❌ Not configured'; el.style.color = 'var(--red)'; }
+-          }).catch(() => { });
+-          // Couple photos hero
+           renderSettingsPhotoHero();
+           updatePairStatus();
+           syncNotifToggleUI();
++          SettingsUI.reset();
++          SettingsUI.applyMotion();
+           window.refreshUIIcons && window.refreshUIIcons();
+         }
+ 
+         function toggleSetting(key, toggleId) {
+-  if (!S.settings) S.settings = {};
+-  S.settings[key] = !S.settings[key];
+-  const el = document.getElementById(toggleId);
+-  if (el) el.classList.toggle('on', S.settings[key]);
+-  saveLocal();      // add this — instant local persistence
+-  scheduleSave();   // cloud sync can stay debounced
+-  toast(S.settings[key] ? 'Enabled ✓' : 'Disabled');
+-}
+-        function toggleDND() { toggleSetting('dnd', 'dndToggle'); }
+-        function toggleAutoLock() { toggleSetting('autoLock', 'autoLockToggle'); }
++          if (!S.settings) S.settings = {};
++          S.settings[key] = !S.settings[key];
++          const el = document.getElementById(toggleId);
++          if (el) { el.classList.toggle('on', S.settings[key]); el.setAttribute('aria-checked', !!S.settings[key]); }
++          saveLocal();      // instant local persistence
++          scheduleSave();   // cloud sync stays debounced
++          if (key === 'reducedMotion') SettingsUI.applyMotion();
++          toast(S.settings[key] ? 'Enabled ✓' : 'Disabled');
++        }
+         function saveDND() {
+           if (!S.settings) S.settings = {};
+           S.settings.dndStart = document.getElementById('dndStart').value;
+@@ -8847,6 +8802,7 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
+     ? true // native permission is requested/handled by setupNativeNotifications(); no separate JS flag to read here
+     : ('Notification' in window) && Notification.permission === 'granted';
+   el.classList.toggle('on', granted);
++  el.setAttribute('aria-checked', granted);
+   if (status) {
+     status.textContent = isNative ? '✅ Enabled via app'
+       : !('Notification' in window) ? 'Not supported on this browser'
+@@ -8854,6 +8810,7 @@ document.querySelectorAll('.bot-ni[data-page]').forEach(el => {
+       : Notification.permission === 'denied' ? '❌ Blocked — enable in browser settings'
+       : 'Tap to enable';
+   }
++  if (window.SettingsUI) SettingsUI.refresh();
+ }
+ 
+ async function toggleNotifications() {
+@@ -8909,23 +8866,105 @@ const p = await Notification.requestPermission();
+         function renderSettingsPhotoHero() {
+           const el = document.getElementById('settingsPhotoHero'); if (!el) return;
+           const m = S.myName || 'You', p = S.partnerName || 'Partner';
+-          const days = S.anniversary ? Math.max(0, Math.floor((Date.now() - new Date(S.anniversary).getTime()) / 86400000)) : null;
+-          const av1 = S.myAvatar ? `<img src="${S.myAvatar}" alt="${esc(m)}">` : `<div class="sh-avatar-inner av1">${m[0] || 'U'}</div>`;
+-          const av2 = S.partnerAvatar ? `<img src="${S.partnerAvatar}" alt="${esc(p)}">` : `<div class="sh-avatar-inner av2">${p[0] || 'P'}</div>`;
+-          el.innerHTML = `<div class="settings-hero">
+-    <div style="width:100%">
+-      <div style="display:flex;align-items:center;justify-content:center;gap:0">
+-        <div class="sh-avatar sh-avatar-1 av1" onclick="pickAvatar('my')" title="Change your photo">${av1}</div>
+-        <div class="sh-heart">💕</div>
+-        <div class="sh-avatar sh-avatar-2 av2" onclick="viewAvatar('pt')" title="View partner photo">${av2}</div>
+-      </div>
+-      <div class="sh-info">
+-        <div class="sh-names">${esc(m)} & ${esc(p)}</div>
+-        ${days !== null ? `<div class="sh-days">💕 Together for <strong>${days}</strong> days</div>` : '<div class="sh-days">💕 Set your anniversary</div>'}
+-      </div>
+-    </div>
+-  </div>`;
+-        }
++          const av = (url, n) => url ? `<span><img src="${esc(url)}" alt=""></span>` : `<span>${esc((n[0] || 'U').toUpperCase())}</span>`;
++          let sub = 'Add your anniversary';
++          if (S.anniversary) {
++            const d = new Date(S.anniversary + 'T00:00:00');
++            const days = Math.max(0, Math.floor((Date.now() - d.getTime()) / 86400000));
++            sub = 'Together since ' + d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) + ' · ' + days + ' days';
++          }
++          el.innerHTML = `<div class="set-hero" role="button" tabindex="0" onclick="SettingsUI.open('profile')">
++            <div class="set-hero-av">${av(S.myAvatar, m)}${av(S.partnerAvatar, p)}</div>
++            <div class="set-hero-txt"><div class="set-hero-names">${esc(m)} &amp; ${esc(p)}</div><div class="set-hero-sub">${esc(sub)}</div></div>
++            <svg class="si set-chev"><use href="#si-chev"/></svg>
++          </div>`;
++        }
++
++        // ─── SETTINGS NAVIGATION (home list ⇄ sub-screens, search) ───
++        const SettingsUI = (() => {
++          const SUBS = ['profile', 'partner', 'notifications', 'appearance', 'chatmedia', 'twin', 'privacy', 'storage', 'about'];
++          const ALIAS = { backup: 'storage' };
++          const LABEL = { profile: 'Profile', partner: 'Partner Connection', notifications: 'Notifications', appearance: 'Appearance', chatmedia: 'Chat & Media', twin: 'Twin AI', privacy: 'Privacy & Security', storage: 'Storage & Data', about: 'App Info' };
++          // [screen, title, keywords] — what search matches against
++          const INDEX = [
++            ['profile', 'Profile', 'names photo avatar gender'],
++            ['profile', 'Together since', 'anniversary date'],
++            ['profile', 'Birthdays', 'birthday dates'],
++            ['partner', 'Partner Connection', 'link request phone pair'],
++            ['partner', 'Remove partner', 'unlink disconnect'],
++            ['partner', 'Requests received', 'pending invitations accept'],
++            ['notifications', 'Notifications', 'push alerts'],
++            ['notifications', 'Quiet hours', 'dnd do not disturb silent'],
++            ['appearance', 'Appearance', 'motion animations'],
++            ['appearance', 'Reduce motion', 'animations battery'],
++            ['chatmedia', 'Chat & Media', 'photos voice'],
++            ['chatmedia', 'Auto-save photos', 'gallery'],
++            ['chatmedia', 'Voice message playback', 'autoplay audio'],
++            ['twin', 'Twin AI', 'assistant ai'],
++            ['twin', 'Use relationship context', 'mood data advice'],
++            ['privacy', 'Privacy & Security', 'security'],
++            ['privacy', 'Lock app on background', 'app lock'],
++            ['privacy', 'Change vault PIN', 'password code'],
++            ['storage', 'Storage & Data', 'space used'],
++            ['storage', 'Export backup', 'download json'],
++            ['storage', 'Import backup', 'restore'],
++            ['storage', 'Cloud sync', 'supabase sync now'],
++            ['about', 'App Info', 'version'],
++            ['about', 'Privacy policy', 'legal terms']
++          ];
++          let current = null;
++          const $ = id => document.getElementById(id);
++          const scrollTop = () => { const c = document.querySelector('.content'); if (c) c.scrollTop = 0; };
++
++          function show(key) {
++            $('setHome').hidden = !!key;
++            SUBS.forEach(k => { const el = $('setSub-' + k); if (el) el.hidden = k !== key; });
++            current = key || null;
++            scrollTop();
++          }
++          function open(key) {
++            key = ALIAS[key] || key;
++            if (!SUBS.includes(key)) return;
++            show(key);
++            if (key === 'storage') loadStorageStats();
++            if (key === 'partner') updatePairStatus();
++          }
++          function back() { show(null); }
++          function handleBack() {
++            const pg = $('page-settings');
++            if (!pg || !pg.classList.contains('active')) return false;
++            if (current) { back(); return true; }
++            return false;
++          }
++          function reset() {
++            const inp = $('setSearch'); if (inp) inp.value = '';
++            search('');
++            show(null);
++            refresh();
++          }
++          function search(q) {
++            q = (q || '').trim().toLowerCase();
++            const box = $('setSearchResults'), secs = $('setSections');
++            if (!box || !secs) return;
++            if (!q) { box.hidden = true; box.innerHTML = ''; secs.hidden = false; return; }
++            const hits = INDEX.filter(([, t, kw]) => (t + ' ' + kw).toLowerCase().includes(q));
++            secs.hidden = true; box.hidden = false;
++            box.innerHTML = hits.length
++              ? '<div class="set-list">' + hits.map(([k, t]) => `<button type="button" class="set-row" onclick="SettingsUI.open('${k}')"><span class="set-txt"><span class="set-t">${t.replace(/&/g, '&amp;')}</span><span class="set-s">${LABEL[k].replace(/&/g, '&amp;')}</span></span><svg class="si set-chev"><use href="#si-chev"/></svg></button>`).join('') + '</div>'
++              : '<div class="set-nores">No settings found</div>';
++          }
++          // Right-hand values on the home list
++          function refresh() {
++            const p = $('setValPartner'); if (p) p.textContent = S.paired ? 'Connected' : (S.partnerRequestSent ? 'Pending' : 'Not connected');
++            const n = $('setValNotif'), t = $('notifToggle'); if (n && t) n.textContent = t.classList.contains('on') ? 'On' : 'Off';
++          }
++          function applyMotion() {
++            document.documentElement.classList.toggle('reduce-motion', !!(S.settings && S.settings.reducedMotion));
++          }
++          try { applyMotion(); } catch (e) { }
++          return { open, back, handleBack, reset, search, refresh, applyMotion };
++        })();
++        window.SettingsUI = SettingsUI;
+         // ─── MISS YOU FEATURE ──────────────────────────────────────
+         let lastMissSeen = parseInt(localStorage.getItem('uwl_lastMissSeen') || '0');
+         let lastMissResultSeen = parseInt(localStorage.getItem('uwl_lastMissResultSeen') || '0');
+@@ -13264,7 +13303,6 @@ init();
+ <script src="/js/audio/sound-engine.js"></script>
+ <script src="/js/audio/sound-library.js"></script>
+ <script src="/js/audio/audio-integration.js"></script>
+-<script src="/js/audio/audio-settings-ui.js"></script>
+ 
+ <!-- Live Map redesign layer (additive UI only — see livemap-redesign.css) -->
+ <script src="/livemap-redesign.js"></script>
+diff --git a/public/js/audio/audio-settings-ui.js b/public/js/audio/audio-settings-ui.js
+deleted file mode 100644
+index a538c60..0000000
+--- a/public/js/audio/audio-settings-ui.js
++++ /dev/null
+@@ -1,90 +0,0 @@
+-(function () {
+-  'use strict';
+-
+-  const CATEGORY_LABELS = {
+-    ui: 'Interface', chat: 'Chat', call: 'Calls', ai: 'AI Assistant',
+-    achievements: 'Achievements', love: 'Love Features', money: 'Money',
+-    study: 'Study', games: 'Games', home: 'Virtual Home',
+-    notification: 'Notifications', loading: 'System', music: 'Music', voice: 'Voice'
+-  };
+-
+-  const STYLE_ID = 'sound-settings-inline-style';
+-  const STYLE = `
+-  .snd-row { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:10px 0; }
+-  .snd-row + .snd-row { border-top:1px solid var(--border); }
+-  .snd-row label { font-size:12.5px; color:var(--white); flex:1; }
+-  .snd-row input[type="range"] { flex:1.5; accent-color:var(--accent); height:4px; }
+-  .snd-section-label { font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:var(--text3); margin:14px 0 4px; }
+-  `;
+-
+-  function injectStyleOnce() {
+-    if (document.getElementById(STYLE_ID)) return;
+-    const s = document.createElement('style');
+-    s.id = STYLE_ID;
+-    s.textContent = STYLE;
+-    document.head.appendChild(s);
+-  }
+-
+-  function buildRangeRow(labelText, value, onInput) {
+-    const row = document.createElement('div');
+-    row.className = 'snd-row';
+-    const label = document.createElement('label');
+-    label.textContent = labelText;
+-    const input = document.createElement('input');
+-    input.type = 'range'; input.min = '0'; input.max = '100'; input.value = String(Math.round(value * 100));
+-    input.addEventListener('input', () => onInput(Number(input.value) / 100));
+-    row.appendChild(label); row.appendChild(input);
+-    return row;
+-  }
+-
+-  function buildToggleRow(labelText, checked, onChange) {
+-    const row = document.createElement('div');
+-    row.className = 'snd-row';
+-    const label = document.createElement('label');
+-    label.textContent = labelText;
+-    const toggle = document.createElement('div');
+-    toggle.className = 'toggle' + (checked ? ' on' : '');
+-    toggle.addEventListener('click', () => {
+-      const next = !toggle.classList.contains('on');
+-      toggle.classList.toggle('on', next);
+-      onChange(next);
+-    });
+-    row.appendChild(label); row.appendChild(toggle);
+-    return row;
+-  }
+-
+-  function toggleRangesDisabled(container, disabled) {
+-    container.querySelectorAll('input[type="range"]').forEach((r) => { r.disabled = disabled; r.style.opacity = disabled ? '0.4' : '1'; });
+-  }
+-
+-  function renderInto(container) {
+-    const engine = window.SoundEngine;
+-    if (!container || !engine) return;
+-
+-    injectStyleOnce();
+-    container.innerHTML = '';
+-
+-    const settings = engine.getSettings();
+-
+-    container.appendChild(buildRangeRow('Master Volume', settings.master, (v) => engine.setMasterVolume(v)));
+-    container.appendChild(buildToggleRow('Mute All', settings.muted, (v) => {
+-      engine.setMuted(v);
+-      toggleRangesDisabled(container, v);
+-    }));
+-    container.appendChild(buildToggleRow('Night Mode', settings.nightMode, (v) => engine.setNightMode(v)));
+-
+-    const sectionLabel = document.createElement('div');
+-    sectionLabel.className = 'snd-section-label';
+-    sectionLabel.textContent = 'Categories';
+-    container.appendChild(sectionLabel);
+-
+-    Object.keys(settings.categories).forEach((cat) => {
+-      const label = CATEGORY_LABELS[cat] || cat;
+-      container.appendChild(buildRangeRow(label, settings.categories[cat], (v) => engine.setCategoryVolume(cat, v)));
+-    });
+-
+-    toggleRangesDisabled(container, settings.muted);
+-  }
+-
+-  window.SoundSettingsUI = { renderInto };
+-})();
+\ No newline at end of file
+diff --git a/public/profile.js b/public/profile.js
+index 440898b..11e4d1c 100644
+--- a/public/profile.js
++++ b/public/profile.js
+@@ -400,10 +400,7 @@
+   /* ── Actions ── */
+   function openAppSetting(key) {
+     goto('settings');
+-    setTimeout(() => {
+-      const h = [...document.querySelectorAll('#page-settings .settings-group-header')].find(x => x.textContent.toLowerCase().includes(key));
+-      if (h) h.closest('.settings-group').scrollIntoView({ behavior: 'smooth', block: 'start' });
+-    }, 80);
++    SettingsUI.open(key);
+   }
+ 
+   const ACTIONS = {
+diff --git a/public/ui-icons.js b/public/ui-icons.js
+index 2851018..c07fd15 100644
+--- a/public/ui-icons.js
++++ b/public/ui-icons.js
+@@ -235,14 +235,13 @@
+ 
+   /* ── 3. SAFE zones — interface chrome only. Never touches user content. ── */
+   const SAFE_SELECTORS = [
+-    '.card-title', '.modal-title', '.settings-group-header',
+-    '.settings-row-title', '.settings-row-sub', '.settings-row-ico',
++    '.card-title', '.modal-title',
+     '.btn', '.ic-btn', '.btn-ghost', '.del-btn', '.modal-close',
+     '.img-viewer-close', '.search-cancel', '.sf', '.stab', '.tag',
+     '.empty', '.empty-ico', '.fight-status', '.phase-badge',
+     '.priv-badge', '.stat-l', '.pstat-l', '.fstat-l', '.metric-l',
+     '.streak-badge', '.info-banner', '.auth-sub', '.auth-tab',
+-    '.settings-row-action', '.pk', '.money-ic', '.ni .ico', '.bot-ni .ico',
++    '.pk', '.money-ic', '.ni .ico', '.bot-ni .ico',
+     '.ni-chev', '.cat-back-btn', '.cat-row-ico', '.cat-row-chev',
+     '.hamburger', '#lastSaved', '.alarm-ico', 'label.btn', '.cam-btn',
+     '.storage-action-btn', '.symptom-grid > .symptom-tag',
+@@ -251,7 +250,7 @@
+     'select#evAlarm option', 'select#remFor option', 'select#slotAlarm option',
+     'select#moneyType option', 'select#msType option', 'select#journalVisibility option',
+     'select#noteVisibility option', 'select#bucketVisibility option',
+-    '.pill', '.sh-days', '.vid-overlay', '#camPh',
++    '.pill', '.vid-overlay', '#camPh',
+ 
+     // ── NEW in v3 — connection card + stat icons that weren't scanned before ──
+     '.cc-ico', '.cc-lbl', '.cc-stat-ico', '.cc-stat-l',
+@@ -262,7 +261,7 @@
+ 
+     // ── NEW in v4 — dream board tabs, type selects, misc inline icon buttons ──
+     '#dreamTabs .stab', 'select#msType option', 'select#surType option',
+-    '.touch-heart-btn', '.sh-heart', '.logo-heart', '.hug-btn .connect-btn-ico',
++    '.touch-heart-btn', '.logo-heart', '.hug-btn .connect-btn-ico',
+     '.missyou-btn .connect-btn-ico', '.cb-snap', '.pt-btn',
+     '.storage-cat-ico', '.storage-ring-label',
+ 

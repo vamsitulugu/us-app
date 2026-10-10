@@ -235,14 +235,13 @@
 
   /* ── 3. SAFE zones — interface chrome only. Never touches user content. ── */
   const SAFE_SELECTORS = [
-    '.card-title', '.modal-title', '.settings-group-header',
-    '.settings-row-title', '.settings-row-sub', '.settings-row-ico',
+    '.card-title', '.modal-title',
     '.btn', '.ic-btn', '.btn-ghost', '.del-btn', '.modal-close',
     '.img-viewer-close', '.search-cancel', '.sf', '.stab', '.tag',
     '.empty', '.empty-ico', '.fight-status', '.phase-badge',
     '.priv-badge', '.stat-l', '.pstat-l', '.fstat-l', '.metric-l',
     '.streak-badge', '.info-banner', '.auth-sub', '.auth-tab',
-    '.settings-row-action', '.pk', '.money-ic', '.ni .ico', '.bot-ni .ico',
+    '.pk', '.money-ic', '.ni .ico', '.bot-ni .ico',
     '.ni-chev', '.cat-back-btn', '.cat-row-ico', '.cat-row-chev',
     '.hamburger', '#lastSaved', '.alarm-ico', 'label.btn', '.cam-btn',
     '.storage-action-btn', '.symptom-grid > .symptom-tag',
@@ -251,7 +250,7 @@
     'select#evAlarm option', 'select#remFor option', 'select#slotAlarm option',
     'select#moneyType option', 'select#msType option', 'select#journalVisibility option',
     'select#noteVisibility option', 'select#bucketVisibility option',
-    '.pill', '.sh-days', '.vid-overlay', '#camPh',
+    '.pill', '.vid-overlay', '#camPh',
 
     // ── NEW in v3 — connection card + stat icons that weren't scanned before ──
     '.cc-ico', '.cc-lbl', '.cc-stat-ico', '.cc-stat-l',
@@ -262,7 +261,7 @@
 
     // ── NEW in v4 — dream board tabs, type selects, misc inline icon buttons ──
     '#dreamTabs .stab', 'select#msType option', 'select#surType option',
-    '.touch-heart-btn', '.sh-heart', '.logo-heart', '.hug-btn .connect-btn-ico',
+    '.touch-heart-btn', '.logo-heart', '.hug-btn .connect-btn-ico',
     '.missyou-btn .connect-btn-ico', '.cb-snap', '.pt-btn',
     '.storage-cat-ico', '.storage-ring-label',
 
