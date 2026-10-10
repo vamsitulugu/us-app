@@ -227,6 +227,8 @@
 .dh-act:active, .dh-act.is-sent { transform: scale(.94); }
 .dh-act.is-active { background: #fff; border-color: #fff; color: var(--accent-d); }
 
+.dh-side { display: contents; }
+
 /* ── Small phones ── */
 @media (max-width: 360px) {
   .dh { --pad: 14px; }
@@ -234,41 +236,50 @@
   .dh-brand span { font-size: 18px; }
 }
 
-/* ── Laptop / tablet: one rounded panel ── */
+/* ── Laptop / tablet: same structure as mobile, full width ──
+   Red hero on top, dark sheet below, both edge to edge. */
 @media (min-width: 701px) {
-  .dh { --pad: 28px; max-width: 1180px; margin: 0 auto; padding: 22px 24px 24px; grid-template-rows: auto auto 1fr; }
-  .dh-bg { grid-row: 1 / -1; border-radius: 34px; }
-  .dh-top { padding: 22px var(--pad) 0; }
-  .dh-intro { padding-bottom: 28px; }
+  .dh { --pad: clamp(24px, 4vw, 64px); }
+  .dh-top { padding: 22px var(--pad) 6px; }
+  .dh-intro { padding: 10px var(--pad) 64px; }
   .dh-menu { display: none; }              /* sidebar is always visible here */
-  .dh-quote { font-size: clamp(30px, 3.4vw, 46px); }
-  .dh-chips { margin: 0; padding: 2px 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; }
-  .dh-chip { width: auto; height: 84px; }
-  .dh-sheet {
-    margin: 0 var(--pad) var(--pad);
-    padding: 20px;
-    border-radius: 28px;
-    background: rgba(10, 5, 12, .42);
-    border: 1px solid rgba(255, 255, 255, .16);
-    box-shadow: none;
-  }
+  .dh-quote { font-size: clamp(30px, 3vw, 44px); max-width: 900px; }
+  .dh-search-row { max-width: 720px; }
+  .dh-chips { margin: 0; padding: 2px 0; overflow: visible; flex-wrap: wrap; }
+  .dh-chip { width: 96px; height: 80px; }
+  .dh-sheet { margin-top: -34px; padding: 30px var(--pad) calc(120px + env(safe-area-inset-bottom, 0px)); }
+  .dh-sheet-title { font-size: 19px; }
   .dh-act { height: 50px; font-size: 14px; }
 }
 
-@media (min-width: 861px) {
-  .dh-chips { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-}
-
-@media (min-width: 1000px) {
-  .dh {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
-    grid-template-areas: "top top" "intro sheet";
-    grid-template-rows: auto 1fr;
-    column-gap: 12px;
+/* ── Wide laptops: hero becomes two columns (short red band),
+      sheet puts the love card beside Coming up + Mood ── */
+@media (min-width: 1280px) {
+  .dh-intro {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    grid-template-areas: "greet search" "quote chips";
+    column-gap: 48px; row-gap: 14px;
+    align-items: center;
+    padding-bottom: 72px;
   }
-  .dh-bg { grid-column: 1 / -1; }
-  .dh-intro { align-self: center; padding: 0 var(--pad) 36px; max-width: 520px; }
-  .dh-sheet { align-self: center; margin: 0 var(--pad) 36px 0; }
+  .dh-greet { grid-area: greet; align-self: end; }
+  .dh-quote { grid-area: quote; align-self: start; }
+  .dh-search-row { grid-area: search; max-width: none; }
+  .dh-chips { grid-area: chips; display: grid; grid-template-columns: repeat(auto-fit, minmax(78px, 1fr)); gap: 8px; }
+  .dh-chip { width: auto; height: 76px; }
+
+  .dh-sheet {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    column-gap: 32px; row-gap: 0;
+    align-items: start;
+  }
+  .dh-sheet-title { grid-column: 1; grid-row: 1; }
+  .dh-card { grid-column: 1; grid-row: 2; }
+  .dh-side { display: block; grid-column: 2; grid-row: 1 / span 2; }
+  .dh-side > .dw-block:first-child { margin-top: 0; }
+  .dh-sheet > .dw-block, .dh-sheet > .dw-quote { grid-column: 1 / -1; }
 }
 
 /* ── Short phones (e.g. 360x640, iPhone SE): keep the card above the bottom nav ── */

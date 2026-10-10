@@ -209,14 +209,12 @@
 .dw-reset[hidden] { display: none; }
 
 @media (min-width: 701px) {
-  .dw-pages { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .dw-pages { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
   .dw-events { margin: 0; padding: 2px 0; }
   .dw-overlay { align-items: center; background: rgba(0, 0, 0, .6); justify-content: center; }
   .dw-panel { width: min(520px, 100%); height: min(860px, 100%); display: flex; flex-direction: column; background: #130c12; border-radius: 28px; overflow: hidden; }
 }
 @media (max-width: 700px) { .dw-panel { display: contents; } }
-@media (min-width: 861px) { .dh-chips { grid-template-columns: repeat(7, minmax(0, 1fr)) !important; } }
-@media (min-width: 701px) and (max-width: 860px) { .dh-chips { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; } }
 @media (prefers-reduced-motion: reduce) { .dw-overlay, .dw-ev, .dw-mood, .dw-page { transition: none; } }
 
 /* ── Two-person mood graph + calendar switcher ── */

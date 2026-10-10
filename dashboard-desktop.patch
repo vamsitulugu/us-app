@@ -1,0 +1,132 @@
+diff --git a/public/dashboard-widgets.css b/public/dashboard-widgets.css
+index 42f98b7..0c68483 100644
+--- a/public/dashboard-widgets.css
++++ b/public/dashboard-widgets.css
+@@ -209,14 +209,12 @@
+ .dw-reset[hidden] { display: none; }
+ 
+ @media (min-width: 701px) {
+-  .dw-pages { grid-template-columns: repeat(6, minmax(0, 1fr)); }
++  .dw-pages { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
+   .dw-events { margin: 0; padding: 2px 0; }
+   .dw-overlay { align-items: center; background: rgba(0, 0, 0, .6); justify-content: center; }
+   .dw-panel { width: min(520px, 100%); height: min(860px, 100%); display: flex; flex-direction: column; background: #130c12; border-radius: 28px; overflow: hidden; }
+ }
+ @media (max-width: 700px) { .dw-panel { display: contents; } }
+-@media (min-width: 861px) { .dh-chips { grid-template-columns: repeat(7, minmax(0, 1fr)) !important; } }
+-@media (min-width: 701px) and (max-width: 860px) { .dh-chips { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; } }
+ @media (prefers-reduced-motion: reduce) { .dw-overlay, .dw-ev, .dw-mood, .dw-page { transition: none; } }
+ 
+ /* ── Two-person mood graph + calendar switcher ── */
+diff --git a/public/dashboard.css b/public/dashboard.css
+index 5b88005..8921d9f 100644
+--- a/public/dashboard.css
++++ b/public/dashboard.css
+@@ -227,6 +227,8 @@
+ .dh-act:active, .dh-act.is-sent { transform: scale(.94); }
+ .dh-act.is-active { background: #fff; border-color: #fff; color: var(--accent-d); }
+ 
++.dh-side { display: contents; }
++
+ /* ── Small phones ── */
+ @media (max-width: 360px) {
+   .dh { --pad: 14px; }
+@@ -234,41 +236,50 @@
+   .dh-brand span { font-size: 18px; }
+ }
+ 
+-/* ── Laptop / tablet: one rounded panel ── */
++/* ── Laptop / tablet: same structure as mobile, full width ──
++   Red hero on top, dark sheet below, both edge to edge. */
+ @media (min-width: 701px) {
+-  .dh { --pad: 28px; max-width: 1180px; margin: 0 auto; padding: 22px 24px 24px; grid-template-rows: auto auto 1fr; }
+-  .dh-bg { grid-row: 1 / -1; border-radius: 34px; }
+-  .dh-top { padding: 22px var(--pad) 0; }
+-  .dh-intro { padding-bottom: 28px; }
++  .dh { --pad: clamp(24px, 4vw, 64px); }
++  .dh-top { padding: 22px var(--pad) 6px; }
++  .dh-intro { padding: 10px var(--pad) 64px; }
+   .dh-menu { display: none; }              /* sidebar is always visible here */
+-  .dh-quote { font-size: clamp(30px, 3.4vw, 46px); }
+-  .dh-chips { margin: 0; padding: 2px 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; }
+-  .dh-chip { width: auto; height: 84px; }
+-  .dh-sheet {
+-    margin: 0 var(--pad) var(--pad);
+-    padding: 20px;
+-    border-radius: 28px;
+-    background: rgba(10, 5, 12, .42);
+-    border: 1px solid rgba(255, 255, 255, .16);
+-    box-shadow: none;
+-  }
++  .dh-quote { font-size: clamp(30px, 3vw, 44px); max-width: 900px; }
++  .dh-search-row { max-width: 720px; }
++  .dh-chips { margin: 0; padding: 2px 0; overflow: visible; flex-wrap: wrap; }
++  .dh-chip { width: 96px; height: 80px; }
++  .dh-sheet { margin-top: -34px; padding: 30px var(--pad) calc(120px + env(safe-area-inset-bottom, 0px)); }
++  .dh-sheet-title { font-size: 19px; }
+   .dh-act { height: 50px; font-size: 14px; }
+ }
+ 
+-@media (min-width: 861px) {
+-  .dh-chips { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+-}
++/* ── Wide laptops: hero becomes two columns (short red band),
++      sheet puts the love card beside Coming up + Mood ── */
++@media (min-width: 1280px) {
++  .dh-intro {
++    display: grid;
++    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
++    grid-template-areas: "greet search" "quote chips";
++    column-gap: 48px; row-gap: 14px;
++    align-items: center;
++    padding-bottom: 72px;
++  }
++  .dh-greet { grid-area: greet; align-self: end; }
++  .dh-quote { grid-area: quote; align-self: start; }
++  .dh-search-row { grid-area: search; max-width: none; }
++  .dh-chips { grid-area: chips; display: grid; grid-template-columns: repeat(auto-fit, minmax(78px, 1fr)); gap: 8px; }
++  .dh-chip { width: auto; height: 76px; }
+ 
+-@media (min-width: 1000px) {
+-  .dh {
+-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+-    grid-template-areas: "top top" "intro sheet";
+-    grid-template-rows: auto 1fr;
+-    column-gap: 12px;
++  .dh-sheet {
++    display: grid;
++    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
++    column-gap: 32px; row-gap: 0;
++    align-items: start;
+   }
+-  .dh-bg { grid-column: 1 / -1; }
+-  .dh-intro { align-self: center; padding: 0 var(--pad) 36px; max-width: 520px; }
+-  .dh-sheet { align-self: center; margin: 0 var(--pad) 36px 0; }
++  .dh-sheet-title { grid-column: 1; grid-row: 1; }
++  .dh-card { grid-column: 1; grid-row: 2; }
++  .dh-side { display: block; grid-column: 2; grid-row: 1 / span 2; }
++  .dh-side > .dw-block:first-child { margin-top: 0; }
++  .dh-sheet > .dw-block, .dh-sheet > .dw-quote { grid-column: 1 / -1; }
+ }
+ 
+ /* ── Short phones (e.g. 360x640, iPhone SE): keep the card above the bottom nav ── */
+diff --git a/public/index.html b/public/index.html
+index 07055c4..82e1a7d 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -5186,6 +5186,7 @@ select option { background: #0D0D0D; color: #fff; }
+               </div>
+             </div>
+ 
++            <div class="dh-side">
+             <div class="dw-block">
+               <div class="dw-head"><h2 class="dw-title">Coming up</h2><button class="dw-link" type="button" onclick="goto('calendar')">Calendar ›</button></div>
+               <div class="dw-events" id="dwEvents"></div>
+@@ -5194,6 +5195,7 @@ select option { background: #0D0D0D; color: #fff; }
+             <div class="dw-block">
+               <div class="dw-mood" id="dwMood" role="button" tabindex="0" aria-label="Open mood calendar"></div>
+             </div>
++            </div>
+ 
+             <div class="dw-block">
+               <div class="dw-head"><h2 class="dw-title">All pages</h2></div>
