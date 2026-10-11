@@ -1,0 +1,57 @@
+diff --git a/public/index.html b/public/index.html
+index 6d96d28..4e63de8 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -8338,6 +8338,19 @@ function setJustPairedAt(ts) {
+           goto(page);
+           return true;
+         }
++        // Restores the page the user was on before a reload. Only used when
++        // there is no explicit deep link / call launch, and only if the last
++        // page was visited recently (so a fresh app open next day starts on
++        // the Dashboard as usual).
++        function restoreLastPage() {
++          try {
++            var hs = history.state && history.state.page;
++            var saved = JSON.parse(localStorage.getItem('uwl_lastPage') || 'null');
++            var page = hs || (saved && (Date.now() - saved.t) < 30 * 60 * 1000 ? saved.page : null);
++            if (page && page !== 'dashboard' && DEEP_LINK_PAGES.has(page)) return navigateToDeepLink(page);
++          } catch (e) {}
++          return false;
++        }
+         // ── Presence heartbeat (see routes/presence.js) ──────────────
+         // Tells the backend which page is currently on screen, so a new
+         // chat message can skip the push notification when the receiver
+@@ -8440,6 +8453,9 @@ function setJustPairedAt(ts) {
+           document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
+           const pg = document.getElementById('page-' + page); if (!pg) return;
+           pg.classList.add('active');
++          // Remember where the user is so an unexpected reload (OS killing the
++          // WebView, network blip, manual refresh) returns here, not Dashboard.
++          try { localStorage.setItem('uwl_lastPage', JSON.stringify({ page: page, t: Date.now() })); } catch (e) {}
+           if (page === 'chat' && window.Chat) {
+             // Mark-as-read previously only happened on the next 5s poll
+             // tick (or not at all if focus was already on the tab) —
+@@ -12428,6 +12444,8 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
+             navigateToDeepLink(window.__DEEP_LINK_PAGE__);
+             window.__DEEP_LINK_PAGE__ = null;
+             history.replaceState({}, '', window.location.pathname);
++          } else {
++            restoreLastPage();
+           }
+           finishRestoreRemainder();
+         }
+@@ -13760,8 +13778,11 @@ init();
+                   const newWorker = reg.installing;
+                   newWorker.addEventListener('statechange', () => {
+                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+-                      // New SW available — force reload once so it takes control
+-                      window.location.reload();
++                      // New SW available. Do NOT force-reload: that interrupted
++                      // live music / in-progress tasks and dumped the user on the
++                      // Dashboard. HTML and JS are network-first, so the update
++                      // is picked up automatically on the next natural launch.
++                      console.log('[sw] update installed — will apply on next launch');
+                     }
+                   });
+                 });
