@@ -10,3 +10,8 @@ html{height:100%;height:-webkit-fill-available}body{min-height:100vh;min-height:
 .chat-page-wrap{flex:1 1 auto;min-height:0;height:auto!important}
 #page-ai.active>.ai-wrap,#page-ai.active>#bothModeWrap{flex:1 1 0;min-height:0}
 }
+
+/* Mobile: iframe pages run to the bottom of the screen and scroll behind the floating nav (no gap). */
+@media (max-width:700px){
+body:not([data-immersive="1"]) .iframe-page-wrap{height:calc(100dvh - var(--topbar-h-mobile))!important}
+}

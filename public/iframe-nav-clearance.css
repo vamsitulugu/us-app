@@ -1,0 +1,38 @@
+/* ═══════════════════════════════════════════════════════════════════
+   iframe-nav-clearance.css
+   Linked by every page that is embedded as an <iframe> inside the app
+   shell (Dream Goals, Music, Movie, Games, Love Counter, Collection,
+   Places, Daily Routine, Meet Planner).
+
+   The shell now lets these iframes run to the very bottom of the screen
+   (no gap above the floating glass nav). The nav pill therefore overlaps
+   the bottom ~100px of the iframe, so each page must leave that space
+   free for: the last bit of scrollable content, bottom sheets / modals,
+   toasts and floating buttons.
+   Only active on phones (<=700px), where the bottom nav exists.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width:700px){
+  :root{ --us-nav-clear: calc(104px + env(safe-area-inset-bottom, 0px)); }
+
+  /* Pages that scroll the whole document: end the scroll area below the nav */
+  html{ -webkit-overflow-scrolling: touch; }
+  body{ box-sizing: border-box; padding-bottom: var(--us-nav-clear); }
+
+  /* Meet Planner scrolls an inner container (html/body are overflow:hidden) */
+  body:has(.mp-app){ padding-bottom: 0; }
+  .mp-app{ padding-bottom: var(--us-nav-clear); }
+
+  /* Modals / bottom sheets: lift them above the nav */
+  .dg-modal-bg, .pm-modal-bg, .song-modal-bg, .mp-modal-bg,
+  .sheet-overlay, .fx-rack-overlay, .dr-sheet-bg,
+  .wt-modal-backdrop, .voice-action-sheet, .goverlay{
+    padding-bottom: var(--us-nav-clear) !important;
+    box-sizing: border-box;
+  }
+
+  /* Toasts + floating buttons */
+  #dgToast, #mmToast, #pmToast, #colToast,
+  .gtoast, .dr-toast, .wt-toast, .dr-fab{
+    bottom: calc(var(--us-nav-clear) + 12px) !important;
+  }
+}
