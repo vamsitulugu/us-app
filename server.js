@@ -117,7 +117,6 @@ app.use('/api/location', require('./routes/location'));
 app.use('/api/route', require('./routes/route'));
 app.use('/api/tracking', require('./routes/tracking'));
 app.use('/api/globe', require('./routes/globe'));
-app.use('/api/home', require('./routes/home'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/call', require('./routes/call'));
 app.use('/api/music', require('./routes/music'));

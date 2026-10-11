@@ -7,7 +7,7 @@ copy each folder over the matching one in your project (overwrite when asked):
   public/       -> overwrite these files in your project's public/ folder
                     (index.html, dreamgoals.html, and 6 .css files)
   routes/       -> overwrite these files in your project's routes/ folder
-                    (data.js, home.js, lyrics.js)
+                    (data.js, lyrics.js)
   css-src/      -> put this as a NEW top-level folder in your project root
                     (NOT inside public/) — these are the readable, editable
                     originals of the 6 CSS files now shipped minified in

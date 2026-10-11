@@ -57,7 +57,6 @@
     // 'map' removed — Live Map is now a bottom-nav tab, so the bar must stay visible
     'camera',      // camera capture / video preview
     'globe',       // memory globe — embedded 3D iframe experience
-    'virtualhome', // virtual home — embedded 3D iframe experience
     'ai',          // AI love guide — fullscreen conversation
     'profile'      // profile editing
   ];

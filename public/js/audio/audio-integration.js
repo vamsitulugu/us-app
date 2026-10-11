@@ -37,38 +37,6 @@
   window.playAppSound = safePlay;
 
   /* ---------------------------------------------------------------- */
-  /* Respect Android/OS silent mode + Do Not Disturb heuristics        */
-  /* ---------------------------------------------------------------- */
-  function syncSilentEnvironment() {
-    if (!window.SoundEngine) return;
-    // There is no direct web API for "OS silent switch" or true DND,
-    // but we respect the most reliable proxies available in-browser:
-    //  - navigator.getBattery() saveData / low battery -> soften audio
-    //  - matchMedia('(prefers-reduced-motion)') as a proxy for reduced
-    //    stimulation preference, applied to non-essential (ambient) sounds
-    try {
-      if (navigator.connection && navigator.connection.saveData) {
-        window.SoundEngine.setCategoryVolume('home', 0.15); // battery saver: cut ambience
-      }
-    } catch (e) {}
-
-    try {
-      if (navigator.getBattery) {
-        navigator.getBattery().then((battery) => {
-          const applyBatteryState = () => {
-            if (battery.level <= 0.15 && !battery.charging) {
-              window.SoundEngine.setCategoryVolume('home', 0.1);
-            }
-          };
-          applyBatteryState();
-          battery.addEventListener('levelchange', applyBatteryState);
-          battery.addEventListener('chargingchange', applyBatteryState);
-        }).catch(() => {});
-      }
-    } catch (e) {}
-  }
-
-  /* ---------------------------------------------------------------- */
   /* Generic delegation for baseline premium feedback                  */
   /* ---------------------------------------------------------------- */
   const TAP_SELECTOR = [
@@ -145,10 +113,8 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     watchDialogs(document.body);
-    syncSilentEnvironment();
   });
   if (document.readyState !== 'loading') {
     watchDialogs(document.body);
-    syncSilentEnvironment();
   }
 })();

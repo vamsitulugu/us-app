@@ -63,7 +63,6 @@ Stores:
 Integrated with:
 
 - Meet Planner
-- Virtual Home
 
 ---
 
@@ -101,85 +100,6 @@ Current and planned features include:
 - Favorites
 - History
 - Music Videos
-
----
-
-## 🏡 Virtual Home
-
-A flagship shared 3D home built with Three.js.
-
-### Completed
-
-- Phase 1
-  - Project architecture
-  - Backend foundation
-  - Database
-  - API
-
-- Phase 2
-  - Three.js engine
-  - Renderer
-  - Camera
-  - Controls
-  - Lighting
-  - Scene management
-
-- Phase 3
-  - Complete house structure
-  - Living Room
-  - Bedroom
-  - Kitchen
-  - Garden
-  - Music Room
-  - Game Room
-  - Library
-  - Pet Room
-  - Rooftop
-
-- Phase 4
-  - Furniture system
-  - Furniture editing
-  - Drag & Drop
-  - Resize
-  - Snap
-  - Undo / Redo
-  - Categories
-  - Favorites
-  - Decoration themes
-  - Luxury furniture support
-
-- Phase 5
-  - Memory system
-  - Gift system
-  - Timeline wall
-  - Memory shelf
-  - Trophy cabinet
-  - Voice memories
-  - Interactive photo frames
-  - Albums
-  - Anniversary decorations
-  - Achievement decorations
-
-### Planned
-
-- Phase 6
-  - Living World
-  - Couple avatars
-  - Pets
-  - AI behaviors
-  - Realtime interactions
-
-- Phase 7
-  - Day/Night
-  - Weather
-  - Ambient sounds
-  - Fireplace
-  - Environmental effects
-
-- Phase 8
-  - Performance optimization
-  - Mobile optimization
-  - Production polish
 
 ---
 
@@ -224,7 +144,6 @@ Current routes:
 - Data
 - Media
 - Memory Globe
-- Virtual Home
 - Meet Planner
 
 Supabase provides:

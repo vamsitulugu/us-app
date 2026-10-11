@@ -208,40 +208,6 @@ async function migrateGlobeMedia() {
   }
 }
 
-// ─── home_memory_objects: thumbnail + voice note in meta ──
-async function migrateHomeMemories() {
-  console.log('\n── home_memory_objects (thumbnail / voice note) ──');
-  let query = supabase.from('home_memory_objects').select('id, couple_id, thumbnail, meta');
-  if (ONLY_COUPLE) query = query.eq('couple_id', ONLY_COUPLE);
-  const { data: rows, error } = await query;
-  if (error) { console.error('Failed to read home_memory_objects:', error.message); return; }
-
-  for (const row of rows || []) {
-    let changed = false;
-    let thumbnail = row.thumbnail;
-    let meta = row.meta || {};
-
-    if (isBase64(thumbnail)) {
-      console.log(`  [${row.couple_id}] memory ${row.id} thumbnail is base64 (${(thumbnail.length / 1024).toFixed(0)}KB) → uploading`);
-      const uploaded = await uploadBase64(row.couple_id, thumbnail, 'couple-photos');
-      if (uploaded) { thumbnail = uploaded.url; meta.thumbnail = uploaded.url; changed = true; }
-    }
-    if (isBase64(meta.audioData)) {
-      console.log(`  [${row.couple_id}] memory ${row.id} voice note is base64 (${(meta.audioData.length / 1024).toFixed(0)}KB) → uploading`);
-      const uploaded = await uploadBase64(row.couple_id, meta.audioData, 'couple-photos');
-      if (uploaded) { meta.audioData = uploaded.url; changed = true; }
-    }
-
-    if (changed && APPLY) {
-      const { error: upErr } = await supabase.from('home_memory_objects')
-        .update({ thumbnail, meta })
-        .eq('id', row.id);
-      if (upErr) console.error(`  ! failed to save memory ${row.id}:`, upErr.message);
-      else console.log(`  ✓ saved memory ${row.id}`);
-    }
-  }
-}
-
 (async () => {
   console.log(APPLY ? '=== APPLY MODE — this will upload files and rewrite rows ===' : '=== DRY RUN — nothing will be written. Pass --apply to actually run it. ===');
   if (ONLY_COUPLE) console.log('Limited to couple_id =', ONLY_COUPLE);
@@ -249,7 +215,6 @@ async function migrateHomeMemories() {
   await migrateAppState();
   await migrateChatMessages();
   await migrateGlobeMedia();
-  await migrateHomeMemories();
 
   console.log(`\nDone. ${uploadCount} base64 item(s) ${APPLY ? 'uploaded' : 'found'}, ~${(bytesSaved / 1024 / 1024).toFixed(2)}MB of inline base64 ${APPLY ? 'moved to Storage' : 'would be moved to Storage'}.`);
   if (!APPLY) console.log('Re-run with --apply when you\'re ready — try --couple=<id> on one couple first.');

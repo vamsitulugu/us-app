@@ -5356,27 +5356,6 @@ select option { background: #0D0D0D; color: #fff; }
     <iframe id="globeFrame" src="/globe.html" title="Memory Globe" loading="lazy"></iframe>
   </div>
 </div>
-<div class="page" id="page-virtualhome">
-  <div class="iframe-page-wrap">
-    <iframe id="virtualhomeFrame" data-src="/home/home.html" title="Virtual Home"></iframe>
-  </div>
-</div>
-      <div class="page" id="page-dreamhome">
-        <div class="card">
-          <div class="card-title">🏡 Dream Home Planner<button class="btn btn-accent btn-sm"
-              onclick="openM('dreamModal')">+ Add Idea</button></div>
-        </div>
-        <div class="stabs" id="dreamTabs">
-          <div class="stab active" data-cat="House" onclick="dreamTab('House',this)">🏠 House</div>
-          <div class="stab" data-cat="Furniture" onclick="dreamTab('Furniture',this)">🛋️ Furniture</div>
-          <div class="stab" data-cat="Cars" onclick="dreamTab('Cars',this)">🚗 Cars</div>
-          <div class="stab" data-cat="Pets" onclick="dreamTab('Pets',this)">🐶 Pets</div>
-          <div class="stab" data-cat="Vacation" onclick="dreamTab('Vacation',this)">🏝️ Vacation</div>
-          <div class="stab" data-cat="Children" onclick="dreamTab('Children',this)">👶 Children Names</div>
-          <div class="stab" data-cat="Goals" onclick="dreamTab('Goals',this)">🎯 Dream Goals</div>
-        </div>
-        <div class="note-grid" id="dreamBoardGrid"></div>
-      </div>
       <!-- ════ CHAT ════ -->
 <div class="page" id="page-chat">
   <!-- Wallpaper lives OUTSIDE .chat-page-wrap on purpose: .chat-page-wrap
@@ -5637,21 +5616,6 @@ select option { background: #0D0D0D; color: #fff; }
       </div>
       <div class="page" id="page-level">
         <div id="levelPageContent"></div>
-      </div>
-      <div class="page" id="page-capsule">
-        <div class="card">
-          <div class="card-title">💌 Create a Love Capsule</div>
-          <div class="field"><label>Your Message</label><textarea id="capsuleMsg"
-              placeholder="Write something for the future..."></textarea></div>
-          <div class="field"><label>Unlock Date</label><input type="date" id="capsuleDate"></div>
-          <button class="btn btn-accent" onclick="addCapsule()">Seal Capsule 🔒</button>
-        </div>
-        <div class="card">
-          <div class="card-title">💕 Our Capsules</div>
-          <div id="capsuleList">
-            <div class="empty">No capsules yet</div>
-          </div>
-        </div>
       </div>
       <!-- ════ PERIOD TRACKER ════ -->
       <div class="page" id="page-period">
@@ -6679,16 +6643,41 @@ select option { background: #0D0D0D; color: #fff; }
 </div>
 
       <div class="page" id="page-surprise">
-        <div class="card">
-          <div class="card-title">🎁 Create a Surprise<button class="btn btn-accent btn-sm"
-              onclick="openM('surpriseModal')">+ New</button></div>
-          <div style="font-size:11px;color:var(--text3)">Hidden until the unlock date — your partner won't see it until
-            then 💕</div>
+        <div class="stabs" id="surpriseTabs">
+          <div class="stab active" data-sub="surprises" onclick="setSurpriseTab('surprises')">🎁 Surprises</div>
+          <div class="stab" data-sub="capsules" onclick="setSurpriseTab('capsules')">💌 Love Capsule</div>
         </div>
-        <div class="card">
-          <div class="card-title">🎉 Surprises</div>
-          <div id="surpriseList">
-            <div class="empty">No surprises yet</div>
+
+        <!-- Sub-page: Surprises -->
+        <div id="surpriseSub-surprises">
+          <div class="card">
+            <div class="card-title">🎁 Create a Surprise<button class="btn btn-accent btn-sm"
+                onclick="openM('surpriseModal')">+ New</button></div>
+            <div style="font-size:11px;color:var(--text3)">Hidden until the unlock date — your partner won't see it until
+              then 💕</div>
+          </div>
+          <div class="card">
+            <div class="card-title">🎉 Surprises</div>
+            <div id="surpriseList">
+              <div class="empty">No surprises yet</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub-page: Love Capsule -->
+        <div id="surpriseSub-capsules" style="display:none">
+          <div class="card">
+            <div class="card-title">💌 Create a Love Capsule</div>
+            <div class="field"><label>Your Message</label><textarea id="capsuleMsg"
+                placeholder="Write something for the future..."></textarea></div>
+            <div class="field"><label>Unlock Date</label><input type="date" id="capsuleDate"></div>
+            <button class="btn btn-accent" onclick="addCapsule()">Seal Capsule 🔒</button>
+          </div>
+          <div class="card">
+            <div class="card-title">💕 Our Capsules</div>
+            <div id="capsuleList">
+              <div class="empty">No capsules yet</div>
+            </div>
           </div>
         </div>
       </div>
@@ -7247,7 +7236,6 @@ select option { background: #0D0D0D; color: #fff; }
           <div class="cat-row" onclick="goto('globe')"><span class="cat-row-ico">🌍</span><span class="cat-row-title">Memory Globe</span><span class="cat-row-chev">›</span></div>
           <div class="cat-row" onclick="goto('places')"><span class="cat-row-ico">🗺️</span><span class="cat-row-title">Places Memory</span><span class="cat-row-chev">›</span></div>
           <div class="cat-row" onclick="goto('collection')"><span class="cat-row-ico">🎙️</span><span class="cat-row-title">Collection</span><span class="cat-row-chev">›</span></div>
-          <div class="cat-row" onclick="goto('capsule')"><span class="cat-row-ico">💌</span><span class="cat-row-title">Love Capsule</span><span class="cat-row-chev">›</span></div>
         </div>
       </div>
 
@@ -7263,7 +7251,7 @@ select option { background: #0D0D0D; color: #fff; }
           <div class="cat-row" onclick="goto('bucket')"><span class="cat-row-ico">🌟</span><span class="cat-row-title">Bucket List</span><span class="cat-row-chev">›</span></div>
           <div class="cat-row" onclick="goto('meetplanner')"><span class="cat-row-ico">💕</span><span class="cat-row-title">Meet Planner</span><span class="cat-row-chev">›</span></div>
           <div class="cat-row" onclick="goto('dailyroutine')"><span class="cat-row-ico">🗓️</span><span class="cat-row-title">Daily Routine</span><span class="cat-row-chev">›</span></div>
-          <div class="cat-row" onclick="goto('surprise')"><span class="cat-row-ico">🎁</span><span class="cat-row-title">Surprises</span><span class="cat-row-chev">›</span></div>
+          <div class="cat-row" onclick="goto('surprise')"><span class="cat-row-ico">🎁</span><span class="cat-row-title">Surprises &amp; Capsule</span><span class="cat-row-chev">›</span></div>
           <div class="cat-row" onclick="goto('money')"><span class="cat-row-ico">💰</span><span class="cat-row-title">Money</span><span class="cat-row-chev">›</span></div>
         </div>
       </div>
@@ -7292,8 +7280,6 @@ select option { background: #0D0D0D; color: #fff; }
         <div class="cat-subtext">Our dreams, goals and the future we're creating side by side.</div>
         <div class="cat-list">
           <div class="cat-row" onclick="goto('dreamgoals')"><span class="cat-row-ico">💫</span><span class="cat-row-title">Dream Goals</span><span class="cat-row-chev">›</span></div>
-          <div class="cat-row" onclick="goto('dreamhome')"><span class="cat-row-ico">🏡</span><span class="cat-row-title">Dream Home</span><span class="cat-row-chev">›</span></div>
-          <div class="cat-row" onclick="goto('virtualhome')"><span class="cat-row-ico">🏠</span><span class="cat-row-title">Virtual Home</span><span class="cat-row-chev">›</span></div>
         </div>
       </div>
 
@@ -7369,26 +7355,6 @@ select option { background: #0D0D0D; color: #fff; }
             </select>
           </div>
           <button class="btn btn-accent" onclick="addBucket()">Add Dream ✨</button>
-        </div>
-      </div>
-      <div class="modal-bg" id="dreamModal">
-        <div class="modal">
-          <div class="modal-title">🏡 Add Dream Idea<button class="modal-close"
-              onclick="closeM('dreamModal')"><i data-lucide="x"></i></button></div>
-          <div class="field"><label>Category</label><select id="dreamCat">
-              <option value="House">🏠 House</option>
-              <option value="Furniture">🛋️ Furniture</option>
-              <option value="Cars">🚗 Cars</option>
-              <option value="Pets">🐶 Pets</option>
-              <option value="Vacation">🏝️ Vacation</option>
-              <option value="Children">👶 Children Names</option>
-              <option value="Goals">🎯 Dream Goals</option>
-            </select></div>
-          <div class="field"><label>Idea</label><input type="text" id="dreamTitle"
-              placeholder="e.g. 3BHK with a garden"></div>
-          <div class="field"><label>Notes (optional)</label><textarea id="dreamNote"
-              placeholder="Details..."></textarea></div>
-          <button class="btn btn-accent" onclick="addDream()">Add to Board ✨</button>
         </div>
       </div>
       <div class="modal-bg" id="surpriseModal">
@@ -7695,7 +7661,7 @@ function applyRebranding() {
           milestones: [], wellness: {}, periods: [], symptoms: {}, fights: [],
           mySubjects: [], myTimetable: [], reminders: [], ptSubjects: [], ptTimetable: [],
           myLoc: null, ptLoc: null, places: {}, capsules: [], surprises: [],
-          sharedSongs: [], xp: 0, badges: [], dreamBoard: [], finGoals: {},
+          sharedSongs: [], xp: 0, badges: [], finGoals: {},
           missYou: null, missCounts: { user1: 0, user2: 0 },
           hug: null, hugStats: { total: 0, user1: 0, user2: 0 },
           placesMemories: []
@@ -7713,7 +7679,7 @@ function applyRebranding() {
     milestones: [], wellness: {}, periods: [], symptoms: {}, fights: [],
     mySubjects: [], myTimetable: [], reminders: [], ptSubjects: [], ptTimetable: [],
     myLoc: null, ptLoc: null, places: {}, capsules: [], surprises: [],
-    sharedSongs: [], xp: 0, badges: [], dreamBoard: [], finGoals: {},
+    sharedSongs: [], xp: 0, badges: [], finGoals: {},
     missYou: null, missCounts: { user1: 0, user2: 0 },
     hug: null, hugStats: { total: 0, user1: 0, user2: 0 },
     placesMemories: []
@@ -8288,8 +8254,8 @@ function setJustPairedAt(ts) {
           ai: 'Twin',lovecounter: 'Love Counter ',
           collection: 'Collection ', settings: 'Settings', period: 'Period Tracker',
           fights: 'Fight Log', study: 'Study Together', map: 'Live Map ',
-          music: 'Music ', capsule: 'Love Capsule ', surprise: 'Surprises ',chat: 'Chat ',
-          level: 'Couple Level ',globe: 'Memory Globe ', dreamhome: 'Dream Home ',games: 'Couple Games ',
+          music: 'Music ', surprise: 'Surprises ',chat: 'Chat ',
+          level: 'Couple Level ',globe: 'Memory Globe ', games: 'Couple Games ',
           dreamgoals: 'Dream Goals ', places: 'Places Memory ', meetplanner: 'Meet Planner ',
           dailyroutine: 'Daily Routine ',
           catUs: 'Us', catMemories: 'Memories', catPlans: 'Plans', catTogether: 'Together',
@@ -8300,11 +8266,11 @@ function setJustPairedAt(ts) {
         // STRUCTURE), so goto() highlights the owning category item instead.
         const CATEGORY_OWNER = {
           profile: 'catUs', lovecounter: 'catUs', level: 'catUs', fights: 'catUs',
-          camera: 'catMemories', globe: 'catMemories', places: 'catMemories', collection: 'catMemories', capsule: 'catMemories',
+          camera: 'catMemories', globe: 'catMemories', places: 'catMemories', collection: 'catMemories',
           calendar: 'catPlans', bucket: 'catPlans', meetplanner: 'catPlans', surprise: 'catPlans', money: 'catPlans',
           dailyroutine: 'catPlans',
           music: 'catTogether', games: 'catTogether', movie: 'catTogether', study: 'catTogether',
-          dreamgoals: 'catFuture', dreamhome: 'catFuture', virtualhome: 'catFuture',
+          dreamgoals: 'catFuture',
           myspace: 'catMyspace', period: 'catMyspace', vault: 'catMyspace'
         };
         // ── Centralized back-stack ──────────────────────────────────
@@ -8332,9 +8298,9 @@ function setJustPairedAt(ts) {
         // in the DOM) — used to sanity-check both the initial ?page= URL param
         // and any notification-click payload before calling goto() with it.
         const DEEP_LINK_PAGES = new Set([
-          'dashboard', 'chat', 'music', 'globe', 'virtualhome', 'meetplanner', 'dailyroutine',
+          'dashboard', 'chat', 'music', 'globe', 'meetplanner', 'dailyroutine',
           'games', 'calendar', 'settings', 'profile', 'map', 'ai', 'capsule',
-          'surprise', 'level', 'dreamhome', 'dreamgoals', 'places',
+          'surprise', 'level', 'dreamgoals', 'places',
           'lovecounter', 'fights', 'myspace', 'vault', 'bucket', 'money',
           'period', 'study', 'collection', 'movie',
           'catUs', 'catMemories', 'catPlans', 'catTogether', 'catFuture', 'catMyspace'
@@ -8430,9 +8396,12 @@ function setJustPairedAt(ts) {
         }
 
         function goto(page, pushHistory = true) {
+          // 'capsule' is no longer a standalone page — it's a sub-page of
+          // Surprises. Old deep links / push-notification payloads that still
+          // say 'capsule' land on the Surprises page, Capsule tab.
+          if (page === 'capsule') { page = 'surprise'; window.__surpriseTab = 'capsules'; }
           if (window.PageManager) PageManager.currentPage = page;
           reportPresence(page);
-          const _wasVirtualHome = document.getElementById('page-virtualhome')?.classList.contains('active');
           // Any in-chat modal (GIF picker, emoji picker, attach sheet, etc.) is
           // tied to the chat page's DOM. Leaving the page — including via the
           // Android hardware Back button, which also routes through goto() —
@@ -8477,7 +8446,7 @@ function setJustPairedAt(ts) {
               collection: 'collectionFrame', globe: 'globeFrame', music: 'musicFrame',
               lovecounter: 'lovecounterFrame', dreamgoals: 'dreamgoalsFrame',
               places: 'placesFrame', meetplanner: 'meetplannerFrame', dailyroutine: 'dailyroutineFrame',
-              games: 'gamesFrame', virtualhome: 'virtualhomeFrame', movie: 'movieFrame'
+              games: 'gamesFrame', movie: 'movieFrame'
             };
             const fid = FRAME_IDS[page];
             const fr = fid && document.getElementById(fid);
@@ -8561,10 +8530,11 @@ function setJustPairedAt(ts) {
           if (page === 'study') renderStudyPage();
           if (page === 'map') renderMapPage();
           if (page === 'music') syncThemeToFrame('musicFrame');
-          if (page === 'capsule') renderCapsules();
-          if (page === 'surprise') renderSurprises();
+          if (page === 'surprise') {
+            setSurpriseTab(window.__surpriseTab || 'surprises');
+            window.__surpriseTab = null;
+          }
           if (page === 'level') renderLevelPage();
-          if (page === 'dreamhome') renderDreamHome();
           if (page === 'games') syncThemeToFrame('gamesFrame');
           if (page === 'movie') syncThemeToFrame('movieFrame');
           if (page === 'lovecounter') { syncThemeToFrame('lovecounterFrame'); syncLoveCounterToFrame(); }
@@ -8574,21 +8544,6 @@ function setJustPairedAt(ts) {
           if (page === 'places') { syncThemeToFrame('placesFrame'); syncPlacesMemoryToFrame(); }
           if (page === 'meetplanner') { syncThemeToFrame('meetplannerFrame'); syncMeetPlannerToFrame(); }
           if (page === 'dailyroutine') { syncThemeToFrame('dailyroutineFrame'); syncDailyRoutineToFrame(); }
-          if (page === 'virtualhome') {
-            // Load the Home world only when actually entering it — its 3D scene,
-            // Realtime channel, and sync timers all live inside this iframe, so
-            // simply loading it here (instead of eagerly at boot) keeps them off
-            // until the user actually opens Virtual Home.
-            const vf = document.getElementById('virtualhomeFrame');
-            if (vf && !vf.getAttribute('src')) vf.src = vf.dataset.src;
-          } else if (_wasVirtualHome) {
-            // Leaving Virtual Home: fully unload the iframe. This tears down its
-            // whole browsing context in one shot — all setIntervals, the
-            // Supabase Realtime channel, and audio loops stop with it. Guarantees
-            // zero background cost while the user is elsewhere in the app.
-            const vf = document.getElementById('virtualhomeFrame');
-            if (vf) vf.removeAttribute('src');
-          }
           closeMobSidebar();
         }
         window.addEventListener('popstate', (e) => {
@@ -12493,22 +12448,21 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
         // `.page` (see goto()'s resetPageScroll comment), so a single
         // instance attached there covers dashboard/home/level/period/
         // fights/myspace/study/bucket/calendar/money/map/surprise/vault/
-        // settings/profile/dreamhome — it reruns the exact same
+        // settings/profile — it reruns the exact same
         // loadFromCloud() + renderAll() the 5s sync loop already uses,
         // so there's no duplicate data-fetch path to keep in sync.
         // Chat gets its own instance on its own scroll container
         // (#chatMsgs) since `.content` isn't what scrolls there.
         // Pages backed by a same-origin <iframe> (collection/globe/
         // music/games/movie/lovecounter/dreamgoals/meetplanner/
-        // dailyroutine/places) and non-list pages (camera, ai, the 3D
-        // virtualhome view) are excluded here — touch input inside an
+        // dailyroutine/places) and non-list pages (camera, ai) are excluded here — touch input inside an
         // <iframe> never reaches these listeners anyway, and those
         // pages get their own pull-to-refresh wired locally where
         // relevant (see each page's own script).
         (function initShellPullToRefresh() {
           if (!window.PullToRefresh) return;
           var EXCLUDED_PAGES = new Set([
-            'chat', 'camera', 'ai', 'virtualhome',
+            'chat', 'camera', 'ai',
             'collection', 'globe', 'music', 'games', 'movie',
             'lovecounter', 'dreamgoals', 'meetplanner', 'dailyroutine', 'places'
           ]);
@@ -12782,6 +12736,17 @@ function startSyncLoop() {
     </div>`;
   }).join('');
  if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }}
+        // Surprises page has two sub-pages: Surprises and Love Capsule
+        function setSurpriseTab(which) {
+          which = which === 'capsules' ? 'capsules' : 'surprises';
+          ['surprises', 'capsules'].forEach(k => {
+            const sub = document.getElementById('surpriseSub-' + k);
+            if (sub) sub.style.display = (k === which) ? '' : 'none';
+          });
+          document.querySelectorAll('#surpriseTabs .stab').forEach(t =>
+            t.classList.toggle('active', t.dataset.sub === which));
+          if (which === 'capsules') renderCapsules(); else renderSurprises();
+        }
         function addCapsule() {
           const msg = document.getElementById('capsuleMsg').value.trim(), date = document.getElementById('capsuleDate').value;
           if (!msg || !date) { toast('Write a message and pick a date'); return; }
@@ -13031,22 +12996,6 @@ function renderSurprises() {
             el.querySelectorAll('.lv-bar > i[data-p]').forEach(i => { i.style.setProperty('--p', i.dataset.p + '%'); });
           }));
         }
-        let dreamCurTab = 'House';
-        function dreamTab(cat, el) { dreamCurTab = cat; document.querySelectorAll('#dreamTabs .stab').forEach(t => t.classList.remove('active')); el.classList.add('active'); renderDreamHome(); }
-        function addDream() {
-          const title = document.getElementById('dreamTitle').value.trim(); if (!title) { toast('Enter an idea'); return; }
-          if (!S.dreamBoard) S.dreamBoard = [];
-          S.dreamBoard.push({ id: Date.now(), cat: document.getElementById('dreamCat').value, title, note: document.getElementById('dreamNote').value, by: S.role });
-          ['dreamTitle', 'dreamNote'].forEach(id => document.getElementById(id).value = '');
-          closeM('dreamModal'); renderDreamHome(); scheduleSave(); toast('Added to your dream board! 🏡'); spawnPetals(5);
-        }
-        function delDream(id) { confirmDelete({ itemType: 'dream idea', message: 'This dream board idea will be permanently deleted.', onConfirm: () => { S.dreamBoard = (S.dreamBoard || []).filter(d => d.id !== id); renderDreamHome(); scheduleSave(); } }); }
-        function renderDreamHome() {
-          const el = document.getElementById('dreamBoardGrid'); if (!el) return;
-          const items = (S.dreamBoard || []).filter(d => d.cat === dreamCurTab);
-          if (!items.length) { el.innerHTML = '<div class="empty" style="grid-column:1/-1">No ideas yet in this category</div>'; return; }
-          el.innerHTML = items.map(d => `<div class="note-card" style="background:var(--g1)"><div style="font-size:10px;color:var(--text3);margin-bottom:5px;text-transform:uppercase;font-weight:600">${d.by === S.role ? esc(S.myName) : esc(S.partnerName)}</div><div style="font-size:13px;font-weight:600;color:var(--white)">${esc(d.title)}</div>${d.note ? `<div style="font-size:12px;color:var(--text2);margin-top:5px">${esc(d.note)}</div>` : ''}<button class="del-btn" onclick="delDream(${d.id})" style="position:absolute;top:9px;right:9px"><i data-lucide="trash-2"></i></button></div>`).join('');
-         if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }}
         // ─── PRIVACY / VISIBILITY SYSTEM ─────────────────────────
         const PRIV_LABELS = { both: '👥 Both', self: '🙋 Only Me', partner: '💌 Partner Only' };
         const PRIV_CLASS = { both: 'priv-both', self: 'priv-self', partner: 'priv-partner' };

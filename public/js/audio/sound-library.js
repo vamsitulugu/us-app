@@ -228,20 +228,6 @@
   def('game.completion', 'games', success(783.99, 0.3));
 
   // ==================================================================
-  // VIRTUAL HOME (subtle interaction stingers; true ambience loops are
-  // handled by AmbienceController below rather than one-shot samples)
-  // ==================================================================
-  def('home.door.open', 'home', whoosh(200, 400, 0.2, 0.2));
-  def('home.door.close', 'home', whoosh(400, 180, 0.2, 0.18));
-  def('home.window.open', 'home', whoosh(300, 500, 0.16, 0.18));
-  def('home.window.close', 'home', whoosh(500, 280, 0.16, 0.16));
-  def('home.chair.move', 'home', { duration: 0.15, layers: [{ type: 'noise', noiseColor: 'pink', gain: 0.12, attack: 0.02, decay: 0.08, sustain: 0.05, release: 0.06 }] });
-  def('home.sofa.sit', 'home', { duration: 0.2, layers: [{ type: 'noise', noiseColor: 'pink', gain: 0.14, attack: 0.02, decay: 0.1, sustain: 0.05, release: 0.08 }] });
-  def('home.bed.sit', 'home', { duration: 0.2, layers: [{ type: 'noise', noiseColor: 'pink', gain: 0.12, attack: 0.02, decay: 0.1, sustain: 0.05, release: 0.08 }] });
-  def('home.light.switch', 'home', click(1200, 0.18));
-  def('home.computer.on', 'home', pop(400, 700, 0.18, 0.1));
-
-  // ==================================================================
   // NOTIFICATIONS (by domain)
   // ==================================================================
   def('notification.reminder', 'notification', ding(880, 0.28));

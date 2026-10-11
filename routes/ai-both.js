@@ -45,7 +45,6 @@ const CONTEXT_SOURCES = [
   { key: 'milestones', label: 'Important Dates', pick: i => [i.title, i.date].filter(Boolean).join(' — ') },
   { key: 'habits',   label: 'Habits',            pick: i => i.name },
   { key: 'notes',    label: 'Shared Notes',      pick: i => i.text },
-  { key: 'dreamBoard', label: 'Plans / Ideas',   pick: i => i.title },
 ];
 
 function extractKeywords(text) {

@@ -427,7 +427,7 @@ function channelForTag(tag) {
   if (tag === 'partner-request' || tag === 'partner-accepted' || tag === 'paired' || tag === 'ck-invite') return PARTNER_CHANNEL_ID;
   if (tag.startsWith('safety-')) return SAFETY_CHANNEL_ID;
   if (tag === 'events' || tag === 'reminder' || tag === 'meetplan' || tag === 'meetup-complete') return REMINDERS_CHANNEL_ID;
-  if (tag === 'photos' || tag.startsWith('globe-') || tag.startsWith('home-') || tag === 'journal' || tag === 'milestone' || tag === 'capsule') return MEMORIES_CHANNEL_ID;
+  if (tag === 'photos' || tag.startsWith('globe-') || tag === 'journal' || tag === 'milestone' || tag === 'capsule') return MEMORIES_CHANNEL_ID;
   if (tag.startsWith('music-') || tag === 'song' || tag === 'karaoke-rec') return GAMES_CHANNEL_ID;
   return GENERAL_CHANNEL_ID;
 }

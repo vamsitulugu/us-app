@@ -627,9 +627,9 @@ const DashWidgets = (() => {
   // Lucide icon names (the app already loads lucide for its other screens)
   const PAGES = [
     ['lovecounter', 'heart', 'Love Counter'], ['level', 'trophy', 'Level'], ['fights', 'swords', 'Fight Log'], ['globe', 'globe', 'Globe'],
-    ['places', 'map-pin', 'Places'], ['collection', 'gift', 'Collection'], ['capsule', 'hourglass', 'Capsule'], ['surprise', 'party-popper', 'Surprises'],
+    ['places', 'map-pin', 'Places'], ['collection', 'gift', 'Collection'], ['surprise', 'party-popper', 'Surprises'],
     ['money', 'wallet', 'Money'], ['games', 'gamepad-2', 'Games'], ['study', 'book-open', 'Study'], ['dreamgoals', 'target', 'Dream Goals'],
-    ['dreamhome', 'house', 'Dream Home'], ['virtualhome', 'box', '3D Home'], ['myspace', 'flower-2', 'My Space'], ['vault', 'lock', 'Vault'],
+    ['myspace', 'flower-2', 'My Space'], ['vault', 'lock', 'Vault'],
   ];
   const FOOT_QUOTES = [
     'Love is not about how many miles are between us, but how close we stay in our hearts.',

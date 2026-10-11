@@ -33,7 +33,6 @@
       money: 0.7,
       study: 0.7,
       games: 0.85,
-      home: 0.5,     // virtual home ambience
       notification: 0.85,
       loading: 0.6,
       music: 0.8,

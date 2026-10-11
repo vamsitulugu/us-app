@@ -258,8 +258,8 @@
     '.metric-n', '.pstat-n', '.stat-n',
     '.love-card-ico', '.love-card-meta',
 
-    // ── NEW in v4 — dream board tabs, type selects, misc inline icon buttons ──
-    '#dreamTabs .stab', 'select#msType option', 'select#surType option',
+    // ── NEW in v4 — surprise/capsule tabs, type selects, misc inline icon buttons ──
+    '#surpriseTabs .stab', 'select#msType option', 'select#surType option',
     '.touch-heart-btn', '.logo-heart', '.hug-btn .connect-btn-ico',
     '.missyou-btn .connect-btn-ico', '.cb-snap', '.pt-btn',
     '.storage-cat-ico', '.storage-ring-label',

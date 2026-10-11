@@ -20,8 +20,6 @@ US/
 │   ├── globe.js
 │   ├── meetplanner.js
 │   ├── heartbeat.js
-│   ├── home.js
-│   ├── home_living.js
 │   ├── weather.js
 │   ├── gifts.js
 │   ├── achievements.js
@@ -45,46 +43,7 @@ US/
 │   ├── planner/
 │   ├── collection/
 │   ├── games/
-│   ├── dreams/
-│   │
-│   └── home/
-│       │
-│       ├── home.html
-│       │
-│       ├── scene.js
-│       ├── renderer.js
-│       ├── camera.js
-│       ├── controls.js
-│       ├── lighting.js
-│       ├── rooms.js
-│       ├── furniture.js
-│       ├── furniture_ext.js
-│       ├── memories.js
-│       ├── movement.js
-│       ├── interactions.js
-│       ├── avatars.js
-│       ├── pets.js
-│       ├── ai_behavior.js
-│       ├── realtime_living.js
-│       ├── audio_living.js
-│       ├── perf_living.js
-│       │
-│       ├── weather.js
-│       ├── sky.js
-│       ├── environment.js
-│       ├── fireplace.js
-│       ├── window_system.js
-│       ├── ambient_audio.js
-│       ├── particles.js
-│       ├── effects.js
-│       ├── environment_sync.js
-│       ├── perf_p7.js
-│       ├── scene_p7_patch.js
-│       ├── scene_p7_patch2.js
-│       │
-│       ├── api.js
-│       ├── server.js
-│       └── utils.js
+│   └── dreams/
 │
 ├── sql/
 │   ├── schema.sql
@@ -100,7 +59,6 @@ US/
 │   ├── gifts/
 │   ├── memories/
 │   ├── avatars/
-│   └── home-assets/
 │
 └── docs/
     ├── README.md
