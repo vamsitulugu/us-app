@@ -625,11 +625,27 @@ const DashWidgets = (() => {
 
   /* ───────────────────────── ALL PAGES + QUOTE ───────────────────────── */
   // Lucide icon names (the app already loads lucide for its other screens)
-  const PAGES = [
-    ['lovecounter', 'heart', 'Love Counter'], ['level', 'trophy', 'Level'], ['fights', 'swords', 'Fight Log'], ['globe', 'globe', 'Globe'],
-    ['places', 'map-pin', 'Places'], ['collection', 'gift', 'Collection'], ['surprise', 'party-popper', 'Surprises'],
-    ['money', 'wallet', 'Money'], ['games', 'gamepad-2', 'Games'], ['study', 'book-open', 'Study'], ['dreamgoals', 'target', 'Dream Goals'],
-    ['myspace', 'flower-2', 'My Space'], ['vault', 'lock', 'Vault'],
+  // Grouped like a banking-app services list: a title + up to 5 plain
+  // icon buttons per category (no cards). Calendar and Bucket List sit at
+  // the very end, as requested. Bottom-nav pages (Chat, Twin, Map, Settings)
+  // and the header shortcuts (Memories, Music, Movie, Meet Planner,
+  // Daily Routine) are intentionally not repeated here.
+  const PAGE_GROUPS = [
+    ['Us', [
+      ['profile', 'users', 'Our Profile'], ['lovecounter', 'heart', 'Love Counter'], ['level', 'trophy', 'Level'],
+      ['fights', 'swords', 'Fight Log'], ['dreamgoals', 'target', 'Dream Goals'],
+    ]],
+    ['Explore Together', [
+      ['globe', 'globe', 'Globe'], ['places', 'map-pin', 'Places'], ['collection', 'gift', 'Collection'],
+      ['games', 'gamepad-2', 'Games'], ['study', 'book-open', 'Study'],
+    ]],
+    ['My Space', [
+      ['myspace', 'flower-2', 'My Space'], ['period', 'droplet', 'Period Tracker'], ['vault', 'lock', 'Vault'],
+    ]],
+    ['Plans', [
+      ['surprise', 'party-popper', 'Surprises'], ['money', 'wallet', 'Money'],
+      ['calendar', 'calendar-days', 'Calendar'], ['bucket', 'list-checks', 'Bucket List'],
+    ]],
   ];
   const FOOT_QUOTES = [
     'Love is not about how many miles are between us, but how close we stay in our hearts.',
@@ -656,12 +672,19 @@ const DashWidgets = (() => {
   function renderPages() {
     const g = $('dwPages');
     if (!g || g.childElementCount) return;               // static list — build once
-    PAGES.forEach(([page, icon, label]) => {
-      const b = el('button', 'dw-page'); b.type = 'button';
-      const i = el('i', 'e'); i.setAttribute('data-lucide', icon);
-      b.append(i, el('span', 'l', label));
-      b.onclick = () => goto(page);
-      g.append(b);
+    PAGE_GROUPS.forEach(([title, items]) => {
+      const sec = el('section', 'dw-sec');
+      sec.append(el('h3', 'dw-sec-title', title));
+      const grid = el('div', 'dw-grid');
+      items.forEach(([page, icon, label]) => {
+        const b = el('button', 'dw-page'); b.type = 'button';
+        const i = el('i', 'e'); i.setAttribute('data-lucide', icon);
+        b.append(i, el('span', 'l', label));
+        b.onclick = () => goto(page);
+        grid.append(b);
+      });
+      sec.append(grid);
+      g.append(sec);
     });
     paintIcons();
   }
