@@ -210,7 +210,7 @@
       border:2px solid rgba(255,255,255,.25); box-shadow:0 8px 24px rgba(0,0,0,.5);
     }
 
-    .ck-lyrics-stage{position:absolute;left:0;right:0;bottom:130px;display:flex;align-items:flex-end;justify-content:center;pointer-events:none;z-index:3;padding:0 26px}
+    .ck-lyrics-stage{position:absolute;left:0;right:0;bottom:calc(130px + var(--nav-clear,0px));display:flex;align-items:flex-end;justify-content:center;pointer-events:none;z-index:3;padding:0 26px}
     .ck-lyrics-stage::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(0,0,0,.35),transparent 65%)}
     .ck-lyric-cur{position:relative;text-align:center;font-size:24px;font-weight:800;line-height:1.4;text-shadow:0 2px 18px rgba(0,0,0,.8);transition:all .3s cubic-bezier(.4,0,.2,1)}
     .ck-lyric-next{position:relative;text-align:center;font-size:15px;font-weight:600;color:rgba(255,255,255,.55);margin-top:10px;text-shadow:0 2px 12px rgba(0,0,0,.7)}
@@ -232,7 +232,7 @@
     .ck-progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#7c5cff,#ff6fb5);width:0%}
     .ck-times{display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.5);margin-top:4px}
 
-    .ck-controls{position:relative;z-index:5;display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 12px calc(14px + env(safe-area-inset-bottom));flex-wrap:wrap}
+    .ck-controls{position:relative;z-index:5;display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 12px calc(var(--nav-clear,0px) + 14px + env(safe-area-inset-bottom));flex-wrap:wrap}
     .ck-ctrl-btn{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s}
     .ck-ctrl-btn:hover{background:rgba(255,255,255,.16)}
     .ck-ctrl-btn.active{background:linear-gradient(135deg,#7c5cff,#ff6fb5);border-color:transparent}
@@ -244,7 +244,7 @@
     .ck-reactions-bar{position:relative;z-index:5;display:flex;justify-content:center;gap:14px;padding:0 12px 8px}
     .ck-reaction-pick{font-size:22px;cursor:pointer;transition:transform .15s}
     .ck-reaction-pick:hover{transform:scale(1.25)}
-    .ck-floating-reaction{position:absolute;bottom:120px;font-size:30px;z-index:6;pointer-events:none;animation:ckFloatUp 3s ease-out forwards}
+    .ck-floating-reaction{position:absolute;bottom:calc(120px + var(--nav-clear,0px));font-size:30px;z-index:6;pointer-events:none;animation:ckFloatUp 3s ease-out forwards}
     @keyframes ckFloatUp{0%{opacity:0;transform:translateY(0) scale(.5)}15%{opacity:1;transform:translateY(-40px) scale(1.1)}100%{opacity:0;transform:translateY(-420px) scale(1)}}
 
     .ck-connecting{position:absolute;inset:0;z-index:10;background:rgba(3,3,10,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#fff}

@@ -474,3 +474,48 @@ body:not(.playing) .pl-art{transform:scale(.9)}
 @media(prefers-reduced-motion:reduce){
   *{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE WIDTH + FLOATING-NAV CLEARANCE
+   The app shell's glass bottom nav floats OVER this iframe, so every
+   bottom-anchored thing (mini player, karaoke record dock, sheets,
+   selection bar, toast) must sit above --nav-clear.
+   Wide screens: pages use the full width like the other app pages.
+═══════════════════════════════════════════════════════════════ */
+:root{
+  --nav-clear:calc(104px + var(--sab));   /* phones: nav pill + raised Twin orb */
+  --mx-gutter:16px;
+}
+@media(min-width:701px){ :root{ --nav-clear:64px; } }          /* laptop: only the orb overhangs */
+@media(min-width:768px){ :root{ --mx-gutter:clamp(24px,3.2vw,56px); } }
+
+/* content scrolls clear of the nav (+ mini player when visible) */
+.screen{padding-bottom:calc(var(--mx-mini) + var(--nav-clear) + 24px)}
+
+/* mini player rides above the nav */
+#mini{bottom:calc(var(--nav-clear) + 6px)}
+#toast{bottom:calc(var(--mx-mini) + var(--nav-clear) + 16px)}
+
+/* full-screen player / karaoke / lyrics: controls stay above the nav */
+.sing-dock{padding-bottom:calc(var(--nav-clear) + 6px)}
+.pl-wrap{padding-bottom:calc(var(--nav-clear) + 6px)}
+.lyr-bar{padding-bottom:calc(var(--nav-clear) + 4px)}
+.panel-b{padding-bottom:calc(var(--nav-clear) + 24px)}
+.sheet{padding-bottom:calc(var(--nav-clear) + 14px)}
+#recorder .sheet{padding-bottom:calc(var(--nav-clear) + 14px)}
+.sel-bar{bottom:calc(var(--nav-clear) + 8px)}
+
+/* wide screens: 100% width instead of the 640px column */
+@media(min-width:768px){
+  .wrap,.hdr,.tabs,.chips,.section{max-width:none;padding-left:var(--mx-gutter);padding-right:var(--mx-gutter)}
+  .hdr.sticky{padding-left:var(--mx-gutter);padding-right:var(--mx-gutter)}
+  .hscroll{margin:0 calc(-1 * var(--mx-gutter));padding-left:var(--mx-gutter);padding-right:var(--mx-gutter)}
+  .searchbar{max-width:none;margin-left:var(--mx-gutter);margin-right:var(--mx-gutter)}
+  .hero p{max-width:440px}
+  #mini{left:var(--mx-gutter);right:var(--mx-gutter);max-width:none}
+  .sel-bar{left:var(--mx-gutter);right:var(--mx-gutter);max-width:none}
+}
+@media(min-width:1100px){
+  .list{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));column-gap:28px}
+  .mix{width:170px}
+}

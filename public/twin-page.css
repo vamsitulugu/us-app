@@ -567,3 +567,14 @@ body:has(#page-ai.active) .topbar { display: none !important; }
 @media (prefers-reduced-motion: reduce) {
   .tw-hero-art svg, .tw-both-art svg, .tw-floaty, .tw-hero-bubble i { animation: none !important; }
 }
+
+/* ── Laptop / tablet: use the full page width (was capped at 760px) ──── */
+@media (min-width: 701px) {
+  .tw-shell { max-width: none; }
+  .tw-head { padding-left: clamp(14px, 3vw, 48px); padding-right: clamp(14px, 3vw, 48px); }
+  #page-ai .twin-mode-selector { margin-left: clamp(14px, 3vw, 48px); }
+  #page-ai .ai-msgs,
+  #page-ai #bothModeWrap { padding-left: clamp(14px, 3vw, 48px); padding-right: clamp(14px, 3vw, 48px); }
+  #page-ai .twin-sugg-row { margin-left: calc(-1 * clamp(14px, 3vw, 48px)); margin-right: calc(-1 * clamp(14px, 3vw, 48px)); padding-left: clamp(14px, 3vw, 48px); padding-right: clamp(14px, 3vw, 48px); }
+  #page-ai .twin-dock { margin-left: clamp(12px, 3vw, 48px); margin-right: clamp(12px, 3vw, 48px); }
+}
