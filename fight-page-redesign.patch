@@ -1,0 +1,1020 @@
+diff --git a/public/index.html b/public/index.html
+index 2259a1d..418cc5d 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -1949,31 +1949,6 @@
+     .xp-badge-prog{height:100%;background:linear-gradient(90deg,var(--accent),#ff6b6b);border-radius:2px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+     .xp-badge-prog-txt{font-size:8px;color:var(--text3);margin-top:4px}
+     /* ════ RELATIONSHIP INSIGHT ════ */
+-    /* ════ FIGHT ANALYTICS ════ */
+-    .fa-hero{display:flex;align-items:center;gap:20px;padding:20px;margin-bottom:14px}
+-    .fa-ring-wrap{position:relative;width:100px;height:100px;flex-shrink:0}
+-    .fa-ring-wrap svg{transform:rotate(-90deg)}
+-    .fa-ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+-    .fa-ring-pct{font-family:var(--ff-serif);font-size:20px;color:var(--white)}
+-    .fa-ring-label{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+-    .fa-hero-stats{flex:1}
+-    .fa-hero-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+-    .fa-hero-amt{font-family:var(--ff-serif);font-size:24px;color:var(--white)}
+-    .fa-hero-sub{font-size:11px;color:var(--text2);margin-top:4px;line-height:1.5}
+-    .fa-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(248,113,113,0.1),rgba(143,0,0,0.05));border:1px solid rgba(248,113,113,0.2);border-radius:var(--r);margin-bottom:14px}
+-    .fa-insight-ico{font-size:20px;flex-shrink:0}
+-    .fa-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
+-    .fa-insight-text strong{color:var(--white)}
+-    .fa-trend-row{display:flex;align-items:flex-end;gap:6px;height:70px;padding:6px 0 0}
+-    .fa-trend-bar{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#f87171,#8f0000);min-height:3px;transition:height 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+-    .fa-trend-label{font-size:8px;color:var(--text3);text-align:center;margin-top:4px}
+-    .fa-cause-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
+-    .fa-cause-row:last-child{border-bottom:none}
+-    .fa-cause-bar-wrap{flex:1;height:6px;background:var(--g2);border-radius:3px;margin:0 10px;overflow:hidden}
+-    .fa-cause-bar{height:100%;background:linear-gradient(90deg,#f87171,#8f0000);border-radius:3px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+-    @media(max-width:700px){
+-      .fa-hero{flex-direction:column;text-align:center;padding:16px}
+-    }
+     /* ════ FIGHTS ════ */
+     .fight-card {
+       background: rgba(248, 113, 113, 0.06);
+@@ -2011,19 +1986,168 @@
+       border: 1px solid rgba(52, 211, 153, 0.35)
+     }
+ 
+-    .intensity-bar {
+-      height: 4px;
+-      border-radius: 3px;
+-      background: var(--g2);
+-      overflow: hidden;
+-      margin: 8px 0
+-    }
+-
+-    .intensity-fill {
+-      height: 100%;
+-      border-radius: 3px;
+-      background: linear-gradient(90deg, var(--yellow), var(--red));
+-      transition: width 0.5s ease
++    /* ════ FIGHT LOG ════
++       Three screens share #page-fights: dashboard, log wizard and
++       reconnect activities. Every class here is prefixed fl-. */
++    .fl-view { display: none; max-width: 640px; margin: 0 auto }
++    .fl-view.active { display: block }
++    .fl-view .lucide, .fl-sheet .lucide { width: 1em; height: 1em; flex-shrink: 0 }
++
++    .fl-h { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 600; color: var(--white) }
++    .fl-muted { font-size: 12px; color: var(--text3); line-height: 1.4 }
++    .fl-info { display: inline-flex; padding: 0; background: none; border: 0; color: var(--text3); font-size: 15px; cursor: pointer }
++
++    /* Resolution-rate card */
++    .fl-rate-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 18px }
++    .fl-range { position: relative; flex-shrink: 0 }
++    .fl-range select { width: auto; padding: 8px 32px 8px 12px; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer; appearance: none; -webkit-appearance: none }
++    .fl-range .lucide { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--text2); pointer-events: none }
++    .fl-rate-body { display: flex; align-items: center; gap: 18px }
++
++    .fl-ring { position: relative; width: 132px; height: 132px; flex-shrink: 0 }
++    .fl-ring svg { width: 100%; height: 100%; transform: rotate(-90deg) }
++    .fl-ring-track { stroke: rgba(255, 255, 255, 0.08) }
++    .fl-ring-arc { stroke: url(#flGrad); filter: drop-shadow(0 0 6px rgba(52, 211, 153, 0.45)); transition: stroke-dashoffset 1s cubic-bezier(0.34, 1.2, 0.64, 1) }
++    .fl-ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center }
++    .fl-ring-pct { font-size: 30px; font-weight: 700; line-height: 1; color: var(--white) }
++    .fl-ring-cap { margin-top: 6px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text2) }
++
++    .fl-legend { flex: 1; min-width: 0; list-style: none; margin: 0; padding: 4px 14px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 14px }
++    .fl-legend li { display: flex; align-items: center; gap: 10px; padding: 10px 0; font-size: 14px; color: var(--text) }
++    .fl-legend li + li { border-top: 1px solid rgba(255, 255, 255, 0.05) }
++    .fl-legend i { width: 11px; height: 11px; border-radius: 50%; background: var(--dot); flex-shrink: 0 }
++    .fl-legend b { margin-left: auto; font-weight: 600; color: var(--white) }
++
++    .fl-insight { display: flex; align-items: center; gap: 14px; margin-top: 16px; padding: 14px; border-radius: 14px; background: linear-gradient(135deg, rgba(229, 9, 20, 0.14), rgba(143, 0, 0, 0.05)); border: 1px solid rgba(229, 9, 20, 0.22) }
++    .fl-insight-ico { display: flex; font-size: 32px; color: var(--accent) }
++    .fl-insight-ico.is-solid .lucide { fill: currentColor }
++    .fl-insight b { display: block; margin-bottom: 3px; font-size: 14px; color: var(--white) }
++    .fl-insight span { font-size: 12px; line-height: 1.5; color: var(--text2) }
++
++    /* Metric tiles */
++    .fl-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px }
++    .fl-metric.card { display: flex; gap: 12px; align-items: flex-start; padding: 14px; margin: 0 }
++    .fl-metric-ico { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; font-size: 18px; color: #60a5fa; background: rgba(96, 165, 250, 0.12); flex-shrink: 0 }
++    .fl-metric-body { min-width: 0 }
++    .fl-metric-name { font-size: 12px; color: var(--text2) }
++    .fl-metric-val { margin: 4px 0 6px; font-size: 20px; font-weight: 700; color: var(--white); white-space: nowrap }
++    .fl-trend { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px }
++    .fl-delta { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; color: var(--text2) }
++    .fl-delta.is-good { color: var(--green) }
++    .fl-delta.is-bad { color: var(--red) }
++
++    /* Primary button */
++    .fl-cta { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 54px; margin: 4px 0 22px; border: 0; border-radius: 16px; font: 600 16px var(--ff-sans); color: #fff; cursor: pointer; background: linear-gradient(135deg, #ff3b30, #c40012); box-shadow: 0 8px 28px rgba(229, 9, 20, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2); transition: var(--t) }
++    .fl-cta:active { transform: scale(0.985) }
++    .fl-cta .lucide { font-size: 20px }
++
++    /* Section header + list rows */
++    .fl-section-head { display: flex; justify-content: space-between; align-items: center; margin: 0 2px 12px }
++    .fl-section-head h3 { margin: 0; font-size: 18px; font-weight: 600; color: var(--white) }
++    .fl-link { display: inline-flex; align-items: center; gap: 4px; padding: 0; background: none; border: 0; font-size: 13px; color: var(--text2); cursor: pointer }
++
++    .fl-row, .fl-act, .fl-panel { background: linear-gradient(180deg, #181818, #0d0d0d); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.03) }
++    .fl-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; padding: 12px 14px; cursor: pointer; transition: border-color 0.2s }
++    .fl-row:hover { border-color: var(--border2) }
++    .fl-row:focus-visible, .fl-act-head:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
++    .fl-reconnect { margin-top: 18px }
++    .fl-tile { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; font-size: 20px; flex-shrink: 0; color: rgb(var(--tone)); background: rgba(var(--tone), 0.14); border: 1px solid rgba(var(--tone), 0.24) }
++    .fl-row-main { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0 }
++    .fl-row-name { overflow: hidden; font-size: 14px; font-weight: 600; color: var(--white); text-overflow: ellipsis; white-space: nowrap }
++    .fl-row-date { font-size: 12px; color: var(--text3) }
++    .fl-chev { font-size: 16px; color: var(--text2); transition: transform 0.2s }
++
++    .fl-state { padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap }
++    .fl-state.is-resolved { color: var(--green); background: var(--green-bg) }
++    .fl-state.is-open { color: #ff5a5f; background: rgba(229, 9, 20, 0.08); border: 1px solid rgba(248, 113, 113, 0.5) }
++    .fl-state.is-open::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 6px; border: 1.5px solid currentColor; border-radius: 50%; vertical-align: -1px }
++    .fl-score { padding: 6px 12px; border-radius: 999px; font-size: 12px; color: var(--text2); background: rgba(255, 255, 255, 0.06); white-space: nowrap }
++
++    /* Sub-screen header (log wizard + activities) */
++    .fl-subhead { display: flex; align-items: center; gap: 12px; margin-bottom: 18px }
++    .fl-subhead h2 { flex: 1; margin: 0; font-size: 20px; font-weight: 600; color: var(--white) }
++    .fl-back { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border-radius: 50%; font-size: 20px; color: var(--white); background: var(--g1); border: 1px solid var(--border2); cursor: pointer }
++    .fl-draft { display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border-radius: 12px; font: 600 13px var(--ff-sans); color: var(--white); background: var(--g1); border: 1px solid var(--border2); cursor: pointer }
++
++    /* Wizard */
++    .fl-steps { display: flex; align-items: center; margin-bottom: 18px }
++    .fl-step { display: inline-flex; align-items: center; gap: 8px; padding: 0; background: none; border: 0; font: 500 13px var(--ff-sans); color: var(--text3); cursor: pointer }
++    .fl-step-n { display: grid; place-items: center; width: 30px; height: 30px; border: 1.5px solid var(--border2); border-radius: 50%; font-weight: 600; color: var(--text2) }
++    .fl-step-n .lucide { font-size: 14px }
++    .fl-step.is-current { color: var(--white) }
++    .fl-step.is-current .fl-step-n { color: #fff; background: var(--accent); border-color: var(--accent); box-shadow: 0 0 14px var(--accent-glow) }
++    .fl-step.is-done .fl-step-n { color: var(--accent); border-color: var(--accent) }
++    .fl-step-line { flex: 1; min-width: 12px; height: 1px; margin: 0 10px; background: var(--border2) }
++
++    .fl-panel { margin-bottom: 16px; padding: 18px }
++    .fl-pane { display: none }
++    .fl-pane.active { display: block }
++    .fl-group + .fl-group { margin-top: 22px }
++    .fl-q { display: block; margin-bottom: 10px; font-size: 16px; font-weight: 600; color: var(--white) }
++    .fl-q small { margin-left: 6px; font-size: 13px; font-weight: 400; color: var(--text2) }
++    .fl-area { position: relative }
++    .fl-area textarea { min-height: 104px; padding-bottom: 30px; resize: none }
++    .fl-count { position: absolute; right: 12px; bottom: 10px; font-size: 11px; color: var(--text3) }
++
++    .fl-chips { display: flex; flex-wrap: wrap; gap: 10px }
++    .fl-chip { position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 999px; font: 500 13px var(--ff-sans); color: var(--text); background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border2); cursor: pointer; transition: var(--t) }
++    .fl-chip .lucide { font-size: 16px }
++    .fl-chip[aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, #ff3b30, #c40012); border-color: transparent; box-shadow: 0 4px 16px rgba(229, 9, 20, 0.3) }
++
++    .fl-scale { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; padding: 4px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 12px }
++    .fl-scale button { height: 42px; padding: 0; border: 0; border-radius: 8px; font: 500 14px var(--ff-sans); color: var(--text2); background: transparent; cursor: pointer; transition: var(--t) }
++    .fl-scale button[aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, #ff3b30, #c40012); box-shadow: 0 0 14px var(--accent-glow) }
++    .fl-scale-cap { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--text2) }
++
++    .fl-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
++    .fl-choice { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; border-radius: 12px; font: 600 14px var(--ff-sans); color: var(--text2); background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border2); cursor: pointer; transition: var(--t) }
++    .fl-choice .lucide { font-size: 18px }
++    .fl-choice[data-value="open"] .lucide { color: #ff5a5f }
++    .fl-choice[data-value="resolved"] .lucide { color: var(--green) }
++    .fl-choice[data-value="open"][aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, #d4101c, #8f0000); border-color: transparent }
++    .fl-choice[data-value="open"][aria-pressed="true"] .lucide { color: #fff }
++    .fl-choice[data-value="resolved"][aria-pressed="true"] { color: var(--green); background: var(--green-bg); border-color: rgba(52, 211, 153, 0.5) }
++
++    /* Reconnect activities */
++    .fl-lead { display: flex; align-items: flex-start; gap: 6px; margin: -6px 0 16px; font-size: 14px; line-height: 1.5; color: var(--text2) }
++    .fl-lead .lucide { margin-top: 3px; color: #f472b6; fill: currentColor }
++    .fl-tabs { display: flex; gap: 8px; margin-bottom: 16px; padding-bottom: 4px; overflow-x: auto; scrollbar-width: none }
++    .fl-tabs::-webkit-scrollbar { display: none }
++    .fl-tab { position: relative; overflow: hidden; flex-shrink: 0; padding: 10px 16px; border-radius: 12px; font: 500 13px var(--ff-sans); color: var(--text); background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border2); cursor: pointer }
++    .fl-tab.is-on { color: #fff; background: linear-gradient(135deg, #ff3b30, #c40012); border-color: transparent }
++
++    .fl-act { margin-bottom: 10px }
++    .fl-act-head { display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer }
++    .fl-act-top { display: flex; align-items: center; justify-content: space-between; gap: 8px }
++    .fl-act-desc { font-size: 12px; line-height: 1.45; color: var(--text2) }
++    .fl-time { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; font-size: 12px; color: var(--text2); background: rgba(255, 255, 255, 0.06); white-space: nowrap }
++    .fl-act-more { display: none; padding: 0 14px 14px 70px; font-size: 13px; line-height: 1.6; color: var(--text2) }
++    .fl-act.is-open .fl-act-more { display: block }
++    .fl-act.is-open .fl-chev { transform: rotate(90deg) }
++
++    /* Fight detail sheet */
++    .fl-detail-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px }
++    .fl-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px }
++    .fl-fact { padding: 10px; text-align: center; background: var(--g1); border: 1px solid var(--border); border-radius: 12px }
++    .fl-fact b { display: block; font-size: 14px; color: var(--white) }
++    .fl-fact span { font-size: 11px; color: var(--text3) }
++    .fl-h4 { margin: 16px 0 6px; font-size: 12px; font-weight: 600; color: var(--text2) }
++    .fl-text { font-size: 13px; line-height: 1.6; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere }
++    .fl-marks { display: flex; flex-wrap: wrap; gap: 6px }
++    .fl-mark { padding: 5px 11px; border-radius: 999px; font-size: 12px; color: var(--text); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border) }
++    .fl-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px }
++    .fl-actions .btn { flex: 1 1 auto; justify-content: center }
++
++    @media (max-width: 380px) {
++      .fl-ring { width: 112px; height: 112px }
++      .fl-rate-body { gap: 12px }
++      .fl-row { gap: 10px; padding: 10px }
++      .fl-score { padding: 5px 9px }
++      .fl-panel { padding: 14px }
++      .fl-chip { padding: 9px 13px }
++    }
++    @media (prefers-reduced-motion: reduce) {
++      .fl-ring-arc, .fl-chev { transition: none }
+     }
+ 
+     /* ════ STUDY ════ */
+@@ -3247,40 +3371,6 @@
+       border-color: var(--accent)
+     }
+ 
+-    /* ════ FIGHT STATS ════ */
+-    .fight-stats-bar {
+-      display: flex;
+-      gap: 10px;
+-      margin-bottom: 16px;
+-      flex-wrap: wrap
+-    }
+-
+-    .fstat-box {
+-      flex: 1;
+-      min-width: 80px;
+-      background: var(--g1);
+-      border: 1px solid var(--border);
+-      border-radius: var(--r);
+-      padding: 14px;
+-      text-align: center
+-    }
+-
+-    .fstat-n {
+-      font-size: 24px;
+-      font-weight: 700;
+-      color: var(--white);
+-      font-family: var(--ff-serif)
+-    }
+-
+-    .fstat-l {
+-      font-size: 9px;
+-      color: var(--text3);
+-      margin-top: 4px;
+-      text-transform: uppercase;
+-      letter-spacing: 0.5px;
+-      font-weight: 600
+-    }
+-
+     /* ════ MOBILE BOTTOM NAV ════ */
+     @media(max-width:700px) {
+   .sidebar { display: none }
+@@ -3312,10 +3402,6 @@
+   .period-stats { gap: 6px }
+   .pstat-n { font-size: 18px }
+ 
+-  /* Fight stats */
+-  .fight-stats-bar { gap: 6px }
+-  .fstat-n { font-size: 20px }
+-
+   /* Calendar */
+   .cd { padding: 6px 2px; font-size: 12px }
+ 
+@@ -4683,8 +4769,7 @@ vercel-live-feedback {
+ .settings-hero,
+ .period-hero,
+ .storage-hero,
+-.pstat,
+-.fstat-box {
++.pstat {
+   background: #151515 !important;
+   background-image: linear-gradient(180deg, #181818, #0D0D0D) !important;
+   border: 1px solid var(--border) !important;
+@@ -5794,30 +5879,147 @@ select option { background: #0D0D0D; color: #fff; }
+ 
+       <!-- ════ FIGHT LOG ════ -->
+       <div class="page" id="page-fights">
+-        <div class="card fa-hero" id="faHeroCard"></div>
+-        <div class="fa-insight-card" id="faInsightCard"></div>
+-        <div class="card">
+-          <div class="card-title">📈 Recent Intensity Trend</div>
+-          <div class="fa-trend-row" id="faTrendCard"></div>
+-        </div>
+-        <div class="card">
+-          <div class="card-title">🔎 Common Triggers</div>
+-          <div id="faCauseCard"></div>
+-        </div>
+-        <div class="card">
+-          <div class="card-title">⚡ Fight Log<button class="btn btn-accent btn-sm" onclick="openM('fightModal')">+ Log
+-              Fight</button></div>
+-          <div id="fightList">
+-            <div class="empty">
+-              <div class="empty-ico">✌️</div>No fights logged — that's amazing! 💕
++
++        <!-- Screen 1: dashboard -->
++        <section class="fl-view active" data-view="dashboard">
++          <div class="card">
++            <div class="fl-rate-head">
++              <div>
++                <div class="fl-h">Conflict Resolution Rate
++                  <button type="button" class="fl-info" data-fl="rate-info" aria-label="How this is calculated"><i data-lucide="info"></i></button>
++                </div>
++                <div class="fl-muted">How well you both resolve conflicts</div>
++              </div>
++              <div class="fl-range">
++                <select id="flRange" aria-label="Time range">
++                  <option value="30">Last 30 Days</option>
++                  <option value="90">Last 3 Months</option>
++                  <option value="180">Last 6 Months</option>
++                  <option value="all">All Time</option>
++                </select>
++                <i data-lucide="chevron-down"></i>
++              </div>
++            </div>
++            <div class="fl-rate-body">
++              <div class="fl-ring" id="flRing"></div>
++              <ul class="fl-legend" id="flLegend"></ul>
+             </div>
++            <div class="fl-insight" id="flInsight"></div>
+           </div>
+-        </div>
+-        <div class="card">
+-          <div class="card-title">💚 Reconnect Activities</div>
+-          <div style="font-size:12px;color:var(--text2);margin-bottom:14px">After a fight, try these activities:</div>
+-          <div id="reconnectActivities"></div>
+-        </div>
++
++          <div class="fl-metrics" id="flMetrics"></div>
++
++          <button type="button" class="fl-cta" data-fl="new"><i data-lucide="file-plus"></i>Log a Fight</button>
++
++          <div class="fl-section-head">
++            <h3>Recent Fights</h3>
++            <button type="button" class="fl-link" id="flViewAll" data-fl="toggle-all"></button>
++          </div>
++          <div id="flRecent"></div>
++
++          <div class="fl-row fl-reconnect" role="button" tabindex="0" data-fl="activities">
++            <span class="fl-tile" style="--tone:52,211,153"><i data-lucide="heart-handshake"></i></span>
++            <span class="fl-row-main">
++              <span class="fl-row-name">Reconnect Activities</span>
++              <span class="fl-row-date">Gentle ways to heal and come closer</span>
++            </span>
++            <i data-lucide="chevron-right" class="fl-chev"></i>
++          </div>
++        </section>
++
++        <!-- Screen 2: log wizard -->
++        <section class="fl-view" id="flLog" data-view="log">
++          <div class="fl-subhead">
++            <button type="button" class="fl-back" data-fl="log-back" aria-label="Back"><i data-lucide="arrow-left"></i></button>
++            <h2>Log Fight</h2>
++            <button type="button" class="fl-draft" data-fl="save-draft"><i data-lucide="save"></i>Save Draft</button>
++          </div>
++
++          <div class="fl-steps" id="flSteps">
++            <button type="button" class="fl-step" data-fl="step" data-step="1"><span class="fl-step-n"></span>Details</button>
++            <span class="fl-step-line"></span>
++            <button type="button" class="fl-step" data-fl="step" data-step="2"><span class="fl-step-n"></span>Feelings</button>
++            <span class="fl-step-line"></span>
++            <button type="button" class="fl-step" data-fl="step" data-step="3"><span class="fl-step-n"></span>Resolution</button>
++          </div>
++
++          <div class="fl-panel">
++            <div class="fl-pane" data-step="1">
++              <div class="fl-group">
++                <label class="fl-q" for="flTitle">What was it about?</label>
++                <input type="text" id="flTitle" data-field="title" maxlength="60" autocomplete="off" placeholder="e.g. Plan changes">
++              </div>
++              <div class="fl-group">
++                <label class="fl-q" for="flReason">What happened?</label>
++                <div class="fl-area">
++                  <textarea id="flReason" data-field="reason" maxlength="500" placeholder="Describe what happened..."></textarea>
++                  <span class="fl-count" id="flReasonCount">0/500</span>
++                </div>
++              </div>
++              <div class="fl-group">
++                <div class="fl-q">Category</div>
++                <div class="fl-chips" id="flCategory" role="group" aria-label="Category"></div>
++              </div>
++              <div class="fl-group">
++                <div class="fl-q">Intensity <small>(How intense was it?)</small></div>
++                <div class="fl-scale" id="flScale" role="group" aria-label="Intensity"></div>
++                <div class="fl-scale-cap"><span>Small</span><span>Moderate</span><span>High</span></div>
++              </div>
++              <div class="fl-group">
++                <div class="fl-q">Who started it?</div>
++                <div class="fl-chips" id="flStarted" role="group" aria-label="Who started it"></div>
++              </div>
++              <div class="fl-group">
++                <div class="fl-q">Current Status</div>
++                <div class="fl-choices" role="group" aria-label="Current status">
++                  <button type="button" class="fl-choice" data-fl="pick" data-field="status" data-value="open" aria-pressed="false"><i data-lucide="triangle-alert"></i>Open</button>
++                  <button type="button" class="fl-choice" data-fl="pick" data-field="status" data-value="resolved" aria-pressed="false"><i data-lucide="circle-check"></i>Resolved</button>
++                </div>
++              </div>
++            </div>
++
++            <div class="fl-pane" data-step="2">
++              <div class="fl-group">
++                <div class="fl-q">How did it feel? <small>(Pick all that fit)</small></div>
++                <div class="fl-chips" id="flFeelings" role="group" aria-label="Feelings"></div>
++              </div>
++              <div class="fl-group">
++                <label class="fl-q" for="flNeed">What do you need right now?</label>
++                <div class="fl-area">
++                  <textarea id="flNeed" data-field="need" maxlength="300" placeholder="e.g. A calm talk, some space, an apology..."></textarea>
++                  <span class="fl-count" id="flNeedCount">0/300</span>
++                </div>
++              </div>
++            </div>
++
++            <div class="fl-pane" data-step="3">
++              <div class="fl-group">
++                <div class="fl-q" id="flApproachHead"></div>
++                <div class="fl-chips" id="flApproach" role="group" aria-label="Resolution"></div>
++              </div>
++              <div class="fl-group">
++                <label class="fl-q" for="flNotes">What will you do differently?</label>
++                <div class="fl-area">
++                  <textarea id="flNotes" data-field="notes" maxlength="300" placeholder="e.g. Call before changing plans..."></textarea>
++                  <span class="fl-count" id="flNotesCount">0/300</span>
++                </div>
++              </div>
++            </div>
++          </div>
++
++          <button type="button" class="fl-cta" id="flNext" data-fl="next"></button>
++        </section>
++
++        <!-- Screen 3: reconnect activities -->
++        <section class="fl-view" data-view="activities">
++          <div class="fl-subhead">
++            <button type="button" class="fl-back" data-fl="back" aria-label="Back"><i data-lucide="arrow-left"></i></button>
++            <h2>Reconnect Activities</h2>
++          </div>
++          <p class="fl-lead">After a fight, try these activities to understand, heal and come closer. <i data-lucide="heart"></i></p>
++          <div class="fl-tabs" id="flActTabs" role="tablist" aria-label="Activity type"></div>
++          <div id="flActList"></div>
++        </section>
+       </div>
+ 
+       <!-- ════ MY SPACE ════ -->
+@@ -7144,27 +7346,11 @@ select option { background: #0D0D0D; color: #fff; }
+         </div>
+       </div>
+ 
+-      <div class="modal-bg" id="fightModal">
++      <div class="modal-bg fl-sheet" id="fightDetailModal">
+         <div class="modal">
+-          <div class="modal-title">⚡ Log a Fight<button class="modal-close" onclick="closeM('fightModal')"><i data-lucide="x"></i></button>
++          <div class="modal-title">Fight details<button class="modal-close" aria-label="Close"><i data-lucide="x"></i></button>
+           </div>
+-          <div class="field"><label>What was the fight about?</label><input type="text" id="fightTitle"
+-              placeholder="e.g. Communication, plans, jealousy..."></div>
+-          <div class="field"><label>Reason / Root Cause</label><textarea id="fightReason"
+-              placeholder="Describe what happened..."></textarea></div>
+-          <div class="field">
+-            <label>Intensity (1-10)</label>
+-            <input type="range" id="fightIntensity" min="1" max="10" value="5"
+-              style="width:100%;accent-color:var(--accent)">
+-            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:3px">
+-              <span>Mild 1</span><span id="fightIntVal">5</span><span>10 Severe</span>
+-            </div>
+-          </div>
+-          <div class="field"><label>Status</label><select id="fightStatus">
+-              <option value="open">🔴 Still ongoing</option>
+-              <option value="resolved">✅ Resolved</option>
+-            </select></div>
+-          <button class="btn btn-accent" onclick="logFight()">Log Fight ⚡</button>
++          <div id="flDetailBody"></div>
+         </div>
+       </div>
+ 
+@@ -9561,149 +9747,377 @@ const p = await Notification.requestPermission();
+           calEl.innerHTML = html;
+         }
+ 
+-        // ─── FIGHT TRACKER ───────────────────────────────────────
+-        document.getElementById('fightIntensity').addEventListener('input', function () { document.getElementById('fightIntVal').textContent = this.value; });
+-        function logFight() {
+-          const title = document.getElementById('fightTitle').value.trim(); if (!title) { toast('Enter what the fight was about'); return; }
+-          if (!S.fights) S.fights = [];
+-          S.fights.unshift({ id: Date.now(), title, reason: document.getElementById('fightReason').value, intensity: parseInt(document.getElementById('fightIntensity').value) || 5, status: document.getElementById('fightStatus').value, date: todayStr(), visibility: 'both', by: S.role });
+-          ['fightTitle', 'fightReason'].forEach(id => document.getElementById(id).value = '');
+-          document.getElementById('fightIntensity').value = 5; document.getElementById('fightIntVal').textContent = 5;
+-          closeM('fightModal'); renderFights(); scheduleSave(); toast('Fight logged. Remember: you both love each other 💕');
+-        }
+-        function resolveFight(id) { const f = (S.fights || []).find(x => x.id === id); if (f) { f.status = 'resolved'; f.resolvedDate = todayStr(); } renderFights(); scheduleSave(); toast('Fight resolved! 💚'); spawnPetals(10); addXP(6); }
+-        function delFight(id) { confirmDelete({ itemType: 'entry', message: 'This entry will be permanently deleted.', onConfirm: () => { S.fights = (S.fights || []).filter(f => f.id !== id); renderFights(); scheduleSave(); } }); }
+-        const ACTIVITIES = [
+-          { e: '🎯', t: 'Mirror Exercise', d: 'Sit facing each other. One speaks for 2 minutes uninterrupted about their feelings. The other mirrors back what they heard. Then switch. This builds deep empathy.' },
+-          { e: '✍️', t: 'Letter Exchange', d: 'Each write a letter explaining your perspective and what you need. Swap and read without interrupting. Understanding grows through words.' },
+-          { e: '🚶', t: 'Silent Walk', d: 'Take a 15-minute walk holding hands without speaking. Sometimes physical closeness heals emotional distance.' },
+-          { e: '🙏', t: 'Appreciation Round', d: 'Take turns saying 3 things you genuinely appreciate about each other right now.' },
+-          { e: '🫂', t: '20-Second Hug', d: 'Research shows a 20-second hug releases oxytocin. Hold each other for at least 20 seconds — feel your heartbeats sync.' },
+-          { e: '🎲', t: 'Play Together', d: 'Play a simple game (cards, Ludo, anything). Shared laughter is a powerful reset for tension.' },
+-          { e: '🍳', t: 'Cook Together', d: 'Make a simple meal together. Creating something collaboratively rebuilds teamwork and trust.' },
+-          { e: '💭', t: '3-Why Deep Dive', d: 'Ask "why does this bother me?" three times deeper each time. Often the real issue is not what the fight was about.' },
++        // ─── FIGHT LOG ───────────────────────────────────────────
++        // Three in-page screens share #page-fights: dashboard → log wizard
++        // → reconnect activities. Fights live in S.fights and sync through
++        // scheduleSave(). An unfinished wizard can be kept as a draft on
++        // this device only (never in S, so it is never pushed to the partner).
++        const FIGHT_CATEGORIES = {
++          Communication: { icon: 'message-circle', tone: '244,114,182' },
++          Time: { icon: 'clock', tone: '248,113,113' },
++          Plans: { icon: 'calendar', tone: '167,139,250' },
++          Jealousy: { icon: 'heart-crack', tone: '244,114,182' },
++          Family: { icon: 'users', tone: '96,165,250' },
++          Money: { icon: 'wallet', tone: '251,191,36' },
++          Habits: { icon: 'repeat', tone: '45,212,191' },
++          Other: { icon: 'ellipsis', tone: '161,161,170' }
++        };
++        const FIGHT_STARTERS = [
++          { key: 'me', label: 'Me', icon: 'user' },
++          { key: 'partner', label: 'Partner', icon: 'user' },
++          { key: 'both', label: 'Both', icon: 'users' },
++          { key: 'unsure', label: 'Not sure', icon: 'circle-help' }
+         ];
++        const FIGHT_FEELINGS = [
++          ['Angry', 'angry'], ['Hurt', 'heart-crack'], ['Sad', 'frown'], ['Frustrated', 'annoyed'],
++          ['Anxious', 'zap'], ['Misunderstood', 'ear-off'], ['Ignored', 'eye-off'], ['Tired', 'moon'], ['Confused', 'circle-help']
++        ];
++        // `done` wording is used for resolved fights, `next` for open ones.
++        const FIGHT_APPROACHES = [
++          { key: 'talk', done: 'Talked it out', next: 'Talk it out', icon: 'messages-square' },
++          { key: 'apology', done: 'Apologized', next: 'Apologize', icon: 'heart-handshake' },
++          { key: 'space', done: 'Took some space', next: 'Take some space', icon: 'moon' },
++          { key: 'compromise', done: 'Compromised', next: 'Compromise', icon: 'scale' },
++          { key: 'activity', done: 'Did an activity', next: 'Do an activity', icon: 'sparkles' },
++          { key: 'time', done: 'Gave it time', next: 'Give it time', icon: 'hourglass' }
++        ];
++        const FIGHT_ACTIVITY_FILTERS = ['All', 'Communication', 'Fun', 'Calm', 'Growth'];
++        const FIGHT_ACTIVITIES = [
++          { t: 'Mirror Exercise', cat: 'Communication', min: 10, icon: 'message-circle', tone: '244,114,182', short: 'One speaks for 2 minutes, the other mirrors back what they heard.', how: 'Sit facing each other. One speaks for 2 minutes uninterrupted about their feelings. The other mirrors back what they heard. Then switch. This builds deep empathy.' },
++          { t: 'Letter Exchange', cat: 'Communication', min: 15, icon: 'pen-line', tone: '251,191,36', short: 'Write a letter explaining your perspective. Read without interrupting.', how: 'Each write a letter explaining your perspective and what you need. Swap and read without interrupting. Understanding grows through words.' },
++          { t: 'Silent Walk', cat: 'Calm', min: 15, icon: 'footprints', tone: '96,165,250', short: 'Take a walk holding hands without speaking. Let the silence heal.', how: 'Take a 15-minute walk holding hands without speaking. Sometimes physical closeness heals emotional distance.' },
++          { t: 'Appreciation Round', cat: 'Growth', min: 10, icon: 'heart', tone: '248,113,113', short: 'Take turns saying 3 things you genuinely appreciate about each other.', how: 'Take turns saying 3 things you genuinely appreciate about each other right now.' },
++          { t: '20-Second Hug', cat: 'Calm', min: 5, icon: 'users', tone: '96,165,250', short: 'Hold each other for at least 20 seconds — feel your heartbeats sync.', how: 'Research shows a 20-second hug releases oxytocin. Hold each other for at least 20 seconds — feel your heartbeats sync.' },
++          { t: 'Play Together', cat: 'Fun', min: 20, icon: 'gamepad-2', tone: '244,114,182', short: 'Play a simple game (Ludo, cards, etc.). Shared laughter resets tension.', how: 'Play a simple game (cards, Ludo, anything). Shared laughter is a powerful reset for tension.' },
++          { t: 'Cook Together', cat: 'Fun', min: 30, icon: 'chef-hat', tone: '251,191,36', short: 'Make a simple meal together. Creating something builds teamwork and trust.', how: 'Make a simple meal together. Creating something collaboratively rebuilds teamwork and trust.' },
++          { t: '3-Why Deep Dive', cat: 'Growth', min: 15, icon: 'brain', tone: '244,114,182', short: 'Ask "why?" three times to understand the real issue.', how: 'Ask "why does this bother me?" three times deeper each time. Often the real issue is not what the fight was about.' }
++        ];
++
++        const FL_DRAFT_KEY = 'uwl_fightDraft';
++        const FL_DAY = 864e5;
++        const FL = { view: 'dashboard', step: 1, range: '90', showAll: false, activityFilter: 'All', draftChecked: false, lastRate: null, detailId: null };
++        const flBlankForm = () => ({ title: '', reason: '', category: 'Communication', intensity: 5, started: 'both', status: 'open', feelings: [], need: '', approach: [], notes: '' });
++        FL.form = flBlankForm();
++
++        function flIcons() { if (window.lucide) { try { lucide.createIcons(); } catch (_) { } } }
++        function flScrollTop() { const c = document.querySelector('.content'); if (c) c.scrollTop = 0; }
++        function flNum(n) { return Math.round(n * 10) / 10; }
++        function flCategory(f) { return FIGHT_CATEGORIES[f.category] || FIGHT_CATEGORIES.Other; }
++        function flFind(id) { return (S.fights || []).find(f => f.id === id); }
++
++        // ── Screen switching ──
++        function flShow(view) {
++          FL.view = view;
++          document.querySelectorAll('#page-fights .fl-view').forEach(el => el.classList.toggle('active', el.dataset.view === view));
++          flScrollTop();
++          if (view === 'log') flPaintForm();
++          if (view === 'activities') flRenderActivities();
++        }
++
++        // ── Numbers behind the dashboard ──
++        function flDaysAgo(n) { return new Date(Date.now() - n * FL_DAY).toISOString().slice(0, 10); }
++        function flWindow(fromDaysAgo, toDaysAgo) {
++          const from = flDaysAgo(fromDaysAgo), to = toDaysAgo ? flDaysAgo(toDaysAgo) : '9999-12-31';
++          return (S.fights || []).filter(f => (f.date || '') >= from && (f.date || '') < to);
++        }
++        function flAvg(list, pick) { return list.length ? list.reduce((s, f) => s + pick(f), 0) / list.length : null; }
++        // Fights logged straight as "resolved" have no resolvedDate: same-day.
++        function flResolveDays(f) { return f.resolvedDate ? Math.max(0, (new Date(f.resolvedDate + 'T00:00:00') - new Date(f.date + 'T00:00:00')) / FL_DAY) : 0; }
++        function flStats(list) {
++          const resolved = list.filter(f => f.status === 'resolved');
++          return {
++            total: list.length, resolved: resolved.length, open: list.filter(f => f.status === 'open').length,
++            intensity: flAvg(list, f => f.intensity || 0), days: flAvg(resolved, flResolveDays)
++          };
++        }
++        function flDelta(now, before) { return now === null || before === null || before === 0 ? null : Math.round(((now - before) / before) * 100); }
++
++        // ── Dashboard ──
+         function renderFights() {
+           if (!S.fights) S.fights = [];
+-          const open = S.fights.filter(f => f.status === 'open').length;
+-          const resolved = S.fights.filter(f => f.status === 'resolved').length;
+-          const avg = S.fights.length ? Math.round(S.fights.reduce((s, f) => s + f.intensity, 0) / S.fights.length) : 0;
+-          const el = document.getElementById('fightList');
+-          if (!S.fights.length) {
++          flRenderRate();
++          flRenderMetrics();
++          flRenderRecent();
++          flIcons();
++        }
++        function flRenderRate() {
++          const select = document.getElementById('flRange');
++          if (select.value !== FL.range) select.value = FL.range;
++          const list = FL.range === 'all' ? S.fights : flWindow(+FL.range, 0);
++          const st = flStats(list);
++          const rate = st.total ? Math.round((st.resolved / st.total) * 100) : 0;
++
++          const r = 50, circ = 2 * Math.PI * r, target = circ - (rate / 100) * circ;
++          const animate = FL.lastRate !== rate;
++          FL.lastRate = rate;
++          document.getElementById('flRing').innerHTML = `
++            <svg viewBox="0 0 120 120" aria-hidden="true">
++              <defs><linearGradient id="flGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#2dd4bf"/></linearGradient></defs>
++              <circle class="fl-ring-track" cx="60" cy="60" r="${r}" fill="none" stroke-width="10"/>
++              <circle class="fl-ring-arc" cx="60" cy="60" r="${r}" fill="none" stroke-width="10" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${animate ? circ : target}"/>
++            </svg>
++            <div class="fl-ring-center"><div class="fl-ring-pct">${st.total ? rate + '%' : '—'}</div><div class="fl-ring-cap">Resolved</div></div>`;
++          if (animate) requestAnimationFrame(() => requestAnimationFrame(() => {
++            const arc = document.querySelector('#flRing .fl-ring-arc'); if (arc) arc.style.strokeDashoffset = target;
++          }));
++
++          document.getElementById('flLegend').innerHTML = [
++            ['Resolved', st.resolved, 'var(--green)'], ['Open', st.open, 'var(--red)'], ['Total', st.total, 'rgba(255,255,255,0.4)']
++          ].map(([name, n, color]) => `<li><i style="--dot:${color}"></i>${name}<b>${n}</b></li>`).join('');
++
++          let icon = 'heart', solid = true, head, sub;
++          if (!st.total) { head = 'No fights logged'; sub = 'Keep talking openly — that is how it stays this way.'; }
++          else if (st.intensity >= 7) { icon = 'triangle-alert'; solid = false; head = 'Things feel intense lately'; sub = 'Try a reconnect activity together soon.'; }
++          else if (rate === 100) { head = 'You both are doing great!'; sub = 'Every conflict you logged has been resolved.'; }
++          else if (rate >= 60) { head = 'You both are doing great!'; sub = 'Open conversations make your bond stronger.'; }
++          else { icon = 'heart-handshake'; solid = false; head = 'Some fights are still open'; sub = 'Pick a reconnect activity and talk it through.'; }
++          document.getElementById('flInsight').innerHTML = `<span class="fl-insight-ico${solid ? ' is-solid' : ''}"><i data-lucide="${icon}"></i></span><div><b>${head}</b><span>${sub}</span></div>`;
++        }
++        function flRenderMetrics() {
++          const range = FL.range === 'all' ? S.fights : flWindow(+FL.range, 0);
++          const st = flStats(range), now = flStats(flWindow(30, 0)), before = flStats(flWindow(60, 30));
++          const tile = (icon, name, value, delta) => {
++            let trend;
++            if (delta === null) trend = '<span class="fl-muted">Not enough history yet</span>';
++            else {
++              // For both metrics lower is better, so a drop reads as good news.
++              const tone = delta < 0 ? 'is-good' : delta > 0 ? 'is-bad' : '';
++              const arrow = delta < 0 ? 'arrow-down' : delta > 0 ? 'arrow-up' : 'minus';
++              trend = `<span class="fl-delta ${tone}"><i data-lucide="${arrow}"></i>${delta > 0 ? '+' : ''}${delta}%</span><span class="fl-muted">than last month</span>`;
++            }
++            return `<div class="card fl-metric"><span class="fl-metric-ico"><i data-lucide="${icon}"></i></span><div class="fl-metric-body"><div class="fl-metric-name">${name}</div><div class="fl-metric-val">${value}</div><div class="fl-trend">${trend}</div></div></div>`;
++          };
++          const days = st.days === null ? '—' : st.days === 0 ? 'Same day' : flNum(st.days) + (flNum(st.days) === 1 ? ' day' : ' days');
++          document.getElementById('flMetrics').innerHTML =
++            tile('chart-no-axes-column', 'Avg Intensity', st.intensity === null ? '—' : flNum(st.intensity) + '/10', flDelta(now.intensity, before.intensity)) +
++            tile('clock', 'Avg Resolution Time', days, flDelta(now.days, before.days));
++        }
++        function flRenderRecent() {
++          const el = document.getElementById('flRecent'), link = document.getElementById('flViewAll');
++          const list = [...S.fights].sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || 0) - (a.id || 0));
++          link.style.display = list.length > 3 ? '' : 'none';
++          link.innerHTML = FL.showAll ? 'Show Less<i data-lucide="chevron-up"></i>' : 'View All<i data-lucide="chevron-right"></i>';
++          if (!list.length) {
+             PS.empty(el, {
+               icon: 'heart',
+               title: 'No conflicts recorded.',
+               desc: "That's a great sign — healthy communication keeps it that way. If something ever comes up, log it here so you can work through it together.",
+-              actionLabel: 'Resolve Together',
+-              onAction: () => document.getElementById('reconnectActivities')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
++              actionLabel: 'Reconnect Activities',
++              onAction: () => flShow('activities')
+             });
+-            renderFightAnalytics();
+             return;
+           }
+-          let html = `<div class="fight-stats-bar">
+-    <div class="fstat-box"><div class="fstat-n">${S.fights.length}</div><div class="fstat-l">Total</div></div>
+-    <div class="fstat-box"><div class="fstat-n" style="color:var(--red)">${open}</div><div class="fstat-l">Open</div></div>
+-    <div class="fstat-box"><div class="fstat-n" style="color:var(--green)">${resolved}</div><div class="fstat-l">Resolved</div></div>
+-    <div class="fstat-box"><div class="fstat-n" style="color:var(--yellow)">${avg}/10</div><div class="fstat-l">Avg Intensity</div></div>
+-  </div>`;
+-          html += S.fights.map(f => `
+-    <div class="fight-card">
+-      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px">
+-        <span class="fight-status ${f.status === 'open' ? 'fight-open' : 'fight-resolved'}">${f.status === 'open' ? '🔴 Ongoing' : '✅ Resolved'}</span>
+-        <span style="font-size:10px;color:var(--text3)">${fmtDate(f.date)}</span>
+-      </div>
+-      <div style="font-size:14px;font-weight:600;color:var(--white);margin:7px 0 3px">${esc(f.title)}</div>
+-      ${f.reason ? `<div style="font-size:12px;color:var(--text2);margin-bottom:8px;padding:8px;background:var(--g1);border-radius:var(--rss);border-left:3px solid rgba(248,113,113,0.4)">📝 ${esc(f.reason)}</div>` : ''}
+-      <div class="intensity-bar"><div class="intensity-fill" style="width:${f.intensity * 10}%"></div></div>
+-      <div style="font-size:10px;color:var(--text3);margin-bottom:8px">Intensity: ${f.intensity}/10</div>
+-      <div style="display:flex;gap:7px;flex-wrap:wrap">
+-        ${f.status === 'open' ? `<button class="btn btn-success btn-xs" onclick="resolveFight(${f.id})">${uiIcon('check')} Resolve</button><button class="btn btn-glass btn-xs" onclick="askAIaboutFight('${esc(f.title)}')">🤖 AI Help</button>` : ''}
+-        <button class="del-btn" onclick="delFight(${f.id})">Delete</button>
+-      </div>
+-    </div>`).join('');
+-          el.innerHTML = html;
+-          const ae = document.getElementById('reconnectActivities');
+-          if (ae) ae.innerHTML = ACTIVITIES.map(a => `
+-    <div style="display:flex;align-items:flex-start;gap:11px;padding:12px;background:var(--green-bg);border:1px solid rgba(52,211,153,0.2);border-radius:var(--rs);margin-bottom:8px;cursor:pointer;transition:var(--t)" onclick="this.style.opacity=this.style.opacity==='0.7'?'1':'0.7';toast('Try: ${a.t} 💕')">
+-      <div style="font-size:24px">${a.e}</div>
+-      <div><div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:3px">${a.t}</div><div style="font-size:12px;color:var(--text2);line-height:1.55">${a.d}</div></div>
+-    </div>`).join('');
+-          renderFightAnalytics();
++          el.innerHTML = (FL.showAll ? list : list.slice(0, 3)).map(f => `
++            <div class="fl-row" role="button" tabindex="0" data-fl="open" data-id="${f.id}">
++              <span class="fl-tile" style="--tone:${flCategory(f).tone}"><i data-lucide="${flCategory(f).icon}"></i></span>
++              <span class="fl-row-main"><span class="fl-row-name">${esc(f.title)}</span><span class="fl-row-date">${fmtDate(f.date)}</span></span>
++              <span class="fl-state ${f.status === 'open' ? 'is-open' : 'is-resolved'}">${f.status === 'open' ? 'Open' : 'Resolved'}</span>
++              <span class="fl-score">${f.intensity}/10</span>
++              <i data-lucide="chevron-right" class="fl-chev"></i>
++            </div>`).join('');
+         }
+-        function renderFightAnalytics() {
+-          const heroEl = document.getElementById('faHeroCard'), insEl = document.getElementById('faInsightCard'), trendEl = document.getElementById('faTrendCard'), causeEl = document.getElementById('faCauseCard');
+-          if (!heroEl && !insEl && !trendEl && !causeEl) return;
+-          const fights = S.fights || [];
+-          const resolved = fights.filter(f => f.status === 'resolved').length;
+-          const resRate = fights.length ? Math.round((resolved / fights.length) * 100) : 0;
+-          const avg = fights.length ? Math.round(fights.reduce((s, f) => s + f.intensity, 0) / fights.length) : 0;
+ 
+-          if (heroEl) {
+-            const r = 42, circ = 2 * Math.PI * r, offset = circ - (resRate / 100) * circ;
+-            heroEl.innerHTML = `
+-              <div class="fa-ring-wrap">
+-                <svg viewBox="0 0 100 100" width="100" height="100">
+-                  <circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--g2)" stroke-width="8"/>
+-                  <circle cx="50" cy="50" r="${r}" fill="none" stroke="url(#faGrad)" stroke-width="8"
+-                    stroke-dasharray="${circ}" stroke-dashoffset="${circ}" stroke-linecap="round"
+-                    style="transition:stroke-dashoffset 1.2s cubic-bezier(0.34,1.56,0.64,1)" id="faRingCircle"/>
+-                  <defs><linearGradient id="faGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+-                    <stop offset="0%" stop-color="#f87171"/><stop offset="100%" stop-color="var(--green)"/>
+-                  </linearGradient></defs>
+-                </svg>
+-                <div class="fa-ring-text"><div class="fa-ring-pct">${resRate}%</div><div class="fa-ring-label">Resolved</div></div>
+-              </div>
+-              <div class="fa-hero-stats">
+-                <div class="fa-hero-title">Conflict Resolution Rate</div>
+-                <div class="fa-hero-amt">${resolved}/${fights.length}</div>
+-                <div class="fa-hero-sub">Avg intensity ${avg}/10 across ${fights.length} logged fight${fights.length === 1 ? '' : 's'}</div>
+-              </div>`;
+-            requestAnimationFrame(() => requestAnimationFrame(() => {
+-              const c = document.getElementById('faRingCircle'); if (c) c.style.strokeDashoffset = offset;
+-            }));
+-          }
+-
+-          if (insEl) {
+-            let text, ico = '💡';
+-            if (!fights.length) { text = 'No conflicts logged yet — healthy communication keeps it that way.'; }
+-            else if (resRate === 100) { ico = '💚'; text = `Every fight you've logged has been resolved — <strong>${resRate}%</strong> resolution rate.`; }
+-            else if (avg >= 7) { ico = '⚠️'; text = `Average intensity is running high at <strong>${avg}/10</strong> — try a reconnect activity soon.`; }
+-            else if (resRate >= 60) { ico = '✅'; text = `You've resolved <strong>${resRate}%</strong> of logged conflicts — good communication.`; }
+-            else { ico = '💭'; text = `<strong>${fights.length - resolved}</strong> fight${fights.length - resolved === 1 ? ' is' : 's are'} still open — try the reconnect activities below.`; }
+-            insEl.innerHTML = `<div class="fa-insight-ico">${ico}</div><div class="fa-insight-text">${text}</div>`;
+-          }
+-
+-          if (trendEl) {
+-            if (fights.length < 2) { trendEl.parentElement.style.display = 'none'; }
+-            else {
+-              trendEl.parentElement.style.display = '';
+-              const recent = fights.slice(0, 8).slice().reverse();
+-              trendEl.innerHTML = recent.map(f => `
+-                <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+-                  <div class="fa-trend-bar" style="height:${Math.max(3, Math.round((f.intensity / 10) * 60))}px" title="${f.intensity}/10"></div>
+-                  <div class="fa-trend-label">${(f.date || '').slice(5)}</div>
+-                </div>`).join('');
+-            }
+-          }
+-
+-          if (causeEl) {
+-            const causeCounts = {};
+-            fights.forEach(f => { const key = (f.reason || '').trim(); if (key) causeCounts[key] = (causeCounts[key] || 0) + 1; });
+-            const entries = Object.entries(causeCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+-            if (!entries.length) { causeEl.parentElement.style.display = 'none'; }
+-            else {
+-              causeEl.parentElement.style.display = '';
+-              const max = Math.max(...entries.map(e => e[1]));
+-              causeEl.innerHTML = entries.map(([reason, count]) => `
+-                <div class="fa-cause-row">
+-                  <span style="font-size:12px;color:var(--text2);min-width:90px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(reason)}</span>
+-                  <div class="fa-cause-bar-wrap"><div class="fa-cause-bar" style="width:${Math.round((count / max) * 100)}%"></div></div>
+-                  <span style="font-size:11px;color:var(--text3)">${count}x</span>
+-                </div>`).join('');
+-            }
++        // ── Fight details: open, resolve, ask AI, delete ──
++        function flStarterLabel(v) {
++          if (v === 'both') return 'Both';
++          if (v === 'unsure') return 'Not sure';
++          if (v === 'user1' || v === 'user2') return v === S.role ? 'Me' : (S.partnerName || 'Partner');
++          return '';
++        }
++        function flOpenDetail(id) {
++          const f = flFind(id); if (!f) return;
++          FL.detailId = f.id;
++          const open = f.status === 'open', cat = flCategory(f), starter = flStarterLabel(f.startedBy);
++          const section = (title, body) => body ? `<div class="fl-h4">${title}</div>${body}` : '';
++          const text = s => s ? `<div class="fl-text">${esc(s)}</div>` : '';
++          const marks = list => list.length ? `<div class="fl-marks">${list.map(m => `<span class="fl-mark">${esc(m)}</span>`).join('')}</div>` : '';
++          const approaches = (f.approach || []).map(k => FIGHT_APPROACHES.find(a => a.key === k)).filter(Boolean).map(a => open ? a.next : a.done);
++          document.getElementById('flDetailBody').innerHTML = `
++            <div class="fl-detail-head">
++              <span class="fl-tile" style="--tone:${cat.tone}"><i data-lucide="${cat.icon}"></i></span>
++              <span class="fl-row-main"><span class="fl-row-name">${esc(f.title)}</span><span class="fl-row-date">${fmtDate(f.date)}</span></span>
++              <span class="fl-state ${open ? 'is-open' : 'is-resolved'}">${open ? 'Open' : 'Resolved'}</span>
++            </div>
++            <div class="fl-facts">
++              <div class="fl-fact"><b>${f.intensity}/10</b><span>Intensity</span></div>
++              <div class="fl-fact"><b>${esc(f.category || 'Other')}</b><span>Category</span></div>
++              ${starter ? `<div class="fl-fact"><b>${esc(starter)}</b><span>Started by</span></div>` : ''}
++            </div>
++            ${section('What happened', text(f.reason))}
++            ${section('Feelings', marks(f.feelings || []))}
++            ${section('What was needed', text(f.need))}
++            ${section(open ? 'What could help' : 'How it was sorted out', marks(approaches))}
++            ${section('Next time', text(f.notes))}
++            ${f.resolvedDate ? `<div class="fl-h4">Resolved on ${fmtDate(f.resolvedDate)}</div>` : ''}
++            <div class="fl-actions">
++              ${open ? '<button type="button" class="btn btn-success" data-fl="resolve"><i data-lucide="check"></i>Mark resolved</button><button type="button" class="btn btn-glass" data-fl="ai"><i data-lucide="bot"></i>AI Help</button>' : ''}
++              <button type="button" class="btn btn-danger" data-fl="delete"><i data-lucide="trash-2"></i>Delete</button>
++            </div>`;
++          flIcons();
++          openM('fightDetailModal');
++        }
++        function flResolve(id) {
++          const f = flFind(id); if (!f || f.status === 'resolved') return;
++          f.status = 'resolved'; f.resolvedDate = todayStr();
++          closeM('fightDetailModal'); renderFights(); scheduleSave(); toast('Fight resolved! 💚'); addXP(6);
++        }
++        function flAskAI(id) {
++          const f = flFind(id); if (!f) return;
++          closeM('fightDetailModal');
++          const prompt = 'We had a fight about: ' + f.title + '.' + (f.reason ? ' What happened: ' + f.reason : '') + ' Give us specific, empathetic advice to understand each other and resolve this quickly.';
++          goto('ai'); setTimeout(() => askAI(prompt), 300);
++        }
++        function flDelete(id) {
++          closeM('fightDetailModal');
++          confirmDelete({ itemType: 'entry', message: 'This entry will be permanently deleted.', onConfirm: () => { S.fights = (S.fights || []).filter(f => f.id !== id); renderFights(); scheduleSave(); } });
++        }
++
++        // ── Log wizard ──
++        function flBuildChoices() {
++          const chip = (action, field, value, label, icon) => `<button type="button" class="fl-chip" aria-pressed="false" data-fl="${action}" data-field="${field}" data-value="${value}"><i data-lucide="${icon}"></i>${label}</button>`;
++          document.getElementById('flCategory').innerHTML = Object.entries(FIGHT_CATEGORIES).map(([name, c]) => chip('pick', 'category', name, name, c.icon)).join('');
++          document.getElementById('flStarted').innerHTML = FIGHT_STARTERS.map(s => chip('pick', 'started', s.key, s.label, s.icon)).join('');
++          document.getElementById('flFeelings').innerHTML = FIGHT_FEELINGS.map(([name, icon]) => chip('toggle', 'feelings', name, name, icon)).join('');
++          document.getElementById('flScale').innerHTML = Array.from({ length: 10 }, (_, i) => `<button type="button" aria-pressed="false" data-fl="pick" data-field="intensity" data-value="${i + 1}">${i + 1}</button>`).join('');
++        }
++        function flFillFields() {
++          [['flTitle', 'title'], ['flReason', 'reason'], ['flNeed', 'need'], ['flNotes', 'notes']].forEach(([id, key]) => {
++            document.getElementById(id).value = FL.form[key];
++            const count = document.getElementById(id + 'Count'); if (count) count.textContent = FL.form[key].length + '/' + document.getElementById(id).maxLength;
++          });
++        }
++        function flPaintForm() {
++          const d = FL.form, resolved = d.status === 'resolved';
++          document.querySelectorAll('#flLog .fl-pane').forEach(p => p.classList.toggle('active', +p.dataset.step === FL.step));
++          document.querySelectorAll('#flSteps .fl-step').forEach(b => {
++            const n = +b.dataset.step;
++            b.classList.toggle('is-current', n === FL.step);
++            b.classList.toggle('is-done', n < FL.step);
++            b.setAttribute('aria-current', n === FL.step ? 'step' : 'false');
++            b.querySelector('.fl-step-n').innerHTML = n < FL.step ? '<i data-lucide="check"></i>' : n;
++          });
++          document.getElementById('flApproachHead').textContent = resolved ? 'How did you sort it out?' : 'What could help you move forward?';
++          document.getElementById('flApproach').innerHTML = FIGHT_APPROACHES.map(a => `<button type="button" class="fl-chip" aria-pressed="false" data-fl="toggle" data-field="approach" data-value="${a.key}"><i data-lucide="${a.icon}"></i>${resolved ? a.done : a.next}</button>`).join('');
++          document.querySelectorAll('#flLog button[data-field]').forEach(b => {
++            const v = d[b.dataset.field];
++            b.setAttribute('aria-pressed', Array.isArray(v) ? v.includes(b.dataset.value) : String(v) === b.dataset.value);
++          });
++          document.getElementById('flNext').innerHTML = [
++            'Next: How You Felt<i data-lucide="arrow-right"></i>', 'Next: Resolution<i data-lucide="arrow-right"></i>', '<i data-lucide="check"></i>Save Fight'
++          ][FL.step - 1];
++          flIcons();
++        }
++        function flGoStep(n) {
++          if (n > 1 && !FL.form.title.trim()) {
++            FL.step = 1; flPaintForm(); toast('Give this fight a short title first');
++            document.getElementById('flTitle').focus();
++            return;
+           }
++          FL.step = Math.min(3, Math.max(1, n));
++          flPaintForm(); flScrollTop();
++        }
++        function flOpenLog() {
++          if (!FL.draftChecked) flLoadDraft();
++          flShow('log');
+         }
+-        function askAIaboutFight(topic) { S._pendingAI = 'We had a fight about: ' + topic + '. Give us specific, empathetic advice to understand each other and resolve this quickly.'; goto('ai'); setTimeout(() => askAI(S._pendingAI), 300); }
++        function flSaveDraft() {
++          try { localStorage.setItem(FL_DRAFT_KEY, JSON.stringify({ form: FL.form, step: FL.step })); toast('Draft saved on this device'); }
++          catch (_) { toast('Could not save the draft'); }
++        }
++        function flLoadDraft() {
++          FL.draftChecked = true;
++          try {
++            const saved = JSON.parse(localStorage.getItem(FL_DRAFT_KEY) || 'null'); if (!saved || !saved.form) return;
++            const blank = flBlankForm(), f = saved.form, list = v => (Array.isArray(v) ? v.filter(x => typeof x === 'string') : []);
++            FL.form = {
++              title: String(f.title || ''), reason: String(f.reason || ''), need: String(f.need || ''), notes: String(f.notes || ''),
++              category: FIGHT_CATEGORIES[f.category] ? f.category : blank.category,
++              intensity: Math.min(10, Math.max(1, parseInt(f.intensity) || blank.intensity)),
++              started: FIGHT_STARTERS.some(s => s.key === f.started) ? f.started : blank.started,
++              status: f.status === 'resolved' ? 'resolved' : 'open',
++              feelings: list(f.feelings), approach: list(f.approach)
++            };
++            FL.step = [1, 2, 3].includes(saved.step) ? saved.step : 1;
++            flFillFields(); toast('Draft restored');
++          } catch (_) { }
++        }
++        function flSave() {
++          const d = FL.form, title = d.title.trim();
++          if (!title) { flGoStep(1); return; }
++          if (!S.fights) S.fights = [];
++          S.fights.unshift({
++            id: Date.now(), title, reason: d.reason.trim(), category: d.category, intensity: d.intensity,
++            startedBy: d.started === 'me' ? S.role : d.started === 'partner' ? (S.role === 'user1' ? 'user2' : 'user1') : d.started,
++            feelings: d.feelings, need: d.need.trim(), approach: d.approach, notes: d.notes.trim(),
++            status: d.status, date: todayStr(), resolvedDate: d.status === 'resolved' ? todayStr() : undefined,
++            visibility: 'both', by: S.role
++          });
++          try { localStorage.removeItem(FL_DRAFT_KEY); } catch (_) { }
++          FL.form = flBlankForm(); FL.step = 1; flFillFields();
++          flShow('dashboard'); renderFights(); scheduleSave();
++          toast('Fight logged. Remember: you both love each other 💕');
++        }
++
++        // ── Reconnect activities ──
++        function flRenderActivities() {
++          document.getElementById('flActTabs').innerHTML = FIGHT_ACTIVITY_FILTERS.map(name =>
++            `<button type="button" class="fl-tab${name === FL.activityFilter ? ' is-on' : ''}" role="tab" aria-selected="${name === FL.activityFilter}" data-fl="filter" data-value="${name}">${name}</button>`).join('');
++          document.getElementById('flActList').innerHTML = FIGHT_ACTIVITIES.filter(a => FL.activityFilter === 'All' || a.cat === FL.activityFilter).map(a => `
++            <div class="fl-act">
++              <div class="fl-act-head" role="button" tabindex="0" aria-expanded="false" data-fl="act">
++                <span class="fl-tile" style="--tone:${a.tone}"><i data-lucide="${a.icon}"></i></span>
++                <span class="fl-row-main">
++                  <span class="fl-act-top"><span class="fl-row-name">${a.t}</span><span class="fl-time"><i data-lucide="clock"></i>${a.min} min</span></span>
++                  <span class="fl-act-desc">${a.short}</span>
++                </span>
++                <i data-lucide="chevron-right" class="fl-chev"></i>
++              </div>
++              <div class="fl-act-more">${a.how}</div>
++            </div>`).join('');
++          flIcons();
++        }
++
++        // ── Event wiring (delegated: one listener per root, no inline handlers) ──
++        const FL_ACTIONS = {
++          new: flOpenLog,
++          activities: () => flShow('activities'),
++          back: () => flShow('dashboard'),
++          'log-back': () => (FL.step > 1 ? flGoStep(FL.step - 1) : flShow('dashboard')),
++          'toggle-all': () => { FL.showAll = !FL.showAll; flRenderRecent(); flIcons(); },
++          'rate-info': () => toast('The share of logged fights you have marked as resolved in this period.', 4000),
++          open: el => flOpenDetail(+el.dataset.id),
++          'save-draft': flSaveDraft,
++          next: () => (FL.step < 3 ? flGoStep(FL.step + 1) : flSave()),
++          step: el => flGoStep(+el.dataset.step),
++          pick: el => { FL.form[el.dataset.field] = el.dataset.field === 'intensity' ? +el.dataset.value : el.dataset.value; flPaintForm(); },
++          toggle: el => {
++            const list = FL.form[el.dataset.field], i = list.indexOf(el.dataset.value);
++            if (i === -1) list.push(el.dataset.value); else list.splice(i, 1);
++            flPaintForm();
++          },
++          filter: el => { FL.activityFilter = el.dataset.value; flRenderActivities(); },
++          act: el => { const open = el.parentElement.classList.toggle('is-open'); el.setAttribute('aria-expanded', open); },
++          resolve: () => flResolve(FL.detailId),
++          ai: () => flAskAI(FL.detailId),
++          delete: () => flDelete(FL.detailId)
++        };
++        ['page-fights', 'fightDetailModal'].forEach(id => {
++          const root = document.getElementById(id);
++          root.addEventListener('click', e => {
++            const el = e.target.closest('[data-fl]');
++            if (el && root.contains(el) && FL_ACTIONS[el.dataset.fl]) FL_ACTIONS[el.dataset.fl](el);
++          });
++          root.addEventListener('keydown', e => {
++            if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"][data-fl]')) { e.preventDefault(); e.target.click(); }
++          });
++        });
++        document.getElementById('flLog').addEventListener('input', e => {
++          const key = e.target.dataset.field; if (!key || !(key in FL.form)) return;
++          FL.form[key] = e.target.value;
++          const count = document.getElementById(e.target.id + 'Count'); if (count) count.textContent = e.target.value.length + '/' + e.target.maxLength;
++        });
++        document.getElementById('flRange').addEventListener('change', e => { FL.range = e.target.value; renderFights(); });
++        flBuildChoices(); flFillFields();
+ 
+         // ─── STUDY ───────────────────────────────────────────────
+         function addSubject() {
+diff --git a/public/ui-icons.js b/public/ui-icons.js
+index 2851018..ca6ce20 100644
+--- a/public/ui-icons.js
++++ b/public/ui-icons.js
+@@ -117,7 +117,7 @@
+ 
+     // ── NEW in v3 — previously missing from the map ──
+     '💚': 'heart-handshake',      // Reconnect Activities
+-    '✌️': 'smile',                // Fight Log empty state ('peace' is not a valid Lucide icon name)
++    '✌️': 'smile',                // ('peace' is not a valid Lucide icon name)
+     '👐': 'hand-heart',           // Touch button
+     '🤗': 'heart-handshake',      // Hug button / hug stat
+     '🥺': 'heart-crack',          // Miss You button / stat
+@@ -240,7 +240,7 @@
+     '.btn', '.ic-btn', '.btn-ghost', '.del-btn', '.modal-close',
+     '.img-viewer-close', '.search-cancel', '.sf', '.stab', '.tag',
+     '.empty', '.empty-ico', '.fight-status', '.phase-badge',
+-    '.priv-badge', '.stat-l', '.pstat-l', '.fstat-l', '.metric-l',
++    '.priv-badge', '.stat-l', '.pstat-l', '.metric-l',
+     '.streak-badge', '.info-banner', '.auth-sub', '.auth-tab',
+     '.settings-row-action', '.pk', '.money-ic', '.ni .ico', '.bot-ni .ico',
+     '.ni-chev', '.cat-back-btn', '.cat-row-ico', '.cat-row-chev',
+@@ -256,8 +256,7 @@
+     // ── NEW in v3 — connection card + stat icons that weren't scanned before ──
+     '.cc-ico', '.cc-lbl', '.cc-stat-ico', '.cc-stat-l',
+     '.connect-btn-ico', '.connect-btn-label', '.connect-stat',
+-    '.metric-n', '.fstat-n', '.pstat-n', '.stat-n',
+-    '.reconnect-ico', '#reconnectActivities .card-title',
++    '.metric-n', '.pstat-n', '.stat-n',
+     '.love-card-ico', '.love-card-meta',
+ 
+     // ── NEW in v4 — dream board tabs, type selects, misc inline icon buttons ──
