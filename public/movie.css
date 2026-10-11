@@ -587,3 +587,17 @@ html, body {
   .wt-center-controls { gap: 40px; }
   .wt-play-btn { width: 84px; height: 84px; }
 }
+
+/* ═══ Shared Cloud Storage (Phase 1) — reuses existing .wt-chip-btn / .wt-btn / .wt-hint ═══ */
+.wt-mode-toggle { display: flex; gap: 8px; margin-bottom: 6px; }
+.wt-mode-toggle .wt-chip-btn { opacity: 0.6; }
+.wt-mode-toggle .wt-chip-btn.is-active { opacity: 1; background: var(--accent, #E8384F); }
+.wt-mode-pane { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.wt-cloud-usage { width: 100%; max-width: 320px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.1); overflow: hidden; }
+.wt-cloud-usage-fill { height: 100%; width: 0; background: var(--accent, #E8384F); transition: width .2s; }
+.wt-cloud-progress { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.wt-cloud-list { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 8px; margin-top: 6px; text-align: left; }
+.wt-cloud-row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); }
+.wt-cloud-row.is-selected { border-color: var(--accent, #E8384F); }
+.wt-cloud-info { flex: 1; min-width: 0; }
+.wt-cloud-info .wt-movie-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

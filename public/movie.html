@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Watch Together</title>
 <link rel="stylesheet" href="/theme-burgundy.css">
-<link rel="stylesheet" href="/movie.css?v=3">
+<link rel="stylesheet" href="/movie.css?v=4">
 <link rel="stylesheet" href="/responsive-fix.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
@@ -29,11 +29,33 @@
 
     <!-- Sub-state: nothing picked yet -->
     <div class="wt-empty-card" id="wtEmptyCard">
-      <div class="wt-empty-icon">🎬</div>
-      <h2>Pick a movie from your phone</h2>
-      <p class="wt-hint">Nothing gets uploaded — your movie stays completely on your device.</p>
-      <button class="wt-btn wt-btn-primary" id="btnChooseMovie">Choose Movie From Device</button>
-      <input type="file" id="movieFileInput" accept="video/mp4,video/webm,video/x-m4v,video/*" hidden>
+      <!-- Mode switch: Direct Device Video (default, unchanged) | Shared Cloud Storage -->
+      <div class="wt-mode-toggle" id="wtModeToggle">
+        <button type="button" class="wt-chip-btn is-active" id="modeDirect">Direct Device Video</button>
+        <button type="button" class="wt-chip-btn" id="modeCloud">Shared Cloud Storage</button>
+      </div>
+
+      <div class="wt-mode-pane" id="wtDirectPane">
+        <div class="wt-empty-icon">🎬</div>
+        <h2>Pick a movie from your phone</h2>
+        <p class="wt-hint">Nothing gets uploaded — your movie stays completely on your device.</p>
+        <button class="wt-btn wt-btn-primary" id="btnChooseMovie">Choose Movie From Device</button>
+        <input type="file" id="movieFileInput" accept="video/mp4,video/webm,video/x-m4v,video/*" hidden>
+      </div>
+
+      <div class="wt-mode-pane wt-cloud-pane" id="wtCloudPane" hidden>
+        <p class="wt-hint">Upload once — you both stream the same movie. Stored privately for the two of you.</p>
+        <div class="wt-cloud-usage"><div class="wt-cloud-usage-fill" id="cloudUsageFill"></div></div>
+        <p class="wt-hint" id="cloudUsageText">&nbsp;</p>
+        <button class="wt-btn wt-btn-primary" id="btnCloudUpload">Upload Movie To Cloud</button>
+        <input type="file" id="cloudFileInput" accept="video/mp4,video/webm,video/x-m4v,video/quicktime" hidden>
+        <div class="wt-cloud-progress" id="cloudProgress" hidden>
+          <div class="wt-cloud-usage"><div class="wt-cloud-usage-fill" id="cloudProgressFill"></div></div>
+          <p class="wt-hint" id="cloudProgressText">Starting…</p>
+          <button class="wt-chip-btn" id="btnCloudCancel" type="button">Cancel upload</button>
+        </div>
+        <div class="wt-cloud-list" id="cloudList"></div>
+      </div>
     </div>
 
     <!-- Sub-state: movie picked → lobby -->
@@ -262,6 +284,6 @@
   </div>
 </div>
 
-<script src="/movie.js?v=3"></script>
+<script src="/movie.js?v=4"></script>
 </body>
 </html>

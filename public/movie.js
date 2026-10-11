@@ -162,6 +162,8 @@
     pendingResumeSec: null,
     myDuration: null,
     myTitle: null,
+    mode: 'direct',        // which setup tab is showing: 'direct' | 'cloud'
+    cloudMovieId: null,    // set while the current session streams a shared R2 movie
     lastActionSeq: 0,
     applyingRemote: false,
     countdownTimer: null,
@@ -250,7 +252,10 @@
   // SECTION 4 — Local movie selection
   // ═══════════════════════════════════════════════════════
   $('btnChooseMovie').onclick = () => els.fileInput.click();
-  $('btnChangeMovie').onclick = () => els.fileInput.click();
+  $('btnChangeMovie').onclick = () => {
+    if (state.mode === 'cloud') { showSetupSub('empty'); setMode('cloud'); }
+    else els.fileInput.click();
+  };
 
   els.fileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
@@ -284,6 +289,292 @@
   }
 
   // ═══════════════════════════════════════════════════════
+  // SECTION 4b — Shared Cloud Storage (private Cloudflare R2).
+  // Direct Device Video (Section 4) is untouched. This block only runs
+  // when the "Shared Cloud Storage" tab is opened or the room carries a
+  // shared_movie_id. The browser never sees R2 credentials: uploads use
+  // short-lived presigned part URLs and playback a short-lived signed
+  // GET URL, both minted by /api/movie-library after it verifies you
+  // belong to this couple.
+  // ═══════════════════════════════════════════════════════
+  const USER_ID = (function () {
+    try { const s = window.parent.S; if (s && s.userId) return s.userId; } catch (e) {}
+    try { const d = JSON.parse(localStorage.getItem('uwl_v5') || '{}'); if (d.userId) return d.userId; } catch (e) {}
+    return null;
+  })();
+  const cloud = { movies: [], usage: null, uploading: false, cancel: false, activeId: null, xhrs: new Set(), errTimes: [] };
+  const CLOUD_MIME = { mp4: 'video/mp4', m4v: 'video/x-m4v', mov: 'video/quicktime', webm: 'video/webm' };
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+  async function libApi(method, path, body) {
+    const opts = { method, headers: { 'Content-Type': 'application/json', 'x-user-id': USER_ID || '' } };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(API + '/api/movie-library/' + COUPLE_ID + path, opts);
+    const data = await r.json().catch(() => null);
+    if (!r.ok) throw new Error((data && data.error) || 'Request failed');
+    return data;
+  }
+
+  function fmtBytes(n) {
+    n = Number(n) || 0;
+    return n >= 1e9 ? (n / 1e9).toFixed(2) + ' GB' : (n / 1e6).toFixed(n >= 1e8 ? 0 : 1) + ' MB';
+  }
+
+  function setMode(mode, opts) {
+    state.mode = mode;
+    $('modeDirect').classList.toggle('is-active', mode === 'direct');
+    $('modeCloud').classList.toggle('is-active', mode === 'cloud');
+    $('wtDirectPane').hidden = mode !== 'direct';
+    $('wtCloudPane').hidden = mode !== 'cloud';
+    if (mode === 'cloud' && !(opts && opts.load === false)) loadLibrary();
+  }
+  $('modeDirect').onclick = () => setMode('direct');
+  $('modeCloud').onclick = () => setMode('cloud');
+
+  async function loadLibrary() {
+    if (!cloud.movies.length) $('cloudList').innerHTML = '<p class="wt-hint">Loading…</p>';
+    try {
+      const d = await libApi('GET', '');
+      cloud.movies = d.movies; cloud.usage = d.usage;
+      renderLibrary();
+    } catch (e) {
+      $('cloudList').innerHTML = `<p class="wt-hint">${escapeHtml(e.message)}</p>`;
+    }
+  }
+
+  function renderLibrary() {
+    const u = cloud.usage;
+    if (u) {
+      $('cloudUsageText').textContent = `${fmtBytes(u.usedBytes)} of ${fmtBytes(u.limitBytes)} used`;
+      $('cloudUsageFill').style.width = Math.min(100, (u.usedBytes / u.limitBytes) * 100) + '%';
+    }
+    const selected = state.room && state.room.shared_movie_id;
+    const rows = cloud.movies.filter(m => m.id !== cloud.activeId).map(m => {
+      const ready = m.status === 'ready';
+      return `<div class="wt-cloud-row${m.id === selected ? ' is-selected' : ''}">
+        <div class="wt-cloud-info">
+          <div class="wt-movie-title">${escapeHtml(m.title)}</div>
+          <div class="wt-movie-meta">${ready ? fmtTime(m.durationSec) + ' • ' + fmtBytes(m.sizeBytes) : 'Incomplete upload'}</div>
+        </div>
+        ${ready ? `<button class="wt-chip-btn" data-act="pick" data-id="${m.id}">Watch</button>` : ''}
+        <button class="wt-chip-btn" data-act="del" data-id="${m.id}" aria-label="Delete">🗑</button>
+      </div>`;
+    });
+    $('cloudList').innerHTML = rows.length ? rows.join('') : '<p class="wt-hint">No shared movies yet. Upload one to get started.</p>';
+  }
+
+  $('cloudList').addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    btn.disabled = true;
+    try {
+      if (btn.dataset.act === 'pick') {
+        state.room = await libApi('POST', `/${id}/select`);
+        if (state.room.action_seq && state.room.action_seq > state.lastActionSeq) state.lastActionSeq = state.room.action_seq;
+        broadcastRoom(state.room);
+        renderFromRoom();
+      } else if (btn.dataset.act === 'del') {
+        const m = cloud.movies.find(x => x.id === id);
+        if (!window.confirm(`Delete "${m ? m.title : 'this movie'}" for both of you? This removes it from cloud storage permanently.`)) { btn.disabled = false; return; }
+        await libApi('DELETE', `/${id}`);
+        toast('Movie deleted');
+        if (state.room && state.room.shared_movie_id === id) { state.room = await api('GET', `/${COUPLE_ID}`); renderFromRoom(); }
+        await loadLibrary();
+      }
+    } catch (err) { toast(err.message, 3500); btn.disabled = false; }
+  });
+
+  // ── Upload (multipart, straight to R2) ──
+  function probeDuration(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const v = document.createElement('video');
+      v.preload = 'metadata';
+      v.onloadedmetadata = () => { URL.revokeObjectURL(url); isFinite(v.duration) && v.duration > 0 ? resolve(v.duration) : reject(new Error("Couldn't read this video's length.")); };
+      v.onerror = () => { URL.revokeObjectURL(url); reject(new Error("This video format may not be supported by your device's player.")); };
+      v.src = url;
+    });
+  }
+
+  function putPart(url, blob, onProgress) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      cloud.xhrs.add(xhr);
+      xhr.open('PUT', url);
+      xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded); };
+      xhr.onload = () => {
+        cloud.xhrs.delete(xhr);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const etag = xhr.getResponseHeader('ETag');
+          etag ? resolve(etag) : reject(new Error('NO_ETAG'));
+        } else reject(Object.assign(new Error('HTTP ' + xhr.status), { status: xhr.status }));
+      };
+      xhr.onerror = () => { cloud.xhrs.delete(xhr); reject(new Error('NETWORK')); };
+      xhr.onabort = () => { cloud.xhrs.delete(xhr); reject(new Error('ABORTED')); };
+      xhr.send(blob);
+    });
+  }
+
+  function showUploadUi(on) {
+    $('cloudProgress').hidden = !on;
+    $('btnCloudUpload').hidden = on;
+  }
+  function setUploadProgress(frac, text) {
+    $('cloudProgressFill').style.width = Math.round(frac * 100) + '%';
+    if (text) $('cloudProgressText').textContent = text;
+  }
+
+  $('btnCloudUpload').onclick = () => $('cloudFileInput').click();
+  $('btnCloudCancel').onclick = () => {
+    cloud.cancel = true;
+    cloud.xhrs.forEach(x => { try { x.abort(); } catch (e) {} });
+  };
+  window.addEventListener('beforeunload', (e) => { if (cloud.uploading) { e.preventDefault(); e.returnValue = ''; } });
+
+  $('cloudFileInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file || cloud.uploading) return;
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    const mime = Object.values(CLOUD_MIME).includes(file.type) ? file.type : CLOUD_MIME[ext];
+    if (!mime) { toast('Please choose an MP4, WebM, M4V or MOV video.', 3500); return; }
+
+    let duration;
+    try { duration = await probeDuration(file); } catch (err) { toast(err.message, 3500); return; }
+
+    cloud.uploading = true; cloud.cancel = false;
+    showUploadUi(true); setUploadProgress(0, 'Starting…');
+    let init = null;
+    try {
+      init = await libApi('POST', '/uploads', { title: file.name.replace(/\.[^/.]+$/, ''), size: file.size, mime, durationSec: duration });
+      cloud.activeId = init.movieId;
+      const parts = await uploadAllParts(file, init);
+      if (cloud.cancel) throw new Error('ABORTED');
+      setUploadProgress(1, 'Finishing…');
+      await libApi('POST', `/uploads/${init.movieId}/complete`, { parts });
+      toast('Uploaded ❤️ Ready to watch together');
+    } catch (err) {
+      if (init) { try { await libApi('POST', `/uploads/${init.movieId}/abort`); } catch (_) {} }
+      if (err.message === 'ABORTED') toast('Upload cancelled');
+      else if (err.message === 'NO_ETAG') toast('Cloud storage is not set up for browser uploads yet (CORS). See setup notes.', 5000);
+      else toast('Upload failed: ' + err.message, 4500);
+    } finally {
+      cloud.uploading = false; cloud.activeId = null; cloud.cancel = false;
+      showUploadUi(false);
+      loadLibrary();
+    }
+  });
+
+  // Uploads every part (3 at a time), fetching signed URLs just-in-time and
+  // retrying each part with backoff (fresh URL on every retry) so a flaky
+  // mobile connection or an expired part URL doesn't kill a multi-GB upload.
+  async function uploadAllParts(file, init) {
+    const total = init.totalParts, partSize = init.partSize;
+    const etags = new Array(total), loaded = new Array(total).fill(0), urls = {};
+    let next = 1;
+    const t0 = Date.now();
+
+    async function urlFor(n, fresh) {
+      if (fresh || !urls[n]) {
+        const nums = [];
+        for (let i = n; i <= total && nums.length < 6; i++) if (fresh ? i === n : !urls[i]) nums.push(i);
+        const r = await libApi('POST', `/uploads/${init.movieId}/parts`, { partNumbers: nums });
+        Object.keys(r.urls).forEach(k => { urls[k] = r.urls[k]; });
+      }
+      return urls[n];
+    }
+    function progress() {
+      const sent = loaded.reduce((a, b) => a + b, 0);
+      const secs = (Date.now() - t0) / 1000;
+      const mbps = secs > 3 ? ` • ${(sent / 1e6 / secs).toFixed(1)} MB/s` : '';
+      setUploadProgress(sent / file.size, `Uploading ${Math.round((sent / file.size) * 100)}% • ${fmtBytes(sent)} of ${fmtBytes(file.size)}${mbps}`);
+    }
+    async function worker() {
+      while (!cloud.cancel) {
+        const n = next++;
+        if (n > total) return;
+        const blob = file.slice((n - 1) * partSize, Math.min(n * partSize, file.size));
+        for (let attempt = 0; ; attempt++) {
+          try {
+            const url = await urlFor(n, attempt > 0);
+            etags[n - 1] = await putPart(url, blob, (b) => { loaded[n - 1] = b; progress(); });
+            loaded[n - 1] = blob.size; progress();
+            break;
+          } catch (err) {
+            loaded[n - 1] = 0;
+            if (cloud.cancel || err.message === 'ABORTED' || err.message === 'NO_ETAG' || attempt >= 7) throw err;
+            await sleep(Math.min(15000, 1000 * Math.pow(2, attempt)));
+          }
+        }
+      }
+    }
+    const run = () => worker().catch((err) => { cloud.cancel = true; cloud.xhrs.forEach(x => { try { x.abort(); } catch (e) {} }); throw err; });
+    await Promise.all([run(), run(), run()]);
+    return etags.map((ETag, i) => ({ PartNumber: i + 1, ETag }));
+  }
+
+  // ── Playback: signed URL → <video>. R2 supports HTTP Range, so seeking works natively. ──
+  async function attachCloudSource(resume) {
+    const id = state.cloudMovieId;
+    if (!id) return;
+    let url;
+    try {
+      const r = await libApi('GET', `/${id}/url`);
+      url = r.url;
+    } catch (e) {
+      showBanner('Could not load the shared movie: ' + e.message, [
+        { label: 'Retry', onClick: () => { hideBanner(); attachCloudSource(resume); } }
+      ]);
+      return;
+    }
+    if (state.cloudMovieId !== id) return; // session ended while the URL was being fetched
+    els.video.addEventListener('loadedmetadata', function onMeta() {
+      els.video.removeEventListener('loadedmetadata', onMeta);
+      const r = state.room || {};
+      let target, play;
+      if (resume) { target = resume.at; play = resume.playing; }
+      else if (r.status === 'watching' && !r.playing) { target = r.position_sec || 0; play = false; }
+      else {
+        const sinceStart = r.scheduled_start_at ? (serverNow() - new Date(r.scheduled_start_at).getTime()) / 1000 : 0;
+        target = r.playing ? expectedPosition(r) : Math.max(0, sinceStart) + expectedPosition(r);
+        play = true;
+      }
+      els.video.currentTime = Math.max(0, target);
+      if (play) {
+        els.video.play().catch(() => showBanner('Tap to start the movie.', [
+          { label: '▶ Play', onClick: () => { hideBanner(); els.video.play().catch(() => {}); sendAction(true, els.video.currentTime); } }
+        ]));
+      } else els.video.pause();
+      updatePlayPauseIcon();
+    });
+    els.video.src = url;
+    console.info('[WT] VIDEO cloud source assigned');
+  }
+
+  // Expired URL / dropped connection mid-movie → fresh URL, same position.
+  function recoverCloudPlayback() {
+    const now = Date.now();
+    cloud.errTimes = cloud.errTimes.filter(t => now - t < 60000);
+    cloud.errTimes.push(now);
+    const resume = {
+      at: els.video.currentTime > 1 ? els.video.currentTime : expectedPosition(state.room),
+      playing: !!(state.room && state.room.playing)
+    };
+    if (cloud.errTimes.length > 3) {
+      showBanner('The shared movie keeps failing to load. Check your connection.', [
+        { label: 'Retry', onClick: () => { cloud.errTimes = []; hideBanner(); recoverCloudPlayback(); } }
+      ]);
+      return;
+    }
+    setStatusPill('Reconnecting video…', 'warn');
+    attachCloudSource(resume);
+  }
+  els.video.addEventListener('canplay', () => {
+    if (state.cloudMovieId) { cloud.errTimes = []; setStatusPill(null); }
+  });
+
+  // ═══════════════════════════════════════════════════════
   // SECTION 5 — Central room → UI dispatcher. This is the ONLY place
   // that decides which top-level state (+ setup sub-state) is shown, so
   // behavior stays deterministic instead of inferred from scattered
@@ -292,6 +583,12 @@
   // ═══════════════════════════════════════════════════════
   function renderFromRoom() {
     const r = state.room;
+    if (r && r.shared_movie_id) {
+      // Room is in Shared Cloud Storage mode (either partner may have picked it).
+      state.myTitle = r[`${ROLE}_movie_title`] || state.myTitle;
+      state.myDuration = Number(r[`${ROLE}_duration_sec`]) || state.myDuration;
+      if (state.mode !== 'cloud') setMode('cloud', { load: false });
+    }
     if (!r || r.status === 'idle' || r.status === 'ended') {
       if (state.uiState === 'watching') clearWatchCallSession(); // partner ended / reconnect found a dead room — kill any lingering call
       showState('setup'); showSetupSub('empty'); hideInviteModal(); return;
@@ -483,7 +780,11 @@
     registerWatchCallSession(room);
     $('wtNowTitle').textContent = state.myTitle || room[`${ROLE}_movie_title`] || 'Movie';
 
-    if (!state.localObjectUrl) {
+    state.cloudMovieId = room.shared_movie_id || null;
+    if (state.cloudMovieId) {
+      // Shared Cloud Storage: stream from a short-lived signed R2 URL.
+      attachCloudSource(null);
+    } else if (!state.localObjectUrl) {
       // The in-memory object URL/File reference didn't survive to this
       // point (most commonly: the page/iframe reloaded between movie
       // selection and now, e.g. Android backgrounding the WebView).
@@ -609,6 +910,13 @@
   els.video.addEventListener('canplay', () => console.info('[WT] VIDEO canplay'));
   els.video.addEventListener('error', () => {
     console.warn('[WT] VIDEO error', els.video.error);
+    // Shared Cloud Storage: most likely an expired/refused signed URL or a network drop —
+    // fetch a fresh URL and resume from the same spot. (Ignore the empty-src error that
+    // fires when we tear the player down.)
+    if (state.cloudMovieId) {
+      if (state.uiState === 'watching' && els.video.getAttribute('src')) recoverCloudPlayback();
+      return;
+    }
     // Previously silent — the screen just sat there with no video and no
     // explanation. Surface it with the same Error/retry pattern already
     // used when localObjectUrl is missing entirely.
@@ -1407,6 +1715,7 @@
 
     // Full cleanup — spec §End Movie 1–10.
     clearAllTimers();
+    state.cloudMovieId = null;
     els.video.pause();
     els.video.removeAttribute('src'); els.video.load();
     if (state.localObjectUrl) { URL.revokeObjectURL(state.localObjectUrl); state.localObjectUrl = null; }

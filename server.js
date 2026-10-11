@@ -126,6 +126,7 @@ app.use('/api/lyrics', require('./routes/lyrics'));
 app.use('/api/search', require('./routes/search'));
 app.use('/api/presence', require('./routes/presence'));
 app.use('/api/movie', require('./routes/routes-movie'));
+app.use('/api/movie-library', require('./routes/movie-library'));
 app.use('/api/meetplanner', require('./routes/meetplanner'));
 app.use('/api/daily-routine', require('./routes/daily-routine'));
 

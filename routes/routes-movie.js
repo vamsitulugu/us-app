@@ -59,6 +59,15 @@ router.post('/:coupleId/movie', async (req, res) => {
 
   const { data, error } = await supabase.from('watch_sessions').upsert(merged, { onConflict: 'couple_id' }).select().single();
   if (error) return res.status(500).json({ error: error.message });
+
+  // Shared Cloud Storage: picking a local file leaves cloud mode. Only runs when
+  // the room was cloud-linked (shared_movie_id exists AND is set), so Direct
+  // Device Video behaves exactly as before — even if the migration isn't applied.
+  if (existing && existing.shared_movie_id) {
+    const { data: cleared } = await supabase.from('watch_sessions')
+      .update({ shared_movie_id: null }).eq('couple_id', coupleId).select().single();
+    if (cleared) return res.json(cleared);
+  }
   return res.json(data);
 });
 

@@ -1,0 +1,861 @@
+diff --git a/migrations/shared_movies.sql b/migrations/shared_movies.sql
+new file mode 100644
+index 0000000..60c781a
+--- /dev/null
++++ b/migrations/shared_movies.sql
+@@ -0,0 +1,34 @@
++-- ═══════════════════════════════════════════════════════════════
++-- Watch Together — "Shared Cloud Storage" (Cloudflare R2) metadata
++-- Apply manually in the Supabase SQL editor BEFORE deploying the
++-- matching backend. The video bytes live in a PRIVATE R2 bucket;
++-- this table only stores metadata + the R2 object key.
++-- ═══════════════════════════════════════════════════════════════
++
++create table if not exists shared_movies (
++  id            uuid primary key default gen_random_uuid(),
++  couple_id     text not null,
++  title         text not null,
++  object_key    text not null unique,      -- R2 key, e.g. movies/<coupleId>/<uuid>.mp4
++  mime_type     text not null,
++  size_bytes    bigint not null check (size_bytes > 0),
++  duration_sec  numeric not null check (duration_sec > 0),
++  status        text not null default 'uploading' check (status in ('uploading','ready')),
++  upload_id     text,                      -- R2 multipart upload id while status='uploading'
++  uploaded_by   text,                      -- users.id of the uploader
++  created_at    timestamptz not null default now(),
++  completed_at  timestamptz
++);
++
++create index if not exists idx_shared_movies_couple on shared_movies(couple_id, created_at desc);
++
++-- Same pattern as personal_recordings: all access goes through the
++-- Express API (service-role key). Block direct anon/authenticated access.
++alter table shared_movies enable row level security;
++drop policy if exists "no_direct_anon_access" on shared_movies;
++create policy "no_direct_anon_access" on shared_movies
++  for all to anon, authenticated using (false) with check (false);
++
++-- Room → which shared movie (if any) the current session streams.
++-- NULL = Direct Device Video mode (existing behaviour, unchanged).
++alter table watch_sessions add column if not exists shared_movie_id uuid;
+diff --git a/package.json b/package.json
+index 35386db..768a11c 100644
+--- a/package.json
++++ b/package.json
+@@ -8,6 +8,8 @@
+     "dev": "nodemon server.js"
+   },
+   "dependencies": {
++    "@aws-sdk/client-s3": "^3.1149.0",
++    "@aws-sdk/s3-request-presigner": "^3.1149.0",
+     "@capacitor/android": "^8.4.1",
+     "@capacitor/app": "^8.1.0",
+     "@capacitor/core": "^8.4.1",
+diff --git a/public/movie.css b/public/movie.css
+index f20a979..17cb5bb 100644
+--- a/public/movie.css
++++ b/public/movie.css
+@@ -586,4 +586,18 @@ html, body {
+ @media (orientation: landscape) {
+   .wt-center-controls { gap: 40px; }
+   .wt-play-btn { width: 84px; height: 84px; }
+-}
+\ No newline at end of file
++}
++
++/* ═══ Shared Cloud Storage (Phase 1) — reuses existing .wt-chip-btn / .wt-btn / .wt-hint ═══ */
++.wt-mode-toggle { display: flex; gap: 8px; margin-bottom: 6px; }
++.wt-mode-toggle .wt-chip-btn { opacity: 0.6; }
++.wt-mode-toggle .wt-chip-btn.is-active { opacity: 1; background: var(--accent, #E8384F); }
++.wt-mode-pane { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
++.wt-cloud-usage { width: 100%; max-width: 320px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.1); overflow: hidden; }
++.wt-cloud-usage-fill { height: 100%; width: 0; background: var(--accent, #E8384F); transition: width .2s; }
++.wt-cloud-progress { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; }
++.wt-cloud-list { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 8px; margin-top: 6px; text-align: left; }
++.wt-cloud-row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); }
++.wt-cloud-row.is-selected { border-color: var(--accent, #E8384F); }
++.wt-cloud-info { flex: 1; min-width: 0; }
++.wt-cloud-info .wt-movie-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+diff --git a/public/movie.html b/public/movie.html
+index 606926c..eb40f83 100644
+--- a/public/movie.html
++++ b/public/movie.html
+@@ -5,7 +5,7 @@
+ <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+ <title>Watch Together</title>
+ <link rel="stylesheet" href="/theme-burgundy.css">
+-<link rel="stylesheet" href="/movie.css?v=3">
++<link rel="stylesheet" href="/movie.css?v=4">
+ <link rel="stylesheet" href="/responsive-fix.css">
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+ <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
+@@ -29,11 +29,33 @@
+ 
+     <!-- Sub-state: nothing picked yet -->
+     <div class="wt-empty-card" id="wtEmptyCard">
+-      <div class="wt-empty-icon">🎬</div>
+-      <h2>Pick a movie from your phone</h2>
+-      <p class="wt-hint">Nothing gets uploaded — your movie stays completely on your device.</p>
+-      <button class="wt-btn wt-btn-primary" id="btnChooseMovie">Choose Movie From Device</button>
+-      <input type="file" id="movieFileInput" accept="video/mp4,video/webm,video/x-m4v,video/*" hidden>
++      <!-- Mode switch: Direct Device Video (default, unchanged) | Shared Cloud Storage -->
++      <div class="wt-mode-toggle" id="wtModeToggle">
++        <button type="button" class="wt-chip-btn is-active" id="modeDirect">Direct Device Video</button>
++        <button type="button" class="wt-chip-btn" id="modeCloud">Shared Cloud Storage</button>
++      </div>
++
++      <div class="wt-mode-pane" id="wtDirectPane">
++        <div class="wt-empty-icon">🎬</div>
++        <h2>Pick a movie from your phone</h2>
++        <p class="wt-hint">Nothing gets uploaded — your movie stays completely on your device.</p>
++        <button class="wt-btn wt-btn-primary" id="btnChooseMovie">Choose Movie From Device</button>
++        <input type="file" id="movieFileInput" accept="video/mp4,video/webm,video/x-m4v,video/*" hidden>
++      </div>
++
++      <div class="wt-mode-pane wt-cloud-pane" id="wtCloudPane" hidden>
++        <p class="wt-hint">Upload once — you both stream the same movie. Stored privately for the two of you.</p>
++        <div class="wt-cloud-usage"><div class="wt-cloud-usage-fill" id="cloudUsageFill"></div></div>
++        <p class="wt-hint" id="cloudUsageText">&nbsp;</p>
++        <button class="wt-btn wt-btn-primary" id="btnCloudUpload">Upload Movie To Cloud</button>
++        <input type="file" id="cloudFileInput" accept="video/mp4,video/webm,video/x-m4v,video/quicktime" hidden>
++        <div class="wt-cloud-progress" id="cloudProgress" hidden>
++          <div class="wt-cloud-usage"><div class="wt-cloud-usage-fill" id="cloudProgressFill"></div></div>
++          <p class="wt-hint" id="cloudProgressText">Starting…</p>
++          <button class="wt-chip-btn" id="btnCloudCancel" type="button">Cancel upload</button>
++        </div>
++        <div class="wt-cloud-list" id="cloudList"></div>
++      </div>
+     </div>
+ 
+     <!-- Sub-state: movie picked → lobby -->
+@@ -262,6 +284,6 @@
+   </div>
+ </div>
+ 
+-<script src="/movie.js?v=3"></script>
++<script src="/movie.js?v=4"></script>
+ </body>
+ </html>
+\ No newline at end of file
+diff --git a/public/movie.js b/public/movie.js
+index 4c3c888..a3d21f3 100644
+--- a/public/movie.js
++++ b/public/movie.js
+@@ -162,6 +162,8 @@
+     pendingResumeSec: null,
+     myDuration: null,
+     myTitle: null,
++    mode: 'direct',        // which setup tab is showing: 'direct' | 'cloud'
++    cloudMovieId: null,    // set while the current session streams a shared R2 movie
+     lastActionSeq: 0,
+     applyingRemote: false,
+     countdownTimer: null,
+@@ -250,7 +252,10 @@
+   // SECTION 4 — Local movie selection
+   // ═══════════════════════════════════════════════════════
+   $('btnChooseMovie').onclick = () => els.fileInput.click();
+-  $('btnChangeMovie').onclick = () => els.fileInput.click();
++  $('btnChangeMovie').onclick = () => {
++    if (state.mode === 'cloud') { showSetupSub('empty'); setMode('cloud'); }
++    else els.fileInput.click();
++  };
+ 
+   els.fileInput.addEventListener('change', async (e) => {
+     const file = e.target.files[0];
+@@ -283,6 +288,292 @@
+     $('myMovieMeta').textContent = `${fmtTime(duration)} • ${(type.split('/')[1] || '').toUpperCase()} • ${sizeGb} GB`;
+   }
+ 
++  // ═══════════════════════════════════════════════════════
++  // SECTION 4b — Shared Cloud Storage (private Cloudflare R2).
++  // Direct Device Video (Section 4) is untouched. This block only runs
++  // when the "Shared Cloud Storage" tab is opened or the room carries a
++  // shared_movie_id. The browser never sees R2 credentials: uploads use
++  // short-lived presigned part URLs and playback a short-lived signed
++  // GET URL, both minted by /api/movie-library after it verifies you
++  // belong to this couple.
++  // ═══════════════════════════════════════════════════════
++  const USER_ID = (function () {
++    try { const s = window.parent.S; if (s && s.userId) return s.userId; } catch (e) {}
++    try { const d = JSON.parse(localStorage.getItem('uwl_v5') || '{}'); if (d.userId) return d.userId; } catch (e) {}
++    return null;
++  })();
++  const cloud = { movies: [], usage: null, uploading: false, cancel: false, activeId: null, xhrs: new Set(), errTimes: [] };
++  const CLOUD_MIME = { mp4: 'video/mp4', m4v: 'video/x-m4v', mov: 'video/quicktime', webm: 'video/webm' };
++  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
++
++  async function libApi(method, path, body) {
++    const opts = { method, headers: { 'Content-Type': 'application/json', 'x-user-id': USER_ID || '' } };
++    if (body) opts.body = JSON.stringify(body);
++    const r = await fetch(API + '/api/movie-library/' + COUPLE_ID + path, opts);
++    const data = await r.json().catch(() => null);
++    if (!r.ok) throw new Error((data && data.error) || 'Request failed');
++    return data;
++  }
++
++  function fmtBytes(n) {
++    n = Number(n) || 0;
++    return n >= 1e9 ? (n / 1e9).toFixed(2) + ' GB' : (n / 1e6).toFixed(n >= 1e8 ? 0 : 1) + ' MB';
++  }
++
++  function setMode(mode, opts) {
++    state.mode = mode;
++    $('modeDirect').classList.toggle('is-active', mode === 'direct');
++    $('modeCloud').classList.toggle('is-active', mode === 'cloud');
++    $('wtDirectPane').hidden = mode !== 'direct';
++    $('wtCloudPane').hidden = mode !== 'cloud';
++    if (mode === 'cloud' && !(opts && opts.load === false)) loadLibrary();
++  }
++  $('modeDirect').onclick = () => setMode('direct');
++  $('modeCloud').onclick = () => setMode('cloud');
++
++  async function loadLibrary() {
++    if (!cloud.movies.length) $('cloudList').innerHTML = '<p class="wt-hint">Loading…</p>';
++    try {
++      const d = await libApi('GET', '');
++      cloud.movies = d.movies; cloud.usage = d.usage;
++      renderLibrary();
++    } catch (e) {
++      $('cloudList').innerHTML = `<p class="wt-hint">${escapeHtml(e.message)}</p>`;
++    }
++  }
++
++  function renderLibrary() {
++    const u = cloud.usage;
++    if (u) {
++      $('cloudUsageText').textContent = `${fmtBytes(u.usedBytes)} of ${fmtBytes(u.limitBytes)} used`;
++      $('cloudUsageFill').style.width = Math.min(100, (u.usedBytes / u.limitBytes) * 100) + '%';
++    }
++    const selected = state.room && state.room.shared_movie_id;
++    const rows = cloud.movies.filter(m => m.id !== cloud.activeId).map(m => {
++      const ready = m.status === 'ready';
++      return `<div class="wt-cloud-row${m.id === selected ? ' is-selected' : ''}">
++        <div class="wt-cloud-info">
++          <div class="wt-movie-title">${escapeHtml(m.title)}</div>
++          <div class="wt-movie-meta">${ready ? fmtTime(m.durationSec) + ' • ' + fmtBytes(m.sizeBytes) : 'Incomplete upload'}</div>
++        </div>
++        ${ready ? `<button class="wt-chip-btn" data-act="pick" data-id="${m.id}">Watch</button>` : ''}
++        <button class="wt-chip-btn" data-act="del" data-id="${m.id}" aria-label="Delete">🗑</button>
++      </div>`;
++    });
++    $('cloudList').innerHTML = rows.length ? rows.join('') : '<p class="wt-hint">No shared movies yet. Upload one to get started.</p>';
++  }
++
++  $('cloudList').addEventListener('click', async (e) => {
++    const btn = e.target.closest('button[data-act]');
++    if (!btn) return;
++    const id = btn.dataset.id;
++    btn.disabled = true;
++    try {
++      if (btn.dataset.act === 'pick') {
++        state.room = await libApi('POST', `/${id}/select`);
++        if (state.room.action_seq && state.room.action_seq > state.lastActionSeq) state.lastActionSeq = state.room.action_seq;
++        broadcastRoom(state.room);
++        renderFromRoom();
++      } else if (btn.dataset.act === 'del') {
++        const m = cloud.movies.find(x => x.id === id);
++        if (!window.confirm(`Delete "${m ? m.title : 'this movie'}" for both of you? This removes it from cloud storage permanently.`)) { btn.disabled = false; return; }
++        await libApi('DELETE', `/${id}`);
++        toast('Movie deleted');
++        if (state.room && state.room.shared_movie_id === id) { state.room = await api('GET', `/${COUPLE_ID}`); renderFromRoom(); }
++        await loadLibrary();
++      }
++    } catch (err) { toast(err.message, 3500); btn.disabled = false; }
++  });
++
++  // ── Upload (multipart, straight to R2) ──
++  function probeDuration(file) {
++    return new Promise((resolve, reject) => {
++      const url = URL.createObjectURL(file);
++      const v = document.createElement('video');
++      v.preload = 'metadata';
++      v.onloadedmetadata = () => { URL.revokeObjectURL(url); isFinite(v.duration) && v.duration > 0 ? resolve(v.duration) : reject(new Error("Couldn't read this video's length.")); };
++      v.onerror = () => { URL.revokeObjectURL(url); reject(new Error("This video format may not be supported by your device's player.")); };
++      v.src = url;
++    });
++  }
++
++  function putPart(url, blob, onProgress) {
++    return new Promise((resolve, reject) => {
++      const xhr = new XMLHttpRequest();
++      cloud.xhrs.add(xhr);
++      xhr.open('PUT', url);
++      xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded); };
++      xhr.onload = () => {
++        cloud.xhrs.delete(xhr);
++        if (xhr.status >= 200 && xhr.status < 300) {
++          const etag = xhr.getResponseHeader('ETag');
++          etag ? resolve(etag) : reject(new Error('NO_ETAG'));
++        } else reject(Object.assign(new Error('HTTP ' + xhr.status), { status: xhr.status }));
++      };
++      xhr.onerror = () => { cloud.xhrs.delete(xhr); reject(new Error('NETWORK')); };
++      xhr.onabort = () => { cloud.xhrs.delete(xhr); reject(new Error('ABORTED')); };
++      xhr.send(blob);
++    });
++  }
++
++  function showUploadUi(on) {
++    $('cloudProgress').hidden = !on;
++    $('btnCloudUpload').hidden = on;
++  }
++  function setUploadProgress(frac, text) {
++    $('cloudProgressFill').style.width = Math.round(frac * 100) + '%';
++    if (text) $('cloudProgressText').textContent = text;
++  }
++
++  $('btnCloudUpload').onclick = () => $('cloudFileInput').click();
++  $('btnCloudCancel').onclick = () => {
++    cloud.cancel = true;
++    cloud.xhrs.forEach(x => { try { x.abort(); } catch (e) {} });
++  };
++  window.addEventListener('beforeunload', (e) => { if (cloud.uploading) { e.preventDefault(); e.returnValue = ''; } });
++
++  $('cloudFileInput').addEventListener('change', async (e) => {
++    const file = e.target.files[0];
++    e.target.value = '';
++    if (!file || cloud.uploading) return;
++    const ext = (file.name.split('.').pop() || '').toLowerCase();
++    const mime = Object.values(CLOUD_MIME).includes(file.type) ? file.type : CLOUD_MIME[ext];
++    if (!mime) { toast('Please choose an MP4, WebM, M4V or MOV video.', 3500); return; }
++
++    let duration;
++    try { duration = await probeDuration(file); } catch (err) { toast(err.message, 3500); return; }
++
++    cloud.uploading = true; cloud.cancel = false;
++    showUploadUi(true); setUploadProgress(0, 'Starting…');
++    let init = null;
++    try {
++      init = await libApi('POST', '/uploads', { title: file.name.replace(/\.[^/.]+$/, ''), size: file.size, mime, durationSec: duration });
++      cloud.activeId = init.movieId;
++      const parts = await uploadAllParts(file, init);
++      if (cloud.cancel) throw new Error('ABORTED');
++      setUploadProgress(1, 'Finishing…');
++      await libApi('POST', `/uploads/${init.movieId}/complete`, { parts });
++      toast('Uploaded ❤️ Ready to watch together');
++    } catch (err) {
++      if (init) { try { await libApi('POST', `/uploads/${init.movieId}/abort`); } catch (_) {} }
++      if (err.message === 'ABORTED') toast('Upload cancelled');
++      else if (err.message === 'NO_ETAG') toast('Cloud storage is not set up for browser uploads yet (CORS). See setup notes.', 5000);
++      else toast('Upload failed: ' + err.message, 4500);
++    } finally {
++      cloud.uploading = false; cloud.activeId = null; cloud.cancel = false;
++      showUploadUi(false);
++      loadLibrary();
++    }
++  });
++
++  // Uploads every part (3 at a time), fetching signed URLs just-in-time and
++  // retrying each part with backoff (fresh URL on every retry) so a flaky
++  // mobile connection or an expired part URL doesn't kill a multi-GB upload.
++  async function uploadAllParts(file, init) {
++    const total = init.totalParts, partSize = init.partSize;
++    const etags = new Array(total), loaded = new Array(total).fill(0), urls = {};
++    let next = 1;
++    const t0 = Date.now();
++
++    async function urlFor(n, fresh) {
++      if (fresh || !urls[n]) {
++        const nums = [];
++        for (let i = n; i <= total && nums.length < 6; i++) if (fresh ? i === n : !urls[i]) nums.push(i);
++        const r = await libApi('POST', `/uploads/${init.movieId}/parts`, { partNumbers: nums });
++        Object.keys(r.urls).forEach(k => { urls[k] = r.urls[k]; });
++      }
++      return urls[n];
++    }
++    function progress() {
++      const sent = loaded.reduce((a, b) => a + b, 0);
++      const secs = (Date.now() - t0) / 1000;
++      const mbps = secs > 3 ? ` • ${(sent / 1e6 / secs).toFixed(1)} MB/s` : '';
++      setUploadProgress(sent / file.size, `Uploading ${Math.round((sent / file.size) * 100)}% • ${fmtBytes(sent)} of ${fmtBytes(file.size)}${mbps}`);
++    }
++    async function worker() {
++      while (!cloud.cancel) {
++        const n = next++;
++        if (n > total) return;
++        const blob = file.slice((n - 1) * partSize, Math.min(n * partSize, file.size));
++        for (let attempt = 0; ; attempt++) {
++          try {
++            const url = await urlFor(n, attempt > 0);
++            etags[n - 1] = await putPart(url, blob, (b) => { loaded[n - 1] = b; progress(); });
++            loaded[n - 1] = blob.size; progress();
++            break;
++          } catch (err) {
++            loaded[n - 1] = 0;
++            if (cloud.cancel || err.message === 'ABORTED' || err.message === 'NO_ETAG' || attempt >= 7) throw err;
++            await sleep(Math.min(15000, 1000 * Math.pow(2, attempt)));
++          }
++        }
++      }
++    }
++    const run = () => worker().catch((err) => { cloud.cancel = true; cloud.xhrs.forEach(x => { try { x.abort(); } catch (e) {} }); throw err; });
++    await Promise.all([run(), run(), run()]);
++    return etags.map((ETag, i) => ({ PartNumber: i + 1, ETag }));
++  }
++
++  // ── Playback: signed URL → <video>. R2 supports HTTP Range, so seeking works natively. ──
++  async function attachCloudSource(resume) {
++    const id = state.cloudMovieId;
++    if (!id) return;
++    let url;
++    try {
++      const r = await libApi('GET', `/${id}/url`);
++      url = r.url;
++    } catch (e) {
++      showBanner('Could not load the shared movie: ' + e.message, [
++        { label: 'Retry', onClick: () => { hideBanner(); attachCloudSource(resume); } }
++      ]);
++      return;
++    }
++    if (state.cloudMovieId !== id) return; // session ended while the URL was being fetched
++    els.video.addEventListener('loadedmetadata', function onMeta() {
++      els.video.removeEventListener('loadedmetadata', onMeta);
++      const r = state.room || {};
++      let target, play;
++      if (resume) { target = resume.at; play = resume.playing; }
++      else if (r.status === 'watching' && !r.playing) { target = r.position_sec || 0; play = false; }
++      else {
++        const sinceStart = r.scheduled_start_at ? (serverNow() - new Date(r.scheduled_start_at).getTime()) / 1000 : 0;
++        target = r.playing ? expectedPosition(r) : Math.max(0, sinceStart) + expectedPosition(r);
++        play = true;
++      }
++      els.video.currentTime = Math.max(0, target);
++      if (play) {
++        els.video.play().catch(() => showBanner('Tap to start the movie.', [
++          { label: '▶ Play', onClick: () => { hideBanner(); els.video.play().catch(() => {}); sendAction(true, els.video.currentTime); } }
++        ]));
++      } else els.video.pause();
++      updatePlayPauseIcon();
++    });
++    els.video.src = url;
++    console.info('[WT] VIDEO cloud source assigned');
++  }
++
++  // Expired URL / dropped connection mid-movie → fresh URL, same position.
++  function recoverCloudPlayback() {
++    const now = Date.now();
++    cloud.errTimes = cloud.errTimes.filter(t => now - t < 60000);
++    cloud.errTimes.push(now);
++    const resume = {
++      at: els.video.currentTime > 1 ? els.video.currentTime : expectedPosition(state.room),
++      playing: !!(state.room && state.room.playing)
++    };
++    if (cloud.errTimes.length > 3) {
++      showBanner('The shared movie keeps failing to load. Check your connection.', [
++        { label: 'Retry', onClick: () => { cloud.errTimes = []; hideBanner(); recoverCloudPlayback(); } }
++      ]);
++      return;
++    }
++    setStatusPill('Reconnecting video…', 'warn');
++    attachCloudSource(resume);
++  }
++  els.video.addEventListener('canplay', () => {
++    if (state.cloudMovieId) { cloud.errTimes = []; setStatusPill(null); }
++  });
++
+   // ═══════════════════════════════════════════════════════
+   // SECTION 5 — Central room → UI dispatcher. This is the ONLY place
+   // that decides which top-level state (+ setup sub-state) is shown, so
+@@ -292,6 +583,12 @@
+   // ═══════════════════════════════════════════════════════
+   function renderFromRoom() {
+     const r = state.room;
++    if (r && r.shared_movie_id) {
++      // Room is in Shared Cloud Storage mode (either partner may have picked it).
++      state.myTitle = r[`${ROLE}_movie_title`] || state.myTitle;
++      state.myDuration = Number(r[`${ROLE}_duration_sec`]) || state.myDuration;
++      if (state.mode !== 'cloud') setMode('cloud', { load: false });
++    }
+     if (!r || r.status === 'idle' || r.status === 'ended') {
+       if (state.uiState === 'watching') clearWatchCallSession(); // partner ended / reconnect found a dead room — kill any lingering call
+       showState('setup'); showSetupSub('empty'); hideInviteModal(); return;
+@@ -483,7 +780,11 @@
+     registerWatchCallSession(room);
+     $('wtNowTitle').textContent = state.myTitle || room[`${ROLE}_movie_title`] || 'Movie';
+ 
+-    if (!state.localObjectUrl) {
++    state.cloudMovieId = room.shared_movie_id || null;
++    if (state.cloudMovieId) {
++      // Shared Cloud Storage: stream from a short-lived signed R2 URL.
++      attachCloudSource(null);
++    } else if (!state.localObjectUrl) {
+       // The in-memory object URL/File reference didn't survive to this
+       // point (most commonly: the page/iframe reloaded between movie
+       // selection and now, e.g. Android backgrounding the WebView).
+@@ -609,6 +910,13 @@
+   els.video.addEventListener('canplay', () => console.info('[WT] VIDEO canplay'));
+   els.video.addEventListener('error', () => {
+     console.warn('[WT] VIDEO error', els.video.error);
++    // Shared Cloud Storage: most likely an expired/refused signed URL or a network drop —
++    // fetch a fresh URL and resume from the same spot. (Ignore the empty-src error that
++    // fires when we tear the player down.)
++    if (state.cloudMovieId) {
++      if (state.uiState === 'watching' && els.video.getAttribute('src')) recoverCloudPlayback();
++      return;
++    }
+     // Previously silent — the screen just sat there with no video and no
+     // explanation. Surface it with the same Error/retry pattern already
+     // used when localObjectUrl is missing entirely.
+@@ -1407,6 +1715,7 @@
+ 
+     // Full cleanup — spec §End Movie 1–10.
+     clearAllTimers();
++    state.cloudMovieId = null;
+     els.video.pause();
+     els.video.removeAttribute('src'); els.video.load();
+     if (state.localObjectUrl) { URL.revokeObjectURL(state.localObjectUrl); state.localObjectUrl = null; }
+diff --git a/routes/movie-library.js b/routes/movie-library.js
+new file mode 100644
+index 0000000..4606634
+--- /dev/null
++++ b/routes/movie-library.js
+@@ -0,0 +1,318 @@
++// ═══════════════════════════════════════════════════════
++//  routes/movie-library.js — Watch Together "Shared Cloud Storage"
++//
++//  Movies live in a PRIVATE Cloudflare R2 bucket. The browser uploads
++//  straight to R2 with short-lived presigned multipart-part URLs (so
++//  multi-GB files never pass through this server) and streams with a
++//  short-lived presigned GET URL (R2 honours HTTP Range → seeking works).
++//  R2 credentials exist ONLY in this file's environment.
++//
++//  Authorization: every request must carry the caller's `x-user-id`
++//  header; the server verifies that user really belongs to :coupleId
++//  (same userId/coupleId model the rest of this app uses).
++//
++//  Wire up in server.js:
++//    app.use('/api/movie-library', require('./routes/movie-library'));
++// ═══════════════════════════════════════════════════════
++const express  = require('express');
++const crypto   = require('crypto');
++const supabase = require('../middleware/supabase');
++const router   = express.Router();
++
++const {
++  S3Client, CreateMultipartUploadCommand, UploadPartCommand,
++  CompleteMultipartUploadCommand, AbortMultipartUploadCommand,
++  GetObjectCommand, HeadObjectCommand, DeleteObjectCommand
++} = require('@aws-sdk/client-s3');
++const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
++
++// ── Config (all from env — nothing secret in the repo/frontend) ──
++const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
++const R2_KEY_ID     = process.env.R2_ACCESS_KEY_ID;
++const R2_SECRET     = process.env.R2_SECRET_ACCESS_KEY;
++const R2_BUCKET     = process.env.R2_BUCKET;
++// Free tier is 10 GB-month; stop a little short so a couple can't tip into paid usage.
++const STORAGE_LIMIT_BYTES = Number(process.env.R2_STORAGE_LIMIT_BYTES) || 9.5e9;
++const MAX_FILE_BYTES      = Number(process.env.R2_MAX_FILE_BYTES) || 5e9;
++const PLAYBACK_URL_TTL    = Number(process.env.R2_PLAYBACK_URL_TTL_SECONDS) || 6 * 3600; // longer than any movie
++const PART_URL_TTL        = 3600;
++const PART_SIZE           = 16 * 1024 * 1024; // 16 MiB (R2 min 5 MiB, max 10,000 parts)
++const STALE_UPLOAD_MS     = 24 * 3600 * 1000;
++
++const MIME_EXT = { 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/x-m4v': 'm4v', 'video/quicktime': 'mov' };
++const UUID_RE  = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
++
++function r2Configured() { return !!(R2_ACCOUNT_ID && R2_KEY_ID && R2_SECRET && R2_BUCKET); }
++
++let _s3 = null;
++function s3() {
++  if (_s3) return _s3;
++  _s3 = new S3Client({
++    region: 'auto',
++    endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
++    credentials: { accessKeyId: R2_KEY_ID, secretAccessKey: R2_SECRET },
++    // Newer SDK versions add CRC32 checksum params by default, which end up
++    // in presigned URLs and which R2 browser uploads then fail on.
++    requestChecksumCalculation: 'WHEN_REQUIRED',
++    responseChecksumValidation: 'WHEN_REQUIRED'
++  });
++  return _s3;
++}
++
++// ── Gate 1: storage must be configured (direct mode never hits this router) ──
++router.use((req, res, next) => {
++  if (!r2Configured()) return res.status(503).json({ error: 'Shared cloud storage is not set up yet.' });
++  next();
++});
++
++// ── Gate 2: caller must be a real, active member of :coupleId ──
++async function requireCoupleMember(req, res, next) {
++  const userId = req.get('x-user-id');
++  const { coupleId } = req.params;
++  if (!userId || !coupleId) return res.status(401).json({ error: 'Not signed in.' });
++  const { data: user, error } = await supabase
++    .from('users').select('id, couple_id, role, account_status').eq('id', userId).maybeSingle();
++  if (error || !user) return res.status(401).json({ error: 'Session no longer valid.' });
++  if (user.account_status === 'suspended' || user.account_status === 'disabled') {
++    return res.status(403).json({ error: 'This account is not active.' });
++  }
++  if (!user.couple_id || String(user.couple_id) !== String(coupleId)) {
++    return res.status(403).json({ error: 'Not allowed.' });
++  }
++  req.user = user;
++  next();
++}
++
++const fail = (res, status, msg) => res.status(status).json({ error: msg });
++const dbFail = (res, error) => { console.error('[movie-library]', error.message || error); return fail(res, 500, 'Something went wrong. Please try again.'); };
++
++async function getMovie(coupleId, movieId) {
++  if (!UUID_RE.test(movieId || '')) return null;
++  const { data } = await supabase.from('shared_movies').select('*').eq('id', movieId).eq('couple_id', coupleId).maybeSingle();
++  return data || null;
++}
++
++async function usageBytes(coupleId) {
++  const { data } = await supabase.from('shared_movies').select('size_bytes').eq('couple_id', coupleId);
++  return (data || []).reduce((sum, r) => sum + Number(r.size_bytes || 0), 0);
++}
++
++// Best-effort: free abandoned uploads (tab closed mid-upload) so they stop
++// reserving quota. R2 should ALSO have a lifecycle rule (see setup notes).
++async function sweepStaleUploads(coupleId) {
++  const cutoff = new Date(Date.now() - STALE_UPLOAD_MS).toISOString();
++  const { data } = await supabase.from('shared_movies').select('*')
++    .eq('couple_id', coupleId).eq('status', 'uploading').lt('created_at', cutoff);
++  for (const m of data || []) {
++    try { await s3().send(new AbortMultipartUploadCommand({ Bucket: R2_BUCKET, Key: m.object_key, UploadId: m.upload_id })); } catch (_) {}
++    await supabase.from('shared_movies').delete().eq('id', m.id);
++  }
++}
++
++const publicMovie = m => ({
++  id: m.id, title: m.title, sizeBytes: Number(m.size_bytes), durationSec: Number(m.duration_sec),
++  status: m.status, uploadedBy: m.uploaded_by, createdAt: m.created_at
++});
++
++// GET /api/movie-library/:coupleId — library + storage usage
++router.get('/:coupleId', requireCoupleMember, async (req, res) => {
++  const { coupleId } = req.params;
++  try { await sweepStaleUploads(coupleId); } catch (_) {}
++  const { data, error } = await supabase.from('shared_movies').select('*')
++    .eq('couple_id', coupleId).order('created_at', { ascending: false });
++  if (error) return dbFail(res, error);
++  const movies = data || [];
++  const usedBytes = movies.reduce((s, m) => s + Number(m.size_bytes || 0), 0);
++  return res.json({
++    movies: movies.map(publicMovie),
++    usage: { usedBytes, limitBytes: STORAGE_LIMIT_BYTES, maxFileBytes: Math.min(MAX_FILE_BYTES, STORAGE_LIMIT_BYTES) }
++  });
++});
++
++// POST /api/movie-library/:coupleId/uploads — start a multipart upload
++// body: { title, size, mime, durationSec }
++router.post('/:coupleId/uploads', requireCoupleMember, async (req, res) => {
++  const { coupleId } = req.params;
++  const title = String(req.body.title || '').trim().slice(0, 200);
++  const size = Number(req.body.size);
++  const mime = String(req.body.mime || '').toLowerCase();
++  const durationSec = Number(req.body.durationSec);
++
++  if (!title) return fail(res, 400, 'Missing title.');
++  if (!MIME_EXT[mime]) return fail(res, 415, 'Unsupported video type. Use MP4, WebM, M4V or MOV.');
++  if (!Number.isFinite(size) || size <= 0) return fail(res, 400, 'Invalid file size.');
++  if (!Number.isFinite(durationSec) || durationSec <= 0) return fail(res, 400, 'Could not read the video duration.');
++  if (size > Math.min(MAX_FILE_BYTES, STORAGE_LIMIT_BYTES)) {
++    return fail(res, 413, `That file is too large (max ${(Math.min(MAX_FILE_BYTES, STORAGE_LIMIT_BYTES) / 1e9).toFixed(1)} GB).`);
++  }
++
++  try { await sweepStaleUploads(coupleId); } catch (_) {}
++  const used = await usageBytes(coupleId);
++  if (used + size > STORAGE_LIMIT_BYTES) {
++    return fail(res, 413, `Not enough shared storage left (${((STORAGE_LIMIT_BYTES - used) / 1e9).toFixed(2)} GB free). Delete a movie first.`);
++  }
++
++  const key = `movies/${coupleId}/${crypto.randomUUID()}.${MIME_EXT[mime]}`;
++  let uploadId;
++  try {
++    const out = await s3().send(new CreateMultipartUploadCommand({ Bucket: R2_BUCKET, Key: key, ContentType: mime }));
++    uploadId = out.UploadId;
++  } catch (e) { console.error('[movie-library] create multipart', e.message); return fail(res, 502, 'Cloud storage is unavailable right now.'); }
++
++  const { data, error } = await supabase.from('shared_movies').insert({
++    couple_id: coupleId, title, object_key: key, mime_type: mime, size_bytes: size,
++    duration_sec: durationSec, status: 'uploading', upload_id: uploadId, uploaded_by: req.user.id
++  }).select().single();
++  if (error) {
++    try { await s3().send(new AbortMultipartUploadCommand({ Bucket: R2_BUCKET, Key: key, UploadId: uploadId })); } catch (_) {}
++    return dbFail(res, error);
++  }
++  return res.json({ movieId: data.id, partSize: PART_SIZE, totalParts: Math.ceil(size / PART_SIZE) });
++});
++
++// POST /api/movie-library/:coupleId/uploads/:movieId/parts — sign part URLs just-in-time
++// body: { partNumbers: [1,2,3] }  → { urls: { "1": "https://…" } }
++router.post('/:coupleId/uploads/:movieId/parts', requireCoupleMember, async (req, res) => {
++  const m = await getMovie(req.params.coupleId, req.params.movieId);
++  if (!m || m.status !== 'uploading') return fail(res, 404, 'Upload not found.');
++  const total = Math.ceil(Number(m.size_bytes) / PART_SIZE);
++  const nums = Array.isArray(req.body.partNumbers) ? req.body.partNumbers.map(Number) : [];
++  if (!nums.length || nums.length > 50 || nums.some(n => !Number.isInteger(n) || n < 1 || n > total)) {
++    return fail(res, 400, 'Invalid part numbers.');
++  }
++  try {
++    const urls = {};
++    for (const n of nums) {
++      urls[n] = await getSignedUrl(s3(), new UploadPartCommand({
++        Bucket: R2_BUCKET, Key: m.object_key, UploadId: m.upload_id, PartNumber: n
++      }), { expiresIn: PART_URL_TTL });
++    }
++    return res.json({ urls });
++  } catch (e) { console.error('[movie-library] sign part', e.message); return fail(res, 502, 'Cloud storage is unavailable right now.'); }
++});
++
++// POST /api/movie-library/:coupleId/uploads/:movieId/complete
++// body: { parts: [{ PartNumber, ETag }] }
++router.post('/:coupleId/uploads/:movieId/complete', requireCoupleMember, async (req, res) => {
++  const m = await getMovie(req.params.coupleId, req.params.movieId);
++  if (!m || m.status !== 'uploading') return fail(res, 404, 'Upload not found.');
++  const total = Math.ceil(Number(m.size_bytes) / PART_SIZE);
++  const parts = (Array.isArray(req.body.parts) ? req.body.parts : [])
++    .map(p => ({ PartNumber: Number(p.PartNumber), ETag: String(p.ETag || '') }))
++    .sort((a, b) => a.PartNumber - b.PartNumber);
++  if (parts.length !== total || parts.some((p, i) => p.PartNumber !== i + 1 || !p.ETag)) {
++    return fail(res, 400, 'Upload is incomplete — some parts are missing.');
++  }
++  try {
++    await s3().send(new CompleteMultipartUploadCommand({
++      Bucket: R2_BUCKET, Key: m.object_key, UploadId: m.upload_id, MultipartUpload: { Parts: parts }
++    }));
++    // Don't trust the client: confirm the stored object is exactly the size we reserved.
++    const head = await s3().send(new HeadObjectCommand({ Bucket: R2_BUCKET, Key: m.object_key }));
++    if (Number(head.ContentLength) !== Number(m.size_bytes)) {
++      try { await s3().send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: m.object_key })); } catch (_) {}
++      await supabase.from('shared_movies').delete().eq('id', m.id);
++      return fail(res, 400, 'Upload was corrupted (size mismatch). Please try again.');
++    }
++  } catch (e) { console.error('[movie-library] complete', e.message); return fail(res, 502, 'Could not finish the upload. Please try again.'); }
++
++  const { data, error } = await supabase.from('shared_movies')
++    .update({ status: 'ready', upload_id: null, completed_at: new Date().toISOString() })
++    .eq('id', m.id).select().single();
++  if (error) return dbFail(res, error);
++  return res.json(publicMovie(data));
++});
++
++// POST /api/movie-library/:coupleId/uploads/:movieId/abort — cancel / clean up a failed upload
++router.post('/:coupleId/uploads/:movieId/abort', requireCoupleMember, async (req, res) => {
++  const m = await getMovie(req.params.coupleId, req.params.movieId);
++  if (!m) return res.json({ ok: true });
++  if (m.status !== 'uploading') return fail(res, 409, 'That movie is already uploaded.');
++  try { await s3().send(new AbortMultipartUploadCommand({ Bucket: R2_BUCKET, Key: m.object_key, UploadId: m.upload_id })); }
++  catch (e) { if (e.name !== 'NoSuchUpload') { console.error('[movie-library] abort', e.message); return fail(res, 502, 'Could not cancel the upload.'); } }
++  await supabase.from('shared_movies').delete().eq('id', m.id);
++  return res.json({ ok: true });
++});
++
++// GET /api/movie-library/:coupleId/:movieId/url — temporary signed playback URL
++router.get('/:coupleId/:movieId/url', requireCoupleMember, async (req, res) => {
++  const m = await getMovie(req.params.coupleId, req.params.movieId);
++  if (!m || m.status !== 'ready') return fail(res, 404, 'Movie not found.');
++  try {
++    const url = await getSignedUrl(s3(), new GetObjectCommand({
++      Bucket: R2_BUCKET, Key: m.object_key, ResponseContentType: m.mime_type
++    }), { expiresIn: PLAYBACK_URL_TTL });
++    res.set('Cache-Control', 'no-store');
++    return res.json({ url, expiresInSec: PLAYBACK_URL_TTL });
++  } catch (e) { console.error('[movie-library] sign get', e.message); return fail(res, 502, 'Cloud storage is unavailable right now.'); }
++});
++
++// POST /api/movie-library/:coupleId/:movieId/select — put this movie in the Watch Together room
++// Fills BOTH partners' selection so the existing ready → countdown flow just works.
++router.post('/:coupleId/:movieId/select', requireCoupleMember, async (req, res) => {
++  const { coupleId } = req.params;
++  const m = await getMovie(coupleId, req.params.movieId);
++  if (!m || m.status !== 'ready') return fail(res, 404, 'Movie not found.');
++
++  const { data: existing } = await supabase.from('watch_sessions').select('*').eq('couple_id', coupleId).maybeSingle();
++  if (existing && ['start_requested', 'countdown', 'watching'].includes(existing.status)) {
++    return fail(res, 409, 'A movie session is already in progress.');
++  }
++  const row = {
++    ...(existing || {}),
++    couple_id: coupleId,
++    user1_movie_title: m.title, user2_movie_title: m.title,
++    user1_duration_sec: m.duration_sec, user2_duration_sec: m.duration_sec,
++    user1_ready: false, user2_ready: false,
++    movies_match: true, status: 'selecting', shared_movie_id: m.id,
++    start_requested_by: null, playing: false, position_sec: 0,
++    // Date.now()-based like the client's own sequence numbers, and always
++    // higher than before, so the partner's applyRemoteRoom accepts the broadcast.
++    action_seq: Math.max(((existing && existing.action_seq) || 0) + 1, Date.now()),
++    updated_by: req.user.role || 'user1', updated_at: new Date().toISOString()
++  };
++  const { data, error } = await supabase.from('watch_sessions').upsert(row, { onConflict: 'couple_id' }).select().single();
++  if (error) return dbFail(res, error);
++  return res.json(data);
++});
++
++// DELETE /api/movie-library/:coupleId/:movieId — delete the R2 object AND the DB record
++router.delete('/:coupleId/:movieId', requireCoupleMember, async (req, res) => {
++  const { coupleId } = req.params;
++  const m = await getMovie(coupleId, req.params.movieId);
++  if (!m) return res.json({ ok: true }); // already gone
++
++  const { data: room } = await supabase.from('watch_sessions').select('*').eq('couple_id', coupleId).maybeSingle();
++  const inRoom = room && room.shared_movie_id === m.id;
++  if (inRoom && ['start_requested', 'countdown', 'watching'].includes(room.status)) {
++    return fail(res, 409, 'This movie is being watched right now.');
++  }
++
++  // 1) Remove the bytes first. If this fails we KEEP the DB record so the
++  //    user can retry — never leave a billable object with no record.
++  try {
++    if (m.status === 'uploading') {
++      try { await s3().send(new AbortMultipartUploadCommand({ Bucket: R2_BUCKET, Key: m.object_key, UploadId: m.upload_id })); }
++      catch (e) { if (e.name !== 'NoSuchUpload') throw e; }
++    } else {
++      await s3().send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: m.object_key })); // idempotent: OK if already absent
++    }
++  } catch (e) { console.error('[movie-library] delete object', e.message); return fail(res, 502, 'Could not delete the movie from cloud storage. Please try again.'); }
++
++  // 2) Then the record.
++  const { error } = await supabase.from('shared_movies').delete().eq('id', m.id);
++  if (error) return dbFail(res, error);
++
++  // 3) If an idle room still points at it, clear that selection so nobody streams a ghost.
++  if (inRoom) {
++    await supabase.from('watch_sessions').update({
++      shared_movie_id: null, user1_movie_title: null, user2_movie_title: null,
++      user1_duration_sec: null, user2_duration_sec: null, user1_ready: false, user2_ready: false,
++      movies_match: false, status: 'selecting', playing: false,
++      action_seq: Math.max((room.action_seq || 0) + 1, Date.now()), updated_at: new Date().toISOString()
++    }).eq('couple_id', coupleId);
++  }
++  return res.json({ ok: true });
++});
++
++module.exports = router;
+diff --git a/routes/routes-movie.js b/routes/routes-movie.js
+index c5f9dd9..eaeed16 100644
+--- a/routes/routes-movie.js
++++ b/routes/routes-movie.js
+@@ -59,6 +59,15 @@ router.post('/:coupleId/movie', async (req, res) => {
+ 
+   const { data, error } = await supabase.from('watch_sessions').upsert(merged, { onConflict: 'couple_id' }).select().single();
+   if (error) return res.status(500).json({ error: error.message });
++
++  // Shared Cloud Storage: picking a local file leaves cloud mode. Only runs when
++  // the room was cloud-linked (shared_movie_id exists AND is set), so Direct
++  // Device Video behaves exactly as before — even if the migration isn't applied.
++  if (existing && existing.shared_movie_id) {
++    const { data: cleared } = await supabase.from('watch_sessions')
++      .update({ shared_movie_id: null }).eq('couple_id', coupleId).select().single();
++    if (cleared) return res.json(cleared);
++  }
+   return res.json(data);
+ });
+ 
+diff --git a/server.js b/server.js
+index 96adac6..56192c3 100644
+--- a/server.js
++++ b/server.js
+@@ -126,6 +126,7 @@ app.use('/api/lyrics', require('./routes/lyrics'));
+ app.use('/api/search', require('./routes/search'));
+ app.use('/api/presence', require('./routes/presence'));
+ app.use('/api/movie', require('./routes/routes-movie'));
++app.use('/api/movie-library', require('./routes/movie-library'));
+ app.use('/api/meetplanner', require('./routes/meetplanner'));
+ app.use('/api/daily-routine', require('./routes/daily-routine'));
+ 
