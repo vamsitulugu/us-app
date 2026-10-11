@@ -13412,7 +13412,7 @@ document.addEventListener('keydown', e => {
           if (!frame) return;
           const doIt = () => {
             try {
-              frame.contentWindow.postMessage({ type: 'names', my: S.myName || 'You', partner: S.partnerName || 'Partner' }, '*');
+              frame.contentWindow.postMessage({ type: 'names', my: S.myName || 'You', partner: S.partnerName || 'Partner', myAvatar: S.myAvatar || '', partnerAvatar: S.partnerAvatar || '' }, '*');
             } catch(e) {}
           };
           if (frame.contentDocument && frame.contentDocument.readyState === 'complete') doIt();

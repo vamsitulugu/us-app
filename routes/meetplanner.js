@@ -201,7 +201,7 @@ router.post('/:id/complete', async (req, res) => {
                         itineraryText,
                         plan.total_distance_km ? `Total distance: ${plan.total_distance_km} km.` : '',
                         plan.total_duration_min ? `Total travel time: ${Math.round(plan.total_duration_min)} min.` : '',
-                        plan.notes || '',
+                        (plan.notes || '').replace(/^\[\[mp:\{.*?\}\]\]\n?/, ''),
                         extraNotes || ''
                       ].filter(Boolean).join(' '),
     favorite_moment:  null,
