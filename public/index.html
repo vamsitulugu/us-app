@@ -4815,6 +4815,7 @@ select option { background: #0D0D0D; color: #fff; }
   <link rel="stylesheet" href="/livemap-screens.css">
   <link rel="stylesheet" href="/profile.css">
   <link rel="stylesheet" href="/level.css">
+  <link rel="stylesheet" href="/twin-page.css">
 </head>
 
 <body class="t-blue">
@@ -6682,48 +6683,59 @@ select option { background: #0D0D0D; color: #fff; }
         </div>
       </div>
 
-      <!-- ════ AI GUIDE ════ -->
+      <!-- ════ AI GUIDE (Twin) — redesigned · styles: /twin-page.css · artwork: /twin-art.js ════ -->
       <div class="page" id="page-ai">
-        <div class="twin-mode-selector" id="twinModeSelector" style="display:flex">
-          <button class="twin-mode-btn active" id="twinModeYouBtn" onclick="TwinBoth.switchMode('you')">YOU</button>
-          <button class="twin-mode-btn" id="twinModeBothBtn" onclick="TwinBoth.switchMode('both')">BOTH</button>
-        </div>
-        <div class="both-wrap" id="bothModeWrap" style="display:none"></div>
-        <div class="ai-wrap" id="aiWrapYou">
-          <div class="ai-msgs" id="aiMsgs">
-            <div class="ai-welcome" id="aiWelcome">
-              <div class="twin-welcome-orb-wrap">
-                <div class="twin-orb-anchor twin-orb-anchor--hero" id="twinHeroAnchor"></div>
-              </div>
-              <div class="twin-welcome-title">Hey, I'm Twin.</div>
-              <div class="twin-welcome-sub">What's on your mind?</div>
-              <div class="twin-sugg-row" id="twinSuggRow">
-                <div class="twin-sugg-chip" onclick="askAI('Give us 5 creative and romantic date night ideas for tonight')">💑 Plan a date</div>
-                <div class="twin-sugg-chip" onclick="askAI('We had a fight. Give us a step-by-step guide to talk it through with love')">💬 We argued</div>
-                <div class="twin-sugg-chip" data-sugg-center="1" onclick="askAI('Write a heartfelt, poetic love letter from me to my partner')">💌 Write something sweet</div>
-                <div class="twin-sugg-chip" onclick="askAI('Give us 5 deep conversation questions to learn more about each other')">💭 Deep talk</div>
-                <div class="twin-sugg-chip" onclick="askAI('Plan a romantic surprise — give me 3 detailed and thoughtful options')">🎁 Surprise idea</div>
+        <div class="tw-shell">
+          <header class="tw-head">
+            <div class="tw-logo"><img src="/icons/icon-192.png" alt="Twin Hearts"></div>
+            <button type="button" class="tw-icon-btn" onclick="toggleMobSidebar()" aria-label="Open menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+            <div class="tw-titles">
+              <div class="tw-title">Twin</div>
+              <div class="tw-sub" id="twSubtitle">Your Personal AI</div>
+            </div>
+            <button type="button" class="tw-round-btn" onclick="openSearch()" aria-label="Search"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7.5"/><path d="m21 21-4.3-4.3"/></svg></button>
+            <button type="button" class="tw-sync-btn" id="twSyncBtn" onclick="twinSyncTap(this)" aria-label="Sync"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg><span class="tw-sync-label">Sync</span></button>
+          </header>
+
+          <div class="twin-mode-selector" id="twinModeSelector" style="display:flex">
+            <button class="twin-mode-btn active" id="twinModeYouBtn" onclick="TwinBoth.switchMode('you')">YOU</button>
+            <button class="twin-mode-btn" id="twinModeBothBtn" onclick="TwinBoth.switchMode('both')">BOTH</button>
+          </div>
+          <div class="both-wrap" id="bothModeWrap" style="display:none"></div>
+
+          <div class="ai-wrap" id="aiWrapYou">
+            <div class="ai-msgs" id="aiMsgs">
+              <div class="ai-welcome" id="aiWelcome">
+                <section class="tw-card tw-hero">
+                  <div class="tw-hero-text">
+                    <p class="tw-hero-hi" id="twHeroHi">Hey there,</p>
+                    <h1 class="tw-hero-title">I’m <span class="tw-grad">Twin AI.</span></h1>
+                    <p class="tw-hero-copy">Always here to listen, help you plan, solve, and be with you. 💙</p>
+                  </div>
+                  <div class="tw-hero-art" aria-hidden="true">
+                    <div class="tw-hero-ring"></div>
+                    <div class="tw-hero-bubble"><i></i><i></i><i></i></div>
+                    <div id="twHeroArt"></div>
+                  </div>
+                </section>
+                <div class="twin-sugg-row" id="twinSuggRow"></div>
               </div>
             </div>
-          </div>
-          <div class="twin-dock-wrap">
-            <div class="twin-dock-orb" id="twinDockOrbWrap"><div class="twin-orb-anchor twin-orb-anchor--dock" id="twinDockAnchor"></div></div>
-            <div class="twin-dock">
-              <div class="uc-composer uc-composer--ai" style="padding:0;flex:1">
-                <div class="uc-input-wrap">
+
+            <div class="twin-dock-wrap">
+              <div class="tw-quick" id="twQuick"></div>
+              <div class="twin-dock-orb" id="twinDockOrbWrap"><div class="twin-orb-anchor twin-orb-anchor--dock" id="twinDockAnchor"></div></div>
+              <div class="twin-dock">
+                <button type="button" class="tw-plus" id="twPlusBtn" onclick="TwinArt.toggleQuick()" aria-label="Quick prompts" aria-expanded="false"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button>
+                <div class="tw-input-pill">
                   <textarea class="uc-input" id="aiIn" rows="1" placeholder="Ask Twin anything..."
                     oninput="this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,110)+'px'; document.getElementById('aiSendBtn').classList.toggle('is-ready', this.value.trim().length>0)"
                     onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"></textarea>
+                  <button type="button" class="uc-btn twin-mic-btn" id="twinMicBtn" onclick="twinMicTap()" title="Talk to Twin" aria-label="Talk to Twin"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></svg></button>
                 </div>
-                <button class="uc-btn twin-mic-btn" id="twinMicBtn" onclick="twinMicTap()" title="Talk to Twin">
-                  <span class="uc-mic-ico">🎙️</span>
-                </button>
-                <button class="uc-btn uc-btn--send" id="aiSendBtn" onclick="sendAI()" title="Send">
-                  <span class="ai-send-ico">➤</span>
-                </button>
+                <button type="button" class="uc-btn uc-btn--send" id="aiSendBtn" onclick="sendAI()" title="Send" aria-label="Send"><span class="ai-send-ico"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7Z"/></svg></span></button>
               </div>
             </div>
-          </div>
 
           <!-- TWIN VOICE MODE (Phase 2) -->
           <div class="twin-voice" id="twinVoice">
@@ -6737,6 +6749,7 @@ select option { background: #0D0D0D; color: #fff; }
               <button class="twin-voice-btn tv-end" onclick="TwinVoice.exit()" title="End voice mode">✕</button>
             </div>
             <div class="twin-voice-hint" id="twinVoiceHint">Tap the mic to speak</div>
+          </div>
           </div>
         </div>
       </div>
@@ -7569,6 +7582,7 @@ select option { background: #0D0D0D; color: #fff; }
       </div>
 
       <div class="toast" id="toast"></div>
+<script src="/twin-art.js"></script>
 <script src="/twin-orb.js"></script>
 <script src="/both-mode.js"></script>
 <script src="/twin-mini-orb.js" defer></script>
@@ -8487,6 +8501,7 @@ function setJustPairedAt(ts) {
             // Twin becomes visible, not just once on page load.
             TwinOrb.show();
             initTwinSuggCarousel();
+            if (window.TwinArt) TwinArt.refresh();
             requestAnimationFrame(() => {
               if (!twinEntrancePlayed) {
                 twinPlayEntrance();
@@ -8494,10 +8509,7 @@ function setJustPairedAt(ts) {
                 // Not a fresh entry (e.g. an unrelated re-render while
                 // already on this page) — just re-settle at whichever
                 // anchor is currently correct, no animation, no replay.
-                const hero = document.getElementById('twinHeroAnchor');
-                const dock = document.getElementById('twinDockAnchor');
-                const target = (hero && hero.offsetParent !== null && document.getElementById('aiWelcome')) ? hero : dock;
-                twinOrbGoToWhenReady(target, { animate: false });
+                twinOrbGoToWhenReady(document.getElementById('twinDockAnchor'), { animate: false });
               }
             });
           }
@@ -11441,29 +11453,11 @@ const p = await Notification.requestPermission();
         // 1s, then travel down and dock — replayed only on a genuine
         // fresh entry into the ai page (see the page-switch handler).
         function twinPlayEntrance() {
-          clearTimeout(twinEntranceTimer);
-          const hero = document.getElementById('twinHeroAnchor');
-          const dock = document.getElementById('twinDockAnchor');
-          const welcomeStillUp = !!document.getElementById('aiWelcome');
-          if (!welcomeStillUp) {
-            // Conversation already exists (e.g. re-opened mid-chat) —
-            // no hero to show, land on dock immediately, no animation.
-            twinEntrancePlayed = true;
-            twinOrbGoTo(dock, { animate: false });
-            return;
-          }
-          twinOrbGoToWhenReady(hero, { animate: false }); // appear large, instantly, in the hero spot — once it's actually measurable
-          twinEntranceTimer = setTimeout(function () {
-            twinEntranceTimer = null;
-            // Guard against the fast-exit race: if the user already
-            // navigated away from Twin in the last second, this timer
-            // was supposed to be cancelled by goto()'s cleanup, but if
-            // it somehow still fires, never let it touch the orb.
-            if (!window.TwinOrb || !TwinOrb.isPageVisible()) return;
-            twinEntrancePlayed = true;
-            if (!document.getElementById('aiWelcome')) return; // user already sent a message; dock already handled by askAI()
-            twinOrbGoToWhenReady(dock, { animate: true });
-          }, 1000);
+          // Redesign: the hero is a robot illustration, so the orb simply
+          // rests on the dock — no hero → dock travel animation anymore.
+          clearTimeout(twinEntranceTimer); twinEntranceTimer = null;
+          twinEntrancePlayed = true;
+          twinOrbGoToWhenReady(document.getElementById('twinDockAnchor'), { animate: false });
         }
         // Suggestion-chip carousel: rests with "Write something sweet"
         // centered (We argued / Deep talk peeking on either side), scroll
@@ -11907,9 +11901,7 @@ const p = await Notification.requestPermission();
             setTwinState('idle');
             // Travel back to wherever the orb belongs now — dock if a
             // conversation exists, hero if the welcome screen is still up.
-            const hero = document.getElementById('twinHeroAnchor');
-            const dock = document.getElementById('twinDockAnchor');
-            const backTo = (hero && hero.offsetParent !== null && document.getElementById('aiWelcome')) ? hero : dock;
+            const backTo = document.getElementById('twinDockAnchor');
             twinOrbGoTo(backTo, { animate: !quiet });
           }
           function toggleMute() {
@@ -12070,13 +12062,17 @@ const p = await Notification.requestPermission();
             // during the 1s hold or mid-travel of the entrance sequence,
             // this also cancels that timer so the two never fight.
             twinCancelEntranceAndDock(true);
-            welcome.remove();
+            // Redesign: the hero card stays at the top of the conversation
+            // (compact), only the suggestion chips go away. Dropping the id
+            // makes every later "is the welcome still up?" check false.
+            welcome.classList.add('is-chatting');
+            welcome.removeAttribute('id');
           }
           aiLastQuestion = question;
 
           if (!isRegenerate) {
             const ud = document.createElement('div'); ud.className = 'ai-msg me ai-pop-in';
-            ud.innerHTML = `<div class="av av1" style="width:30px;height:30px;font-size:11px">${esc(S.myName[0] || 'U')}</div><div><div class="ai-bubble">${esc(question)}</div><div class="ai-msg-time">${nowTimeShort()}</div></div>`;
+            ud.innerHTML = `<div class="ai-bubble"><span class="tw-msg-text">${esc(question)}</span><span class="ai-msg-time tw-in">${nowTimeShort()}${window.TwinArt ? TwinArt.icon('checks', 11) : ''}</span></div>`;
             msgsEl.appendChild(ud);
             trimAiHistoryDom(msgsEl);
           }
@@ -12088,7 +12084,7 @@ const p = await Notification.requestPermission();
           bubbleEl.innerHTML = `<span class="ai-thinking-wave"><span></span><span></span><span></span></span><span class="ai-thinking-label">Thinking...</span>`;
           wrapDiv.appendChild(bubbleEl);
           const avDiv = document.createElement('div'); avDiv.className = 'ai-av twin-msg-av';
-          avDiv.innerHTML = '<span class="twin-mini-orb"></span>';
+          avDiv.innerHTML = window.TwinArt ? TwinArt.avatar() : '<span class="twin-mini-orb"></span>';
           ld.appendChild(avDiv); ld.appendChild(wrapDiv);
           msgsEl.appendChild(ld);
           trimAiHistoryDom(msgsEl);

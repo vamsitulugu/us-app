@@ -76,6 +76,8 @@
     state.mode = mode;
     document.getElementById('twinModeYouBtn').classList.toggle('active', mode === 'you');
     document.getElementById('twinModeBothBtn').classList.toggle('active', mode === 'both');
+    const twSub = document.getElementById('twSubtitle');
+    if (twSub) twSub.textContent = mode === 'both' ? 'For Both of Us' : 'Your Personal AI';
     document.getElementById('aiWrapYou').style.display = mode === 'you' ? '' : 'none';
     document.getElementById('bothModeWrap').style.display = mode === 'both' ? '' : 'none';
     if (mode === 'both') {
@@ -128,20 +130,33 @@
     if (state.pollTimer) { clearInterval(state.pollTimer); state.pollTimer = null; }
     const wrap = document.getElementById('bothModeWrap');
     const n = state.names || { user1: 'You', user2: 'Partner' };
+    const art = window.TwinArt;
+    const how = [
+      ['pencil', 'You both answer<br>the same question privately.'],
+      ['brain', 'Twin AI analyses both answers.'],
+      ['heart', 'You\u2019ll see a combined insight together.'],
+    ].map((r, i) => `
+          <div class="tw-how-row">
+            <div class="tw-how-n">${i + 1}</div>
+            <div class="tw-how-ico">${art ? art.icon(r[0], 24) : ''}</div>
+            <div class="tw-how-txt">${r[1]}</div>
+          </div>`).join('');
     wrap.innerHTML = `
       <div class="both-home">
-        <div class="both-hero">
-          <div class="both-couple-row">
-            ${avatarHtml(S.myAvatar, myName())}
-            <div class="both-couple-vs">Twin</div>
-            ${avatarHtml(S.partnerAvatar, partnerName())}
-          </div>
-          <div class="both-hero-title">Both</div>
-          <div class="both-hero-sub">Share your perspective privately. Twin reveals one shared answer once you both submit.</div>
-          <button class="btn btn-accent both-start-btn" onclick="TwinBoth.startNewSession()">Start Together</button>
-        </div>
+        <section class="tw-card tw-both-hero">
+          <div class="tw-both-art">${art ? art.robotPair() : ''}</div>
+          <h2 class="tw-both-title">Twin AI \u2014 <span class="tw-grad">Together</span></h2>
+          <p class="tw-both-sub">Share your thoughts privately.<br>Twin reveals one shared answer once you both submit.</p>
+          <button type="button" class="tw-start-btn both-start-btn" onclick="TwinBoth.startNewSession()">
+            ${art ? art.icon('play', 22) : ''}<span>Start Together</span>
+            <span class="tw-start-chev">${art ? art.icon('chevron', 22) : ''}</span>
+          </button>
+        </section>
+        <section class="tw-card tw-how">
+          <h3 class="tw-how-title">How It Works?</h3>${how}
+        </section>
         <div class="both-history-label">Recent discussions</div>
-        <div id="bothHistoryList" class="both-history-list"><div class="empty">Loading…</div></div>
+        <div id="bothHistoryList" class="both-history-list"><div class="empty">Loading\u2026</div></div>
       </div>`;
     try {
       const list = await api('GET', `/api/ai-both/sessions/${coupleId()}`);
