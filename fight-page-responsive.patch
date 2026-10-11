@@ -1,0 +1,95 @@
+diff --git a/public/index.html b/public/index.html
+index 6e443e7..b053675 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -1989,7 +1989,7 @@
+     /* ════ FIGHT LOG ════
+        Three screens share #page-fights: dashboard, log wizard and
+        reconnect activities. Every class here is prefixed fl-. */
+-    .fl-view { display: none; max-width: 640px; margin: 0 auto }
++    .fl-view { display: none; width: 100%; max-width: none; margin: 0 }
+     .fl-view.active { display: block }
+     .fl-view .lucide, .fl-sheet .lucide { width: 1em; height: 1em; flex-shrink: 0 }
+ 
+@@ -2138,6 +2138,55 @@
+     .fl-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px }
+     .fl-actions .btn { flex: 1 1 auto; justify-content: center }
+ 
++    /* ── Fight Log: laptop / desktop / tablet layouts ── */
++    .fl-col { min-width: 0 }
++    .fl-col-b .fl-section-head { margin-top: 0 }
++
++    /* Tablet + up: bigger ring, roomier cards */
++    @media (min-width: 701px) {
++      .fl-ring { width: 150px; height: 150px }
++      .fl-ring-pct { font-size: 34px }
++      .fl-metrics { gap: 16px }
++      .fl-metric.card { padding: 18px }
++      .fl-row { padding: 14px 18px }
++      .fl-panel { padding: 24px }
++      .fl-chips { gap: 12px }
++    }
++
++    /* Laptop / desktop: dashboard becomes two columns */
++    @media (min-width: 1000px) {
++      .fl-view[data-view="dashboard"].active {
++        display: grid;
++        grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
++        gap: 24px;
++        align-items: start;
++      }
++      .fl-cta { margin-bottom: 0 }
++      .fl-col-a .fl-metrics { margin-bottom: 16px }
++      .fl-ring { width: 170px; height: 170px }
++      .fl-section-head h3 { font-size: 20px }
++
++      /* Log wizard: wide panel, steps spread out, comfortable form */
++      .fl-view[data-view="log"] .fl-panel { padding: 30px 34px }
++      .fl-view[data-view="log"] .fl-pane.active { display: grid; grid-template-columns: 1fr 1fr; gap: 26px 36px; align-items: start }
++      .fl-view[data-view="log"] .fl-group + .fl-group { margin-top: 0 }
++      .fl-view[data-view="log"] .fl-group:first-child,
++      .fl-view[data-view="log"] .fl-pane[data-step="2"] .fl-group,
++      .fl-view[data-view="log"] .fl-pane[data-step="3"] .fl-group { grid-column: 1 / -1 }
++      .fl-view[data-view="log"] .fl-area textarea { min-height: 120px }
++      #flNext { max-width: 420px; margin-left: auto; margin-right: 0 }
++
++      /* Activities: two-column card grid */
++      #flActList { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; align-items: start }
++      #flActList .fl-act { margin-bottom: 0 }
++    }
++
++    /* Large desktop / ultrawide: three activity columns, keep dashboard balanced */
++    @media (min-width: 1500px) {
++      #flActList { grid-template-columns: repeat(3, 1fr) }
++      .fl-view[data-view="dashboard"].active { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px }
++    }
++
+     @media (max-width: 380px) {
+       .fl-ring { width: 112px; height: 112px }
+       .fl-rate-body { gap: 12px }
+@@ -5685,6 +5734,7 @@ select option { background: #0D0D0D; color: #fff; }
+ 
+         <!-- Screen 1: dashboard -->
+         <section class="fl-view active" data-view="dashboard">
++          <div class="fl-col fl-col-a">
+           <div class="card">
+             <div class="fl-rate-head">
+               <div>
+@@ -5713,7 +5763,9 @@ select option { background: #0D0D0D; color: #fff; }
+           <div class="fl-metrics" id="flMetrics"></div>
+ 
+           <button type="button" class="fl-cta" data-fl="new"><i data-lucide="file-plus"></i>Log a Fight</button>
++          </div>
+ 
++          <div class="fl-col fl-col-b">
+           <div class="fl-section-head">
+             <h3>Recent Fights</h3>
+             <button type="button" class="fl-link" id="flViewAll" data-fl="toggle-all"></button>
+@@ -5728,6 +5780,7 @@ select option { background: #0D0D0D; color: #fff; }
+             </span>
+             <i data-lucide="chevron-right" class="fl-chev"></i>
+           </div>
++          </div>
+         </section>
+ 
+         <!-- Screen 2: log wizard -->
