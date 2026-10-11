@@ -285,7 +285,7 @@
   function renderMyMovieCard(title, duration, type, sizeGb) {
     $('myMovieCard').hidden = false;
     $('myMovieTitle').textContent = title;
-    $('myMovieMeta').textContent = `${fmtTime(duration)} • ${(type.split('/')[1] || '').toUpperCase()} • ${sizeGb} GB`;
+    $('myMovieMeta').textContent = [fmtTime(duration), (type.split('/')[1] || '').toUpperCase(), sizeGb && sizeGb !== '—' ? `${sizeGb} GB` : ''].filter(Boolean).join(' • ');
   }
 
   // ═══════════════════════════════════════════════════════
@@ -346,21 +346,25 @@
     const u = cloud.usage;
     if (u) {
       $('cloudUsageText').textContent = `${fmtBytes(u.usedBytes)} of ${fmtBytes(u.limitBytes)} used`;
-      $('cloudUsageFill').style.width = Math.min(100, (u.usedBytes / u.limitBytes) * 100) + '%';
+      const pct = Math.min(100, (u.usedBytes / u.limitBytes) * 100);
+      $('cloudUsageFill').style.width = pct + '%';
+      const pctEl = $('cloudUsagePct'); if (pctEl) pctEl.textContent = Math.round(pct) + '%';
     }
     const selected = state.room && state.room.shared_movie_id;
     const rows = cloud.movies.filter(m => m.id !== cloud.activeId).map(m => {
       const ready = m.status === 'ready';
       return `<div class="wt-cloud-row${m.id === selected ? ' is-selected' : ''}">
+        <div class="wt-cloud-thumb"><i data-lucide="film"></i></div>
         <div class="wt-cloud-info">
           <div class="wt-movie-title">${escapeHtml(m.title)}</div>
           <div class="wt-movie-meta">${ready ? fmtTime(m.durationSec) + ' • ' + fmtBytes(m.sizeBytes) : 'Incomplete upload'}</div>
         </div>
-        ${ready ? `<button class="wt-chip-btn" data-act="pick" data-id="${m.id}">Watch</button>` : ''}
-        <button class="wt-chip-btn" data-act="del" data-id="${m.id}" aria-label="Delete">🗑</button>
+        ${ready ? `<button class="wt-round-btn wt-round-play" data-act="pick" data-id="${m.id}" aria-label="Watch"><i data-lucide="play"></i></button>` : ''}
+        <button class="wt-round-btn" data-act="del" data-id="${m.id}" aria-label="Delete"><i data-lucide="trash-2"></i></button>
       </div>`;
     });
     $('cloudList').innerHTML = rows.length ? rows.join('') : '<p class="wt-hint">No shared movies yet. Upload one to get started.</p>';
+    if (window.lucide) window.lucide.createIcons();
   }
 
   $('cloudList').addEventListener('click', async (e) => {
@@ -606,7 +610,9 @@
 
     if (r.status === 'start_requested') {
       if (r.start_requested_by === ROLE) {
+        renderLobby(r); // keep movie card + partner chips accurate under the waiting card
         showSetupSub('waiting');
+        $('btnReady').hidden = true;
       } else {
         showSetupSub('lobby'); // stays on lobby underneath the modal
         showInviteModal(r);

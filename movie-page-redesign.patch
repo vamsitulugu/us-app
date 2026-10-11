@@ -1,0 +1,389 @@
+diff --git a/public/movie.css b/public/movie.css
+index 17cb5bb..28f7e27 100644
+--- a/public/movie.css
++++ b/public/movie.css
+@@ -601,3 +601,207 @@ html, body {
+ .wt-cloud-row.is-selected { border-color: var(--accent, #E8384F); }
+ .wt-cloud-info { flex: 1; min-width: 0; }
+ .wt-cloud-info .wt-movie-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
++
++/* ═══════════════════════════════════════════════════════════════════
++   WATCH TOGETHER — mobile-app redesign (v5)
++   Visual layer only: every id/class hook used by movie.js is unchanged.
++   Chat text is yellow (--wt-chat-yellow).
++   ═══════════════════════════════════════════════════════════════════ */
++:root {
++  --wt-bg: #0b0407;
++  --wt-card: rgba(255,255,255,0.045);
++  --wt-card-brd: rgba(255,255,255,0.09);
++  --wt-red1: #ff3b5c;
++  --wt-red2: #c1121f;
++  --wt-grad: linear-gradient(135deg, #ff4466 0%, #d6102a 100%);
++  --wt-chat-yellow: #ffd54a;
++  --wt-muted: #a89aa0;
++}
++.wt-page {
++  background:
++    radial-gradient(120% 60% at 50% -10%, rgba(193,18,31,0.28) 0%, rgba(193,18,31,0) 60%),
++    var(--wt-bg);
++}
++.wt-btn svg, .wt-chip-btn svg, .wt-round-btn svg, .wt-sec-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
++
++/* ── Header (app bar) ── */
++.wt-header { padding: 12px 16px; border-bottom: none; background: transparent; }
++.wt-back, .wt-history-btn { background: var(--wt-card); border: 1px solid var(--wt-card-brd); }
++.wt-back svg, .wt-history-btn svg { width: 20px; height: 20px; }
++.wt-title-wrap h1 { font-size: 17px; letter-spacing: 0.01em; }
++
++/* ── Setup / Home ── */
++#stateSetup { padding: 4px 16px 28px; gap: 14px; }
++.wt-empty-card { margin-top: 0; width: 100%; max-width: 520px; margin-left: auto; margin-right: auto; align-items: stretch; gap: 14px; text-align: left; }
++
++.wt-hero {
++  position: relative; overflow: hidden; text-align: center;
++  border-radius: 22px; padding: 26px 18px 22px;
++  border: 1px solid var(--wt-card-brd);
++  background:
++    radial-gradient(90% 120% at 50% 0%, rgba(255,59,92,0.38) 0%, rgba(255,59,92,0) 65%),
++    linear-gradient(180deg, rgba(60,10,22,0.9), rgba(20,6,12,0.95));
++}
++.wt-hero-art {
++  width: 54px; height: 54px; margin: 0 auto 10px; border-radius: 16px;
++  display: flex; align-items: center; justify-content: center;
++  background: var(--wt-grad); box-shadow: 0 8px 24px rgba(214,16,42,0.45);
++}
++.wt-hero-art svg { width: 26px; height: 26px; color: #fff; }
++.wt-hero h2 { margin: 0; font-size: 22px; font-weight: 800; }
++.wt-hero p { margin: 6px 0 0; font-size: 13px; color: #e6cdd3; }
++
++.wt-mode-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0; }
++.wt-mode-toggle .wt-chip-btn {
++  display: flex; align-items: center; justify-content: center; gap: 8px;
++  min-height: 48px; border-radius: 14px; font-size: 14px; font-weight: 700;
++  background: var(--wt-card); border: 1px solid var(--wt-card-brd); color: #e9dfe2; opacity: 1;
++}
++.wt-mode-toggle .wt-chip-btn.is-active {
++  background: rgba(255,59,92,0.16); border-color: var(--wt-red1); color: #fff;
++  box-shadow: 0 0 0 1px rgba(255,59,92,0.25) inset;
++}
++
++.wt-hint { color: var(--wt-muted); max-width: none; }
++.wt-btn { border-radius: 16px; min-height: 52px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
++.wt-btn-primary, .wt-btn-start { background: var(--wt-grad); box-shadow: 0 8px 22px rgba(214,16,42,0.35); }
++.wt-btn-block { width: 100%; }
++.wt-btn-ghost { background: var(--wt-card); border: 1px solid var(--wt-card-brd); }
++
++/* Direct pane = dashed picker card */
++#wtDirectPane {
++  border: 1.5px dashed rgba(255,59,92,0.55); border-radius: 20px; padding: 26px 18px;
++  background: rgba(255,59,92,0.05); align-items: center; text-align: center;
++}
++.wt-empty-icon {
++  width: 60px; height: 60px; border-radius: 50%; margin-bottom: 2px;
++  display: flex; align-items: center; justify-content: center;
++  background: rgba(255,59,92,0.14); color: var(--wt-red1);
++}
++.wt-empty-icon svg { width: 28px; height: 28px; }
++#wtDirectPane h2 { margin: 4px 0 0; font-size: 17px; }
++
++/* Cloud pane */
++.wt-cloud-pane { align-items: stretch; gap: 12px; }
++.wt-usage-card { background: var(--wt-card); border: 1px solid var(--wt-card-brd); border-radius: 18px; padding: 14px 16px; }
++.wt-usage-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
++.wt-usage-label { font-size: 13px; color: #ece1e4; font-weight: 600; }
++.wt-usage-pct { font-size: 13px; font-weight: 800; color: var(--wt-red1); }
++.wt-usage-text { margin: 8px 0 0; font-size: 12px; color: var(--wt-muted); }
++.wt-cloud-usage { max-width: none; height: 8px; border-radius: 4px; }
++.wt-cloud-usage-fill { background: linear-gradient(90deg, #ff6b81, #d6102a); border-radius: 4px; }
++.wt-cloud-hint { margin: 0; text-align: center; font-size: 12px; }
++
++.wt-progress-card { width: 100%; background: var(--wt-card); border: 1px solid rgba(255,59,92,0.35); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
++.wt-progress-row { display: flex; align-items: center; gap: 10px; color: #fff; font-size: 13px; font-weight: 600; }
++.wt-progress-row svg { width: 20px; height: 20px; color: var(--wt-red1); flex-shrink: 0; }
++.wt-cancel-btn { align-self: flex-end; min-height: 36px; background: rgba(255,255,255,0.07); border: 1px solid var(--wt-card-brd); }
++
++.wt-list-title { font-size: 13px; font-weight: 700; color: var(--wt-muted); text-transform: uppercase; letter-spacing: 0.08em; margin: 6px 2px -2px; }
++.wt-cloud-list { max-width: none; gap: 10px; margin-top: 0; }
++.wt-cloud-row {
++  gap: 12px; padding: 10px 12px; border-radius: 18px;
++  background: var(--wt-card); border: 1px solid var(--wt-card-brd);
++}
++.wt-cloud-row.is-selected { border-color: var(--wt-red1); background: rgba(255,59,92,0.09); }
++.wt-cloud-thumb, .wt-movie-icon {
++  width: 52px; height: 52px; min-width: 52px; border-radius: 14px;
++  display: flex; align-items: center; justify-content: center;
++  background: linear-gradient(145deg, #5a1424, #20080f); border: 1px solid var(--wt-card-brd); color: #ff8aa0;
++}
++.wt-cloud-thumb svg, .wt-movie-icon svg { width: 22px; height: 22px; }
++.wt-movie-title { font-size: 15px; font-weight: 700; }
++.wt-movie-meta { font-size: 12px; color: var(--wt-muted); }
++.wt-round-btn {
++  width: 42px; height: 42px; min-width: 42px; border-radius: 50%; border: 1px solid var(--wt-card-brd);
++  background: rgba(255,255,255,0.06); color: #e9dfe2; display: flex; align-items: center; justify-content: center;
++}
++.wt-round-btn:disabled { opacity: .5; }
++.wt-round-play { background: var(--wt-grad); border-color: transparent; color: #fff; }
++.wt-round-play svg { fill: #fff; }
++
++/* ── Lobby / waiting ── */
++.wt-lobby { max-width: 520px; width: 100%; margin: 0 auto; gap: 14px; }
++.wt-movie-card { background: var(--wt-card); border: 1px solid var(--wt-card-brd); border-radius: 18px; padding: 12px; }
++.wt-partners-row { align-items: center; justify-content: center; gap: 8px; }
++.wt-partners-heart { font-size: 18px; }
++.wt-partner-chip { background: var(--wt-card); border: 1px solid var(--wt-card-brd); border-radius: 18px; padding: 16px 10px; gap: 6px; }
++.wt-partner-chip.is-ready { border-color: rgba(52,211,153,0.5); background: rgba(52,211,153,0.08); }
++.wt-avatar {
++  width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
++  background: linear-gradient(145deg, #6a1628, #2a0a13); border: 2px solid rgba(255,59,92,0.55); color: #ffb3c0;
++}
++.wt-avatar svg { width: 26px; height: 26px; }
++.wt-partner-name { color: #f1e6e9; font-weight: 700; font-size: 14px; }
++.wt-partner-state { font-size: 12px; color: var(--wt-muted); }
++.wt-partner-chip.is-ready .wt-partner-state { color: #34d399; }
++.wt-btn-ready { width: 100%; border-radius: 16px; background: var(--wt-card); border: 1px solid var(--wt-card-brd); }
++.wt-btn-ready.is-active { background: rgba(52,211,153,0.14); border-color: rgba(52,211,153,0.55); color: #34d399; }
++.wt-both-ready { background: var(--wt-card); border: 1px solid var(--wt-card-brd); border-radius: 18px; padding: 14px; }
++.wt-waiting-block { background: var(--wt-card); border: 1px solid var(--wt-card-brd); border-radius: 22px; padding: 30px 18px; margin-top: 8px; }
++.wt-waiting-pulse { width: 84px; height: 84px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 38px; background: rgba(255,59,92,0.14); box-shadow: 0 0 0 10px rgba(255,59,92,0.07); }
++
++/* ── Countdown ── */
++.wt-countdown { background: radial-gradient(80% 60% at 50% 40%, rgba(193,18,31,0.35), #000 70%); }
++
++/* ── Player ── */
++.wt-watch-tag { font-size: 10.5px; font-weight: 700; padding: 3px 10px; border-radius: 20px; background: rgba(255,59,92,0.22); color: #ffb3c0; border: 1px solid rgba(255,59,92,0.4); }
++.wt-movie-name { font-size: 15px; font-weight: 700; }
++.wt-icon-btn { background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
++.wt-icon-btn svg { width: 20px; height: 20px; }
++.wt-center-btn { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.18); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
++.wt-play-btn { width: 78px; height: 78px; background: rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.85); }
++.wt-play-btn svg { width: 32px; height: 32px; }
++
++/* Reactions: horizontal row above the timeline, 😊 toggle at the far right */
++.wt-reactions-col { flex-direction: row-reverse; align-items: center; gap: 8px; }
++.wt-reaction-bar { flex-direction: row; gap: 6px; padding: 5px 8px; border-radius: 26px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); }
++.wt-reaction-bar button { width: 36px; height: 36px; }
++.wt-reaction-toggle { border: 1px solid rgba(255,255,255,0.18); background: rgba(0,0,0,0.5); }
++
++.wt-bottom-overlay { background: linear-gradient(to top, rgba(8,2,5,0.92) 30%, rgba(8,2,5,0)); gap: 8px; }
++.wt-secondary-row { gap: 2px; padding-top: 2px; }
++.wt-sec-btn { gap: 4px; color: #f3e9ec; }
++.wt-sec-btn svg { width: 22px; height: 22px; }
++.wt-sec-btn label { font-size: 10.5px; color: #cdbfc4; }
++.wt-sec-btn-end svg { width: 42px; height: 42px; padding: 11px; border-radius: 50%; background: var(--wt-grad); color: #fff; box-shadow: 0 6px 16px rgba(214,16,42,0.45); }
++.wt-sec-btn-end label { color: #ff8aa0; }
++
++/* ── Chat: YELLOW text everywhere messages appear ── */
++.wt-chat-toast { color: var(--wt-chat-yellow); font-weight: 600; background: rgba(12,4,7,0.72); border: 1px solid rgba(255,213,74,0.25); text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
++.wt-chat-composer { background: rgba(14,5,9,0.96); border-top: 1px solid rgba(255,255,255,0.1); }
++.wt-chat-composer input { color: var(--wt-chat-yellow); background: rgba(255,255,255,0.07); caret-color: var(--wt-chat-yellow); }
++.wt-chat-composer input::placeholder { color: rgba(255,213,74,0.5); }
++.wt-chat-composer button { background: var(--wt-grad); }
++.wt-chatlog-text { color: var(--wt-chat-yellow); }
++.wt-chatlog-row.mine .wt-chatlog-bubble { background: rgba(193,18,31,0.22); border: 1px solid rgba(255,59,92,0.35); }
++.wt-chatlog-row.theirs .wt-chatlog-bubble { background: rgba(255,255,255,0.06); border: 1px solid var(--wt-card-brd); }
++.wt-chatlog-name { color: #ff8aa0; }
++
++/* ── Call overlays (mini windows, unchanged behaviour) ── */
++.wt-voice-bar { background: rgba(14,5,9,0.78); border: 1px solid rgba(255,255,255,0.12); }
++.wt-voice-bar-end, .wt-video-vmenu button.wt-video-vmenu-danger { background: var(--wt-grad) !important; }
++
++/* ── Sheets / modals ── */
++.wt-modal { background: linear-gradient(180deg, #1c0a11, #12060a); border: 1px solid var(--wt-card-brd); border-radius: 26px 26px 0 0; }
++@media (min-width: 560px) { .wt-modal { border-radius: 26px; } }
++.wt-modal-backdrop { background: rgba(5,1,3,0.75); }
++.wt-btn-danger { background: var(--wt-grad); }
++.wt-sheet-close { background: var(--wt-card); border: 1px solid var(--wt-card-brd); }
++.wt-sheet-header h2 { font-size: 18px; letter-spacing: 0; }
++.wt-history-row { background: var(--wt-card); border-color: var(--wt-card-brd); border-radius: 18px; }
++.wt-history-continue { background: var(--wt-grad); }
++.wt-toast { background: rgba(24,8,13,0.96); border-color: rgba(255,59,92,0.3); }
++.wt-banner { background: #1c0a11; border-color: rgba(255,59,92,0.3); border-radius: 16px; }
++.wt-banner-actions button { background: var(--wt-grad); }
++
++/* Wider screens: keep the app column readable */
++@media (min-width: 700px) {
++  .wt-header { max-width: 560px; width: 100%; margin: 0 auto; }
++}
++
++/* Keep the floating chat line clear of the emoji row */
++.wt-chat-float-layer { bottom: calc(var(--wt-chat-gap-bottom, 84px) + 54px); }
++.wt-chatlog-movietime { color: #ff8aa0; }
++/* No "Change" while waiting for the partner to accept */
++.wt-lobby:has(#waitingBlock:not([hidden])) #btnChangeMovie { display: none; }
+diff --git a/public/movie.html b/public/movie.html
+index eb40f83..7cb5cec 100644
+--- a/public/movie.html
++++ b/public/movie.html
+@@ -5,7 +5,7 @@
+ <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+ <title>Watch Together</title>
+ <link rel="stylesheet" href="/theme-burgundy.css">
+-<link rel="stylesheet" href="/movie.css?v=4">
++<link rel="stylesheet" href="/movie.css?v=5">
+ <link rel="stylesheet" href="/responsive-fix.css">
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+ <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
+@@ -18,8 +18,7 @@
+   <header class="wt-header" id="wtHeader">
+     <button class="wt-back" id="wtBack" aria-label="Back"><i data-lucide="chevron-left"></i></button>
+     <div class="wt-title-wrap">
+-      <h1>🎬 Watch Together</h1>
+-      <p class="wt-subtitle">Different places. Same movie. Same moment. ❤️</p>
++      <h1>Watch Together</h1>
+     </div>
+     <button class="wt-history-btn" id="wtHistoryBtn" aria-label="History"><i data-lucide="history"></i></button>
+   </header>
+@@ -29,14 +28,19 @@
+ 
+     <!-- Sub-state: nothing picked yet -->
+     <div class="wt-empty-card" id="wtEmptyCard">
++      <div class="wt-hero">
++        <div class="wt-hero-art"><i data-lucide="clapperboard"></i></div>
++        <h2>Watch Together</h2>
++        <p>Different places. Same movie. Same moment. ❤️</p>
++      </div>
+       <!-- Mode switch: Direct Device Video (default, unchanged) | Shared Cloud Storage -->
+       <div class="wt-mode-toggle" id="wtModeToggle">
+-        <button type="button" class="wt-chip-btn is-active" id="modeDirect">Direct Device Video</button>
+-        <button type="button" class="wt-chip-btn" id="modeCloud">Shared Cloud Storage</button>
++        <button type="button" class="wt-chip-btn is-active" id="modeDirect" title="Direct Device Video"><i data-lucide="smartphone"></i><span>Direct Device</span></button>
++        <button type="button" class="wt-chip-btn" id="modeCloud" title="Shared Cloud Storage"><i data-lucide="cloud"></i><span>Cloud Storage</span></button>
+       </div>
+ 
+       <div class="wt-mode-pane" id="wtDirectPane">
+-        <div class="wt-empty-icon">🎬</div>
++        <div class="wt-empty-icon"><i data-lucide="film"></i></div>
+         <h2>Pick a movie from your phone</h2>
+         <p class="wt-hint">Nothing gets uploaded — your movie stays completely on your device.</p>
+         <button class="wt-btn wt-btn-primary" id="btnChooseMovie">Choose Movie From Device</button>
+@@ -44,16 +48,22 @@
+       </div>
+ 
+       <div class="wt-mode-pane wt-cloud-pane" id="wtCloudPane" hidden>
+-        <p class="wt-hint">Upload once — you both stream the same movie. Stored privately for the two of you.</p>
+-        <div class="wt-cloud-usage"><div class="wt-cloud-usage-fill" id="cloudUsageFill"></div></div>
+-        <p class="wt-hint" id="cloudUsageText">&nbsp;</p>
+-        <button class="wt-btn wt-btn-primary" id="btnCloudUpload">Upload Movie To Cloud</button>
++        <div class="wt-usage-card">
++          <div class="wt-usage-top"><span class="wt-usage-label">Storage Used</span><span class="wt-usage-pct" id="cloudUsagePct">0%</span></div>
++          <div class="wt-cloud-usage"><div class="wt-cloud-usage-fill" id="cloudUsageFill"></div></div>
++          <p class="wt-usage-text" id="cloudUsageText">&nbsp;</p>
++        </div>
++        <p class="wt-hint wt-cloud-hint">Upload once — you both stream the same movie. Stored privately for the two of you.</p>
++        <button class="wt-btn wt-btn-primary wt-btn-block" id="btnCloudUpload"><i data-lucide="upload"></i><span>Upload Movie</span></button>
+         <input type="file" id="cloudFileInput" accept="video/mp4,video/webm,video/x-m4v,video/quicktime" hidden>
+         <div class="wt-cloud-progress" id="cloudProgress" hidden>
+-          <div class="wt-cloud-usage"><div class="wt-cloud-usage-fill" id="cloudProgressFill"></div></div>
+-          <p class="wt-hint" id="cloudProgressText">Starting…</p>
+-          <button class="wt-chip-btn" id="btnCloudCancel" type="button">Cancel upload</button>
++          <div class="wt-progress-card">
++            <div class="wt-progress-row"><i data-lucide="upload-cloud"></i><span class="wt-progress-label" id="cloudProgressText">Starting…</span></div>
++            <div class="wt-cloud-usage wt-progress-bar"><div class="wt-cloud-usage-fill" id="cloudProgressFill"></div></div>
++            <button class="wt-chip-btn wt-cancel-btn" id="btnCloudCancel" type="button">Cancel upload</button>
++          </div>
+         </div>
++        <div class="wt-list-title">Your Movies</div>
+         <div class="wt-cloud-list" id="cloudList"></div>
+       </div>
+     </div>
+@@ -61,7 +71,7 @@
+     <!-- Sub-state: movie picked → lobby -->
+     <div class="wt-lobby" id="wtLobby" hidden>
+       <div class="wt-movie-card" id="myMovieCard" hidden>
+-        <div class="wt-movie-icon">🎞️</div>
++        <div class="wt-movie-icon"><i data-lucide="film"></i></div>
+         <div class="wt-movie-info">
+           <div class="wt-movie-title" id="myMovieTitle">—</div>
+           <div class="wt-movie-meta" id="myMovieMeta">—</div>
+@@ -73,10 +83,13 @@
+ 
+       <div class="wt-partners-row">
+         <div class="wt-partner-chip" id="chipMe">
++          <span class="wt-avatar"><i data-lucide="user"></i></span>
+           <span class="wt-partner-name">You</span>
+           <span class="wt-partner-state" id="stateMe">Selecting…</span>
+         </div>
++        <span class="wt-partners-heart">❤️</span>
+         <div class="wt-partner-chip" id="chipPartner">
++          <span class="wt-avatar"><i data-lucide="user"></i></span>
+           <span class="wt-partner-name" id="partnerNameLabel">Partner</span>
+           <span class="wt-partner-state" id="statePartner">Waiting…</span>
+         </div>
+@@ -93,7 +106,7 @@
+       <div class="wt-waiting-block" id="waitingBlock" hidden>
+         <div class="wt-waiting-pulse">❤️</div>
+         <p class="wt-waiting-title">Waiting for Partner…</p>
+-        <p class="wt-hint">Waiting for your partner to join the movie</p>
++        <p class="wt-hint">Waiting for your partner to join…</p>
+         <button class="wt-btn wt-btn-ghost" id="btnCancelStart">Cancel</button>
+       </div>
+     </div>
+@@ -163,6 +176,7 @@
+         <button class="wt-icon-btn" id="btnExitWatching" aria-label="Exit"><i data-lucide="chevron-left"></i></button>
+         <div class="wt-top-status">
+           <span class="wt-movie-name" id="wtNowTitle">—</span>
++          <span class="wt-watch-tag">Watching Together</span>
+           <span class="wt-status-pill" id="statusPill" hidden></span>
+         </div>
+         <button class="wt-icon-btn" id="btnFullscreen" aria-label="Fullscreen"><i data-lucide="expand" id="fullscreenIcon"></i></button>
+@@ -284,6 +298,6 @@
+   </div>
+ </div>
+ 
+-<script src="/movie.js?v=4"></script>
++<script src="/movie.js?v=5"></script>
+ </body>
+ </html>
+\ No newline at end of file
+diff --git a/public/movie.js b/public/movie.js
+index a3d21f3..c799da7 100644
+--- a/public/movie.js
++++ b/public/movie.js
+@@ -285,7 +285,7 @@
+   function renderMyMovieCard(title, duration, type, sizeGb) {
+     $('myMovieCard').hidden = false;
+     $('myMovieTitle').textContent = title;
+-    $('myMovieMeta').textContent = `${fmtTime(duration)} • ${(type.split('/')[1] || '').toUpperCase()} • ${sizeGb} GB`;
++    $('myMovieMeta').textContent = [fmtTime(duration), (type.split('/')[1] || '').toUpperCase(), sizeGb && sizeGb !== '—' ? `${sizeGb} GB` : ''].filter(Boolean).join(' • ');
+   }
+ 
+   // ═══════════════════════════════════════════════════════
+@@ -346,21 +346,25 @@
+     const u = cloud.usage;
+     if (u) {
+       $('cloudUsageText').textContent = `${fmtBytes(u.usedBytes)} of ${fmtBytes(u.limitBytes)} used`;
+-      $('cloudUsageFill').style.width = Math.min(100, (u.usedBytes / u.limitBytes) * 100) + '%';
++      const pct = Math.min(100, (u.usedBytes / u.limitBytes) * 100);
++      $('cloudUsageFill').style.width = pct + '%';
++      const pctEl = $('cloudUsagePct'); if (pctEl) pctEl.textContent = Math.round(pct) + '%';
+     }
+     const selected = state.room && state.room.shared_movie_id;
+     const rows = cloud.movies.filter(m => m.id !== cloud.activeId).map(m => {
+       const ready = m.status === 'ready';
+       return `<div class="wt-cloud-row${m.id === selected ? ' is-selected' : ''}">
++        <div class="wt-cloud-thumb"><i data-lucide="film"></i></div>
+         <div class="wt-cloud-info">
+           <div class="wt-movie-title">${escapeHtml(m.title)}</div>
+           <div class="wt-movie-meta">${ready ? fmtTime(m.durationSec) + ' • ' + fmtBytes(m.sizeBytes) : 'Incomplete upload'}</div>
+         </div>
+-        ${ready ? `<button class="wt-chip-btn" data-act="pick" data-id="${m.id}">Watch</button>` : ''}
+-        <button class="wt-chip-btn" data-act="del" data-id="${m.id}" aria-label="Delete">🗑</button>
++        ${ready ? `<button class="wt-round-btn wt-round-play" data-act="pick" data-id="${m.id}" aria-label="Watch"><i data-lucide="play"></i></button>` : ''}
++        <button class="wt-round-btn" data-act="del" data-id="${m.id}" aria-label="Delete"><i data-lucide="trash-2"></i></button>
+       </div>`;
+     });
+     $('cloudList').innerHTML = rows.length ? rows.join('') : '<p class="wt-hint">No shared movies yet. Upload one to get started.</p>';
++    if (window.lucide) window.lucide.createIcons();
+   }
+ 
+   $('cloudList').addEventListener('click', async (e) => {
+@@ -606,7 +610,9 @@
+ 
+     if (r.status === 'start_requested') {
+       if (r.start_requested_by === ROLE) {
++        renderLobby(r); // keep movie card + partner chips accurate under the waiting card
+         showSetupSub('waiting');
++        $('btnReady').hidden = true;
+       } else {
+         showSetupSub('lobby'); // stays on lobby underneath the modal
+         showInviteModal(r);

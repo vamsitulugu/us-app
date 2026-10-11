@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Watch Together</title>
 <link rel="stylesheet" href="/theme-burgundy.css">
-<link rel="stylesheet" href="/movie.css?v=4">
+<link rel="stylesheet" href="/movie.css?v=5">
 <link rel="stylesheet" href="/responsive-fix.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
@@ -18,8 +18,7 @@
   <header class="wt-header" id="wtHeader">
     <button class="wt-back" id="wtBack" aria-label="Back"><i data-lucide="chevron-left"></i></button>
     <div class="wt-title-wrap">
-      <h1>🎬 Watch Together</h1>
-      <p class="wt-subtitle">Different places. Same movie. Same moment. ❤️</p>
+      <h1>Watch Together</h1>
     </div>
     <button class="wt-history-btn" id="wtHistoryBtn" aria-label="History"><i data-lucide="history"></i></button>
   </header>
@@ -29,14 +28,19 @@
 
     <!-- Sub-state: nothing picked yet -->
     <div class="wt-empty-card" id="wtEmptyCard">
+      <div class="wt-hero">
+        <div class="wt-hero-art"><i data-lucide="clapperboard"></i></div>
+        <h2>Watch Together</h2>
+        <p>Different places. Same movie. Same moment. ❤️</p>
+      </div>
       <!-- Mode switch: Direct Device Video (default, unchanged) | Shared Cloud Storage -->
       <div class="wt-mode-toggle" id="wtModeToggle">
-        <button type="button" class="wt-chip-btn is-active" id="modeDirect">Direct Device Video</button>
-        <button type="button" class="wt-chip-btn" id="modeCloud">Shared Cloud Storage</button>
+        <button type="button" class="wt-chip-btn is-active" id="modeDirect" title="Direct Device Video"><i data-lucide="smartphone"></i><span>Direct Device</span></button>
+        <button type="button" class="wt-chip-btn" id="modeCloud" title="Shared Cloud Storage"><i data-lucide="cloud"></i><span>Cloud Storage</span></button>
       </div>
 
       <div class="wt-mode-pane" id="wtDirectPane">
-        <div class="wt-empty-icon">🎬</div>
+        <div class="wt-empty-icon"><i data-lucide="film"></i></div>
         <h2>Pick a movie from your phone</h2>
         <p class="wt-hint">Nothing gets uploaded — your movie stays completely on your device.</p>
         <button class="wt-btn wt-btn-primary" id="btnChooseMovie">Choose Movie From Device</button>
@@ -44,16 +48,22 @@
       </div>
 
       <div class="wt-mode-pane wt-cloud-pane" id="wtCloudPane" hidden>
-        <p class="wt-hint">Upload once — you both stream the same movie. Stored privately for the two of you.</p>
-        <div class="wt-cloud-usage"><div class="wt-cloud-usage-fill" id="cloudUsageFill"></div></div>
-        <p class="wt-hint" id="cloudUsageText">&nbsp;</p>
-        <button class="wt-btn wt-btn-primary" id="btnCloudUpload">Upload Movie To Cloud</button>
+        <div class="wt-usage-card">
+          <div class="wt-usage-top"><span class="wt-usage-label">Storage Used</span><span class="wt-usage-pct" id="cloudUsagePct">0%</span></div>
+          <div class="wt-cloud-usage"><div class="wt-cloud-usage-fill" id="cloudUsageFill"></div></div>
+          <p class="wt-usage-text" id="cloudUsageText">&nbsp;</p>
+        </div>
+        <p class="wt-hint wt-cloud-hint">Upload once — you both stream the same movie. Stored privately for the two of you.</p>
+        <button class="wt-btn wt-btn-primary wt-btn-block" id="btnCloudUpload"><i data-lucide="upload"></i><span>Upload Movie</span></button>
         <input type="file" id="cloudFileInput" accept="video/mp4,video/webm,video/x-m4v,video/quicktime" hidden>
         <div class="wt-cloud-progress" id="cloudProgress" hidden>
-          <div class="wt-cloud-usage"><div class="wt-cloud-usage-fill" id="cloudProgressFill"></div></div>
-          <p class="wt-hint" id="cloudProgressText">Starting…</p>
-          <button class="wt-chip-btn" id="btnCloudCancel" type="button">Cancel upload</button>
+          <div class="wt-progress-card">
+            <div class="wt-progress-row"><i data-lucide="upload-cloud"></i><span class="wt-progress-label" id="cloudProgressText">Starting…</span></div>
+            <div class="wt-cloud-usage wt-progress-bar"><div class="wt-cloud-usage-fill" id="cloudProgressFill"></div></div>
+            <button class="wt-chip-btn wt-cancel-btn" id="btnCloudCancel" type="button">Cancel upload</button>
+          </div>
         </div>
+        <div class="wt-list-title">Your Movies</div>
         <div class="wt-cloud-list" id="cloudList"></div>
       </div>
     </div>
@@ -61,7 +71,7 @@
     <!-- Sub-state: movie picked → lobby -->
     <div class="wt-lobby" id="wtLobby" hidden>
       <div class="wt-movie-card" id="myMovieCard" hidden>
-        <div class="wt-movie-icon">🎞️</div>
+        <div class="wt-movie-icon"><i data-lucide="film"></i></div>
         <div class="wt-movie-info">
           <div class="wt-movie-title" id="myMovieTitle">—</div>
           <div class="wt-movie-meta" id="myMovieMeta">—</div>
@@ -73,10 +83,13 @@
 
       <div class="wt-partners-row">
         <div class="wt-partner-chip" id="chipMe">
+          <span class="wt-avatar"><i data-lucide="user"></i></span>
           <span class="wt-partner-name">You</span>
           <span class="wt-partner-state" id="stateMe">Selecting…</span>
         </div>
+        <span class="wt-partners-heart">❤️</span>
         <div class="wt-partner-chip" id="chipPartner">
+          <span class="wt-avatar"><i data-lucide="user"></i></span>
           <span class="wt-partner-name" id="partnerNameLabel">Partner</span>
           <span class="wt-partner-state" id="statePartner">Waiting…</span>
         </div>
@@ -93,7 +106,7 @@
       <div class="wt-waiting-block" id="waitingBlock" hidden>
         <div class="wt-waiting-pulse">❤️</div>
         <p class="wt-waiting-title">Waiting for Partner…</p>
-        <p class="wt-hint">Waiting for your partner to join the movie</p>
+        <p class="wt-hint">Waiting for your partner to join…</p>
         <button class="wt-btn wt-btn-ghost" id="btnCancelStart">Cancel</button>
       </div>
     </div>
@@ -163,6 +176,7 @@
         <button class="wt-icon-btn" id="btnExitWatching" aria-label="Exit"><i data-lucide="chevron-left"></i></button>
         <div class="wt-top-status">
           <span class="wt-movie-name" id="wtNowTitle">—</span>
+          <span class="wt-watch-tag">Watching Together</span>
           <span class="wt-status-pill" id="statusPill" hidden></span>
         </div>
         <button class="wt-icon-btn" id="btnFullscreen" aria-label="Fullscreen"><i data-lucide="expand" id="fullscreenIcon"></i></button>
@@ -284,6 +298,6 @@
   </div>
 </div>
 
-<script src="/movie.js?v=4"></script>
+<script src="/movie.js?v=5"></script>
 </body>
 </html>
