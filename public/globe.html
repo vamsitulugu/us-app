@@ -444,6 +444,7 @@
 
   <div class="top-bar">
     <div class="top-title">
+      <button class="ic-btn" id="globeBackBtn" title="Back" aria-label="Back" style="width:34px;height:34px;font-size:18px;margin-right:2px" onclick="globeBack()">←</button>
       <div class="globe-ico">🌍</div>
       <span>Memory Globe</span>
       <button class="ic-btn" id="searchToggleBtn" title="Search" style="width:32px;height:32px;font-size:14px;margin-left:4px" onclick="toggleGlobalSearch()">🔎</button>
@@ -2002,6 +2003,10 @@ document.getElementById('imgViewerStage').addEventListener('click', function (e)
 // overlay at a time instead of jumping straight to the sidebar/dashboard.
 // Returns true if it closed something (caller should stop there), false
 // if there was nothing open to close.
+function globeBack() {
+  if (closeTopOverlayIfOpen()) return;
+  try { window.parent.goBack(); } catch (e) { history.back(); }
+}
 function closeTopOverlayIfOpen() {
   // 1) Fullscreen photo/video viewer — opened from within Memory Detail,
   //    sits on top of every other overlay (z-index 9999).

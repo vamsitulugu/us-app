@@ -275,3 +275,9 @@ button, input, select, textarea {
     gap: 6px;
   }
 }
+/* ── Visible Back buttons ───────────────────────────────────────────── */
+.tb-back{display:none;align-items:center;justify-content:center;width:36px;height:36px;margin-right:4px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:var(--text,#fff);cursor:pointer;flex:none;-webkit-tap-highlight-color:transparent}
+.tb-back:active{transform:scale(.92)}
+body:not([data-page="dashboard"]):not([data-page^="cat"]):not([data-immersive="1"]) .tb-back{display:inline-flex}
+.chat-back-btn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;margin:0 -4px 0 -6px;border:0;border-radius:50%;background:none;color:var(--text,#fff);cursor:pointer;flex:none;-webkit-tap-highlight-color:transparent}
+.chat-back-btn:active{background:rgba(255,255,255,.1)}

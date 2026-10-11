@@ -660,6 +660,15 @@ document.addEventListener('DOMContentLoaded', () => {
   drStartTicker();
   drLoad();
 });
+
+// Back button / gesture: close the open sheet first (called by the parent app).
+function closeTopOverlayIfOpen(){
+  const c = document.querySelector('.sd-overlay.show'); if (c) { c.classList.remove('show'); return true; }
+  if (document.getElementById('drDetailBg').classList.contains('open')) { drCloseDetail(); return true; }
+  if (document.getElementById('drFormBg').classList.contains('open')) { drCloseForm(); return true; }
+  return false;
+}
+window.closeTopOverlayIfOpen = closeTopOverlayIfOpen;
 </script>
 </body>
 </html>

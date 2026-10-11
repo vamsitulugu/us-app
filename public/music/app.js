@@ -35,6 +35,11 @@
 
   /* ── Android Back / parent integration ─────────────────── */
   window.closeTopOverlayIfOpen = function () {
+    // Sing Together (video-call karaoke): invite popup first, then the room itself.
+    const inv = document.getElementById('ckInviteOverlay');
+    if (inv && inv.classList.contains('open')) { inv.classList.remove('open'); return true; }
+    const room = document.getElementById('ckRoom');
+    if (room && room.classList.contains('open')) { const b = document.getElementById('ckLeaveBtn'); if (b) { b.click(); return true; } }
     if (MX.layers.closeTop()) return true;
     if (MX.nav.depth()) { MX.nav.pop(); return true; }
     if (tab !== 'music') { setTab('music'); return true; }

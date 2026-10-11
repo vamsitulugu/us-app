@@ -1,0 +1,238 @@
+diff --git a/public/daily-routine.html b/public/daily-routine.html
+index 9b1769b..7fa4952 100644
+--- a/public/daily-routine.html
++++ b/public/daily-routine.html
+@@ -660,6 +660,15 @@ document.addEventListener('DOMContentLoaded', () => {
+   drStartTicker();
+   drLoad();
+ });
++
++// Back button / gesture: close the open sheet first (called by the parent app).
++function closeTopOverlayIfOpen(){
++  const c = document.querySelector('.sd-overlay.show'); if (c) { c.classList.remove('show'); return true; }
++  if (document.getElementById('drDetailBg').classList.contains('open')) { drCloseDetail(); return true; }
++  if (document.getElementById('drFormBg').classList.contains('open')) { drCloseForm(); return true; }
++  return false;
++}
++window.closeTopOverlayIfOpen = closeTopOverlayIfOpen;
+ </script>
+ </body>
+ </html>
+\ No newline at end of file
+diff --git a/public/globe.html b/public/globe.html
+index d185c51..ec1c704 100644
+--- a/public/globe.html
++++ b/public/globe.html
+@@ -444,6 +444,7 @@
+ 
+   <div class="top-bar">
+     <div class="top-title">
++      <button class="ic-btn" id="globeBackBtn" title="Back" aria-label="Back" style="width:34px;height:34px;font-size:18px;margin-right:2px" onclick="globeBack()">←</button>
+       <div class="globe-ico">🌍</div>
+       <span>Memory Globe</span>
+       <button class="ic-btn" id="searchToggleBtn" title="Search" style="width:32px;height:32px;font-size:14px;margin-left:4px" onclick="toggleGlobalSearch()">🔎</button>
+@@ -2002,6 +2003,10 @@ document.getElementById('imgViewerStage').addEventListener('click', function (e)
+ // overlay at a time instead of jumping straight to the sidebar/dashboard.
+ // Returns true if it closed something (caller should stop there), false
+ // if there was nothing open to close.
++function globeBack() {
++  if (closeTopOverlayIfOpen()) return;
++  try { window.parent.goBack(); } catch (e) { history.back(); }
++}
+ function closeTopOverlayIfOpen() {
+   // 1) Fullscreen photo/video viewer — opened from within Memory Detail,
+   //    sits on top of every other overlay (z-index 9999).
+diff --git a/public/index.html b/public/index.html
+index 6d96d28..de8bbf0 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -5250,6 +5250,7 @@ select option { background: #0D0D0D; color: #fff; }
+     <div class="topbar">
+       <div class="tb-row">
+         <div class="tb-left">
++          <button type="button" class="tb-back" id="tbBack" onclick="topBack()" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+           <img src="/icons/icon-192.png" alt="Twin Hearts" class="tb-logo-mobile">
+           <div class="hamburger" id="hamburger" onclick="toggleMobSidebar()"><span></span><span></span><span></span></div>
+           <div class="tb-title" id="topTitle">Dashboard</div>
+@@ -5383,6 +5384,7 @@ select option { background: #0D0D0D; color: #fff; }
+     </div>
+ 
+     <div class="chat-header">
++      <button type="button" class="chat-back-btn" onclick="chatBack()" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+       <div class="chat-header-av" id="chatHeaderAv">P</div>
+       <div class="chat-header-info">
+         <div class="chat-header-name" id="chatHeaderName" onclick="Chat.promptNickname()" title="Tap to set a pet name"><span id="chatHeaderNameText">Partner</span><span id="chatHeaderMuteBell" style="display:none;font-size:11px;margin-left:5px">🔕</span></div>
+@@ -5565,7 +5567,7 @@ select option { background: #0D0D0D; color: #fff; }
+       <!-- ════ CAMERA & MEMORIES ════ -->
+       <div class="page" id="page-camera">
+         <div class="card">
+-          <div class="card-title">📷 Capture a Moment
++          <div class="card-title"><span style="display:flex;align-items:center;gap:6px"><button type="button" class="cat-back-btn" onclick="camBack()" aria-label="Back">←</button>📷 Capture a Moment</span>
+             <div style="display:flex;gap:6px">
+               <button class="btn btn-accent btn-sm" onclick="startCamera()">🎥 Camera</button>
+               <button class="btn btn-glass btn-sm" onclick="stopCamera()">⏹ Stop</button>
+@@ -6687,6 +6689,7 @@ select option { background: #0D0D0D; color: #fff; }
+       <div class="page" id="page-ai">
+         <div class="tw-shell">
+           <header class="tw-head">
++            <button type="button" class="chat-back-btn" onclick="twinBack()" aria-label="Back" style="margin:0 -2px 0 -4px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+             <div class="tw-logo"><img src="/icons/icon-192.png" alt="Twin Hearts"></div>
+             <button type="button" class="tw-icon-btn" onclick="toggleMobSidebar()" aria-label="Open menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+             <div class="tw-titles">
+@@ -8440,6 +8443,8 @@ function setJustPairedAt(ts) {
+           document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
+           const pg = document.getElementById('page-' + page); if (!pg) return;
+           pg.classList.add('active');
++          document.body.setAttribute('data-page', page);
++          if (page !== 'camera' && typeof stopCamera === 'function') { try { stopCamera(); } catch (_) {} }
+           if (page === 'chat' && window.Chat) {
+             // Mark-as-read previously only happened on the next 5s poll
+             // tick (or not at all if focus was already on the tab) —
+@@ -8596,6 +8601,7 @@ function setJustPairedAt(ts) {
+         // category page must never become a dead end.
+         function goBack() {
+           if (window.Prof && Prof.handleBack()) return; // step out of a profile sub-screen first
++          if (window.flHandleBack && window.flHandleBack()) return; // step out of a Fight Log sub-screen first
+           const activeBefore = document.querySelector('.page.active')?.id;
+           if (__navStack.length > 1) {
+             history.back();
+@@ -8608,6 +8614,53 @@ function setJustPairedAt(ts) {
+           }
+         }
+         window.goBack = goBack;
++        // Visible back buttons on full-screen pages: close the top overlay/selection first, else go back one step.
++        window.chatBack = function () {
++          if (window.Chat && Chat.closeTopOverlayIfOpen && Chat.closeTopOverlayIfOpen()) return;
++          goBack();
++        };
++        // Top-bar Back: close modal / exit selection mode / leave sub-screen first, else go back one step.
++        window.topBack = function () {
++          if (document.getElementById('sidebar')?.classList.contains('mob-open')) { closeMobSidebar(); return; }
++          if (document.getElementById('searchOverlay')?.classList.contains('open') && typeof closeSearch === 'function') { closeSearch(); return; }
++          const m = document.querySelector('.modal-bg.open, .dw-overlay.open');
++          if (m) { m.classList.remove('open'); return; }
++          if (typeof memSelectMode !== 'undefined' && memSelectMode) { memExitSelectMode(); return; }
++          if (typeof calSelectMode !== 'undefined' && calSelectMode) { calExitSelectMode(); return; }
++          if (typeof bucketSelectMode !== 'undefined' && bucketSelectMode) { bucketExitSelectMode(); return; }
++          if (typeof journalSelectMode !== 'undefined' && journalSelectMode) { journalExitSelectMode(); return; }
++          if (typeof habitsSelectMode !== 'undefined' && habitsSelectMode) { habitsExitSelectMode(); return; }
++          if (typeof notesSelectMode !== 'undefined' && notesSelectMode) { notesExitSelectMode(); return; }
++          if (typeof remindersSelectMode !== 'undefined' && remindersSelectMode) { remindersExitSelectMode(); return; }
++          if (window.SettingsUI && SettingsUI.handleBack()) return;
++          // Pages that live in an iframe (Games, Movie, Music, Places, Globe, Collection, Meet Planner, Dream Goals): close their overlay first.
++          const act = document.querySelector('.page.active'), fr = act && act.querySelector('iframe');
++          if (fr) {
++            try {
++              const w = fr.contentWindow;
++              if (w && typeof w.closeTopOverlayIfOpen === 'function' && w.closeTopOverlayIfOpen()) return;
++              if (act.id === 'page-dreamgoals') {
++                const c = w.document.querySelector('.sd-overlay.show'); if (c) { c.classList.remove('show'); return; }
++                const m = w.document.querySelector('.dg-modal-bg.open'); if (m) { m.classList.remove('open'); return; }
++                if (w.dgSelectMode) { w.dgExitSelectMode(); return; }
++              }
++            } catch (e) {}
++          }
++          goBack();
++        };
++        window.twinBack = function () {
++          const tv = document.getElementById('twinVoice');
++          if (tv && tv.classList.contains('active') && window.TwinVoice && TwinVoice.exit) { TwinVoice.exit(); return; }
++          if (document.getElementById('twPlusBtn')?.classList.contains('is-open') && window.TwinArt) { TwinArt.closeQuick(); return; }
++          if (window.TwinBoth && TwinBoth.closeTopOverlayIfOpen && TwinBoth.closeTopOverlayIfOpen()) return;
++          goBack();
++        };
++        window.camBack = function () {
++          if (document.getElementById('imgViewer')?.classList.contains('open')) { closeImgViewer(); return; }
++          if (document.getElementById('memViewer')?.classList.contains('open')) { closeMemViewer(); return; }
++          if (typeof memSelectMode !== 'undefined' && memSelectMode) { memExitSelectMode(); return; }
++          goBack();
++        };
+         document.querySelectorAll('.ni[data-page]').forEach(el => el.addEventListener('click', () => goto(el.dataset.page)));
+ 
+         // ─── UI HELPERS ──────────────────────────────────────────
+@@ -8636,6 +8689,9 @@ function setJustPairedAt(ts) {
+           const CapApp = window.Capacitor.Plugins?.App;
+           if (CapApp && typeof CapApp.addListener === 'function') {
+             CapApp.addListener('backButton', () => {
++              // -1) Side menu drawer / universal search take priority — close only.
++              if (document.getElementById('sidebar')?.classList.contains('mob-open')) { closeMobSidebar(); return; }
++              if (document.getElementById('searchOverlay')?.classList.contains('open') && typeof closeSearch === 'function') { closeSearch(); return; }
+               // 0) The fullscreen photo/video viewer takes top priority —
+               //    close it only. Previously this wasn't checked at all, so
+               //    back (or Android's edge-swipe-back gesture, which fires
+@@ -8793,10 +8849,17 @@ function setJustPairedAt(ts) {
+               //       had no Back-handling at all, so Back (or the edge-swipe
+               //       gesture) fell straight through to page navigation while
+               //       voice mode stayed stuck open on top.
++              if (document.getElementById('twPlusBtn')?.classList.contains('is-open') && window.TwinArt && TwinArt.closeQuick) { TwinArt.closeQuick(); return; }
+               const openTwinVoice = document.getElementById('twinVoice');
+               if (openTwinVoice && openTwinVoice.classList.contains('active') && window.TwinVoice && typeof window.TwinVoice.exit === 'function') {
+                 window.TwinVoice.exit(); return;
+               }
++              // 0.9) Any other iframe page (e.g. Daily Routine): close its open sheet first.
++              try {
++                const actPg = document.querySelector('.page.active'), actFr = actPg && actPg.querySelector('iframe');
++                const fw = actFr && actFr.contentWindow;
++                if (fw && typeof fw.closeTopOverlayIfOpen === 'function' && fw.closeTopOverlayIfOpen()) { return; }
++              } catch (e) {}
+               // 1) An open modal takes priority — just close it.
+               const openModal = document.querySelector('.modal-bg.open, .dw-overlay.open');
+               if (openModal) { openModal.classList.remove('open'); return; }
+@@ -10330,6 +10393,13 @@ const p = await Notification.requestPermission();
+         }
+ 
+         // ── Event wiring (delegated: one listener per root, no inline handlers) ──
++        // Back (top-bar / phone button) steps out of Fight Log sub-screens before leaving the page.
++        window.flHandleBack = function () {
++          if (!document.getElementById('page-fights')?.classList.contains('active')) return false;
++          if (FL.view === 'log') { FL.step > 1 ? flGoStep(FL.step - 1) : flShow('dashboard'); return true; }
++          if (FL.view !== 'dashboard') { flShow('dashboard'); return true; }
++          return false;
++        };
+         const FL_ACTIONS = {
+           new: flOpenLog,
+           activities: () => flShow('activities'),
+diff --git a/public/music/app.js b/public/music/app.js
+index 9e85984..5837992 100644
+--- a/public/music/app.js
++++ b/public/music/app.js
+@@ -35,6 +35,11 @@
+ 
+   /* ── Android Back / parent integration ─────────────────── */
+   window.closeTopOverlayIfOpen = function () {
++    // Sing Together (video-call karaoke): invite popup first, then the room itself.
++    const inv = document.getElementById('ckInviteOverlay');
++    if (inv && inv.classList.contains('open')) { inv.classList.remove('open'); return true; }
++    const room = document.getElementById('ckRoom');
++    if (room && room.classList.contains('open')) { const b = document.getElementById('ckLeaveBtn'); if (b) { b.click(); return true; } }
+     if (MX.layers.closeTop()) return true;
+     if (MX.nav.depth()) { MX.nav.pop(); return true; }
+     if (tab !== 'music') { setTab('music'); return true; }
+diff --git a/public/responsive-fix.css b/public/responsive-fix.css
+index e6389de..14ba656 100644
+--- a/public/responsive-fix.css
++++ b/public/responsive-fix.css
+@@ -274,4 +274,10 @@ button, input, select, textarea {
+   .btn-row, .actions, .card-actions, [class*="-actions"] {
+     gap: 6px;
+   }
+-}
+\ No newline at end of file
++}
++/* ── Visible Back buttons ───────────────────────────────────────────── */
++.tb-back{display:none;align-items:center;justify-content:center;width:36px;height:36px;margin-right:4px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:var(--text,#fff);cursor:pointer;flex:none;-webkit-tap-highlight-color:transparent}
++.tb-back:active{transform:scale(.92)}
++body:not([data-page="dashboard"]):not([data-page^="cat"]):not([data-immersive="1"]) .tb-back{display:inline-flex}
++.chat-back-btn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;margin:0 -4px 0 -6px;border:0;border-radius:50%;background:none;color:var(--text,#fff);cursor:pointer;flex:none;-webkit-tap-highlight-color:transparent}
++.chat-back-btn:active{background:rgba(255,255,255,.1)}
+diff --git a/public/sw.js b/public/sw.js
+index 7e5b9ed..d8b080e 100644
+--- a/public/sw.js
++++ b/public/sw.js
+@@ -1,5 +1,5 @@
+ // Service Worker for Twin Hearts 💕 PWA — v5
+-const CACHE = 'uwl-v15'; // bumped: purges stale cached assets (incl. old movie.css) on activate
++const CACHE = 'uwl-v20'; // bumped: purges stale cached assets (incl. old movie.css) on activate
+ const OFFLINE_ASSETS = [
+   '/',
+   '/index.html',
