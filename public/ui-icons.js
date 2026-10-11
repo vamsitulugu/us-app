@@ -117,7 +117,7 @@
 
     // ── NEW in v3 — previously missing from the map ──
     '💚': 'heart-handshake',      // Reconnect Activities
-    '✌️': 'smile',                // Fight Log empty state ('peace' is not a valid Lucide icon name)
+    '✌️': 'smile',                // ('peace' is not a valid Lucide icon name)
     '👐': 'hand-heart',           // Touch button
     '🤗': 'heart-handshake',      // Hug button / hug stat
     '🥺': 'heart-crack',          // Miss You button / stat
@@ -239,7 +239,7 @@
     '.btn', '.ic-btn', '.btn-ghost', '.del-btn', '.modal-close',
     '.img-viewer-close', '.search-cancel', '.sf', '.stab', '.tag',
     '.empty', '.empty-ico', '.fight-status', '.phase-badge',
-    '.priv-badge', '.stat-l', '.pstat-l', '.fstat-l', '.metric-l',
+    '.priv-badge', '.stat-l', '.pstat-l', '.metric-l',
     '.streak-badge', '.info-banner', '.auth-sub', '.auth-tab',
     '.pk', '.money-ic', '.ni .ico', '.bot-ni .ico',
     '.ni-chev', '.cat-back-btn', '.cat-row-ico', '.cat-row-chev',
@@ -255,8 +255,7 @@
     // ── NEW in v3 — connection card + stat icons that weren't scanned before ──
     '.cc-ico', '.cc-lbl', '.cc-stat-ico', '.cc-stat-l',
     '.connect-btn-ico', '.connect-btn-label', '.connect-stat',
-    '.metric-n', '.fstat-n', '.pstat-n', '.stat-n',
-    '.reconnect-ico', '#reconnectActivities .card-title',
+    '.metric-n', '.pstat-n', '.stat-n',
     '.love-card-ico', '.love-card-meta',
 
     // ── NEW in v4 — dream board tabs, type selects, misc inline icon buttons ──
