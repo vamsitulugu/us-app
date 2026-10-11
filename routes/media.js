@@ -33,9 +33,29 @@ const upload = multer({
     limits: { fileSize: 150 * 1024 * 1024 }, // 150MB max (covers photos + real phone videos)
     fileFilter: mediaFileFilter
 });
+// Songs: only real audio containers. The extension decides what we store and
+// serve (the client-supplied mimetype is often empty/octet-stream on Android),
+// so a renamed .html can never be stored with an executable content-type.
+const AUDIO_EXT_TYPES = {
+    mp3: 'audio/mpeg', m4a: 'audio/mp4', aac: 'audio/aac', wav: 'audio/wav',
+    flac: 'audio/flac', ogg: 'audio/ogg', oga: 'audio/ogg', opus: 'audio/ogg', webm: 'audio/webm',
+    mp4: 'audio/mp4'
+};
+const AUDIO_MIME_OK = /^(audio\/.+|application\/octet-stream|application\/ogg|video\/(mp4|webm))$/i;
+function audioExt(name) {
+    const e = String(name || '').split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '');
+    return AUDIO_EXT_TYPES[e] ? e : null;
+}
+function audioFileFilter(req, file, cb) {
+    if (!audioExt(file.originalname) || (file.mimetype && !AUDIO_MIME_OK.test(file.mimetype))) {
+        return cb(new Error('Unsupported audio format'));
+    }
+    cb(null, true);
+}
 const uploadAudio = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 60 * 1024 * 1024 } // 60MB max for songs
+    limits: { fileSize: 60 * 1024 * 1024 }, // 60MB max for songs
+    fileFilter: audioFileFilter
 });
 
 // Multer errors (oversized file, rejected mime type) previously fell through
@@ -48,7 +68,10 @@ function handleUploadErrors(uploadMiddleware) {
         uploadMiddleware(req, res, (err) => {
             if (!err) return next();
             if (err.code === 'LIMIT_FILE_SIZE') {
-                return res.status(413).json({ error: 'That file is too large to upload (max 150MB).' });
+                return res.status(413).json({ error: 'That file is too large to upload.' });
+            }
+            if (err.message === 'Unsupported audio format') {
+                return res.status(415).json({ error: 'That file isn\'t a supported audio format (mp3, m4a, aac, wav, flac, ogg, opus).' });
             }
             if (err.message === 'Unsupported file type') {
                 return res.status(415).json({ error: 'That file type isn\'t supported — please choose a photo or video.' });
@@ -140,19 +163,20 @@ router.post('/upload-doc', handleUploadErrors(uploadDoc.single('file')), async (
 
 // ── POST /api/media/upload-audio ───────────────────────
 // Uploads a song file to the public 'couple-music' bucket.
-router.post('/upload-audio', uploadAudio.single('file'), async (req, res) => {
+router.post('/upload-audio', handleUploadErrors(uploadAudio.single('file')), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file provided' });
     const { coupleId } = req.body;
     if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
+    if (!req.file.size) return res.status(400).json({ error: 'That audio file is empty' });
 
-    const ext    = (req.file.originalname.split('.').pop() || 'mp3').toLowerCase();
+    const ext    = audioExt(req.file.originalname) || 'mp3';
     const name   = `${coupleId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
     const bucket = 'couple-music';
 
     const { error } = await supabase.storage
         .from(bucket)
         .upload(name, req.file.buffer, {
-            contentType: req.file.mimetype || 'audio/mpeg',
+            contentType: AUDIO_EXT_TYPES[ext],
             upsert: false
         });
     if (error) return res.status(500).json({ error: error.message });
@@ -163,7 +187,7 @@ router.post('/upload-audio', uploadAudio.single('file'), async (req, res) => {
 
 // ── POST /api/media/upload-cover ───────────────────────
 // Uploads album art to the public 'couple-music-covers' bucket.
-router.post('/upload-cover', upload.single('file'), async (req, res) => {
+router.post('/upload-cover', handleUploadErrors(upload.single('file')), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file provided' });
     const { coupleId } = req.body;
     if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
@@ -222,28 +246,29 @@ const uploadRecordingMedia = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 150 * 1024 * 1024 } // 150MB max — video recordings are larger than audio
 });
-router.post('/upload-recording', uploadRecordingMedia.single('file'), async (req, res) => {
+router.post('/upload-recording', handleUploadErrors(uploadRecordingMedia.single('file')), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file provided' });
     const { coupleId, trackTitle, mediaType } = req.body;
     if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
+    if (!req.file.size) return res.status(400).json({ error: 'That recording is empty' });
 
     const isVideo = mediaType === 'video';
+    // Only ever store an audio/video content-type (never whatever the client claims),
+    // and pick the extension from it so Safari's mp4 recordings stay playable.
+    const claimed = String(req.file.mimetype || '').toLowerCase();
+    const okType  = /^(audio|video)\/(webm|mp4|ogg|mpeg|x-m4a|aac|wav)/.test(claimed) ? claimed.split(';')[0] : (isVideo ? 'video/webm' : 'audio/webm');
+    const ext     = /mp4|m4a|aac/.test(okType) ? 'mp4' : /ogg/.test(okType) ? 'ogg' : /mpeg/.test(okType) ? 'mp3' : /wav/.test(okType) ? 'wav' : 'webm';
     const safe  = (trackTitle || 'recording').replace(/[^a-z0-9]/gi, '_').slice(0, 40);
-    const name  = `${coupleId}/${Date.now()}_${safe}.webm`;
+    const name  = `${coupleId}/${Date.now()}_${safe}.${ext}`;
     const bucket = 'couple-recordings';
 
     const { error } = await supabase.storage
         .from(bucket)
-        .upload(name, req.file.buffer, {
-            contentType: req.file.mimetype || (isVideo ? 'video/webm' : 'audio/webm'),
-            upsert: false
-        });
+        .upload(name, req.file.buffer, { contentType: okType, upsert: false });
     if (error) return res.status(500).json({ error: error.message });
 
-    // "My Recordings" saves these permanently to a library (not just a
-    // transient karaoke stub), so sign for a long window like vault-media
-    // above rather than the original 7 days, which would silently break
-    // playback for anyone revisiting an old recording a week later.
+    // "My Recordings" are kept permanently, so sign for a long window rather
+    // than the original 7 days, which would silently break old recordings.
     const { data: signed } = await supabase.storage
         .from(bucket)
         .createSignedUrl(name, 60 * 60 * 24 * 365 * 10);

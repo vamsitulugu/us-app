@@ -1,10 +1,8 @@
 /* ═══════════════════════════════════════════════════════════════
    IMPORT SERVICE — Premium Smart Music Import System (orchestrator)
 
-   This is the ONLY file that touches the upload zones. It rebinds the
-   existing <input type="file"> elements inside .upload-zone (by
-   cloning them, which strips music-player.js's old plain listener
-   without touching anything else in that file) and replaces the old
+   The Music page hands picked files to ImportService.enqueueFiles()
+   (see public/music/library.js → "add-songs"). This replaces the old
    "type everything by hand" flow with:
 
      select file(s)
@@ -236,16 +234,6 @@
   let current = null; // { file, meta, lyricsPromise, pictureDataUrl }
   let resolveVerify = null;
 
-  function bindUploadZones() {
-    document.querySelectorAll('.upload-zone input[type=file]').forEach(input => {
-      // Clone-and-replace strips music-player.js's old listener without
-      // touching anything else in that file (playback/theme untouched).
-      const clone = input.cloneNode(true);
-      input.parentNode.replaceChild(clone, input);
-      clone.addEventListener('change', (e) => enqueueFiles(e.target.files, clone));
-    });
-  }
-
   function enqueueFiles(fileList, inputEl) {
     const files = Array.from(fileList).filter(f => window.MetadataService.isSupported(f));
     if (!files.length) { toast('No valid audio files selected'); return; }
@@ -435,8 +423,10 @@
 
     // Replace = delete the old row first (Step 9)
     if (verified._replaceId) {
-      try { await api('DELETE', '/api/music/' + verified._replaceId, { coupleId: ctx.coupleId }); } catch (e) {}
-      window.Store.songs = window.Store.songs.filter(s => s.id !== verified._replaceId);
+      let removed = false;
+      try { await api('DELETE', '/api/music/' + verified._replaceId, { coupleId: ctx.coupleId, viewer: ctx.role }); removed = true; }
+      catch (e) { toast('Could not replace that song — ' + e.message + '. Keeping both.'); }
+      if (removed) window.Store.songs = window.Store.songs.filter(s => s.id !== verified._replaceId);
     }
 
     // Upload audio (existing endpoint, untouched)
@@ -513,7 +503,6 @@
     injectProgressOverlay();
     injectVerifyModal();
     injectDupModal();
-    bindUploadZones();
   });
 
   window.ImportService = { enqueueFiles };

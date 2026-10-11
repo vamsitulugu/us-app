@@ -1,8 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════
    COUPLE KARAOKE — synchronized dual-camera singing room  (v2 PATCH)
-   Load AFTER music-player.js and music-player-karaoke-patch.js:
-     <script src="/music-player.js"></script>
-     <script src="/music-player-karaoke-patch.js"></script>
+   Load AFTER the music app (/music/core.js, /music/player.js …), which
+   provides window.AudioService, window.Store and window.MusicPlayer:
      <script src="/couple-karaoke.js"></script>
 
    ─────────────────────────────────────────────────────────────
@@ -453,7 +452,7 @@
     const ctx = window.MusicPlayer.getCoupleCtx();
     if (ctx) {
       try {
-        const fresh = await window.MusicPlayer.api('GET', '/api/music/' + ctx.coupleId);
+        const fresh = await window.MusicPlayer.api('GET', '/api/music/' + ctx.coupleId + '?viewer=' + ctx.role + '&full=1');
         const idx = window.Store.songs.findIndex(x => x.id === songId);
         const freshSong = fresh.find(x => x.id === songId);
         if (freshSong && idx > -1) window.Store.songs[idx] = freshSong;
@@ -462,11 +461,9 @@
     const s = window.Store.songs.find(x => x.id === songId);
     if (!s) return;
     Room.songId = songId;
-    window.AudioService.play(Room.songList.length ? Room.songList : window.Store.songs, songId);
-    setTimeout(() => {
-      window.AudioService.audio.currentTime = startAt || 0;
-      if (!autoplay) window.AudioService.audio.pause();
-    }, 200);
+    // startAt / paused are handled inside AudioService.play so the seek lands
+    // after the (possibly offline-cached) source has actually loaded.
+    window.AudioService.play(Room.songList.length ? Room.songList : window.Store.songs, songId, { startAt: startAt || 0, paused: !autoplay });
     updateRoomSongInfo(s);
     // NOTE: lyrics are now loaded centrally by the AudioService 'play'
     // hook (wireAudioHook), so we don't call ensureRoomLyrics here too —
@@ -815,7 +812,7 @@
     const ctx = window.MusicPlayer.getCoupleCtx();
     if (ctx) {
       try {
-        const fresh = await window.MusicPlayer.api('GET', '/api/music/' + ctx.coupleId);
+        const fresh = await window.MusicPlayer.api('GET', '/api/music/' + ctx.coupleId + '?viewer=' + ctx.role + '&full=1');
         const idx = window.Store.songs.findIndex(x => x.id === songId);
         const freshSong = fresh.find(x => x.id === songId);
         if (freshSong && idx > -1) window.Store.songs[idx] = freshSong;

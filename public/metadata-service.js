@@ -4,10 +4,7 @@
 
    Load order (all NEW files, added to music.html AFTER the existing
    player scripts — none of them are touched):
-     <script src="/music-player.js"></script>
-     <script src="/music-player-karaoke-patch.js"></script>
      <script src="/couple-karaoke.js"></script>
-     <script src="/lyrics-auto-fetch.js"></script>
      <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
      <script src="/metadata-service.js"></script>
      <script src="/artwork-service.js"></script>
