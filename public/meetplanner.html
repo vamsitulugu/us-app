@@ -100,7 +100,10 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
 .mp-custom-search input{flex:1;background:var(--g1);border:1px solid var(--border);border-radius:10px;padding:10px 13px;font-size:13px;color:var(--white);outline:none;font-family:var(--ff-sans)}
 .mp-custom-search button{padding:10px 16px;border-radius:10px;border:none;cursor:pointer;background:var(--g2);color:var(--white);border:1px solid var(--border2);font-weight:600;font-size:12px}
 
-.mp-poi-list{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto}
+/* No nested scroller here any more: a capped, independently-scrolling list
+   swallows wheel/touch input and makes the whole page feel "stuck". The list
+   now flows with the page (one scroll surface) and uses a responsive grid. */
+.mp-poi-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:8px}
 .mp-poi-item{display:flex;align-items:center;gap:11px;padding:11px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);cursor:pointer;transition:var(--t)}
 .mp-poi-item:hover{background:var(--g2);transform:translateX(2px)}
 .mp-poi-item.selected{border-color:var(--accent);background:hsla(var(--h),100%,62%,0.1)}
@@ -220,11 +223,72 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
 <link rel="stylesheet" href="/premium-states.css">
   <link rel="stylesheet" href="/responsive-fix.css">
   <link rel="stylesheet" href="/safe-delete.css">
+  <!-- Meet Planner layout + responsive layer. Must stay AFTER the shared
+       stylesheets above so it wins the cascade over responsive-fix.css's
+       `html, body { overflow-x: hidden }` (which turned <body> into an
+       implicit scroll container and made scrolling unreliable in iframes
+       and Android WebViews). -->
+  <style id="mp-layout">
+  /* ── ONE explicit scroll container ──────────────────────────────
+     html/body are locked to the iframe's viewport; .mp-app is the single
+     element that scrolls. No reliance on viewport/body overflow propagation. */
+  html{height:100%;overflow:hidden!important}
+  body{height:100%;min-height:0!important;overflow:hidden!important;overscroll-behavior:none}
+  .mp-app{position:relative;width:100%;height:100%;overflow-x:hidden;overflow-y:auto;
+    -webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;touch-action:pan-y;
+    padding-top:env(safe-area-inset-top,0px)}
+
+  /* ── Fluid horizontal gutters (phone → ultrawide) ── */
+  :root{--mp-gut:clamp(12px,2.6vw,32px)}
+  .mp-hero{padding:18px var(--mp-gut) 0;gap:clamp(8px,1.4vw,16px)}
+  .mp-tabs{margin:14px var(--mp-gut)}
+  .mp-sec{padding:0 var(--mp-gut) calc(112px + env(safe-area-inset-bottom,0px))}
+  .mp-stat-n{font-size:clamp(20px,2.4vw,28px)}
+  .mp-stat-l{font-size:clamp(9px,1vw,11px)}
+  .mp-map-wrap{height:clamp(260px,46vh,520px)}
+  #mpToast{bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+
+  /* Plan tab: two columns on laptop/desktop (search left, stops + details right) */
+  .mp-plan-grid{display:block}
+  @media(min-width:1000px){
+    .mp-plan-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:0 18px;align-items:start}
+  }
+  /* Desktop mice can't swipe the chip row, so let it wrap instead */
+  @media(min-width:900px){
+    .mp-poi-chips{flex-wrap:wrap;overflow:visible}
+  }
+  /* Saved meetups: card grid on tablet+ */
+  @media(min-width:700px){
+    #mpSavedList{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:14px;align-items:start}
+    #mpSavedList .mp-plan-card{margin-bottom:0}
+    #mpSavedList .mp-empty{grid-column:1/-1}
+  }
+  /* Itinerary results: 2-up on very wide screens */
+  @media(min-width:1200px){
+    .mp-result-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  }
+  /* Small / narrow phones */
+  @media(max-width:380px){
+    .mp-row2{grid-template-columns:1fr}
+    .mp-tab{padding:9px 12px;font-size:11px}
+    .mp-card{padding:13px}
+    .mp-modal{padding:18px;border-radius:18px}
+  }
+  /* Short landscape phones: keep the sheet reachable */
+  @media(max-height:480px){
+    .mp-modal-bg{align-items:flex-start}
+    .mp-map-wrap{height:clamp(200px,60vh,320px)}
+  }
+  </style>
   <script src="/js/scroll-reset.js"></script>
   <script src="/js/gallery-viewer.js"></script>
   <script src="/safe-delete.js"></script>
 </head>
 <body>
+
+<!-- Single scroll container for the whole page (see #mp-layout). data-scroll-root
+     lets /js/scroll-reset.js return it to the top when the shell re-opens the page. -->
+<div class="mp-app" id="mpApp" data-scroll-root>
 
 <div class="mp-hero" id="mpHero"></div>
 
@@ -236,6 +300,8 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
 
 <!-- ═══════════ TAB 1: PLAN NEW — city + destination search ═══════════ -->
 <div class="mp-sec active" id="mp-sec-plan">
+<div class="mp-plan-grid">
+<div class="mp-plan-col-a">
 
   <div class="mp-card" id="mpCityCard">
     <div class="mp-card-title">🏙️ Which city will you meet in?</div>
@@ -274,6 +340,9 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
     <div class="mp-poi-list" id="mpPoiList"></div>
   </div>
 
+</div><!-- /.mp-plan-col-a -->
+<div class="mp-plan-col-b">
+
   <div class="mp-card" id="mpStopsCard" style="display:none">
     <div class="mp-card-title">📋 Your Stops <span style="font-size:11px;color:var(--text3);font-weight:400" id="mpStopsCount">0 selected</span></div>
     <div id="mpStopsList"></div>
@@ -289,6 +358,8 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
     </div>
   </div>
 
+</div><!-- /.mp-plan-col-b -->
+</div><!-- /.mp-plan-grid -->
 </div>
 
 <!-- ═══════════ TAB 2: ITINERARY (route, map, stats, checklist) ═══════════ -->
@@ -330,6 +401,8 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
   </div>
   <div id="mpSavedList"></div>
 </div>
+
+</div><!-- /#mpApp (single scroll container) -->
 
 <!-- ═══ VIEW SAVED ROUTE MODAL ═══ -->
 <div class="mp-modal-bg" id="mpViewModal">

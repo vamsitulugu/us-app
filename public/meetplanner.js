@@ -392,10 +392,30 @@ function _renderItinerarySummary() {
 }
 
 /* ── MAP RENDERING ────────────────────────────────────────── */
+/* Leaflet's defaults make a map a scroll trap inside a scrolling page: the mouse
+   wheel zooms the map (so the page stops scrolling while the cursor is over it)
+   and a one-finger drag pans the map instead of scrolling the page. Here the
+   wheel only zooms after the map has been clicked/focused, and on touch devices
+   one finger scrolls the page while two-finger pinch still zooms/pans the map. */
+function _mpMapOptions(extra) {
+  const touch = !!(window.L && L.Browser && (L.Browser.mobile || L.Browser.touch));
+  return Object.assign({
+    scrollWheelZoom: false,
+    dragging: !touch,
+    tap: false,
+    touchZoom: true
+  }, extra || {});
+}
+function _mpTameMapScroll(map) {
+  if (!map) return map;
+  map.on('focus', () => map.scrollWheelZoom.enable());
+  map.on('blur', () => map.scrollWheelZoom.disable());
+  return map;
+}
 function _renderRouteMap() {
   if (!window.L) return;
   if (!MP.map) {
-    MP.map = L.map('mpMapView', { zoomControl: true }).setView([MP.city.lat, MP.city.lng], 12);
+    MP.map = _mpTameMapScroll(L.map('mpMapView', _mpMapOptions({ zoomControl: true }))).setView([MP.city.lat, MP.city.lng], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(MP.map);
   }
   if (MP.routeLayer) MP.map.removeLayer(MP.routeLayer);
@@ -631,7 +651,7 @@ function mpViewPlan(id) {
   setTimeout(() => {
     if (MP.viewMap) { MP.viewMap.remove(); MP.viewMap = null; }
     if (!stops.length) return;
-    MP.viewMap = L.map('mpViewMap').setView([stops[0].lat, stops[0].lng], 12);
+    MP.viewMap = _mpTameMapScroll(L.map('mpViewMap', _mpMapOptions())).setView([stops[0].lat, stops[0].lng], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(MP.viewMap);
     const latlngs = stops.map(s => [s.lat, s.lng]);
     if (p.route_geometry?.coordinates) L.polyline(p.route_geometry.coordinates.map(c => [c[1], c[0]]), { color: '#5b9bff', weight: 4 }).addTo(MP.viewMap);

@@ -101,7 +101,8 @@
 .mc-star { background: none; border: 0; font-size: 30px; line-height: 1; color: #6b5a60; padding: 2px; } .mc-star.on { color: #ffd54a; }
 .mc-toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 90; max-width: 88vw; padding: 11px 18px; border-radius: 22px; background: rgba(24,8,13,.96); border: 1px solid rgba(255,59,92,.3); color: #fff; font-size: 13px; text-align: center; }
 .mc-toast[hidden] { display: none; }
-@media (min-width: 700px) { #stateSetup .wt-tabs, #stateSetup .wt-tabpane { max-width: 560px; width: 100%; margin-left: auto; margin-right: auto; } }
+/* (removed) the old `max-width: 560px` cap on tabs/panes — the Movie page now
+   uses the full width like the other pages. See the responsive layer below. */
 
 .mc-banner-btns .wt-btn { padding: 0 8px; font-size: 13px; white-space: nowrap; gap: 6px; }
 .mc-banner-btns .wt-btn svg { width: 16px; height: 16px; }
@@ -109,3 +110,63 @@
 .mc-form-sheet .wt-sheet-header h2 { color: #fff; }
 /* Collection sheets must sit above the full-screen details page */
 #mcFormBackdrop, #mcConfirmBackdrop, #mcActionsBackdrop { z-index: 80; }
+
+/* ══════════════════════════════════════════════════════════════════
+   RESPONSIVE LAYER — phone → tablet → laptop → ultrawide
+   The Movie page now spans the full width of its frame like every other
+   page. Gutters, poster grids, banner and detail view scale with the
+   viewport instead of being locked to a 560px phone column.
+   ══════════════════════════════════════════════════════════════════ */
+:root { --mc-gut: clamp(12px, 2.6vw, 32px); }
+
+/* Full-width header + scroll area. Bottom padding clears the floating nav
+   that the app shell draws over the bottom of this frame. */
+.wt-header { padding-left: var(--mc-gut); padding-right: var(--mc-gut); }
+#stateSetup { padding: 4px var(--mc-gut) calc(100px + env(safe-area-inset-bottom, 0px)); }
+
+/* Library poster grid: as many columns as fit, poster size scales with width
+   (3 cols on phones as before, ~8 on a wide desktop). */
+.mc-grid { grid-template-columns: repeat(auto-fill, minmax(clamp(100px, 14vw, 200px), 1fr)); gap: 14px 12px; }
+.mc-hscroll .mc-card { flex: 0 0 clamp(112px, 14vw, 200px); }
+
+/* Genres: 2 columns on phones, more as space allows */
+.mc-genre-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); }
+@media (min-width: 900px) { .mc-genre { min-height: 130px; } }
+
+/* Home banner grows with the screen; buttons stay a sensible size */
+.mc-banner { min-height: clamp(280px, 42vh, 460px); }
+.mc-banner-body { padding: clamp(18px, 3vw, 36px); }
+.mc-banner-title { font-size: clamp(26px, 3vw, 40px); }
+.mc-banner-sub { font-size: clamp(13px, 1.2vw, 16px); }
+.mc-banner-btns { max-width: 520px; }
+.mc-banner-emoji { font-size: clamp(64px, 7vw, 96px); }
+
+/* Details page: wider reading column + taller hero on big screens */
+.mc-detail-hero { height: clamp(300px, 46vh, 520px); }
+.mc-detail-body { max-width: min(100%, 980px); padding-left: var(--mc-gut); padding-right: var(--mc-gut); }
+.mc-detail-actions { max-width: 520px; }
+
+/* "Watch" tab is a control panel (mode switch, picker, upload) — it reads best
+   as a centred column rather than stretched across a 1700px frame. */
+#tabWatch { width: 100%; max-width: 960px; margin-left: auto; margin-right: auto; }
+.wt-lobby { max-width: min(100%, 880px); }
+
+/* Library toolbar: search grows, Add button keeps its size */
+.mc-toolbar { align-items: stretch; }
+@media (min-width: 700px) { .mc-search { max-width: 640px; } }
+
+/* Small phones */
+@media (max-width: 360px) {
+  .wt-tab { font-size: 10px; padding: 8px 2px; }
+  .mc-banner-btns .wt-btn { font-size: 12px; }
+  .mc-genre-name { font-size: 14px; }
+}
+
+/* Short landscape phones: keep the banner from eating the whole screen */
+@media (max-height: 480px) {
+  .mc-banner { min-height: 220px; }
+  .mc-detail-hero { height: 220px; }
+}
+
+/* Toast must sit above the shell's floating bottom nav */
+.mc-toast { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }

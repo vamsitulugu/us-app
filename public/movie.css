@@ -632,7 +632,7 @@ html, body {
 
 /* ── Setup / Home ── */
 #stateSetup { padding: 4px 16px 28px; gap: 14px; }
-.wt-empty-card { margin-top: 0; width: 100%; max-width: 520px; margin-left: auto; margin-right: auto; align-items: stretch; gap: 14px; text-align: left; }
+.wt-empty-card { margin-top: 0; width: 100%; max-width: none; margin-left: 0; margin-right: 0; align-items: stretch; gap: 14px; text-align: left; }
 
 .wt-hero {
   position: relative; overflow: hidden; text-align: center;
@@ -795,9 +795,11 @@ html, body {
 .wt-banner { background: #1c0a11; border-color: rgba(255,59,92,0.3); border-radius: 16px; }
 .wt-banner-actions button { background: var(--wt-grad); }
 
-/* Wider screens: keep the app column readable */
+/* Wider screens: the header spans the full width like every other page
+   (it used to be capped at 560px and centred, which left the Movie page as a
+   narrow column in the middle of a wide screen). */
 @media (min-width: 700px) {
-  .wt-header { max-width: 560px; width: 100%; margin: 0 auto; }
+  .wt-header { width: 100%; }
 }
 
 /* Keep the floating chat line clear of the emoji row */

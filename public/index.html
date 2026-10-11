@@ -13415,7 +13415,7 @@ document.addEventListener('keydown', e => {
               frame.contentWindow.postMessage({ type: 'names', my: S.myName || 'You', partner: S.partnerName || 'Partner' }, '*');
             } catch(e) {}
           };
-          if (frame.conten4tDocument && frame.contentDocument.readyState === 'complete') doIt();
+          if (frame.contentDocument && frame.contentDocument.readyState === 'complete') doIt();
           else frame.addEventListener('load', doIt, { once: true });
         }
         function syncDailyRoutineToFrame() {
