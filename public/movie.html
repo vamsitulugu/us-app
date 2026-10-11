@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Watch Together</title>
 <link rel="stylesheet" href="/theme-burgundy.css">
-<link rel="stylesheet" href="/movie.css?v=5">
+<link rel="stylesheet" href="/movie.css?v=6">
+<link rel="stylesheet" href="/movie-collection.css?v=1">
 <link rel="stylesheet" href="/responsive-fix.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
@@ -28,11 +29,36 @@
 
     <!-- Sub-state: nothing picked yet -->
     <div class="wt-empty-card" id="wtEmptyCard">
-      <div class="wt-hero">
-        <div class="wt-hero-art"><i data-lucide="clapperboard"></i></div>
-        <h2>Watch Together</h2>
-        <p>Different places. Same movie. Same moment. ❤️</p>
-      </div>
+      <!-- App-style tabs: Home · Library · Genres · Watch -->
+      <nav class="wt-tabs" id="wtTabs">
+        <button type="button" class="wt-tab is-active" data-tab="home"><i data-lucide="home"></i><span>Home</span></button>
+        <button type="button" class="wt-tab" data-tab="library"><i data-lucide="library"></i><span>Library</span></button>
+        <button type="button" class="wt-tab" data-tab="genres"><i data-lucide="layout-grid"></i><span>Genres</span></button>
+        <button type="button" class="wt-tab" data-tab="watch"><i data-lucide="play-circle"></i><span>Watch</span></button>
+      </nav>
+
+      <section class="wt-tabpane" id="tabHome">
+        <div id="mcBanner"></div>
+        <div id="mcHomeRows"></div>
+      </section>
+
+      <section class="wt-tabpane" id="tabLibrary" hidden>
+        <div class="mc-toolbar">
+          <div class="mc-search"><i data-lucide="search"></i><input type="text" id="mcSearch" placeholder="Search movies..." autocomplete="off"></div>
+          <button type="button" class="mc-add-btn" id="mcAddBtn"><i data-lucide="plus"></i><span>Add</span></button>
+        </div>
+        <div class="mc-stats" id="mcStats"></div>
+        <div class="mc-chiprow" id="mcFilters"></div>
+        <div class="mc-chiprow" id="mcOwners"></div>
+        <div class="mc-grid" id="mcGrid"></div>
+      </section>
+
+      <section class="wt-tabpane" id="tabGenres" hidden>
+        <div class="mc-section-title">Categories</div>
+        <div class="mc-genre-grid" id="mcGenres"></div>
+      </section>
+
+      <section class="wt-tabpane" id="tabWatch" hidden>
       <!-- Mode switch: Direct Device Video (default, unchanged) | Shared Cloud Storage -->
       <div class="wt-mode-toggle" id="wtModeToggle">
         <button type="button" class="wt-chip-btn is-active" id="modeDirect" title="Direct Device Video"><i data-lucide="smartphone"></i><span>Direct Device</span></button>
@@ -66,6 +92,7 @@
         <div class="wt-list-title">Your Movies</div>
         <div class="wt-cloud-list" id="cloudList"></div>
       </div>
+      </section>
     </div>
 
     <!-- Sub-state: movie picked → lobby -->
@@ -81,6 +108,13 @@
 
       <div class="wt-match-banner" id="matchBanner" hidden></div>
 
+      <div class="wt-playback-settings">
+        <div class="wt-pb-title">Playback Settings</div>
+        <div class="wt-pb-grid">
+          <div class="wt-pb-tile is-on"><i data-lucide="refresh-cw"></i><span>Auto Sync</span><em>Always on</em></div>
+          <button type="button" class="wt-pb-tile" id="pbSubs"><i data-lucide="captions"></i><span>Subtitles</span><em id="pbSubsVal">Off</em></button>
+        </div>
+      </div>
       <div class="wt-partners-row">
         <div class="wt-partner-chip" id="chipMe">
           <span class="wt-avatar"><i data-lucide="user"></i></span>
@@ -179,7 +213,7 @@
           <span class="wt-watch-tag">Watching Together</span>
           <span class="wt-status-pill" id="statusPill" hidden></span>
         </div>
-        <button class="wt-icon-btn" id="btnFullscreen" aria-label="Fullscreen"><i data-lucide="expand" id="fullscreenIcon"></i></button>
+        <div class="wt-top-right"><button class="wt-icon-btn" id="btnMore" aria-label="More options"><i data-lucide="more-vertical"></i></button><button class="wt-icon-btn" id="btnFullscreen" aria-label="Fullscreen"><i data-lucide="expand" id="fullscreenIcon"></i></button></div>
       </div>
 
       <!-- ── CENTER: playback controls ── -->
@@ -236,6 +270,62 @@
       </div>
     </div>
   </section>
+
+  <!-- ══════ SHEET: More options (player) ══════ -->
+  <div class="wt-modal-backdrop" id="moreBackdrop" hidden>
+    <div class="wt-modal wt-more-sheet">
+      <div class="wt-sheet-header"><h2>More Options</h2><button class="wt-sheet-close" id="btnMoreClose" aria-label="Close"><i data-lucide="x"></i></button></div>
+      <div class="wt-more-list">
+        <button type="button" class="wt-more-row" id="moreInfo"><i data-lucide="info"></i><span>Movie Info</span><i data-lucide="chevron-down" class="wt-more-chev"></i></button>
+        <div class="wt-more-infobox" id="moreInfoBox" hidden></div>
+        <button type="button" class="wt-more-row" id="moreSubs"><i data-lucide="captions"></i><span>Subtitles</span><em id="moreSubsVal">Off</em><i data-lucide="chevron-right" class="wt-more-chev"></i></button>
+        <button type="button" class="wt-more-row" id="moreFit"><i data-lucide="scaling"></i><span>Screen Fit</span><em id="moreFitVal">Fit</em><i data-lucide="chevron-right" class="wt-more-chev"></i></button>
+        <button type="button" class="wt-more-row" id="morePip"><i data-lucide="picture-in-picture-2"></i><span>Picture in Picture</span><i data-lucide="chevron-right" class="wt-more-chev"></i></button>
+        <button type="button" class="wt-more-row" id="moreSleep"><i data-lucide="moon"></i><span>Sleep Timer</span><em id="moreSleepVal">Off</em><i data-lucide="chevron-right" class="wt-more-chev"></i></button>
+        <div class="wt-more-row wt-more-switch" id="moreAwakeRow"><i data-lucide="sun"></i><span>Keep Screen On</span><label class="wt-switch"><input type="checkbox" id="moreAwake" checked><span></span></label></div>
+        <button type="button" class="wt-more-row wt-more-danger" id="moreEnd"><i data-lucide="power"></i><span>End Room</span></button>
+      </div>
+    </div>
+  </div>
+  <input type="file" id="subsInput" accept=".srt,.vtt,text/vtt,application/x-subrip" hidden>
+
+  <!-- ══════ Movie collection: details / add-edit / confirm / actions ══════ -->
+  <div class="mc-detail" id="mcDetail" hidden></div>
+  <div class="wt-modal-backdrop" id="mcFormBackdrop" hidden>
+    <div class="wt-modal mc-form-sheet">
+      <div class="wt-sheet-header"><h2 id="mcFormTitle">Add Movie</h2><button class="wt-sheet-close" id="mcFormClose" aria-label="Close"><i data-lucide="x"></i></button></div>
+      <div class="mc-form">
+        <label class="mc-poster-pick" id="mcPosterPick"><input type="file" id="mcPosterInput" accept="image/*" hidden><span id="mcPosterPreview"><i data-lucide="image-plus"></i><em>Upload poster</em></span></label>
+        <div class="mc-field"><label>Movie name *</label><input type="text" id="mcTitle" placeholder="e.g. Interstellar"></div>
+        <div class="mc-row2">
+          <div class="mc-field"><label>Year</label><input type="number" id="mcYear" placeholder="2024" min="1900" max="2100"></div>
+          <div class="mc-field"><label>Genre</label><select id="mcGenre"></select></div>
+        </div>
+        <div class="mc-field"><label>Your rating</label><div class="mc-stars" id="mcStars"></div></div>
+        <div class="mc-field"><label>Watch status</label>
+          <select id="mcStatus"><option value="watchlist">🌟 Want to watch</option><option value="watching">🍿 Currently watching</option><option value="watched">✅ Watched</option></select></div>
+        <div class="mc-field"><label>Personal review</label><textarea id="mcReview" placeholder="What did you think about this movie?"></textarea></div>
+        <div class="mc-field"><label>Favorite scene / quote</label><textarea id="mcScene" placeholder="A scene or quote you loved..."></textarea></div>
+        <div class="mc-field"><label>This movie belongs to</label>
+          <select id="mcOwner"><option value="my">❤️ My list</option><option value="partner">💜 Partner's list</option><option value="both">💕 Watched together</option></select></div>
+        <button type="button" class="wt-btn wt-btn-primary wt-btn-block" id="mcSave"><i data-lucide="check"></i><span>Save Movie</span></button>
+      </div>
+    </div>
+  </div>
+  <div class="wt-modal-backdrop" id="mcConfirmBackdrop" hidden>
+    <div class="wt-modal">
+      <h2>Delete this movie?</h2>
+      <p class="wt-invite-sub">It will be permanently removed from your collection.</p>
+      <div class="wt-modal-actions">
+        <button class="wt-btn wt-btn-ghost" id="mcConfirmNo">CANCEL</button>
+        <button class="wt-btn wt-btn-danger" id="mcConfirmYes">DELETE</button>
+      </div>
+    </div>
+  </div>
+  <div class="wt-modal-backdrop" id="mcActionsBackdrop" hidden>
+    <div class="wt-modal wt-more-sheet"><div class="wt-more-list" id="mcActionsList"></div></div>
+  </div>
+  <div class="mc-toast" id="mcToast" hidden></div>
 
   <!-- ══════ MODAL: Watch invitation (shown to the invited partner) ══════ -->
   <div class="wt-modal-backdrop" id="inviteModalBackdrop" hidden>
@@ -298,6 +388,7 @@
   </div>
 </div>
 
-<script src="/movie.js?v=5"></script>
+<script src="/movie.js?v=6"></script>
+<script src="/movie-collection.js?v=1"></script>
 </body>
 </html>

@@ -1025,7 +1025,7 @@
     armHideTimer();
   }
   function anyModalOpen() {
-    return !$('endModalBackdrop').hidden || !$('inviteModalBackdrop').hidden;
+    return !$('endModalBackdrop').hidden || !$('inviteModalBackdrop').hidden || !$('moreBackdrop').hidden;
   }
   function onPlayerTap() {
     if (anyModalOpen()) return; // modal owns all interaction while open
@@ -1784,6 +1784,139 @@
   window.addEventListener('pageshow', reconcile);
   window.addEventListener('focus', reconcile);
 
+
+  // ═══════════════════════════════════════════════════════
+  // SECTION 16b — More Options (player ⋮ menu) + local-only extras
+  //   • Movie Info          — title / length / source / size
+  //   • Subtitles           — load a .srt/.vtt from THIS device (each
+  //                           partner loads their own; nothing is uploaded)
+  //   • Screen Fit          — Fit / Fill / Zoom (same as fullscreen cycle)
+  //   • Picture in Picture  — browser PiP on this device
+  //   • Sleep Timer         — pauses the movie for BOTH of you via the
+  //                           normal sendAction(false) path
+  //   • Keep Screen On      — Wake Lock while the movie is playing
+  //   • End Room            — opens the existing End confirmation
+  // None of this touches room state, sync, calls, chat or R2 code.
+  // ═══════════════════════════════════════════════════════
+  const more = { subsUrl: null, subsName: '', sleepMin: 0, sleepTimer: null, wake: null };
+  const SLEEP_STEPS = [0, 15, 30, 45, 60];
+
+  function srtToVtt(txt) {
+    txt = String(txt || '').replace(/^\uFEFF/, '').replace(/\r/g, '');
+    if (/^WEBVTT/.test(txt)) return txt;
+    return 'WEBVTT\n\n' + txt.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
+  }
+  function refreshSubsLabels() {
+    const v = more.subsUrl ? 'On' : 'Off';
+    if ($('moreSubsVal')) $('moreSubsVal').textContent = v;
+    if ($('pbSubsVal')) $('pbSubsVal').textContent = v;
+    const t = $('pbSubs'); if (t) t.classList.toggle('is-on', !!more.subsUrl);
+  }
+  function removeSubs() {
+    els.video.querySelectorAll('track').forEach(t => t.remove());
+    if (more.subsUrl) { try { URL.revokeObjectURL(more.subsUrl); } catch (e) {} }
+    more.subsUrl = null; more.subsName = '';
+    refreshSubsLabels();
+  }
+  function pickSubs() {
+    if (more.subsUrl) { removeSubs(); toast('Subtitles off'); return; }
+    $('subsInput').click();
+  }
+  $('subsInput').onchange = async (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    try {
+      const vtt = srtToVtt(await f.text());
+      removeSubs();
+      more.subsUrl = URL.createObjectURL(new Blob([vtt], { type: 'text/vtt' }));
+      more.subsName = f.name;
+      const tr = document.createElement('track');
+      tr.kind = 'subtitles'; tr.label = 'Subtitles'; tr.srclang = 'en'; tr.src = more.subsUrl; tr.default = true;
+      els.video.appendChild(tr);
+      try { tr.track.mode = 'showing'; } catch (er) {}
+      refreshSubsLabels();
+      toast('Subtitles loaded ✓');
+    } catch (err) { toast('Could not read that subtitle file'); }
+  };
+  if ($('pbSubs')) $('pbSubs').onclick = pickSubs;
+
+  async function setWake(on) {
+    try {
+      if (on && 'wakeLock' in navigator && !more.wake) {
+        more.wake = await navigator.wakeLock.request('screen');
+        more.wake.addEventListener('release', () => { more.wake = null; });
+      } else if (!on && more.wake) { await more.wake.release(); more.wake = null; }
+    } catch (e) { more.wake = null; }
+  }
+  const awakeOn = () => !$('moreAwake') || $('moreAwake').checked;
+  els.video.addEventListener('playing', () => { if (awakeOn()) setWake(true); });
+  els.video.addEventListener('pause', () => setWake(false));
+  els.video.addEventListener('ended', () => setWake(false));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && !els.video.paused && awakeOn()) setWake(true); });
+  try { const saved = localStorage.getItem('wt_keep_awake'); if (saved === '0') $('moreAwake').checked = false; } catch (e) {}
+  $('moreAwake').onchange = () => {
+    try { localStorage.setItem('wt_keep_awake', awakeOn() ? '1' : '0'); } catch (e) {}
+    setWake(awakeOn() && !els.video.paused);
+  };
+
+  function setSleep(min) {
+    clearTimeout(more.sleepTimer); more.sleepTimer = null; more.sleepMin = min;
+    $('moreSleepVal').textContent = min ? min + ' min' : 'Off';
+    if (!min) return;
+    more.sleepTimer = setTimeout(() => {
+      more.sleepTimer = null; more.sleepMin = 0; $('moreSleepVal').textContent = 'Off';
+      if (state.uiState === 'watching' && !els.video.paused) {
+        els.video.pause(); sendAction(false, els.video.currentTime); updatePlayPauseIcon();
+        setStatusPill('Paused', 'warn');
+        toast('Sleep timer — paused for both of you 🌙', 5000);
+      }
+    }, min * 60000);
+  }
+
+  function movieInfoHtml() {
+    const row = (k, v) => v ? `<div><b>${k}:</b> ${v}</div>` : '';
+    const dur = isFinite(els.video.duration) && els.video.duration > 0 ? els.video.duration : state.myDuration;
+    let size = '';
+    if (state.cloudMovieId) { const m = cloud.movies.find(x => x.id === state.cloudMovieId); if (m) size = fmtBytes(m.sizeBytes); }
+    return row('Title', $('wtNowTitle').textContent.replace(/[<>&]/g, '')) +
+      row('Length', dur ? fmtTime(dur) : '') +
+      row('Source', state.cloudMovieId ? 'Shared Cloud Storage' : 'This device (Direct)') +
+      row('Size', size) +
+      row('Subtitles', more.subsName ? more.subsName.replace(/[<>&]/g, '') : 'Off');
+  }
+  function openMore() {
+    $('moreInfoBox').hidden = true;
+    $('moreFitVal').textContent = DISPLAY_MODES[displayModeIdx].replace(/^./, c => c.toUpperCase());
+    $('morePip').hidden = !(document.pictureInPictureEnabled && els.video.requestPictureInPicture);
+    refreshSubsLabels();
+    // Inside fullscreen only the fullscreen element is painted — host the sheet there.
+    (document.fullscreenElement || document.body).appendChild($('moreBackdrop'));
+    controlsLocked = true; $('moreBackdrop').hidden = false; wakeControls(true);
+    if (window.lucide) window.lucide.createIcons();
+  }
+  function closeMore() { $('moreBackdrop').hidden = true; controlsLocked = false; armHideTimer(); }
+
+  $('btnMore').onclick = openMore;
+  $('btnMoreClose').onclick = closeMore;
+  $('moreBackdrop').addEventListener('click', (e) => { if (e.target === $('moreBackdrop')) closeMore(); });
+  $('moreInfo').onclick = () => { const b = $('moreInfoBox'); b.innerHTML = movieInfoHtml(); b.hidden = !b.hidden; };
+  $('moreSubs').onclick = () => { pickSubs(); };
+  $('moreFit').onclick = () => {
+    displayModeIdx = (displayModeIdx + 1) % DISPLAY_MODES.length;
+    applyDisplayMode(DISPLAY_MODES[displayModeIdx]);
+    $('moreFitVal').textContent = DISPLAY_MODES[displayModeIdx].replace(/^./, c => c.toUpperCase());
+  };
+  $('morePip').onclick = async () => {
+    try {
+      if (document.pictureInPictureElement) await document.exitPictureInPicture();
+      else await els.video.requestPictureInPicture();
+      closeMore();
+    } catch (e) { toast('Picture in Picture isn’t available here'); }
+  };
+  $('moreSleep').onclick = () => { setSleep(SLEEP_STEPS[(SLEEP_STEPS.indexOf(more.sleepMin) + 1) % SLEEP_STEPS.length]); };
+  $('moreEnd').onclick = () => { $('moreBackdrop').hidden = true; $('btnEndMovie').click(); };
+
   // ═══════════════════════════════════════════════════════
   // SECTION 17 — Boot
   // ═══════════════════════════════════════════════════════
@@ -1806,6 +1939,8 @@
   // straight through to page navigation. Ending the session itself
   // always requires the explicit End button, never Back.
   function closeTopOverlayIfOpen() {
+    if (window.MC && window.MC.closeTop && window.MC.closeTop()) return true;
+    if ($('moreBackdrop') && !$('moreBackdrop').hidden) { closeMore(); return true; }
     if ($('endModalBackdrop') && !$('endModalBackdrop').hidden) { $('btnCancelEnd')?.click(); return true; }
     if ($('movieChatLogBackdrop') && !$('movieChatLogBackdrop').hidden) { $('btnMovieChatLogClose')?.click(); return true; }
     if ($('historyBackdrop') && !$('historyBackdrop').hidden) { $('btnHistoryClose')?.click(); return true; }

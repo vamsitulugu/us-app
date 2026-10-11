@@ -805,3 +805,36 @@ html, body {
 .wt-chatlog-movietime { color: #ff8aa0; }
 /* No "Change" while waiting for the partner to accept */
 .wt-lobby:has(#waitingBlock:not([hidden])) #btnChangeMovie { display: none; }
+
+/* ── More Options sheet + lobby playback tiles (v6) ── */
+.wt-top-right { display: flex; gap: 8px; }
+.wt-more-sheet { padding-bottom: 18px; }
+.wt-more-list { display: flex; flex-direction: column; gap: 4px; }
+.wt-more-row { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 8px; border: 0; background: transparent; color: #f3e9ec; font: inherit; font-size: 15px; font-weight: 600; text-align: left; border-radius: 14px; }
+.wt-more-row:active { background: rgba(255,255,255,.06); }
+.wt-more-row > svg:first-child { width: 22px; height: 22px; color: #e9dfe2; flex-shrink: 0; }
+.wt-more-row span { flex: 1; }
+.wt-more-row em { font-style: normal; font-size: 13px; color: var(--wt-muted); }
+.wt-more-chev { width: 16px; height: 16px; color: var(--wt-muted); flex-shrink: 0; }
+.wt-more-danger, .wt-more-danger > svg:first-child { color: #ff6b81; }
+.wt-more-infobox { margin: 0 4px 6px; padding: 12px 14px; border-radius: 14px; background: var(--wt-card); border: 1px solid var(--wt-card-brd); font-size: 13px; line-height: 1.7; color: #e9dfe2; }
+.wt-more-infobox b { color: #fff; }
+.wt-more-switch { cursor: default; }
+.wt-switch { position: relative; width: 50px; height: 30px; flex-shrink: 0; }
+.wt-switch input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; margin: 0; z-index: 1; }
+.wt-switch span { position: absolute; inset: 0; border-radius: 15px; background: rgba(255,255,255,.14); transition: background .2s; }
+.wt-switch span::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: transform .2s; }
+.wt-switch input:checked + span { background: var(--wt-grad); }
+.wt-switch input:checked + span::after { transform: translateX(20px); }
+.wt-playback-settings { background: var(--wt-card); border: 1px solid var(--wt-card-brd); border-radius: 18px; padding: 12px; }
+.wt-pb-title { font-size: 12px; font-weight: 800; color: var(--wt-muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
+.wt-pb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.wt-pb-tile { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 6px; border-radius: 14px; border: 1px solid var(--wt-card-brd); background: rgba(255,255,255,.04); color: #f3e9ec; font: inherit; font-size: 13px; font-weight: 700; }
+.wt-pb-tile svg { width: 22px; height: 22px; }
+.wt-pb-tile em { font-style: normal; font-size: 11px; color: var(--wt-muted); font-weight: 600; }
+.wt-pb-tile.is-on { border-color: var(--wt-red1); background: rgba(255,59,92,.12); }
+.wt-pb-tile.is-on em { color: #ff8aa0; }
+#wtVideo::cue { color: #fff; background: rgba(0,0,0,.65); font-size: 1.05em; }
+.wt-sheet-header h2 { color: #fff; }
+.wt-more-sheet, .mc-form-sheet { text-align: left; }
+.wt-more-infobox { text-align: left; }
