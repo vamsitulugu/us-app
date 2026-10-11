@@ -50,8 +50,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.pf-brand { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
-.pf-brand img { width: 34px; height: 34px; border-radius: 10px; }
+/* Main profile view has no title (the app name already lives in the sidebar) —
+   its header holds just the settings gear, pinned to the right. */
+.pf-bar > .pf-icon-btn:only-child { margin-left: auto; }
 .pf-icon-btn {
   width: 40px;
   height: 40px;

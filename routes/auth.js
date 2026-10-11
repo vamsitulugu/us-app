@@ -9,6 +9,7 @@ const express  = require('express');
 const bcrypt   = require('bcryptjs');
 const crypto   = require('crypto');
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = require('express-rate-limit');
 const { v4: uuid } = require('uuid');
 const supabase = require('../middleware/supabase');
 
@@ -19,38 +20,171 @@ function normalizePhone(phone) {
   return String(phone || '').replace(/[^\d]/g, '');
 }
 
+// ═══════════════════════════════════════════════════════
+//  Secret Vault PIN
+//
+//  The vault PIN is a bcrypt hash on the `couples` row.
+//  - Every new account chooses its OWN 4-digit PIN at sign-up (POST /register).
+//  - Accounts created before that (or whose couple row has no PIN, e.g. a
+//    fresh space made by /unpair) still hold the old shared default "1234".
+//    That default can NEVER unlock the vault: such a couple is "unset" and has
+//    to pick its own PIN first (GET /vault-status → POST /set-vault-pin).
+//  - Forgot the PIN? POST /reset-vault-pin — verified with the account's
+//    app (sign-in) password, then a new PIN is chosen.
+//  No schema change is needed: "unset" is detected from the stored hash.
+// ═══════════════════════════════════════════════════════
+const LEGACY_DEFAULT_PIN = '1234';
+
+// Returns an error string, or null when the PIN is acceptable.
+function validateVaultPin(pin) {
+  const p = String(pin == null ? '' : pin);
+  if (!/^\d{4}$/.test(p)) return 'PIN must be exactly 4 digits';
+  if (/^(\d)\1{3}$/.test(p)) return 'That PIN is too easy to guess — avoid repeated digits like 1111';
+  if ('0123456789'.includes(p) || '9876543210'.includes(p)) {
+    return 'That PIN is too easy to guess — avoid sequences like 1234';
+  }
+  return null;
+}
+
+// True when no real PIN has been chosen yet (no hash, or still the old default).
+async function isVaultPinUnset(hash) {
+  if (!hash) return true;
+  return bcrypt.compare(LEGACY_DEFAULT_PIN, hash);
+}
+
+// A 4-digit PIN only has 10,000 combinations, so wrong guesses are limited.
+// Keyed per couple (or per user for the reset route) — successful requests
+// don't count, so normal use is never throttled.
+const vaultLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const id = req.body && (req.body.coupleId || req.body.userId);
+    return id ? String(id) : ipKeyGenerator(req.ip);
+  },
+  message: { error: 'Too many wrong attempts. Please wait 15 minutes and try again.' }
+});
+
+// ── GET /api/auth/vault-status/:coupleId ───────────────
+// Tells the app whether the couple still has to choose a vault PIN.
+router.get('/vault-status/:coupleId', async (req, res) => {
+  try {
+    const { data: couple } = await supabase
+      .from('couples').select('vault_pin').eq('id', req.params.coupleId).maybeSingle();
+    if (!couple) return res.status(404).json({ error: 'Not found' });
+    return res.json({ needsSetup: await isVaultPinUnset(couple.vault_pin) });
+  } catch (e) {
+    console.error('vault-status error:', e);
+    return res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
 // ── POST /api/auth/verify-pin ──────────────────────────
-router.post('/verify-pin', async (req, res) => {
-  const { coupleId, pin } = req.body;
-  if (!coupleId || !pin) return res.status(400).json({ error: 'Missing data' });
+router.post('/verify-pin', vaultLimiter, async (req, res) => {
+  try {
+    const { coupleId, pin } = req.body;
+    if (!coupleId || !pin) return res.status(400).json({ error: 'Missing data' });
 
-  const { data: couple } = await supabase
-    .from('couples').select('vault_pin').eq('id', coupleId).maybeSingle();
+    const { data: couple } = await supabase
+      .from('couples').select('vault_pin').eq('id', coupleId).maybeSingle();
+    if (!couple) return res.status(404).json({ error: 'Not found' });
 
-  if (!couple) return res.status(404).json({ error: 'Not found' });
+    // The old default (or no PIN) never unlocks anything.
+    if (await isVaultPinUnset(couple.vault_pin)) {
+      return res.status(409).json({ error: 'Set your vault PIN first', needsSetup: true });
+    }
 
-  const match = await bcrypt.compare(String(pin), couple.vault_pin);
-  if (!match) return res.status(401).json({ error: 'Wrong PIN' });
+    const match = await bcrypt.compare(String(pin), couple.vault_pin);
+    if (!match) return res.status(401).json({ error: 'Wrong PIN' });
 
-  return res.json({ ok: true });
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('verify-pin error:', e);
+    return res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
+// ── POST /api/auth/set-vault-pin ───────────────────────
+// One-time setup for a couple that has no real PIN yet. Refuses once a PIN
+// exists — after that, use /change-pin (knows the PIN) or /reset-vault-pin
+// (forgot it, verified with the app password).
+router.post('/set-vault-pin', vaultLimiter, async (req, res) => {
+  try {
+    const { coupleId, newPin } = req.body;
+    if (!coupleId || !newPin) return res.status(400).json({ error: 'Missing data' });
+    const pinErr = validateVaultPin(newPin);
+    if (pinErr) return res.status(400).json({ error: pinErr });
+
+    const { data: couple } = await supabase
+      .from('couples').select('vault_pin').eq('id', coupleId).maybeSingle();
+    if (!couple) return res.status(404).json({ error: 'Not found' });
+
+    if (!(await isVaultPinUnset(couple.vault_pin))) {
+      return res.status(403).json({ error: 'A vault PIN is already set. Use "Forgot PIN?" if you cannot remember it.' });
+    }
+
+    const hashed = await bcrypt.hash(String(newPin), 10);
+    const { error } = await supabase.from('couples').update({ vault_pin: hashed }).eq('id', coupleId);
+    if (error) return res.status(500).json({ error: 'Could not save your PIN. Please try again.' });
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('set-vault-pin error:', e);
+    return res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
 });
 
 // ── POST /api/auth/change-pin ──────────────────────────
-router.post('/change-pin', async (req, res) => {
-  const { coupleId, currentPin, newPin } = req.body;
-  if (!coupleId || !currentPin || !newPin) return res.status(400).json({ error: 'Missing data' });
+router.post('/change-pin', vaultLimiter, async (req, res) => {
+  try {
+    const { coupleId, currentPin, newPin } = req.body;
+    if (!coupleId || !currentPin || !newPin) return res.status(400).json({ error: 'Missing data' });
+    const pinErr = validateVaultPin(newPin);
+    if (pinErr) return res.status(400).json({ error: pinErr });
 
-  const { data: couple } = await supabase
-    .from('couples').select('vault_pin').eq('id', coupleId).maybeSingle();
-  if (!couple) return res.status(404).json({ error: 'Not found' });
+    const { data: couple } = await supabase
+      .from('couples').select('vault_pin').eq('id', coupleId).maybeSingle();
+    if (!couple) return res.status(404).json({ error: 'Not found' });
+    if (!couple.vault_pin) return res.status(409).json({ error: 'Set your vault PIN first by opening the Secret Vault', needsSetup: true });
 
-  const match = await bcrypt.compare(String(currentPin), couple.vault_pin);
-  if (!match) return res.status(401).json({ error: 'Current PIN is wrong' });
+    const match = await bcrypt.compare(String(currentPin), couple.vault_pin);
+    if (!match) return res.status(401).json({ error: 'Current PIN is wrong' });
 
-  const hashed = await bcrypt.hash(String(newPin), 10);
-  await supabase.from('couples').update({ vault_pin: hashed }).eq('id', coupleId);
+    const hashed = await bcrypt.hash(String(newPin), 10);
+    await supabase.from('couples').update({ vault_pin: hashed }).eq('id', coupleId);
 
-  return res.json({ ok: true });
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('change-pin error:', e);
+    return res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
+// ── POST /api/auth/reset-vault-pin ─────────────────────
+// "Forgot PIN": the person proves who they are with their app (sign-in)
+// password, then picks a new vault PIN. Body: { userId, password, newPin }
+router.post('/reset-vault-pin', vaultLimiter, async (req, res) => {
+  try {
+    const { userId, password, newPin } = req.body;
+    if (!userId || !password || !newPin) return res.status(400).json({ error: 'Missing data' });
+    const pinErr = validateVaultPin(newPin);
+    if (pinErr) return res.status(400).json({ error: pinErr });
+
+    const { data: user } = await supabase
+      .from('users').select('id, couple_id, password_hash').eq('id', userId).maybeSingle();
+    const ok = !!(user && user.password_hash && await bcrypt.compare(String(password), user.password_hash));
+    if (!ok) return res.status(401).json({ error: 'Incorrect app password' });
+
+    const hashed = await bcrypt.hash(String(newPin), 10);
+    const { error } = await supabase.from('couples').update({ vault_pin: hashed }).eq('id', user.couple_id);
+    if (error) return res.status(500).json({ error: 'Could not save your PIN. Please try again.' });
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('reset-vault-pin error:', e);
+    return res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
 });
 
 // ── GET /api/auth/couple/:id ───────────────────────────
@@ -645,12 +779,21 @@ module.exports.normalizePhone = normalizePhone;
 
 // ── POST /api/auth/register ────────────────────────────
 router.post('/register', async (req, res) => {
-  const { email, password, myName, phoneNumber } = req.body;
+  const { email, password, myName, phoneNumber, vaultPin } = req.body;
   if (!email || !password || !myName || !phoneNumber) {
     return res.status(400).json({ error: 'Name, email, password and phone number are required' });
   }
   if (password.length < 6) {
     return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  }
+
+  // The vault PIN is chosen once, here. (A sign-up from an older cached copy of
+  // the page may not send one — that account simply has to pick its PIN the
+  // first time it opens the vault; see "unset" above. The old shared default
+  // can never unlock the vault either way.)
+  if (vaultPin !== undefined && vaultPin !== null && vaultPin !== '') {
+    const pinErr = validateVaultPin(vaultPin);
+    if (pinErr) return res.status(400).json({ error: pinErr });
   }
 
   const normalizedEmail = email.toLowerCase().trim();
@@ -670,7 +813,8 @@ router.post('/register', async (req, res) => {
   if (existingPhone) return res.status(409).json({ error: 'An account with this phone number already exists.' });
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  const hashedPin = await bcrypt.hash('1234', 10);
+  const hasChosenPin = vaultPin !== undefined && vaultPin !== null && vaultPin !== '';
+  const hashedPin = await bcrypt.hash(hasChosenPin ? String(vaultPin) : LEGACY_DEFAULT_PIN, 10);
   const coupleId = uuid();
   const userId = uuid();
 

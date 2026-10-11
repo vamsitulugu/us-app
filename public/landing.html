@@ -545,6 +545,9 @@ body.native-auth-only #authModal .modal-close{display:none}
       <div class="field"><label>I am</label><div class="gender-pick" id="regGender"><button type="button" data-g="female" onclick="pickGender('female')">👩 Girl</button><button type="button" data-g="male" onclick="pickGender('male')">👨 Boy</button></div></div>
       <div class="field"><label>Phone Number</label><input type="tel" id="regPhone" placeholder="e.g. 1234567890" autocomplete="tel"></div>
       <div style="font-size:11.5px;color:var(--text3);margin:-6px 0 14px;line-height:1.5">This number is only used so your partner can find you. It is never used for login.</div>
+      <div class="field"><label>Secret Vault PIN (4 digits)</label><input type="password" id="regVaultPin" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Choose a 4-digit PIN" autocomplete="off"></div>
+      <div class="field"><label>Confirm Vault PIN</label><input type="password" id="regVaultPin2" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Re-enter your PIN" autocomplete="off"></div>
+      <div style="font-size:11.5px;color:var(--text3);margin:-6px 0 14px;line-height:1.5">This locks your Secret Vault. You set it once, here. If you ever forget it, you can reset it with your account password.</div>
       <button class="auth-btn" id="registerBtn" onclick="doEmailRegister()">Create Account ✨</button>
       <div class="auth-divider">Already have an account?</div>
       <button class="auth-btn-alt" onclick="authTab('login')">Sign In →</button>
@@ -728,6 +731,13 @@ function pickGender(g){
   regGenderValue=g;
   document.querySelectorAll('#regGender button').forEach(b=>b.classList.toggle('on',b.dataset.g===g));
 }
+// Same rules the server enforces (it re-checks): 4 digits, no 1111, no 1234/4321 runs.
+function checkVaultPin(p){
+  if(!/^\d{4}$/.test(p)) return 'Vault PIN must be exactly 4 digits';
+  if(/^(\d)\1{3}$/.test(p)) return 'That vault PIN is too easy to guess — avoid repeated digits like 1111';
+  if('0123456789'.includes(p)||'9876543210'.includes(p)) return 'That vault PIN is too easy to guess — avoid sequences like 1234';
+  return '';
+}
 async function doEmailRegister(){
   const email=document.getElementById('regEmail').value.trim();
   const pass=document.getElementById('regPassword').value;
@@ -737,10 +747,15 @@ async function doEmailRegister(){
   if(!email||!pass||!name||!phone){ err.textContent='Fill in all fields'; err.style.display='block'; return; }
   if(pass.length<6){ err.textContent='Password must be at least 6 characters'; err.style.display='block'; return; }
   if(!regGenderValue){ err.textContent='Please choose Girl or Boy'; err.style.display='block'; return; }
+  const vaultPin=document.getElementById('regVaultPin').value.trim();
+  const vaultPin2=document.getElementById('regVaultPin2').value.trim();
+  const pinProblem=checkVaultPin(vaultPin);
+  if(pinProblem){ err.textContent=pinProblem; err.style.display='block'; return; }
+  if(vaultPin!==vaultPin2){ err.textContent='The two vault PINs do not match'; err.style.display='block'; return; }
   err.style.display='none';
   const btn=document.getElementById('registerBtn'); btn.textContent='Creating...'; btn.disabled=true;
   try{
-    const r=await fetch(API+'/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass,myName:name,phoneNumber:phone})});
+    const r=await fetch(API+'/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass,myName:name,phoneNumber:phone,vaultPin})});
     const data=await r.json();
     if(!r.ok) throw new Error(data.error||'Registration failed');
     saveAndGo({...data,email,gender:regGenderValue});

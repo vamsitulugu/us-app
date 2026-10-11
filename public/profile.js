@@ -164,7 +164,7 @@
     root.innerHTML =
       /* main */
       '<section class="pf-view" data-view="main">' +
-        '<header class="pf-bar"><div class="pf-brand"><img src="/icons/icon-192.png" alt=""><h1>Twin Hearts</h1></div>' +
+        '<header class="pf-bar">' +
         '<button class="pf-icon-btn" data-act="open:settings" aria-label="Profile and settings">' + ico('gear') + '</button></header>' +
         '<div class="pf-body">' +
           '<div class="pf-hero"><div class="pf-couple">' +
