@@ -1,0 +1,36 @@
+/* ══════════════════════════════════════════════════════════════
+   DASHBOARD — burgundy accents (search bar, quote highlight, event cards)
+   Loaded after the theme files so it wins in both light and dark mode.
+   Burgundy is sampled from the Hug / Touch / Miss card artwork.
+   ══════════════════════════════════════════════════════════════ */
+:root { --dh-burgundy: #72022f; --dh-burgundy-d: #55021f; }
+
+/* Search bar: burgundy fill, white icon + white placeholder text */
+.dh-search {
+  background: var(--dh-burgundy);
+  border-color: rgba(255, 255, 255, .22);
+  color: #fff;
+}
+.dh-search span { color: #fff; }
+.dh-search svg { color: #fff; }
+
+/* Last word of the daily quote */
+.dh-quote em { color: var(--dh-burgundy); }
+
+/* "Coming up" event cards */
+html[data-theme] .dw-ev {
+  background: var(--dh-burgundy);
+  border: 1px solid rgba(255, 255, 255, .14);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(85, 2, 31, .35);
+}
+html[data-theme] .dw-ev .dw-ev-ico { background: rgba(255, 255, 255, .14); }
+html[data-theme] .dw-ev .dw-ev-tx i { color: rgba(255, 255, 255, .7) !important; }
+html[data-theme] .dw-ev .dw-ev-d { color: #fcbfe1 !important; }
+/* today's event keeps its white highlight so it still stands out */
+html[data-theme] .dw-ev.is-today {
+  background: rgba(255, 255, 255, .95); border-color: #fff; color: #1c0d15;
+}
+html[data-theme] .dw-ev.is-today .dw-ev-ico { background: rgba(114, 2, 47, .1); }
+html[data-theme] .dw-ev.is-today .dw-ev-tx i { color: rgba(28, 13, 21, .62) !important; }
+html[data-theme] .dw-ev.is-today .dw-ev-d { color: var(--dh-burgundy) !important; }

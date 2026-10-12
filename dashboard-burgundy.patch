@@ -1,0 +1,79 @@
+From f77e0e4f905ef6f37afba9336f53401f36d5a7b5 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 12 Oct 2026 18:11:31 +0000
+Subject: [PATCH] Dashboard: burgundy search bar, quote highlight and event
+ cards
+
+- Search bar uses burgundy fill with white placeholder text.
+- Last word of the daily quote is burgundy.
+- "Coming up" event cards use burgundy (today's card keeps its white
+  highlight).
+- New dashboard-burgundy.css, loaded after the theme files so it applies
+  in both light and dark mode. Burgundy (#72022f) is sampled from the
+  Hug/Touch/Miss card artwork.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01W8uaJwGPYzctYsH1NfUyji
+---
+ public/dashboard-burgundy.css | 36 +++++++++++++++++++++++++++++++++++
+ public/index.html             |  1 +
+ 2 files changed, 37 insertions(+)
+ create mode 100644 public/dashboard-burgundy.css
+
+diff --git a/public/dashboard-burgundy.css b/public/dashboard-burgundy.css
+new file mode 100644
+index 0000000..963b0e5
+--- /dev/null
++++ b/public/dashboard-burgundy.css
+@@ -0,0 +1,36 @@
++/* ══════════════════════════════════════════════════════════════
++   DASHBOARD — burgundy accents (search bar, quote highlight, event cards)
++   Loaded after the theme files so it wins in both light and dark mode.
++   Burgundy is sampled from the Hug / Touch / Miss card artwork.
++   ══════════════════════════════════════════════════════════════ */
++:root { --dh-burgundy: #72022f; --dh-burgundy-d: #55021f; }
++
++/* Search bar: burgundy fill, white icon + white placeholder text */
++.dh-search {
++  background: var(--dh-burgundy);
++  border-color: rgba(255, 255, 255, .22);
++  color: #fff;
++}
++.dh-search span { color: #fff; }
++.dh-search svg { color: #fff; }
++
++/* Last word of the daily quote */
++.dh-quote em { color: var(--dh-burgundy); }
++
++/* "Coming up" event cards */
++html[data-theme] .dw-ev {
++  background: var(--dh-burgundy);
++  border: 1px solid rgba(255, 255, 255, .14);
++  color: #fff;
++  box-shadow: 0 6px 18px rgba(85, 2, 31, .35);
++}
++html[data-theme] .dw-ev .dw-ev-ico { background: rgba(255, 255, 255, .14); }
++html[data-theme] .dw-ev .dw-ev-tx i { color: rgba(255, 255, 255, .7) !important; }
++html[data-theme] .dw-ev .dw-ev-d { color: #fcbfe1 !important; }
++/* today's event keeps its white highlight so it still stands out */
++html[data-theme] .dw-ev.is-today {
++  background: rgba(255, 255, 255, .95); border-color: #fff; color: #1c0d15;
++}
++html[data-theme] .dw-ev.is-today .dw-ev-ico { background: rgba(114, 2, 47, .1); }
++html[data-theme] .dw-ev.is-today .dw-ev-tx i { color: rgba(28, 13, 21, .62) !important; }
++html[data-theme] .dw-ev.is-today .dw-ev-d { color: var(--dh-burgundy) !important; }
+diff --git a/public/index.html b/public/index.html
+index 0d1e069..00982c6 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -4820,6 +4820,7 @@ select option { background: #270719; color: #fff; }
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
++<link rel="stylesheet" href="/dashboard-burgundy.css?v=1">
+ </head>
+ 
+ <body class="t-blue">
+-- 
+2.43.0
+
