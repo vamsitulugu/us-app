@@ -1,0 +1,371 @@
+diff --git a/public/collection.html b/public/collection.html
+index 74300e9..f688073 100644
+--- a/public/collection.html
++++ b/public/collection.html
+@@ -258,6 +258,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
++<link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/daily-routine.html b/public/daily-routine.html
+index a61b1e8..eab4ed8 100644
+--- a/public/daily-routine.html
++++ b/public/daily-routine.html
+@@ -163,6 +163,7 @@ button{font-family:inherit}
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
++<link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/dreamgoals.html b/public/dreamgoals.html
+index 72e69eb..d1b0622 100644
+--- a/public/dreamgoals.html
++++ b/public/dreamgoals.html
+@@ -253,6 +253,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
++<link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/games.html b/public/games.html
+index f9f267b..a279988 100644
+--- a/public/games.html
++++ b/public/games.html
+@@ -539,6 +539,7 @@ button{font-family:inherit;cursor:pointer}
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
++<link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/globe.html b/public/globe.html
+index 31e396d..1ceefab 100644
+--- a/public/globe.html
++++ b/public/globe.html
+@@ -432,6 +432,7 @@
+   <script src="/js/upload-progress-ui.js"></script>
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
++<link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+ </head>
+ <body>
+ <div id="app">
+diff --git a/public/index.html b/public/index.html
+index b54a28a..b4b1d4c 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -4819,6 +4819,7 @@ select option { background: #071127; color: #fff; }
+   <link rel="stylesheet" href="/twin-page.css">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
++<link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+ </head>
+ 
+ <body class="t-blue">
+diff --git a/public/landing.html b/public/landing.html
+index 49353d0..2c685da 100644
+--- a/public/landing.html
++++ b/public/landing.html
+@@ -338,6 +338,7 @@ body.native-auth-only #authModal .modal-close{display:none}
+   </script>
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
++<link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/lovecounter.html b/public/lovecounter.html
+index bf39111..92c5e01 100644
+--- a/public/lovecounter.html
++++ b/public/lovecounter.html
+@@ -342,6 +342,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
++<link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/meetplanner.html b/public/meetplanner.html
+index bd32629..32c7f72 100644
+--- a/public/meetplanner.html
++++ b/public/meetplanner.html
+@@ -368,6 +368,7 @@ textarea.mp-input{resize:vertical;min-height:84px;line-height:1.6}
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
++<link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/movie.html b/public/movie.html
+index 3f38d1f..ac14fc7 100644
+--- a/public/movie.html
++++ b/public/movie.html
+@@ -14,6 +14,7 @@
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
++<link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/music.html b/public/music.html
+index 6d4000f..0bddf5f 100644
+--- a/public/music.html
++++ b/public/music.html
+@@ -14,6 +14,7 @@
+ <script src="/js/scroll-reset.js"></script>
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
++<link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/places.html b/public/places.html
+index 3da23fb..121e7d1 100644
+--- a/public/places.html
++++ b/public/places.html
+@@ -185,6 +185,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
++<link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/privacy-policy.html b/public/privacy-policy.html
+index 827050f..c850f2d 100644
+--- a/public/privacy-policy.html
++++ b/public/privacy-policy.html
+@@ -93,6 +93,7 @@
+ </style>
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
++<link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/sw.js b/public/sw.js
+index 87bf9a0..58dea9c 100644
+--- a/public/sw.js
++++ b/public/sw.js
+@@ -1,5 +1,5 @@
+ // Service Worker for Twin Hearts 💕 PWA — v5
+-const CACHE = 'uwl-v24'; // bumped: purges stale cached assets (incl. old movie.css) on activate
++const CACHE = 'uwl-v25'; // bumped: purges stale cached assets (incl. old movie.css) on activate
+ const OFFLINE_ASSETS = [
+   '/',
+   '/index.html',
+diff --git a/public/theme-dark-v2.css b/public/theme-dark-v2.css
+new file mode 100644
+index 0000000..3b23061
+--- /dev/null
++++ b/public/theme-dark-v2.css
+@@ -0,0 +1,198 @@
++/* ============================================================
++   THEME DARK v2  —  readable "midnight blue" dark theme
++   Loaded AFTER /theme-tokens.css and /theme-light-v2.css on every page.
++   Only touches html[data-theme="dark"]; light theme is unchanged.
++
++   Look:  deep navy page · clearly raised navy cards with a visible
++          border · bright text (WCAG AA) · solid blue buttons ·
++          dark pill nav · status bar area blends with the page
++   ============================================================ */
++
++html[data-theme="dark"] {
++  --d-bg:#030816; --d-bg-2:#07102A;
++  --d-card:#0E1C40; --d-card-2:#13255199; --d-card-solid:#132551;
++  --d-line:rgba(120,170,255,.20); --d-line-2:rgba(120,170,255,.34);
++  --d-ink:#F3F7FF; --d-ink-2:#C3D1EE; --d-ink-3:#97ABD3;
++  --d-blue:#4C8DFF; --d-blue-soft:rgba(76,141,255,.16);
++  --d-btn:linear-gradient(180deg,#3A82FF 0%,#0B5CE8 100%);
++  --d-btn-shadow:0 8px 20px rgba(11,92,232,.40);
++  --d-shadow:0 10px 28px rgba(0,0,0,.45);
++  --d-danger:#FF7B8A; --d-danger-bg:rgba(255,95,115,.14);
++
++  /* shared tokens: brighter, AA-contrast secondary text */
++  --text:var(--d-ink) !important;
++  --text2:var(--d-ink-2) !important;
++  --text3:var(--d-ink-3) !important;
++  --border:var(--d-line) !important; --border2:var(--d-line-2) !important;
++  --surface:var(--d-card) !important; --surface-2:var(--d-card-solid) !important;
++  --g1:rgba(130,175,255,.07) !important; --g2:rgba(130,175,255,.11) !important; --g3:rgba(130,175,255,.17) !important;
++  --gb:rgba(130,175,255,.09) !important; --gd:rgba(130,175,255,.05) !important;
++  --blue-text:#6FA6FF;
++}
++
++/* ───────── Page background ───────── */
++html[data-theme="dark"], html[data-theme="dark"] body {
++  background: linear-gradient(180deg, #06122E 0%, var(--d-bg) 55%) fixed !important;
++  background-color: var(--d-bg) !important;
++  color: var(--d-ink);
++}
++
++/* ───────── Status-bar area: the phone clock / network / battery sit on
++   a solid page-coloured strip instead of mixing with scrolling content ───────── */
++html[data-theme="dark"] body::before {
++  content: ''; position: fixed; top: 0; left: 0; right: 0; z-index: 2147483000;
++  height: env(safe-area-inset-top, 0px); background: var(--d-bg); pointer-events: none;
++}
++
++/* ───────── Cards: raised, bordered, no longer melt into the page ───────── */
++html[data-theme="dark"] :is(.card,.metric,.m-card,.pstat,.period-hero,.storage-hero) {
++  background: var(--d-card) !important; background-image: none !important;
++  border: 1px solid var(--d-line) !important; box-shadow: var(--d-shadow) !important;
++}
++html[data-theme="dark"] :is(.col-stat,.dg-stat,.pm-stat,.lc-time-card,.lc-card,.lc-bday-card,.mc-stat,.pf-stat,.lv-card,.pf-list,.pf-ms,.pf-act,.set-list,.gcard,.rank-card,.cat-list) {
++  background: var(--d-card) !important; background-image: none !important;
++  border: 1px solid var(--d-line) !important; box-shadow: var(--d-shadow) !important;
++}
++html[data-theme="dark"] .lc-bday-card { background: var(--d-card-solid) !important; }
++html[data-theme="dark"] :is(.set-row,.set-list) { background: var(--d-card); }
++html[data-theme="dark"] .cat-row { border-bottom: 1px solid var(--d-line); }
++html[data-theme="dark"] .cat-row:last-child { border-bottom: none; }
++
++/* ───────── Headings / secondary text ───────── */
++html[data-theme="dark"] :is(.card-title,.modal-title,.cat-page-title,.cat-headline,.cat-row-title,.set-t,.gcard-title,.hub-title,.rank-name,.dw-title,.dw-sec-title,.dh-sheet-title) { color: var(--d-ink); }
++html[data-theme="dark"] :is(.cat-subtext,.set-s,.set-sec-t,.gcard-desc,.rank-lvl,.rank-vs,.rank-card span) { color: var(--d-ink-2); }
++html[data-theme="dark"] :is(.col-stat-l,.dg-stat-l,.pm-stat-l,.col-empty-text,.pm-empty-text,.dr-sub,.dow,.lc-time-l,.mc-stat span,.lc-hero-label,.lc-bday-label,.lc-bday-date,.hstat-l,.testi-sub) { color: var(--d-ink-2) !important; }
++html[data-theme="dark"] :is(.dr-sub+*,.install-eyebrow,.cat-row-chev,.wt-subtitle) { color: var(--d-ink-3); }
++html[data-theme="dark"] .dr-sub ~ p, html[data-theme="dark"] .daily-routine p { color: var(--d-ink-2); }
++html[data-theme="dark"] :is(.lc-time-n,.lc-bday-days,.lc-bday-name,.lc-card-title,.lc-hero-names) { color: var(--d-ink) !important; }
++/* blue accent text must be lighter on navy (4.4:1 → 7:1) */
++html[data-theme="dark"] :is(.section-tag,.hero-eyebrow,.dw-link,.dw-ev-d,.dw-mood-streak,.dw-reset) { color: var(--blue-text) !important; }
++html[data-theme="dark"] .mp-bar-s, html[data-theme="dark"] .mp-bar small, html[data-theme="dark"] .hdr-sub { color: var(--d-ink-2) !important; }
++html[data-theme="dark"] { --mp-text3:#97ABD3; --mx-text3:#97ABD3; --wt-muted:#97ABD3; }
++html[data-theme="dark"] :is(.mp-tile small,.mp-sec a,.mp-link) { color: var(--d-ink-2); }
++html[data-theme="dark"] a.mp-view-all, html[data-theme="dark"] .mp-sec-h a { color: var(--blue-text); }
++html[data-theme="dark"] .fheart { filter: none; }
++
++/* ───────── Buttons ───────── */
++html[data-theme="dark"] :is(.btn-accent,.ic-btn.accent,.gplay-btn,.wt-btn-primary,.wt-btn-start) {
++  background: var(--d-btn) !important; color: #fff !important; border: none !important; box-shadow: var(--d-btn-shadow) !important;
++}
++html[data-theme="dark"] :is(.btn-glass,.ic-btn) {
++  background: var(--d-card-solid) !important; color: var(--d-ink) !important; border: 1px solid var(--d-line-2) !important;
++}
++html[data-theme="dark"] :is(.btn-glass,.ic-btn):hover { background: #1A3270 !important; }
++html[data-theme="dark"] .btn-ghost { color: var(--d-ink-2); }
++html[data-theme="dark"] .btn-ghost:hover { background: var(--d-blue-soft); color: #fff; }
++html[data-theme="dark"] .btn-danger { background: var(--d-danger-bg) !important; color: var(--d-danger) !important; border: 1px solid rgba(255,123,138,.35) !important; }
++html[data-theme="dark"] .toggle { background: #26396E !important; }
++html[data-theme="dark"] .toggle.on { background: var(--d-blue) !important; }
++
++/* "NEW" / badge labels: white-on-light-blue was 2.3:1 */
++html[data-theme="dark"] :is(.gbadge.new,.feat-badge,.badge) { background: #0B4FD8 !important; color: #fff !important; }
++html[data-theme="dark"] .gbadge.trend { color: #3A2A00; }
++
++/* ───────── Icons: bright (not dim blue) so they are always visible ───────── */
++html[data-theme="dark"] :is(.cat-row-ico,.tile-ico svg,.empty .ico svg,.dw-page .e,.dw-page svg,.pf-since-d .pf-i) { color: var(--d-ink) !important; }
++html[data-theme="dark"] .tile.accent .tile-ico svg { color: #fff !important; }
++html[data-theme="dark"] .quick .tile-ico { background: var(--d-blue-soft); }
++html[data-theme="dark"] .tb-back, html[data-theme="dark"] .cat-back-btn {
++  background: var(--d-card-solid); color: var(--d-ink); border: 1px solid var(--d-line-2);
++}
++html[data-theme="dark"] .hamburger span { background: var(--d-ink); }
++
++/* ───────── Inputs ───────── */
++html[data-theme="dark"] :is(input[type=text],input[type=password],input[type=email],input[type=number],input[type=date],input[type=time],input[type=search],input[type=tel],input[type=url],textarea,select,.chat-in) {
++  background: #0A1736 !important; border: 1px solid var(--d-line-2) !important; color: var(--d-ink) !important; border-radius: 12px;
++}
++html[data-theme="dark"] input::placeholder, html[data-theme="dark"] textarea::placeholder { color: #7F93BD !important; opacity: 1; }
++html[data-theme="dark"] :is(input,textarea,select):focus {
++  background: #0E1F47 !important; border-color: var(--d-blue) !important; box-shadow: 0 0 0 3px rgba(76,141,255,.25) !important;
++}
++html[data-theme="dark"] select option { background: #0E1C40; color: #F3F7FF; }
++
++/* ───────── Chips / pills ───────── */
++html[data-theme="dark"] :is(.chip,.pill,.fchip,.col-chip,.pm-chip,.dg-chip,.filter-chip,.mc-chip) {
++  background: var(--d-card-solid); color: var(--d-ink-2) !important; border: 1px solid var(--d-line-2);
++}
++html[data-theme="dark"] :is(.chip,.pill,.fchip,.col-chip,.pm-chip,.dg-chip,.filter-chip,.mc-chip):is(.active,.on,.is-active) {
++  background: var(--d-btn); color: #fff !important; border-color: transparent; box-shadow: var(--d-btn-shadow);
++}
++html[data-theme="dark"] .mc-search { background: #0A1736; }
++html[data-theme="dark"] .mc-search input { background: transparent !important; border: 0 !important; box-shadow: none !important; }
++
++/* ───────── Modals ───────── */
++html[data-theme="dark"] .modal-bg, html[data-theme="dark"] .wp-modal-overlay { background: rgba(0,4,16,.72); }
++html[data-theme="dark"] :is(.modal,.auth-card,.wp-modal,.chat-header-menu) {
++  background: #0D1B3E !important; background-image: none !important; color: var(--d-ink);
++  border: 1px solid var(--d-line-2) !important; box-shadow: 0 24px 60px rgba(0,0,0,.6) !important;
++}
++html[data-theme="dark"] .modal-close { color: var(--d-ink-2); }
++html[data-theme="dark"] .chat-header-menu :is(span,div,.ico-label) { color: var(--d-ink); }
++html[data-theme="dark"] .chat-header-menu-item:is(:hover,:active) { background: var(--d-blue-soft); }
++html[data-theme="dark"] .chat-header-menu-item.danger, html[data-theme="dark"] .chat-header-menu-item[style*="ff6b6b"] { color: var(--d-danger) !important; }
++html[data-theme="dark"] .wp-option-row { background: var(--d-card-solid) !important; border-color: var(--d-line) !important; }
++
++/* ───────── Top bar + bottom nav ───────── */
++html[data-theme="dark"] .topbar { background: rgba(3,8,22,.92) !important; border-bottom: 1px solid var(--d-line); }
++html[data-theme="dark"] #botNav .gn-glass { background: rgba(10,22,52,.96) !important; border: 1px solid var(--d-line-2); }
++html[data-theme="dark"] #botNav .bot-ni { color: #9DB1DA; }
++html[data-theme="dark"] #botNav .bot-ni.active { color: #7DB0FF !important; }
++
++/* ───────── Home dashboard ───────── */
++html[data-theme="dark"] .dh-sheet { background: #050D24 !important; border-top: 1px solid var(--d-line); }
++html[data-theme="dark"] :is(.dw-ev,.dw-mood,.dw-q1) { background: var(--d-card); border: 1px solid var(--d-line); color: var(--d-ink); box-shadow: var(--d-shadow); }
++html[data-theme="dark"] .dw-ev-tx i, html[data-theme="dark"] .dw-mood-sub, html[data-theme="dark"] .dw-legend, html[data-theme="dark"] .dw-ptline { color: var(--d-ink-2); }
++html[data-theme="dark"] :is(.dw-days span,.dw-col .wd) { color: var(--d-ink-3); }
++html[data-theme="dark"] .dw-col .dn { color: var(--d-ink-2); }
++html[data-theme="dark"] .dw-graph .g-grid { stroke: rgba(130,175,255,.14); }
++html[data-theme="dark"] .dw-quote p, html[data-theme="dark"] .dw-page { color: var(--d-ink-2); }
++html[data-theme="dark"] :is(.dw-overlay,.dw-foot,.dw-panel) { background: #050D24; color: var(--d-ink); }
++html[data-theme="dark"] .dw-btn, html[data-theme="dark"] .dw-mc { background: var(--d-card-solid); color: var(--d-ink); border-color: var(--d-line-2); }
++html[data-theme="dark"] .dw-seg button { color: var(--d-ink-2); }
++
++/* ───────── Chat: follow the app's dark theme (no black-on-black bubbles) ───────── */
++html[data-theme="dark"] #page-chat { --white:#F3F7FF; --text:#F3F7FF; --text2:#C3D1EE; --text3:#97ABD3; --border:rgba(120,170,255,.20); --border2:rgba(120,170,255,.34); }
++html[data-theme="dark"] #page-chat :is(.chat-page-wrap,.chat-msgs-shell,.chat-msgs) { background: transparent !important; }
++html[data-theme="dark"] #page-chat .chat-header { background: rgba(3,8,22,.94) !important; border-color: var(--d-line) !important; }
++html[data-theme="dark"] #page-chat .chat-header .ic-btn { color: var(--d-ink); }
++html[data-theme="dark"] #page-chat :is(.chat-bubble.theirs,.msg-row.them .bubble) {
++  background: #14275A !important; color: var(--d-ink) !important; border: 1px solid var(--d-line) !important;
++}
++html[data-theme="dark"] #page-chat :is(.chat-bubble.theirs,.msg-row.them .bubble) * { color: inherit; }
++html[data-theme="dark"] #page-chat :is(.chat-bubble.theirs,.msg-row.them .bubble) :is(.chat-time,.msg-time,time,.chat-meta,small,.bubble-meta) { color: var(--d-ink-3) !important; }
++html[data-theme="dark"] #page-chat :is(.chat-bubble.mine,.msg-row.me .bubble) { background: var(--d-btn) !important; color: #fff !important; }
++html[data-theme="dark"] #page-chat :is(.chat-bubble.mine,.msg-row.me .bubble) * { color: inherit; }
++html[data-theme="dark"] .chat-call-log, html[data-theme="dark"] .chat-date-sep span {
++  background: #14275A !important; color: var(--d-ink-2) !important; border: 1px solid var(--d-line) !important;
++}
++html[data-theme="dark"] .chat-call-log svg { color: var(--blue-text); }
++html[data-theme="dark"] #page-chat :is(.uc-composer,.uc-input-wrap) { background: rgba(6,16,40,.97) !important; border-color: var(--d-line) !important; }
++html[data-theme="dark"] #page-chat .uc-input { color: var(--d-ink) !important; background: transparent !important; border: 0 !important; box-shadow: none !important; }
++html[data-theme="dark"] #page-chat .uc-composer :is(button,svg) { color: var(--d-ink-2); }
++html[data-theme="dark"] #page-chat .uc-composer [class*="send"] { color: #fff; }
++html[data-theme="dark"] .theme-switch { background: #26396E; }
++
++/* ───────── Games / movie / music / meet planner own variables ───────── */
++html[data-theme="dark"] :is(.gcard-art,.gcard-art *) { color: #fff; }
++html[data-theme="dark"] {
++  --mx-text2:#C3D1EE; --mp-text2:#C3D1EE;
++  --mx-line:rgba(120,170,255,.20); --mp-line:rgba(120,170,255,.20);
++}
++html[data-theme="dark"] :is(.wt-tabs) { background: rgba(10,22,52,.95); border: 1px solid var(--d-line-2); }
++html[data-theme="dark"] .wt-tab { color: var(--d-ink-2); }
++html[data-theme="dark"] .wt-tab.is-active { background: var(--d-btn); color: #fff; }
++html[data-theme="dark"] .wt-page:not(.is-watching) :is(.wt-movie-meta,.wt-hint,.wt-usage-text,.wt-list-title,.wt-cloud-hint) { color: var(--d-ink-3); }
++html[data-theme="dark"] .wt-page:not(.is-watching) .wt-btn-ghost { background: var(--d-card-solid); color: var(--d-ink); border: 1px solid var(--d-line-2); }
++html[data-theme="dark"] .wt-page:not(.is-watching) :is(.wt-hero,.mc-banner-empty) .wt-btn-ghost { background: rgba(255,255,255,.16) !important; color: #fff !important; border-color: rgba(255,255,255,.45) !important; }
++html[data-theme="dark"] #mini { background: rgba(10,22,52,.97); border: 1px solid var(--d-line-2); color: var(--d-ink); }
++
++/* Theme picker swatch labels */
++html[data-theme="dark"] .th-opt { background: var(--d-card); }
++
++/* Meet Planner section links */
++html[data-theme="dark"] .mp-h2 a { color: var(--blue-text) !important; }
++
++/* Games: same blue art as the light theme instead of per-game red/purple/pink */
++html[data-theme="dark"] .gcard-art { background-image: linear-gradient(135deg,#2F6FE8,#0A3CA8) !important; }
++html[data-theme="dark"] .gcard:nth-child(3n+2) .gcard-art { background-image: linear-gradient(135deg,#1492C8,#1E5CD8) !important; }
++html[data-theme="dark"] .gcard:nth-child(3n) .gcard-art { background-image: linear-gradient(135deg,#4A63D8,#2238A8) !important; }
