@@ -9,7 +9,7 @@
 .lv {
   --lv-a: var(--accent, #B0127A);
   --lv-a-d: var(--accent-d, #B0127A);
-  --lv-a-l: var(--accent-l, #F06DBE);
+  --lv-a-l: var(--accent-l, #C21A8B);
   --lv-line: rgba(176,18,122, .30);
   --lv-line: color-mix(in srgb, var(--lv-a) 32%, transparent);
   --lv-tint: rgba(176,18,122, .14);

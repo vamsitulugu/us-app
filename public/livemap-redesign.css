@@ -275,7 +275,7 @@
 /* Phase 4: Route History privacy toggle (opt-in switch + retention chips) */
 #lmRouteRetentionRow .lm-chip.active{box-shadow:0 0 0 1px rgba(176,18,122,.5) inset;background:rgba(176,18,122,.12)}
 /* Phase 5: voice-nav toggle + camera-mode button active states */
-.lm-voice-nav-btn.active{background:rgba(240,109,190,.25);border-color:#F06DBE}
+.lm-voice-nav-btn.active{background:rgba(194,26,139,.25);border-color:#C21A8B}
 /* Daily narrative timeline (item 2) — vertical chain of place_visits
    with per-category icon, matches existing dark-glass premium tokens. */
 .lm-timeline{display:flex;flex-direction:column}

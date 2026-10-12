@@ -12,7 +12,7 @@
 ═══════════════════════════════════════════════════════════════ */
 :root{
   --h:322;
-  --accent:#B0127A; --accent-d:#7C0A57; --accent-l:#F06DBE; --accent-glow:rgba(176,18,122,.35);
+  --accent:#B0127A; --accent-d:#7C0A57; --accent-l:#C21A8B; --accent-glow:rgba(176,18,122,.35);
   --accent2:#B0127A; --accent2-d:#7C0A57; --accent2-glow:rgba(176,18,122,.32);
 
   --ff-serif:'DM Serif Display',Georgia,serif;
@@ -435,7 +435,7 @@ body:not(.playing) .pl-art{transform:scale(.9)}
 .rec-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .rec-row{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid rgba(255,255,255,.04)}
 .rec-ico{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;flex:none;background:rgba(255,255,255,.07);color:var(--mx-red);border:1px solid var(--mx-line)}
-.rec-ico.video{color:#F06DBE}
+.rec-ico.video{color:#C21A8B}
 .rec-main{flex:1;min-width:0}
 .rec-t{font-size:14.5px;font-weight:600}
 .rec-s{font-size:12px;color:var(--mx-text3);margin-top:2px}

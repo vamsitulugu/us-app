@@ -144,16 +144,16 @@ const HeartbeatManager = (() => {
 
   /* ── HEART THEMES ── */
   const HEART_THEMES = {
-    crystal:     { primary: '#faa7c5', secondary: '#f7699d', glow: 'rgba(250,167,197,0.6)', emoji: '💎' },
-    galaxy:      { primary: '#f881d3', secondary: '#F06DBE', glow: 'rgba(248,129,211,0.6)', emoji: '🌌' },
+    crystal:     { primary: '#C21A8B', secondary: '#C21A8B', glow: 'rgba(194,26,139,0.6)', emoji: '💎' },
+    galaxy:      { primary: '#C21A8B', secondary: '#C21A8B', glow: 'rgba(194,26,139,0.6)', emoji: '🌌' },
     golden:      { primary: '#fbbf24', secondary: '#f59e0b', glow: 'rgba(251,191,36,0.6)',  emoji: '🏆' },
-    rose:        { primary: '#fb7185', secondary: '#f43f5e', glow: 'rgba(251,113,133,0.6)', emoji: '🌹' },
+    rose:        { primary: '#C21A8B', secondary: '#C21A8B', glow: 'rgba(194,26,139,0.6)', emoji: '🌹' },
     fire:        { primary: '#fb923c', secondary: '#ef4444', glow: 'rgba(251,146,60,0.6)',  emoji: '🔥' },
-    neon:        { primary: '#4ade80', secondary: '#cf1056', glow: 'rgba(74,222,128,0.6)',  emoji: '⚡' },
+    neon:        { primary: '#4ade80', secondary: '#B0127A', glow: 'rgba(74,222,128,0.6)',  emoji: '⚡' },
     diamond:     { primary: '#f0e2ea', secondary: '#ddcfd6', glow: 'rgba(240,226,234,0.6)', emoji: '💠' },
-    aurora:      { primary: '#86efac', secondary: '#f7699d', glow: 'rgba(134,239,172,0.6)', emoji: '🌈' },
-    anniversary: { primary: '#f9a8d4', secondary: '#f472b6', glow: 'rgba(249,168,212,0.6)', emoji: '💍' },
-    valentine:   { primary: '#F274C2', secondary: '#c2185b', glow: 'rgba(255,107,157,0.6)', emoji: '💝' },
+    aurora:      { primary: '#86efac', secondary: '#C21A8B', glow: 'rgba(134,239,172,0.6)', emoji: '🌈' },
+    anniversary: { primary: '#C21A8B', secondary: '#C21A8B', glow: 'rgba(194,26,139,0.6)', emoji: '💍' },
+    valentine:   { primary: '#C21A8B', secondary: '#B0127A', glow: 'rgba(194,26,139,0.6)', emoji: '💝' },
   };
 
   /* ── EMOJI REACTIONS ── */
@@ -693,7 +693,7 @@ const HeartbeatManager = (() => {
               const min = Math.round(d.ms / 60000);
               return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
                 <div style="font-size:9px;color:rgba(255,255,255,0.5)">${min>0?min+'m':''}</div>
-                <div style="width:100%;border-radius:4px 4px 2px 2px;height:${pct}%;background:linear-gradient(135deg,var(--accent,#ec66b8),var(--accent2,hsl(300,85%,65%)));opacity:${d.ms>0?1:0.2};transition:height 0.6s ease"></div>
+                <div style="width:100%;border-radius:4px 4px 2px 2px;height:${pct}%;background:linear-gradient(135deg,var(--accent,#C21A8B),var(--accent2,#C21A8B));opacity:${d.ms>0?1:0.2};transition:height 0.6s ease"></div>
                 <div style="font-size:9px;color:rgba(255,255,255,0.4);font-weight:600">${d.label}</div>
               </div>`;
             }).join('')}
@@ -1115,8 +1115,8 @@ const HeartbeatManager = (() => {
   gap: 8px;
   margin-top: 10px;
   padding: 8px 13px;
-  background: rgba(255,107,157,0.12);
-  border: 1px solid rgba(255,107,157,0.25);
+  background: rgba(194,26,139,0.12);
+  border: 1px solid rgba(194,26,139,0.25);
   border-radius: 12px;
   font-size: 12px;
   color: var(--text2);

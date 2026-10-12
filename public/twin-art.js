@@ -35,9 +35,9 @@
       '<linearGradient id="' + p + 'v" x1="0" y1="0" x2="0" y2="1">' +
         '<stop offset="0" stop-color="#24101b"/><stop offset="1" stop-color="#040102"/></linearGradient>' +
       '<radialGradient id="' + p + 'r" cx="35%" cy="28%" r="85%">' +
-        '<stop offset="0" stop-color="#f59ad2"/><stop offset=".5" stop-color="#b0127a"/><stop offset="1" stop-color="#940857"/></radialGradient>' +
+        '<stop offset="0" stop-color="#C21A8B"/><stop offset=".5" stop-color="#b0127a"/><stop offset="1" stop-color="#940857"/></radialGradient>' +
       '<linearGradient id="' + p + 'w" x1="0" y1="0" x2="1" y2="1">' +
-        '<stop offset="0" stop-color="#ff9db0"/><stop offset="1" stop-color="#f21190"/></linearGradient>' +
+        '<stop offset="0" stop-color="#C21A8B"/><stop offset="1" stop-color="#C21A8B"/></linearGradient>' +
       '<filter id="' + p + 'g" x="-60%" y="-60%" width="220%" height="220%">' +
         '<feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
     '</defs>';
@@ -49,7 +49,7 @@
     return '<g transform="rotate(14 150 38)">' +
       '<path d="M150 40 L188 14 Q196 34 188 58 Z" fill="url(#' + p + 'w)"/>' +
       '<path d="M150 40 L112 14 Q104 34 112 58 Z" fill="url(#' + p + 'w)"/>' +
-      '<circle cx="150" cy="40" r="10" fill="#ff5878"/>' +
+      '<circle cx="150" cy="40" r="10" fill="#C21A8B"/>' +
       '<circle cx="147" cy="37" r="3.5" fill="#fdd5ec" opacity=".8"/></g>';
   }
 
@@ -90,7 +90,7 @@
 
   function floaters(list) {
     return list.map(function (f) {
-      return '<path class="tw-floaty" style="animation-delay:' + f[3] + 's" transform="translate(' + f[0] + ' ' + f[1] + ') scale(' + f[2] + ')" d="' + HEART + '" fill="#b8147f" opacity=".85"/>';
+      return '<path class="tw-floaty" style="animation-delay:' + f[3] + 's" transform="translate(' + f[0] + ' ' + f[1] + ') scale(' + f[2] + ')" d="' + HEART + '" fill="#B0127A" opacity=".85"/>';
     }).join('');
   }
 
@@ -99,7 +99,7 @@
     return '<svg viewBox="0 0 220 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Twin AI robot holding a heart">' +
       defs(p) +
       floaters([[206, 70, .2, 0], [20, 120, .16, 1.2], [196, 168, .13, .6]]) +
-      robotGroup(p, { eye: '#E04AA8' }) +
+      robotGroup(p, { eye: '#C21A8B' }) +
       heartShape(p, 110, 176, 1.25) +
       arms(p, 110, 176) +
     '</svg>';
@@ -110,8 +110,8 @@
     return '<svg viewBox="0 0 400 262" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two Twin AI robots sharing a heart">' +
       defs(a) + defs(b) + defs(h) +
       floaters([[30, 60, .22, 0], [372, 150, .2, 1], [356, 40, .14, .5], [48, 170, .14, 1.6]]) +
-      '<g transform="translate(6 12) scale(.93)">' + robotGroup(a, { eye: '#f5498e' }) + '</g>' +
-      '<g transform="translate(176 6) scale(.93)">' + robotGroup(b, { eye: '#f657b1', bow: true }) + '</g>' +
+      '<g transform="translate(6 12) scale(.93)">' + robotGroup(a, { eye: '#C21A8B' }) + '</g>' +
+      '<g transform="translate(176 6) scale(.93)">' + robotGroup(b, { eye: '#C21A8B', bow: true }) + '</g>' +
       heartShape(h, 200, 198, 1.7) +
       '<ellipse cx="148" cy="204" rx="17" ry="25" transform="rotate(-24 148 204)" fill="url(#' + a + 'b)"/>' +
       '<ellipse cx="252" cy="204" rx="17" ry="25" transform="rotate(24 252 204)" fill="url(#' + b + 'b)"/>' +
@@ -123,13 +123,13 @@
     var p = 'tv' + (++uid);
     return '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
       '<defs><radialGradient id="' + p + 'h" cx="34%" cy="22%" r="90%"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#f6d9de"/><stop offset="1" stop-color="#b4697a"/></radialGradient>' +
-      '<radialGradient id="' + p + 'r" cx="35%" cy="28%" r="85%"><stop offset="0" stop-color="#f59ad2"/><stop offset=".6" stop-color="#b0127a"/><stop offset="1" stop-color="#940857"/></radialGradient></defs>' +
+      '<radialGradient id="' + p + 'r" cx="35%" cy="28%" r="85%"><stop offset="0" stop-color="#C21A8B"/><stop offset=".6" stop-color="#b0127a"/><stop offset="1" stop-color="#940857"/></radialGradient></defs>' +
       '<circle cx="24" cy="24" r="22.5" fill="#2a0419"/>' +
       '<ellipse cx="24" cy="24.5" rx="15" ry="13" fill="url(#' + p + 'h)"/>' +
       '<ellipse cx="8.8" cy="25" rx="2.6" ry="4.4" fill="url(#' + p + 'r)"/><ellipse cx="39.2" cy="25" rx="2.6" ry="4.4" fill="url(#' + p + 'r)"/>' +
       '<rect x="12.5" y="16.5" width="23" height="15" rx="7" fill="#0b0308"/>' +
-      '<g stroke="#E04AA8" stroke-width="2" stroke-linecap="round" fill="none"><path d="M17.5 25 Q20 20.5 22.5 25"/><path d="M25.5 25 Q28 20.5 30.5 25"/></g>' +
-      '<path d="M21.5 28.4Q24 30.6 26.5 28.4" stroke="#E04AA8" stroke-width="1.4" fill="none" stroke-linecap="round"/>' +
+      '<g stroke="#C21A8B" stroke-width="2" stroke-linecap="round" fill="none"><path d="M17.5 25 Q20 20.5 22.5 25"/><path d="M25.5 25 Q28 20.5 30.5 25"/></g>' +
+      '<path d="M21.5 28.4Q24 30.6 26.5 28.4" stroke="#C21A8B" stroke-width="1.4" fill="none" stroke-linecap="round"/>' +
     '</svg>';
   }
 

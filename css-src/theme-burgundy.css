@@ -7,7 +7,7 @@
    block with --h:322 / --accent:hsl(327,...) — a blue/violet brand
    color. premium-motion.css was built separately and hardcoded a
    red/burgundy glow palette (--pm-red #B0127A, --pm-red-deep
-   #7C0A57, --pm-red-bright #E04AA8) for its animations, so the
+   #7C0A57, --pm-red-bright #C21A8B) for its animations, so the
    *animations* were already burgundy while the *surfaces underneath
    them* (buttons, active states, gradients, focus rings) stayed
    blue. That mismatch is the actual bug this file fixes.
@@ -31,15 +31,15 @@
      color language. */
   --accent: #B0127A;
   --accent-d: #7C0A57;
-  --accent-l: #F06DBE;
-  --accent-glow: rgba(224,74,168, 0.35);
+  --accent-l: #C21A8B;
+  --accent-glow: rgba(194,26,139, 0.35);
 
   /* Secondary — kept in the same warm family (deep rose) instead of
      the previous cool magenta, so two-color gradients still read as
      "one palette" rather than clashing hues. */
-  --accent2: #F0489F;
+  --accent2: #C21A8B;
   --accent2-d: #7C0A57;
-  --accent2-glow: rgba(240,72,159, 0.32);
+  --accent2-glow: rgba(194,26,139, 0.32);
 
   /* --blue was aliased to --accent on every page (--blue: var(--accent)),
      so it inherits the repaint automatically — listed here only for

@@ -35,7 +35,7 @@
     .lad-missing-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,.06)}
     .lad-actions{display:flex;gap:8px;margin-top:16px}
     .lad-btn{flex:1;padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff;font-weight:600;font-size:12px;cursor:pointer}
-    .lad-btn.primary{background:linear-gradient(135deg,var(--accent,#F06DBE),var(--accent-d,#B0127A));border:none}
+    .lad-btn.primary{background:linear-gradient(135deg,var(--accent,#C21A8B),var(--accent-d,#B0127A));border:none}
     .lad-btn.danger{background:rgba(248,113,113,.15);border-color:rgba(248,113,113,.35);color:#f87171}
     .lad-empty{text-align:center;color:rgba(255,255,255,.4);font-size:12px;padding:14px}
     `;

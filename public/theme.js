@@ -8,13 +8,19 @@
   function resolve(p) { if (document.documentElement.getAttribute('data-theme-lock') === 'dark') return 'dark'; return p === 'system' ? (mq && !mq.matches ? 'light' : 'dark') : (p === 'light' ? 'light' : 'dark'); }
   // DARK = white icons (for dark bars); LIGHT = black icons (for the pale light theme).
   // Home (dashboard) has a blue hero at the very top, so it keeps white icons.
+  // Light theme: Home has a magenta hero at the very top, so the bar must be magenta there (not pale pink).
+  function barColor(t) {
+    if (t === 'dark') return BAR.dark;
+    var d = document.getElementById('page-dashboard');
+    return (d && d.classList.contains('active')) ? '#8B0F5E' : BAR.light;
+  }
   function statusStyle(t) {
     if (t === 'dark') return 'DARK';
     var d = document.getElementById('page-dashboard');
     return (d && d.classList.contains('active')) ? 'DARK' : 'LIGHT';
   }
   window.refreshStatusBar = function () {
-    try { var s = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.StatusBar; if (s) s.setStyle({ style: statusStyle(resolve(pref())) }); } catch (e) {}
+    try { var s = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.StatusBar; if (s) { var _t = resolve(pref()); s.setStyle({ style: statusStyle(_t) }); s.setBackgroundColor({ color: barColor(_t) }); } var _m = document.getElementById('themeColorMeta'); if (_m) _m.setAttribute('content', barColor(resolve(pref()))); } catch (e) {}
   };
   document.addEventListener('DOMContentLoaded', function () {
     var host = document.getElementById('page-dashboard');
@@ -24,15 +30,15 @@
     var t = resolve(pref()), de = document.documentElement;
     de.setAttribute('data-theme', t);
     var m = document.getElementById('themeColorMeta') || document.querySelector('meta[name="theme-color"]');
-    if (m) m.setAttribute('content', BAR[t]);
+    if (m) m.setAttribute('content', barColor(t));
     try { window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: t, pref: pref() } })); } catch (e) {}
     try {
       var s = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.StatusBar;
-      if (s) { s.setBackgroundColor({ color: BAR[t] }); s.setStyle({ style: statusStyle(t) }); }
+      if (s) { s.setBackgroundColor({ color: barColor(t) }); s.setStyle({ style: statusStyle(t) }); }
     } catch (e) {}
   }
   window.Theme = {
-    get: pref, resolved: function () { return resolve(pref()); },
+    get: pref, resolved: function () { return resolve(pref()); }, bar: function () { return barColor(resolve(pref())); },
     set: function (p) { try { localStorage.setItem(KEY, p); } catch (e) {} apply(); }
   };
   window.addEventListener('storage', function (e) { if (e.key === KEY) apply(); });

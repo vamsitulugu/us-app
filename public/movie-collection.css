@@ -81,7 +81,7 @@
 .mc-about, .mc-scene { margin: 0; padding: 12px 14px; border-radius: 16px; background: var(--wt-card); border: 1px solid var(--wt-card-brd); line-height: 1.6; font-size: 14px; color: #e9dfe2; }
 .mc-scene { border-color: rgba(176,18,122,.3); background: rgba(176,18,122,.07); }
 .mc-detail-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.mc-danger { color: #ff8a98; }
+.mc-danger { color: #C21A8B; }
 
 /* Form */
 .mc-form-sheet { max-height: 92vh; overflow-y: auto; }

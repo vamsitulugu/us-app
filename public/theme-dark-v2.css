@@ -11,13 +11,13 @@
 html[data-theme="dark"] {
   --d-bg:#14030e; --d-bg-2:#2A071B;
   --d-card:#400E2A; --d-card-2:#51133699; --d-card-solid:#511336;
-  --d-line:rgba(248,127,196,.20); --d-line-2:rgba(248,127,196,.34);
-  --d-ink:#FEF4FA; --d-ink-2:#EEC3DC; --d-ink-3:#C7A3B8;
+  --d-line:rgba(194,26,139,.20); --d-line-2:rgba(194,26,139,.34);
+  --d-ink:#FEF4FA; --d-ink-2:#C21A8B; --d-ink-3:#C7A3B8;
   --d-blue:#B0127A; --d-blue-soft:rgba(176,18,122,.22);
-  --d-btn:linear-gradient(180deg,#B8147F 0%,#8A0E5F 100%);
+  --d-btn:linear-gradient(180deg,#B0127A 0%,#8A0E5F 100%);
   --d-btn-shadow:0 8px 20px rgba(138,14,95,.40);
   --d-shadow:0 10px 28px rgba(0,0,0,.45);
-  --d-danger:#FF7B8A; --d-danger-bg:rgba(255,95,115,.14);
+  --d-danger:#C21A8B; --d-danger-bg:rgba(194,26,139,.14);
 
   /* shared tokens: brighter, AA-contrast secondary text */
   --text:var(--d-ink) !important;
@@ -25,9 +25,9 @@ html[data-theme="dark"] {
   --text3:var(--d-ink-3) !important;
   --border:var(--d-line) !important; --border2:var(--d-line-2) !important;
   --surface:var(--d-card) !important; --surface-2:var(--d-card-solid) !important;
-  --g1:rgba(249,136,201,.07) !important; --g2:rgba(249,136,201,.11) !important; --g3:rgba(249,136,201,.17) !important;
-  --gb:rgba(249,136,201,.09) !important; --gd:rgba(249,136,201,.05) !important;
-  --blue-text:#F06DBE;
+  --g1:rgba(194,26,139,.07) !important; --g2:rgba(194,26,139,.11) !important; --g3:rgba(194,26,139,.17) !important;
+  --gb:rgba(194,26,139,.09) !important; --gd:rgba(194,26,139,.05) !important;
+  --blue-text:#C21A8B;
 }
 
 /* ───────── Page background ───────── */
@@ -83,7 +83,7 @@ html[data-theme="dark"] :is(.btn-glass,.ic-btn) {
 html[data-theme="dark"] :is(.btn-glass,.ic-btn):hover { background: #701A4F !important; }
 html[data-theme="dark"] .btn-ghost { color: var(--d-ink-2); }
 html[data-theme="dark"] .btn-ghost:hover { background: var(--d-blue-soft); color: #fff; }
-html[data-theme="dark"] .btn-danger { background: var(--d-danger-bg) !important; color: var(--d-danger) !important; border: 1px solid rgba(255,123,138,.35) !important; }
+html[data-theme="dark"] .btn-danger { background: var(--d-danger-bg) !important; color: var(--d-danger) !important; border: 1px solid rgba(194,26,139,.35) !important; }
 html[data-theme="dark"] .toggle { background: #60344F !important; }
 html[data-theme="dark"] .toggle.on { background: var(--d-blue) !important; }
 
@@ -136,7 +136,7 @@ html[data-theme="dark"] .wp-option-row { background: var(--d-card-solid) !import
 html[data-theme="dark"] .topbar { background: rgba(20,3,14,.92) !important; border-bottom: 1px solid var(--d-line); }
 html[data-theme="dark"] #botNav .gn-glass { background: rgba(52,10,33,.96) !important; border: 1px solid var(--d-line-2); }
 html[data-theme="dark"] #botNav .bot-ni { color: #CEA9BF; }
-html[data-theme="dark"] #botNav .bot-ni.active { color: #F06DBE !important; }
+html[data-theme="dark"] #botNav .bot-ni.active { color: #C21A8B !important; }
 
 /* ───────── Home dashboard ───────── */
 html[data-theme="dark"] .dh-sheet { background: #240516 !important; border-top: 1px solid var(--d-line); }
@@ -144,14 +144,14 @@ html[data-theme="dark"] :is(.dw-ev,.dw-mood,.dw-q1) { background: var(--d-card);
 html[data-theme="dark"] .dw-ev-tx i, html[data-theme="dark"] .dw-mood-sub, html[data-theme="dark"] .dw-legend, html[data-theme="dark"] .dw-ptline { color: var(--d-ink-2); }
 html[data-theme="dark"] :is(.dw-days span,.dw-col .wd) { color: var(--d-ink-3); }
 html[data-theme="dark"] .dw-col .dn { color: var(--d-ink-2); }
-html[data-theme="dark"] .dw-graph .g-grid { stroke: rgba(249,136,201,.14); }
+html[data-theme="dark"] .dw-graph .g-grid { stroke: rgba(194,26,139,.14); }
 html[data-theme="dark"] .dw-quote p, html[data-theme="dark"] .dw-page { color: var(--d-ink-2); }
 html[data-theme="dark"] :is(.dw-overlay,.dw-foot,.dw-panel) { background: #240516; color: var(--d-ink); }
 html[data-theme="dark"] .dw-btn, html[data-theme="dark"] .dw-mc { background: var(--d-card-solid); color: var(--d-ink); border-color: var(--d-line-2); }
 html[data-theme="dark"] .dw-seg button { color: var(--d-ink-2); }
 
 /* ───────── Chat: follow the app's dark theme (no black-on-black bubbles) ───────── */
-html[data-theme="dark"] #page-chat { --white:#FEF4FA; --text:#FEF4FA; --text2:#EEC3DC; --text3:#C7A3B8; --border:rgba(248,127,196,.20); --border2:rgba(248,127,196,.34); }
+html[data-theme="dark"] #page-chat { --white:#FEF4FA; --text:#FEF4FA; --text2:#C21A8B; --text3:#C7A3B8; --border:rgba(194,26,139,.20); --border2:rgba(194,26,139,.34); }
 html[data-theme="dark"] #page-chat :is(.chat-page-wrap,.chat-msgs-shell,.chat-msgs) { background: transparent !important; }
 html[data-theme="dark"] #page-chat .chat-header { background: rgba(20,3,14,.94) !important; border-color: var(--d-line) !important; }
 html[data-theme="dark"] #page-chat .chat-header .ic-btn { color: var(--d-ink); }
@@ -175,8 +175,8 @@ html[data-theme="dark"] .theme-switch { background: #60344F; }
 /* ───────── Games / movie / music / meet planner own variables ───────── */
 html[data-theme="dark"] :is(.gcard-art,.gcard-art *) { color: #fff; }
 html[data-theme="dark"] {
-  --mx-text2:#EEC3DC; --mp-text2:#EEC3DC;
-  --mx-line:rgba(248,127,196,.20); --mp-line:rgba(248,127,196,.20);
+  --mx-text2:#C21A8B; --mp-text2:#C21A8B;
+  --mx-line:rgba(194,26,139,.20); --mp-line:rgba(194,26,139,.20);
 }
 html[data-theme="dark"] :is(.wt-tabs) { background: rgba(52,10,33,.95); border: 1px solid var(--d-line-2); }
 html[data-theme="dark"] .wt-tab { color: var(--d-ink-2); }
@@ -194,5 +194,5 @@ html[data-theme="dark"] .mp-h2 a { color: var(--blue-text) !important; }
 
 /* Games: same blue art as the light theme instead of per-game red/purple/pink */
 html[data-theme="dark"] .gcard-art { background-image: linear-gradient(135deg,#B0127A,#7C0A57) !important; }
-html[data-theme="dark"] .gcard:nth-child(3n+2) .gcard-art { background-image: linear-gradient(135deg,#A4104F,#B11972) !important; }
-html[data-theme="dark"] .gcard:nth-child(3n) .gcard-art { background-image: linear-gradient(135deg,#C42A8F,#A8227B) !important; }
+html[data-theme="dark"] .gcard:nth-child(3n+2) .gcard-art { background-image: linear-gradient(135deg,#B0127A,#B0127A) !important; }
+html[data-theme="dark"] .gcard:nth-child(3n) .gcard-art { background-image: linear-gradient(135deg,#B0127A,#B0127A) !important; }

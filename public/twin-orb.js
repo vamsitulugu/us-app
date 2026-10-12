@@ -240,7 +240,7 @@
 
     var mid = ctx.createRadialGradient(R * 0.42, R * 0.5, R * 0.02, R * 0.5, R * 0.52, R * 0.95);
     mid.addColorStop(0, 'rgba(176,18,122,0.55)');
-    mid.addColorStop(0.4, 'rgba(190,10,112,0.4)');
+    mid.addColorStop(0.4, 'rgba(176,18,122,0.4)');
     mid.addColorStop(1, 'rgba(18,2,11,0)');
     ctx.fillStyle = mid;
     ctx.fillRect(0, 0, W, H);
@@ -281,7 +281,7 @@
     var coreG = ctx.createRadialGradient(R * 0.46, R * 0.46, 0, R * 0.5, R * 0.5, coreR);
     coreG.addColorStop(0, 'rgba(244,244,244,' + (0.30 + 0.22 * coreBreath * eMul).toFixed(3) + ')');
     coreG.addColorStop(0.4, 'rgba(176,18,122,' + (0.20 * eMul).toFixed(3) + ')');
-    coreG.addColorStop(1, 'rgba(173,16,104,0)');
+    coreG.addColorStop(1, 'rgba(176,18,122,0)');
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
     ctx.fillStyle = coreG;

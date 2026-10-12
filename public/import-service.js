@@ -73,20 +73,20 @@
     .mis-overlay.open{display:flex}
     .mis-card{width:100%;max-width:420px;background:rgba(24,10,18,.97);backdrop-filter:blur(30px) saturate(200%);border:1px solid rgba(255,255,255,.15);border-radius:24px;padding:30px 26px;text-align:center;box-shadow:0 30px 90px rgba(0,0,0,.55);animation:misPop .35s cubic-bezier(.34,1.56,.64,1)}
     @keyframes misPop{from{opacity:0;transform:scale(.9) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
-    .mis-spin{width:52px;height:52px;margin:0 auto 18px;border-radius:50%;border:3px solid rgba(255,255,255,.12);border-top-color:var(--accent,#F06DBE);animation:misSpin 0.9s linear infinite}
+    .mis-spin{width:52px;height:52px;margin:0 auto 18px;border-radius:50%;border:3px solid rgba(255,255,255,.12);border-top-color:var(--accent,#C21A8B);animation:misSpin 0.9s linear infinite}
     @keyframes misSpin{to{transform:rotate(360deg)}}
     .mis-step-label{font-family:var(--ff-serif,serif);font-size:17px;color:#fff;margin-bottom:6px}
     .mis-step-sub{font-size:12px;color:rgba(255,255,255,.45);margin-bottom:18px}
     .mis-steps{display:flex;justify-content:center;gap:8px;margin-top:4px}
     .mis-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.18);transition:all .3s}
-    .mis-dot.active{background:var(--accent,#F06DBE);box-shadow:0 0 8px var(--accent,#F06DBE);transform:scale(1.3)}
+    .mis-dot.active{background:var(--accent,#C21A8B);box-shadow:0 0 8px var(--accent,#C21A8B);transform:scale(1.3)}
     .mis-dot.done{background:var(--green,#34d399)}
 
     .mis-verify-card{width:100%;max-width:420px;background:rgba(24,10,18,.97);backdrop-filter:blur(30px) saturate(200%);border:1px solid rgba(255,255,255,.15);border-radius:22px;padding:22px;max-height:88vh;overflow-y:auto;box-shadow:0 30px 90px rgba(0,0,0,.55)}
     .mis-verify-title{font-family:var(--ff-serif,serif);font-size:18px;color:#fff;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
     .mis-verify-title button{background:none;border:none;color:rgba(255,255,255,.5);font-size:18px;cursor:pointer}
     .mis-art-row{display:flex;gap:14px;align-items:center;margin-bottom:16px}
-    .mis-art-preview{width:72px;height:72px;border-radius:14px;object-fit:cover;border:1px solid rgba(255,255,255,.15);flex-shrink:0;background:linear-gradient(135deg,var(--accent,#F06DBE),var(--accent2,#B0127A));display:flex;align-items:center;justify-content:center;font-size:26px}
+    .mis-art-preview{width:72px;height:72px;border-radius:14px;object-fit:cover;border:1px solid rgba(255,255,255,.15);flex-shrink:0;background:linear-gradient(135deg,var(--accent,#C21A8B),var(--accent2,#B0127A));display:flex;align-items:center;justify-content:center;font-size:26px}
     .mis-art-preview img{width:100%;height:100%;object-fit:cover;border-radius:14px}
     .mis-art-replace{font-size:11px;color:rgba(255,255,255,.55);cursor:pointer;position:relative;display:inline-block;padding:6px 12px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15)}
     .mis-art-replace input{position:absolute;inset:0;opacity:0;cursor:pointer}
@@ -96,13 +96,13 @@
     .mis-lyrics-chip{font-size:10px;font-weight:700;padding:4px 10px;border-radius:10px;margin-bottom:14px;display:inline-flex;align-items:center;gap:5px}
     .mis-lyrics-chip.found{background:rgba(52,211,153,.15);color:#34d399;border:1px solid rgba(52,211,153,.3)}
     .mis-lyrics-chip.miss{background:rgba(255,255,255,.05);color:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.1)}
-    .mis-lyrics-chip.loading{background:rgba(240,109,190,.12);color:#F06DBE;border:1px solid rgba(240,109,190,.3)}
+    .mis-lyrics-chip.loading{background:rgba(194,26,139,.12);color:#C21A8B;border:1px solid rgba(194,26,139,.3)}
     .mis-warn{font-size:11px;color:#fbbf24;margin-bottom:10px}
 
     .mis-dup-actions{display:flex;flex-direction:column;gap:8px;margin-top:16px}
     .mis-dup-btn{padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff;font-weight:600;font-size:13px;cursor:pointer}
     .mis-dup-btn:hover{background:rgba(255,255,255,.13)}
-    .mis-dup-btn.primary{background:linear-gradient(135deg,var(--accent,#F06DBE),var(--accent-d,#B0127A));border:none}
+    .mis-dup-btn.primary{background:linear-gradient(135deg,var(--accent,#C21A8B),var(--accent-d,#B0127A));border:none}
     .mis-dup-btn.danger{background:rgba(248,113,113,.15);border-color:rgba(248,113,113,.35);color:#f87171}
     `;
     const s = document.createElement('style'); s.id = 'misStyles'; s.textContent = css; document.head.appendChild(s);

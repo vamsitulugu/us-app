@@ -170,7 +170,7 @@ window.AdaptiveGlobe = (function () {
   ];
   function buildOceanLabels() {
     OCEANS.forEach(([name, lat, lng]) => {
-      const sprite = makeTextSprite(name, { fontSize: 26, scale: 0.06, color: 'rgba(240,109,190,0.8)' });
+      const sprite = makeTextSprite(name, { fontSize: 26, scale: 0.06, color: 'rgba(194,26,139,0.8)' });
       sprite.position.copy(latLngToVec3(lat, lng, 1.03));
       oceanLabels.add(sprite);
     });

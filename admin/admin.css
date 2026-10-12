@@ -5,10 +5,10 @@
   --border: #4A1237;
   --border2: #7C0A57;
   --text: #eef0f4;
-  --text2: #F06DBE;
+  --text2: #C21A8B;
   --text3: #A5779A;
   --accent: #B0127A;
-  --accent2: #F06DBE;
+  --accent2: #C21A8B;
   --green: #34d399;
   --amber: #fbbf24;
   --red: #f87171;
@@ -123,7 +123,7 @@ tbody tr:hover { background: var(--panel2); cursor: default; }
 .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
 .badge.active, .badge.published, .badge.sent, .badge.ok { background: rgba(52,211,153,.15); color: var(--green); }
 .badge.suspended, .badge.required, .badge.critical, .badge.failed { background: rgba(248,113,113,.15); color: var(--red); }
-.badge.disabled, .badge.archived { background: rgba(240,109,190,.15); color: var(--text2); }
+.badge.disabled, .badge.archived { background: rgba(194,26,139,.15); color: var(--text2); }
 .badge.draft, .badge.recommended, .badge.warning { background: rgba(251,191,36,.15); color: var(--amber); }
 .badge.optional, .badge.info { background: rgba(176,18,122,.15); color: var(--accent2); }
 

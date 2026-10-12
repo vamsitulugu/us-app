@@ -109,7 +109,7 @@ const CAT_META = {
 const CAT_GRAD = {
   hotel: ['#B0127A', '#7C0A57'], tourist: ['#f97316', '#7c2d12'], cafe: ['#b45309', '#431407'], restaurant: ['#7C0A57', '#4c0519'],
   mall: ['#B0127A', '#500724'], park: ['#16a34a', '#052e16'], museum: ['#B0127A', '#49082a'], temple: ['#f59e0b', '#78350f'],
-  entertainment: ['#F06DBE', '#7C0A57'], custom: ['#B0127A', '#5b0a1f']
+  entertainment: ['#C21A8B', '#7C0A57'], custom: ['#B0127A', '#5b0a1f']
 };
 const MODE_META = {
   car:     { ico: '🚗', label: 'Car',     kmh: null, g: 'driving' },
@@ -120,7 +120,7 @@ const MODE_META = {
 };
 const POPULAR = [
   { n: 'Bengaluru',     lat: 12.9716, lng: 77.5946, e: '🏙️', g: ['#B0127A', '#5b0a1f'] },
-  { n: 'Hyderabad',     lat: 17.3850, lng: 78.4867, e: '🕌', g: ['#F06DBE', '#7C0A57'] },
+  { n: 'Hyderabad',     lat: 17.3850, lng: 78.4867, e: '🕌', g: ['#C21A8B', '#7C0A57'] },
   { n: 'Visakhapatnam', lat: 17.6868, lng: 83.2185, e: '🌊', g: ['#B0127A', '#49082a'] },
   { n: 'Goa',           lat: 15.2993, lng: 74.1240, e: '🏖️', g: ['#f59e0b', '#78350f'] },
   { n: 'Mysuru',        lat: 12.2958, lng: 76.6394, e: '🏰', g: ['#f97316', '#7c2d12'] },

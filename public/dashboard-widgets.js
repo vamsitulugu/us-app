@@ -134,12 +134,12 @@ const DashWidgets = (() => {
      so the two moods never overwrite each other. */
   const MOODS = {
     Excited:  { e: '🤩', c: '#f5b301', s: 5 },
-    Loved:    { e: '🥰', c: '#F06DBE', s: 5 },
+    Loved:    { e: '🥰', c: '#C21A8B', s: 5 },
     Happy:    { e: '😊', c: '#ffd43b', s: 4 },
     Peaceful: { e: '😌', c: '#8fc46a', s: 4 },
     Tired:    { e: '🥱', c: '#b08968', s: 2 },
     Stressed: { e: '😤', c: '#ff9248', s: 2 },
-    Sad:      { e: '😔', c: '#F06DBE', s: 1 },
+    Sad:      { e: '😔', c: '#C21A8B', s: 1 },
     Angry:    { e: '😡', c: '#ef5350', s: 1 },
   };
   const moodKey = str => {
