@@ -19,14 +19,14 @@
     "SplashScreen": {
       "launchShowDuration": 0,
       "launchAutoHide": false,
-      "backgroundColor": "#1a0010",
+      "backgroundColor": "#06122E",
       "androidSplashResourceName": "splash",
       "androidScaleType": "CENTER_INSIDE",
       "showSpinner": false
     },
     "StatusBar": {
       "style": "DARK",
-      "backgroundColor": "#0B0B0B",
+      "backgroundColor": "#030816",
       "overlaysWebView": true
     }
   }

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme-lock="dark">
 <head>
+<script src="/theme.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
@@ -13,8 +14,8 @@
    Everything on this page reads from --mp-* tokens, so re-theming later
    (e.g. the bright theme) is a one-block change. */
 :root{
-  --mp-bg:#0b0608;
-  --mp-bg2:#140a0e;
+  --mp-bg:#030816;
+  --mp-bg2:#0A1530;
   --mp-card:rgba(255,255,255,.055);
   --mp-card2:rgba(255,255,255,.09);
   --mp-line:rgba(255,255,255,.10);
@@ -22,11 +23,11 @@
   --mp-text:#fff;
   --mp-text2:rgba(255,255,255,.66);
   --mp-text3:rgba(255,255,255,.40);
-  --mp-red:#ff2d55;
-  --mp-red2:#e11d48;
-  --mp-red-soft:rgba(255,45,85,.16);
-  --mp-red-glow:rgba(255,45,85,.38);
-  --mp-grad:linear-gradient(135deg,#ff3b5c,#e0113b);
+  --mp-red:#2F7BFF;
+  --mp-red2:#0B5BE0;
+  --mp-red-soft:rgba(47,123,255,.16);
+  --mp-red-glow:rgba(47,123,255,.38);
+  --mp-grad:linear-gradient(135deg,#3D8BFF,#0B5BE0);
   --mp-green:#34d399;--mp-green-bg:rgba(52,211,153,.14);
   --mp-amber:#fbbf24;--mp-amber-bg:rgba(251,191,36,.14);
   --mp-ff:'Inter',system-ui,sans-serif;
@@ -54,7 +55,7 @@ html{height:100%;overflow:hidden!important;background:transparent}
 body{height:100%;min-height:0!important;overflow:hidden!important;overscroll-behavior:none}
 .mp-app{position:relative;width:100%;height:100%;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;
   overscroll-behavior-y:contain;touch-action:pan-y;padding-top:env(safe-area-inset-top,0px);
-  background:radial-gradient(120% 60% at 50% -10%,rgba(255,45,85,.20),transparent 60%),linear-gradient(180deg,var(--mp-bg2),var(--mp-bg) 60%)}
+  background:radial-gradient(120% 60% at 50% -10%,rgba(47,123,255,.20),transparent 60%),linear-gradient(180deg,var(--mp-bg2),var(--mp-bg) 60%)}
 
 /* ── views (one visible at a time) ── */
 .mp-view{display:none;min-height:100%}
@@ -89,14 +90,14 @@ body{height:100%;min-height:0!important;overflow:hidden!important;overscroll-beh
 
 /* ══════════ 1 · HOME ══════════ */
 .mp-hero{position:relative;margin-top:6px;border-radius:26px;padding:26px 18px 22px;text-align:center;overflow:hidden;
-  background:radial-gradient(90% 120% at 50% 0%,rgba(255,45,85,.34),transparent 62%),linear-gradient(180deg,#1d0c14,#10080c);
-  border:1px solid rgba(255,45,85,.25)}
+  background:radial-gradient(90% 120% at 50% 0%,rgba(47,123,255,.34),transparent 62%),linear-gradient(180deg,#1d0c14,#10080c);
+  border:1px solid rgba(47,123,255,.25)}
 .mp-hero::before{content:"";position:absolute;inset:0;background:
   radial-gradient(2px 2px at 12% 30%,rgba(255,255,255,.5),transparent),radial-gradient(2px 2px at 82% 22%,rgba(255,255,255,.4),transparent),
   radial-gradient(1.5px 1.5px at 66% 70%,rgba(255,255,255,.35),transparent),radial-gradient(1.5px 1.5px at 28% 76%,rgba(255,255,255,.3),transparent);opacity:.7}
 .mp-couple{position:relative;display:flex;align-items:center;justify-content:center;gap:0}
 .mp-av{width:84px;height:84px;border-radius:50%;border:3px solid rgba(255,255,255,.9);background:var(--mp-grad);color:#fff;font-size:30px;font-weight:800;
-  display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 8px 26px rgba(0,0,0,.45),0 0 0 6px rgba(255,45,85,.18)}
+  display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 8px 26px rgba(0,0,0,.45),0 0 0 6px rgba(47,123,255,.18)}
 .mp-av img{width:100%;height:100%;object-fit:cover}
 .mp-av.b{background:linear-gradient(135deg,#7c3aed,#db2777)}
 .mp-link{width:70px;display:flex;align-items:center;justify-content:center;position:relative;color:var(--mp-red);font-size:24px}
@@ -113,7 +114,7 @@ body{height:100%;min-height:0!important;overflow:hidden!important;overscroll-beh
 .mp-q .qi{width:40px;height:40px;border-radius:13px;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:20px;background:var(--mp-card2)}
 .mp-q b{display:block;font-size:13px}
 .mp-q small{display:block;font-size:10px;color:var(--mp-text3);margin-top:2px}
-.mp-q.main{background:var(--mp-red-soft);border-color:rgba(255,45,85,.55)}
+.mp-q.main{background:var(--mp-red-soft);border-color:rgba(47,123,255,.55)}
 .mp-q.main .qi{background:var(--mp-grad);box-shadow:0 6px 18px var(--mp-red-glow)}
 
 .mp-mini-stats{display:flex;gap:8px;margin-top:12px}
@@ -122,8 +123,8 @@ body{height:100%;min-height:0!important;overflow:hidden!important;overscroll-beh
 .mp-mini span{font-size:9.5px;color:var(--mp-text3);text-transform:uppercase;letter-spacing:.5px;font-weight:700}
 
 /* upcoming ticket card */
-.mp-up{display:flex;gap:0;border-radius:22px;overflow:hidden;cursor:pointer;border:1px solid rgba(255,45,85,.35);
-  background:linear-gradient(135deg,rgba(255,45,85,.22),rgba(255,255,255,.04));transition:var(--mp-t)}
+.mp-up{display:flex;gap:0;border-radius:22px;overflow:hidden;cursor:pointer;border:1px solid rgba(47,123,255,.35);
+  background:linear-gradient(135deg,rgba(47,123,255,.22),rgba(255,255,255,.04));transition:var(--mp-t)}
 .mp-up:active{transform:scale(.985)}
 .mp-up-date{width:86px;flex-shrink:0;background:var(--mp-grad);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 6px;text-align:center}
 .mp-up-date b{font-size:32px;font-weight:800;line-height:1}
@@ -171,7 +172,7 @@ textarea.mp-input{resize:vertical;min-height:84px;line-height:1.6}
 .mp-res{padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--mp-line);font-size:13px}
 .mp-res:last-child{border-bottom:none}.mp-res:hover{background:var(--mp-card2)}
 .mp-res b{display:block;font-weight:600}.mp-res small{display:block;color:var(--mp-text3);font-size:10.5px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mp-citychip{display:none;align-items:center;gap:10px;background:var(--mp-red-soft);border:1px solid rgba(255,45,85,.4);border-radius:14px;padding:11px 14px;margin-top:9px}
+.mp-citychip{display:none;align-items:center;gap:10px;background:var(--mp-red-soft);border:1px solid rgba(47,123,255,.4);border-radius:14px;padding:11px 14px;margin-top:9px}
 .mp-citychip.show{display:flex}
 .mp-citychip b{flex:1;font-size:14px}.mp-citychip a{font-size:12px;font-weight:700;color:var(--mp-red);cursor:pointer}
 .mp-citychip svg.i{color:var(--mp-red);font-size:18px}
@@ -203,7 +204,7 @@ textarea.mp-input{resize:vertical;min-height:84px;line-height:1.6}
 .mp-tile.sel .mp-tile-add{background:var(--mp-grad);border-color:#fff}
 .mp-tile.sel{border-color:var(--mp-red);box-shadow:0 0 0 2px var(--mp-red)}
 .mp-poi{display:flex;align-items:center;gap:12px;padding:10px;border-radius:18px;background:var(--mp-card);border:1px solid var(--mp-line);margin-bottom:9px;cursor:pointer;transition:var(--mp-t)}
-.mp-poi.sel{border-color:rgba(255,45,85,.6);background:var(--mp-red-soft)}
+.mp-poi.sel{border-color:rgba(47,123,255,.6);background:var(--mp-red-soft)}
 .mp-thumb{width:56px;height:56px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:27px;flex-shrink:0;position:relative;overflow:hidden}
 .mp-poi-b{flex:1;min-width:0}
 .mp-poi-b b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -219,7 +220,7 @@ textarea.mp-input{resize:vertical;min-height:84px;line-height:1.6}
 .mp-dock{position:sticky;bottom:calc(var(--mp-nav) + env(safe-area-inset-bottom,0px));z-index:40;margin-top:14px;display:none}
 .mp-dock.show{display:flex}
 .mp-dock-in{flex:1;display:flex;align-items:center;gap:12px;padding:10px 10px 10px 16px;border-radius:20px;background:rgba(20,10,14,.92);
-  backdrop-filter:blur(18px);border:1px solid rgba(255,45,85,.4);box-shadow:0 14px 36px rgba(0,0,0,.55)}
+  backdrop-filter:blur(18px);border:1px solid rgba(47,123,255,.4);box-shadow:0 14px 36px rgba(0,0,0,.55)}
 .mp-dock-in div{flex:1;min-width:0;font-size:13px;font-weight:700}.mp-dock-in small{display:block;font-size:11px;color:var(--mp-text3);font-weight:500}
 
 /* ══════════ 4 · STOPS ══════════ */
@@ -247,7 +248,7 @@ textarea.mp-input{resize:vertical;min-height:84px;line-height:1.6}
 .mp-tl-time{width:64px;flex-shrink:0;white-space:nowrap;font-size:11.5px;font-weight:700;color:var(--mp-text2);padding-top:14px;text-align:right}
 .mp-tl-rail{width:16px;flex-shrink:0;display:flex;flex-direction:column;align-items:center}
 .mp-tl-dot{width:13px;height:13px;border-radius:50%;background:var(--mp-red);box-shadow:0 0 0 4px var(--mp-red-soft),0 0 14px var(--mp-red);margin-top:17px;flex-shrink:0}
-.mp-tl-line{flex:1;width:2px;background:repeating-linear-gradient(180deg,rgba(255,45,85,.55) 0 5px,transparent 5px 9px);margin-top:4px}
+.mp-tl-line{flex:1;width:2px;background:repeating-linear-gradient(180deg,rgba(47,123,255,.55) 0 5px,transparent 5px 9px);margin-top:4px}
 .mp-tl-row:last-child .mp-tl-line{display:none}
 .mp-tl-card{flex:1;min-width:0;display:flex;gap:12px;align-items:center;padding:10px;border-radius:18px;background:var(--mp-card);border:1px solid var(--mp-line);margin-bottom:8px;cursor:pointer}
 .mp-tl-leg{font-size:10.5px;color:var(--mp-text3);margin:-2px 0 6px 0;display:flex;align-items:center;gap:6px}
@@ -294,8 +295,8 @@ textarea.mp-input{resize:vertical;min-height:84px;line-height:1.6}
 .mp-plan .sd-check{top:8px;right:36px}
 
 /* ══════════ 9 · DETAIL / COUNTDOWN ══════════ */
-.mp-dhero{position:relative;border-radius:26px;overflow:hidden;padding:26px 18px 20px;text-align:center;border:1px solid rgba(255,45,85,.3);
-  background:radial-gradient(100% 90% at 50% 0%,rgba(255,45,85,.42),transparent 65%),linear-gradient(180deg,#240d16,#12080c)}
+.mp-dhero{position:relative;border-radius:26px;overflow:hidden;padding:26px 18px 20px;text-align:center;border:1px solid rgba(47,123,255,.3);
+  background:radial-gradient(100% 90% at 50% 0%,rgba(47,123,255,.42),transparent 65%),linear-gradient(180deg,#240d16,#12080c)}
 .mp-dhero.done{background:radial-gradient(100% 90% at 50% 0%,rgba(52,211,153,.32),transparent 65%),linear-gradient(180deg,#0e2018,#0a1310);border-color:rgba(52,211,153,.3)}
 .mp-script{font-family:'Brush Script MT','Segoe Script','Dancing Script',cursive;font-size:30px;line-height:1.1}
 .mp-dhero small{display:block;font-size:12px;color:var(--mp-text2);margin-top:5px}
@@ -354,7 +355,7 @@ textarea.mp-input{resize:vertical;min-height:84px;line-height:1.6}
 .gve-content{display:flex;align-items:center;justify-content:center;width:100%;height:100%;will-change:transform;touch-action:none}
 .gve-content img{max-width:92vw;max-height:88vh;object-fit:contain;border-radius:10px;user-select:none;-webkit-user-drag:none;pointer-events:none}
 #mpToast{position:fixed;bottom:calc(var(--mp-nav) + 14px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%) translateY(12px);background:rgba(20,10,14,.95);backdrop-filter:blur(16px);color:#fff;padding:11px 20px;border-radius:24px;font-size:13px;z-index:9999;opacity:0;transition:all .3s;pointer-events:none;max-width:90vw;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.5);border:1px solid var(--mp-line2);font-weight:500}
-.mp-pin{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#ff3b5c,#e0113b);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.5)}
+.mp-pin{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#3D8BFF,#0B5BE0);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.5)}
 .leaflet-container{font-family:var(--mp-ff)}
 
 /* ── small phones / short landscape ── */
@@ -365,6 +366,7 @@ textarea.mp-input{resize:vertical;min-height:84px;line-height:1.6}
 <script src="/js/gallery-viewer.js"></script>
 <script src="/safe-delete.js"></script>
 <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+<link rel="stylesheet" href="/theme-tokens.css?v=1">
 </head>
 <body>
 

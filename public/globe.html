@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme-lock="dark">
 <head>
+<script src="/theme.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Memory Globe</title>
@@ -429,6 +430,7 @@
   <script src="/js/gallery-viewer.js"></script>
   <script src="/js/upload-queue.js"></script>
   <script src="/js/upload-progress-ui.js"></script>
+<link rel="stylesheet" href="/theme-tokens.css?v=1">
 </head>
 <body>
 <div id="app">
@@ -1036,7 +1038,7 @@ async function renderCesiumPins() {
 //    continents, or if OSRM fails) fall back to a glowing geodesic arc so
 //    there's still a visible connection. Routes are cached by endpoint pair
 //    so re-pinning a memory doesn't re-fetch legs you've already resolved. ──
-const ARC_COLORS = ['#4fa8ff','#ff6b9d','#34d399','#fbbf24','#a78bfa','#fb923c','#22d3ee','#f472b6'];
+const ARC_COLORS = ['#4fa8ff','#5AB0FF','#34d399','#fbbf24','#a78bfa','#fb923c','#22d3ee','#f472b6'];
 const MAX_DRIVE_KM = 1200; // beyond this, assume flight/ferry — don't bother asking OSRM
 let arcEntities = [];
 let arcRenderToken = 0;
@@ -1300,7 +1302,7 @@ function renderTimelineView() {
     el.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--text3)"><div style="font-size:48px;margin-bottom:12px">📅</div><div style="font-size:16px">No memories yet</div></div>`;
     return;
   }
-  const moodColors = {'😊':'#fbbf24','🥰':'#ff6b9d','😌':'#34d399','😤':'#f87171','🤩':'var(--accent)','😔':'#a78bfa'};
+  const moodColors = {'😊':'#fbbf24','🥰':'#5AB0FF','😌':'#34d399','😤':'#f87171','🤩':'var(--accent)','😔':'#a78bfa'};
   el.innerHTML = `<div class="timeline-strip">
     ${filtered.map((m, i) => {
       const emoji = (m.mood || '').split(' ')[0] || '❤️';
@@ -1916,7 +1918,7 @@ function renderStats() {
   el.innerHTML = `
     <div class="kpi-grid">
       <div class="kpi-card"><div class="kpi-n" style="color:var(--accent)">${filtered.length}</div><div class="kpi-l">Memories</div></div>
-      <div class="kpi-card"><div class="kpi-n" style="color:#ff6b9d">${cities.length}</div><div class="kpi-l">Cities</div></div>
+      <div class="kpi-card"><div class="kpi-n" style="color:#5AB0FF">${cities.length}</div><div class="kpi-l">Cities</div></div>
       <div class="kpi-card"><div class="kpi-n" style="color:var(--green)">${countries.length}</div><div class="kpi-l">Countries</div></div>
       <div class="kpi-card"><div class="kpi-n" style="color:var(--yellow);font-size:20px">₹${totalCost>0?Math.round(totalCost/1000)+'k':0}</div><div class="kpi-l">Spent</div></div>
     </div>

@@ -8,7 +8,7 @@
 
 .lv {
   --lv-a: var(--accent, #ff3b4e);
-  --lv-a-d: var(--accent-d, #c1121f);
+  --lv-a-d: var(--accent-d, #1F6BFF);
   --lv-a-l: var(--accent-l, #ff7a86);
   --lv-line: rgba(255, 59, 78, .30);
   --lv-line: color-mix(in srgb, var(--lv-a) 32%, transparent);

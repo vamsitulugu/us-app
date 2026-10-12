@@ -1,0 +1,126 @@
+/* ============================================================
+   THEME TOKENS — single source of truth for app colours.
+   Linked LAST on every page. Values are !important so they also
+   beat iframe inline vars set by the old syncThemeToFrame().
+   html[data-theme="dark"|"light"] is set by /theme.js
+   ============================================================ */
+
+/* ───────── DARK (default) — navy / electric blue / cyan ───────── */
+html, html[data-theme="dark"] {
+  color-scheme: dark;
+  --brand:#1F6BFF; --brand-d:#0B4FD8; --brand-l:#5AA0FF; --brand-glow:rgba(31,107,255,.40);
+  --brand2:#22B8F0; --brand2-glow:rgba(34,184,240,.32);
+  --accent:#1F6BFF !important; --accent-d:#0B4FD8 !important; --accent-l:#5AA0FF !important;
+  --accent-glow:rgba(31,107,255,.40) !important;
+  --accent2:#22B8F0 !important; --accent2-d:#0A8FD0 !important; --accent2-glow:rgba(34,184,240,.32) !important;
+  --blue:#1F6BFF !important; --blue-bg:rgba(31,107,255,.40) !important;
+  --pm-red:#1F6BFF !important; --pm-red-deep:#0B4FD8 !important; --pm-red-bright:#3D8BFF !important;
+  --pm-glow:rgba(31,107,255,.40) !important; --pm-bg-glow:rgba(31,107,255,.16) !important;
+  --mx-red:#22B8F0 !important; --mx-red-d:#1F6BFF !important;
+  --mp-red:#1F6BFF !important; --mp-red2:#0B4FD8 !important;
+  --wt-red1:#3D8BFF !important; --wt-red2:#1F6BFF !important;
+
+  --bg:#030816 !important; --bg-2:#0A1530 !important; --surface:#0B1633 !important; --surface-2:#10204A !important;
+  --hero-grad:linear-gradient(180deg,#06153A 0%,#030816 100%);
+  --splash-bg:#06122E;
+
+  --g1:rgba(120,170,255,.05) !important; --g2:rgba(120,170,255,.09) !important; --g3:rgba(120,170,255,.14) !important;
+  --gb:rgba(120,170,255,.07) !important; --gd:rgba(120,170,255,.035) !important;
+  --white:#ffffff !important;
+  --text:rgba(255,255,255,.94) !important; --text2:rgba(200,215,245,.72) !important; --text3:rgba(180,198,235,.46) !important;
+  --border:rgba(90,150,255,.18) !important; --border2:rgba(90,150,255,.30) !important;
+  --green:#34d399 !important; --red:#f87171 !important; --yellow:#fbbf24 !important;
+}
+
+/* ───────── LIGHT — blue hero, white cards, navy text ───────── */
+html[data-theme="light"] {
+  color-scheme: light;
+  --brand:#0F6BFF; --brand-d:#0A52CC; --brand-l:#5AA0FF; --brand-glow:rgba(15,107,255,.28);
+  --brand2:#0EA5E9; --brand2-glow:rgba(14,165,233,.25);
+  --accent:#0F6BFF !important; --accent-d:#0A52CC !important; --accent-l:#5AA0FF !important;
+  --accent-glow:rgba(15,107,255,.28) !important;
+  --accent2:#0EA5E9 !important; --accent2-d:#0284C7 !important; --accent2-glow:rgba(14,165,233,.25) !important;
+  --blue:#0F6BFF !important; --blue-bg:rgba(15,107,255,.28) !important;
+  --pm-red:#0F6BFF !important; --pm-red-deep:#0A52CC !important; --pm-red-bright:#3D8BFF !important;
+  --pm-glow:rgba(15,107,255,.28) !important; --pm-bg-glow:rgba(15,107,255,.10) !important;
+  --mx-red:#0EA5E9 !important; --mx-red-d:#0F6BFF !important;
+  --mp-red:#0F6BFF !important; --mp-red2:#0A52CC !important;
+  --wt-red1:#3D8BFF !important; --wt-red2:#0F6BFF !important;
+
+  --bg:#EAF2FF !important; --bg-2:#F4F8FF !important; --surface:#FFFFFF !important; --surface-2:#F1F6FF !important;
+  --hero-grad:linear-gradient(180deg,#0A4BCF 0%,#1C6BFF 55%,#4C94FF 100%);
+  --splash-bg:#0A4BCF;
+
+  --g1:rgba(15,60,160,.04) !important; --g2:rgba(15,60,160,.07) !important; --g3:rgba(15,60,160,.11) !important;
+  --gb:rgba(15,60,160,.05) !important; --gd:rgba(15,60,160,.03) !important;
+  --white:#0B1B3A !important;
+  --text:#0B1B3A !important; --text2:#4A5B7D !important; --text3:#8191AE !important;
+  --border:rgba(20,70,170,.12) !important; --border2:rgba(20,70,170,.22) !important;
+  --green:#059669 !important; --red:#DC2626 !important; --yellow:#D97706 !important;
+}
+
+/* ───────── Shell surfaces (beat the old !important block in index.html) ───────── */
+html body { background: var(--bg) !important; color: var(--text); }
+html[data-theme] #bg { background: var(--hero-grad) !important; }
+html:not([data-theme="light"]) #bg::before {
+  background: radial-gradient(circle at 15% 15%, rgba(31,107,255,.20), transparent 50%),
+              radial-gradient(circle at 85% 10%, rgba(34,184,240,.14), transparent 50%),
+              radial-gradient(circle at 50% 90%, rgba(31,107,255,.12), transparent 55%) !important;
+}
+html[data-theme="light"] #bg::before { background: none !important; }
+html[data-theme="light"] #bg { background: var(--bg) !important; }
+html[data-theme="light"] #bg::after { opacity: 0 !important; }
+
+html[data-theme="light"] .card, html[data-theme="light"] .metric, html[data-theme="light"] .m-card,
+html[data-theme="light"] .period-hero, html[data-theme="light"] .storage-hero, html[data-theme="light"] .pstat {
+  background: #fff !important; background-image: none !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 8px 28px rgba(15,70,190,.10) !important;
+}
+html[data-theme="light"] .sidebar { background: #fff !important; border-right: 1px solid var(--border) !important; }
+html[data-theme="light"] .sb-logo { background: #fff !important; }
+html[data-theme="light"] .ni:hover { background: rgba(15,107,255,.06) !important; }
+html[data-theme="light"] .ni.active { background: rgba(15,107,255,.12) !important; }
+html[data-theme="light"] .topbar { background: rgba(255,255,255,.88) !important; }
+html[data-theme="light"] .modal, html[data-theme="light"] .auth-card {
+  background: rgba(255,255,255,.96) !important; border: 1px solid var(--border2) !important;
+  box-shadow: 0 20px 60px rgba(15,70,190,.18) !important;
+}
+html[data-theme="light"] .auth-tabs { background: rgba(15,60,160,.06) !important; }
+html[data-theme="light"] input[type=text], html[data-theme="light"] input[type=password],
+html[data-theme="light"] input[type=email], html[data-theme="light"] input[type=number],
+html[data-theme="light"] input[type=date], html[data-theme="light"] input[type=time],
+html[data-theme="light"] input[type=search], html[data-theme="light"] textarea,
+html[data-theme="light"] select, html[data-theme="light"] .chat-in {
+  background: #F4F8FF !important; border: 1px solid var(--border) !important; color: var(--text) !important;
+}
+html[data-theme="light"] input:focus, html[data-theme="light"] textarea:focus,
+html[data-theme="light"] select:focus, html[data-theme="light"] .chat-in:focus { background: #fff !important; }
+html[data-theme="light"] select option { background: #fff; color: #0B1B3A; }
+html[data-theme="light"] .btn-glass { background: var(--g2) !important; color: var(--text) !important; }
+html[data-theme="light"] .btn-accent, html[data-theme="light"] .ic-btn.accent,
+html[data-theme="light"] .toggle.on, html[data-theme="light"] .badge { color: #fff !important; }
+
+/* Bottom nav pill */
+html[data-theme="light"] #botNav .gn-glass { background: rgba(255,255,255,.94) !important; }
+html[data-theme="light"] #botNav .bot-ni { color: #6B7A99; }
+html[data-theme="light"] #botNav .bot-ni.active { color: var(--accent) !important; }
+html:not([data-theme="light"]) #botNav .gn-glass { background: rgba(8,18,45,.92) !important; }
+
+/* Settings page (hero keeps the blue gradient in light mode, like the reference) */
+html[data-theme="light"] .set-row, html[data-theme="light"] .set-list { background: #fff; }
+html[data-theme="light"] .set-t { color: var(--text); }
+html[data-theme="light"] .set-s, html[data-theme="light"] .set-sec-t { color: var(--text2); }
+
+/* Theme picker (Settings → Appearance) */
+.th-pick { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:12px; }
+.th-opt {
+  display:flex; flex-direction:column; align-items:center; gap:8px; padding:12px 8px;
+  border-radius:14px; border:1.5px solid var(--border2); background:var(--g1);
+  color:var(--text); font:600 13px var(--ff-sans, system-ui); cursor:pointer;
+}
+.th-opt .th-sw { width:44px; height:44px; border-radius:12px; border:1px solid var(--border2); }
+.th-opt[data-v="dark"] .th-sw { background:linear-gradient(160deg,#06153A,#030816 70%); box-shadow:inset 0 0 0 3px #1F6BFF55; }
+.th-opt[data-v="light"] .th-sw { background:linear-gradient(160deg,#1C6BFF,#EAF2FF 60%); }
+.th-opt[data-v="system"] .th-sw { background:linear-gradient(90deg,#030816 50%,#EAF2FF 50%); }
+.th-opt.on { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow); }

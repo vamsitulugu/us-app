@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme-lock="dark">
 <head>
+<script src="/theme.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Twin Hearts 💕 — Everything Together.</title>
@@ -24,7 +25,7 @@
 <meta name="twitter:description" content="Twin Hearts is a private space built for two — chat, memories, calls, journals and more, just for you and your partner.">
 <meta name="twitter:image" content="https://twinhearts.vercel.app/icons/icon-512.png">
 <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#1a0010">
+<meta name="theme-color" content="#06122E">
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" href="/icons/icon-192.png" type="image/png" sizes="192x192">
 <link rel="icon" href="/icons/icon-512.png" type="image/png" sizes="512x512">
@@ -67,7 +68,7 @@
    ═══════════════════════════════════════════════════════════════════ */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --accent:#bc041d;--accent2:#b41e2f;--accent-glow:rgba(207,50,71,.35);
+  --accent:#1F6BFF;--accent2:#b41e2f;--accent-glow:rgba(207,50,71,.35);
   --accent2-glow:rgba(185,28,46,.30);
   --ff-serif:'DM Serif Display',Georgia,serif;--ff-sans:'Inter',system-ui,sans-serif;
   --white:#fff;--text:rgba(255,255,255,.92);--text2:rgba(255,255,255,.60);
@@ -287,7 +288,7 @@ footer p{font-size:11px;color:var(--text3)}
 /* Native app, no session yet: show only the sign-in/sign-up card —
    the marketing hero/install page is for the browser, not the app. */
 body.native-auth-only > *:not(#authModal){display:none!important}
-body.native-auth-only #authModal{position:fixed;background:var(--bg,#0B0B0B)}
+body.native-auth-only #authModal{position:fixed;background:var(--bg,#030816)}
 body.native-auth-only #authModal .modal-close{display:none}
 .mcard{background:rgba(9,6,6,.96);backdrop-filter:blur(30px);border:1px solid var(--border2);border-radius:26px;padding:36px 32px;width:100%;max-width:460px;color:var(--white);box-shadow:0 30px 90px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.06);animation:popIn .35s cubic-bezier(.34,1.56,.64,1);position:relative;max-height:88vh;overflow-y:auto}
 @keyframes popIn{from{opacity:0;transform:scale(.88) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
@@ -335,6 +336,7 @@ body.native-auth-only #authModal .modal-close{display:none}
       window.__refreshLucideIcons = _initLucideIcons;
     })();
   </script>
+<link rel="stylesheet" href="/theme-tokens.css?v=1">
 </head>
 <body>
 

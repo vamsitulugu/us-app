@@ -26,7 +26,7 @@
     Animation:   { e: '🎨', c: ['#ff7ad9', '#5a1a6e'] },
     Documentary: { e: '📽️', c: ['#c9b27c', '#4a3a16'] },
     Bollywood:   { e: '🎪', c: ['#ff5d73', '#7a1030'] },
-    Other:       { e: '🎬', c: ['#d6102a', '#3a0510'] },
+    Other:       { e: '🎬', c: ['#0B5BE0', '#3a0510'] },
   };
   const STATUS = {
     watchlist: { label: '🌟 Watchlist', cls: 'st-watchlist' },

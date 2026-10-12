@@ -153,7 +153,7 @@ const HeartbeatManager = (() => {
     diamond:     { primary: '#e2e8f0', secondary: '#cbd5e1', glow: 'rgba(226,232,240,0.6)', emoji: '💠' },
     aurora:      { primary: '#86efac', secondary: '#67e8f9', glow: 'rgba(134,239,172,0.6)', emoji: '🌈' },
     anniversary: { primary: '#f9a8d4', secondary: '#f472b6', glow: 'rgba(249,168,212,0.6)', emoji: '💍' },
-    valentine:   { primary: '#ff6b9d', secondary: '#c2185b', glow: 'rgba(255,107,157,0.6)', emoji: '💝' },
+    valentine:   { primary: '#5AB0FF', secondary: '#c2185b', glow: 'rgba(255,107,157,0.6)', emoji: '💝' },
   };
 
   /* ── EMOJI REACTIONS ── */

@@ -6,8 +6,8 @@
    places.html, globe.html) independently defines its own :root
    block with --h:215 / --accent:hsl(215,...) — a blue/violet brand
    color. premium-motion.css was built separately and hardcoded a
-   red/burgundy glow palette (--pm-red #C1121F, --pm-red-deep
-   #8B0000, --pm-red-bright #FF3B30) for its animations, so the
+   red/burgundy glow palette (--pm-red #1F6BFF, --pm-red-deep
+   #0A47C2, --pm-red-bright #3D8BFF) for its animations, so the
    *animations* were already burgundy while the *surfaces underneath
    them* (buttons, active states, gradients, focus rings) stayed
    blue. That mismatch is the actual bug this file fixes.
@@ -29,17 +29,17 @@
   /* Primary brand — matches premium-motion.css's --pm-red family
      exactly, so UI surfaces and motion glows are finally the same
      color language. */
-  --accent: #C1121F;
-  --accent-d: #8B0000;
-  --accent-l: #FF6B5D;
-  --accent-glow: rgba(255, 59, 48, 0.35);
+  --accent: #1F6BFF;
+  --accent-d: #0A47C2;
+  --accent-l: #5AA0FF;
+  --accent-glow: rgba(61,139,255, 0.35);
 
   /* Secondary — kept in the same warm family (deep rose) instead of
      the previous cool magenta, so two-color gradients still read as
      "one palette" rather than clashing hues. */
-  --accent2: #E0355B;
-  --accent2-d: #A3123A;
-  --accent2-glow: rgba(224, 53, 91, 0.32);
+  --accent2: #22B8F0;
+  --accent2-d: #0A47C2;
+  --accent2-glow: rgba(34,184,240, 0.32);
 
   /* --blue was aliased to --accent on every page (--blue: var(--accent)),
      so it inherits the repaint automatically — listed here only for

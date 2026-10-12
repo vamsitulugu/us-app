@@ -12,14 +12,14 @@
 ═══════════════════════════════════════════════════════════════ */
 :root{
   --h:215;
-  --accent:#C1121F; --accent-d:#8B0000; --accent-l:#FF6B5D; --accent-glow:rgba(255,59,48,.35);
-  --accent2:#E0355B; --accent2-d:#A3123A; --accent2-glow:rgba(224,53,91,.32);
+  --accent:#1F6BFF; --accent-d:#0A47C2; --accent-l:#5AA0FF; --accent-glow:rgba(61,139,255,.35);
+  --accent2:#22B8F0; --accent2-d:#0A47C2; --accent2-glow:rgba(34,184,240,.32);
 
   --ff-serif:'DM Serif Display',Georgia,serif;
   --ff-sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
 
-  --mx-bg:#07030a;
-  --mx-surface:#12080f;
+  --mx-bg:#030816;
+  --mx-surface:#0A1530;
   --mx-card:rgba(255,255,255,.05);
   --mx-card2:rgba(255,255,255,.09);
   --mx-line:rgba(255,255,255,.09);
@@ -50,8 +50,8 @@ body{
   font-family:var(--ff-sans);color:var(--mx-text);line-height:1.45;overflow:hidden;
   overscroll-behavior:none;-webkit-font-smoothing:antialiased;
   background:
-    radial-gradient(120% 55% at 50% -8%,rgba(139,0,0,.42),transparent 62%),
-    radial-gradient(90% 40% at 100% 100%,rgba(139,0,0,.22),transparent 70%),
+    radial-gradient(120% 55% at 50% -8%,rgba(10,71,194,.42),transparent 62%),
+    radial-gradient(90% 40% at 100% 100%,rgba(10,71,194,.22),transparent 70%),
     var(--mx-bg);
 }
 @supports (background:color-mix(in srgb,red 10%,blue)){
@@ -78,7 +78,7 @@ audio{display:none}
 }
 .screen.active{display:block}
 .screen.pushed{z-index:2;background-color:var(--mx-bg);
-  background-image:radial-gradient(120% 40% at 50% -6%,rgba(139,0,0,.34),transparent 60%)}
+  background-image:radial-gradient(120% 40% at 50% -6%,rgba(10,71,194,.34),transparent 60%)}
 .screen.enter{animation:mxIn .32s var(--mx-ease)}
 .screen.leave{animation:mxOut .24s var(--mx-ease) forwards}
 @keyframes mxIn{from{transform:translateX(26px);opacity:0}to{transform:none;opacity:1}}

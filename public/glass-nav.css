@@ -74,7 +74,7 @@
   pointer-events: none;
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  #botNav .gn-glass { background: rgba(24, 12, 16, .94); }
+  #botNav .gn-glass { background: rgba(8,18,45, .94); }
 }
 
 /* ── Items: plain tap targets — no box, no ring, no flash ───────────── */
@@ -118,7 +118,7 @@
 #botNav .bot-ni.active { color: #fff; font-weight: 700; }
 #botNav .bot-ni.active .gn-ico {
   stroke-width: 1.9;
-  filter: drop-shadow(0 0 6px var(--accent, rgba(255, 45, 85, .9)));
+  filter: drop-shadow(0 0 6px var(--accent, rgba(47,123,255, .9)));
 }
 #botNav .bot-ni.active .gn-fill { fill: currentColor; fill-rule: evenodd; }
 @media (hover: hover) and (pointer: fine) {

@@ -11,7 +11,7 @@
      with the app's dark theme (was hardcoded to a blue #2f6feb). */
   function syncStatusBar() {
     var meta = document.getElementById('themeColorMeta');
-    if (meta) meta.setAttribute('content', '#0B0B0B');
+    if (meta) meta.setAttribute('content', (window.Theme && Theme.resolved()==='light') ? '#0A4BCF' : '#030816');
   }
   syncStatusBar();
   // Some pages/modals temporarily swap the theme-color meta for

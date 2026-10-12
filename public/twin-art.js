@@ -99,7 +99,7 @@
     return '<svg viewBox="0 0 220 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Twin AI robot holding a heart">' +
       defs(p) +
       floaters([[206, 70, .2, 0], [20, 120, .16, 1.2], [196, 168, .13, .6]]) +
-      robotGroup(p, { eye: '#ff3a4f' }) +
+      robotGroup(p, { eye: '#3D8BFF' }) +
       heartShape(p, 110, 176, 1.25) +
       arms(p, 110, 176) +
     '</svg>';
@@ -128,8 +128,8 @@
       '<ellipse cx="24" cy="24.5" rx="15" ry="13" fill="url(#' + p + 'h)"/>' +
       '<ellipse cx="8.8" cy="25" rx="2.6" ry="4.4" fill="url(#' + p + 'r)"/><ellipse cx="39.2" cy="25" rx="2.6" ry="4.4" fill="url(#' + p + 'r)"/>' +
       '<rect x="12.5" y="16.5" width="23" height="15" rx="7" fill="#0b0305"/>' +
-      '<g stroke="#ff3a4f" stroke-width="2" stroke-linecap="round" fill="none"><path d="M17.5 25 Q20 20.5 22.5 25"/><path d="M25.5 25 Q28 20.5 30.5 25"/></g>' +
-      '<path d="M21.5 28.4Q24 30.6 26.5 28.4" stroke="#ff3a4f" stroke-width="1.4" fill="none" stroke-linecap="round"/>' +
+      '<g stroke="#3D8BFF" stroke-width="2" stroke-linecap="round" fill="none"><path d="M17.5 25 Q20 20.5 22.5 25"/><path d="M25.5 25 Q28 20.5 30.5 25"/></g>' +
+      '<path d="M21.5 28.4Q24 30.6 26.5 28.4" stroke="#3D8BFF" stroke-width="1.4" fill="none" stroke-linecap="round"/>' +
     '</svg>';
   }
 

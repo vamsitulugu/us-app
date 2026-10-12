@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+<script src="/theme.js"></script>
   <meta charset="UTF-8">
   <script>
   // ─── Pre-paint session guard ────────────────────────────────────────
@@ -100,13 +101,13 @@
   <style id="skeletonStyles">
   /* Critical, dependency-free styles — inline so they apply before any
      external CSS/font loads. Prevents the "unstyled flash" entirely. */
-  html, body { background: #0B0B0B !important; }
+  html, body { background: #030816 !important; }
  
   #appLoader {
     position: fixed;
     inset: 0;
     z-index: 999999;
-    background: #0B0B0B;
+    background: #030816;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -331,7 +332,7 @@
   <meta name="twitter:description" content="Twin Hearts is a private space built for two — chat, memories, calls, journals, games and more, just for you and your partner.">
   <meta name="twitter:image" content="https://twinhearts.vercel.app/icons/icon-512.png">
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#0B0B0B" id="themeColorMeta">
+  <meta name="theme-color" content="#030816" id="themeColorMeta">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" href="/icons/icon-192.png" type="image/png" sizes="192x192">
   <link rel="icon" href="/icons/icon-512.png" type="image/png" sizes="512x512">
@@ -1271,7 +1272,7 @@
     .habit-hero-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
     .habit-hero-amt{font-family:var(--ff-serif);font-size:24px;color:var(--white)}
     .habit-hero-sub{font-size:11px;color:var(--text2);margin-top:4px;line-height:1.5}
-    .habit-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+    .habit-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(31,107,255,0.08),rgba(11,79,216,0.05));border:1px solid rgba(31,107,255,0.18);border-radius:var(--r);margin-bottom:14px}
     .habit-insight-ico{font-size:20px;flex-shrink:0}
     .habit-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
     .habit-insight-text strong{color:var(--white)}
@@ -1290,7 +1291,7 @@
     .well-ring-wrap svg{transform:rotate(-90deg)}
     .well-ring-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--white)}
     .well-ring-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.3px}
-    .well-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+    .well-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(31,107,255,0.08),rgba(11,79,216,0.05));border:1px solid rgba(31,107,255,0.18);border-radius:var(--r);margin-bottom:14px}
     .well-insight-ico{font-size:20px;flex-shrink:0}
     .well-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
     .well-insight-text strong{color:var(--white)}
@@ -1459,7 +1460,7 @@
     .fin-hero-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
     .fin-hero-amt{font-family:var(--ff-serif);font-size:26px;color:var(--white)}
     .fin-hero-sub{font-size:11px;color:var(--text2);margin-top:4px;line-height:1.5}
-    .fin-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+    .fin-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(31,107,255,0.08),rgba(11,79,216,0.05));border:1px solid rgba(31,107,255,0.18);border-radius:var(--r);margin-bottom:14px}
     .fin-insight-ico{font-size:20px;flex-shrink:0}
     .fin-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
     .fin-insight-text strong{color:var(--white)}
@@ -1825,7 +1826,7 @@
 
     .phase-menstrual {
       background: rgba(255, 107, 157, 0.25);
-      color: #ff6b9d;
+      color: #5AB0FF;
       border: 1px solid rgba(255, 107, 157, 0.4)
     }
 
@@ -1903,8 +1904,8 @@
 
     .symptom-tag.sel {
       background: rgba(255, 107, 157, 0.2);
-      border-color: #ff6b9d;
-      color: #ff6b9d
+      border-color: #5AB0FF;
+      color: #5AB0FF
     }
   /* ════ PERIOD ANALYTICS ════ */
     .period-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(255,107,157,0.1),rgba(255,107,157,0.04));border:1px solid rgba(255,107,157,0.2);border-radius:var(--r);margin-bottom:14px}
@@ -1912,19 +1913,19 @@
     .period-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
     .period-insight-text strong{color:var(--white)}
     .period-cycle-row{display:flex;align-items:flex-end;gap:6px;height:70px;padding:6px 0 0}
-    .period-cycle-bar{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#ff6b9d,#c2185b);min-height:3px;transition:height 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+    .period-cycle-bar{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#5AB0FF,#c2185b);min-height:3px;transition:height 0.7s cubic-bezier(0.34,1.56,0.64,1)}
     .period-cycle-label{font-size:8px;color:var(--text3);text-align:center;margin-top:4px}
     .period-symptom-freq-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
     .period-symptom-freq-row:last-child{border-bottom:none}
     .period-symptom-bar-wrap{flex:1;height:6px;background:var(--g2);border-radius:3px;margin:0 10px;overflow:hidden}
-    .period-symptom-bar{height:100%;background:linear-gradient(90deg,#ff6b9d,#c2185b);border-radius:3px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+    .period-symptom-bar{height:100%;background:linear-gradient(90deg,#5AB0FF,#c2185b);border-radius:3px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
     /* ════ MEMORIES ANALYTICS ════ */
-    .mem-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+    .mem-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(31,107,255,0.08),rgba(11,79,216,0.05));border:1px solid rgba(31,107,255,0.18);border-radius:var(--r);margin-bottom:14px}
     .mem-insight-ico{font-size:20px;flex-shrink:0}
     .mem-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
     .mem-insight-text strong{color:var(--white)}
     .mem-month-row{display:flex;align-items:flex-end;gap:6px;height:70px;padding:6px 0 0}
-    .mem-month-bar{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,var(--accent),var(--accent-d,#8f0000));min-height:3px;transition:height 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+    .mem-month-bar{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,var(--accent),var(--accent-d,#0B4FD8));min-height:3px;transition:height 0.7s cubic-bezier(0.34,1.56,0.64,1)}
     .mem-month-label{font-size:8px;color:var(--text3);text-align:center;margin-top:4px}
     /* ════ XP / ACHIEVEMENTS ANALYTICS ════ */
     .xp-hero{display:flex;flex-direction:column;align-items:center;padding:24px 20px;margin-bottom:14px}
@@ -1934,13 +1935,13 @@
     .xp-ring-lvl{font-family:var(--ff-serif);font-size:34px;color:var(--white);line-height:1}
     .xp-ring-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
     .xp-hero-sub{font-size:12px;color:var(--text2);text-align:center}
-    .xp-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+    .xp-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(31,107,255,0.08),rgba(11,79,216,0.05));border:1px solid rgba(31,107,255,0.18);border-radius:var(--r);margin-bottom:14px}
     .xp-insight-ico{font-size:20px;flex-shrink:0}
     .xp-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
     .xp-insight-text strong{color:var(--white)}
     .xp-badge-grid{display:flex;gap:10px;flex-wrap:wrap}
     .xp-badge{min-width:100px;background:var(--g1);border:1px solid var(--border);border-radius:var(--rs);padding:12px 10px;text-align:center;transition:var(--t)}
-    .xp-badge.earned{border-color:rgba(229,9,20,0.35);background:linear-gradient(160deg,rgba(229,9,20,0.1),rgba(229,9,20,0.02))}
+    .xp-badge.earned{border-color:rgba(31,107,255,0.35);background:linear-gradient(160deg,rgba(31,107,255,0.1),rgba(31,107,255,0.02))}
     .xp-badge-emoji{font-size:28px;margin-bottom:6px}
     .xp-badge-name{font-size:10px;color:var(--white);font-weight:600}
     .xp-badge-locked .xp-badge-emoji{opacity:0.35;filter:grayscale(1)}
@@ -2018,7 +2019,7 @@
     .fl-legend i { width: 11px; height: 11px; border-radius: 50%; background: var(--dot); flex-shrink: 0 }
     .fl-legend b { margin-left: auto; font-weight: 600; color: var(--white) }
 
-    .fl-insight { display: flex; align-items: center; gap: 14px; margin-top: 16px; padding: 14px; border-radius: 14px; background: linear-gradient(135deg, rgba(229, 9, 20, 0.14), rgba(143, 0, 0, 0.05)); border: 1px solid rgba(229, 9, 20, 0.22) }
+    .fl-insight { display: flex; align-items: center; gap: 14px; margin-top: 16px; padding: 14px; border-radius: 14px; background: linear-gradient(135deg, rgba(31,107,255, 0.14), rgba(11,79,216, 0.05)); border: 1px solid rgba(31,107,255, 0.22) }
     .fl-insight-ico { display: flex; font-size: 32px; color: var(--accent) }
     .fl-insight-ico.is-solid .lucide { fill: currentColor }
     .fl-insight b { display: block; margin-bottom: 3px; font-size: 14px; color: var(--white) }
@@ -2037,7 +2038,7 @@
     .fl-delta.is-bad { color: var(--red) }
 
     /* Primary button */
-    .fl-cta { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 54px; margin: 4px 0 22px; border: 0; border-radius: 16px; font: 600 16px var(--ff-sans); color: #fff; cursor: pointer; background: linear-gradient(135deg, #ff3b30, #c40012); box-shadow: 0 8px 28px rgba(229, 9, 20, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2); transition: var(--t) }
+    .fl-cta { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 54px; margin: 4px 0 22px; border: 0; border-radius: 16px; font: 600 16px var(--ff-sans); color: #fff; cursor: pointer; background: linear-gradient(135deg, #3D8BFF, #c40012); box-shadow: 0 8px 28px rgba(31,107,255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2); transition: var(--t) }
     .fl-cta:active { transform: scale(0.985) }
     .fl-cta .lucide { font-size: 20px }
 
@@ -2059,7 +2060,7 @@
 
     .fl-state { padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap }
     .fl-state.is-resolved { color: var(--green); background: var(--green-bg) }
-    .fl-state.is-open { color: #ff5a5f; background: rgba(229, 9, 20, 0.08); border: 1px solid rgba(248, 113, 113, 0.5) }
+    .fl-state.is-open { color: #ff5a5f; background: rgba(31,107,255, 0.08); border: 1px solid rgba(248, 113, 113, 0.5) }
     .fl-state.is-open::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 6px; border: 1.5px solid currentColor; border-radius: 50%; vertical-align: -1px }
     .fl-score { padding: 6px 12px; border-radius: 999px; font-size: 12px; color: var(--text2); background: rgba(255, 255, 255, 0.06); white-space: nowrap }
 
@@ -2092,11 +2093,11 @@
     .fl-chips { display: flex; flex-wrap: wrap; gap: 10px }
     .fl-chip { position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 999px; font: 500 13px var(--ff-sans); color: var(--text); background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border2); cursor: pointer; transition: var(--t) }
     .fl-chip .lucide { font-size: 16px }
-    .fl-chip[aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, #ff3b30, #c40012); border-color: transparent; box-shadow: 0 4px 16px rgba(229, 9, 20, 0.3) }
+    .fl-chip[aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, #3D8BFF, #c40012); border-color: transparent; box-shadow: 0 4px 16px rgba(31,107,255, 0.3) }
 
     .fl-scale { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; padding: 4px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 12px }
     .fl-scale button { height: 42px; padding: 0; border: 0; border-radius: 8px; font: 500 14px var(--ff-sans); color: var(--text2); background: transparent; cursor: pointer; transition: var(--t) }
-    .fl-scale button[aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, #ff3b30, #c40012); box-shadow: 0 0 14px var(--accent-glow) }
+    .fl-scale button[aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, #3D8BFF, #c40012); box-shadow: 0 0 14px var(--accent-glow) }
     .fl-scale-cap { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--text2) }
 
     .fl-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
@@ -2104,7 +2105,7 @@
     .fl-choice .lucide { font-size: 18px }
     .fl-choice[data-value="open"] .lucide { color: #ff5a5f }
     .fl-choice[data-value="resolved"] .lucide { color: var(--green) }
-    .fl-choice[data-value="open"][aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, #d4101c, #8f0000); border-color: transparent }
+    .fl-choice[data-value="open"][aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, #d4101c, #0B4FD8); border-color: transparent }
     .fl-choice[data-value="open"][aria-pressed="true"] .lucide { color: #fff }
     .fl-choice[data-value="resolved"][aria-pressed="true"] { color: var(--green); background: var(--green-bg); border-color: rgba(52, 211, 153, 0.5) }
 
@@ -2114,7 +2115,7 @@
     .fl-tabs { display: flex; gap: 8px; margin-bottom: 16px; padding-bottom: 4px; overflow-x: auto; scrollbar-width: none }
     .fl-tabs::-webkit-scrollbar { display: none }
     .fl-tab { position: relative; overflow: hidden; flex-shrink: 0; padding: 10px 16px; border-radius: 12px; font: 500 13px var(--ff-sans); color: var(--text); background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border2); cursor: pointer }
-    .fl-tab.is-on { color: #fff; background: linear-gradient(135deg, #ff3b30, #c40012); border-color: transparent }
+    .fl-tab.is-on { color: #fff; background: linear-gradient(135deg, #3D8BFF, #c40012); border-color: transparent }
 
     .fl-act { margin-bottom: 10px }
     .fl-act-head { display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer }
@@ -2259,7 +2260,7 @@
     .study-hero-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
     .study-hero-amt{font-family:var(--ff-serif);font-size:24px;color:var(--white)}
     .study-hero-sub{font-size:11px;color:var(--text2);margin-top:4px;line-height:1.5}
-    .study-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(229,9,20,0.08),rgba(143,0,0,0.05));border:1px solid rgba(229,9,20,0.18);border-radius:var(--r);margin-bottom:14px}
+    .study-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(31,107,255,0.08),rgba(11,79,216,0.05));border:1px solid rgba(31,107,255,0.18);border-radius:var(--r);margin-bottom:14px}
     .study-insight-ico{font-size:20px;flex-shrink:0}
     .study-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
     .study-insight-text strong{color:var(--white)}
@@ -2790,7 +2791,7 @@
       width: 100%;
       max-width: 420px;
       background: linear-gradient(180deg, #1a1414, #100c0c);
-      border: 1px solid rgba(193, 18, 31, 0.25);
+      border: 1px solid rgba(31,107,255, 0.25);
       border-radius: 18px 18px 0 0;
       padding: 10px 6px calc(14px + env(safe-area-inset-bottom, 0px))
     }
@@ -4192,7 +4193,7 @@
   position: absolute; inset: 0;
   background:
     radial-gradient(circle at 15% 0%, hsla(var(--h),100%,55%,0.10), transparent 45%),
-    radial-gradient(circle at 90% 10%, rgba(143,0,0,0.14), transparent 45%);
+    radial-gradient(circle at 90% 10%, rgba(11,79,216,0.14), transparent 45%);
   pointer-events: none;
   z-index: 0;
 }
@@ -4208,7 +4209,7 @@
   position: absolute; inset: 0;
   background:
     radial-gradient(circle at 15% 0%, hsla(var(--h),100%,55%,0.10), transparent 45%),
-    radial-gradient(circle at 90% 10%, rgba(143,0,0,0.14), transparent 45%);
+    radial-gradient(circle at 90% 10%, rgba(11,79,216,0.14), transparent 45%);
   pointer-events: none;
   z-index: 0;
 }
@@ -4270,7 +4271,7 @@
   background:
     radial-gradient(circle at 32% 28%, rgba(228,229,231,0.55), transparent 40%),
     radial-gradient(circle at 60% 65%, #7a0018, transparent 65%),
-    radial-gradient(circle at 45% 50%, #b30000, #3a000c 68%, #120005 100%);
+    radial-gradient(circle at 45% 50%, #0B4FD8, #3a000c 68%, #120005 100%);
   box-shadow: inset 0 -2px 5px rgba(0,0,0,0.5), inset 0 1px 3px rgba(255,255,255,0.08);
 }
 .twin-msg-av .twin-mini-orb { width: 26px; height: 26px; }
@@ -4488,7 +4489,7 @@
 .connect-action-btn .connect-btn-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px}
 .connect-action-btn:hover{transform:scale(1.06)}
 .connect-action-btn:active{transform:scale(0.92)}
-.connect-action-btn.missyou-btn{background:linear-gradient(135deg,#ff6b9d,#c2185b);box-shadow:0 8px 24px rgba(255,107,157,0.4)}
+.connect-action-btn.missyou-btn{background:linear-gradient(135deg,#5AB0FF,#c2185b);box-shadow:0 8px 24px rgba(255,107,157,0.4)}
 .connect-action-btn.hug-btn{background:linear-gradient(135deg,var(--accent2),var(--accent2-d));box-shadow:0 8px 24px var(--accent2-glow)}
 .connect-action-btn.missyou-sent,.connect-action-btn.hug-sent{animation:connectPulseSend 0.6s ease}
 @keyframes connectPulseSend{0%{transform:scale(1)}40%{transform:scale(0.85)}70%{transform:scale(1.12)}100%{transform:scale(1)}}
@@ -4568,16 +4569,16 @@ vercel-live-feedback {
 
 :root {
   /* ── Core accent (drives buttons, focus rings, active states) ── */
-  --accent: #E50914;
-  --accent-d: #B30000;
-  --accent-l: #FF4D4D;
-  --accent-glow: rgba(229, 9, 20, 0.28);
+  --accent: #1F6BFF;
+  --accent-d: #0B4FD8;
+  --accent-l: #5AA0FF;
+  --accent-glow: rgba(31,107,255, 0.28);
 
   /* accent2 is used for secondary gradients (avatars, AI bubbles, etc.)
      — mapped to the dark burgundy so nothing pink/purple/blue survives */
-  --accent2: #8F0000;
-  --accent2-d: #6e0000;
-  --accent2-glow: rgba(143, 0, 0, 0.30);
+  --accent2: #0B4FD8;
+  --accent2-d: #083B9E;
+  --accent2-glow: rgba(11,79,216, 0.30);
 
   /* ── Glass / surface tokens → charcoal & jet black ── */
   --g1: rgba(255, 255, 255, 0.04);
@@ -4603,13 +4604,13 @@ vercel-live-feedback {
 
 /* ── Page background: Jet Black → deep red glow, never blue/purple ── */
 #bg {
-  background: linear-gradient(180deg, #180000, #050505) !important;
+  background: linear-gradient(180deg, #06153A, #030816) !important;
 }
 #bg::before {
   background:
-    radial-gradient(circle at 15% 15%, rgba(229, 9, 20, 0.16), transparent 50%),
+    radial-gradient(circle at 15% 15%, rgba(31,107,255, 0.16), transparent 50%),
     radial-gradient(circle at 85% 10%, rgba(102, 0, 0, 0.22), transparent 50%),
-    radial-gradient(circle at 50% 90%, rgba(229, 9, 20, 0.12), transparent 55%) !important;
+    radial-gradient(circle at 50% 90%, rgba(31,107,255, 0.12), transparent 55%) !important;
 }
 
 /* ── Cards (overrides the later "glass fix" block too) ── */
@@ -4619,8 +4620,8 @@ vercel-live-feedback {
 .period-hero,
 .storage-hero,
 .pstat {
-  background: #151515 !important;
-  background-image: linear-gradient(180deg, #181818, #0D0D0D) !important;
+  background: #0B1633 !important;
+  background-image: linear-gradient(180deg, #0F1E45, #071127) !important;
   border: 1px solid var(--border) !important;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45),
               inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
@@ -4633,31 +4634,31 @@ vercel-live-feedback {
 
 /* ── Sidebar ── */
 .sidebar {
-  background: linear-gradient(180deg, #0A0A0A, #030303) !important;
+  background: linear-gradient(180deg, #050D22, #030816) !important;
   border-right: 1px solid var(--border);
 }
 .sb-logo {
-  background: #0A0A0A !important;
+  background: #050D22 !important;
 }
 .ni:hover { background: rgba(255, 255, 255, 0.04) !important; }
 .ni.active {
-  background: rgba(229, 9, 20, 0.14) !important;
+  background: rgba(31,107,255, 0.14) !important;
   border: 1px solid var(--border);
 }
 .ni.active::before {
-  background: #E50914 !important;
-  box-shadow: 0 0 16px rgba(229, 9, 20, 0.22) !important;
+  background: #1F6BFF !important;
+  box-shadow: 0 0 16px rgba(31,107,255, 0.22) !important;
 }
 
 /* ── Topbar ── */
 .topbar {
-  background: rgba(5, 5, 5, 0.85) !important;
+  background: rgba(3,8,22, 0.85) !important;
 }
 
 /* ── Modals / Auth ── */
 .modal,
 .auth-card {
-  background: rgba(13, 13, 13, 0.85) !important;
+  background: rgba(8,18,45, 0.85) !important;
   border: 1px solid var(--border2) !important;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55),
               inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
@@ -4668,8 +4669,8 @@ vercel-live-feedback {
 /* ── Buttons ── */
 .btn-accent,
 .ic-btn.accent {
-  background: linear-gradient(135deg, #FF3B30, #B30000) !important;
-  box-shadow: 0 0 16px rgba(229, 9, 20, 0.22) !important;
+  background: linear-gradient(135deg, #3D8BFF, #0B4FD8) !important;
+  box-shadow: 0 0 16px rgba(31,107,255, 0.22) !important;
   color: #fff;
 }
 .btn-accent:hover { filter: brightness(1.08); }
@@ -4690,50 +4691,50 @@ vercel-live-feedback {
 /* ── Inputs ── */
 input[type=text], input[type=password], input[type=email], input[type=number],
 input[type=date], input[type=time], textarea, select, .chat-in {
-  background: #151515 !important;
+  background: #0B1633 !important;
   border: 1px solid var(--border) !important;
   color: var(--white) !important;
 }
 input:focus, textarea:focus, select:focus, .chat-in:focus {
-  border-color: #E50914 !important;
-  background: #181818 !important;
-  box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.22) !important;
+  border-color: #1F6BFF !important;
+  background: #0F1E45 !important;
+  box-shadow: 0 0 0 3px rgba(31,107,255, 0.22) !important;
 }
-select option { background: #0D0D0D; color: #fff; }
+select option { background: #071127; color: #fff; }
 
 /* ── Toggles ── */
 .toggle.on {
-  background: #E50914 !important;
-  border-color: #E50914 !important;
+  background: #1F6BFF !important;
+  border-color: #1F6BFF !important;
 }
 
 /* ── Checks / selections ── */
 .hc.done, .bc.done {
-  background: #E50914 !important;
-  border-color: #E50914 !important;
-  box-shadow: 0 0 12px rgba(229, 9, 20, 0.22) !important;
+  background: #1F6BFF !important;
+  border-color: #1F6BFF !important;
+  box-shadow: 0 0 12px rgba(31,107,255, 0.22) !important;
 }
 .bc.done { background: var(--green) !important; border-color: var(--green) !important; } /* keep completed-goal green distinct */
 .mood.sel {
-  background: #E50914 !important;
-  border-color: #E50914 !important;
-  box-shadow: 0 0 10px rgba(229, 9, 20, 0.22) !important;
+  background: #1F6BFF !important;
+  border-color: #1F6BFF !important;
+  box-shadow: 0 0 10px rgba(31,107,255, 0.22) !important;
 }
 .cd.today {
-  background: linear-gradient(135deg, #FF3B30, #B30000) !important;
-  box-shadow: 0 0 14px rgba(229, 9, 20, 0.22) !important;
+  background: linear-gradient(135deg, #3D8BFF, #0B4FD8) !important;
+  box-shadow: 0 0 14px rgba(31,107,255, 0.22) !important;
 }
 
 /* ── Avatars / brand gradients ── */
 .av1, .av-large.av1, .ai-msg.me .ai-bubble, .hug-av.a {
-  background: linear-gradient(135deg, #E50914, #B30000) !important;
+  background: linear-gradient(135deg, #1F6BFF, #0B4FD8) !important;
 }
 .av2, .av-large.av2, .ai-av, .hug-av.b {
-  background: linear-gradient(135deg, #8F0000, #6e0000) !important;
+  background: linear-gradient(135deg, #0B4FD8, #083B9E) !important;
 }
 .logo-heart, .touch-heart-btn {
-  background: linear-gradient(135deg, #E50914, #8F0000) !important;
-  box-shadow: 0 4px 14px rgba(229, 9, 20, 0.22) !important;
+  background: linear-gradient(135deg, #1F6BFF, #0B4FD8) !important;
+  box-shadow: 0 4px 14px rgba(31,107,255, 0.22) !important;
 }
 
 /* ── Streak / tag badges (keep semantic status colors, just re-tone) ── */
@@ -4742,59 +4743,59 @@ select option { background: #0D0D0D; color: #fff; }
   color: var(--yellow) !important;
 }
 .badge, .games-badge {
-  background: linear-gradient(135deg, #FF3B30, #B30000) !important;
+  background: linear-gradient(135deg, #3D8BFF, #0B4FD8) !important;
 }
 
 /* ── Love / connect card glows (was pink/purple) → red family ── */
-.love-card::before { --missglow: rgba(229, 9, 20, 0.32) !important; }
+.love-card::before { --missglow: rgba(31,107,255, 0.32) !important; }
 .connect-action-btn.missyou-btn {
-  background: linear-gradient(135deg, #FF3B30, #8F0000) !important;
-  box-shadow: 0 8px 24px rgba(229, 9, 20, 0.25) !important;
+  background: linear-gradient(135deg, #3D8BFF, #0B4FD8) !important;
+  box-shadow: 0 8px 24px rgba(31,107,255, 0.25) !important;
 }
 .connect-action-btn.hug-btn {
-  background: linear-gradient(135deg, #8F0000, #6e0000) !important;
-  box-shadow: 0 8px 24px rgba(143, 0, 0, 0.28) !important;
+  background: linear-gradient(135deg, #0B4FD8, #083B9E) !important;
+  box-shadow: 0 8px 24px rgba(11,79,216, 0.28) !important;
 }
 
 /* ── Period tracker phase badges → keep readable, drop pink/purple/violet ── */
 .phase-menstrual {
-  background: rgba(229, 9, 20, 0.18) !important;
-  color: #FF4D4D !important;
-  border-color: rgba(229, 9, 20, 0.35) !important;
+  background: rgba(31,107,255, 0.18) !important;
+  color: #5AA0FF !important;
+  border-color: rgba(31,107,255, 0.35) !important;
 }
 .phase-luteal {
-  background: rgba(143, 0, 0, 0.18) !important;
-  color: #FF8A8A !important;
-  border-color: rgba(143, 0, 0, 0.35) !important;
+  background: rgba(11,79,216, 0.18) !important;
+  color: #8FBBFF !important;
+  border-color: rgba(11,79,216, 0.35) !important;
 }
 .symptom-tag.sel {
-  background: rgba(229, 9, 20, 0.18) !important;
-  border-color: #E50914 !important;
-  color: #FF4D4D !important;
+  background: rgba(31,107,255, 0.18) !important;
+  border-color: #1F6BFF !important;
+  color: #5AA0FF !important;
 }
 
 /* ── Storage / study progress bars ── */
 .storage-bar-fill, .study-fill {
-  background: linear-gradient(90deg, #B30000, #E50914) !important;
+  background: linear-gradient(90deg, #0B4FD8, #1F6BFF) !important;
 }
 .storage-bar-fill::after {
-  background: #E50914 !important;
-  box-shadow: 0 0 8px rgba(229, 9, 20, 0.28) !important;
+  background: #1F6BFF !important;
+  box-shadow: 0 0 8px rgba(31,107,255, 0.28) !important;
 }
 
 /* ── Search / highlight ── */
 .search-highlight {
-  background: rgba(229, 9, 20, 0.30) !important;
+  background: rgba(31,107,255, 0.30) !important;
   color: var(--white) !important;
 }
 .sf.active {
-  background: #E50914 !important;
-  border-color: #E50914 !important;
+  background: #1F6BFF !important;
+  border-color: #1F6BFF !important;
 }
 
 /* ── Scrollbars ── */
-::-webkit-scrollbar-thumb { background: rgba(229, 9, 20, 0.18) !important; }
-::-webkit-scrollbar-thumb:hover { background: rgba(229, 9, 20, 0.32) !important; }
+::-webkit-scrollbar-thumb { background: rgba(31,107,255, 0.18) !important; }
+::-webkit-scrollbar-thumb:hover { background: rgba(31,107,255, 0.32) !important; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
@@ -4816,6 +4817,7 @@ select option { background: #0D0D0D; color: #fff; }
   <link rel="stylesheet" href="/profile.css">
   <link rel="stylesheet" href="/level.css">
   <link rel="stylesheet" href="/twin-page.css">
+<link rel="stylesheet" href="/theme-tokens.css?v=1">
 </head>
 
 <body class="t-blue">
@@ -5914,9 +5916,9 @@ select option { background: #0D0D0D; color: #fff; }
             <div class="habit-heat-legend">
               <span>Less</span>
               <div class="habit-heat-cell" style="background:var(--g2)"></div>
-              <div class="habit-heat-cell" style="background:rgba(229,9,20,0.25)"></div>
-              <div class="habit-heat-cell" style="background:rgba(229,9,20,0.55)"></div>
-              <div class="habit-heat-cell" style="background:#E50914"></div>
+              <div class="habit-heat-cell" style="background:rgba(31,107,255,0.25)"></div>
+              <div class="habit-heat-cell" style="background:rgba(31,107,255,0.55)"></div>
+              <div class="habit-heat-cell" style="background:#1F6BFF"></div>
               <span>More</span>
             </div>
           </div>
@@ -6883,7 +6885,8 @@ select option { background: #0D0D0D; color: #fff; }
                 </button>
                 <button type="button" class="set-row" onclick="SettingsUI.open('appearance')">
                   <span class="set-ico" style="--c:168,85,247"><svg class="si"><use href="#si-palette" /></svg></span>
-                  <span class="set-txt"><span class="set-t">Appearance</span><span class="set-s">Motion and animations</span></span>
+                  <span class="set-txt"><span class="set-t">Appearance</span><span class="set-s">Theme, motion and animations</span></span>
+                  <span class="set-val" id="setValAppearance"></span>
                   <svg class="si set-chev"><use href="#si-chev" /></svg>
                 </button>
                 <button type="button" class="set-row" onclick="SettingsUI.open('chatmedia')">
@@ -7043,6 +7046,16 @@ select option { background: #0D0D0D; color: #fff; }
             <button type="button" class="set-back" aria-label="Back" onclick="SettingsUI.back()"><svg class="si"><use href="#si-back" /></svg></button>
             <div class="set-bar-t"><h2>Appearance</h2><p>Customize your app experience</p></div>
           </header>
+          <section class="set-sec">
+            <h3 class="set-sec-t">Theme</h3>
+            <div class="set-list">
+              <div class="th-pick" id="themePick" role="radiogroup" aria-label="Theme">
+                <button type="button" class="th-opt" data-v="dark" role="radio" onclick="Theme.set('dark')"><span class="th-sw"></span>Dark</button>
+                <button type="button" class="th-opt" data-v="light" role="radio" onclick="Theme.set('light')"><span class="th-sw"></span>Light</button>
+                <button type="button" class="th-opt" data-v="system" role="radio" onclick="Theme.set('system')"><span class="th-sw"></span>System</button>
+              </div>
+            </div>
+          </section>
           <section class="set-sec">
             <div class="set-list">
               <div class="set-row" onclick="toggleSetting('reducedMotion','reducedMotionToggle')">
@@ -7834,6 +7847,22 @@ function saveLocal() {
           saveLocal();
         }
 
+
+        // ─── THEME PICKER (Settings → Appearance) ───
+        (function () {
+          function mark() {
+            var p = (window.Theme && Theme.get()) || 'dark';
+            document.querySelectorAll('#themePick .th-opt').forEach(function (b) {
+              var on = b.dataset.v === p; b.classList.toggle('on', on); b.setAttribute('aria-checked', on);
+            });
+            var v = document.getElementById('setValAppearance');
+            if (v) v.textContent = p.charAt(0).toUpperCase() + p.slice(1);
+          }
+          window.addEventListener('themechange', mark);
+          document.addEventListener('DOMContentLoaded', mark);
+          mark();
+        })();
+
         // ─── MOBILE SIDEBAR ──────────────────────────────────────
         function toggleMobSidebar() {
           document.getElementById('sidebar').classList.toggle('mob-open');
@@ -7916,7 +7945,7 @@ function saveLocal() {
           size = size || 44;
           if (imgUrl) return `<img src="${esc(imgUrl)}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0">`;
           const letter = (name || '?').trim().charAt(0).toUpperCase() || '?';
-          return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,var(--accent,#e11d48),#7f1d1d);display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.42)}px;font-weight:700;color:#fff;flex-shrink:0">${esc(letter)}</div>`;
+          return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,var(--accent,#0B5BE0),#7f1d1d);display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.42)}px;font-weight:700;color:#fff;flex-shrink:0">${esc(letter)}</div>`;
         }
         function fmtSentAgo(ts) {
           if (!ts) return '';
@@ -10066,7 +10095,7 @@ const p = await Notification.requestPermission();
           for (let i = 0; i < first; i++)html += '<div></div>';
           for (let d = 1; d <= daysIn; d++) {
             let st = '', t = '';
-            if (periodDays.has(d)) { st = 'background:#ff6b9d;color:#fff'; t = 'Period day'; }
+            if (periodDays.has(d)) { st = 'background:#5AB0FF;color:#fff'; t = 'Period day'; }
             else if (ovulationDays.has(d)) { st = 'background:var(--green);color:#000'; t = 'Ovulation day'; }
             else if (fertileDays.has(d)) { st = 'background:var(--yellow);color:#000'; t = 'Fertile day'; }
             html += `<div class="cd${d === todayD ? ' today' : ''}" style="${st}" title="${t}">${d}</div>`;
@@ -10927,9 +10956,9 @@ const p = await Notification.requestPermission();
                 const count = habits.filter(h => (h.doneDates || []).includes(ds)).length;
                 const frac = habits.length ? count / habits.length : 0;
                 let bg = 'var(--g2)';
-                if (frac > 0 && frac < 0.34) bg = 'rgba(229,9,20,0.25)';
-                else if (frac >= 0.34 && frac < 0.67) bg = 'rgba(229,9,20,0.55)';
-                else if (frac >= 0.67) bg = '#E50914';
+                if (frac > 0 && frac < 0.34) bg = 'rgba(31,107,255,0.25)';
+                else if (frac >= 0.34 && frac < 0.67) bg = 'rgba(31,107,255,0.55)';
+                else if (frac >= 0.67) bg = '#1F6BFF';
                 cells.push(`<div class="habit-heat-cell" style="background:${bg}" title="${ds}: ${count}/${habits.length}"></div>`);
               }
               heatEl.innerHTML = cells.join('');
@@ -13252,7 +13281,7 @@ function calcStorageStats() {
   
   return {
     categories: [
-      { name: 'Photos & Videos', ico: '📸', bytes: stats.photos, color: '#ff6b9d' },
+      { name: 'Photos & Videos', ico: '📸', bytes: stats.photos, color: '#5AB0FF' },
       { name: 'Voice Messages', ico: '🎙️', bytes: stats.voice, color: '#a78bfa' },
       { name: 'Chat Messages', ico: '💬', bytes: stats.chat, color: 'var(--accent)' },
       { name: 'Notes & Journal', ico: '📝', bytes: stats.notes, color: 'var(--green)' },
@@ -13297,7 +13326,7 @@ function loadStorageStats() {
             <defs>
               <linearGradient id="storageGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stop-color="var(--accent)"/>
-                <stop offset="100%" stop-color="#ff6b9d"/>
+                <stop offset="100%" stop-color="#5AB0FF"/>
               </linearGradient>
             </defs>
           </svg>

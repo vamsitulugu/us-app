@@ -46,9 +46,9 @@ public class MainActivity extends BridgeActivity {
   public static final String GENERAL_CHANNEL_ID = "general_channel_v1";
 
   // App theme's dark background (matches public/index.html body
-  // background #0B0B0B). Used so the status/nav bars read as part of
+  // background #030816). Used so the status/nav bars read as part of
   // the app instead of showing the OS's default gray scrim.
-  private static final int SYSTEM_BAR_COLOR = Color.parseColor("#0B0B0B");
+  private static final int SYSTEM_BAR_COLOR = Color.parseColor("#030816");
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
@@ -223,7 +223,7 @@ public void onDestroy() {
     channel.enableVibration(true);
     channel.setVibrationPattern(vibrationPattern);
     channel.enableLights(true);
-    channel.setLightColor(Color.parseColor("#B30000")); // deep red brand accent
+    channel.setLightColor(Color.parseColor("#0B4FD8")); // blue brand accent
     manager.createNotificationChannel(channel);
   }
 

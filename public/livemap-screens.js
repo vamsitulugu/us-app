@@ -504,7 +504,7 @@
     const S = APP(), m = ST().map, L = LL();
     if (!ui.trail || !m || !L || !S.coupleId || !ST().pageActive) return;
     try {
-      const roles = [[S.role, '#E50914'], [partnerRole(), '#ff9a9a']];
+      const roles = [[S.role, '#1F6BFF'], [partnerRole(), '#ff9a9a']];
       const res = await Promise.all(roles.map(r => window.api('GET', '/api/location/' + S.coupleId + '/trail/' + r[0]).catch(() => [])));
       trailLayers.forEach(l => { try { m.removeLayer(l); } catch (_) {} }); trailLayers = [];
       res.forEach((pts, i) => {

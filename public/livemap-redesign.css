@@ -5,7 +5,7 @@
    dock. The page layout itself is in livemap-screens.css.
    ──────────────────────────────────────────────────────────────── */
 #page-map{
-  --lm2-bg-dropdown:#0B0B0B;
+  --lm2-bg-dropdown:#030816;
   --lm2-border:rgba(255,255,255,.08);
   --lm2-radius:18px;
   --lm2-shadow:0 20px 60px rgba(0,0,0,.6);
