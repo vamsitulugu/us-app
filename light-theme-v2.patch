@@ -1,0 +1,457 @@
+diff --git a/public/collection.html b/public/collection.html
+index 88a10a9..60dabf3 100644
+--- a/public/collection.html
++++ b/public/collection.html
+@@ -257,6 +257,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
++<link rel="stylesheet" href="/theme-light-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/daily-routine.html b/public/daily-routine.html
+index d7c1a05..164eb07 100644
+--- a/public/daily-routine.html
++++ b/public/daily-routine.html
+@@ -162,6 +162,7 @@ button{font-family:inherit}
+   <link rel="stylesheet" href="/responsive-fix.css">
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
++<link rel="stylesheet" href="/theme-light-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/dreamgoals.html b/public/dreamgoals.html
+index 35a54d5..a16fa56 100644
+--- a/public/dreamgoals.html
++++ b/public/dreamgoals.html
+@@ -252,6 +252,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+ <link rel="stylesheet" href="/safe-delete.css">
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
++<link rel="stylesheet" href="/theme-light-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/games.html b/public/games.html
+index 3d577f6..8ed15d1 100644
+--- a/public/games.html
++++ b/public/games.html
+@@ -1,5 +1,5 @@
+ <!DOCTYPE html>
+-<html lang="en" data-theme-lock="dark">
++<html lang="en">
+ <head>
+ <script src="/theme.js"></script>
+ <meta charset="UTF-8">
+@@ -538,6 +538,7 @@ button{font-family:inherit;cursor:pointer}
+   <script src="/js/scroll-reset.js"></script>
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
++<link rel="stylesheet" href="/theme-light-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/globe.html b/public/globe.html
+index 7617e60..f0aeb96 100644
+--- a/public/globe.html
++++ b/public/globe.html
+@@ -431,6 +431,7 @@
+   <script src="/js/upload-queue.js"></script>
+   <script src="/js/upload-progress-ui.js"></script>
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
++<link rel="stylesheet" href="/theme-light-v2.css?v=1">
+ </head>
+ <body>
+ <div id="app">
+diff --git a/public/index.html b/public/index.html
+index d502887..62555b2 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -4818,6 +4818,7 @@ select option { background: #071127; color: #fff; }
+   <link rel="stylesheet" href="/level.css">
+   <link rel="stylesheet" href="/twin-page.css">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
++<link rel="stylesheet" href="/theme-light-v2.css?v=1">
+ </head>
+ 
+ <body class="t-blue">
+diff --git a/public/landing.html b/public/landing.html
+index 924099a..8f147a2 100644
+--- a/public/landing.html
++++ b/public/landing.html
+@@ -337,6 +337,7 @@ body.native-auth-only #authModal .modal-close{display:none}
+     })();
+   </script>
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
++<link rel="stylesheet" href="/theme-light-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/lovecounter.html b/public/lovecounter.html
+index ace5e05..3d44d6a 100644
+--- a/public/lovecounter.html
++++ b/public/lovecounter.html
+@@ -341,6 +341,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+   <script src="/js/scroll-reset.js"></script>
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
++<link rel="stylesheet" href="/theme-light-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/meetplanner.html b/public/meetplanner.html
+index 33f0a6c..4f199e7 100644
+--- a/public/meetplanner.html
++++ b/public/meetplanner.html
+@@ -1,5 +1,5 @@
+ <!DOCTYPE html>
+-<html lang="en" data-theme-lock="dark">
++<html lang="en">
+ <head>
+ <script src="/theme.js"></script>
+ <meta charset="UTF-8">
+@@ -367,6 +367,7 @@ textarea.mp-input{resize:vertical;min-height:84px;line-height:1.6}
+ <script src="/safe-delete.js"></script>
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
++<link rel="stylesheet" href="/theme-light-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/movie.html b/public/movie.html
+index aeee289..092bf73 100644
+--- a/public/movie.html
++++ b/public/movie.html
+@@ -1,5 +1,5 @@
+ <!DOCTYPE html>
+-<html lang="en" data-theme-lock="dark">
++<html lang="en">
+ <head>
+ <script src="/theme.js"></script>
+ <meta charset="UTF-8">
+@@ -13,6 +13,7 @@
+ <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
++<link rel="stylesheet" href="/theme-light-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/music.html b/public/music.html
+index 85b144e..7c15afd 100644
+--- a/public/music.html
++++ b/public/music.html
+@@ -1,5 +1,5 @@
+ <!DOCTYPE html>
+-<html lang="en" data-theme-lock="dark">
++<html lang="en">
+ <head>
+ <script src="/theme.js"></script>
+ <meta charset="UTF-8">
+@@ -13,6 +13,7 @@
+ <link rel="stylesheet" href="/music/music.css">
+ <script src="/js/scroll-reset.js"></script>
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
++<link rel="stylesheet" href="/theme-light-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/places.html b/public/places.html
+index 59f1159..02d6ac3 100644
+--- a/public/places.html
++++ b/public/places.html
+@@ -184,6 +184,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+   <script src="/js/scroll-reset.js"></script>
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
++<link rel="stylesheet" href="/theme-light-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/privacy-policy.html b/public/privacy-policy.html
+index aefe6aa..9803795 100644
+--- a/public/privacy-policy.html
++++ b/public/privacy-policy.html
+@@ -92,6 +92,7 @@
+   }
+ </style>
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
++<link rel="stylesheet" href="/theme-light-v2.css?v=1">
+ </head>
+ <body>
+ 
+diff --git a/public/sw.js b/public/sw.js
+index c014890..77cfbd7 100644
+--- a/public/sw.js
++++ b/public/sw.js
+@@ -1,5 +1,5 @@
+ // Service Worker for Twin Hearts 💕 PWA — v5
+-const CACHE = 'uwl-v22'; // bumped: purges stale cached assets (incl. old movie.css) on activate
++const CACHE = 'uwl-v23'; // bumped: purges stale cached assets (incl. old movie.css) on activate
+ const OFFLINE_ASSETS = [
+   '/',
+   '/index.html',
+diff --git a/public/theme-light-v2.css b/public/theme-light-v2.css
+new file mode 100644
+index 0000000..376eb4c
+--- /dev/null
++++ b/public/theme-light-v2.css
+@@ -0,0 +1,256 @@
++/* ============================================================
++   THEME LIGHT v2  —  "simple blue" light theme (reference: Watch Together UI)
++   Loaded AFTER /theme-tokens.css on every page. Only touches
++   html[data-theme="light"], so the dark theme is completely unchanged.
++
++   Look:  pale-blue page · white rounded cards · dark navy text ·
++          solid blue buttons · white pill nav · soft blue shadows
++   ============================================================ */
++
++html[data-theme="light"] {
++  --l-bg-top:#E4EEFF; --l-bg-bot:#F7FAFF;
++  --l-card:#FFFFFF; --l-card-2:#F3F7FF;
++  --l-line:rgba(26,100,255,.12); --l-line-2:rgba(26,100,255,.22);
++  --l-ink:#0B1B3A; --l-ink-2:#4A5B7D; --l-ink-3:#8191AE;
++  --l-blue:#1E6BFF; --l-blue-d:#0A55E0; --l-blue-soft:rgba(30,107,255,.10);
++  --l-btn:linear-gradient(180deg,#3A82FF 0%,#0B5CE8 100%);
++  --l-btn-shadow:0 8px 20px rgba(18,90,240,.30);
++  --l-shadow:0 10px 28px rgba(20,80,200,.08);
++  --l-danger:#E5384F; --l-danger-bg:#FFECEF;
++
++  /* make the shared tokens match */
++  --bg:var(--l-bg-top) !important; --bg-2:var(--l-bg-bot) !important;
++  --text:var(--l-ink) !important; --white:var(--l-ink) !important;
++  --text2:var(--l-ink-2) !important; --text3:var(--l-ink-3) !important;
++  --border:var(--l-line) !important; --border2:var(--l-line-2) !important;
++  --red:var(--l-danger) !important;
++}
++
++/* ───────── Page background ───────── */
++html[data-theme="light"],
++html[data-theme="light"] body {
++  background: linear-gradient(180deg, var(--l-bg-top) 0%, var(--l-bg-bot) 60%, #FFFFFF 100%) fixed !important;
++  color: var(--l-ink);
++}
++html[data-theme="light"] #bg { background: transparent !important; }
++
++/* ───────── Cards ───────── */
++html[data-theme="light"] .card, html[data-theme="light"] .metric, html[data-theme="light"] .m-card,
++html[data-theme="light"] .pstat, html[data-theme="light"] .period-hero, html[data-theme="light"] .storage-hero {
++  background: var(--l-card) !important; background-image: none !important;
++  border: 1px solid var(--l-line) !important; border-radius: 20px !important;
++  box-shadow: var(--l-shadow) !important;
++}
++html[data-theme="light"] .card:hover, html[data-theme="light"] .metric:hover { transform: none; box-shadow: 0 14px 34px rgba(20,80,200,.12) !important; }
++html[data-theme="light"] .card-title, html[data-theme="light"] .modal-title { color: var(--l-ink); }
++
++/* ───────── Buttons ───────── */
++html[data-theme="light"] .btn-accent, html[data-theme="light"] .ic-btn.accent {
++  background: var(--l-btn) !important; color: #fff !important; border: none !important;
++  box-shadow: var(--l-btn-shadow) !important; border-radius: 14px;
++}
++html[data-theme="light"] .ic-btn.accent { border-radius: 50%; }
++html[data-theme="light"] .btn-accent:hover { filter: brightness(1.05); }
++html[data-theme="light"] .btn-glass, html[data-theme="light"] .ic-btn {
++  background: #fff !important; color: var(--l-ink) !important;
++  border: 1px solid var(--l-line-2) !important; box-shadow: 0 2px 8px rgba(20,80,200,.06);
++}
++html[data-theme="light"] .btn-glass:hover, html[data-theme="light"] .ic-btn:hover { background: var(--l-card-2) !important; }
++html[data-theme="light"] .btn-ghost { color: var(--l-ink-2); }
++html[data-theme="light"] .btn-ghost:hover { background: var(--l-blue-soft); color: var(--l-blue); }
++html[data-theme="light"] .btn-danger { background: var(--l-danger-bg) !important; color: var(--l-danger) !important; border: 1px solid rgba(229,56,79,.22) !important; }
++html[data-theme="light"] .btn-success { background: rgba(5,150,105,.10) !important; color: #059669 !important; border: 1px solid rgba(5,150,105,.25) !important; }
++
++/* ───────── Toggles / chips / segmented ───────── */
++html[data-theme="light"] .toggle { background: #D3E0F5 !important; border-color: transparent; }
++html[data-theme="light"] .toggle.on { background: var(--l-blue) !important; border-color: var(--l-blue) !important; }
++html[data-theme="light"] .toggle::after { background: #fff; box-shadow: 0 2px 6px rgba(20,60,160,.28); }
++
++/* ───────── Inputs ───────── */
++html[data-theme="light"] input[type=text], html[data-theme="light"] input[type=password],
++html[data-theme="light"] input[type=email], html[data-theme="light"] input[type=number],
++html[data-theme="light"] input[type=date], html[data-theme="light"] input[type=time],
++html[data-theme="light"] input[type=search], html[data-theme="light"] input[type=tel],
++html[data-theme="light"] input[type=url], html[data-theme="light"] textarea,
++html[data-theme="light"] select, html[data-theme="light"] .chat-in {
++  background: #F3F7FF !important; border: 1px solid var(--l-line) !important;
++  color: var(--l-ink) !important; border-radius: 12px;
++}
++html[data-theme="light"] input::placeholder, html[data-theme="light"] textarea::placeholder { color: #93A3C0 !important; opacity: 1; }
++html[data-theme="light"] input:focus, html[data-theme="light"] textarea:focus, html[data-theme="light"] select:focus {
++  background: #fff !important; border-color: var(--l-blue) !important; box-shadow: 0 0 0 3px rgba(30,107,255,.16) !important;
++}
++
++/* ───────── Modals ───────── */
++html[data-theme="light"] .modal-bg { background: rgba(14,35,85,.38); }
++html[data-theme="light"] .modal, html[data-theme="light"] .auth-card {
++  background: #fff !important; color: var(--l-ink); border: 1px solid var(--l-line) !important;
++  border-radius: 24px; box-shadow: 0 24px 60px rgba(14,50,140,.22) !important;
++}
++html[data-theme="light"] .modal-close { color: var(--l-ink-2); }
++
++/* ───────── Bottom nav (white pill, blue active) ───────── */
++html[data-theme="light"] #botNav .gn-glass { background: rgba(255,255,255,.96) !important; border: 1px solid var(--l-line); }
++html[data-theme="light"] #botNav .gn-shadow { box-shadow: 0 12px 30px rgba(20,80,200,.18), 0 2px 8px rgba(20,80,200,.08); }
++html[data-theme="light"] #botNav .bot-ni { color: #7B8BAA; }
++html[data-theme="light"] #botNav .bot-ni.active { color: var(--l-blue) !important; }
++
++/* ───────── Category pages (Us / Memories / Plans / Together / Future / My Space) ───────── */
++html[data-theme="light"] .cat-page { background: transparent !important; }
++html[data-theme="light"] .cat-page-title, html[data-theme="light"] .cat-headline { color: var(--l-ink); }
++html[data-theme="light"] .cat-subtext { color: var(--l-ink-2); }
++html[data-theme="light"] .cat-back-btn { color: var(--l-ink); background: #fff; border: 1px solid var(--l-line); border-radius: 50%; box-shadow: 0 2px 8px rgba(20,80,200,.08); }
++html[data-theme="light"] .cat-list { background: #fff; border: 1px solid var(--l-line); border-radius: 20px; padding: 4px 16px; box-shadow: var(--l-shadow); }
++html[data-theme="light"] .cat-row { padding: 15px 2px; border-bottom: 1px solid var(--l-line); }
++html[data-theme="light"] .cat-row:last-child { border-bottom: none; }
++html[data-theme="light"] .cat-row-ico { color: var(--l-blue); }
++html[data-theme="light"] .cat-row-title { color: var(--l-ink); font-weight: 600; }
++html[data-theme="light"] .cat-row-chev { color: var(--l-ink-3); }
++
++/* ───────── Dashboard / Home chips + hero text (sit on the blue hero) ───────── */
++html[data-theme="light"] .dh-chip.is-primary { color: var(--l-blue); }
++html[data-theme="light"] .dw-mood, html[data-theme="light"] .dw-ev { border-radius: 18px; }
++
++/* ───────── Chat ───────── */
++html[data-theme="light"] .chat-header { background: rgba(255,255,255,.92) !important; border-color: var(--l-line) !important; box-shadow: 0 4px 16px rgba(20,80,200,.07); }
++html[data-theme="light"] .chat-header-av.has-ring, html[data-theme="light"] .chat-header-av .status-dot { box-shadow-color: #fff; border-color: #fff; }
++html[data-theme="light"] .chat-header-menu, html[data-theme="light"] .wp-modal {
++  background: #fff !important; background-image: none !important; border: 1px solid var(--l-line) !important;
++  box-shadow: 0 18px 44px rgba(14,50,140,.20) !important;
++}
++html[data-theme="light"] .chat-header-menu-item:hover, html[data-theme="light"] .chat-header-menu-item:active { background: var(--l-blue-soft); }
++html[data-theme="light"] .wp-option-row { background: var(--l-card-2) !important; border-color: var(--l-line) !important; }
++html[data-theme="light"] .wp-option-row:hover { background: #E8F0FF !important; }
++html[data-theme="light"] .wp-modal-overlay { background: rgba(14,35,85,.38); }
++html[data-theme="light"] .uc-composer:not(.uc-composer--ai) { background: rgba(255,255,255,.96) !important; border-top: 1px solid var(--l-line); }
++html[data-theme="light"] .chat-wallpaper-dim { background: transparent !important; }
++
++/* ================================================================
++   GAMES (games.html)
++   ================================================================ */
++html[data-theme="light"] .gcard { background: #fff; border: 1px solid var(--l-line); box-shadow: var(--l-shadow); }
++html[data-theme="light"] .gcard-title { color: var(--l-ink); }
++html[data-theme="light"] .gcard-desc { color: var(--l-ink-2); }
++/* simple blue art + buttons instead of per-game red/purple/pink */
++html[data-theme="light"] .gcard-art { background-image: linear-gradient(135deg,#4C94FF,#0B5CE8) !important; }
++html[data-theme="light"] .gcard:nth-child(3n+2) .gcard-art { background-image: linear-gradient(135deg,#22B8F0,#1E6BFF) !important; }
++html[data-theme="light"] .gcard:nth-child(3n) .gcard-art { background-image: linear-gradient(135deg,#6E8BFF,#2F4FE0) !important; }
++html[data-theme="light"] .gplay-btn { background: var(--l-btn) !important; color: #fff !important; box-shadow: var(--l-btn-shadow) !important; }
++html[data-theme="light"] .gbadge.new { background: var(--l-blue); color: #fff; }
++
++/* ================================================================
++   WATCH TOGETHER / MOVIE (movie.html) — player stays dark
++   ================================================================ */
++html[data-theme="light"] {
++  --wt-bg:#EAF2FF; --wt-card:#FFFFFF; --wt-card-brd:rgba(26,100,255,.12);
++  --wt-red1:#1E6BFF; --wt-red2:#0A55E0; --wt-muted:#6B7C9B;
++  --wt-grad:linear-gradient(180deg,#3A82FF 0%,#0B5CE8 100%);
++}
++html[data-theme="light"] body, html[data-theme="light"] .wt-page { background: linear-gradient(180deg,#E4EEFF,#F7FAFF) !important; color: var(--l-ink); }
++html[data-theme="light"] .wt-page.is-watching { background: #000 !important; color: #fff;
++  --wt-card:rgba(255,255,255,0.045); --wt-card-brd:rgba(255,255,255,0.09); --wt-muted:#a89aa0; }
++html[data-theme="light"] .wt-page:not(.is-watching) .wt-back, html[data-theme="light"] .wt-page:not(.is-watching) .wt-history-btn { color: var(--l-ink); background: #fff; box-shadow: 0 2px 8px rgba(20,80,200,.08); }
++html[data-theme="light"] .wt-page:not(.is-watching) .wt-subtitle { color: var(--l-ink-3); }
++html[data-theme="light"] .wt-page:not(.is-watching) .wt-title-wrap h1 { color: var(--l-ink); }
++html[data-theme="light"] .wt-tabs { background: rgba(255,255,255,.92); border: 1px solid var(--l-line); border-radius: 18px; box-shadow: var(--l-shadow); }
++html[data-theme="light"] .wt-tab { color: var(--l-ink-2); }
++html[data-theme="light"] .wt-tab.is-active { background: var(--l-btn); color: #fff; box-shadow: var(--l-btn-shadow); }
++html[data-theme="light"] .wt-hero, html[data-theme="light"] .mc-banner-empty {
++  background: radial-gradient(90% 120% at 50% 0%,rgba(120,175,255,.55),transparent 65%), linear-gradient(180deg,#1F6BFF,#0A4BCF) !important;
++  border-color: transparent; box-shadow: 0 14px 34px rgba(18,90,240,.28); color: #fff;
++}
++html[data-theme="light"] .wt-hero h2, html[data-theme="light"] .mc-banner-empty h2, html[data-theme="light"] .mc-banner-empty h3 { color: #fff; }
++html[data-theme="light"] .wt-hero p, html[data-theme="light"] .mc-banner-sub { color: rgba(255,255,255,.85); }
++html[data-theme="light"] .wt-hero .wt-btn-ghost, html[data-theme="light"] .mc-banner-empty .wt-btn-ghost { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.35); color: #fff; }
++html[data-theme="light"] .wt-page:not(.is-watching) .wt-btn-ghost { background: #fff; color: var(--l-ink); border: 1px solid var(--l-line-2); }
++html[data-theme="light"] .wt-btn-primary, html[data-theme="light"] .wt-btn-start { background: var(--l-btn); color: #fff; box-shadow: var(--l-btn-shadow); }
++html[data-theme="light"] .wt-mode-toggle .wt-chip-btn { background: #fff; color: var(--l-ink-2); }
++html[data-theme="light"] .wt-mode-toggle .wt-chip-btn.is-active { background: var(--l-btn); color: #fff; border-color: transparent; box-shadow: var(--l-btn-shadow); }
++html[data-theme="light"] #wtDirectPane { background: rgba(30,107,255,.05); border-color: rgba(30,107,255,.45); }
++html[data-theme="light"] .wt-empty-icon { background: rgba(30,107,255,.12); }
++html[data-theme="light"] .wt-page:not(.is-watching) :is(.wt-usage-label,.wt-progress-row,.wt-movie-title,.wt-list-title+*,.wt-empty-card h2,#wtDirectPane h2) { color: var(--l-ink); }
++html[data-theme="light"] .wt-page:not(.is-watching) :is(.wt-movie-meta,.wt-hint,.wt-usage-text,.wt-list-title,.wt-cloud-hint) { color: var(--l-ink-3); }
++html[data-theme="light"] .wt-round-btn { background: #fff; color: var(--l-ink-2); }
++html[data-theme="light"] .wt-round-play { background: var(--l-btn); color: #fff; }
++html[data-theme="light"] .wt-cloud-thumb, html[data-theme="light"] .wt-movie-icon { background: #E6F0FF; color: var(--l-blue); }
++html[data-theme="light"] .wt-cloud-row { background: #fff; }
++html[data-theme="light"] .wt-cloud-row.is-selected { background: rgba(30,107,255,.07); }
++html[data-theme="light"] .wt-partner-chip { background: #fff; color: var(--l-ink); }
++html[data-theme="light"] .wt-avatar { background: #E6F0FF; border-color: var(--l-blue); color: var(--l-blue); }
++html[data-theme="light"] .wt-cloud-usage { background: #DCE8FB; }
++html[data-theme="light"] .wt-sheet:not(.is-watching *) { background: #fff; color: var(--l-ink); }
++
++/* ================================================================
++   MUSIC (music.html) — remap its own variables
++   ================================================================ */
++html[data-theme="light"] {
++  --mx-bg:#EAF2FF; --mx-surface:#FFFFFF; --mx-card:#FFFFFF; --mx-card2:#F1F6FF;
++  --mx-line:rgba(26,100,255,.12); --mx-line2:rgba(26,100,255,.22);
++  --mx-text:#0B1B3A; --mx-text2:#4A5B7D; --mx-text3:#8191AE;
++  --mx-red:#1E6BFF; --mx-red-d:#0A55E0; --mx-glow:rgba(30,107,255,.28);
++}
++html[data-theme="light"] #mini { background: rgba(255,255,255,.97); border: 1px solid var(--l-line); box-shadow: 0 12px 30px rgba(20,80,200,.18); color: var(--l-ink); }
++
++/* ================================================================
++   MEET PLANNER (meetplanner.html) — remap its own variables
++   ================================================================ */
++html[data-theme="light"] {
++  --mp-bg:#EAF2FF; --mp-bg2:#F4F8FF; --mp-card:#FFFFFF; --mp-card2:#F1F6FF;
++  --mp-line:rgba(26,100,255,.12); --mp-line2:rgba(26,100,255,.22);
++  --mp-text:#0B1B3A; --mp-text2:#4A5B7D; --mp-text3:#8191AE;
++  --mp-red:#1E6BFF; --mp-red2:#0A55E0; --mp-red-soft:rgba(30,107,255,.10); --mp-red-glow:rgba(30,107,255,.28);
++  --mp-grad:linear-gradient(180deg,#3A82FF,#0B5CE8);
++}
++html[data-theme="light"] .mp-app { background: linear-gradient(180deg,#E4EEFF,#F7FAFF) !important; }
++html[data-theme="light"] .mp-bar { background: linear-gradient(180deg,rgba(228,238,255,.96) 65%,transparent) !important; }
++html[data-theme="light"] .mp-bar-btn { color: var(--l-ink); box-shadow: 0 2px 8px rgba(20,80,200,.08); }
++html[data-theme="light"] .mp-hero {
++  background: radial-gradient(90% 120% at 50% 0%,rgba(120,175,255,.55),transparent 62%), linear-gradient(180deg,#1F6BFF,#0A4BCF) !important;
++  box-shadow: 0 14px 34px rgba(18,90,240,.28);
++  --mp-text:#fff; --mp-text2:rgba(255,255,255,.85); --mp-text3:rgba(255,255,255,.65);
++  color: #fff;
++}
++
++/* ================================================================
++   Misc readable-text fixes found by the contrast audit
++   ================================================================ */
++html[data-theme="light"] .col-stat-l, html[data-theme="light"] .dg-stat-l, html[data-theme="light"] .pm-stat-l,
++html[data-theme="light"] .col-empty-text, html[data-theme="light"] .pm-empty-text, html[data-theme="light"] .dr-sub,
++html[data-theme="light"] .dow { color: var(--l-ink-2) !important; }
++html[data-theme="light"] .dr-datetoday { color: var(--l-blue) !important; }
++html[data-theme="light"] .col-stat-n[style*="d97706"], html[data-theme="light"] .dg-stat-n[style*="d97706"] { color: #B45309; }
++html[data-theme="light"] .lms-ptname, html[data-theme="light"] .lms-eta-sub, html[data-theme="light"] .lms-together-s { color: var(--l-ink-2) !important; }
++html[data-theme="light"] .dh-sheet { background: #F4F8FF !important; }
++
++/* ───────── Games: text that was hard-coded white ───────── */
++html[data-theme="light"] .hub-title, html[data-theme="light"] .rank-name { color: var(--l-ink); }
++html[data-theme="light"] .rank-lvl, html[data-theme="light"] .rank-vs, html[data-theme="light"] .rank-card span { color: var(--l-ink-2); }
++html[data-theme="light"] .gfav { color: #fff; }
++html[data-theme="light"] .gcard-art, html[data-theme="light"] .gcard-art * { color: #fff; }
++
++/* ───────── Music: hero banner + empty states ───────── */
++html[data-theme="light"] .hdr-sub { color: var(--l-ink-2); }
++html[data-theme="light"] .hero {
++  background: radial-gradient(90% 120% at 50% 0%,rgba(120,175,255,.55),transparent 65%), linear-gradient(180deg,#1F6BFF,#0A4BCF) !important;
++  border-color: transparent !important; box-shadow: 0 14px 34px rgba(18,90,240,.28);
++}
++html[data-theme="light"] .hero h2, html[data-theme="light"] .hero h1, html[data-theme="light"] .hero p, html[data-theme="light"] .hero * { color: #fff; }
++html[data-theme="light"] .empty h3, html[data-theme="light"] [class*="empty"] h3 { color: var(--l-ink); }
++html[data-theme="light"] .empty p, html[data-theme="light"] [class*="empty"] p { color: var(--l-ink-2); }
++
++/* ───────── Meet Planner ───────── */
++html[data-theme="light"] { --mp-text3:#6B7C9B; }
++html[data-theme="light"] .mp-art, html[data-theme="light"] .mp-dest-n { color: #fff; }
++html[data-theme="light"] .mp-empty b, html[data-theme="light"] [class*="mp-empty"] b, html[data-theme="light"] [class*="mp-empty"] { color: var(--l-ink); }
++html[data-theme="light"] .mp-tile small { color: var(--l-ink-2); }
++
++/* ───────── Round-2 fixes ───────── */
++html[data-theme="light"] .wt-page:not(.is-watching) .wt-back svg, html[data-theme="light"] .wt-page:not(.is-watching) .wt-history-btn svg { color: var(--l-ink); stroke: currentColor; }
++html[data-theme="light"] .mc-banner-empty .mc-banner-shade { background: linear-gradient(0deg, rgba(8,40,120,.35), transparent 60%) !important; }
++html[data-theme="light"] .mc-banner-empty * { color: #fff; }
++html[data-theme="light"] .gbadge.trend { color: #3A2A00; }
++html[data-theme="light"] .rank-card span { color: var(--l-ink-2); }
++html[data-theme="light"] .mp-empty b, html[data-theme="light"] .mp-empty-s b, html[data-theme="light"] [class*="mp-empty"] b { color: var(--l-blue) !important; }
++
++html[data-theme="light"] .tb-back { background: #fff; border: 1px solid var(--l-line); color: var(--l-ink); box-shadow: 0 2px 8px rgba(20,80,200,.08); }
++html[data-theme="light"] .chat-header-menu-item[style*="ff6b6b"], html[data-theme="light"] .chat-header-menu-item.danger { color: var(--l-danger) !important; }
