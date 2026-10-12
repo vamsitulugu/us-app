@@ -2,6 +2,22 @@
 <html lang="en" data-theme-lock="dark">
 <head>
 <script src="/theme.js"></script>
+<script>
+/* Mobile start screen: on phones (mobile web or the Android APK) with no
+   signed-in session, skip the marketing landing page and show the app-style
+   start screen instead. Runs before first paint so there is no flash. */
+(function(){
+  try{
+    var native=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
+    var ua=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||'');
+    var narrow=window.matchMedia&&window.matchMedia('(max-width: 820px)').matches;
+    var s=JSON.parse(localStorage.getItem('uwl_v5')||'{}');
+    var signedIn=!!(s&&s.setupDone&&s.coupleId);
+    var forced=/[?&]desktop=1/.test(location.search);
+    if((native||ua||narrow)&&!signedIn&&!forced) document.documentElement.classList.add('ms-on');
+  }catch(e){}
+})();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Twin Hearts 💕 — Everything Together.</title>
@@ -290,6 +306,46 @@ footer p{font-size:11px;color:var(--text3)}
 body.native-auth-only > *:not(#authModal){display:none!important}
 body.native-auth-only #authModal{position:fixed;background:var(--bg,#14030e)}
 body.native-auth-only #authModal .modal-close{display:none}
+
+/* ── Mobile start screen (phones: web + APK, logged-out) ─────────── */
+#mobileStart{display:none}
+html.ms-on body > *:not(#mobileStart):not(#authModal){display:none!important}
+html.ms-on #mobileStart{display:flex}
+html.ms-on.ms-auth #mobileStart{display:none}
+html.ms-on #authModal{position:fixed;background:linear-gradient(180deg,#3A0425,#14030e)}
+#mobileStart{position:fixed;inset:0;z-index:900;flex-direction:column;align-items:center;overflow:hidden;
+  padding:calc(env(safe-area-inset-top,0px) + 28px) 24px calc(env(safe-area-inset-bottom,0px) + 24px);
+  background:radial-gradient(ellipse at 50% 38%,#7a0b55 0%,#4a0833 45%,#2a0420 100%);color:#fff;font-family:var(--ff-sans)}
+#mobileStart::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle at 15% 12%,rgba(255,150,220,.18),transparent 40%),radial-gradient(circle at 88% 30%,rgba(255,90,190,.14),transparent 45%)}
+.ms-brand{position:relative;display:flex;align-items:center;gap:12px;margin-top:6px}
+.ms-brand img{width:56px;height:56px;border-radius:16px;box-shadow:0 8px 28px rgba(176,18,122,.55)}
+.ms-brand b{display:block;font-family:var(--ff-serif);font-weight:400;font-size:26px;line-height:1.05}
+.ms-brand small{display:block;font-size:8.5px;letter-spacing:3px;text-transform:uppercase;opacity:.8;margin-top:4px}
+.ms-hero{position:relative;text-align:center;margin-top:26px}
+.ms-hero h1{font-family:var(--ff-serif);font-weight:400;font-size:clamp(34px,11vw,48px);line-height:1;margin:0;
+  background:linear-gradient(180deg,#ffb3e6,#f07bd0 55%,#d9b3ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ms-hero p{margin:12px 0 0;font-size:11px;letter-spacing:3px;text-transform:uppercase;opacity:.9}
+.ms-art{position:relative;flex:1;min-height:0;width:100%;display:flex;align-items:flex-end;justify-content:center;margin-top:10px}
+.ms-art img{max-height:100%;max-width:100%;object-fit:contain;
+  -webkit-mask-image:linear-gradient(180deg,#000 80%,transparent);mask-image:linear-gradient(180deg,#000 80%,transparent)}
+.ms-actions{position:relative;width:100%;max-width:420px;margin-top:14px}
+.ms-start{width:100%;display:flex;align-items:center;justify-content:space-between;padding:8px 8px 8px 30px;border:none;cursor:pointer;
+  border-radius:999px;background:#fff;color:#8a0f5e;font:800 15px var(--ff-sans);letter-spacing:1.5px;text-transform:uppercase;
+  box-shadow:0 10px 34px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.4)}
+.ms-start i{width:48px;height:48px;border-radius:50%;background:#8a0f5e;color:#fff;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:20px}
+.ms-start:active{transform:scale(.98)}
+/* step 2: Sign In / Sign Up cards */
+.ms-choose{display:none;width:100%;gap:14px;flex-direction:column}
+#mobileStart.ms-step2 .ms-start{display:none}
+#mobileStart.ms-step2 .ms-choose{display:flex}
+.ms-card{display:flex;align-items:center;gap:14px;width:100%;padding:18px 18px;border-radius:22px;cursor:pointer;text-align:left;color:#fff;
+  background:rgba(20,3,14,.62);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,160,225,.35);font-family:var(--ff-sans)}
+.ms-card.primary{background:linear-gradient(135deg,#b0127a,#d6379b);border-color:rgba(255,255,255,.35)}
+.ms-card .ico{width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.ms-card b{display:block;font-size:16px}
+.ms-card span{display:block;font-size:12px;opacity:.8;margin-top:2px}
+.ms-back{background:none;border:none;color:rgba(255,255,255,.75);font:500 13px var(--ff-sans);padding:6px;cursor:pointer}
 .mcard{background:rgba(9,4,7,.96);backdrop-filter:blur(30px);border:1px solid var(--border2);border-radius:26px;padding:36px 32px;width:100%;max-width:460px;color:var(--white);box-shadow:0 30px 90px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.06);animation:popIn .35s cubic-bezier(.34,1.56,.64,1);position:relative;max-height:88vh;overflow-y:auto}
 @keyframes popIn{from{opacity:0;transform:scale(.88) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
 .modal-close{position:absolute;top:16px;right:18px;background:var(--g1);border:1px solid var(--border);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:16px;transition:all .2s}
@@ -341,6 +397,27 @@ body.native-auth-only #authModal .modal-close{display:none}
 <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
 </head>
 <body>
+
+<!-- Mobile start screen (shown only on phones when logged out; see .ms-on) -->
+<div id="mobileStart" role="main">
+  <div class="ms-brand">
+    <img src="/icons/icon-512.png" alt="Twin Hearts">
+    <div><b>Twin Hearts</b><small>Everything Together</small></div>
+  </div>
+  <div class="ms-hero">
+    <h1>Stay<br>Connected</h1>
+    <p>No distance, just us</p>
+  </div>
+  <div class="ms-art"><img src="/images/mobile-start-couple.png" alt=""></div>
+  <div class="ms-actions">
+    <button class="ms-start" type="button" onclick="msGetStarted()">Get Started <i>&rarr;</i></button>
+    <div class="ms-choose">
+      <button class="ms-card primary" type="button" onclick="msOpen('login')"><div class="ico">&#128150;</div><div><b>Sign In</b><span>Welcome back to your space</span></div></button>
+      <button class="ms-card" type="button" onclick="msOpen('signup')"><div class="ico">&#10024;</div><div><b>Sign Up</b><span>Create your space together</span></div></button>
+      <button class="ms-back" type="button" onclick="msBack()">&larr; Back</button>
+    </div>
+  </div>
+</div>
 
 <div id="bg"></div>
 <div id="bg-grain"></div>
@@ -809,18 +886,24 @@ function isStandalone(){
 function isInsideNativeApp(){
   return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 }
-// Fires ASAP: if we're inside the installed APK and there's no signed-in
-// session yet, skip the landing page entirely and show only the
-// sign-in/sign-up card — like a real app's login screen, not a website.
-(function enterNativeAuthModeIfNeeded(){
-  if (!isInsideNativeApp() || alreadySignedIn()) return;
-  const start = () => {
-    document.body.classList.add('native-auth-only');
-    openAuth('login');
+// Mobile start screen (phones: mobile web + installed APK, logged out).
+// The head script adds html.ms-on before paint; these helpers drive the
+// two steps: Get Started -> Sign In / Sign Up cards -> auth form.
+function msGetStarted(){ document.getElementById('mobileStart').classList.add('ms-step2'); }
+function msBack(){ document.getElementById('mobileStart').classList.remove('ms-step2'); }
+function msOpen(view){
+  document.documentElement.classList.add('ms-auth');
+  openAuth(view);
+}
+(function(){
+  const _closeAuth = closeAuth;
+  // On the mobile start flow, the X on the auth card goes back to the cards.
+  window.closeAuth = function(){
+    _closeAuth();
+    document.documentElement.classList.remove('ms-auth');
   };
-  if (document.body) start();
-  else document.addEventListener('DOMContentLoaded', start);
 })();
+
 // Real "is the APK actually installed on this phone" check — works in
 // Chrome for Android via the OS package manager, matched against the
 // applicationId declared in manifest.json's related_applications. Other

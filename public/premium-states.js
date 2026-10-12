@@ -72,6 +72,10 @@
     cfg = cfg || {};
     const rows = cfg.rows || 3;
     const variant = cfg.variant || 'row';
+    if (document.documentElement.classList.contains('al-mobile') || window.__AL_MOBILE) {
+      container.innerHTML = '<div class="ps-spinner-wrap"><div class="ps-spinner"></div></div>';
+      return;
+    }
     let html = '';
     for (let i = 0; i < rows; i++) {
       if (variant === 'card') {

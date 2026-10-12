@@ -36,7 +36,8 @@
     </div>`;
   }
   MX.row = row;
-  const skeleton = (n) => Array.from({ length: n || 5 }, () => '<div class="skel-row"><div class="skel" style="width:44px;height:44px"></div><div style="flex:1"><div class="skel" style="height:12px;width:60%;margin-bottom:8px"></div><div class="skel" style="height:10px;width:35%"></div></div></div>').join('');
+  const isMobileUI = () => /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '') || (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) || window.matchMedia('(max-width: 820px)').matches;
+  const skeleton = (n) => isMobileUI() ? '<div class="mx-spinner-wrap"><div class="mx-spinner"></div></div>' : Array.from({ length: n || 5 }, () => '<div class="skel-row"><div class="skel" style="width:44px;height:44px"></div><div style="flex:1"><div class="skel" style="height:12px;width:60%;margin-bottom:8px"></div><div class="skel" style="height:10px;width:35%"></div></div></div>').join('');
   const emptyBlock = (ico, title, msg, btn) => `<div class="empty"><div class="ico">${icon(ico)}</div><h3>${esc(title)}</h3><p>${msg}</p>${btn || ''}</div>`;
 
   /* Resolve a list key to songs (so a tap always plays "the list you were looking at"). */

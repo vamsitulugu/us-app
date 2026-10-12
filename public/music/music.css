@@ -519,3 +519,6 @@ body:not(.playing) .pl-art{transform:scale(.9)}
   .list{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));column-gap:28px}
   .mix{width:170px}
 }
+.mx-spinner-wrap{display:flex;justify-content:center;padding:40px 0}
+.mx-spinner{width:36px;height:36px;border-radius:50%;border:3px solid rgba(255,255,255,.14);border-top-color:#d6379b;animation:mxspin .8s linear infinite}
+@keyframes mxspin{to{transform:rotate(360deg)}}

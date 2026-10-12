@@ -210,3 +210,13 @@
   transition: width 620ms cubic-bezier(.22,.61,.36,1);
 }
 .ps-counter { font-variant-numeric: tabular-nums; }
+
+/* ── MOBILE LOADING CIRCLE (replaces per-list skeletons on mobile) ── */
+.ps-spinner-wrap { display:flex; justify-content:center; padding:40px 0; }
+.ps-spinner {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.14);
+  border-top-color: var(--accent, #d6379b);
+  animation: psSpin .8s linear infinite;
+}
+@keyframes psSpin { to { transform: rotate(360deg); } }
