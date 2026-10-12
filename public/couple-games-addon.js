@@ -35,14 +35,14 @@ const css = `
 .atw-tab{flex-shrink:0;padding:8px 14px;border-radius:14px;background:var(--g1);border:1px solid var(--border);cursor:pointer;font-size:12px;font-weight:700;color:var(--text2);transition:var(--t)}
 .atw-tab.sel{color:#fff;border-color:var(--accent);background:var(--g2);box-shadow:0 0 0 2px var(--accent-glow)}
 .atw-body{flex:1;overflow-y:auto;padding:14px}
-.atw-hero{border-radius:20px;padding:20px;position:relative;overflow:hidden;margin-bottom:14px;background:linear-gradient(135deg,rgba(126,232,255,.18),rgba(255,107,157,.10));border:1px solid var(--border2);text-align:center}
+.atw-hero{border-radius:20px;padding:20px;position:relative;overflow:hidden;margin-bottom:14px;background:linear-gradient(135deg,rgba(249,132,176,.18),rgba(255,107,157,.10));border:1px solid var(--border2);text-align:center}
 .atw-hero-emoji{font-size:44px;margin-bottom:6px}
 .atw-hero-title{font-family:var(--ff-serif);font-size:19px;color:#fff}
 .atw-hero-sub{font-size:12px;color:var(--text2);margin-top:4px}
 .atw-stat-row{display:flex;gap:8px;margin-top:12px;justify-content:center;flex-wrap:wrap}
 .atw-stat{background:rgba(255,255,255,.08);border:1px solid var(--border2);border-radius:14px;padding:8px 14px;font-size:11px;font-weight:700;color:#fff}
 .atw-stat b{display:block;font-family:var(--ff-serif);font-size:18px;color:var(--dia)}
-.atw-passport{background:linear-gradient(160deg,#1a2a0d,#0d1a2a);border:1px solid var(--border2);border-radius:20px;padding:16px;margin-bottom:14px}
+.atw-passport{background:linear-gradient(160deg,#1a2a0d,#2a0d1d);border:1px solid var(--border2);border-radius:20px;padding:16px;margin-bottom:14px}
 .atw-passport-title{font-family:var(--ff-serif);font-size:16px;color:#ffe9a8;display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .atw-stamp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:10px}
 .atw-stamp{aspect-ratio:1;border-radius:14px;border:2px dashed var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;transition:var(--ts);cursor:pointer}
@@ -59,7 +59,7 @@ const css = `
 .atw-landmark-row{display:flex;gap:7px;overflow-x:auto;margin-top:6px}
 .atw-landmark-row::-webkit-scrollbar{height:0}
 .atw-landmark{flex-shrink:0;width:58px;text-align:center;padding:6px 4px;border-radius:12px;background:var(--g1);border:1px solid var(--border);opacity:.35}
-.atw-landmark.unlocked{opacity:1;border-color:var(--dia);background:rgba(126,232,255,.1)}
+.atw-landmark.unlocked{opacity:1;border-color:var(--dia);background:rgba(249,132,176,.1)}
 .atw-landmark-emoji{font-size:19px}
 .atw-landmark-name{font-size:7.5px;color:var(--text3);font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .atw-souvenir-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
@@ -68,26 +68,26 @@ const css = `
 .atw-input-row{display:flex;gap:8px;margin-bottom:8px}
 .atw-input-row input,.atw-input-row select{flex:1;padding:10px 13px;border-radius:12px;background:var(--g2);border:1px solid var(--border);color:#fff;font-size:12.5px}
 .atw-memory-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(52,211,153,.15);color:var(--green);border:1px solid rgba(52,211,153,.3);margin-top:6px}
-.atw-challenge-card{background:linear-gradient(135deg,rgba(255,201,74,.12),rgba(126,232,255,.08));border:1px solid rgba(255,201,74,.25);border-radius:16px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
+.atw-challenge-card{background:linear-gradient(135deg,rgba(255,201,74,.12),rgba(249,132,176,.08));border:1px solid rgba(255,201,74,.25);border-radius:16px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
 .atw-challenge-ico{font-size:28px;flex-shrink:0}
 .atw-challenge-title{font-size:12.5px;font-weight:700;color:#fff}
 .atw-challenge-sub{font-size:10.5px;color:var(--text2);margin-top:2px}
 
 /* ═══ SPACE DATE ADVENTURE ═══ */
-.sp-wrap{display:flex;flex-direction:column;height:100%;background:radial-gradient(ellipse at 50% 0%,#1a1040,#04040c 70%);border-radius:14px;overflow:hidden;position:relative}
+.sp-wrap{display:flex;flex-direction:column;height:100%;background:radial-gradient(ellipse at 50% 0%,#40102e,#0c0409 70%);border-radius:14px;overflow:hidden;position:relative}
 .sp-stars{position:absolute;inset:0;pointer-events:none}
 .sp-topbar{display:flex;align-items:center;gap:8px;padding:10px 14px;position:relative;z-index:2;flex-wrap:wrap}
 .sp-chip{font-size:10.5px;font-weight:800;padding:5px 11px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid var(--border2);color:#fff;display:flex;align-items:center;gap:5px}
 .sp-hpbar{flex:1;min-width:80px;height:9px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden;border:1px solid var(--border2)}
 .sp-hpfill{height:100%;background:linear-gradient(90deg,#ff6b6b,#ffd166);transition:width .4s}
-.sp-fuelfill{height:100%;background:linear-gradient(90deg,#4fa8ff,#7ee8ff);transition:width .4s}
+.sp-fuelfill{height:100%;background:linear-gradient(90deg,#f658a9,#f984b0);transition:width .4s}
 .sp-galaxy-select{position:relative;z-index:2;padding:8px 14px;display:flex;gap:8px;overflow-x:auto}
 .sp-galaxy-select::-webkit-scrollbar{height:0}
 .sp-galaxy-chip{flex-shrink:0;padding:8px 14px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid var(--border2);color:var(--text2);font-size:11.5px;font-weight:700;cursor:pointer}
 .sp-galaxy-chip.sel{color:#fff;border-color:var(--accent2);background:rgba(219,80,255,.15);box-shadow:0 0 0 2px var(--accent2-glow)}
 .sp-galaxy-chip.locked{opacity:.35}
 .sp-scene{flex:1;position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;text-align:center;overflow:hidden}
-.sp-planet{font-size:80px;filter:drop-shadow(0 0 30px rgba(126,232,255,.4));animation:spFloat 4s ease-in-out infinite}
+.sp-planet{font-size:80px;filter:drop-shadow(0 0 30px rgba(249,132,176,.4));animation:spFloat 4s ease-in-out infinite}
 @keyframes spFloat{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-14px) rotate(3deg)}}
 .sp-mission-title{font-family:var(--ff-serif);font-size:19px;color:#fff;margin-top:10px}
 .sp-mission-desc{font-size:12.5px;color:var(--text2);margin-top:6px;max-width:320px;line-height:1.6}
@@ -95,7 +95,7 @@ const css = `
 .sp-astro{font-size:34px;animation:spBob 2.6s ease-in-out infinite}
 .sp-astro:nth-child(2){animation-delay:.4s}
 @keyframes spBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-#spGameCanvas{border-radius:16px;background:linear-gradient(180deg,#0a0a20,#000);touch-action:none;max-width:100%}
+#spGameCanvas{border-radius:16px;background:linear-gradient(180deg,#200a17,#000);touch-action:none;max-width:100%}
 .sp-hud-score{position:absolute;top:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.5);color:#fff;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:800;z-index:3}
 .sp-btnrow{display:flex;gap:10px;margin-top:14px;position:relative;z-index:2;flex-wrap:wrap;justify-content:center}
 .sp-powerup-row{display:flex;gap:8px;margin-top:10px;justify-content:center;flex-wrap:wrap}
@@ -126,10 +126,10 @@ ready(function(){
 
 /* ── register hub cards ── */
 GAMES.push(
-  {id:'atw', title:'Around The World', emoji:'🌍', badge:'new', grad:'linear-gradient(135deg,#0d2a1a,#0d3a5c)',
+  {id:'atw', title:'Around The World', emoji:'🌍', badge:'new', grad:'linear-gradient(135deg,#0d2a1a,#5c0d36)',
     desc:'Log real trips, collect passport stamps, unlock landmarks & souvenirs. Syncs with Memory Globe.',
     tags:['✈️ Travel','⏱ Ongoing','✨ 30 XP/country']},
-  {id:'space', title:'Space Date Adventure', emoji:'🚀', badge:'trend', grad:'linear-gradient(135deg,#1a0d3a,#0d0d2a)',
+  {id:'space', title:'Space Date Adventure', emoji:'🚀', badge:'trend', grad:'linear-gradient(135deg,#3a0d2a,#2a0d1e)',
     desc:'Two astronauts, one ship. Dodge meteors, collect stars, repair the hull & unlock galaxies together.',
     tags:['🪐 Co-op','⏱ 5-15m','✨ 25 XP/mission']}
 );
@@ -499,7 +499,7 @@ const SpaceDate = {
   playLoop(){
     if(!this.running || !this.ctx) return;
     const ctx=this.ctx, c=this.canvas;
-    ctx.fillStyle='#04040f'; ctx.fillRect(0,0,c.width,c.height);
+    ctx.fillStyle='#0f040b'; ctx.fillRect(0,0,c.width,c.height);
     // spawn
     const slowFactor = this.effects.slow>0 ? 0.4 : 1;
     if(Math.random()<0.045) this.stars.push({x:Math.random()*c.width,y:-10,r:9,vy:(1+Math.random())*slowFactor});

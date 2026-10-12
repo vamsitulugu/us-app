@@ -3388,10 +3388,10 @@ function menuItemsHtml(m, id, includeSelect) {
   const WP_STORE = 'wallpapers';
   const WP_SETTINGS_KEY = 'uwl_wallpaper_settings_v1';
   const WP_SWATCHES = [
-    { id: 'midnight', css: 'linear-gradient(160deg,#0b0b0f,#1b1420 60%,#241018)' },
+    { id: 'midnight', css: 'linear-gradient(160deg,#0f0b0d,#1b1420 60%,#241018)' },
     { id: 'noir', css: 'linear-gradient(160deg,#000,#161616)' },
     { id: 'wine', css: 'linear-gradient(160deg,#150507,#2a0d12 55%,#120406)' },
-    { id: 'slate', css: 'linear-gradient(160deg,#0d1014,#1a1f26)' }
+    { id: 'slate', css: 'linear-gradient(160deg,#140d11,#261a20)' }
   ];
   let _wpDbPromise = null;
 

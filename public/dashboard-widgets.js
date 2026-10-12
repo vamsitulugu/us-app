@@ -139,7 +139,7 @@ const DashWidgets = (() => {
     Peaceful: { e: '😌', c: '#8fc46a', s: 4 },
     Tired:    { e: '🥱', c: '#b08968', s: 2 },
     Stressed: { e: '😤', c: '#ff9248', s: 2 },
-    Sad:      { e: '😔', c: '#a779f2', s: 1 },
+    Sad:      { e: '😔', c: '#f279e6', s: 1 },
     Angry:    { e: '😡', c: '#ef5350', s: 1 },
   };
   const moodKey = str => {

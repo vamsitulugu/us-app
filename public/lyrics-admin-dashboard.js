@@ -21,7 +21,7 @@
     const css = `
     .lad-overlay{position:fixed;inset:0;z-index:1500;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:16px}
     .lad-overlay.open{display:flex}
-    .lad-card{width:100%;max-width:480px;max-height:88vh;overflow-y:auto;background:rgba(10,10,24,.97);backdrop-filter:blur(30px) saturate(200%);border:1px solid rgba(255,255,255,.15);border-radius:22px;padding:22px;color:#fff}
+    .lad-card{width:100%;max-width:480px;max-height:88vh;overflow-y:auto;background:rgba(24,10,18,.97);backdrop-filter:blur(30px) saturate(200%);border:1px solid rgba(255,255,255,.15);border-radius:22px;padding:22px;color:#fff}
     .lad-title{font-family:var(--ff-serif,serif);font-size:18px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
     .lad-title button{background:none;border:none;color:rgba(255,255,255,.5);font-size:18px;cursor:pointer}
     .lad-stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
@@ -35,7 +35,7 @@
     .lad-missing-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,.06)}
     .lad-actions{display:flex;gap:8px;margin-top:16px}
     .lad-btn{flex:1;padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff;font-weight:600;font-size:12px;cursor:pointer}
-    .lad-btn.primary{background:linear-gradient(135deg,var(--accent,#5b9bff),var(--accent-d,#2f6feb));border:none}
+    .lad-btn.primary{background:linear-gradient(135deg,var(--accent,#ec66b8),var(--accent-d,#d31484));border:none}
     .lad-btn.danger{background:rgba(248,113,113,.15);border-color:rgba(248,113,113,.35);color:#f87171}
     .lad-empty{text-align:center;color:rgba(255,255,255,.4);font-size:12px;padding:14px}
     `;

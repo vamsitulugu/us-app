@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --h: 215;
+  --h: 322;
   --accent: hsl(var(--h),100%,62%);
   --accent-d: hsl(var(--h),95%,50%);
   --accent-l: hsl(var(--h),100%,78%);
@@ -177,7 +177,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
 }
 .dg-modal-bg.open{display:flex}
 .dg-modal{
-  background:rgba(8,8,20,0.92);backdrop-filter:blur(30px) saturate(200%);
+  background:rgba(20,8,15,0.92);backdrop-filter:blur(30px) saturate(200%);
   border:1px solid var(--border2);border-radius:22px;
   width:100%;max-width:480px;padding:24px;color:var(--white);
   box-shadow:0 24px 80px rgba(0,0,0,0.5);
@@ -196,7 +196,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
 }
 .dg-field textarea{resize:vertical;min-height:72px;line-height:1.6}
 .dg-field input:focus,.dg-field textarea:focus,.dg-field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
-.dg-field select option{background:#0d0d1f;color:#fff}
+.dg-field select option{background:#1f0d18;color:#fff}
 .dg-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .dg-save-btn{
   width:100%;padding:13px;border-radius:13px;border:none;cursor:pointer;
@@ -226,7 +226,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
   display:flex;align-items:center;justify-content:center;
 }
 .celeb-card{
-  background:rgba(8,8,20,0.92);backdrop-filter:blur(30px);
+  background:rgba(20,8,15,0.92);backdrop-filter:blur(30px);
   border:1px solid rgba(52,211,153,0.4);border-radius:24px;
   padding:36px 44px;text-align:center;
   animation:celebPop 0.5s cubic-bezier(0.34,1.56,0.64,1);
@@ -240,8 +240,8 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
 /* PARTNER SECTION INDICATOR */
 .partner-indicator{
   margin:0 16px 14px;padding:12px 14px;border-radius:12px;
-  background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);
-  font-size:12px;color:rgba(167,139,250,0.9);display:flex;align-items:center;gap:8px;
+  background:rgba(249,140,232,0.08);border:1px solid rgba(249,140,232,0.2);
+  font-size:12px;color:rgba(249,140,232,0.9);display:flex;align-items:center;gap:8px;
 }
 </style>
 <link rel="stylesheet" href="/theme-burgundy.css">
@@ -458,18 +458,18 @@ const CATS = {
   Personal:'🌱', Family:'👨‍👩‍👧', Other:'💫',
 };
 const CAT_GRADIENTS = {
-  Career:'linear-gradient(135deg,#2563eb,#1e40af)',
-  Travel:'linear-gradient(135deg,#0891b2,#0e7490)',
+  Career:'linear-gradient(135deg,#cc1381,#901964)',
+  Travel:'linear-gradient(135deg,#b10949,#900e40)',
   Health:'linear-gradient(135deg,#16a34a,#15803d)',
   Finance:'linear-gradient(135deg,#ca8a04,#a16207)',
-  Education:'linear-gradient(135deg,#7c3aed,#6d28d9)',
+  Education:'linear-gradient(135deg,#de14c9,#b320a5)',
   Relationship:'linear-gradient(135deg,#db2777,#be185d)',
   Creative:'linear-gradient(135deg,#ea580c,#c2410c)',
   Home:'linear-gradient(135deg,#0f766e,#0d9488)',
   Adventure:'linear-gradient(135deg,#b45309,#92400e)',
-  Personal:'linear-gradient(135deg,#6d28d9,#4c1d95)',
-  Family:'linear-gradient(135deg,#0369a1,#0c4a6e)',
-  Other:'linear-gradient(135deg,#475569,#334155)',
+  Personal:'linear-gradient(135deg,#b320a5,#951d8a)',
+  Family:'linear-gradient(135deg,#9c084b,#6e0c3e)',
+  Other:'linear-gradient(135deg,#624e59,#4e3a45)',
 };
 const PRIORITY_COLORS = {high:'var(--red)',medium:'var(--yellow)',low:'var(--green)'};
 const STATUS_LABELS = {notstarted:'Not Started',inprogress:'In Progress',completed:'Completed'};

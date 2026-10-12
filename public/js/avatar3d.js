@@ -26,7 +26,7 @@
       this.who = who;
       this.size = size;
       this.mode = 'walking';
-      this.color = who === 'my' ? 0x5b9bff : 0xff6baf;
+      this.color = who === 'my' ? 0xec66b8 : 0xff6baf;
       this.heading = 0;
       this.speedKmh = 0;
       this.offline = false;
@@ -127,7 +127,7 @@
       const g = new THREE.Group();
       const body = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.5, 2.2), this._mat(col, { metalness: 0.4, roughness: 0.35 }));
       body.position.y = 0.55;
-      const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.42, 1.1), this._mat(0xbfe3ff, { metalness: 0.6, roughness: 0.15, transparent: true, opacity: 0.85 }));
+      const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.42, 1.1), this._mat(0xfcc2de, { metalness: 0.6, roughness: 0.15, transparent: true, opacity: 0.85 }));
       cabin.position.set(0, 0.98, -0.05);
       const wheels = [[-0.58, 0.28, 0.75], [0.58, 0.28, 0.75], [-0.58, 0.28, -0.75], [0.58, 0.28, -0.75]].map(p => { const w = this._wheel(); w.position.set(...p); return w; });
       g.add(body, cabin, ...wheels);
@@ -141,7 +141,7 @@
       body.position.y = 0.95;
       const stripe = new THREE.Mesh(new THREE.BoxGeometry(1.17, 0.22, 3.42), this._mat(0xffffff, { roughness: 0.6 }));
       stripe.position.y = 0.68;
-      const windows = new THREE.Mesh(new THREE.BoxGeometry(1.16, 0.35, 3.1), this._mat(0xbfe3ff, { metalness: 0.5, roughness: 0.2, transparent: true, opacity: 0.85 }));
+      const windows = new THREE.Mesh(new THREE.BoxGeometry(1.16, 0.35, 3.1), this._mat(0xfcc2de, { metalness: 0.5, roughness: 0.2, transparent: true, opacity: 0.85 }));
       windows.position.y = 1.25;
       const wheels = [[-0.62, 0.28, 1.15], [0.62, 0.28, 1.15], [-0.62, 0.28, -1.15], [0.62, 0.28, -1.15]].map(p => { const w = this._wheel(); w.position.set(...p); return w; });
       g.add(body, stripe, windows, ...wheels);

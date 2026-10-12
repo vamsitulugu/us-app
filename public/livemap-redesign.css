@@ -5,7 +5,7 @@
    dock. The page layout itself is in livemap-screens.css.
    ──────────────────────────────────────────────────────────────── */
 #page-map{
-  --lm2-bg-dropdown:#030816;
+  --lm2-bg-dropdown:#14030e;
   --lm2-border:rgba(255,255,255,.08);
   --lm2-radius:18px;
   --lm2-shadow:0 20px 60px rgba(0,0,0,.6);
@@ -24,7 +24,7 @@
   --lm2-hover-bg:#191919;
   --lm2-selected-bg:#222222;
 
-  --lm2-primary-grad:linear-gradient(135deg,#2075ff,#0046b6);
+  --lm2-primary-grad:linear-gradient(135deg,#b0127a,#7c0a57);
   --lm2-secondary-bg:#232323;
   --lm2-btn-h:48px;
   --lm2-btn-radius:14px;
@@ -86,7 +86,7 @@
 }
 #page-map .btn-accent:hover{
   transform:translateY(-2px);
-  box-shadow:0 10px 26px rgba(32,117,255,.35);
+  box-shadow:0 10px 26px rgba(176,18,122,.35);
 }
 #page-map .btn-glass{
   background:var(--lm2-secondary-bg)!important;
@@ -100,7 +100,7 @@
   background:#2b2b2b!important;
   transform:translateY(-1px);
 }
-#page-map .lm-style-btn.active{box-shadow:0 0 0 1px rgba(32,117,255,.5) inset}
+#page-map .lm-style-btn.active{box-shadow:0 0 0 1px rgba(176,18,122,.5) inset}
 /* ── 8. Icons ────────────────────────────────────────────────────── */
 /* ── 5. Header ───────────────────────────────────────────────────── */
 /* ── 5. Partner cards row ────────────────────────────────────────── */
@@ -273,9 +273,9 @@
 }
 .lm2-call-dock.lm2-dock-row .lm2-dock-resizer::before{ width:4px;height:40px; }
 /* Phase 4: Route History privacy toggle (opt-in switch + retention chips) */
-#lmRouteRetentionRow .lm-chip.active{box-shadow:0 0 0 1px rgba(32,117,255,.5) inset;background:rgba(32,117,255,.12)}
+#lmRouteRetentionRow .lm-chip.active{box-shadow:0 0 0 1px rgba(176,18,122,.5) inset;background:rgba(176,18,122,.12)}
 /* Phase 5: voice-nav toggle + camera-mode button active states */
-.lm-voice-nav-btn.active{background:rgba(91,155,255,.25);border-color:#5b9bff}
+.lm-voice-nav-btn.active{background:rgba(236,102,184,.25);border-color:#ec66b8}
 /* Daily narrative timeline (item 2) — vertical chain of place_visits
    with per-category icon, matches existing dark-glass premium tokens. */
 .lm-timeline{display:flex;flex-direction:column}
@@ -290,4 +290,4 @@
 .lm-timeline-time{font-size:10px;color:var(--text3,rgba(255,255,255,.5));margin-top:1px}
 .lm-timeline-connector{width:1px;height:12px;background:var(--border,rgba(255,255,255,.12));margin-left:14px}
 .lm-journey-line{font-size:12px;color:var(--white,#fff);line-height:1.6}
-.lm-journey-arrow{color:var(--accent,#2075ff);margin:0 2px}
+.lm-journey-arrow{color:var(--accent,#b0127a);margin:0 2px}

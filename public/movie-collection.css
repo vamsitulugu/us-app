@@ -1,16 +1,16 @@
 /* Movie page — tabs, banner, library grid, genres, details, forms (v1) */
 .wt-tabs { position: sticky; top: 0; z-index: 5; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 6px; margin: 0 0 4px;
-  background: rgba(5,8,14,0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--wt-card-brd); border-radius: 18px; }
+  background: rgba(14,5,10,0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--wt-card-brd); border-radius: 18px; }
 .wt-tab { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px; border: 0; background: transparent; color: var(--wt-muted); border-radius: 13px; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
 .wt-tab svg { width: 20px; height: 20px; }
-.wt-tab.is-active { background: rgba(61,139,255,0.16); color: #fff; box-shadow: 0 0 0 1px rgba(61,139,255,0.35) inset; }
+.wt-tab.is-active { background: rgba(224,74,168,0.16); color: #fff; box-shadow: 0 0 0 1px rgba(224,74,168,0.35) inset; }
 .wt-tabpane { display: flex; flex-direction: column; gap: 12px; }
 .wt-tabpane[hidden] { display: none; }
 
 /* Banner */
 .mc-banner { position: relative; min-height: 300px; border-radius: 24px; overflow: hidden; background-size: cover; background-position: center top; border: 1px solid var(--wt-card-brd); display: flex; align-items: flex-end; }
-.mc-banner-empty { background: radial-gradient(90% 120% at 50% 0%, rgba(61,139,255,0.4), rgba(61,139,255,0) 65%), linear-gradient(180deg, #0c1a3a, #060a14); }
-.mc-banner-shade { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(2,4,8,0.96) 6%, rgba(2,4,8,0.35) 55%, rgba(2,4,8,0.15)); }
+.mc-banner-empty { background: radial-gradient(90% 120% at 50% 0%, rgba(224,74,168,0.4), rgba(224,74,168,0) 65%), linear-gradient(180deg, #3a0c26, #14060e); }
+.mc-banner-shade { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(8,2,5,0.96) 6%, rgba(8,2,5,0.35) 55%, rgba(8,2,5,0.15)); }
 .mc-banner-emoji { position: absolute; top: 18%; left: 0; right: 0; text-align: center; font-size: 64px; opacity: .9; }
 .mc-banner-more { position: absolute; top: 12px; right: 12px; z-index: 2; width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255,255,255,.2); background: rgba(0,0,0,.45); color: #fff; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
 .mc-banner-more svg { width: 20px; height: 20px; }
@@ -45,7 +45,7 @@
 .mc-search { flex: 1; display: flex; align-items: center; gap: 8px; padding: 0 14px; min-height: 46px; border-radius: 15px; background: var(--wt-card); border: 1px solid var(--wt-card-brd); }
 .mc-search svg { width: 18px; height: 18px; color: var(--wt-muted); flex-shrink: 0; }
 .mc-search input { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; color: #fff; font: inherit; font-size: 14px; }
-.mc-add-btn { display: flex; align-items: center; gap: 6px; padding: 0 16px; border: 0; border-radius: 15px; background: var(--wt-grad); color: #fff; font: inherit; font-weight: 800; font-size: 13px; box-shadow: 0 6px 16px rgba(16,92,214,.35); }
+.mc-add-btn { display: flex; align-items: center; gap: 6px; padding: 0 16px; border: 0; border-radius: 15px; background: var(--wt-grad); color: #fff; font: inherit; font-weight: 800; font-size: 13px; box-shadow: 0 6px 16px rgba(175,13,105,.35); }
 .mc-add-btn svg { width: 18px; height: 18px; }
 .mc-stats { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
 .mc-stat { flex: 1 0 auto; min-width: 62px; padding: 8px 10px; border-radius: 14px; background: var(--wt-card); border: 1px solid var(--wt-card-brd); text-align: center; }
@@ -71,7 +71,7 @@
 .mc-detail[hidden] { display: none; }
 .mc-detail-hero { position: relative; height: 340px; background-size: cover; background-position: center top; }
 .mc-d-back, .mc-d-fav { position: absolute; top: max(14px, env(safe-area-inset-top)); z-index: 2; }
-.mc-d-back { left: 14px; } .mc-d-fav { right: 14px; } .mc-d-fav.on { color: #3D8BFF; } .mc-d-fav.on svg { fill: #3D8BFF; }
+.mc-d-back { left: 14px; } .mc-d-fav { right: 14px; } .mc-d-fav.on { color: #E04AA8; } .mc-d-fav.on svg { fill: #E04AA8; }
 .mc-detail-body { position: relative; max-width: 560px; margin: -64px auto 0; padding: 0 18px 40px; display: flex; flex-direction: column; gap: 12px; }
 .mc-detail-body h1 { margin: 0; font-size: 28px; text-shadow: 0 2px 10px rgba(0,0,0,.6); }
 .mc-detail-body h4 { margin: 6px 0 -6px; font-size: 12px; color: var(--wt-muted); text-transform: uppercase; letter-spacing: .08em; }
@@ -79,14 +79,14 @@
 .mc-stars-show { color: #ffd54a; letter-spacing: 1px; }
 .mc-status { padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; background: rgba(255,255,255,.1); }
 .mc-about, .mc-scene { margin: 0; padding: 12px 14px; border-radius: 16px; background: var(--wt-card); border: 1px solid var(--wt-card-brd); line-height: 1.6; font-size: 14px; color: #e9dfe2; }
-.mc-scene { border-color: rgba(61,139,255,.3); background: rgba(61,139,255,.07); }
+.mc-scene { border-color: rgba(224,74,168,.3); background: rgba(224,74,168,.07); }
 .mc-detail-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .mc-danger { color: #ff8a98; }
 
 /* Form */
 .mc-form-sheet { max-height: 92vh; overflow-y: auto; }
 .mc-form { display: flex; flex-direction: column; gap: 12px; padding: 6px 2px 8px; }
-.mc-poster-pick { align-self: center; width: 130px; aspect-ratio: 2 / 3; border-radius: 16px; border: 1.5px dashed rgba(61,139,255,.55); background: rgba(61,139,255,.05); display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; }
+.mc-poster-pick { align-self: center; width: 130px; aspect-ratio: 2 / 3; border-radius: 16px; border: 1.5px dashed rgba(224,74,168,.55); background: rgba(224,74,168,.05); display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; }
 .mc-poster-pick span { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--wt-muted); font-size: 12px; width: 100%; height: 100%; justify-content: center; }
 .mc-poster-pick em { font-style: normal; } .mc-poster-pick svg { width: 28px; height: 28px; color: var(--wt-red1); }
 .mc-poster-pick img { width: 100%; height: 100%; object-fit: cover; }
@@ -95,11 +95,11 @@
 .mc-field input, .mc-field select, .mc-field textarea { width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 13px; border: 1px solid var(--wt-card-brd); background: rgba(255,255,255,.06); color: #fff; font: inherit; font-size: 14px; outline: 0; }
 .mc-field textarea { min-height: 76px; resize: vertical; }
 .mc-field input:focus, .mc-field select:focus, .mc-field textarea:focus { border-color: var(--wt-red1); }
-.mc-field select option { background: #0a0f1c; color: #fff; }
+.mc-field select option { background: #1c0a14; color: #fff; }
 .mc-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .mc-stars { display: flex; gap: 6px; }
 .mc-star { background: none; border: 0; font-size: 30px; line-height: 1; color: #6b5a60; padding: 2px; } .mc-star.on { color: #ffd54a; }
-.mc-toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 90; max-width: 88vw; padding: 11px 18px; border-radius: 22px; background: rgba(8,13,24,.96); border: 1px solid rgba(61,139,255,.3); color: #fff; font-size: 13px; text-align: center; }
+.mc-toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 90; max-width: 88vw; padding: 11px 18px; border-radius: 22px; background: rgba(24,8,17,.96); border: 1px solid rgba(224,74,168,.3); color: #fff; font-size: 13px; text-align: center; }
 .mc-toast[hidden] { display: none; }
 /* (removed) the old `max-width: 560px` cap on tabs/panes — the Movie page now
    uses the full width like the other pages. See the responsive layer below. */

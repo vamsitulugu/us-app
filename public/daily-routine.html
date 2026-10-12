@@ -14,13 +14,13 @@
      exactly, so this page paints red from the very first frame instead
      of flashing the old blue placeholder while waiting for the parent
      frame's postMessage('theme') to arrive. */
-  --accent: #1F6BFF;
-  --accent-d: #0A47C2;
-  --accent-l: #5AA0FF;
-  --accent-glow: rgba(61,139,255, 0.35);
-  --accent2: #22B8F0;
-  --accent2-d: #0A47C2;
-  --accent2-glow: rgba(34,184,240, 0.32);
+  --accent: #B0127A;
+  --accent-d: #7C0A57;
+  --accent-l: #F06DBE;
+  --accent-glow: rgba(224,74,168, 0.35);
+  --accent2: #F0489F;
+  --accent2-d: #7C0A57;
+  --accent2-glow: rgba(240,72,159, 0.32);
   --g1: rgba(255,255,255,0.04);
   --g2: rgba(255,255,255,0.08);
   --g3: rgba(255,255,255,0.13);
@@ -136,7 +136,7 @@ button{font-family:inherit}
 /* ── Bottom sheet modal ── */
 .dr-sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:100;display:none;align-items:flex-end;justify-content:center}
 .dr-sheet-bg.open{display:flex}
-.dr-sheet{width:100%;max-width:520px;max-height:88dvh;overflow-y:auto;background:#14141c;border:1px solid var(--border2);border-top-left-radius:22px;border-top-right-radius:22px;padding:16px 16px calc(24px + env(safe-area-inset-bottom));animation:drUp 0.25s cubic-bezier(0.34,1.56,0.64,1)}
+.dr-sheet{width:100%;max-width:520px;max-height:88dvh;overflow-y:auto;background:#1c1419;border:1px solid var(--border2);border-top-left-radius:22px;border-top-right-radius:22px;padding:16px 16px calc(24px + env(safe-area-inset-bottom));animation:drUp 0.25s cubic-bezier(0.34,1.56,0.64,1)}
 @keyframes drUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
 .dr-sheet-handle{width:36px;height:4px;border-radius:99px;background:var(--g3);margin:0 auto 14px}
 .dr-sheet-title{font-family:var(--ff-serif);font-size:18px;color:var(--white);margin-bottom:14px}
@@ -157,7 +157,7 @@ button{font-family:inherit}
 .dr-quick-actions .dr-btn{font-size:11px;padding:11px 8px}
 .dr-quick-actions .dr-btn.danger{background:var(--red-bg);color:var(--red)}
 
-.dr-toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(12px);background:rgba(10,10,25,0.95);border:1px solid var(--border2);color:#fff;font-size:12px;padding:10px 16px;border-radius:12px;z-index:200;opacity:0;pointer-events:none;transition:var(--t)}
+.dr-toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(12px);background:rgba(25,10,19,0.95);border:1px solid var(--border2);color:#fff;font-size:12px;padding:10px 16px;border-radius:12px;z-index:200;opacity:0;pointer-events:none;transition:var(--t)}
 </style>
   <link rel="stylesheet" href="/responsive-fix.css">
 <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">

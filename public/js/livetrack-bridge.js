@@ -111,7 +111,7 @@
             <div style="font-size:12.5px;font-weight:700;color:#fff">📍 Background Tracking</div>
             <div id="ltbStatusLine" style="font-size:10.5px;color:var(--text3,rgba(255,255,255,.4));margin-top:2px">Checking…</div>
           </div>
-          <button id="ltbToggleBtn" style="padding:8px 14px;border-radius:20px;border:none;font-size:11.5px;font-weight:700;color:#fff;cursor:pointer;background:var(--accent,#3a8bff)">…</button>
+          <button id="ltbToggleBtn" style="padding:8px 14px;border-radius:20px;border:none;font-size:11.5px;font-weight:700;color:#fff;cursor:pointer;background:var(--accent,#f20e8c)">…</button>
         </div>
         <div id="ltbGeofenceFeed" style="margin-top:10px;display:none"></div>
       `;
@@ -124,7 +124,7 @@
       const line = document.getElementById('ltbStatusLine');
       if (!btn || !line) return;
       btn.textContent = this.enabled ? 'ON' : 'Turn On';
-      btn.style.background = this.enabled ? 'linear-gradient(135deg,#34d399,#0d8f60)' : 'var(--accent,#3a8bff)';
+      btn.style.background = this.enabled ? 'linear-gradient(135deg,#34d399,#0d8f60)' : 'var(--accent,#f20e8c)';
       line.textContent = !isNative
         ? 'Live while this page is open (install the Android app for always-on tracking)'
         : (this.enabled ? 'Tracking continues when the app is closed or your screen is off' : 'Currently off — location only updates while this page is open');

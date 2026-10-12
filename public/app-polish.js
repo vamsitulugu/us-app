@@ -8,10 +8,10 @@
   'use strict';
 
   /* ---- 1. Status bar color — keep native chrome black, in sync
-     with the app's dark theme (was hardcoded to a blue #2f6feb). */
+     with the app's dark theme (was hardcoded to a blue #d31484). */
   function syncStatusBar() {
     var meta = document.getElementById('themeColorMeta');
-    if (meta) meta.setAttribute('content', (window.Theme && Theme.resolved()==='light') ? '#EAF2FF' : '#030816');
+    if (meta) meta.setAttribute('content', (window.Theme && Theme.resolved()==='light') ? '#FDEBFD' : '#14030e');
   }
   syncStatusBar();
   // Some pages/modals temporarily swap the theme-color meta for

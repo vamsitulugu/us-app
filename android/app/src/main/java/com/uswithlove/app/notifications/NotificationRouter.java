@@ -18,7 +18,7 @@ public class NotificationRouter {
   public static final String SAFETY_CHANNEL_ID = "safety_channel_v1";
   public static final String GENERAL_CHANNEL_ID = "general_channel_v1";
 
-  public static final String BRAND_ACCENT_COLOR = "#0B4FD8";
+  public static final String BRAND_ACCENT_COLOR = "#7C0A57";
 
   public enum Category {
     TOUCH(TOUCH_CHANNEL_ID),

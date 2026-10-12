@@ -15,7 +15,7 @@
     var css = '' +
       '.uq-panel{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));' +
       'transform:translateX(-50%);z-index:99999;min-width:240px;max-width:88vw;' +
-      'background:rgba(20,20,28,0.92);color:#fff;border-radius:14px;padding:12px 16px;' +
+      'background:rgba(28,20,25,0.92);color:#fff;border-radius:14px;padding:12px 16px;' +
       'font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;' +
       'box-shadow:0 8px 28px rgba(0,0,0,0.35);backdrop-filter:blur(8px);' +
       '-webkit-backdrop-filter:blur(8px);transition:opacity .2s ease, transform .2s ease}' +

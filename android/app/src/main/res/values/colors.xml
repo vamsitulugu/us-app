@@ -6,21 +6,21 @@
          values happened to exist on each developer's machine/cache —
          explaining inconsistent gray system bars. Values below match the
          app's actual dark theme (public/index.html body background
-         #030816, splash/manifest theme #06122E, accent blue used in
+         #14030e, splash/manifest theme #3A0425, accent blue used in
          app-polish.js/CSS root "accent" variable). -->
-    <color name="colorPrimary">#030816</color>
-    <color name="colorPrimaryDark">#030816</color>
-    <color name="colorAccent">#1F6BFF</color>
+    <color name="colorPrimary">#14030e</color>
+    <color name="colorPrimaryDark">#14030e</color>
+    <color name="colorAccent">#B0127A</color>
 
     <!-- Status bar / navigation bar background for API < 35 devices,
          where the OS does not force edge-to-edge and honors these
          legacy theme colors directly. -->
-    <color name="statusBarBackground">#030816</color>
-    <color name="navigationBarBackground">#030816</color>
+    <color name="statusBarBackground">#14030e</color>
+    <color name="navigationBarBackground">#14030e</color>
 
     <!-- Matches capacitor.config.json plugins.SplashScreen.backgroundColor,
          used by the responsive launch-screen background (splash_centered.xml). -->
-    <color name="splashBackground">#06122E</color>
+    <color name="splashBackground">#3A0425</color>
 
     <!-- Notification (notify_chat_left_avatar.xml) title/body text colors.
          This is a CUSTOM RemoteViews layout, so Android's automatic

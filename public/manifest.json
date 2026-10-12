@@ -5,8 +5,8 @@
   "description": "Your private couple space — chat, memories, habits & more",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#06122E",
-  "theme_color": "#030816",
+  "background_color": "#3A0425",
+  "theme_color": "#14030e",
   "orientation": "portrait-primary",
   "lang": "en",
   "icons": [

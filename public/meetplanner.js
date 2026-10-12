@@ -107,9 +107,9 @@ const CAT_META = {
   custom:        { ico: '📍', label: 'Place',         stay: 60 },
 };
 const CAT_GRAD = {
-  hotel: ['#7c3aed', '#2e1065'], tourist: ['#f97316', '#7c2d12'], cafe: ['#b45309', '#431407'], restaurant: ['#0B5BE0', '#4c0519'],
-  mall: ['#db2777', '#500724'], park: ['#16a34a', '#052e16'], museum: ['#0ea5e9', '#082f49'], temple: ['#f59e0b', '#78350f'],
-  entertainment: ['#8b5cf6', '#2e1065'], custom: ['#2F7BFF', '#5b0a1f']
+  hotel: ['#de14c9', '#651047'], tourist: ['#f97316', '#7c2d12'], cafe: ['#b45309', '#431407'], restaurant: ['#8A0E5F', '#4c0519'],
+  mall: ['#db2777', '#500724'], park: ['#16a34a', '#052e16'], museum: ['#e0358f', '#49082a'], temple: ['#f59e0b', '#78350f'],
+  entertainment: ['#f65ce2', '#651047'], custom: ['#B0127A', '#5b0a1f']
 };
 const MODE_META = {
   car:     { ico: '🚗', label: 'Car',     kmh: null, g: 'driving' },
@@ -119,14 +119,14 @@ const MODE_META = {
   transit: { ico: '🚌', label: 'Transit', kmh: 22,   g: 'transit' },
 };
 const POPULAR = [
-  { n: 'Bengaluru',     lat: 12.9716, lng: 77.5946, e: '🏙️', g: ['#3D8BFF', '#5b0a1f'] },
-  { n: 'Hyderabad',     lat: 17.3850, lng: 78.4867, e: '🕌', g: ['#8b5cf6', '#2e1065'] },
-  { n: 'Visakhapatnam', lat: 17.6868, lng: 83.2185, e: '🌊', g: ['#0ea5e9', '#082f49'] },
+  { n: 'Bengaluru',     lat: 12.9716, lng: 77.5946, e: '🏙️', g: ['#E04AA8', '#5b0a1f'] },
+  { n: 'Hyderabad',     lat: 17.3850, lng: 78.4867, e: '🕌', g: ['#f65ce2', '#651047'] },
+  { n: 'Visakhapatnam', lat: 17.6868, lng: 83.2185, e: '🌊', g: ['#e0358f', '#49082a'] },
   { n: 'Goa',           lat: 15.2993, lng: 74.1240, e: '🏖️', g: ['#f59e0b', '#78350f'] },
   { n: 'Mysuru',        lat: 12.2958, lng: 76.6394, e: '🏰', g: ['#f97316', '#7c2d12'] },
   { n: 'Ooty',          lat: 11.4102, lng: 76.6950, e: '🌄', g: ['#16a34a', '#052e16'] },
   { n: 'Coorg',         lat: 12.3375, lng: 75.8069, e: '🌿', g: ['#10b981', '#022c22'] },
-  { n: 'Chennai',       lat: 13.0827, lng: 80.2707, e: '🌅', g: ['#0B5BE0', '#4c0519'] },
+  { n: 'Chennai',       lat: 13.0827, lng: 80.2707, e: '🌅', g: ['#8A0E5F', '#4c0519'] },
   { n: 'Munnar',        lat: 10.0889, lng: 77.0595, e: '🍃', g: ['#22c55e', '#052e16'] },
   { n: 'Pondicherry',   lat: 11.9416, lng: 79.8083, e: '⛱️', g: ['#ec4899', '#500724'] },
 ];
@@ -521,8 +521,8 @@ function _mpTameMapScroll(map) {
 }
 function _pinIcon(n) { return L.divIcon({ html: `<div class="mp-pin">${n}</div>`, className: '', iconSize: [30, 30], iconAnchor: [15, 15] }); }
 function _drawStops(map, stops, geometry, dashed) {
-  if (geometry && geometry.coordinates) L.polyline(geometry.coordinates.map(c => [c[1], c[0]]), { color: '#2F7BFF', weight: 5, opacity: .9 }).addTo(map);
-  else if (stops.length > 1) L.polyline(stops.map(s => [s.lat, s.lng]), { color: '#2F7BFF', weight: 3, opacity: .8, dashArray: dashed ? '7,8' : null }).addTo(map);
+  if (geometry && geometry.coordinates) L.polyline(geometry.coordinates.map(c => [c[1], c[0]]), { color: '#B0127A', weight: 5, opacity: .9 }).addTo(map);
+  else if (stops.length > 1) L.polyline(stops.map(s => [s.lat, s.lng]), { color: '#B0127A', weight: 3, opacity: .8, dashArray: dashed ? '7,8' : null }).addTo(map);
   stops.forEach((s, i) => L.marker([s.lat, s.lng], { icon: _pinIcon(i + 1) }).addTo(map).bindPopup(`<b>${esc(s.name)}</b><br>${esc(CAT_META[s.cat]?.label || '')}`));
   if (stops.length) map.fitBounds(stops.map(s => [s.lat, s.lng]), { padding: [36, 36], maxZoom: 15 });
 }

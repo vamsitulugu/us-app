@@ -159,7 +159,7 @@
             // reveal while zooming in rather than a sudden pop-in.
             minzoom: 13,
             paint: {
-              'fill-extrusion-color': ['coalesce', ['get', 'colour'], '#cfd2dc'],
+              'fill-extrusion-color': ['coalesce', ['get', 'colour'], '#d9d2d7'],
               'fill-extrusion-height': ['coalesce', ['get', 'render_height'], ['*', ['coalesce', ['get', 'levels'], 3], 3]],
               'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
               // Shades each building from base (darker) to roofline
@@ -331,9 +331,9 @@
       addGeoJSONLayer(map, this._id, circlePolygon(this._latlng.lat, this._latlng.lng, this._radius), {
         type: 'fill',
         paint: {
-          'fill-color': this._opts.fillColor || this._opts.color || '#5b9bff',
+          'fill-color': this._opts.fillColor || this._opts.color || '#ec66b8',
           'fill-opacity': this._opts.fillOpacity != null ? this._opts.fillOpacity : 0.15,
-          'fill-outline-color': this._opts.color || '#5b9bff'
+          'fill-outline-color': this._opts.color || '#ec66b8'
         }
       });
       return this;
@@ -364,7 +364,7 @@
       this._map = map;
       const geojson = { type: 'Feature', geometry: { type: 'LineString', coordinates: this._latlngs.map((p) => [p[1], p[0]]) }, properties: {} };
       const paint = {
-        'line-color': this._opts.color || '#5b9bff',
+        'line-color': this._opts.color || '#ec66b8',
         'line-width': this._opts.weight || 4,
         'line-opacity': this._opts.opacity != null ? this._opts.opacity : 0.9
       };

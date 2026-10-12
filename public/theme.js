@@ -3,7 +3,7 @@
    automatically through the 'storage' event. */
 (function () {
   var KEY = 'th_theme', mq = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
-  var BAR = { dark: '#030816', light: '#EAF2FF' };
+  var BAR = { dark: '#14030e', light: '#FDEBFD' };
   function pref() { try { return localStorage.getItem(KEY) || 'dark'; } catch (e) { return 'dark'; } }
   function resolve(p) { if (document.documentElement.getAttribute('data-theme-lock') === 'dark') return 'dark'; return p === 'system' ? (mq && !mq.matches ? 'light' : 'dark') : (p === 'light' ? 'light' : 'dark'); }
   // DARK = white icons (for dark bars); LIGHT = black icons (for the pale light theme).

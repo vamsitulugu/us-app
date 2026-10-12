@@ -101,7 +101,7 @@ window.AdaptiveGlobe = (function () {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     const mat = new THREE.LineBasicMaterial({
-      color: 0xbfe0ff, transparent: true, opacity, depthWrite: false
+      color: 0xfcc2df, transparent: true, opacity, depthWrite: false
     });
     const mesh = new THREE.LineSegments(geo, mat);
     // Wrap in a Group so existing code that does group.children.forEach(...) / group.add still works —
@@ -170,7 +170,7 @@ window.AdaptiveGlobe = (function () {
   ];
   function buildOceanLabels() {
     OCEANS.forEach(([name, lat, lng]) => {
-      const sprite = makeTextSprite(name, { fontSize: 26, scale: 0.06, color: 'rgba(140,200,255,0.8)' });
+      const sprite = makeTextSprite(name, { fontSize: 26, scale: 0.06, color: 'rgba(249,146,198,0.8)' });
       sprite.position.copy(latLngToVec3(lat, lng, 1.03));
       oceanLabels.add(sprite);
     });
@@ -241,7 +241,7 @@ window.AdaptiveGlobe = (function () {
     CITY_DATA.forEach(([name, lat, lng, pop, tier]) => {
       const fontSize = tier === 1 ? 24 : tier === 2 ? 20 : 17;
       const scale = tier === 1 ? 0.055 : tier === 2 ? 0.045 : 0.038;
-      const color = tier === 1 ? 'rgba(255,255,255,0.95)' : tier === 2 ? 'rgba(220,230,255,0.85)' : 'rgba(190,205,235,0.75)';
+      const color = tier === 1 ? 'rgba(255,255,255,0.95)' : tier === 2 ? 'rgba(253,222,241,0.85)' : 'rgba(226,199,215,0.75)';
       const sprite = makeTextSprite(name, { fontSize, scale, importance: 4 - tier, color });
       sprite.position.copy(latLngToVec3(lat, lng, 1.035));
       sprite.userData.tier = tier;
@@ -385,8 +385,8 @@ async function loadStatesForCountry(iso3) {
         fetchGeoJSONViaWorker(NE_RIVERS),   // ← changed
         fetchGeoJSONViaWorker(NE_LAKES)     // ← changed
       ]);
-      riversGroup = buildLineFeatureGroup(rGj, 1.006, 0x4fa8ff, 0.5);
-      lakesGroup = buildPolyFeatureGroup(lGj, 1.006, 0x4fa8ff, 0.4);
+      riversGroup = buildLineFeatureGroup(rGj, 1.006, 0xf658a9, 0.5);
+      lakesGroup = buildPolyFeatureGroup(lGj, 1.006, 0xf658a9, 0.4);
       globeRef.add(riversGroup);
       globeRef.add(lakesGroup);
     } catch (e) { console.warn('AdaptiveGlobe: water features failed', e); loadedWater = false; }

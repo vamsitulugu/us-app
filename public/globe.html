@@ -11,7 +11,7 @@
     /* ══════ RESET & ROOT ══════ (unchanged from your original) */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     :root {
-      --h: 215;
+      --h: 322;
       --accent: hsl(var(--h),100%,62%);
       --accent-d: hsl(var(--h),95%,50%);
       --accent-l: hsl(var(--h),100%,78%);
@@ -43,7 +43,7 @@
     body {
       font-family: var(--ff-sans);
       color: var(--text);
-      background: #020209;
+      background: #090206;
       height: 100dvh;
       overflow: hidden;
       line-height: 1.5;
@@ -68,7 +68,7 @@
       position: absolute; top: 0; left: 0; right: 0; z-index: 50;
       padding: 16px 20px;
       display: flex; align-items: center; justify-content: space-between;
-      background: linear-gradient(to bottom, rgba(2,2,9,0.85) 0%, transparent 100%);
+      background: linear-gradient(to bottom, rgba(9,2,6,0.85) 0%, transparent 100%);
     }
     .top-title {
       font-family: var(--ff-serif);
@@ -102,7 +102,7 @@
     .stats-bar {
       position: absolute; bottom: 0; left: 0; right: 0; z-index: 50;
       padding: 16px 20px 24px;
-      background: linear-gradient(to top, rgba(2,2,9,0.92) 0%, transparent 100%);
+      background: linear-gradient(to top, rgba(9,2,6,0.92) 0%, transparent 100%);
     }
     .stats-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 2px; }
     .stats-row::-webkit-scrollbar { height: 0; }
@@ -143,7 +143,7 @@
     }
     .view-toggle::before {
       content:''; position:absolute; inset:-10px -24px; z-index:-1;
-      background: radial-gradient(ellipse at center, rgba(2,2,9,0.55) 0%, rgba(2,2,9,0) 75%);
+      background: radial-gradient(ellipse at center, rgba(9,2,6,0.55) 0%, rgba(9,2,6,0) 75%);
       filter: blur(6px);
     }
     .vt-btn {
@@ -159,7 +159,7 @@
 
     #cityTooltip {
       position: fixed; z-index: 200; pointer-events: none;
-      background: rgba(10,10,25,0.92);
+      background: rgba(25,10,19,0.92);
       backdrop-filter: blur(20px);
       border: 1px solid var(--border2);
       border-radius: 14px; padding: 10px 14px;
@@ -176,7 +176,7 @@
     .glass-panel {
       position: absolute; top: 0; right: -420px; bottom: 0;
       width: 400px; z-index: 100;
-      background: rgba(6,6,18,0.88);
+      background: rgba(18,6,13,0.88);
       backdrop-filter: blur(30px) saturate(200%);
       border-left: 1px solid var(--border2);
       display: flex; flex-direction: column;
@@ -261,7 +261,7 @@
     }
     .form-field input:focus, .form-field textarea:focus, .form-field select:focus { border-color: var(--accent); background: var(--g2); box-shadow: 0 0 0 3px var(--accent-glow); }
     .form-field input::placeholder, .form-field textarea::placeholder { color: var(--text3); }
-    .form-field select option { background: #0d0d1f; color: #fff; }
+    .form-field select option { background: #1f0d18; color: #fff; }
     .form-field textarea { resize: vertical; min-height: 70px; line-height: 1.6; }
     .row2-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: var(--rs); font-size: 13px; cursor: pointer; border: none; font-weight: 500; transition: var(--t); font-family: var(--ff-sans); }
@@ -281,7 +281,7 @@
     .mood-opt.sel { background: var(--accent); color: #fff; border-color: var(--accent); }
 
     .loc-results {
-      background: rgba(10,10,25,0.97); border: 1px solid var(--border2); border-radius: var(--rs); margin-top: 4px; overflow: hidden;
+      background: rgba(25,10,19,0.97); border: 1px solid var(--border2); border-radius: var(--rs); margin-top: 4px; overflow: hidden;
       max-height: 200px; overflow-y: auto; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
     }
     .loc-results.show { display: block; }
@@ -298,7 +298,7 @@
     .preview-strip::-webkit-scrollbar { height: 0; }
     .preview-item { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
 
-    #statsView { position: absolute; inset: 0; z-index: 80; background: rgba(2,2,9,0.95); backdrop-filter: blur(30px); display: none; flex-direction: column; overflow: hidden; }
+    #statsView { position: absolute; inset: 0; z-index: 80; background: rgba(9,2,6,0.95); backdrop-filter: blur(30px); display: none; flex-direction: column; overflow: hidden; }
     #statsView.open { display: flex; }
     .stats-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
     .stats-content { flex: 1; overflow-y: auto; padding: 20px; }
@@ -316,7 +316,7 @@
     .world-count { font-size: 11px; color: var(--accent); font-weight: 600; }
     .achievement-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
     .achievement { background: var(--g1); border: 1px solid var(--border); border-radius: var(--rs); padding: 14px 10px; text-align: center; transition: var(--t); }
-    .achievement.unlocked { background: linear-gradient(135deg,rgba(100,100,220,0.12),rgba(220,100,180,0.08)); border-color: var(--accent); }
+    .achievement.unlocked { background: linear-gradient(135deg,rgba(220,100,188,0.12),rgba(220,100,180,0.08)); border-color: var(--accent); }
     .achievement.locked { opacity: 0.45; }
     .achievement .ach-ico { font-size: 28px; margin-bottom: 5px; }
     .achievement .ach-name { font-size: 10px; font-weight: 700; color: var(--white); }
@@ -350,13 +350,13 @@
 
     .toast {
       position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(12px);
-      background: rgba(15,15,20,0.9); backdrop-filter: blur(16px); color: var(--white); padding: 10px 20px; border-radius: 24px;
+      background: rgba(20,15,18,0.9); backdrop-filter: blur(16px); color: var(--white); padding: 10px 20px; border-radius: 24px;
       font-size: 13px; z-index: 99999; opacity: 0; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); pointer-events: none; white-space: nowrap;
       box-shadow: 0 6px 24px rgba(0,0,0,0.4); border: 1px solid var(--border2); font-weight: 500;
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    #loadingOverlay { position: absolute; inset: 0; z-index: 200; background: #020209; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+    #loadingOverlay { position: absolute; inset: 0; z-index: 200; background: #090206; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
     .loading-globe { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg,var(--accent),var(--accent2)); animation: loadSpin 2s linear infinite; box-shadow: 0 0 40px var(--accent-glow), 0 0 80px var(--accent2-glow); }
     @keyframes loadSpin { to { transform: rotate(360deg); } }
     .loading-text { font-family: var(--ff-serif); font-size: 18px; color: var(--text2); }
@@ -380,7 +380,7 @@
 
     #liveHud {
       position: absolute; top: 72px; right: 16px; z-index: 55;
-      background: rgba(10,10,25,0.85); backdrop-filter: blur(16px);
+      background: rgba(25,10,19,0.85); backdrop-filter: blur(16px);
       border: 1px solid var(--border2); border-radius: 16px;
       padding: 12px 14px; font-size: 12px; color: var(--white);
       display: none; min-width: 160px;
@@ -394,7 +394,7 @@
     /* Phase 4: street-level badge — replaces the old MapLibre #streetView overlay entirely */
     #streetBadge {
       position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
-      z-index: 55; background: rgba(10,10,25,0.85); backdrop-filter: blur(16px);
+      z-index: 55; background: rgba(25,10,19,0.85); backdrop-filter: blur(16px);
       border: 1px solid var(--border2); border-radius: 20px; padding: 8px 16px;
       font-size: 12px; color: #fff; display: none;
     }
@@ -500,7 +500,7 @@
 
   <div id="liveHud">
     <div class="lh-row"><div class="lh-dot" style="background:#34d399"></div><span id="lhMe">You: —</span></div>
-    <div class="lh-row"><div class="lh-dot" style="background:#4fa8ff"></div><span id="lhPartner">Partner: —</span></div>
+    <div class="lh-row"><div class="lh-dot" style="background:#f658a9"></div><span id="lhPartner">Partner: —</span></div>
     <div class="lh-dist" id="lhDist">—</div>
   </div>
 
@@ -547,7 +547,7 @@
 
   <div id="globalSearchBar" style="position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:55;width:min(340px,80vw);display:none">
     <input id="globalSearchInput" placeholder="Search country, city, landmark..." oninput="globalSearch(this.value)"
-      style="width:100%;padding:10px 14px;border-radius:20px;border:1px solid var(--border2);background:rgba(10,10,25,0.85);backdrop-filter:blur(16px);color:#fff;font-size:13px;outline:none">
+      style="width:100%;padding:10px 14px;border-radius:20px;border:1px solid var(--border2);background:rgba(25,10,19,0.85);backdrop-filter:blur(16px);color:#fff;font-size:13px;outline:none">
     <div id="globalSearchResults" class="loc-results"></div>
   </div>
 
@@ -911,8 +911,8 @@ function heartMarkerCanvas(mood, count, selected) {
   const glowR = headR * (selected ? 2.0 : 1.6);
   const glow = ctx.createRadialGradient(cx, headCY, 0, cx, headCY, glowR);
   if (selected) {
-    glow.addColorStop(0, 'rgba(120,190,255,0.55)');
-    glow.addColorStop(1, 'rgba(120,190,255,0)');
+    glow.addColorStop(0, 'rgba(248,127,188,0.55)');
+    glow.addColorStop(1, 'rgba(248,127,188,0)');
   } else {
     glow.addColorStop(0, 'rgba(255,80,120,0.4)');
     glow.addColorStop(1, 'rgba(255,80,120,0)');
@@ -928,7 +928,7 @@ function heartMarkerCanvas(mood, count, selected) {
   ctx.quadraticCurveTo(cx - headR * 0.95, headCY + headR * 0.75, cx - headR * Math.cos(Math.PI * 0.05), headCY - headR * Math.sin(Math.PI * 0.05));
   ctx.closePath();
   const body = ctx.createLinearGradient(cx, headCY - headR, cx, tipY);
-  if (selected) { body.addColorStop(0, '#8fd3ff'); body.addColorStop(1, '#3d7fe0'); }
+  if (selected) { body.addColorStop(0, '#f995c4'); body.addColorStop(1, '#ca207e'); }
   else { body.addColorStop(0, '#ff8fae'); body.addColorStop(1, '#e0264f'); }
   ctx.fillStyle = body;
   ctx.fill();
@@ -948,8 +948,8 @@ function heartMarkerCanvas(mood, count, selected) {
     const bx = cx + headR * 0.78, by = headCY - headR * 0.85;
     ctx.fillStyle = 'rgba(255,255,255,0.97)';
     ctx.beginPath(); ctx.arc(bx, by, 12, 0, Math.PI * 2); ctx.fill();
-    ctx.lineWidth = 1.5; ctx.strokeStyle = selected ? '#3d7fe0' : '#e0264f'; ctx.stroke();
-    ctx.fillStyle = selected ? '#3d7fe0' : '#e0264f';
+    ctx.lineWidth = 1.5; ctx.strokeStyle = selected ? '#ca207e' : '#e0264f'; ctx.stroke();
+    ctx.fillStyle = selected ? '#ca207e' : '#e0264f';
     ctx.font = 'bold 13px Inter, sans-serif';
     ctx.fillText(String(count), bx, by + 1);
   }
@@ -962,13 +962,13 @@ function clusterMarkerCanvas(count) {
   c.width = size; c.height = size;
   const ctx = c.getContext('2d');
   const glow = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2.1);
-  glow.addColorStop(0, 'rgba(120,190,255,0.55)');
-  glow.addColorStop(1, 'rgba(120,190,255,0)');
+  glow.addColorStop(0, 'rgba(248,127,188,0.55)');
+  glow.addColorStop(1, 'rgba(248,127,188,0)');
   ctx.fillStyle = glow;
   ctx.beginPath(); ctx.arc(size/2, size/2, size/2.1, 0, Math.PI*2); ctx.fill();
   ctx.beginPath(); ctx.arc(size/2, size/2, 22, 0, Math.PI*2);
   const grad = ctx.createLinearGradient(0, 0, size, size);
-  grad.addColorStop(0, '#4fa8ff'); grad.addColorStop(1, '#e061e8');
+  grad.addColorStop(0, '#f658a9'); grad.addColorStop(1, '#e061e8');
   ctx.fillStyle = grad; ctx.fill();
   ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.stroke();
   ctx.fillStyle = '#fff';
@@ -1040,7 +1040,7 @@ async function renderCesiumPins() {
 //    continents, or if OSRM fails) fall back to a glowing geodesic arc so
 //    there's still a visible connection. Routes are cached by endpoint pair
 //    so re-pinning a memory doesn't re-fetch legs you've already resolved. ──
-const ARC_COLORS = ['#4fa8ff','#5AB0FF','#34d399','#fbbf24','#a78bfa','#fb923c','#22d3ee','#f472b6'];
+const ARC_COLORS = ['#f658a9','#F274C2','#34d399','#fbbf24','#f98ce8','#fb923c','#cf1056','#f472b6'];
 const MAX_DRIVE_KM = 1200; // beyond this, assume flight/ferry — don't bother asking OSRM
 let arcEntities = [];
 let arcRenderToken = 0;
@@ -1304,7 +1304,7 @@ function renderTimelineView() {
     el.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--text3)"><div style="font-size:48px;margin-bottom:12px">📅</div><div style="font-size:16px">No memories yet</div></div>`;
     return;
   }
-  const moodColors = {'😊':'#fbbf24','🥰':'#5AB0FF','😌':'#34d399','😤':'#f87171','🤩':'var(--accent)','😔':'#a78bfa'};
+  const moodColors = {'😊':'#fbbf24','🥰':'#F274C2','😌':'#34d399','😤':'#f87171','🤩':'var(--accent)','😔':'#f98ce8'};
   el.innerHTML = `<div class="timeline-strip">
     ${filtered.map((m, i) => {
       const emoji = (m.mood || '').split(' ')[0] || '❤️';
@@ -1920,7 +1920,7 @@ function renderStats() {
   el.innerHTML = `
     <div class="kpi-grid">
       <div class="kpi-card"><div class="kpi-n" style="color:var(--accent)">${filtered.length}</div><div class="kpi-l">Memories</div></div>
-      <div class="kpi-card"><div class="kpi-n" style="color:#5AB0FF">${cities.length}</div><div class="kpi-l">Cities</div></div>
+      <div class="kpi-card"><div class="kpi-n" style="color:#F274C2">${cities.length}</div><div class="kpi-l">Cities</div></div>
       <div class="kpi-card"><div class="kpi-n" style="color:var(--green)">${countries.length}</div><div class="kpi-l">Countries</div></div>
       <div class="kpi-card"><div class="kpi-n" style="color:var(--yellow);font-size:20px">₹${totalCost>0?Math.round(totalCost/1000)+'k':0}</div><div class="kpi-l">Spent</div></div>
     </div>
@@ -2153,7 +2153,7 @@ async function pollLiveLocations() {
     const partnerRole = myRole === 'user1' ? 'user2' : 'user1';
     const partnerData = data[partnerRole];
     updateLiveMarker('me', meData, '#34d399');
-    updateLiveMarker('partner', partnerData, '#4fa8ff');
+    updateLiveMarker('partner', partnerData, '#f658a9');
     updateLiveHud(meData, partnerData);
     if (partnerData && partnerData.online) fetchLiveTrail(partnerRole, 'partner');
     if (meData && meData.online) fetchLiveTrail(myRole, 'me');
@@ -2188,7 +2188,7 @@ async function fetchLiveTrail(role, key) {
     if (liveTrailEntities[key]) { viewer.entities.remove(liveTrailEntities[key]); liveTrailEntities[key] = null; }
     if (!points || points.length < 2) return;
     const positions = points.flatMap(p => [p.lng, p.lat]);
-    const color = key === 'me' ? Cesium.Color.fromCssColorString('#34d399').withAlpha(0.6) : Cesium.Color.fromCssColorString('#4fa8ff').withAlpha(0.6);
+    const color = key === 'me' ? Cesium.Color.fromCssColorString('#34d399').withAlpha(0.6) : Cesium.Color.fromCssColorString('#f658a9').withAlpha(0.6);
     liveTrailEntities[key] = viewer.entities.add({
       polyline: { positions: Cesium.Cartesian3.fromDegreesArray(positions), width: 2, material: color, clampToGround: true }
     });

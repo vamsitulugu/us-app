@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --h: 215;
+  --h: 322;
   --accent: hsl(var(--h),100%,62%);
   --accent-d: hsl(var(--h),95%,50%);
   --accent-l: hsl(var(--h),100%,78%);
@@ -465,7 +465,7 @@ function render() {
 
   // Upcoming celebrations
   const celebrations = [];
-  if (lcState.anniversary) celebrations.push({ name: 'Anniversary 💍', icon: '💍', iconBg: 'linear-gradient(135deg,rgba(91,155,255,0.2),rgba(91,155,255,0.05))', days: annivDays, date: fmtDateShort(lcState.anniversary) });
+  if (lcState.anniversary) celebrations.push({ name: 'Anniversary 💍', icon: '💍', iconBg: 'linear-gradient(135deg,rgba(236,102,184,0.2),rgba(236,102,184,0.05))', days: annivDays, date: fmtDateShort(lcState.anniversary) });
   if (lcState.myBday) celebrations.push({ name: `${lcState.myName}'s Birthday 🎂`, icon: '🎂', iconBg: 'linear-gradient(135deg,rgba(251,191,36,0.2),rgba(251,191,36,0.05))', days: myBdayDays, date: fmtDateShort(lcState.myBday) });
   if (lcState.ptBday) celebrations.push({ name: `${lcState.partnerName}'s Birthday 🎂`, icon: '🎂', iconBg: 'linear-gradient(135deg,rgba(255,107,157,0.2),rgba(255,107,157,0.05))', days: ptBdayDays, date: fmtDateShort(lcState.ptBday) });
   // Add upcoming events

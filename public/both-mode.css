@@ -68,7 +68,7 @@
   top: 32px;
   z-index: 20;
   min-width: 170px;
-  background: #0C1838;
+  background: #380C25;
   border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
@@ -110,7 +110,7 @@
 .both-confirm-card {
   width: 100%;
   max-width: 340px;
-  background: #0C1838;
+  background: #380C25;
   border: 1px solid var(--border);
   border-radius: var(--r);
   padding: 20px;

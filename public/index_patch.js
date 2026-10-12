@@ -144,16 +144,16 @@ const HeartbeatManager = (() => {
 
   /* ── HEART THEMES ── */
   const HEART_THEMES = {
-    crystal:     { primary: '#a5f3fc', secondary: '#67e8f9', glow: 'rgba(165,243,252,0.6)', emoji: '💎' },
-    galaxy:      { primary: '#818cf8', secondary: '#c084fc', glow: 'rgba(129,140,248,0.6)', emoji: '🌌' },
+    crystal:     { primary: '#faa7c5', secondary: '#f7699d', glow: 'rgba(250,167,197,0.6)', emoji: '💎' },
+    galaxy:      { primary: '#f881d3', secondary: '#c084fc', glow: 'rgba(248,129,211,0.6)', emoji: '🌌' },
     golden:      { primary: '#fbbf24', secondary: '#f59e0b', glow: 'rgba(251,191,36,0.6)',  emoji: '🏆' },
     rose:        { primary: '#fb7185', secondary: '#f43f5e', glow: 'rgba(251,113,133,0.6)', emoji: '🌹' },
     fire:        { primary: '#fb923c', secondary: '#ef4444', glow: 'rgba(251,146,60,0.6)',  emoji: '🔥' },
-    neon:        { primary: '#4ade80', secondary: '#22d3ee', glow: 'rgba(74,222,128,0.6)',  emoji: '⚡' },
-    diamond:     { primary: '#e2e8f0', secondary: '#cbd5e1', glow: 'rgba(226,232,240,0.6)', emoji: '💠' },
-    aurora:      { primary: '#86efac', secondary: '#67e8f9', glow: 'rgba(134,239,172,0.6)', emoji: '🌈' },
+    neon:        { primary: '#4ade80', secondary: '#cf1056', glow: 'rgba(74,222,128,0.6)',  emoji: '⚡' },
+    diamond:     { primary: '#f0e2ea', secondary: '#ddcfd6', glow: 'rgba(240,226,234,0.6)', emoji: '💠' },
+    aurora:      { primary: '#86efac', secondary: '#f7699d', glow: 'rgba(134,239,172,0.6)', emoji: '🌈' },
     anniversary: { primary: '#f9a8d4', secondary: '#f472b6', glow: 'rgba(249,168,212,0.6)', emoji: '💍' },
-    valentine:   { primary: '#5AB0FF', secondary: '#c2185b', glow: 'rgba(255,107,157,0.6)', emoji: '💝' },
+    valentine:   { primary: '#F274C2', secondary: '#c2185b', glow: 'rgba(255,107,157,0.6)', emoji: '💝' },
   };
 
   /* ── EMOJI REACTIONS ── */
@@ -669,7 +669,7 @@ const HeartbeatManager = (() => {
       const overlay = document.createElement('div');
       overlay.style.cssText = 'position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,0.7);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:16px';
       overlay.innerHTML = `
-        <div style="background:rgba(8,8,20,0.95);border:1px solid rgba(255,255,255,0.18);border-radius:22px;padding:24px;width:100%;max-width:400px;color:#fff;box-shadow:0 24px 80px rgba(0,0,0,0.5);animation:hbStatsPop 0.35s cubic-bezier(0.34,1.56,0.64,1)">
+        <div style="background:rgba(20,8,15,0.95);border:1px solid rgba(255,255,255,0.18);border-radius:22px;padding:24px;width:100%;max-width:400px;color:#fff;box-shadow:0 24px 80px rgba(0,0,0,0.5);animation:hbStatsPop 0.35s cubic-bezier(0.34,1.56,0.64,1)">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
             <div style="font-family:'DM Serif Display',serif;font-size:20px">💓 Heartbeat Stats</div>
             <button onclick="this.closest('div[style*=fixed]').remove()" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:20px;cursor:pointer">✕</button>
@@ -693,7 +693,7 @@ const HeartbeatManager = (() => {
               const min = Math.round(d.ms / 60000);
               return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
                 <div style="font-size:9px;color:rgba(255,255,255,0.5)">${min>0?min+'m':''}</div>
-                <div style="width:100%;border-radius:4px 4px 2px 2px;height:${pct}%;background:linear-gradient(135deg,var(--accent,#5b9bff),var(--accent2,hsl(300,85%,65%)));opacity:${d.ms>0?1:0.2};transition:height 0.6s ease"></div>
+                <div style="width:100%;border-radius:4px 4px 2px 2px;height:${pct}%;background:linear-gradient(135deg,var(--accent,#ec66b8),var(--accent2,hsl(300,85%,65%)));opacity:${d.ms>0?1:0.2};transition:height 0.6s ease"></div>
                 <div style="font-size:9px;color:rgba(255,255,255,0.4);font-weight:600">${d.label}</div>
               </div>`;
             }).join('')}
@@ -1048,7 +1048,7 @@ const HeartbeatManager = (() => {
   transform: translateX(-50%);
   display: flex; gap: 4px;
   z-index: 2;
-  background: rgba(8,8,20,0.6);
+  background: rgba(20,8,15,0.6);
   backdrop-filter: blur(12px);
   border: 1px solid var(--border);
   border-radius: 20px;

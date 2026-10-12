@@ -7,13 +7,13 @@
 
 :root {
   /* Locked to your palette — do not diverge */
-  --pm-red: #1F6BFF;
-  --pm-red-deep: #0A47C2;
-  --pm-red-bright: #3D8BFF;
-  --pm-glow: rgba(61,139,255, 0.35);
+  --pm-red: #B0127A;
+  --pm-red-deep: #7C0A57;
+  --pm-red-bright: #E04AA8;
+  --pm-glow: rgba(224,74,168, 0.35);
   --pm-glass-border: rgba(255, 255, 255, 0.08);
   --pm-reflection: rgba(255, 255, 255, 0.18);
-  --pm-bg-glow: rgba(31,107,255, 0.18);
+  --pm-bg-glow: rgba(176,18,122, 0.18);
   --pm-gold: rgba(255, 200, 120, 0.9);
 
   --pm-ease: cubic-bezier(.22, .61, .36, 1);
