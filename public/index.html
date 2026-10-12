@@ -1913,12 +1913,12 @@
     .period-insight-text{font-size:12px;color:var(--text2);line-height:1.55}
     .period-insight-text strong{color:var(--white)}
     .period-cycle-row{display:flex;align-items:flex-end;gap:6px;height:70px;padding:6px 0 0}
-    .period-cycle-bar{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#5AB0FF,#c2185b);min-height:3px;transition:height 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+    .period-cycle-bar{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#ff6b9d,#c2185b);min-height:3px;transition:height 0.7s cubic-bezier(0.34,1.56,0.64,1)}
     .period-cycle-label{font-size:8px;color:var(--text3);text-align:center;margin-top:4px}
     .period-symptom-freq-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
     .period-symptom-freq-row:last-child{border-bottom:none}
     .period-symptom-bar-wrap{flex:1;height:6px;background:var(--g2);border-radius:3px;margin:0 10px;overflow:hidden}
-    .period-symptom-bar{height:100%;background:linear-gradient(90deg,#5AB0FF,#c2185b);border-radius:3px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+    .period-symptom-bar{height:100%;background:linear-gradient(90deg,#ff6b9d,#c2185b);border-radius:3px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
     /* ════ MEMORIES ANALYTICS ════ */
     .mem-insight-card{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,rgba(31,107,255,0.08),rgba(11,79,216,0.05));border:1px solid rgba(31,107,255,0.18);border-radius:var(--r);margin-bottom:14px}
     .mem-insight-ico{font-size:20px;flex-shrink:0}
@@ -1947,7 +1947,7 @@
     .xp-badge-locked .xp-badge-emoji{opacity:0.35;filter:grayscale(1)}
     .xp-badge-locked .xp-badge-name{color:var(--text3)}
     .xp-badge-prog-wrap{height:4px;background:var(--g2);border-radius:2px;margin-top:8px;overflow:hidden}
-    .xp-badge-prog{height:100%;background:linear-gradient(90deg,var(--accent),#ff6b6b);border-radius:2px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
+    .xp-badge-prog{height:100%;background:linear-gradient(90deg,var(--accent),#6ba4ff);border-radius:2px;transition:width 0.7s cubic-bezier(0.34,1.56,0.64,1)}
     .xp-badge-prog-txt{font-size:8px;color:var(--text3);margin-top:4px}
     /* ════ RELATIONSHIP INSIGHT ════ */
     /* ════ FIGHTS ════ */
@@ -2038,7 +2038,7 @@
     .fl-delta.is-bad { color: var(--red) }
 
     /* Primary button */
-    .fl-cta { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 54px; margin: 4px 0 22px; border: 0; border-radius: 16px; font: 600 16px var(--ff-sans); color: #fff; cursor: pointer; background: linear-gradient(135deg, #3D8BFF, #c40012); box-shadow: 0 8px 28px rgba(31,107,255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2); transition: var(--t) }
+    .fl-cta { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 54px; margin: 4px 0 22px; border: 0; border-radius: 16px; font: 600 16px var(--ff-sans); color: #fff; cursor: pointer; background: linear-gradient(135deg, #3D8BFF, #004bc4); box-shadow: 0 8px 28px rgba(31,107,255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2); transition: var(--t) }
     .fl-cta:active { transform: scale(0.985) }
     .fl-cta .lucide { font-size: 20px }
 
@@ -2060,7 +2060,7 @@
 
     .fl-state { padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap }
     .fl-state.is-resolved { color: var(--green); background: var(--green-bg) }
-    .fl-state.is-open { color: #ff5a5f; background: rgba(31,107,255, 0.08); border: 1px solid rgba(248, 113, 113, 0.5) }
+    .fl-state.is-open { color: #ff5a5f; background: rgba(248, 113, 113, 0.10); border: 1px solid rgba(248, 113, 113, 0.5) }
     .fl-state.is-open::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 6px; border: 1.5px solid currentColor; border-radius: 50%; vertical-align: -1px }
     .fl-score { padding: 6px 12px; border-radius: 999px; font-size: 12px; color: var(--text2); background: rgba(255, 255, 255, 0.06); white-space: nowrap }
 
@@ -2093,11 +2093,11 @@
     .fl-chips { display: flex; flex-wrap: wrap; gap: 10px }
     .fl-chip { position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 999px; font: 500 13px var(--ff-sans); color: var(--text); background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border2); cursor: pointer; transition: var(--t) }
     .fl-chip .lucide { font-size: 16px }
-    .fl-chip[aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, #3D8BFF, #c40012); border-color: transparent; box-shadow: 0 4px 16px rgba(31,107,255, 0.3) }
+    .fl-chip[aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, #3D8BFF, #004bc4); border-color: transparent; box-shadow: 0 4px 16px rgba(31,107,255, 0.3) }
 
     .fl-scale { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; padding: 4px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 12px }
     .fl-scale button { height: 42px; padding: 0; border: 0; border-radius: 8px; font: 500 14px var(--ff-sans); color: var(--text2); background: transparent; cursor: pointer; transition: var(--t) }
-    .fl-scale button[aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, #3D8BFF, #c40012); box-shadow: 0 0 14px var(--accent-glow) }
+    .fl-scale button[aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, #3D8BFF, #004bc4); box-shadow: 0 0 14px var(--accent-glow) }
     .fl-scale-cap { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--text2) }
 
     .fl-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
@@ -2105,7 +2105,7 @@
     .fl-choice .lucide { font-size: 18px }
     .fl-choice[data-value="open"] .lucide { color: #ff5a5f }
     .fl-choice[data-value="resolved"] .lucide { color: var(--green) }
-    .fl-choice[data-value="open"][aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, #d4101c, #0B4FD8); border-color: transparent }
+    .fl-choice[data-value="open"][aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, #ff5a5f, #d4101c); border-color: transparent }
     .fl-choice[data-value="open"][aria-pressed="true"] .lucide { color: #fff }
     .fl-choice[data-value="resolved"][aria-pressed="true"] { color: var(--green); background: var(--green-bg); border-color: rgba(52, 211, 153, 0.5) }
 
@@ -2115,7 +2115,7 @@
     .fl-tabs { display: flex; gap: 8px; margin-bottom: 16px; padding-bottom: 4px; overflow-x: auto; scrollbar-width: none }
     .fl-tabs::-webkit-scrollbar { display: none }
     .fl-tab { position: relative; overflow: hidden; flex-shrink: 0; padding: 10px 16px; border-radius: 12px; font: 500 13px var(--ff-sans); color: var(--text); background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border2); cursor: pointer }
-    .fl-tab.is-on { color: #fff; background: linear-gradient(135deg, #3D8BFF, #c40012); border-color: transparent }
+    .fl-tab.is-on { color: #fff; background: linear-gradient(135deg, #3D8BFF, #004bc4); border-color: transparent }
 
     .fl-act { margin-bottom: 10px }
     .fl-act-head { display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer }
@@ -2765,7 +2765,7 @@
     }
 
     .mem-viewer-action.fav.active .ico {
-      color: #ff5c72
+      color: #5c9aff
     }
 
     .mem-viewer-action.fav.active .ico svg {
@@ -2790,7 +2790,7 @@
     .mem-sheet {
       width: 100%;
       max-width: 420px;
-      background: linear-gradient(180deg, #1a1414, #100c0c);
+      background: linear-gradient(180deg, #1a1414, #070a10);
       border: 1px solid rgba(31,107,255, 0.25);
       border-radius: 18px 18px 0 0;
       padding: 10px 6px calc(14px + env(safe-area-inset-bottom, 0px))
@@ -4079,7 +4079,7 @@
   display: flex; gap: 8px; align-items: center;
 }
 .lm-search-results .lm-sr-item:last-child { border-bottom: none; }
-.lm-search-results .lm-sr-item:hover, .lm-search-results .lm-sr-item.active { background: rgba(255,60,90,0.18); }
+.lm-search-results .lm-sr-item:hover, .lm-search-results .lm-sr-item.active { background: rgba(60,135,255,0.18); }
 .lm-search-results .lm-sr-ico { font-size: 16px; flex-shrink: 0; }
 .lm-search-results .lm-sr-body { min-width: 0; flex: 1; }
 .lm-search-results .lm-sr-name { font-size: 13px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -4090,14 +4090,14 @@
   font-size: 11px; padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,0.08);
   color: #ddd; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); white-space: nowrap;
 }
-.lm-search-chips .lm-chip.active { background: #ff3c5a; color: #fff; border-color: #ff3c5a; }
+.lm-search-chips .lm-chip.active { background: #3c87ff; color: #fff; border-color: #3c87ff; }
 
 /* Search-along-route chips (inside the Navigate panel) — same look as search chips */
 .lm-poi-chip {
   font-size: 11px; padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,0.08);
   color: #ddd; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); white-space: nowrap;
 }
-.lm-poi-chip.active { background: #ff3c5a; color: #fff; border-color: #ff3c5a; }
+.lm-poi-chip.active { background: #3c87ff; color: #fff; border-color: #3c87ff; }
 
 .lm-journey-line {
   font-size: 12px; font-weight: 600; color: var(--white);
@@ -4271,7 +4271,7 @@
   background:
     radial-gradient(circle at 32% 28%, rgba(228,229,231,0.55), transparent 40%),
     radial-gradient(circle at 60% 65%, #7a0018, transparent 65%),
-    radial-gradient(circle at 45% 50%, #0B4FD8, #3a000c 68%, #120005 100%);
+    radial-gradient(circle at 45% 50%, #0B4FD8, #3a000c 68%, #020712 100%);
   box-shadow: inset 0 -2px 5px rgba(0,0,0,0.5), inset 0 1px 3px rgba(255,255,255,0.08);
 }
 .twin-msg-av .twin-mini-orb { width: 26px; height: 26px; }
@@ -4318,7 +4318,7 @@
 }
 .twin-dock-orb::before {
   content: ''; position: absolute; inset: 0; margin: -6px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(20,10,12,0.9) 55%, rgba(20,10,12,0) 78%);
+  background: radial-gradient(circle, rgba(9,12,20,0.9) 55%, rgba(9,12,20,0) 78%);
   z-index: -1;
   /* Hidden until the orb actually arrives — otherwise this reads as an
      empty black hole sitting above the input bar while the orb is
@@ -4333,7 +4333,7 @@
   margin: 0 12px max(14px, env(safe-area-inset-bottom)) 12px;
   padding: 10px 10px 10px 14px;
   border-radius: 28px;
-  background: rgba(20,10,12,0.55);
+  background: rgba(9,12,20,0.55);
   border: 1px solid var(--border2);
   box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.02) inset;
 }
@@ -4354,7 +4354,7 @@
   display: none;
   flex-direction: column; align-items: center; justify-content: center;
   gap: 18px; padding: 24px max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
-  background: radial-gradient(circle at 50% 38%, rgba(60,10,16,0.55), #0a0607 72%);
+  background: radial-gradient(circle at 50% 38%, rgba(10,25,60,0.55), #04060a 72%);
   opacity: 1; transition: opacity .2s ease;
 }
 .twin-voice.active { display: flex; }
@@ -4489,7 +4489,7 @@
 .connect-action-btn .connect-btn-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px}
 .connect-action-btn:hover{transform:scale(1.06)}
 .connect-action-btn:active{transform:scale(0.92)}
-.connect-action-btn.missyou-btn{background:linear-gradient(135deg,#5AB0FF,#c2185b);box-shadow:0 8px 24px rgba(255,107,157,0.4)}
+.connect-action-btn.missyou-btn{background:linear-gradient(135deg,#ff6b9d,#c2185b);box-shadow:0 8px 24px rgba(255,107,157,0.4)}
 .connect-action-btn.hug-btn{background:linear-gradient(135deg,var(--accent2),var(--accent2-d));box-shadow:0 8px 24px var(--accent2-glow)}
 .connect-action-btn.missyou-sent,.connect-action-btn.hug-sent{animation:connectPulseSend 0.6s ease}
 @keyframes connectPulseSend{0%{transform:scale(1)}40%{transform:scale(0.85)}70%{transform:scale(1.12)}100%{transform:scale(1)}}
@@ -4609,7 +4609,7 @@ vercel-live-feedback {
 #bg::before {
   background:
     radial-gradient(circle at 15% 15%, rgba(31,107,255, 0.16), transparent 50%),
-    radial-gradient(circle at 85% 10%, rgba(102, 0, 0, 0.22), transparent 50%),
+    radial-gradient(circle at 85% 10%, rgba(0, 39, 102, 0.22), transparent 50%),
     radial-gradient(circle at 50% 90%, rgba(31,107,255, 0.12), transparent 55%) !important;
 }
 
@@ -4817,7 +4817,7 @@ select option { background: #071127; color: #fff; }
   <link rel="stylesheet" href="/profile.css">
   <link rel="stylesheet" href="/level.css">
   <link rel="stylesheet" href="/twin-page.css">
-<link rel="stylesheet" href="/theme-tokens.css?v=1">
+<link rel="stylesheet" href="/theme-tokens.css?v=2">
 </head>
 
 <body class="t-blue">
@@ -7945,7 +7945,7 @@ function saveLocal() {
           size = size || 44;
           if (imgUrl) return `<img src="${esc(imgUrl)}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0">`;
           const letter = (name || '?').trim().charAt(0).toUpperCase() || '?';
-          return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,var(--accent,#0B5BE0),#7f1d1d);display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.42)}px;font-weight:700;color:#fff;flex-shrink:0">${esc(letter)}</div>`;
+          return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,var(--accent,#1F6BFF),var(--accent-d,#0B4FD8));display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.42)}px;font-weight:700;color:#fff;flex-shrink:0">${esc(letter)}</div>`;
         }
         function fmtSentAgo(ts) {
           if (!ts) return '';
@@ -7962,13 +7962,13 @@ function saveLocal() {
           if (!modal) {
             modal = document.createElement('div');
             modal.id = 'partnerRequestModal';
-            modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(5,3,3,.75);display:flex;align-items:center;justify-content:center;padding:20px';
+            modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,3,5,.75);display:flex;align-items:center;justify-content:center;padding:20px';
             document.body.appendChild(modal);
           }
           modal.dataset.requestId = request.id;
           modal.style.display = 'flex';
           modal.innerHTML = `
-            <div style="background:#0d0808;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:26px;max-width:340px;width:100%;text-align:center">
+            <div style="background:#06080d;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:26px;max-width:340px;width:100%;text-align:center">
               <div style="font-size:34px;margin-bottom:10px">❤️</div>
               <div style="font-size:17px;color:#fff;font-weight:600;margin-bottom:16px">Connection Request</div>
               <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px;margin-bottom:16px;text-align:left">
@@ -10542,7 +10542,7 @@ const p = await Notification.requestPermission();
                   stroke-dasharray="${circ}" stroke-dashoffset="${circ}" stroke-linecap="round"
                   style="transition:stroke-dashoffset 1.2s cubic-bezier(0.34,1.56,0.64,1)" id="studyRingCircle"/>
                 <defs><linearGradient id="studyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="#ff6b6b"/>
+                  <stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="#6ba4ff"/>
                 </linearGradient></defs>
               </svg>
               <div class="study-ring-text"><div class="study-ring-pct">${pct}%</div><div class="study-ring-label">Complete</div></div>
@@ -10920,7 +10920,7 @@ const p = await Notification.requestPermission();
                     stroke-dasharray="${circ}" stroke-dashoffset="${circ}" stroke-linecap="round"
                     style="transition:stroke-dashoffset 1.2s cubic-bezier(0.34,1.56,0.64,1)" id="habitRingCircle"/>
                   <defs><linearGradient id="habitGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="#ff6b6b"/>
+                    <stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="#6ba4ff"/>
                   </linearGradient></defs>
                 </svg>
                 <div class="habit-ring-text"><div class="habit-ring-pct">${consistency}%</div><div class="habit-ring-label">7-Day</div></div>
@@ -11426,7 +11426,7 @@ const p = await Notification.requestPermission();
                   stroke-dasharray="${circ}" stroke-dashoffset="${circ}" stroke-linecap="round"
                   style="transition:stroke-dashoffset 1.2s cubic-bezier(0.34,1.56,0.64,1)" id="finRingCircle"/>
                 <defs><linearGradient id="finGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="#ff6b6b"/>
+                  <stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="#6ba4ff"/>
                 </linearGradient></defs>
               </svg>
               <div class="fin-ring-text"><div class="fin-ring-pct">${rate}%</div><div class="fin-ring-label">Saved</div></div>
@@ -13182,7 +13182,7 @@ function renderSurprises() {
         <section class="lv-card lv-hero" aria-label="Your couple level">
           <div class="lv-ring" role="img" aria-label="Couple level ${lvl}, ${xp} of ${nextBase} XP">
             <svg viewBox="0 0 140 140" aria-hidden="true">
-              <defs><linearGradient id="lvGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="var(--accent, #ff3b4e)"/><stop offset="100%" stop-color="var(--accent-l, #ff7a86)"/></linearGradient></defs>
+              <defs><linearGradient id="lvGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="var(--accent, #3b86ff)"/><stop offset="100%" stop-color="var(--accent-l, #7aadff)"/></linearGradient></defs>
               <circle class="lv-track" cx="70" cy="70" r="${r}" fill="none" stroke-width="10"/>
               <circle class="lv-arc" id="lvRingArc" cx="70" cy="70" r="${r}" fill="none" stroke="url(#lvGrad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${circ}"/>
             </svg>

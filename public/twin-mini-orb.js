@@ -108,17 +108,17 @@
 
     // base sphere shading — same stops as twin-orb.js
     var base = ctx.createRadialGradient(R * 0.86, R * 0.72, R * 0.05, R, R, R * 1.05);
-    base.addColorStop(0, '#120005');
-    base.addColorStop(0.35, '#7a0010');
-    base.addColorStop(0.7, '#1c0006');
-    base.addColorStop(1, '#050001');
+    base.addColorStop(0, '#020712');
+    base.addColorStop(0.35, '#002f7a');
+    base.addColorStop(0.7, '#030a1c');
+    base.addColorStop(1, '#000205');
     ctx.fillStyle = base;
     ctx.fillRect(0, 0, W, W);
 
     var mid = ctx.createRadialGradient(R * 0.42, R * 0.5, R * 0.02, R * 0.5, R * 0.52, R * 0.95);
     mid.addColorStop(0, 'rgba(31,107,255,0.55)');
-    mid.addColorStop(0.4, 'rgba(200,0,0,0.4)');
-    mid.addColorStop(1, 'rgba(18,0,5,0)');
+    mid.addColorStop(0.4, 'rgba(0,77,200,0.4)');
+    mid.addColorStop(1, 'rgba(2,7,18,0)');
     ctx.fillStyle = mid;
     ctx.fillRect(0, 0, W, W);
 
@@ -154,8 +154,8 @@
     var coreR = R * (0.42 + 0.06 * coreBreath * eMul);
     var coreG = ctx.createRadialGradient(R * 0.46, R * 0.46, 0, R * 0.5, R * 0.5, coreR);
     coreG.addColorStop(0, 'rgba(244,244,244,' + (0.30 + 0.22 * coreBreath * eMul).toFixed(3) + ')');
-    coreG.addColorStop(0.4, 'rgba(211,19,50,' + (0.20 * eMul).toFixed(3) + ')');
-    coreG.addColorStop(1, 'rgba(211,19,50,0)');
+    coreG.addColorStop(0.4, 'rgba(19,93,211,' + (0.20 * eMul).toFixed(3) + ')');
+    coreG.addColorStop(1, 'rgba(19,93,211,0)');
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
     ctx.fillStyle = coreG;

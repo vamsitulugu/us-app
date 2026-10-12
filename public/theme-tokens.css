@@ -124,3 +124,93 @@ html[data-theme="light"] .set-s, html[data-theme="light"] .set-sec-t { color: va
 .th-opt[data-v="light"] .th-sw { background:linear-gradient(160deg,#1C6BFF,#EAF2FF 60%); }
 .th-opt[data-v="system"] .th-sw { background:linear-gradient(90deg,#030816 50%,#EAF2FF 50%); }
 .th-opt.on { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow); }
+
+/* ───────── DASHBOARD — light mode (hero stays blue, sheet turns white like the reference) ───────── */
+html[data-theme="light"] .dh-sheet {
+  background: #F4F8FF !important; border-top: 1px solid var(--border);
+  box-shadow: 0 -14px 40px rgba(15,70,190,.16);
+}
+html[data-theme="light"] .dh-sheet-title, html[data-theme="light"] .dw-title,
+html[data-theme="light"] .dw-sec-title { color: var(--text); }
+html[data-theme="light"] .dw-link { color: var(--accent); }
+html[data-theme="light"] .dw-link:active { color: var(--accent-d); }
+html[data-theme="light"] .dw-sec { border-top-color: var(--border); }
+
+html[data-theme="light"] .dw-ev, html[data-theme="light"] .dw-mood {
+  background: #fff; border: 1px solid var(--border); color: var(--text);
+  box-shadow: 0 6px 20px rgba(15,70,190,.08);
+}
+html[data-theme="light"] .dw-ev-ico { background: rgba(15,107,255,.09); }
+html[data-theme="light"] .dw-ev-tx i, html[data-theme="light"] .dw-mood-sub { color: var(--text2); }
+html[data-theme="light"] .dw-ev-d, html[data-theme="light"] .dw-mood-streak { color: var(--accent); }
+html[data-theme="light"] .dw-ev.is-today {
+  background: linear-gradient(135deg, var(--accent), var(--accent-d)); border-color: transparent; color: #fff;
+}
+html[data-theme="light"] .dw-ev.is-today .dw-ev-ico { background: rgba(255,255,255,.2); }
+html[data-theme="light"] .dw-ev.is-today .dw-ev-tx i { color: rgba(255,255,255,.8); }
+html[data-theme="light"] .dw-ev.is-today .dw-ev-d { color: #fff; }
+
+html[data-theme="light"] .dw-graph .g-line { stroke: var(--accent); }
+html[data-theme="light"] .dw-graph .g-grid { stroke: rgba(20,70,170,.10); }
+html[data-theme="light"] .dw-graph .g-pt { stroke: var(--accent2); }
+html[data-theme="light"] .dw-days span, html[data-theme="light"] .dw-col .wd { color: var(--text3); }
+html[data-theme="light"] .dw-days span.is-today, html[data-theme="light"] .dw-col.is-today .wd,
+html[data-theme="light"] .dw-col.is-today .dn { color: var(--text); }
+html[data-theme="light"] .dw-col .dn { color: var(--text2); }
+html[data-theme="light"] .dw-col .em.pt { background: rgba(15,107,255,.10); }
+html[data-theme="light"] .dw-legend, html[data-theme="light"] .dw-ptline { color: var(--text2); }
+html[data-theme="light"] .dw-legend span::before { border-top-color: var(--accent); }
+html[data-theme="light"] .dw-legend .pt::before { border-top-color: var(--accent2); }
+html[data-theme="light"] .dw-ptline.big { color: var(--text); }
+html[data-theme="light"] .dw-q1 { background: #fff; border-color: var(--border); box-shadow: 0 3px 10px rgba(15,70,190,.06); }
+
+html[data-theme="light"] .dw-page { color: var(--text2); }
+html[data-theme="light"] .dw-page .e, html[data-theme="light"] .dw-page svg { color: var(--accent); }
+html[data-theme="light"] .dw-quote p { color: var(--text2); }
+html[data-theme="light"] .dw-quote p::before { color: var(--accent); }
+
+/* full-screen mood calendar + photo editor */
+html[data-theme="light"] .dw-overlay, html[data-theme="light"] .dw-foot,
+html[data-theme="light"] .dw-panel { background: #F4F8FF; color: var(--text); }
+@media (min-width: 701px) { html[data-theme="light"] .dw-overlay { background: rgba(10,30,80,.45); } }
+html[data-theme="light"] .dw-foot { border-top-color: var(--border); }
+html[data-theme="light"] .dw-icon { background: rgba(15,60,160,.07); color: var(--text); }
+html[data-theme="light"] .dw-icon:active { background: rgba(15,60,160,.14); }
+html[data-theme="light"] .dw-btn { background: #fff; border-color: var(--border2); color: var(--text); }
+html[data-theme="light"] .dw-btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-d)); color: #fff; border-color: transparent; }
+html[data-theme="light"] .dw-mc { background: #fff; border-color: var(--border2); color: var(--text); }
+html[data-theme="light"] .dw-cal .h { color: var(--text3); }
+html[data-theme="light"] .dw-cell { color: var(--text2); }
+html[data-theme="light"] .dw-cell .c { border-color: var(--border2); }
+html[data-theme="light"] .dw-cell.is-today .n, html[data-theme="light"] .dw-cell.is-sel .n { color: var(--text); }
+html[data-theme="light"] .dw-cell.is-today .c { box-shadow: 0 0 0 2px #F4F8FF, 0 0 0 3.5px var(--accent); }
+html[data-theme="light"] .dw-cell.is-sel .c { border-color: var(--accent); }
+html[data-theme="light"] .dw-stats { border-top-color: var(--border); }
+html[data-theme="light"] .dw-stats-l, html[data-theme="light"] .dw-stat span, html[data-theme="light"] .dw-hint { color: var(--text2); }
+html[data-theme="light"] .dw-seg { background: rgba(15,60,160,.07); }
+html[data-theme="light"] .dw-seg button { color: var(--text2); }
+html[data-theme="light"] .dw-seg button.is-on { background: var(--accent); color: #fff; }
+html[data-theme="light"] .dw-zoom svg { stroke: var(--text2); }
+html[data-theme="light"] .dw-reset { color: var(--accent); }
+
+/* ───────── Profile + Level cards (light) ───────── */
+html[data-theme="light"] .pf, html[data-theme="light"] .lv {
+  --pf-card: #fff; --lv-card: #fff; --pf-tint: rgba(15,107,255,.10); --lv-tint: rgba(15,107,255,.10);
+}
+html[data-theme="light"] .pf-bar { background: linear-gradient(180deg, rgba(244,248,255,.97) 70%, rgba(244,248,255,0)) !important; }
+html[data-theme="light"] .pf-list, html[data-theme="light"] .pf-ms, html[data-theme="light"] .pf-act,
+html[data-theme="light"] .pf-stat, html[data-theme="light"] .lv-card { box-shadow: 0 6px 20px rgba(15,70,190,.08); border-color: var(--border); }
+html[data-theme="light"] .pf-btn, html[data-theme="light"] .pf-tip { background: rgba(15,60,160,.05); color: var(--text); }
+html[data-theme="light"] .pf-hero {
+  background: var(--hero-grad) !important; border-color: rgba(255,255,255,.25);
+  box-shadow: 0 14px 34px rgba(15,70,190,.28);
+}
+html[data-theme="light"] .pf-hero .pf-name, html[data-theme="light"] .pf-hero .pf-since-d,
+html[data-theme="light"] .pf-hero .pf-av { color: #fff; }
+html[data-theme="light"] .pf-hero .pf-since-l, html[data-theme="light"] .pf-hero .pf-role,
+html[data-theme="light"] .pf-hero .pf-sub { color: rgba(255,255,255,.78); }
+html[data-theme="light"] .pf-hero .pf-since-d .pf-i { color: #cfe2ff; }
+html[data-theme="light"] .pf-hero .pf-presence { color: rgba(255,255,255,.8); }
+html[data-theme="light"] .pf-hero .pf-dot { background: rgba(255,255,255,.55); }
+html[data-theme="light"] .pf-act.is-primary, html[data-theme="light"] .pf-btn.is-primary,
+html[data-theme="light"] .pf-days { color: #fff !important; }

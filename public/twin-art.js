@@ -31,13 +31,13 @@
       '<radialGradient id="' + p + 'h" cx="34%" cy="22%" r="90%">' +
         '<stop offset="0" stop-color="#ffffff"/><stop offset=".42" stop-color="#f6d9de"/><stop offset="1" stop-color="#b4697a"/></radialGradient>' +
       '<radialGradient id="' + p + 'b" cx="34%" cy="18%" r="95%">' +
-        '<stop offset="0" stop-color="#fff2f4"/><stop offset=".5" stop-color="#e9b9c2"/><stop offset="1" stop-color="#9b4d5e"/></radialGradient>' +
+        '<stop offset="0" stop-color="#fff2f4"/><stop offset=".5" stop-color="#bccbe9"/><stop offset="1" stop-color="#9b4d5e"/></radialGradient>' +
       '<linearGradient id="' + p + 'v" x1="0" y1="0" x2="0" y2="1">' +
-        '<stop offset="0" stop-color="#241015"/><stop offset="1" stop-color="#040102"/></linearGradient>' +
+        '<stop offset="0" stop-color="#101624"/><stop offset="1" stop-color="#040102"/></linearGradient>' +
       '<radialGradient id="' + p + 'r" cx="35%" cy="28%" r="85%">' +
-        '<stop offset="0" stop-color="#ff8c99"/><stop offset=".5" stop-color="#ff2a40"/><stop offset="1" stop-color="#9c0017"/></radialGradient>' +
+        '<stop offset="0" stop-color="#80b0ff"/><stop offset=".5" stop-color="#2a7cff"/><stop offset="1" stop-color="#003c9c"/></radialGradient>' +
       '<linearGradient id="' + p + 'w" x1="0" y1="0" x2="1" y2="1">' +
-        '<stop offset="0" stop-color="#ff9db0"/><stop offset="1" stop-color="#ff3d5c"/></linearGradient>' +
+        '<stop offset="0" stop-color="#ff9db0"/><stop offset="1" stop-color="#3d87ff"/></linearGradient>' +
       '<filter id="' + p + 'g" x="-60%" y="-60%" width="220%" height="220%">' +
         '<feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
     '</defs>';
@@ -50,7 +50,7 @@
       '<path d="M150 40 L188 14 Q196 34 188 58 Z" fill="url(#' + p + 'w)"/>' +
       '<path d="M150 40 L112 14 Q104 34 112 58 Z" fill="url(#' + p + 'w)"/>' +
       '<circle cx="150" cy="40" r="10" fill="#ff5878"/>' +
-      '<circle cx="147" cy="37" r="3.5" fill="#ffd0da" opacity=".8"/></g>';
+      '<circle cx="147" cy="37" r="3.5" fill="#d3e3ff" opacity=".8"/></g>';
   }
 
   /* one robot, drawn in a 220×250 box */
@@ -77,7 +77,7 @@
 
   function heartShape(p, x, y, s) {
     return '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')">' +
-      '<path d="' + HEART + '" fill="#ff1f3a" opacity=".55" filter="url(#' + p + 'g)"/>' +
+      '<path d="' + HEART + '" fill="#1f75ff" opacity=".55" filter="url(#' + p + 'g)"/>' +
       '<path d="' + HEART + '" fill="url(#' + p + 'r)"/>' +
       '<path d="M-17 -18C-23 -14 -24 -6 -21 -1" stroke="rgba(255,255,255,.55)" stroke-width="3.2" fill="none" stroke-linecap="round"/>' +
     '</g>';
@@ -90,7 +90,7 @@
 
   function floaters(list) {
     return list.map(function (f) {
-      return '<path class="tw-floaty" style="animation-delay:' + f[3] + 's" transform="translate(' + f[0] + ' ' + f[1] + ') scale(' + f[2] + ')" d="' + HEART + '" fill="#ff3a55" opacity=".85"/>';
+      return '<path class="tw-floaty" style="animation-delay:' + f[3] + 's" transform="translate(' + f[0] + ' ' + f[1] + ') scale(' + f[2] + ')" d="' + HEART + '" fill="#3a86ff" opacity=".85"/>';
     }).join('');
   }
 
@@ -111,7 +111,7 @@
       defs(a) + defs(b) + defs(h) +
       floaters([[30, 60, .22, 0], [372, 150, .2, 1], [356, 40, .14, .5], [48, 170, .14, 1.6]]) +
       '<g transform="translate(6 12) scale(.93)">' + robotGroup(a, { eye: '#3fd0ff' }) + '</g>' +
-      '<g transform="translate(176 6) scale(.93)">' + robotGroup(b, { eye: '#ff4e6e', bow: true }) + '</g>' +
+      '<g transform="translate(176 6) scale(.93)">' + robotGroup(b, { eye: '#4e92ff', bow: true }) + '</g>' +
       heartShape(h, 200, 198, 1.7) +
       '<ellipse cx="148" cy="204" rx="17" ry="25" transform="rotate(-24 148 204)" fill="url(#' + a + 'b)"/>' +
       '<ellipse cx="252" cy="204" rx="17" ry="25" transform="rotate(24 252 204)" fill="url(#' + b + 'b)"/>' +
@@ -123,11 +123,11 @@
     var p = 'tv' + (++uid);
     return '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
       '<defs><radialGradient id="' + p + 'h" cx="34%" cy="22%" r="90%"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#f6d9de"/><stop offset="1" stop-color="#b4697a"/></radialGradient>' +
-      '<radialGradient id="' + p + 'r" cx="35%" cy="28%" r="85%"><stop offset="0" stop-color="#ff8c99"/><stop offset=".6" stop-color="#ff2a40"/><stop offset="1" stop-color="#9c0017"/></radialGradient></defs>' +
-      '<circle cx="24" cy="24" r="22.5" fill="#2a0409"/>' +
+      '<radialGradient id="' + p + 'r" cx="35%" cy="28%" r="85%"><stop offset="0" stop-color="#80b0ff"/><stop offset=".6" stop-color="#2a7cff"/><stop offset="1" stop-color="#003c9c"/></radialGradient></defs>' +
+      '<circle cx="24" cy="24" r="22.5" fill="#04102a"/>' +
       '<ellipse cx="24" cy="24.5" rx="15" ry="13" fill="url(#' + p + 'h)"/>' +
       '<ellipse cx="8.8" cy="25" rx="2.6" ry="4.4" fill="url(#' + p + 'r)"/><ellipse cx="39.2" cy="25" rx="2.6" ry="4.4" fill="url(#' + p + 'r)"/>' +
-      '<rect x="12.5" y="16.5" width="23" height="15" rx="7" fill="#0b0305"/>' +
+      '<rect x="12.5" y="16.5" width="23" height="15" rx="7" fill="#03050b"/>' +
       '<g stroke="#3D8BFF" stroke-width="2" stroke-linecap="round" fill="none"><path d="M17.5 25 Q20 20.5 22.5 25"/><path d="M25.5 25 Q28 20.5 30.5 25"/></g>' +
       '<path d="M21.5 28.4Q24 30.6 26.5 28.4" stroke="#3D8BFF" stroke-width="1.4" fill="none" stroke-linecap="round"/>' +
     '</svg>';

@@ -3102,9 +3102,18 @@ function menuItemsHtml(m, id, includeSelect) {
   function initTheme() {
     const page = document.getElementById('page-chat');
     if (!page) return;
-    const saved = localStorage.getItem('chat_theme') || 'dark';
+    // Explicit chat choice wins; otherwise follow the app theme (light/dark/system).
+    const appTheme = () => (window.Theme && window.Theme.resolved && window.Theme.resolved()) || 'dark';
+    const saved = localStorage.getItem('chat_theme') || appTheme();
     page.setAttribute('data-theme', saved);
     updateThemeSwitchUI(saved);
+    if (!initTheme._bound) {
+      initTheme._bound = true;
+      window.addEventListener('themechange', function () {
+        if (localStorage.getItem('chat_theme')) return;
+        const t = appTheme(); page.setAttribute('data-theme', t); updateThemeSwitchUI(t);
+      });
+    }
   }
   function toggleTheme() {
     const page = document.getElementById('page-chat');

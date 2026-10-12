@@ -7,15 +7,15 @@
    ══════════════════════════════════════════════════════════════ */
 
 .lv {
-  --lv-a: var(--accent, #ff3b4e);
+  --lv-a: var(--accent, #3b86ff);
   --lv-a-d: var(--accent-d, #1F6BFF);
-  --lv-a-l: var(--accent-l, #ff7a86);
-  --lv-line: rgba(255, 59, 78, .30);
+  --lv-a-l: var(--accent-l, #7aadff);
+  --lv-line: rgba(59, 134, 255, .30);
   --lv-line: color-mix(in srgb, var(--lv-a) 32%, transparent);
-  --lv-tint: rgba(255, 59, 78, .14);
+  --lv-tint: rgba(59, 134, 255, .14);
   --lv-tint: color-mix(in srgb, var(--lv-a) 16%, transparent);
   --lv-glow: color-mix(in srgb, var(--lv-a) 45%, transparent);
-  --lv-card: linear-gradient(180deg, rgba(36, 12, 16, .88), rgba(14, 7, 9, .92));
+  --lv-card: linear-gradient(180deg, rgba(15, 29, 68, .90), rgba(8, 17, 44, .94));
   width: 100%;
   max-width: none;
   margin: 0;

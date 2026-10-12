@@ -571,7 +571,7 @@
 .chat-row.them + .chat-row.me,.chat-row.me + .chat-row.them{margin-top:10px}
 .chat-date-sep + .chat-row{margin-top:4px}
 .chat-bubble{max-width:78%;width:fit-content;padding:7px 11px 6px;border-radius:18px;font-size:14px;line-height:1.44;position:relative;cursor:pointer;transition:transform .1s;box-shadow:0 1px 3px rgba(0,0,0,.18)}
-.chat-bubble.mine{background:linear-gradient(135deg,var(--accent,#1F6BFF),var(--accent-d,#a80710));color:#fff;border:none;border-radius:18px 18px 5px 18px}
+.chat-bubble.mine{background:linear-gradient(135deg,var(--accent,#1F6BFF),var(--accent-d,#0745a8));color:#fff;border:none;border-radius:18px 18px 5px 18px}
 .chat-bubble.theirs{background:#1c1c1e;color:var(--white);border:1px solid rgba(255,255,255,.06);border-radius:18px 18px 18px 5px}
 /* Grouped-run corner refinement: applied by JS via data-group="first|mid|last"
    on .chat-row (safe no-op if the attribute is never set — bubbles just
@@ -999,7 +999,7 @@
 }
 #page-chat[data-theme="light"] .chat-page-wrap,
 #page-chat[data-theme="light"] .chat-msgs-shell,
-#page-chat[data-theme="light"] .chat-msgs { background: #EFEAE2; }
+#page-chat[data-theme="light"] .chat-msgs { background: #E8F0FE; }
 #page-chat[data-theme="light"] .chat-header {
   background: rgba(255,255,255,0.82);
   border-color: rgba(0,0,0,0.08);
@@ -1010,7 +1010,7 @@
   box-shadow: 0 1px 2px rgba(0,0,0,0.08);
 }
 #page-chat[data-theme="light"] .chat-bubble.mine {
-  background: linear-gradient(135deg, var(--accent,#1F6BFF), var(--accent-d,#a80710));
+  background: linear-gradient(135deg, var(--accent,#1F6BFF), var(--accent-d,#0745a8));
   color: #fff;
 }
 #page-chat[data-theme="light"] .chat-quote { background: rgba(0,0,0,0.05); }
@@ -1024,7 +1024,7 @@
 #page-chat[data-theme="light"] .chat-typing-bubble {
   background: #fff; border-color: rgba(0,0,0,0.06);
 }
-#page-chat[data-theme="light"] .media-grid-overlay { background: #EFEAE2; }
+#page-chat[data-theme="light"] .media-grid-overlay { background: #E8F0FE; }
 #page-chat[data-theme="light"] .media-grid-title { color: #1a1a1a; }
 #page-chat[data-theme="light"] .media-grid-back { background: rgba(0,0,0,0.06); color: #1a1a1a; }
 #page-chat[data-theme="light"] .chat-msgs-shell::before { color: #000; opacity: 0.045; }

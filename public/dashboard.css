@@ -32,8 +32,8 @@
   grid-column: 1;
   z-index: 0;
   background:
-    radial-gradient(90% 60% at 85% 0%, rgba(255, 107, 93, .38), transparent 62%),
-    linear-gradient(170deg, var(--accent) 0%, var(--accent-d) 62%, #4a0610 100%);
+    radial-gradient(90% 60% at 85% 0%, rgba(93, 155, 255, .38), transparent 62%),
+    linear-gradient(170deg, var(--accent) 0%, var(--accent-d) 62%, #071b4a 100%);
 }
 
 /* ── Header: logo left, profile right ── */
@@ -89,7 +89,7 @@
   color: #fff;
   text-wrap: balance;
 }
-.dh-quote em { font-family: var(--ff-serif); font-style: italic; font-weight: 400; color: #ffc4b8; }
+.dh-quote em { font-family: var(--ff-serif); font-style: italic; font-weight: 400; color: #bcd6ff; }
 
 .dh-search-row { display: flex; gap: 10px; }
 .dh-search, .dh-menu {

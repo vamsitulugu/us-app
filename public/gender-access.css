@@ -1,7 +1,7 @@
 /* Girl/Boy chooser sheet + Period page read-only mode (see gender-access.js) */
 .ga-overlay { position: fixed; inset: 0; z-index: 3100; display: flex; align-items: flex-end; justify-content: center; background: rgba(0, 0, 0, .55); opacity: 0; visibility: hidden; transition: opacity .25s ease, visibility 0s linear .25s; }
 .ga-overlay.open { opacity: 1; visibility: visible; transition: opacity .25s ease; }
-.ga-sheet { width: min(460px, 100%); padding: 10px 22px calc(22px + env(safe-area-inset-bottom, 0px)); border-radius: 28px 28px 0 0; background: #1a1019; color: #fff; text-align: center; transform: translateY(40px); transition: transform .3s cubic-bezier(.2, .8, .2, 1); }
+.ga-sheet { width: min(460px, 100%); padding: 10px 22px calc(22px + env(safe-area-inset-bottom, 0px)); border-radius: 28px 28px 0 0; background: #0c101a; color: #fff; text-align: center; transform: translateY(40px); transition: transform .3s cubic-bezier(.2, .8, .2, 1); }
 .ga-overlay.open .ga-sheet { transform: none; }
 .ga-grab { width: 40px; height: 4px; margin: 0 auto 16px; border-radius: 4px; background: rgba(255, 255, 255, .25); }
 .ga-sheet h3 { margin: 0 0 8px; font: 600 20px var(--ff-sans); }
