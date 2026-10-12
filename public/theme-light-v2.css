@@ -254,3 +254,81 @@ html[data-theme="light"] .mp-empty b, html[data-theme="light"] .mp-empty-s b, ht
 
 html[data-theme="light"] .tb-back { background: #fff; border: 1px solid var(--l-line); color: var(--l-ink); box-shadow: 0 2px 8px rgba(20,80,200,.08); }
 html[data-theme="light"] .chat-header-menu-item[style*="ff6b6b"], html[data-theme="light"] .chat-header-menu-item.danger { color: var(--l-danger) !important; }
+
+/* ================================================================
+   ROUND 3 — fixes from real-device screenshots
+   ================================================================ */
+
+/* Black icons (not blue) on buttons / shortcuts / tiles */
+html[data-theme="light"] .dw-page .e, html[data-theme="light"] .dw-page svg,
+html[data-theme="light"] .cat-row-ico, html[data-theme="light"] .tile-ico svg,
+html[data-theme="light"] .empty .ico svg, html[data-theme="light"] .pf-since-d .pf-i { color: var(--l-ink) !important; }
+html[data-theme="light"] .dw-page { color: var(--l-ink); }
+html[data-theme="light"] .tile.accent .tile-ico svg { color: #fff !important; }
+html[data-theme="light"] .quick .tile-ico { background: #EEF4FF; }
+
+/* Cards that were too pale / blended with the background → solid white */
+html[data-theme="light"] :is(.col-stat,.dg-stat,.pm-stat,.lc-time-card,.lc-card,.lc-bday-card,.mc-stat,.pf-stat,.lv-card,.pf-list,.pf-ms,.pf-act,.set-list) {
+  background: #fff !important; background-image: none !important;
+  border: 1px solid var(--l-line) !important; box-shadow: var(--l-shadow) !important;
+}
+html[data-theme="light"] .lc-bday-card { background: #F3F7FF !important; }
+html[data-theme="light"] :is(.col-stat-l,.dg-stat-l,.pm-stat-l,.lc-time-l,.mc-stat span,.lc-hero-label) { color: var(--l-ink-2) !important; }
+html[data-theme="light"] :is(.lc-time-n,.lc-bday-days,.lc-bday-name,.lc-card-title,.lc-hero-names) { color: var(--l-ink) !important; }
+html[data-theme="light"] .lc-bday-label, html[data-theme="light"] .lc-bday-date { color: var(--l-ink-2) !important; }
+html[data-theme="light"] .pf-act.is-primary { background: var(--l-btn) !important; }
+
+/* Filter chips / pills (movie, collection, places) */
+html[data-theme="light"] .mc-chip { background: #fff; color: var(--l-ink-2) !important; border-color: var(--l-line-2); }
+html[data-theme="light"] .mc-chip.is-active { background: var(--l-btn); color: #fff !important; border-color: transparent; box-shadow: var(--l-btn-shadow); }
+html[data-theme="light"] .mc-search { background: #fff; }
+html[data-theme="light"] .mc-search input { color: var(--l-ink); background: transparent !important; border: 0 !important; box-shadow: none !important; }
+html[data-theme="light"] .mc-search svg { color: var(--l-ink-3); }
+html[data-theme="light"] .mc-chips span, html[data-theme="light"] .mc-status { color: #fff; }
+html[data-theme="light"] :is(.chip,.pill,.fchip,.col-chip,.pm-chip,.dg-chip,.filter-chip) { color: var(--l-ink-2); }
+html[data-theme="light"] :is(.chip,.pill,.fchip,.col-chip,.pm-chip,.dg-chip,.filter-chip).active,
+html[data-theme="light"] :is(.chip,.pill,.fchip,.col-chip,.pm-chip,.dg-chip,.filter-chip).on { color: #fff; }
+
+/* Movie hero button + text (blue hero) */
+html[data-theme="light"] .wt-page:not(.is-watching) .wt-hero .wt-btn-ghost,
+html[data-theme="light"] .wt-page:not(.is-watching) .mc-banner-empty .wt-btn-ghost,
+html[data-theme="light"] .wt-page:not(.is-watching) .mc-banner .wt-btn-ghost {
+  background: rgba(255,255,255,.2) !important; border: 1px solid rgba(255,255,255,.55) !important; color: #fff !important;
+}
+html[data-theme="light"] .wt-page:not(.is-watching) :is(.mc-banner-sub,.mc-banner p,.mc-banner h2,.mc-banner h3,.wt-hero p,.wt-hero h2) { color: #fff !important; }
+html[data-theme="light"] .mc-banner:not(.mc-banner-empty) .mc-banner-shade { background: linear-gradient(0deg, rgba(8,20,60,.85) 6%, rgba(8,20,60,.2) 60%, transparent) !important; }
+
+/* Profile hero text on blue */
+html[data-theme="light"] .pf-hero :is(.pf-since-d,.pf-since-l,.pf-name,.pf-sub,.pf-role,.pf-days,.pf-presence) { color: #fff !important; }
+html[data-theme="light"] .pf-hero .pf-since-d .pf-i { color: #fff !important; }
+html[data-theme="light"] .pf-hero [class*="since"], html[data-theme="light"] .pf-hero [class*="together"], html[data-theme="light"] .pf-hero small { color: rgba(255,255,255,.9) !important; }
+
+/* App logo: black PNG square → rounded */
+html[data-theme="light"] .topbar img, html[data-theme="light"] .sb-logo img { border-radius: 11px; }
+
+/* Chat — follow the app light theme even if the chat's own toggle says dark */
+html[data-theme="light"] #page-chat { --white:#0B1B3A; --text:#0B1B3A; --text2:#4A5B7D; --text3:#8191AE; --border:rgba(26,100,255,.12); --border2:rgba(26,100,255,.22); }
+html[data-theme="light"] #page-chat :is(.chat-page-wrap,.chat-msgs-shell,.chat-msgs) { background: transparent !important; }
+html[data-theme="light"] #page-chat .chat-bubble.theirs { background: #fff !important; color: var(--l-ink) !important; border: 1px solid var(--l-line) !important; box-shadow: 0 2px 8px rgba(20,80,200,.08); }
+html[data-theme="light"] #page-chat .chat-bubble.theirs * { color: inherit; }
+html[data-theme="light"] #page-chat .chat-bubble.theirs :is(.chat-time,.msg-time,time,.chat-meta,small) { color: var(--l-ink-3) !important; }
+html[data-theme="light"] #page-chat .chat-bubble.mine { background: var(--l-btn) !important; color: #fff !important; }
+html[data-theme="light"] #page-chat .chat-bubble.mine * { color: inherit; }
+html[data-theme="light"] #page-chat .chat-quote { background: rgba(30,107,255,.08); }
+html[data-theme="light"] .chat-call-log, html[data-theme="light"] .chat-date-sep span {
+  background: #fff !important; color: var(--l-ink-2) !important; border: 1px solid var(--l-line) !important; box-shadow: 0 2px 8px rgba(20,80,200,.06) !important;
+}
+html[data-theme="light"] .chat-call-log svg { color: var(--l-blue); }
+html[data-theme="light"] #page-chat :is(.uc-composer,.uc-input-wrap) { background: rgba(255,255,255,.96) !important; border-color: var(--l-line) !important; }
+html[data-theme="light"] #page-chat .uc-composer { border-top: 1px solid var(--l-line) !important; box-shadow: 0 -4px 16px rgba(20,80,200,.06); }
+html[data-theme="light"] #page-chat .uc-input { color: var(--l-ink) !important; background: transparent !important; border: 0 !important; box-shadow: none !important; }
+html[data-theme="light"] #page-chat .uc-composer :is(button,svg) { color: var(--l-ink-2); }
+html[data-theme="light"] #page-chat .uc-composer .uc-send, html[data-theme="light"] #page-chat .uc-composer [class*="send"] { color: #fff; }
+html[data-theme="light"] .chat-header-menu :is(span,div,.ico-label) { color: var(--l-ink); text-align: left; }
+html[data-theme="light"] .chat-header-menu-item { justify-content: flex-start; }
+html[data-theme="light"] .theme-switch { background: #D3E0F5; }
+html[data-theme="light"] .chat-header .ic-btn { color: var(--l-ink); }
+
+/* Misc */
+html[data-theme="light"] input[type=search] { min-width: 0; }
+html[data-theme="light"] { --accent2:#0284C7 !important; --accent2-d:#0369A1 !important; }

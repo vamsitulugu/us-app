@@ -1,0 +1,317 @@
+diff --git a/public/app-polish.js b/public/app-polish.js
+index f2c1cbb..758d2e9 100644
+--- a/public/app-polish.js
++++ b/public/app-polish.js
+@@ -11,7 +11,7 @@
+      with the app's dark theme (was hardcoded to a blue #2f6feb). */
+   function syncStatusBar() {
+     var meta = document.getElementById('themeColorMeta');
+-    if (meta) meta.setAttribute('content', (window.Theme && Theme.resolved()==='light') ? '#0A4BCF' : '#030816');
++    if (meta) meta.setAttribute('content', (window.Theme && Theme.resolved()==='light') ? '#EAF2FF' : '#030816');
+   }
+   syncStatusBar();
+   // Some pages/modals temporarily swap the theme-color meta for
+diff --git a/public/collection.html b/public/collection.html
+index 60dabf3..74300e9 100644
+--- a/public/collection.html
++++ b/public/collection.html
+@@ -257,7 +257,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+-<link rel="stylesheet" href="/theme-light-v2.css?v=1">
++<link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/daily-routine.html b/public/daily-routine.html
+index 164eb07..a61b1e8 100644
+--- a/public/daily-routine.html
++++ b/public/daily-routine.html
+@@ -162,7 +162,7 @@ button{font-family:inherit}
+   <link rel="stylesheet" href="/responsive-fix.css">
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+-<link rel="stylesheet" href="/theme-light-v2.css?v=1">
++<link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/dreamgoals.html b/public/dreamgoals.html
+index a16fa56..72e69eb 100644
+--- a/public/dreamgoals.html
++++ b/public/dreamgoals.html
+@@ -252,7 +252,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+ <link rel="stylesheet" href="/safe-delete.css">
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+-<link rel="stylesheet" href="/theme-light-v2.css?v=1">
++<link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/games.html b/public/games.html
+index 8ed15d1..f9f267b 100644
+--- a/public/games.html
++++ b/public/games.html
+@@ -538,7 +538,7 @@ button{font-family:inherit;cursor:pointer}
+   <script src="/js/scroll-reset.js"></script>
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+-<link rel="stylesheet" href="/theme-light-v2.css?v=1">
++<link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/globe.html b/public/globe.html
+index f0aeb96..31e396d 100644
+--- a/public/globe.html
++++ b/public/globe.html
+@@ -431,7 +431,7 @@
+   <script src="/js/upload-queue.js"></script>
+   <script src="/js/upload-progress-ui.js"></script>
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+-<link rel="stylesheet" href="/theme-light-v2.css?v=1">
++<link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ </head>
+ <body>
+ <div id="app">
+diff --git a/public/index.html b/public/index.html
+index 62555b2..b54a28a 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -4818,7 +4818,7 @@ select option { background: #071127; color: #fff; }
+   <link rel="stylesheet" href="/level.css">
+   <link rel="stylesheet" href="/twin-page.css">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+-<link rel="stylesheet" href="/theme-light-v2.css?v=1">
++<link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ </head>
+ 
+ <body class="t-blue">
+diff --git a/public/landing.html b/public/landing.html
+index 8f147a2..49353d0 100644
+--- a/public/landing.html
++++ b/public/landing.html
+@@ -337,7 +337,7 @@ body.native-auth-only #authModal .modal-close{display:none}
+     })();
+   </script>
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+-<link rel="stylesheet" href="/theme-light-v2.css?v=1">
++<link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/lovecounter.html b/public/lovecounter.html
+index 3d44d6a..bf39111 100644
+--- a/public/lovecounter.html
++++ b/public/lovecounter.html
+@@ -341,7 +341,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+   <script src="/js/scroll-reset.js"></script>
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+-<link rel="stylesheet" href="/theme-light-v2.css?v=1">
++<link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/meetplanner.html b/public/meetplanner.html
+index 4f199e7..bd32629 100644
+--- a/public/meetplanner.html
++++ b/public/meetplanner.html
+@@ -367,7 +367,7 @@ textarea.mp-input{resize:vertical;min-height:84px;line-height:1.6}
+ <script src="/safe-delete.js"></script>
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+-<link rel="stylesheet" href="/theme-light-v2.css?v=1">
++<link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/movie.html b/public/movie.html
+index 092bf73..3f38d1f 100644
+--- a/public/movie.html
++++ b/public/movie.html
+@@ -13,7 +13,7 @@
+ <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+-<link rel="stylesheet" href="/theme-light-v2.css?v=1">
++<link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/music.html b/public/music.html
+index 7c15afd..6d4000f 100644
+--- a/public/music.html
++++ b/public/music.html
+@@ -13,7 +13,7 @@
+ <link rel="stylesheet" href="/music/music.css">
+ <script src="/js/scroll-reset.js"></script>
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+-<link rel="stylesheet" href="/theme-light-v2.css?v=1">
++<link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/places.html b/public/places.html
+index 02d6ac3..3da23fb 100644
+--- a/public/places.html
++++ b/public/places.html
+@@ -184,7 +184,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+   <script src="/js/scroll-reset.js"></script>
+ <link rel="stylesheet" href="/iframe-nav-clearance.css?v=1">
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+-<link rel="stylesheet" href="/theme-light-v2.css?v=1">
++<link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/privacy-policy.html b/public/privacy-policy.html
+index 9803795..827050f 100644
+--- a/public/privacy-policy.html
++++ b/public/privacy-policy.html
+@@ -92,7 +92,7 @@
+   }
+ </style>
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+-<link rel="stylesheet" href="/theme-light-v2.css?v=1">
++<link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/sw.js b/public/sw.js
+index 77cfbd7..87bf9a0 100644
+--- a/public/sw.js
++++ b/public/sw.js
+@@ -1,5 +1,5 @@
+ // Service Worker for Twin Hearts 💕 PWA — v5
+-const CACHE = 'uwl-v23'; // bumped: purges stale cached assets (incl. old movie.css) on activate
++const CACHE = 'uwl-v24'; // bumped: purges stale cached assets (incl. old movie.css) on activate
+ const OFFLINE_ASSETS = [
+   '/',
+   '/index.html',
+diff --git a/public/theme-light-v2.css b/public/theme-light-v2.css
+index 376eb4c..a02db9b 100644
+--- a/public/theme-light-v2.css
++++ b/public/theme-light-v2.css
+@@ -254,3 +254,81 @@ html[data-theme="light"] .mp-empty b, html[data-theme="light"] .mp-empty-s b, ht
+ 
+ html[data-theme="light"] .tb-back { background: #fff; border: 1px solid var(--l-line); color: var(--l-ink); box-shadow: 0 2px 8px rgba(20,80,200,.08); }
+ html[data-theme="light"] .chat-header-menu-item[style*="ff6b6b"], html[data-theme="light"] .chat-header-menu-item.danger { color: var(--l-danger) !important; }
++
++/* ================================================================
++   ROUND 3 — fixes from real-device screenshots
++   ================================================================ */
++
++/* Black icons (not blue) on buttons / shortcuts / tiles */
++html[data-theme="light"] .dw-page .e, html[data-theme="light"] .dw-page svg,
++html[data-theme="light"] .cat-row-ico, html[data-theme="light"] .tile-ico svg,
++html[data-theme="light"] .empty .ico svg, html[data-theme="light"] .pf-since-d .pf-i { color: var(--l-ink) !important; }
++html[data-theme="light"] .dw-page { color: var(--l-ink); }
++html[data-theme="light"] .tile.accent .tile-ico svg { color: #fff !important; }
++html[data-theme="light"] .quick .tile-ico { background: #EEF4FF; }
++
++/* Cards that were too pale / blended with the background → solid white */
++html[data-theme="light"] :is(.col-stat,.dg-stat,.pm-stat,.lc-time-card,.lc-card,.lc-bday-card,.mc-stat,.pf-stat,.lv-card,.pf-list,.pf-ms,.pf-act,.set-list) {
++  background: #fff !important; background-image: none !important;
++  border: 1px solid var(--l-line) !important; box-shadow: var(--l-shadow) !important;
++}
++html[data-theme="light"] .lc-bday-card { background: #F3F7FF !important; }
++html[data-theme="light"] :is(.col-stat-l,.dg-stat-l,.pm-stat-l,.lc-time-l,.mc-stat span,.lc-hero-label) { color: var(--l-ink-2) !important; }
++html[data-theme="light"] :is(.lc-time-n,.lc-bday-days,.lc-bday-name,.lc-card-title,.lc-hero-names) { color: var(--l-ink) !important; }
++html[data-theme="light"] .lc-bday-label, html[data-theme="light"] .lc-bday-date { color: var(--l-ink-2) !important; }
++html[data-theme="light"] .pf-act.is-primary { background: var(--l-btn) !important; }
++
++/* Filter chips / pills (movie, collection, places) */
++html[data-theme="light"] .mc-chip { background: #fff; color: var(--l-ink-2) !important; border-color: var(--l-line-2); }
++html[data-theme="light"] .mc-chip.is-active { background: var(--l-btn); color: #fff !important; border-color: transparent; box-shadow: var(--l-btn-shadow); }
++html[data-theme="light"] .mc-search { background: #fff; }
++html[data-theme="light"] .mc-search input { color: var(--l-ink); background: transparent !important; border: 0 !important; box-shadow: none !important; }
++html[data-theme="light"] .mc-search svg { color: var(--l-ink-3); }
++html[data-theme="light"] .mc-chips span, html[data-theme="light"] .mc-status { color: #fff; }
++html[data-theme="light"] :is(.chip,.pill,.fchip,.col-chip,.pm-chip,.dg-chip,.filter-chip) { color: var(--l-ink-2); }
++html[data-theme="light"] :is(.chip,.pill,.fchip,.col-chip,.pm-chip,.dg-chip,.filter-chip).active,
++html[data-theme="light"] :is(.chip,.pill,.fchip,.col-chip,.pm-chip,.dg-chip,.filter-chip).on { color: #fff; }
++
++/* Movie hero button + text (blue hero) */
++html[data-theme="light"] .wt-page:not(.is-watching) .wt-hero .wt-btn-ghost,
++html[data-theme="light"] .wt-page:not(.is-watching) .mc-banner-empty .wt-btn-ghost,
++html[data-theme="light"] .wt-page:not(.is-watching) .mc-banner .wt-btn-ghost {
++  background: rgba(255,255,255,.2) !important; border: 1px solid rgba(255,255,255,.55) !important; color: #fff !important;
++}
++html[data-theme="light"] .wt-page:not(.is-watching) :is(.mc-banner-sub,.mc-banner p,.mc-banner h2,.mc-banner h3,.wt-hero p,.wt-hero h2) { color: #fff !important; }
++html[data-theme="light"] .mc-banner:not(.mc-banner-empty) .mc-banner-shade { background: linear-gradient(0deg, rgba(8,20,60,.85) 6%, rgba(8,20,60,.2) 60%, transparent) !important; }
++
++/* Profile hero text on blue */
++html[data-theme="light"] .pf-hero :is(.pf-since-d,.pf-since-l,.pf-name,.pf-sub,.pf-role,.pf-days,.pf-presence) { color: #fff !important; }
++html[data-theme="light"] .pf-hero .pf-since-d .pf-i { color: #fff !important; }
++html[data-theme="light"] .pf-hero [class*="since"], html[data-theme="light"] .pf-hero [class*="together"], html[data-theme="light"] .pf-hero small { color: rgba(255,255,255,.9) !important; }
++
++/* App logo: black PNG square → rounded */
++html[data-theme="light"] .topbar img, html[data-theme="light"] .sb-logo img { border-radius: 11px; }
++
++/* Chat — follow the app light theme even if the chat's own toggle says dark */
++html[data-theme="light"] #page-chat { --white:#0B1B3A; --text:#0B1B3A; --text2:#4A5B7D; --text3:#8191AE; --border:rgba(26,100,255,.12); --border2:rgba(26,100,255,.22); }
++html[data-theme="light"] #page-chat :is(.chat-page-wrap,.chat-msgs-shell,.chat-msgs) { background: transparent !important; }
++html[data-theme="light"] #page-chat .chat-bubble.theirs { background: #fff !important; color: var(--l-ink) !important; border: 1px solid var(--l-line) !important; box-shadow: 0 2px 8px rgba(20,80,200,.08); }
++html[data-theme="light"] #page-chat .chat-bubble.theirs * { color: inherit; }
++html[data-theme="light"] #page-chat .chat-bubble.theirs :is(.chat-time,.msg-time,time,.chat-meta,small) { color: var(--l-ink-3) !important; }
++html[data-theme="light"] #page-chat .chat-bubble.mine { background: var(--l-btn) !important; color: #fff !important; }
++html[data-theme="light"] #page-chat .chat-bubble.mine * { color: inherit; }
++html[data-theme="light"] #page-chat .chat-quote { background: rgba(30,107,255,.08); }
++html[data-theme="light"] .chat-call-log, html[data-theme="light"] .chat-date-sep span {
++  background: #fff !important; color: var(--l-ink-2) !important; border: 1px solid var(--l-line) !important; box-shadow: 0 2px 8px rgba(20,80,200,.06) !important;
++}
++html[data-theme="light"] .chat-call-log svg { color: var(--l-blue); }
++html[data-theme="light"] #page-chat :is(.uc-composer,.uc-input-wrap) { background: rgba(255,255,255,.96) !important; border-color: var(--l-line) !important; }
++html[data-theme="light"] #page-chat .uc-composer { border-top: 1px solid var(--l-line) !important; box-shadow: 0 -4px 16px rgba(20,80,200,.06); }
++html[data-theme="light"] #page-chat .uc-input { color: var(--l-ink) !important; background: transparent !important; border: 0 !important; box-shadow: none !important; }
++html[data-theme="light"] #page-chat .uc-composer :is(button,svg) { color: var(--l-ink-2); }
++html[data-theme="light"] #page-chat .uc-composer .uc-send, html[data-theme="light"] #page-chat .uc-composer [class*="send"] { color: #fff; }
++html[data-theme="light"] .chat-header-menu :is(span,div,.ico-label) { color: var(--l-ink); text-align: left; }
++html[data-theme="light"] .chat-header-menu-item { justify-content: flex-start; }
++html[data-theme="light"] .theme-switch { background: #D3E0F5; }
++html[data-theme="light"] .chat-header .ic-btn { color: var(--l-ink); }
++
++/* Misc */
++html[data-theme="light"] input[type=search] { min-width: 0; }
++html[data-theme="light"] { --accent2:#0284C7 !important; --accent2-d:#0369A1 !important; }
+diff --git a/public/theme.js b/public/theme.js
+index f111908..f8e907d 100644
+--- a/public/theme.js
++++ b/public/theme.js
+@@ -3,9 +3,23 @@
+    automatically through the 'storage' event. */
+ (function () {
+   var KEY = 'th_theme', mq = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
+-  var BAR = { dark: '#030816', light: '#0A4BCF' };
++  var BAR = { dark: '#030816', light: '#EAF2FF' };
+   function pref() { try { return localStorage.getItem(KEY) || 'dark'; } catch (e) { return 'dark'; } }
+   function resolve(p) { if (document.documentElement.getAttribute('data-theme-lock') === 'dark') return 'dark'; return p === 'system' ? (mq && !mq.matches ? 'light' : 'dark') : (p === 'light' ? 'light' : 'dark'); }
++  // DARK = white icons (for dark bars); LIGHT = black icons (for the pale light theme).
++  // Home (dashboard) has a blue hero at the very top, so it keeps white icons.
++  function statusStyle(t) {
++    if (t === 'dark') return 'DARK';
++    var d = document.getElementById('page-dashboard');
++    return (d && d.classList.contains('active')) ? 'DARK' : 'LIGHT';
++  }
++  window.refreshStatusBar = function () {
++    try { var s = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.StatusBar; if (s) s.setStyle({ style: statusStyle(resolve(pref())) }); } catch (e) {}
++  };
++  document.addEventListener('DOMContentLoaded', function () {
++    var host = document.getElementById('page-dashboard');
++    if (host && window.MutationObserver) new MutationObserver(window.refreshStatusBar).observe(host, { attributes: true, attributeFilter: ['class'] });
++  });
+   function apply() {
+     var t = resolve(pref()), de = document.documentElement;
+     de.setAttribute('data-theme', t);
+@@ -14,7 +28,7 @@
+     try { window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: t, pref: pref() } })); } catch (e) {}
+     try {
+       var s = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.StatusBar;
+-      if (s) { s.setBackgroundColor({ color: BAR[t] }); s.setStyle({ style: 'DARK' }); }
++      if (s) { s.setBackgroundColor({ color: BAR[t] }); s.setStyle({ style: statusStyle(t) }); }
+     } catch (e) {}
+   }
+   window.Theme = {
