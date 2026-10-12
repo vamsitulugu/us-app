@@ -3,6 +3,7 @@
    DashWidgets.render()   events row · mood card · custom card photos
    DashWidgets.openMood() full-screen mood calendar (also logs today's mood)
    DashWidgets.openPhotos() 16:9 photo editor for the Hug/Touch/Miss card
+                          (opened from the card's 3-dots menu: set own image / use default)
 
    Data it reads/writes on the global state S (synced by the app):
      S.anniversary, S.myBday, S.ptBday, S.events, S.milestones   (read)
@@ -395,9 +396,9 @@ const DashWidgets = (() => {
   /* ───────────────────────── PHOTO EDITOR ───────────────────────── */
   const SLOTS = [
     ['idle', 'Idle', '/images/dashboard/idle.svg'],
-    ['hug', 'Hug', '/images/dashboard/hug.svg'],
-    ['touch', 'Touch', '/images/dashboard/touch.svg'],
-    ['miss', 'Miss You', '/images/dashboard/miss.svg'],
+    ['hug', 'Hug', '/images/dashboard/hug.png'],
+    ['touch', 'Touch', '/images/dashboard/touch.png'],
+    ['miss', 'Miss You', '/images/dashboard/miss.png'],
   ];
   const OUT_W = 1280, OUT_H = 720, MAX_Z = 4;
   let photoOv = null, ph = null;
@@ -707,7 +708,7 @@ const DashWidgets = (() => {
 
   function init() {
     hookLegacy();
-    const edit = $('dhEditBtn'); if (edit) edit.onclick = () => openPhotos(photoSlotForCard());
+    const edit = $('dhEditBtn'); if (edit) edit.onclick = e => { e.stopPropagation(); openMenu(); };
     const mood = $('dwMood');
     if (mood) { mood.onclick = openMood; mood.onkeydown = e => { if (e.target === mood && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openMood(); } }; }
     const ml = $('dwMoodLink'); if (ml) ml.onclick = openMood;
@@ -718,6 +719,39 @@ const DashWidgets = (() => {
     const on = document.querySelector('#dhCard .dh-img.is-on');
     return on ? on.dataset.k : 'idle';
   }
+
+  /* ── 3-dots menu on the card: set own photo / use default ── */
+  let menuEl = null;
+  function closeMenu() {
+    if (menuEl) { menuEl.remove(); menuEl = null; }
+    const b = $('dhEditBtn'); if (b) b.setAttribute('aria-expanded', 'false');
+  }
+  function openMenu() {
+    if (!stateOK()) return;
+    const btn = $('dhEditBtn'), card = $('dhCard');
+    if (!btn || !card) return;
+    if (menuEl) { closeMenu(); return; }
+    const k = photoSlotForCard();
+    const hasCustom = !!(S.dashImgs && S.dashImgs[k]);
+    const menu = el('div', 'dh-menu-pop'); menu.setAttribute('role', 'menu');
+    const item = (label, fn, disabled) => {
+      const b = el('button', 'dh-menu-item', label); b.type = 'button'; b.setAttribute('role', 'menuitem');
+      if (disabled) b.disabled = true;
+      b.onclick = e => { e.stopPropagation(); closeMenu(); fn(); };
+      return b;
+    };
+    menu.append(
+      item('Set my own image', () => openPhotos(k)),
+      item('Use default image', () => { slot = k; resetSlot(); }, !hasCustom)
+    );
+    card.append(menu);
+    menuEl = menu;
+    btn.setAttribute('aria-expanded', 'true');
+  }
+  document.addEventListener('click', e => {
+    if (menuEl && !menuEl.contains(e.target) && e.target.closest && !e.target.closest('#dhEditBtn')) closeMenu();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
 
   return { render, init, openMood, openPhotos };
 })();

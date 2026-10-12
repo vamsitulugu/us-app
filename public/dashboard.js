@@ -5,9 +5,9 @@
                        sendHug / sendTouch / sendMissYou and the incoming
                        checks, then shows the matching image on the card.
 
-   Card images: /images/dashboard/{idle,hug,touch,miss}.svg (16:9).
-   To use generated artwork, replace those files or change the <img src>
-   values in the #dhCard markup in index.html.
+   Card images: /images/dashboard/idle.svg and {hug,touch,miss}.png (16:9).
+   These are the defaults. Each person can set their own picture for a card
+   from the 3-dots menu (see dashboard-widgets.js), or switch back to default.
 
    Needs globals from the main app: S, scheduleSave, setAvImg/setAvText.
    ══════════════════════════════════════════════════════════════ */

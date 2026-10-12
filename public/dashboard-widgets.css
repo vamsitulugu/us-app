@@ -33,6 +33,24 @@
 }
 .dh-edit:active { transform: scale(.9); }
 .dh-edit svg { width: 18px; height: 18px; }
+
+/* ── 3-dots menu ── */
+.dh-menu-pop {
+  position: absolute; top: 52px; right: 10px; z-index: 4;
+  min-width: 176px; padding: 6px; display: flex; flex-direction: column; gap: 2px;
+  border-radius: 14px; border: 1px solid rgba(255, 255, 255, .22);
+  background: rgba(30, 6, 22, .86);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .45);
+}
+.dh-menu-item {
+  border: 0; background: none; text-align: left; cursor: pointer;
+  padding: 11px 12px; border-radius: 9px;
+  font: 600 13px var(--ff-sans); color: #fff;
+  -webkit-tap-highlight-color: transparent;
+}
+.dh-menu-item:active { background: rgba(255, 255, 255, .14); }
+.dh-menu-item:disabled { opacity: .38; pointer-events: none; }
 .dh-cap { max-width: calc(100% - 64px); }
 
 /* ── Events row ── */
