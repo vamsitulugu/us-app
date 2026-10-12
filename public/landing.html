@@ -313,33 +313,58 @@ html.ms-on body > *:not(#mobileStart):not(#authModal){display:none!important}
 html.ms-on #mobileStart{display:flex}
 html.ms-on.ms-auth #mobileStart{display:none}
 html.ms-on #authModal{position:fixed;background:linear-gradient(180deg,#3A0425,#14030e)}
-#mobileStart{position:fixed;inset:0;z-index:900;flex-direction:column;align-items:center;overflow:hidden;
-  padding:calc(env(safe-area-inset-top,0px) + 28px) 24px calc(env(safe-area-inset-bottom,0px) + 24px);
-  background:radial-gradient(ellipse at 50% 38%,#7a0b55 0%,#4a0833 45%,#2a0420 100%);color:#fff;font-family:var(--ff-sans)}
-#mobileStart::before{content:'';position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(circle at 15% 12%,rgba(255,150,220,.18),transparent 40%),radial-gradient(circle at 88% 30%,rgba(255,90,190,.14),transparent 45%)}
-.ms-brand{position:relative;display:flex;align-items:center;gap:12px;margin-top:6px}
-.ms-brand img{width:56px;height:56px;border-radius:16px;box-shadow:0 8px 28px rgba(176,18,122,.55)}
-.ms-brand b{display:block;font-family:var(--ff-serif);font-weight:400;font-size:26px;line-height:1.05}
-.ms-brand small{display:block;font-size:8.5px;letter-spacing:3px;text-transform:uppercase;opacity:.8;margin-top:4px}
-.ms-hero{position:relative;text-align:center;margin-top:26px}
-.ms-hero h1{font-family:var(--ff-serif);font-weight:400;font-size:clamp(34px,11vw,48px);line-height:1;margin:0;
-  background:linear-gradient(180deg,#ffb3e6,#f07bd0 55%,#d9b3ff);-webkit-background-clip:text;background-clip:text;color:transparent}
-.ms-hero p{margin:12px 0 0;font-size:11px;letter-spacing:3px;text-transform:uppercase;opacity:.9}
-.ms-art{position:relative;flex:1;min-height:0;width:100%;display:flex;align-items:flex-end;justify-content:center;margin-top:10px}
-.ms-art img{max-height:100%;max-width:100%;object-fit:contain;
-  -webkit-mask-image:linear-gradient(180deg,#000 80%,transparent);mask-image:linear-gradient(180deg,#000 80%,transparent)}
-.ms-actions{position:relative;width:100%;max-width:420px;margin-top:14px}
-.ms-start{width:100%;display:flex;align-items:center;justify-content:space-between;padding:8px 8px 8px 30px;border:none;cursor:pointer;
-  border-radius:999px;background:#fff;color:#8a0f5e;font:800 15px var(--ff-sans);letter-spacing:1.5px;text-transform:uppercase;
-  box-shadow:0 10px 34px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.4)}
-.ms-start i{width:48px;height:48px;border-radius:50%;background:#8a0f5e;color:#fff;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:20px}
+#mobileStart{
+  position:fixed;inset:0;z-index:900;overflow:hidden;
+  display:none;flex-direction:column;align-items:center;
+  height:100vh;height:100dvh;
+  padding:calc(env(safe-area-inset-top,0px) + clamp(16px,3.2dvh,30px)) clamp(20px,6vw,32px) calc(env(safe-area-inset-bottom,0px) + clamp(16px,3dvh,28px));
+  color:#fff;font-family:var(--ff-sans);
+  /* one continuous burgundy -> magenta -> burgundy gradient across the whole screen */
+  background:
+    radial-gradient(120% 55% at 50% 58%,rgba(214,55,155,.55) 0%,rgba(214,55,155,0) 70%),
+    radial-gradient(90% 40% at 12% 8%,rgba(255,140,220,.20) 0%,rgba(255,140,220,0) 70%),
+    linear-gradient(180deg,#4a0634 0%,#7d0e57 30%,#8f1068 52%,#6a0a4a 76%,#34051f 100%);
+}
+html.ms-on #mobileStart{display:flex}
+html.ms-on.ms-auth #mobileStart{display:none}
+.ms-brand{display:flex;align-items:center;justify-content:center;gap:clamp(10px,3vw,14px);flex:none}
+.ms-brand img{width:clamp(46px,14vw,60px);height:clamp(46px,14vw,60px);border-radius:16px;box-shadow:0 8px 26px rgba(214,55,155,.5)}
+.ms-brand b{display:block;font-family:var(--ff-serif);font-weight:400;font-size:clamp(24px,7.4vw,31px);line-height:1.05}
+.ms-brand small{display:block;font-size:clamp(7.5px,2.2vw,9px);letter-spacing:.34em;text-transform:uppercase;opacity:.85;margin-top:5px}
+.ms-hero{flex:none;text-align:center;margin-top:clamp(16px,3.6dvh,34px)}
+.ms-hero h1{margin:0;font-family:var(--ff-serif);font-weight:400;line-height:.98}
+.ms-hero h1 .a{display:block;font-size:clamp(34px,10.5vw,46px);color:#ffb6e6;letter-spacing:.01em}
+.ms-hero h1 .b{display:inline-block;position:relative;font-size:clamp(42px,13.4vw,58px);font-weight:700;
+  background:linear-gradient(180deg,#fff 0%,#ffc2ec 45%,#d9a8ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 4px 18px rgba(255,120,210,.35))}
+.ms-hero h1 .b svg{position:absolute;right:-.5em;top:-.35em;width:.62em;height:.62em;fill:#f06bc8;filter:drop-shadow(0 0 8px rgba(240,107,200,.8))}
+.ms-hero p{margin:clamp(8px,1.8dvh,14px) 0 0;font-size:clamp(10px,3vw,12px);letter-spacing:.3em;text-transform:uppercase;color:rgba(255,255,255,.92)}
+/* illustration: sits directly on the gradient, no card / box / border */
+.ms-art{position:relative;flex:1 1 0;min-height:0;width:100%;margin:clamp(6px,1.6dvh,16px) 0 clamp(10px,2dvh,18px)}
+.ms-art::before{content:'';position:absolute;left:50%;top:50%;width:min(92%,420px);aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(circle,rgba(255,130,215,.42) 0%,rgba(255,130,215,.14) 45%,rgba(255,130,215,0) 70%);pointer-events:none}
+.ms-art::after{content:'';position:absolute;left:8%;right:8%;bottom:0;height:3px;border-radius:3px;
+  background:linear-gradient(90deg,transparent,#ff7ad6 30%,#ff7ad6 70%,transparent);box-shadow:0 0 22px 6px rgba(255,90,200,.55);opacity:.85}
+.ms-art{display:flex;justify-content:center;align-items:flex-end}
+.ms-art img{position:relative;z-index:1;display:block;height:calc(100% - 6px);width:auto;max-width:100%;margin-bottom:6px;object-fit:contain;
+  filter:drop-shadow(0 14px 22px rgba(20,0,12,.45));
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 5%,#000 95%,transparent 100%),linear-gradient(180deg,#000 0,#000 90%,transparent 100%);
+  -webkit-mask-composite:source-in;
+  mask-image:linear-gradient(90deg,transparent 0,#000 5%,#000 95%,transparent 100%),linear-gradient(180deg,#000 0,#000 90%,transparent 100%);
+  mask-composite:intersect}
+.ms-actions{flex:none;width:100%;max-width:420px}
+.ms-start{width:100%;display:flex;align-items:center;justify-content:space-between;
+  padding:7px 7px 7px clamp(26px,8vw,36px);border:none;cursor:pointer;border-radius:999px;background:#fff;color:#a3126f;
+  font:800 clamp(14px,4.2vw,16px) var(--ff-sans);letter-spacing:.14em;text-transform:uppercase;
+  box-shadow:0 10px 30px rgba(20,0,12,.4),0 0 28px rgba(255,120,210,.35)}
+.ms-start i{width:clamp(46px,13vw,54px);height:clamp(46px,13vw,54px);border-radius:50%;flex:none;background:linear-gradient(135deg,#c2188a,#8f1068);display:flex;align-items:center;justify-content:center}
+.ms-start i svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .ms-start:active{transform:scale(.98)}
 /* step 2: Sign In / Sign Up cards */
-.ms-choose{display:none;width:100%;gap:14px;flex-direction:column}
+.ms-choose{display:none;width:100%;gap:clamp(8px,1.6dvh,14px);flex-direction:column}
 #mobileStart.ms-step2 .ms-start{display:none}
 #mobileStart.ms-step2 .ms-choose{display:flex}
-.ms-card{display:flex;align-items:center;gap:14px;width:100%;padding:18px 18px;border-radius:22px;cursor:pointer;text-align:left;color:#fff;
+.ms-card{display:flex;align-items:center;gap:14px;width:100%;padding:clamp(12px,2.2dvh,18px) 18px;border-radius:22px;cursor:pointer;text-align:left;color:#fff;
   background:rgba(20,3,14,.62);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,160,225,.35);font-family:var(--ff-sans)}
 .ms-card.primary{background:linear-gradient(135deg,#b0127a,#d6379b);border-color:rgba(255,255,255,.35)}
 .ms-card .ico{width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
@@ -399,25 +424,25 @@ html.ms-on #authModal{position:fixed;background:linear-gradient(180deg,#3A0425,#
 <body>
 
 <!-- Mobile start screen (shown only on phones when logged out; see .ms-on) -->
-<div id="mobileStart" role="main">
+<main id="mobileStart">
   <div class="ms-brand">
-    <img src="/icons/icon-512.png" alt="Twin Hearts">
+    <img src="/icons/icon-512.png" alt="Twin Hearts logo">
     <div><b>Twin Hearts</b><small>Everything Together</small></div>
   </div>
-  <div class="ms-hero">
-    <h1>Stay<br>Connected</h1>
+  <header class="ms-hero">
+    <h1><span class="a">Stay</span><span class="b">Connected<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.7 5 6 5c2 0 3.4 1.1 4.2 2.4h.1C11.1 6.1 12.5 5 14.5 5c3.3 0 5.1 3.4 3.6 6.8C16 16.4 12 21 12 21z" transform="translate(.6 0)"/></svg></span></h1>
     <p>No distance, just us</p>
-  </div>
-  <div class="ms-art"><img src="/images/mobile-start-couple.png" alt=""></div>
+  </header>
+  <div class="ms-art"><img src="/images/couple-kiss-trim.png" alt=""></div>
   <div class="ms-actions">
-    <button class="ms-start" type="button" onclick="msGetStarted()">Get Started <i>&rarr;</i></button>
+    <button class="ms-start" type="button" onclick="msGetStarted()">Get Started <i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></i></button>
     <div class="ms-choose">
       <button class="ms-card primary" type="button" onclick="msOpen('login')"><div class="ico">&#128150;</div><div><b>Sign In</b><span>Welcome back to your space</span></div></button>
       <button class="ms-card" type="button" onclick="msOpen('signup')"><div class="ico">&#10024;</div><div><b>Sign Up</b><span>Create your space together</span></div></button>
       <button class="ms-back" type="button" onclick="msBack()">&larr; Back</button>
     </div>
   </div>
-</div>
+</main>
 
 <div id="bg"></div>
 <div id="bg-grain"></div>
