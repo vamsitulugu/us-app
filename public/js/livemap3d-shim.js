@@ -331,9 +331,9 @@
       addGeoJSONLayer(map, this._id, circlePolygon(this._latlng.lat, this._latlng.lng, this._radius), {
         type: 'fill',
         paint: {
-          'fill-color': this._opts.fillColor || this._opts.color || '#ec66b8',
+          'fill-color': this._opts.fillColor || this._opts.color || '#F06DBE',
           'fill-opacity': this._opts.fillOpacity != null ? this._opts.fillOpacity : 0.15,
-          'fill-outline-color': this._opts.color || '#ec66b8'
+          'fill-outline-color': this._opts.color || '#F06DBE'
         }
       });
       return this;
@@ -364,7 +364,7 @@
       this._map = map;
       const geojson = { type: 'Feature', geometry: { type: 'LineString', coordinates: this._latlngs.map((p) => [p[1], p[0]]) }, properties: {} };
       const paint = {
-        'line-color': this._opts.color || '#ec66b8',
+        'line-color': this._opts.color || '#F06DBE',
         'line-width': this._opts.weight || 4,
         'line-opacity': this._opts.opacity != null ? this._opts.opacity : 0.9
       };

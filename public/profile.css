@@ -171,9 +171,9 @@
   right: -10px;
   top: 50%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(224,74,168, .6), transparent);
+  background: linear-gradient(90deg, transparent, rgba(176,18,122, .6), transparent);
 }
-.pf-heart-link .pf-i { position: relative; width: 48px; height: 48px; fill: rgba(176,18,122, .25); filter: drop-shadow(0 0 10px rgba(224,74,168, .6)); background: #12080e; border-radius: 50%; padding: 6px; box-sizing: content-box; }
+.pf-heart-link .pf-i { position: relative; width: 48px; height: 48px; fill: rgba(176,18,122, .25); filter: drop-shadow(0 0 10px rgba(176,18,122, .6)); background: #12080e; border-radius: 50%; padding: 6px; box-sizing: content-box; }
 .pf-since-l { margin-top: 6px; font-size: 11px; color: var(--text2); }
 .pf-since-d {
   display: inline-flex;

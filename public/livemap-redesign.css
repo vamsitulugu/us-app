@@ -218,7 +218,7 @@
    out of the visible pane. Give the call pane a floor so the control
    bar (which is pinned to its bottom via .call-controls-active) is
    never squeezed out of the visible area. */
-.lm2-dock-call{ flex:1 1 auto; min-height:150px; background:#0b0410; }
+.lm2-dock-call{ flex:1 1 auto; min-height:150px; background:#14030e; }
 @media (min-width:701px){
 .lm2-dock-map{ flex-basis:calc(100% * var(--lm2-split-ratio)); }
 }
@@ -275,7 +275,7 @@
 /* Phase 4: Route History privacy toggle (opt-in switch + retention chips) */
 #lmRouteRetentionRow .lm-chip.active{box-shadow:0 0 0 1px rgba(176,18,122,.5) inset;background:rgba(176,18,122,.12)}
 /* Phase 5: voice-nav toggle + camera-mode button active states */
-.lm-voice-nav-btn.active{background:rgba(236,102,184,.25);border-color:#ec66b8}
+.lm-voice-nav-btn.active{background:rgba(240,109,190,.25);border-color:#F06DBE}
 /* Daily narrative timeline (item 2) — vertical chain of place_visits
    with per-category icon, matches existing dark-glass premium tokens. */
 .lm-timeline{display:flex;flex-direction:column}

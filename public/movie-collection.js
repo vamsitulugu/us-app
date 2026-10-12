@@ -15,18 +15,18 @@
   const KEY = 'us_movies_v2';
 
   const GENRES = {
-    Romance:     { e: '💕', c: ['#ff6b9a', '#6e1231'] },
+    Romance:     { e: '💕', c: ['#F06DBE', '#7C0A57'] },
     Action:      { e: '💥', c: ['#ff8a3d', '#6b1d0b'] },
     Comedy:      { e: '😂', c: ['#ffd14a', '#7a4a06'] },
-    Drama:       { e: '🎭', c: ['#f991ee', '#731b69'] },
+    Drama:       { e: '🎭', c: ['#F06DBE', '#7C0A57'] },
     Thriller:    { e: '😰', c: ['#826a78', '#331b28'] },
     Horror:      { e: '👻', c: ['#9aa0a6', '#2a0a0a'] },
-    'Sci-Fi':    { e: '🚀', c: ['#f64c9b', '#5c0a37'] },
+    'Sci-Fi':    { e: '🚀', c: ['#F06DBE', '#5c0a37'] },
     Fantasy:     { e: '🧙', c: ['#5ee0b0', '#0e4a3a'] },
-    Animation:   { e: '🎨', c: ['#ff7ad9', '#5a1a6e'] },
+    Animation:   { e: '🎨', c: ['#F06DBE', '#511336'] },
     Documentary: { e: '📽️', c: ['#c9b27c', '#4a3a16'] },
-    Bollywood:   { e: '🎪', c: ['#ff5d73', '#7a1030'] },
-    Other:       { e: '🎬', c: ['#8A0E5F', '#3a0510'] },
+    Bollywood:   { e: '🎪', c: ['#ff5d73', '#7C0A57'] },
+    Other:       { e: '🎬', c: ['#7C0A57', '#3a0510'] },
   };
   const STATUS = {
     watchlist: { label: '🌟 Watchlist', cls: 'st-watchlist' },

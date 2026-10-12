@@ -465,9 +465,9 @@ function render() {
 
   // Upcoming celebrations
   const celebrations = [];
-  if (lcState.anniversary) celebrations.push({ name: 'Anniversary 💍', icon: '💍', iconBg: 'linear-gradient(135deg,rgba(236,102,184,0.2),rgba(236,102,184,0.05))', days: annivDays, date: fmtDateShort(lcState.anniversary) });
+  if (lcState.anniversary) celebrations.push({ name: 'Anniversary 💍', icon: '💍', iconBg: 'linear-gradient(135deg,rgba(240,109,190,0.2),rgba(240,109,190,0.05))', days: annivDays, date: fmtDateShort(lcState.anniversary) });
   if (lcState.myBday) celebrations.push({ name: `${lcState.myName}'s Birthday 🎂`, icon: '🎂', iconBg: 'linear-gradient(135deg,rgba(251,191,36,0.2),rgba(251,191,36,0.05))', days: myBdayDays, date: fmtDateShort(lcState.myBday) });
-  if (lcState.ptBday) celebrations.push({ name: `${lcState.partnerName}'s Birthday 🎂`, icon: '🎂', iconBg: 'linear-gradient(135deg,rgba(255,107,157,0.2),rgba(255,107,157,0.05))', days: ptBdayDays, date: fmtDateShort(lcState.ptBday) });
+  if (lcState.ptBday) celebrations.push({ name: `${lcState.partnerName}'s Birthday 🎂`, icon: '🎂', iconBg: 'linear-gradient(135deg,rgba(240,109,190,0.2),rgba(240,109,190,0.05))', days: ptBdayDays, date: fmtDateShort(lcState.ptBday) });
   // Add upcoming events
   const today = todayStr();
   const upcomingEvts = (lcState.events || []).filter(e => e.date >= today).sort((a,b) => a.date.localeCompare(b.date)).slice(0, 4);

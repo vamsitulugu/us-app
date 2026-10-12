@@ -7,12 +7,12 @@
    ══════════════════════════════════════════════════════════════ */
 
 .lv {
-  --lv-a: var(--accent, #c21a8b);
+  --lv-a: var(--accent, #B0127A);
   --lv-a-d: var(--accent-d, #B0127A);
-  --lv-a-l: var(--accent-l, #f881c4);
-  --lv-line: rgba(194,26,139, .30);
+  --lv-a-l: var(--accent-l, #F06DBE);
+  --lv-line: rgba(176,18,122, .30);
   --lv-line: color-mix(in srgb, var(--lv-a) 32%, transparent);
-  --lv-tint: rgba(194,26,139, .14);
+  --lv-tint: rgba(176,18,122, .14);
   --lv-tint: color-mix(in srgb, var(--lv-a) 16%, transparent);
   --lv-glow: color-mix(in srgb, var(--lv-a) 45%, transparent);
   --lv-card: linear-gradient(180deg, rgba(68,15,45, .90), rgba(44,8,28, .94));

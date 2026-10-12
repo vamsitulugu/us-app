@@ -35,7 +35,7 @@ const css = `
 .atw-tab{flex-shrink:0;padding:8px 14px;border-radius:14px;background:var(--g1);border:1px solid var(--border);cursor:pointer;font-size:12px;font-weight:700;color:var(--text2);transition:var(--t)}
 .atw-tab.sel{color:#fff;border-color:var(--accent);background:var(--g2);box-shadow:0 0 0 2px var(--accent-glow)}
 .atw-body{flex:1;overflow-y:auto;padding:14px}
-.atw-hero{border-radius:20px;padding:20px;position:relative;overflow:hidden;margin-bottom:14px;background:linear-gradient(135deg,rgba(249,132,176,.18),rgba(255,107,157,.10));border:1px solid var(--border2);text-align:center}
+.atw-hero{border-radius:20px;padding:20px;position:relative;overflow:hidden;margin-bottom:14px;background:linear-gradient(135deg,rgba(240,109,190,.18),rgba(240,109,190,.10));border:1px solid var(--border2);text-align:center}
 .atw-hero-emoji{font-size:44px;margin-bottom:6px}
 .atw-hero-title{font-family:var(--ff-serif);font-size:19px;color:#fff}
 .atw-hero-sub{font-size:12px;color:var(--text2);margin-top:4px}
@@ -59,7 +59,7 @@ const css = `
 .atw-landmark-row{display:flex;gap:7px;overflow-x:auto;margin-top:6px}
 .atw-landmark-row::-webkit-scrollbar{height:0}
 .atw-landmark{flex-shrink:0;width:58px;text-align:center;padding:6px 4px;border-radius:12px;background:var(--g1);border:1px solid var(--border);opacity:.35}
-.atw-landmark.unlocked{opacity:1;border-color:var(--dia);background:rgba(249,132,176,.1)}
+.atw-landmark.unlocked{opacity:1;border-color:var(--dia);background:rgba(240,109,190,.1)}
 .atw-landmark-emoji{font-size:19px}
 .atw-landmark-name{font-size:7.5px;color:var(--text3);font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .atw-souvenir-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
@@ -68,7 +68,7 @@ const css = `
 .atw-input-row{display:flex;gap:8px;margin-bottom:8px}
 .atw-input-row input,.atw-input-row select{flex:1;padding:10px 13px;border-radius:12px;background:var(--g2);border:1px solid var(--border);color:#fff;font-size:12.5px}
 .atw-memory-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(52,211,153,.15);color:var(--green);border:1px solid rgba(52,211,153,.3);margin-top:6px}
-.atw-challenge-card{background:linear-gradient(135deg,rgba(255,201,74,.12),rgba(249,132,176,.08));border:1px solid rgba(255,201,74,.25);border-radius:16px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
+.atw-challenge-card{background:linear-gradient(135deg,rgba(255,201,74,.12),rgba(240,109,190,.08));border:1px solid rgba(255,201,74,.25);border-radius:16px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
 .atw-challenge-ico{font-size:28px;flex-shrink:0}
 .atw-challenge-title{font-size:12.5px;font-weight:700;color:#fff}
 .atw-challenge-sub{font-size:10.5px;color:var(--text2);margin-top:2px}
@@ -80,14 +80,14 @@ const css = `
 .sp-chip{font-size:10.5px;font-weight:800;padding:5px 11px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid var(--border2);color:#fff;display:flex;align-items:center;gap:5px}
 .sp-hpbar{flex:1;min-width:80px;height:9px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden;border:1px solid var(--border2)}
 .sp-hpfill{height:100%;background:linear-gradient(90deg,#ff6b6b,#ffd166);transition:width .4s}
-.sp-fuelfill{height:100%;background:linear-gradient(90deg,#f658a9,#f984b0);transition:width .4s}
+.sp-fuelfill{height:100%;background:linear-gradient(90deg,#F06DBE,#F06DBE);transition:width .4s}
 .sp-galaxy-select{position:relative;z-index:2;padding:8px 14px;display:flex;gap:8px;overflow-x:auto}
 .sp-galaxy-select::-webkit-scrollbar{height:0}
 .sp-galaxy-chip{flex-shrink:0;padding:8px 14px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid var(--border2);color:var(--text2);font-size:11.5px;font-weight:700;cursor:pointer}
 .sp-galaxy-chip.sel{color:#fff;border-color:var(--accent2);background:rgba(219,80,255,.15);box-shadow:0 0 0 2px var(--accent2-glow)}
 .sp-galaxy-chip.locked{opacity:.35}
 .sp-scene{flex:1;position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;text-align:center;overflow:hidden}
-.sp-planet{font-size:80px;filter:drop-shadow(0 0 30px rgba(249,132,176,.4));animation:spFloat 4s ease-in-out infinite}
+.sp-planet{font-size:80px;filter:drop-shadow(0 0 30px rgba(240,109,190,.4));animation:spFloat 4s ease-in-out infinite}
 @keyframes spFloat{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-14px) rotate(3deg)}}
 .sp-mission-title{font-family:var(--ff-serif);font-size:19px;color:#fff;margin-top:10px}
 .sp-mission-desc{font-size:12.5px;color:var(--text2);margin-top:6px;max-width:320px;line-height:1.6}

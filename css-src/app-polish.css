@@ -115,7 +115,7 @@ body[data-immersive="1"] .content {
     height: 30px;
     width: auto;
     flex-shrink: 0;
-    filter: drop-shadow(0 0 6px rgba(220,100,210,0.45));
+    filter: drop-shadow(0 0 6px rgba(176,18,122,0.45));
   }
   /* Order on mobile only: logo -> sidebar toggle -> title. Desktop
      keeps DOM order (logo lives in the sidebar there, so this rule

@@ -119,7 +119,7 @@
     if (!st || st.phase !== 'rec') return; const c = $('#sgWave'); if (!c) return; const g = c.getContext('2d');
     const data = new Uint8Array(st.analyser.frequencyBinCount); st.analyser.getByteTimeDomainData(data);
     g.clearRect(0, 0, c.width, c.height); const bars = 48, step = Math.floor(data.length / bars);
-    const grad = getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim() || '#F0489F';
+    const grad = getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim() || '#B0127A';
     g.fillStyle = grad;
     for (let i = 0; i < bars; i++) { let m = 0; for (let k = 0; k < step; k++) m = Math.max(m, Math.abs(data[i * step + k] - 128)); const h = Math.max(4, (m / 128) * c.height * 1.6); g.fillRect(i * 10 + 2, (c.height - h) / 2, 6, h); }
     const e = (Date.now() - st.t0) / 1000; $('#sgTimer').innerHTML = `<span class="rec-dot"></span>Recording ${MX.fmt(e)}`;

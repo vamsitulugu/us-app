@@ -383,7 +383,7 @@ button{font-family:inherit;cursor:pointer}
 .pz-photo-thumb{width:64px;height:64px;border-radius:12px;object-fit:cover;box-shadow:0 6px 16px rgba(0,0,0,.4)}
 .pz-sizegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:14px 0}
 .pz-sizecard{border-radius:14px;padding:12px 6px;border:1px solid var(--border);background:var(--g1);text-align:center;font-weight:800;font-size:13px;color:#fff}
-.pz-sizecard.sel{border-color:var(--accent2);background:rgba(168,85,247,.14);box-shadow:0 0 0 1px var(--accent2-glow)}
+.pz-sizecard.sel{border-color:var(--accent2);background:rgba(224,74,168,.14);box-shadow:0 0 0 1px var(--accent2-glow)}
 .pz-sizecard .pzc-sub{font-size:9.5px;color:var(--text3);font-weight:600;margin-top:2px}
 .pz-custom-row{display:flex;align-items:center;gap:10px;margin:10px 0;justify-content:center}
 .pz-custom-row input{width:64px;padding:9px;border-radius:11px;background:var(--g1);border:1px solid var(--border);color:#fff;text-align:center;font-size:14px}
@@ -444,7 +444,7 @@ button{font-family:inherit;cursor:pointer}
 .mr-compat-num .lbl{font-size:8.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-top:1px}
 .mr-modegrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
 .mr-modecard{border-radius:16px;padding:14px;border:1px solid var(--border);background:var(--g1);text-align:center;transition:var(--t)}
-.mr-modecard.sel{border-color:var(--accent2);background:rgba(168,85,247,.14);box-shadow:0 0 0 1px var(--accent2-glow)}
+.mr-modecard.sel{border-color:var(--accent2);background:rgba(224,74,168,.14);box-shadow:0 0 0 1px var(--accent2-glow)}
 .mr-modecard .mmc-ico{font-size:20px}
 .mr-modecard .mmc-name{font-weight:800;font-size:12.5px;color:#fff;margin-top:4px}
 .mr-modecard .mmc-sub{font-size:9.5px;color:var(--text3);margin-top:2px}
@@ -481,7 +481,7 @@ button{font-family:inherit;cursor:pointer}
 .mr-answer-box:focus{outline:none;border-color:var(--accent2)}
 .mr-mc-grid{display:flex;flex-direction:column;gap:8px}
 .mr-mc-opt{padding:13px 16px;border-radius:14px;background:var(--g1);border:1px solid var(--border2);color:#fff;font-size:13.5px;font-weight:600;text-align:left;display:flex;align-items:center;gap:10px}
-.mr-mc-opt.sel{border-color:var(--accent2);background:rgba(168,85,247,.16);box-shadow:0 0 0 1px var(--accent2-glow)}
+.mr-mc-opt.sel{border-color:var(--accent2);background:rgba(224,74,168,.16);box-shadow:0 0 0 1px var(--accent2-glow)}
 .mr-mc-opt .opt-dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--border2);flex-shrink:0}
 .mr-mc-opt.sel .opt-dot{background:var(--accent2);border-color:var(--accent2)}
 .mr-answer-actions{display:flex;gap:8px;margin-top:12px;justify-content:center}
@@ -501,7 +501,7 @@ button{font-family:inherit;cursor:pointer}
 .mr-flipface.front{background:linear-gradient(155deg,rgba(255,255,255,.09),rgba(255,255,255,.02));border:1px solid var(--border2)}
 .mr-flipface.front .ff-ico{font-size:30px;animation:mrPulseIco 1.4s ease-in-out infinite}
 @keyframes mrPulseIco{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
-.mr-flipface.back{background:linear-gradient(155deg,rgba(168,85,247,.22),rgba(255,255,255,.02));border:1px solid var(--accent2);transform:rotateY(180deg)}
+.mr-flipface.back{background:linear-gradient(155deg,rgba(224,74,168,.22),rgba(255,255,255,.02));border:1px solid var(--accent2);transform:rotateY(180deg)}
 .mr-flipface .ff-name{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
 .mr-flipface .ff-answer{font-family:var(--ff-serif);font-size:15px;color:#fff;line-height:1.4}
 .mr-match-badge{padding:8px 18px;border-radius:20px;font-size:12.5px;font-weight:800;display:flex;align-items:center;gap:6px;animation:gopop .4s cubic-bezier(.34,1.56,.64,1)}
@@ -1020,7 +1020,7 @@ const GAMES = [
   {id:'ttt', title:'Tic Tac Toe', emoji:'❌⭕', badge:'', grad:'linear-gradient(135deg,#2e1a26,#53374f)',
     desc:'Quick classic — perfectly synced moves, best-of streak scoring.',
     tags:['⚡ Quick','⏱ 2-5m','✨ 8 XP/win']},
-  {id:'draw', title:'Draw & Guess', emoji:'🎨', badge:'', grad:'linear-gradient(135deg,#2e0d22,#4a0d5c)',
+  {id:'draw', title:'Draw & Guess', emoji:'🎨', badge:'', grad:'linear-gradient(135deg,#2e0d22,#3A0425)',
     desc:'One of you draws a secret word, the other guesses in real time — swap roles each round.',
     tags:['🖌 Creative','⏱ 5-20m','✨ 20 XP/round']},
   {id:'memory', title:'Memory Match', emoji:'🧠', badge:'', grad:'linear-gradient(135deg,#0d2a1a,#0d5c3a)',
@@ -1029,7 +1029,7 @@ const GAMES = [
   {id:'bomb', title:"Don't Touch The Bomb", emoji:'💣', badge:'new', grad:'linear-gradient(135deg,#1a0505,#6b0d1a)',
     desc:'One of you sees the bombs, the other must cross the field blind — guide them with voice, chat & emoji.',
     tags:['💣 Co-op','⏱ 3-8m','✨ 25 XP/win']},
-  {id:'puzzle', title:'Picture Puzzle', emoji:'🧩', badge:'new', grad:'linear-gradient(135deg,#2e0d22,#4a0d5c)',
+  {id:'puzzle', title:'Picture Puzzle', emoji:'🧩', badge:'new', grad:'linear-gradient(135deg,#2e0d22,#3A0425)',
     desc:'Pick a real photo from your phone — you each get half the pieces and must talk your way to the full picture.',
     tags:['🧩 Co-op','⏱ 5-15m','✨ 30 XP/win']},
 ];
@@ -1722,7 +1722,7 @@ const TOD = {
    "man"/"boy" for a drawn "human" still counts as correct.
 ═══════════════════════════════════════════════════════ */
 const DRAW_WORDS=['cat','pizza','rainbow','guitar','heart','tree','sun','umbrella','robot','castle','fish','flower','moon','car','house','butterfly','ice cream','star','crown','balloon','shoe','clock','book','key','cloud','boat','apple','kite','snowman','rocket'];
-const DW_COLORS=['#ef4444','#f59e0b','#22c55e','#ee0d8c','#a855f7','#ffffff','#000000'];
+const DW_COLORS=['#ef4444','#f59e0b','#22c55e','#ee0d8c','#E04AA8','#ffffff','#000000'];
 const DW_SIZES=[3,6,11];
 const DW_ROUND_SECONDS=75;
 
@@ -2655,7 +2655,7 @@ const Puzzle = {
   /* ── celebration ── */
   celebrate(){
     const wrap=document.createElement('div'); wrap.className='pz-confetti'; document.body.appendChild(wrap);
-    const colors=['#f87171','#ffc94a','#a855f7','#34d399','#f763b2'];
+    const colors=['#f87171','#ffc94a','#E04AA8','#34d399','#f763b2'];
     for(let i=0;i<60;i++){
       const c=document.createElement('div'); c.className='pz-confetti-piece';
       c.style.left=Math.random()*100+'vw';

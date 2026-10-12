@@ -145,7 +145,7 @@ const HeartbeatManager = (() => {
   /* ── HEART THEMES ── */
   const HEART_THEMES = {
     crystal:     { primary: '#faa7c5', secondary: '#f7699d', glow: 'rgba(250,167,197,0.6)', emoji: '💎' },
-    galaxy:      { primary: '#f881d3', secondary: '#c084fc', glow: 'rgba(248,129,211,0.6)', emoji: '🌌' },
+    galaxy:      { primary: '#f881d3', secondary: '#F06DBE', glow: 'rgba(248,129,211,0.6)', emoji: '🌌' },
     golden:      { primary: '#fbbf24', secondary: '#f59e0b', glow: 'rgba(251,191,36,0.6)',  emoji: '🏆' },
     rose:        { primary: '#fb7185', secondary: '#f43f5e', glow: 'rgba(251,113,133,0.6)', emoji: '🌹' },
     fire:        { primary: '#fb923c', secondary: '#ef4444', glow: 'rgba(251,146,60,0.6)',  emoji: '🔥' },

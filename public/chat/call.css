@@ -3,7 +3,7 @@
 .call-overlay {
   position: fixed; inset: 0; z-index: 99998;
   display: flex; flex-direction: column;
-  background: linear-gradient(165deg, #0b0410 0%, #1a0a1f 45%, #12071a 75%, #0b0410 100%);
+  background: linear-gradient(165deg, #14030e 0%, #260519 45%, #1c0414 75%, #14030e 100%);
   opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
   overflow: hidden;
 }
@@ -141,8 +141,8 @@
 
 .call-btn-end, .call-btn-decline {
   width: 64px; height: 64px; border-radius: 50%;
-  background: #E04AA8;
-  box-shadow: 0 8px 24px rgba(224,74,168,0.45);
+  background: #B0127A;
+  box-shadow: 0 8px 24px rgba(176,18,122,0.45);
   transform: rotate(135deg);
 }
 .call-btn-accept {
@@ -322,7 +322,7 @@
 .call-signal-bars span:nth-child(4) { height: 13px; }
 .call-signal-bars span.active { background: #34c759; }
 .call-signal-bars.weak span.active { background: #ffcc00; }
-.call-signal-bars.poor span.active { background: #E04AA8; }
+.call-signal-bars.poor span.active { background: #B0127A; }
 
 /* Shift content down so it clears the top bar */
 .call-content { padding-top: max(78px, calc(env(safe-area-inset-top) + 66px)); }
@@ -365,7 +365,7 @@
 }
 .call-pip-mic-off {
   position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%;
-  background: #E04AA8; display: flex; align-items: center; justify-content: center;
+  background: #B0127A; display: flex; align-items: center; justify-content: center;
 }
 .call-pip-mic-off svg { width: 10px; height: 10px; }
 /* ─── Mid-call video upgrade banner ─── */

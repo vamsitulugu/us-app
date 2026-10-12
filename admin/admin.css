@@ -1,14 +1,14 @@
 :root {
-  --bg: #0b0d12;
-  --panel: #12151c;
-  --panel2: #171b24;
-  --border: #232833;
-  --border2: #2d3341;
+  --bg: #14030e;
+  --panel: #260519;
+  --panel2: #2B061D;
+  --border: #4A1237;
+  --border2: #7C0A57;
   --text: #eef0f4;
-  --text2: #9aa2b1;
-  --text3: #5f6779;
-  --accent: #6d5efc;
-  --accent2: #8f7fff;
+  --text2: #F06DBE;
+  --text3: #A5779A;
+  --accent: #B0127A;
+  --accent2: #F06DBE;
   --green: #34d399;
   --amber: #fbbf24;
   --red: #f87171;
@@ -25,7 +25,7 @@ button { font-family: inherit; }
 /* ── Login screen ────────────────────────────────────────── */
 #loginScreen {
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
-  background: radial-gradient(circle at 30% 20%, #171226 0%, var(--bg) 60%);
+  background: radial-gradient(circle at 30% 20%, #3A0425 0%, var(--bg) 60%);
 }
 .login-card {
   width: 340px; background: var(--panel); border: 1px solid var(--border);
@@ -85,7 +85,7 @@ button { font-family: inherit; }
   transition: var(--t);
 }
 .nav-item:hover { background: var(--panel2); color: var(--text); }
-.nav-item.active { background: rgba(109,94,252,.15); color: var(--accent2); }
+.nav-item.active { background: rgba(176,18,122,.15); color: var(--accent2); }
 .nav-item svg { flex-shrink: 0; width: 16px; height: 16px; }
 .sidebar.collapsed .nav-item span { display: none; }
 
@@ -123,9 +123,9 @@ tbody tr:hover { background: var(--panel2); cursor: default; }
 .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
 .badge.active, .badge.published, .badge.sent, .badge.ok { background: rgba(52,211,153,.15); color: var(--green); }
 .badge.suspended, .badge.required, .badge.critical, .badge.failed { background: rgba(248,113,113,.15); color: var(--red); }
-.badge.disabled, .badge.archived { background: rgba(148,163,184,.15); color: var(--text2); }
+.badge.disabled, .badge.archived { background: rgba(240,109,190,.15); color: var(--text2); }
 .badge.draft, .badge.recommended, .badge.warning { background: rgba(251,191,36,.15); color: var(--amber); }
-.badge.optional, .badge.info { background: rgba(109,94,252,.15); color: var(--accent2); }
+.badge.optional, .badge.info { background: rgba(176,18,122,.15); color: var(--accent2); }
 
 .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
 .toolbar input[type=search], .toolbar select { background: var(--panel2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 8px 11px; font-size: 13px; }

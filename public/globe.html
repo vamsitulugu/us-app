@@ -316,7 +316,7 @@
     .world-count { font-size: 11px; color: var(--accent); font-weight: 600; }
     .achievement-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
     .achievement { background: var(--g1); border: 1px solid var(--border); border-radius: var(--rs); padding: 14px 10px; text-align: center; transition: var(--t); }
-    .achievement.unlocked { background: linear-gradient(135deg,rgba(220,100,188,0.12),rgba(220,100,180,0.08)); border-color: var(--accent); }
+    .achievement.unlocked { background: linear-gradient(135deg,rgba(176,18,122,0.12),rgba(176,18,122,0.08)); border-color: var(--accent); }
     .achievement.locked { opacity: 0.45; }
     .achievement .ach-ico { font-size: 28px; margin-bottom: 5px; }
     .achievement .ach-name { font-size: 10px; font-weight: 700; color: var(--white); }
@@ -500,7 +500,7 @@
 
   <div id="liveHud">
     <div class="lh-row"><div class="lh-dot" style="background:#34d399"></div><span id="lhMe">You: —</span></div>
-    <div class="lh-row"><div class="lh-dot" style="background:#f658a9"></div><span id="lhPartner">Partner: —</span></div>
+    <div class="lh-row"><div class="lh-dot" style="background:#F06DBE"></div><span id="lhPartner">Partner: —</span></div>
     <div class="lh-dist" id="lhDist">—</div>
   </div>
 
@@ -911,8 +911,8 @@ function heartMarkerCanvas(mood, count, selected) {
   const glowR = headR * (selected ? 2.0 : 1.6);
   const glow = ctx.createRadialGradient(cx, headCY, 0, cx, headCY, glowR);
   if (selected) {
-    glow.addColorStop(0, 'rgba(248,127,188,0.55)');
-    glow.addColorStop(1, 'rgba(248,127,188,0)');
+    glow.addColorStop(0, 'rgba(240,109,190,0.55)');
+    glow.addColorStop(1, 'rgba(240,109,190,0)');
   } else {
     glow.addColorStop(0, 'rgba(255,80,120,0.4)');
     glow.addColorStop(1, 'rgba(255,80,120,0)');
@@ -928,8 +928,8 @@ function heartMarkerCanvas(mood, count, selected) {
   ctx.quadraticCurveTo(cx - headR * 0.95, headCY + headR * 0.75, cx - headR * Math.cos(Math.PI * 0.05), headCY - headR * Math.sin(Math.PI * 0.05));
   ctx.closePath();
   const body = ctx.createLinearGradient(cx, headCY - headR, cx, tipY);
-  if (selected) { body.addColorStop(0, '#f995c4'); body.addColorStop(1, '#ca207e'); }
-  else { body.addColorStop(0, '#ff8fae'); body.addColorStop(1, '#e0264f'); }
+  if (selected) { body.addColorStop(0, '#F06DBE'); body.addColorStop(1, '#B0127A'); }
+  else { body.addColorStop(0, '#F06DBE'); body.addColorStop(1, '#e0264f'); }
   ctx.fillStyle = body;
   ctx.fill();
   ctx.lineWidth = 2.5;
@@ -948,8 +948,8 @@ function heartMarkerCanvas(mood, count, selected) {
     const bx = cx + headR * 0.78, by = headCY - headR * 0.85;
     ctx.fillStyle = 'rgba(255,255,255,0.97)';
     ctx.beginPath(); ctx.arc(bx, by, 12, 0, Math.PI * 2); ctx.fill();
-    ctx.lineWidth = 1.5; ctx.strokeStyle = selected ? '#ca207e' : '#e0264f'; ctx.stroke();
-    ctx.fillStyle = selected ? '#ca207e' : '#e0264f';
+    ctx.lineWidth = 1.5; ctx.strokeStyle = selected ? '#B0127A' : '#e0264f'; ctx.stroke();
+    ctx.fillStyle = selected ? '#B0127A' : '#e0264f';
     ctx.font = 'bold 13px Inter, sans-serif';
     ctx.fillText(String(count), bx, by + 1);
   }
@@ -962,13 +962,13 @@ function clusterMarkerCanvas(count) {
   c.width = size; c.height = size;
   const ctx = c.getContext('2d');
   const glow = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2.1);
-  glow.addColorStop(0, 'rgba(248,127,188,0.55)');
-  glow.addColorStop(1, 'rgba(248,127,188,0)');
+  glow.addColorStop(0, 'rgba(240,109,190,0.55)');
+  glow.addColorStop(1, 'rgba(240,109,190,0)');
   ctx.fillStyle = glow;
   ctx.beginPath(); ctx.arc(size/2, size/2, size/2.1, 0, Math.PI*2); ctx.fill();
   ctx.beginPath(); ctx.arc(size/2, size/2, 22, 0, Math.PI*2);
   const grad = ctx.createLinearGradient(0, 0, size, size);
-  grad.addColorStop(0, '#f658a9'); grad.addColorStop(1, '#e061e8');
+  grad.addColorStop(0, '#F06DBE'); grad.addColorStop(1, '#F06DBE');
   ctx.fillStyle = grad; ctx.fill();
   ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.stroke();
   ctx.fillStyle = '#fff';
@@ -1040,7 +1040,7 @@ async function renderCesiumPins() {
 //    continents, or if OSRM fails) fall back to a glowing geodesic arc so
 //    there's still a visible connection. Routes are cached by endpoint pair
 //    so re-pinning a memory doesn't re-fetch legs you've already resolved. ──
-const ARC_COLORS = ['#f658a9','#F274C2','#34d399','#fbbf24','#f98ce8','#fb923c','#cf1056','#f472b6'];
+const ARC_COLORS = ['#F06DBE','#F06DBE','#34d399','#fbbf24','#F06DBE','#fb923c','#B0127A','#F06DBE'];
 const MAX_DRIVE_KM = 1200; // beyond this, assume flight/ferry — don't bother asking OSRM
 let arcEntities = [];
 let arcRenderToken = 0;
@@ -1304,7 +1304,7 @@ function renderTimelineView() {
     el.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--text3)"><div style="font-size:48px;margin-bottom:12px">📅</div><div style="font-size:16px">No memories yet</div></div>`;
     return;
   }
-  const moodColors = {'😊':'#fbbf24','🥰':'#F274C2','😌':'#34d399','😤':'#f87171','🤩':'var(--accent)','😔':'#f98ce8'};
+  const moodColors = {'😊':'#fbbf24','🥰':'#F06DBE','😌':'#34d399','😤':'#f87171','🤩':'var(--accent)','😔':'#F06DBE'};
   el.innerHTML = `<div class="timeline-strip">
     ${filtered.map((m, i) => {
       const emoji = (m.mood || '').split(' ')[0] || '❤️';
@@ -1920,7 +1920,7 @@ function renderStats() {
   el.innerHTML = `
     <div class="kpi-grid">
       <div class="kpi-card"><div class="kpi-n" style="color:var(--accent)">${filtered.length}</div><div class="kpi-l">Memories</div></div>
-      <div class="kpi-card"><div class="kpi-n" style="color:#F274C2">${cities.length}</div><div class="kpi-l">Cities</div></div>
+      <div class="kpi-card"><div class="kpi-n" style="color:#F06DBE">${cities.length}</div><div class="kpi-l">Cities</div></div>
       <div class="kpi-card"><div class="kpi-n" style="color:var(--green)">${countries.length}</div><div class="kpi-l">Countries</div></div>
       <div class="kpi-card"><div class="kpi-n" style="color:var(--yellow);font-size:20px">₹${totalCost>0?Math.round(totalCost/1000)+'k':0}</div><div class="kpi-l">Spent</div></div>
     </div>
@@ -2153,7 +2153,7 @@ async function pollLiveLocations() {
     const partnerRole = myRole === 'user1' ? 'user2' : 'user1';
     const partnerData = data[partnerRole];
     updateLiveMarker('me', meData, '#34d399');
-    updateLiveMarker('partner', partnerData, '#f658a9');
+    updateLiveMarker('partner', partnerData, '#F06DBE');
     updateLiveHud(meData, partnerData);
     if (partnerData && partnerData.online) fetchLiveTrail(partnerRole, 'partner');
     if (meData && meData.online) fetchLiveTrail(myRole, 'me');
@@ -2188,7 +2188,7 @@ async function fetchLiveTrail(role, key) {
     if (liveTrailEntities[key]) { viewer.entities.remove(liveTrailEntities[key]); liveTrailEntities[key] = null; }
     if (!points || points.length < 2) return;
     const positions = points.flatMap(p => [p.lng, p.lat]);
-    const color = key === 'me' ? Cesium.Color.fromCssColorString('#34d399').withAlpha(0.6) : Cesium.Color.fromCssColorString('#f658a9').withAlpha(0.6);
+    const color = key === 'me' ? Cesium.Color.fromCssColorString('#34d399').withAlpha(0.6) : Cesium.Color.fromCssColorString('#F06DBE').withAlpha(0.6);
     liveTrailEntities[key] = viewer.entities.add({
       polyline: { positions: Cesium.Cartesian3.fromDegreesArray(positions), width: 2, material: color, clampToGround: true }
     });

@@ -75,7 +75,7 @@
   box-shadow: 0 0 0 2.5px #0e0e0e,
               0 0 0 4.5px transparent;
   background-image: linear-gradient(135deg, var(--accent2), var(--accent2-d)),
-                     linear-gradient(135deg, #feda75, #d62976 45%, #c12e94 100%);
+                     linear-gradient(135deg, #feda75, #B0127A 45%, #B0127A 100%);
   background-origin: content-box, border-box;
   background-clip: content-box, border-box;
   border: 2.5px solid transparent;
@@ -290,7 +290,7 @@
 .bubble-meta { display: flex; align-items: center; gap: 4px; justify-content: flex-end; margin-top: 3px; font-size: 9.5px; opacity: 0.75; }
 .msg-time { white-space: nowrap; }
 .tick { font-size: 11px; }
-.tick-read { color: #f876ae; }
+.tick-read { color: #F06DBE; }
 .tick-sent, .tick-delivered { color: inherit; opacity: 0.8; }
 .tick-pending { opacity: 0.6; font-size: 9px; }
 .tick-failed { cursor: pointer; }
@@ -488,7 +488,7 @@
 .picker-sticker:hover { transform: translateY(-2px); background: var(--g3); }
 .picker-sticker-emoji { font-size: 32px; }
 .picker-sticker-name { font-size: 9px; color: var(--text3); font-weight: 600; text-transform: uppercase; }
-.picker-gift { background: linear-gradient(160deg, rgba(255,215,120,0.1), rgba(255,107,157,0.08)); border-color: rgba(255,215,120,0.25); }
+.picker-gift { background: linear-gradient(160deg, rgba(255,215,120,0.1), rgba(240,109,190,0.08)); border-color: rgba(255,215,120,0.25); }
 
 .picker-gif-search { margin-bottom: 8px; }
 .picker-gif-search input {
@@ -640,7 +640,7 @@
    WhatsApp blue only once the partner has actually read the message. */
 .chat-ticks{display:inline-flex;align-items:center;line-height:0;color:#fff;transition:color .25s ease}
 .chat-ticks.sending{color:rgba(255,255,255,.65)}
-.chat-ticks.read{color:#f5488f}
+.chat-ticks.read{color:#B0127A}
 .chat-ticks svg{filter:drop-shadow(0 0 1px rgba(0,0,0,.4))}
 .chat-reactions{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px}
 .chat-reaction-pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.1);border-radius:11px;padding:1px 7px 2px;font-size:11.5px;line-height:1.5;backdrop-filter:blur(4px);cursor:pointer}

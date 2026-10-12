@@ -736,7 +736,7 @@ const LiveMap = (() => {
       if (st[key]) { st.map.removeLayer(st[key]); st[key] = null; }
       return;
     }
-    const color = who === 'my' ? '#ec66b8' : '#ff6baf';
+    const color = who === 'my' ? '#F06DBE' : '#F06DBE';
     if (!st[key]) {
       st[key] = L.circle([lat, lng], { radius: accuracy, color, weight: 1, fillColor: color, fillOpacity: 0.10, interactive: false }).addTo(st.map);
     } else {
@@ -753,7 +753,7 @@ const LiveMap = (() => {
   _ensureAccuracyCircle(who, lat, lng, accuracy);
   const avatar = who === 'my' ? S.myAvatar : S.partnerAvatar;
   const size = who === 'my' ? 34 : 42;
-  const color = offline ? '#7a7a7a' : (who === 'my' ? '#ec66b8' : '#ff6baf');
+  const color = offline ? '#7a7a7a' : (who === 'my' ? '#F06DBE' : '#F06DBE');
   const kmh = ((who === 'my' ? S.myLoc?.speed : S.ptLoc?.speed) || 0) * 3.6;
   // Which realistic figure to show, based on actual GPS-derived speed —
   // never guessed/animated, just reflects real movement like the rest
@@ -1493,7 +1493,7 @@ const LiveMap = (() => {
     routes.forEach((r, i) => {
       const coords = r.geometry.coordinates.map(c => [c[1], c[0]]);
       if (i === idx) {
-        st.dirLine = L.polyline(coords, { color: '#ec66b8', weight: 5, opacity: 0.9, dashArray: routes.length === 1 && _dirRoutesCache?.straight ? '8,8' : null }).addTo(st.map);
+        st.dirLine = L.polyline(coords, { color: '#F06DBE', weight: 5, opacity: 0.9, dashArray: routes.length === 1 && _dirRoutesCache?.straight ? '8,8' : null }).addTo(st.map);
         st.map.fitBounds(coords, { padding: [50, 50] });
       } else {
         const l = L.polyline(coords, { color: '#8a8a8a', weight: 4, opacity: 0.4 }).addTo(st.map).on('click', () => selectDirRoute(i));
@@ -1946,7 +1946,7 @@ const LiveMap = (() => {
     const km = haversine(S.myLoc, dest);
     const mins = Math.round((km / prof.kmh) * 60);
     const straightCoords = [[S.myLoc.lat, S.myLoc.lng], [dest.lat, dest.lng]];
-    st.navLine = L.polyline(straightCoords, { color: '#ec66b8', weight: 4, opacity: 0.6, dashArray: '8,8' }).addTo(st.map);
+    st.navLine = L.polyline(straightCoords, { color: '#F06DBE', weight: 4, opacity: 0.6, dashArray: '8,8' }).addTo(st.map);
     // FIX: st.navLine.getBounds() doesn't exist on the 3D-map shim's polyline
     // (livemap3d-shim.js only implements the subset of Leaflet's API this
     // file actually calls, and getBounds wasn't one of them) — that threw
@@ -2044,7 +2044,7 @@ const LiveMap = (() => {
     });
     const active = routes[activeIdx];
     const coords = active.geometry.coordinates.map(c => [c[1], c[0]]);
-    st.navLine = L.polyline(coords, { color: '#ec66b8', weight: 5, opacity: 0.9 }).addTo(st.map);
+    st.navLine = L.polyline(coords, { color: '#F06DBE', weight: 5, opacity: 0.9 }).addTo(st.map);
     st.map.fitBounds(coords, { padding: [50, 50] });
     st.navRouteCoords = coords;
     // Switching/re-picking a route invalidates any in-progress POI search
@@ -2696,7 +2696,7 @@ const LiveMap = (() => {
   // mode, not a stop's place type.
   const ACTIVITY_COLOR = {
     still: '#8b8f9a', walking: '#4cd964', running: '#ffcc00',
-    cycling: '#f65d9f', driving: 'var(--accent)'
+    cycling: '#F06DBE', driving: 'var(--accent)'
   };
   function _activitySegColor(p) {
     if (p.activity_type && ACTIVITY_COLOR[p.activity_type]) return ACTIVITY_COLOR[p.activity_type];

@@ -180,7 +180,7 @@
 
     .ck-invite-overlay{position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:20px}
     .ck-invite-overlay.open{display:flex}
-    .ck-invite-card{width:100%;max-width:360px;background:linear-gradient(160deg,rgba(30,10,40,.97),rgba(24,10,18,.97));border:1px solid rgba(255,255,255,.15);border-radius:26px;padding:30px 24px;text-align:center;animation:ckPop .35s cubic-bezier(.34,1.56,.64,1);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+    .ck-invite-card{width:100%;max-width:360px;background:linear-gradient(160deg,rgba(58,4,37,.97),rgba(38,5,25,.97));border:1px solid rgba(255,255,255,.15);border-radius:26px;padding:30px 24px;text-align:center;animation:ckPop .35s cubic-bezier(.34,1.56,.64,1);box-shadow:0 30px 80px rgba(0,0,0,.6)}
     @keyframes ckPop{from{opacity:0;transform:scale(.85) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
     .ck-invite-heart{font-size:44px;animation:ckHeartBeat 1.1s ease-in-out infinite}
     @keyframes ckHeartBeat{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}

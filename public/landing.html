@@ -68,8 +68,8 @@
    ═══════════════════════════════════════════════════════════════════ */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --accent:#B0127A;--accent2:#94195e;--accent-glow:rgba(171,40,114,.35);
-  --accent2-glow:rgba(152,23,96,.30);
+  --accent:#B0127A;--accent2:#B0127A;--accent-glow:rgba(176,18,122,.35);
+  --accent2-glow:rgba(176,18,122,.30);
   --ff-serif:'DM Serif Display',Georgia,serif;--ff-sans:'Inter',system-ui,sans-serif;
   --white:#fff;--text:rgba(255,255,255,.92);--text2:rgba(255,255,255,.60);
   --text3:rgba(255,255,255,.36);--border:rgba(255,255,255,.09);
@@ -91,7 +91,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;overflow-x:hi
 #bg::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 15% 15%,hsla(350,75%,32%,.20),transparent 50%),radial-gradient(circle at 85% 8%,hsla(355,65%,26%,.16),transparent 50%),radial-gradient(circle at 50% 95%,hsla(0,0%,10%,.4),transparent 55%);pointer-events:none}
 #bg-grain{position:fixed;inset:0;z-index:-2;opacity:.035;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 #heart-field{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
-.fheart{position:absolute;bottom:-40px;font-size:16px;opacity:0;animation:riseHeart linear infinite;filter:drop-shadow(0 0 6px rgba(171,40,114,.5))}
+.fheart{position:absolute;bottom:-40px;font-size:16px;opacity:0;animation:riseHeart linear infinite;filter:drop-shadow(0 0 6px rgba(176,18,122,.5))}
 @keyframes riseHeart{0%{transform:translateY(0) translateX(0) rotate(0);opacity:0}8%{opacity:.4}92%{opacity:.25}100%{transform:translateY(-110vh) translateX(var(--drift,30px)) rotate(25deg);opacity:0}}
 
 /* ── Reveal animation utility ─────────────────────────────────── */
@@ -114,7 +114,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;overflow-x:hi
 nav{position:fixed;top:0;left:0;right:0;z-index:500;padding:max(0px,env(safe-area-inset-top)) 5% 0;display:flex;align-items:center;justify-content:space-between;height:calc(74px + env(safe-area-inset-top));background:rgba(5,2,4,.35);backdrop-filter:blur(18px);border-bottom:1px solid transparent;transition:background .4s,border-color .4s}
 nav.scrolled{background:rgba(5,2,4,.86);border-color:var(--border)}
 .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.nav-logo img{height:32px;width:auto;filter:drop-shadow(0 0 10px rgba(171,40,114,.55))}
+.nav-logo img{height:32px;width:auto;filter:drop-shadow(0 0 10px rgba(176,18,122,.55))}
 .nav-logo-text{display:flex;flex-direction:column;line-height:1.1}
 .nav-logo-text b{font-family:var(--ff-serif);font-size:19px;color:var(--white);font-weight:400}
 .nav-logo-text span{font-size:8.5px;font-weight:700;letter-spacing:2.6px;text-transform:uppercase;color:var(--accent)}
@@ -141,7 +141,7 @@ nav.scrolled{background:rgba(5,2,4,.86);border-color:var(--border)}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes introFadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 .hero-title{font-family:var(--ff-serif);font-weight:400;font-size:clamp(40px,5.6vw,68px);line-height:1.04;color:var(--white);margin-bottom:20px;opacity:0;animation:introFadeUp .9s .22s ease forwards;letter-spacing:-.01em}
-.hero-title .grad{background:linear-gradient(135deg,var(--accent),#f59ad2,var(--accent));background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 5s linear infinite}
+.hero-title .grad{background:linear-gradient(135deg,var(--accent),#F06DBE,var(--accent));background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 5s linear infinite}
 @keyframes shimmer{to{background-position:200% center}}
 .hero-sub{font-size:16px;color:var(--text2);line-height:1.8;margin-bottom:34px;max-width:470px;opacity:0;animation:introFadeUp .9s .36s ease forwards}
 .hero-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:42px;opacity:0;animation:introFadeUp .9s .5s ease forwards}
@@ -181,7 +181,7 @@ nav.scrolled{background:rgba(5,2,4,.86);border-color:var(--border)}
 /* ── Smart Install section ────────────────────────────────────── */
 #install{padding:30px 5% 100px;position:relative}
 .install-shell{max-width:920px;margin:0 auto;background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(255,255,255,.015));backdrop-filter:var(--blur);border:1px solid var(--border2);border-radius:var(--rl);padding:8px;box-shadow:0 40px 100px rgba(0,0,0,.55);position:relative;overflow:hidden}
-.install-shell::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 0%,rgba(171,40,114,.16),transparent 55%);pointer-events:none}
+.install-shell::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 0%,rgba(176,18,122,.16),transparent 55%);pointer-events:none}
 .install-card{position:relative;background:rgba(8,4,6,.55);border-radius:calc(var(--rl) - 8px);padding:38px 34px;display:flex;align-items:center;gap:30px;flex-wrap:wrap}
 .install-app-icon{width:88px;height:88px;border-radius:22px;flex-shrink:0;box-shadow:0 16px 40px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.08);position:relative}
 .install-app-icon img{width:100%;height:100%;border-radius:22px;display:block}
@@ -270,8 +270,8 @@ nav.scrolled{background:rgba(5,2,4,.86);border-color:var(--border)}
 
 /* ── Final CTA ─────────────────────────────────────────────────── */
 .cta-section{padding:80px 5% 100px;text-align:center}
-.cta-box{background:linear-gradient(135deg,rgba(182,10,107,.16),rgba(148,25,94,.10));border:1px solid rgba(171,40,114,.30);border-radius:32px;padding:66px 32px;max-width:780px;margin:0 auto;position:relative;overflow:hidden}
-.cta-box::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 90%,rgba(171,40,114,.25),transparent 60%);pointer-events:none}
+.cta-box{background:linear-gradient(135deg,rgba(176,18,122,.16),rgba(176,18,122,.10));border:1px solid rgba(176,18,122,.30);border-radius:32px;padding:66px 32px;max-width:780px;margin:0 auto;position:relative;overflow:hidden}
+.cta-box::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 90%,rgba(176,18,122,.25),transparent 60%);pointer-events:none}
 .cta-title{font-family:var(--ff-serif);font-weight:400;font-size:clamp(28px,3.8vw,42px);color:var(--white);margin-bottom:16px;position:relative;z-index:1}
 .cta-sub{font-size:14.5px;color:var(--text2);margin-bottom:32px;line-height:1.8;position:relative;z-index:1}
 .cta-box .btn-primary{position:relative;z-index:1}
@@ -296,7 +296,7 @@ body.native-auth-only #authModal .modal-close{display:none}
 .modal-close svg{width:16px;height:16px;stroke-width:2}
 .modal-close:hover{background:var(--g2);color:var(--white)}
 .auth-logo-row{display:flex;flex-direction:column;align-items:center;margin-bottom:22px}
-.auth-logo-row img{height:52px;filter:drop-shadow(0 0 14px rgba(171,40,114,.65));margin-bottom:9px}
+.auth-logo-row img{height:52px;filter:drop-shadow(0 0 14px rgba(176,18,122,.65));margin-bottom:9px}
 .auth-logo-row .brand-name{font-family:var(--ff-serif);font-size:23px;color:var(--white)}
 .auth-logo-row .brand-tag{font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-top:3px}
 .modal-headline{font-size:14px;color:var(--text2);text-align:center;margin-bottom:22px;line-height:1.6}
@@ -312,7 +312,7 @@ body.native-auth-only #authModal .modal-close{display:none}
 .gender-pick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .gender-pick button{height:46px;border-radius:var(--rs);border:1px solid var(--border);background:var(--g1);color:var(--text);font:600 14px var(--ff-sans);cursor:pointer}
 .gender-pick button.on{border-color:var(--accent);background:var(--accent);color:#fff}
-.field input:focus{border-color:var(--accent);background:var(--g2);box-shadow:0 0 0 3px rgba(182,10,107,.25)}
+.field input:focus{border-color:var(--accent);background:var(--g2);box-shadow:0 0 0 3px rgba(176,18,122,.25)}
 .auth-btn{width:100%;padding:14px;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--ff-sans);background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 6px 24px var(--accent-glow);transition:all .2s;margin-top:4px}
 .auth-btn:hover{filter:brightness(1.12);transform:translateY(-1px)}
 .auth-btn:disabled{opacity:.6;cursor:not-allowed}
@@ -407,17 +407,17 @@ body.native-auth-only #authModal .modal-close{display:none}
     <h2 class="section-title">Built for couples who want to grow together</h2>
   </div>
   <div class="bento">
-    <div class="feat-card wide reveal" style="--glow-c:rgba(171,40,114,.25)"><div class="feat-ico">💬</div><div class="feat-title">Private Chat</div><div class="feat-desc">Real-time private messaging with voice notes, photo sharing, reactions and reply threads — just for two.</div></div>
-    <div class="feat-card reveal" style="--glow-c:rgba(171,40,114,.25)"><div class="feat-ico">📞</div><div class="feat-title">Video &amp; Voice Calls</div><div class="feat-desc">Connect face to face anytime, no matter the distance.</div></div>
-    <div class="feat-card reveal" style="--glow-c:rgba(152,23,96,.2)"><div class="feat-ico">📖</div><div class="feat-title">Shared Journal</div><div class="feat-desc">Daily entries, moods, and moments — your story, safe.</div></div>
+    <div class="feat-card wide reveal" style="--glow-c:rgba(176,18,122,.25)"><div class="feat-ico">💬</div><div class="feat-title">Private Chat</div><div class="feat-desc">Real-time private messaging with voice notes, photo sharing, reactions and reply threads — just for two.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(176,18,122,.25)"><div class="feat-ico">📞</div><div class="feat-title">Video &amp; Voice Calls</div><div class="feat-desc">Connect face to face anytime, no matter the distance.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(176,18,122,.2)"><div class="feat-ico">📖</div><div class="feat-title">Shared Journal</div><div class="feat-desc">Daily entries, moods, and moments — your story, safe.</div></div>
     <div class="feat-card reveal" style="--glow-c:rgba(52,211,153,.16)"><div class="feat-ico">🌟</div><div class="feat-title">Bucket List</div><div class="feat-desc">Plan adventures and celebrate shared goals.</div></div>
     <div class="feat-card reveal" style="--glow-c:rgba(224,161,58,.16)"><div class="feat-ico">📅</div><div class="feat-title">Calendar</div><div class="feat-desc">Sync dates, anniversaries and reminders.</div></div>
-    <div class="feat-card reveal" style="--glow-c:rgba(171,40,114,.25)"><div class="feat-ico">🩷</div><div class="feat-title">Period Tracker</div><div class="feat-desc">Cycle insights and partner mood tips, built with care.</div></div>
-    <div class="feat-card wide reveal" style="--glow-c:rgba(171,40,114,.25)"><div class="feat-ico">🗺️</div><div class="feat-title">Meet Planner &amp; Live Map</div><div class="feat-desc">Plan meetups down to the city, stops and budget, then track each other live — perfect for long-distance couples.</div></div>
-    <div class="feat-card reveal" style="--glow-c:rgba(152,23,96,.2)"><div class="feat-ico">🌍</div><div class="feat-title">Memory Globe</div><div class="feat-desc">Pin every place you've been on a living 3D globe.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(176,18,122,.25)"><div class="feat-ico">🩷</div><div class="feat-title">Period Tracker</div><div class="feat-desc">Cycle insights and partner mood tips, built with care.</div></div>
+    <div class="feat-card wide reveal" style="--glow-c:rgba(176,18,122,.25)"><div class="feat-ico">🗺️</div><div class="feat-title">Meet Planner &amp; Live Map</div><div class="feat-desc">Plan meetups down to the city, stops and budget, then track each other live — perfect for long-distance couples.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(176,18,122,.2)"><div class="feat-ico">🌍</div><div class="feat-title">Memory Globe</div><div class="feat-desc">Pin every place you've been on a living 3D globe.</div></div>
     <div class="feat-card reveal" style="--glow-c:rgba(52,211,153,.16)"><div class="feat-ico">📚</div><div class="feat-title">Study Together</div><div class="feat-desc">Track subjects and timetables side by side.</div></div>
     <div class="feat-card reveal" style="--glow-c:rgba(224,161,58,.16)"><div class="feat-ico">🎮</div><div class="feat-title">Couple Games <span class="feat-badge">New</span></div><div class="feat-desc">Real-time multiplayer mini-games, right in the app.</div></div>
-    <div class="feat-card reveal" style="--glow-c:rgba(152,23,96,.2)"><div class="feat-ico">🔒</div><div class="feat-title">Secret Vault</div><div class="feat-desc">Password-protected space for private memories.</div></div>
+    <div class="feat-card reveal" style="--glow-c:rgba(176,18,122,.2)"><div class="feat-ico">🔒</div><div class="feat-title">Secret Vault</div><div class="feat-desc">Password-protected space for private memories.</div></div>
   </div>
 </section>
 

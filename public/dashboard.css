@@ -32,7 +32,7 @@
   grid-column: 1;
   z-index: 0;
   background:
-    radial-gradient(90% 60% at 85% 0%, rgba(247,101,183, .38), transparent 62%),
+    radial-gradient(90% 60% at 85% 0%, rgba(240,109,190, .38), transparent 62%),
     linear-gradient(170deg, var(--accent) 0%, var(--accent-d) 62%, #4a072c 100%);
 }
 

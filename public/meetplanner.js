@@ -107,9 +107,9 @@ const CAT_META = {
   custom:        { ico: '📍', label: 'Place',         stay: 60 },
 };
 const CAT_GRAD = {
-  hotel: ['#de14c9', '#651047'], tourist: ['#f97316', '#7c2d12'], cafe: ['#b45309', '#431407'], restaurant: ['#8A0E5F', '#4c0519'],
-  mall: ['#db2777', '#500724'], park: ['#16a34a', '#052e16'], museum: ['#e0358f', '#49082a'], temple: ['#f59e0b', '#78350f'],
-  entertainment: ['#f65ce2', '#651047'], custom: ['#B0127A', '#5b0a1f']
+  hotel: ['#B0127A', '#7C0A57'], tourist: ['#f97316', '#7c2d12'], cafe: ['#b45309', '#431407'], restaurant: ['#7C0A57', '#4c0519'],
+  mall: ['#B0127A', '#500724'], park: ['#16a34a', '#052e16'], museum: ['#B0127A', '#49082a'], temple: ['#f59e0b', '#78350f'],
+  entertainment: ['#F06DBE', '#7C0A57'], custom: ['#B0127A', '#5b0a1f']
 };
 const MODE_META = {
   car:     { ico: '🚗', label: 'Car',     kmh: null, g: 'driving' },
@@ -119,16 +119,16 @@ const MODE_META = {
   transit: { ico: '🚌', label: 'Transit', kmh: 22,   g: 'transit' },
 };
 const POPULAR = [
-  { n: 'Bengaluru',     lat: 12.9716, lng: 77.5946, e: '🏙️', g: ['#E04AA8', '#5b0a1f'] },
-  { n: 'Hyderabad',     lat: 17.3850, lng: 78.4867, e: '🕌', g: ['#f65ce2', '#651047'] },
-  { n: 'Visakhapatnam', lat: 17.6868, lng: 83.2185, e: '🌊', g: ['#e0358f', '#49082a'] },
+  { n: 'Bengaluru',     lat: 12.9716, lng: 77.5946, e: '🏙️', g: ['#B0127A', '#5b0a1f'] },
+  { n: 'Hyderabad',     lat: 17.3850, lng: 78.4867, e: '🕌', g: ['#F06DBE', '#7C0A57'] },
+  { n: 'Visakhapatnam', lat: 17.6868, lng: 83.2185, e: '🌊', g: ['#B0127A', '#49082a'] },
   { n: 'Goa',           lat: 15.2993, lng: 74.1240, e: '🏖️', g: ['#f59e0b', '#78350f'] },
   { n: 'Mysuru',        lat: 12.2958, lng: 76.6394, e: '🏰', g: ['#f97316', '#7c2d12'] },
   { n: 'Ooty',          lat: 11.4102, lng: 76.6950, e: '🌄', g: ['#16a34a', '#052e16'] },
   { n: 'Coorg',         lat: 12.3375, lng: 75.8069, e: '🌿', g: ['#10b981', '#022c22'] },
-  { n: 'Chennai',       lat: 13.0827, lng: 80.2707, e: '🌅', g: ['#8A0E5F', '#4c0519'] },
+  { n: 'Chennai',       lat: 13.0827, lng: 80.2707, e: '🌅', g: ['#7C0A57', '#4c0519'] },
   { n: 'Munnar',        lat: 10.0889, lng: 77.0595, e: '🍃', g: ['#22c55e', '#052e16'] },
-  { n: 'Pondicherry',   lat: 11.9416, lng: 79.8083, e: '⛱️', g: ['#ec4899', '#500724'] },
+  { n: 'Pondicherry',   lat: 11.9416, lng: 79.8083, e: '⛱️', g: ['#B0127A', '#500724'] },
 ];
 
 /* ── date / format helpers ── */

@@ -154,7 +154,7 @@
     var coreR = R * (0.42 + 0.06 * coreBreath * eMul);
     var coreG = ctx.createRadialGradient(R * 0.46, R * 0.46, 0, R * 0.5, R * 0.5, coreR);
     coreG.addColorStop(0, 'rgba(244,244,244,' + (0.30 + 0.22 * coreBreath * eMul).toFixed(3) + ')');
-    coreG.addColorStop(0.4, 'rgba(19,93,211,' + (0.20 * eMul).toFixed(3) + ')');
+    coreG.addColorStop(0.4, 'rgba(176,18,122,' + (0.20 * eMul).toFixed(3) + ')');
     coreG.addColorStop(1, 'rgba(173,16,104,0)');
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
