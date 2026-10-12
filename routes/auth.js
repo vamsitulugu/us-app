@@ -548,7 +548,7 @@ const GENERAL_CHANNEL_ID = 'general_channel_v1';
 // older devices) — replaces the old near-black #1a0010, which read as
 // "no color" in the status bar and didn't match the black/deep-red
 // brand described for this notification system.
-const BRAND_ACCENT_COLOR = '#B30000';
+const BRAND_ACCENT_COLOR = '#B0127A';
 
 // tag -> channelId. Matched by exact tag first, then by prefix for the
 // families of tags that share a channel (e.g. every 'home-*' / 'globe-*'

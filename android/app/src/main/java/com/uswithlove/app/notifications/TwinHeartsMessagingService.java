@@ -204,7 +204,7 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
   // was removed per request. Falls back to the shared default person
   // avatar (see buildDefaultAvatarBitmap) when no photo is available/loadable
   // — previously this fell back to a PLAIN BRAND-COLOR CIRCLE with nothing
-  // drawn on it, which is the "blank red circle" bug. This is the one and
+  // drawn on it, which is the "blank purple circle" bug. This is the one and
   // only place that produced it (baseBuilder()/showChatMessage() both call
   // through here), so fixing it here fixes every notification type at once.
   private Bitmap buildAvatarWithBadge(Context ctx, @Nullable Bitmap photo) {
@@ -227,7 +227,7 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
   // sender/profile avatar is ever rendered in a notification. Never used
   // for the separate Twin Hearts app/logo large icon (buildAppLogoBitmap).
   //
-  // Sizing: the red background is a circle INSCRIBED in the size×size
+  // Sizing: the purple background is a circle INSCRIBED in the size×size
   // bitmap — it only touches the square's edges at the four midpoints, so
   // there's empty (transparent) space in the four corners between the
   // circle and the bitmap edge. The previous version clipped the shoulder
@@ -251,7 +251,7 @@ public class TwinHeartsMessagingService extends FirebaseMessagingService {
     c.drawCircle(cx, cy, r, bg);
 
     // Safety clip to the exact circular boundary — nothing drawn below can
-    // ever bleed past the red circle, even if this geometry changes later.
+    // ever bleed past the purple circle, even if this geometry changes later.
     android.graphics.Path circleClip = new android.graphics.Path();
     circleClip.addCircle(cx, cy, r, android.graphics.Path.Direction.CW);
     c.save();

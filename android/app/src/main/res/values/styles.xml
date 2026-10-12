@@ -32,5 +32,7 @@
              background with a fixed-size, always-centered logo that can
              never overflow (see drawable/splash_centered.xml). -->
         <item name="android:background">@drawable/splash_centered</item>
+        <!-- Android 12+ system splash: plum background instead of the default white/black. -->
+        <item name="windowSplashScreenBackground">@color/splashBackground</item>
     </style>
 </resources>

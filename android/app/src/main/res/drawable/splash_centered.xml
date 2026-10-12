@@ -10,7 +10,7 @@
   cut off and breaking the layout.
 
   This layer-list instead paints a flat brand-color background, then places
-  the logo as a fixed-size, centered item. android:gravity="center" never
+  the Twin Hearts logo (purple app icon, not the default Android robot vector) as a fixed-size, centered item. android:gravity="center" never
   scales the drawable beyond the width/height given below, so the logo
   keeps its proportions and can never overflow the screen, regardless of
   device size — matching what the JS-driven Capacitor SplashScreen now
@@ -22,5 +22,5 @@
         android:width="176dp"
         android:height="176dp"
         android:gravity="center"
-        android:drawable="@drawable/ic_launcher_foreground" />
+        android:drawable="@mipmap/ic_launcher" />
 </layer-list>

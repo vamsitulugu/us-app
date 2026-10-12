@@ -3390,7 +3390,7 @@ function menuItemsHtml(m, id, includeSelect) {
   const WP_SWATCHES = [
     { id: 'midnight', css: 'linear-gradient(160deg,#14030e,#2B061D 60%,#3A0425)' },
     { id: 'noir', css: 'linear-gradient(160deg,#000,#161616)' },
-    { id: 'wine', css: 'linear-gradient(160deg,#150507,#2a0d12 55%,#120406)' },
+    { id: 'wine', css: 'linear-gradient(160deg,#14030e,#2a0620 55%,#12020b)' },
     { id: 'slate', css: 'linear-gradient(160deg,#140d11,#261a20)' }
   ];
   let _wpDbPromise = null;

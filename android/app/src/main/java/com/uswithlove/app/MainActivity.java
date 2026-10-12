@@ -223,7 +223,7 @@ public void onDestroy() {
     channel.enableVibration(true);
     channel.setVibrationPattern(vibrationPattern);
     channel.enableLights(true);
-    channel.setLightColor(Color.parseColor("#7C0A57")); // blue brand accent
+    channel.setLightColor(Color.parseColor("#7C0A57")); // purple brand accent
     manager.createNotificationChannel(channel);
   }
 

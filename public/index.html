@@ -1952,8 +1952,8 @@
     /* ════ RELATIONSHIP INSIGHT ════ */
     /* ════ FIGHTS ════ */
     .fight-card {
-      background: rgba(248, 113, 113, 0.06);
-      border: 1px solid rgba(248, 113, 113, 0.18);
+      background: rgba(194, 26, 139, 0.06);
+      border: 1px solid rgba(194, 26, 139, 0.18);
       border-radius: var(--r);
       padding: 15px;
       margin-bottom: 10px;
@@ -1961,7 +1961,7 @@
     }
 
     .fight-card:hover {
-      box-shadow: 0 6px 20px rgba(248, 113, 113, 0.1)
+      box-shadow: 0 6px 20px rgba(194, 26, 139, 0.1)
     }
 
     .fight-status {
@@ -1976,9 +1976,9 @@
     }
 
     .fight-open {
-      background: var(--red-bg);
-      color: var(--red);
-      border: 1px solid rgba(248, 113, 113, 0.35)
+      background: rgba(194, 26, 139, 0.15);
+      color: var(--accent2);
+      border: 1px solid rgba(194, 26, 139, 0.35)
     }
 
     .fight-resolved {
@@ -2060,7 +2060,7 @@
 
     .fl-state { padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap }
     .fl-state.is-resolved { color: var(--green); background: var(--green-bg) }
-    .fl-state.is-open { color: #ff5a5f; background: rgba(248, 113, 113, 0.10); border: 1px solid rgba(248, 113, 113, 0.5) }
+    .fl-state.is-open { color: #F06DBE; background: rgba(194, 26, 139, 0.12); border: 1px solid rgba(194, 26, 139, 0.5) }
     .fl-state.is-open::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 6px; border: 1.5px solid currentColor; border-radius: 50%; vertical-align: -1px }
     .fl-score { padding: 6px 12px; border-radius: 999px; font-size: 12px; color: var(--text2); background: rgba(255, 255, 255, 0.06); white-space: nowrap }
 
@@ -2103,9 +2103,9 @@
     .fl-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
     .fl-choice { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; border-radius: 12px; font: 600 14px var(--ff-sans); color: var(--text2); background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border2); cursor: pointer; transition: var(--t) }
     .fl-choice .lucide { font-size: 18px }
-    .fl-choice[data-value="open"] .lucide { color: #ff5a5f }
+    .fl-choice[data-value="open"] .lucide { color: #F06DBE }
     .fl-choice[data-value="resolved"] .lucide { color: var(--green) }
-    .fl-choice[data-value="open"][aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, #ff5a5f, #B0127A); border-color: transparent }
+    .fl-choice[data-value="open"][aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, #C21A8B, #B0127A); border-color: transparent }
     .fl-choice[data-value="open"][aria-pressed="true"] .lucide { color: #fff }
     .fl-choice[data-value="resolved"][aria-pressed="true"] { color: var(--green); background: var(--green-bg); border-color: rgba(52, 211, 153, 0.5) }
 
@@ -4270,8 +4270,8 @@
   display: block; border-radius: 50%;
   background:
     radial-gradient(circle at 32% 28%, rgba(228,229,231,0.55), transparent 40%),
-    radial-gradient(circle at 60% 65%, #7a0018, transparent 65%),
-    radial-gradient(circle at 45% 50%, #7C0A57, #3a000c 68%, #12020b 100%);
+    radial-gradient(circle at 60% 65%, #8E0A62, transparent 65%),
+    radial-gradient(circle at 45% 50%, #7C0A57, #3A0425 68%, #12020b 100%);
   box-shadow: inset 0 -2px 5px rgba(0,0,0,0.5), inset 0 1px 3px rgba(255,255,255,0.08);
 }
 .twin-msg-av .twin-mini-orb { width: 26px; height: 26px; }
@@ -7656,7 +7656,7 @@ const BRAND = {
 // Apply rebranding to all static text nodes on load
 function applyRebranding() {
   // Update document title
-  document.title = 'Twin Hearts 💕 — Everything Together';
+  document.title = 'Twin Hearts';
   
   // Update theme meta
   const themeTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');

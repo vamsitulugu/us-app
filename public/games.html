@@ -76,7 +76,7 @@ button{font-family:inherit;cursor:pointer}
 .gbadge.trend{background:var(--gold);color:#3a2600}
 .gbadge.live{background:rgba(52,211,153,.9);color:#04241a}
 .gfav{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.35);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:14px;z-index:2;transition:var(--t)}
-.gfav.on{background:rgba(255,80,80,.3)}
+.gfav.on{background:rgba(194,26,139,.3)}
 .gcard-live{position:absolute;bottom:9px;left:9px;font-size:9px;font-weight:700;background:rgba(52,211,153,.25);color:#7cffcf;border:1px solid rgba(52,211,153,.4);padding:3px 8px;border-radius:20px;display:flex;align-items:center;gap:4px;z-index:2}
 .gcard-body{padding:14px 15px 15px}
 .gcard-title{font-family:var(--ff-serif);font-size:17px;color:#fff;margin-bottom:4px}
@@ -242,17 +242,17 @@ button{font-family:inherit;cursor:pointer}
 .ludo-sq.arm-a{background:#fff}
 .ludo-sq.safe{background:#ffe082}
 .ludo-sq.safe .star{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:#c98a00;text-shadow:0 1px 0 rgba(255,255,255,.5)}
-.ludo-sq.lane-user1{background:linear-gradient(155deg,#ff6b6b,#ef4444)}
+.ludo-sq.lane-user1{background:linear-gradient(155deg,#E34FB0,#B0127A)}
 .ludo-sq.lane-user2{background:linear-gradient(155deg,#4ade80,#22c55e)}
 .ludo-sq.lane-dim1{background:linear-gradient(155deg,#ffd54a,#f5b301)}
 .ludo-sq.lane-dim2{background:linear-gradient(155deg,#C21A8B,#B0127A)}
 .ludo-corner{position:absolute;border-radius:10px;box-shadow:inset 0 0 0 3px rgba(255,255,255,.35)}
-.ludo-corner.user1{background:linear-gradient(155deg,#ff6b6b,#ef4444)}
+.ludo-corner.user1{background:linear-gradient(155deg,#E34FB0,#B0127A)}
 .ludo-corner.user2{background:linear-gradient(155deg,#5eeba0,#22c55e)}
 .ludo-corner.dim-yellow{background:linear-gradient(155deg,#ffe27a,#f5b301)}
 .ludo-corner.dim-blue{background:linear-gradient(155deg,#C21A8B,#B0127A)}
 .ludo-corner-inner{position:absolute;background:rgba(255,255,255,.94);border-radius:9px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
-.ludo-home-hub{position:absolute;border-radius:8px;background:conic-gradient(from 0deg,#ef4444 0 25%,#ffd54a 25% 50%,#22c55e 50% 75%,#B0127A 75% 100%);display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 0 18px rgba(255,255,255,.35),inset 0 0 0 2px rgba(255,255,255,.5);transform:translate(-50%,-50%);z-index:2}
+.ludo-home-hub{position:absolute;border-radius:8px;background:conic-gradient(from 0deg,#B0127A 0 25%,#ffd54a 25% 50%,#22c55e 50% 75%,#E34FB0 75% 100%);display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 0 18px rgba(255,255,255,.35),inset 0 0 0 2px rgba(255,255,255,.5);transform:translate(-50%,-50%);z-index:2}
 .ludo-token{position:absolute;width:7.6%;height:7.6%;border-radius:50%;border:2px solid rgba(255,255,255,.9);transform:translate(-50%,-50%);z-index:5;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#fff;box-shadow:0 3px 8px rgba(0,0,0,.5);transition:left .4s cubic-bezier(.4,0,.2,1),top .4s cubic-bezier(.4,0,.2,1)}
 .ludo-token.playable{cursor:pointer}
 .ludo-base-row{display:flex;gap:18px}
@@ -314,7 +314,7 @@ button{font-family:inherit;cursor:pointer}
 .bm-hero-sub{font-size:11.5px;color:var(--text2);margin-top:4px;letter-spacing:.5px;text-transform:uppercase}
 .bm-diffgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
 .bm-diffcard{border-radius:16px;padding:14px;border:1px solid var(--border);background:var(--g1);text-align:center;transition:var(--t)}
-.bm-diffcard.sel{border-color:var(--red);background:rgba(248,113,113,.12);box-shadow:0 0 0 1px var(--red-bg)}
+.bm-diffcard.sel{border-color:var(--accent);background:rgba(194,26,139,.12);box-shadow:0 0 0 1px rgba(194,26,139,.15)}
 .bm-diffcard .bdc-name{font-weight:800;font-size:13px;color:#fff}
 .bm-diffcard .bdc-meta{font-size:10.5px;color:var(--text3);margin-top:3px}
 .bm-toggles{display:flex;gap:10px;margin:14px 0}
@@ -324,7 +324,7 @@ button{font-family:inherit;cursor:pointer}
 .bm-stat{flex:1;text-align:center;padding:10px;border-radius:13px;background:var(--g1);border:1px solid var(--border)}
 .bm-stat .bs-val{font-family:var(--ff-serif);font-size:18px;color:#fff}
 .bm-stat .bs-lbl{font-size:9.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
-.bm-startbtn{width:100%;padding:14px;border-radius:15px;background:linear-gradient(135deg,var(--red),#8b0d1a);color:#fff;font-weight:800;font-size:14.5px;border:none;box-shadow:0 6px 20px rgba(248,113,113,.3);margin-top:6px}
+.bm-startbtn{width:100%;padding:14px;border-radius:15px;background:linear-gradient(135deg,var(--accent),#7C0A57);color:#fff;font-weight:800;font-size:14.5px;border:none;box-shadow:0 6px 20px rgba(248,113,113,.3);margin-top:6px}
 .bm-role-banner{text-align:center;padding:9px 14px;border-radius:14px;margin-bottom:12px;font-size:12.5px;font-weight:700;background:var(--g1);border:1px solid var(--border)}
 .bm-role-banner.guide{background:linear-gradient(135deg,rgba(255,201,74,.16),rgba(255,255,255,.02));border-color:rgba(255,201,74,.35);color:var(--gold)}
 .bm-role-banner.mover{background:linear-gradient(135deg,hsla(var(--h),100%,55%,.16),rgba(255,255,255,.02));border-color:hsla(var(--h),100%,62%,.3);color:var(--accent-l)}
@@ -1008,7 +1008,7 @@ const GameVideo = {
    GAME DEFINITIONS (hub cards) — real, fully-synced games
 ═══════════════════════════════════════════════════════ */
 const GAMES = [
-  {id:'tod', title:'Truth or Dare', emoji:'🔥', badge:'trend', grad:'linear-gradient(135deg,#2a0d0d,#6b0d1a)',
+  {id:'tod', title:'Truth or Dare', emoji:'🔥', badge:'trend', grad:'linear-gradient(135deg,#2a0620,#6b0a4a)',
     desc:'Spin the wheel — real-time synced truths & dares, streaks, reactions & voice reading.',
     tags:['🎡 Party','⏱ 10m+','✨ 10 XP/round']},
   {id:'mindreader', title:'Mind Reader', emoji:'🔮', badge:'new', grad:'linear-gradient(135deg,#2e0d22,#5c0d4a)',
@@ -1026,7 +1026,7 @@ const GAMES = [
   {id:'memory', title:'Memory Match', emoji:'🧠', badge:'', grad:'linear-gradient(135deg,#0d2a1a,#0d5c3a)',
     desc:'Flip cards together to find matching pairs — turns sync instantly between you two.',
     tags:['🧩 Classic','⏱ 5-10m','✨ 6 XP/pair']},
-  {id:'bomb', title:"Don't Touch The Bomb", emoji:'💣', badge:'new', grad:'linear-gradient(135deg,#1a0505,#6b0d1a)',
+  {id:'bomb', title:"Don't Touch The Bomb", emoji:'💣', badge:'new', grad:'linear-gradient(135deg,#1a0212,#6b0a4a)',
     desc:'One of you sees the bombs, the other must cross the field blind — guide them with voice, chat & emoji.',
     tags:['💣 Co-op','⏱ 3-8m','✨ 25 XP/win']},
   {id:'puzzle', title:'Picture Puzzle', emoji:'🧩', badge:'new', grad:'linear-gradient(135deg,#2e0d22,#3A0425)',
@@ -1224,7 +1224,7 @@ const TTT = {
    GAME 2 — REAL LUDO (2-player, real dice, safe cells,
    capturing, home stretch — simplified circular board)
 ═══════════════════════════════════════════════════════ */
-const LUDO_COLORS = {user1:'#ef4444', user2:'#22c55e'};
+const LUDO_COLORS = {user1:'#C21A8B', user2:'#22c55e'};
 const LUDO_NAMES  = {user1:'Red', user2:'Green'};
 const LUDO_START = {user1:0, user2:26};
 const LUDO_SAFE = [0,8,13,21,26,34,39,47];
@@ -1722,7 +1722,7 @@ const TOD = {
    "man"/"boy" for a drawn "human" still counts as correct.
 ═══════════════════════════════════════════════════════ */
 const DRAW_WORDS=['cat','pizza','rainbow','guitar','heart','tree','sun','umbrella','robot','castle','fish','flower','moon','car','house','butterfly','ice cream','star','crown','balloon','shoe','clock','book','key','cloud','boat','apple','kite','snowman','rocket'];
-const DW_COLORS=['#ef4444','#f59e0b','#22c55e','#B0127A','#C21A8B','#ffffff','#000000'];
+const DW_COLORS=['#C21A8B','#f59e0b','#22c55e','#B0127A','#C21A8B','#ffffff','#000000'];
 const DW_SIZES=[3,6,11];
 const DW_ROUND_SECONDS=75;
 
@@ -1770,7 +1770,7 @@ async function dwCheckMatch(guess,target){
 
 const Draw = {
   chan:null, state:null, canvas:null, ctx:null, drawing:false, checking:false,
-  color:'#ef4444', size:6, mode:'pen', lastPt:null, strokeId:null, redoStack:[],
+  color:'#C21A8B', size:6, mode:'pen', lastPt:null, strokeId:null, redoStack:[],
   timerTick:null, timerLeft:DW_ROUND_SECONDS, typingHideT:null, partnerTyping:false,
   async open(body){
     this.chan = new GameChannel('draw');

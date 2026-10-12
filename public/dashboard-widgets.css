@@ -245,7 +245,7 @@
 .dw-daycols { display: grid; grid-template-columns: repeat(7, 1fr); margin-top: 4px; text-align: center; }
 .dw-col { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; }
 .dw-col .em { font-size: 18px; line-height: 24px; height: 24px; }
-.dw-col .em.pt { font-size: 14px; line-height: 20px; height: 20px; min-width: 24px; border-radius: 10px; background: rgba(255, 196, 184, .14); }
+.dw-col .em.pt { font-size: 14px; line-height: 20px; height: 20px; min-width: 24px; border-radius: 10px; background: rgba(240, 109, 190, .14); }
 .dw-col .em.none { opacity: .3; font-size: 14px; }
 .dw-col .wd { font: 500 10px var(--ff-sans); color: rgba(255, 255, 255, .5); margin-top: 2px; }
 .dw-col .dn { font: 600 11px var(--ff-sans); color: rgba(255, 255, 255, .75); }
