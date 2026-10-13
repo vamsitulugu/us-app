@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 
+const GROQ_MODEL = process.env.GROQ_MODEL || 'qwen/qwen3.8-27b';
+
 router.post('/chat', async (req, res) => {
   const { message, myName, partnerName, anniversary, recentMood } = req.body;
   if (!message) return res.status(400).json({ error: 'Message required' });
@@ -34,7 +36,7 @@ User asks: ${message}`;
         Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
+        model: GROQ_MODEL,
         messages: [
           {
             role: "system",
@@ -112,7 +114,7 @@ User asks: ${message}`;
           Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
+          model: GROQ_MODEL,
           messages: [
             { role: "system", content: prompt },
             { role: "user", content: message },

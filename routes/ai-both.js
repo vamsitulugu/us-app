@@ -446,13 +446,13 @@ ${names.user2}'S PERSPECTIVE:
 ${context ? `\nRELEVANT SHARED APP CONTEXT (only use if actually relevant, never invent beyond this):\n${context}\n` : ''}
 Analyze both together per your instructions and return ONLY the JSON object.`;
 
-  let json;
+  const GROQ_MODEL = process.env.GROQ_MODEL || 'qwen/qwen3.8-27b';
   try {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.GROQ_API_KEY}` },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: GROQ_MODEL,
         messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
         max_tokens: 1600,
         temperature: 0.4,

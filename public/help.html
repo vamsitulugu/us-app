@@ -945,6 +945,21 @@
     let pollInterval = null;
     let userSession = null;
 
+    const API = (function () {
+      try {
+        if (typeof window !== 'undefined') {
+          if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            return window.location.port === '3000' ? '' : (window.API || 'https://us-app-av6d.onrender.com');
+          }
+          if (window.parent && window.parent.API) return window.parent.API;
+          if (window.API) return window.API;
+        }
+        return 'https://us-app-av6d.onrender.com';
+      } catch (e) {
+        return 'https://us-app-av6d.onrender.com';
+      }
+    })();
+
     // Read stored user session
     function loadUserSession() {
       try {
@@ -1013,7 +1028,7 @@
     // ── FAQs ──
     async function loadFaqs() {
       try {
-        const res = await fetch('/api/support/faqs');
+        const res = await fetch(API + '/api/support/faqs');
         const data = await res.json();
         allFaqs = data.faqs || [];
         renderFaqs();
@@ -1117,7 +1132,7 @@
       };
 
       try {
-        const res = await fetch('/api/support/ticket', {
+        const res = await fetch(API + '/api/support/ticket', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -1141,7 +1156,7 @@
 
       if (currentTicket) {
         try {
-          const res = await fetch(`/api/support/ticket/${currentTicket.id}/switch-mode`, {
+          const res = await fetch(API + `/api/support/ticket/${currentTicket.id}/switch-mode`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ mode })
@@ -1269,7 +1284,7 @@
       }
 
       try {
-        const res = await fetch(`/api/support/ticket/${currentTicket.id}/message`, {
+        const res = await fetch(API + `/api/support/ticket/${currentTicket.id}/message`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1323,7 +1338,7 @@
       pollInterval = setInterval(async () => {
         if (!currentTicket) return;
         try {
-          const res = await fetch(`/api/support/ticket/${currentTicket.id}`);
+          const res = await fetch(API + `/api/support/ticket/${currentTicket.id}`);
           const data = await res.json();
           if (data.ticket) {
             const oldLen = (currentTicket.messages || []).length;
