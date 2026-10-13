@@ -32,8 +32,8 @@
   grid-column: 1;
   z-index: 0;
   background:
-    radial-gradient(90% 60% at 85% 0%, rgba(194,26,139, .38), transparent 62%),
-    linear-gradient(170deg, var(--accent) 0%, var(--accent-d) 62%, #4a072c 100%);
+    radial-gradient(90% 55% at 85% 0%, rgba(255,255,255,.08), transparent 62%),
+    #980B5A;
 }
 
 /* ── Header: logo left, profile right ── */

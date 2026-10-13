@@ -1,0 +1,8 @@
+/* Hide every scrollbar (the coloured line on the right edge while scrolling).
+   Scrolling itself still works exactly the same: touch, wheel and keyboard. */
+html, body, * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+html::-webkit-scrollbar, body::-webkit-scrollbar, *::-webkit-scrollbar,
+*::-webkit-scrollbar-thumb, *::-webkit-scrollbar-track {
+  display: none !important; width: 0 !important; height: 0 !important;
+  background: transparent !important;
+}

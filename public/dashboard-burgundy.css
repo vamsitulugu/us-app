@@ -3,19 +3,19 @@
    Loaded after the theme files so it wins in both light and dark mode.
    Burgundy is sampled from the Hug / Touch / Miss card artwork.
    ══════════════════════════════════════════════════════════════ */
-:root { --dh-burgundy: #72022f; --dh-burgundy-d: #55021f; }
+:root { --dh-burgundy: #980B5A; --dh-burgundy-d: #980B5A; }
 
 /* Search bar: burgundy fill, white icon + white placeholder text */
 .dh-search {
-  background: var(--dh-burgundy);
-  border-color: rgba(255, 255, 255, .22);
+  background: rgba(255, 255, 255, .15);
+  border-color: rgba(255, 255, 255, .28);
   color: #fff;
 }
 .dh-search span { color: #fff; }
 .dh-search svg { color: #fff; }
 
 /* Last word of the daily quote */
-.dh-quote em { color: var(--dh-burgundy); }
+.dh-quote em { color: #ffd0ea; }
 
 /* "Coming up" event cards */
 html[data-theme] .dw-ev {

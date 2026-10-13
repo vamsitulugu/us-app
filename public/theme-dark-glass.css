@@ -55,7 +55,6 @@ html[data-theme="dark"] {
   --mp-text3: rgba(255,255,255,.52); --mx-text3: rgba(255,255,255,.52); --wt-muted: rgba(255,255,255,.52);
   --mx-text2: rgba(255,255,255,.74); --mp-text2: rgba(255,255,255,.74);
   --mx-line: rgba(255,255,255,.13); --mp-line: rgba(255,255,255,.13);
-  --dh-burgundy: rgba(255,255,255,.10);
 }
 
 /* ───────── Background glows: soft + neutral (no pink wash) ───────── */
@@ -89,7 +88,6 @@ html[data-theme="dark"] .dw-ev.is-today .dw-ev-d { color: #161214 !important; }
 html[data-theme="dark"] .dw-ev.is-today .dw-ev-ico { background: rgba(0,0,0,.08); }
 html[data-theme="dark"] .dw-ev .dw-ev-d { color: #fff !important; }
 html[data-theme="dark"] .dw-ev .dw-ev-ico { background: rgba(255,255,255,.12); }
-html[data-theme="dark"] .dh-quote em { color: #fff; }
 
 /* big neutral panels (were deep pink) */
 html[data-theme="dark"] .dh-sheet { background: #130e10 !important; border-top: 1px solid var(--gl-line); }
@@ -107,7 +105,7 @@ html[data-theme="dark"] .th-opt[data-v="dark"] .th-sw { background: linear-gradi
 html[data-theme="dark"] .th-opt.on { border-color: rgba(255,255,255,.55) !important; box-shadow: 0 0 0 3px rgba(255,255,255,.14) !important; }
 
 /* ═════════════ SEARCH BARS + TYPE BARS → gray glass ═════════════ */
-html[data-theme="dark"] :is(.set-search,.dh-search,.mc-search,.uc-input-wrap),
+html[data-theme="dark"] :is(.set-search,.mc-search,.uc-input-wrap),
 html[data-theme="dark"] :is(input[type=text],input[type=password],input[type=email],input[type=number],input[type=date],input[type=time],input[type=search],input[type=tel],input[type=url],textarea,select,.chat-in),
 html[data-theme="dark"] .chat-search-bar input {
   background: rgba(255,255,255,.075) !important; background-image: none !important;
@@ -115,13 +113,12 @@ html[data-theme="dark"] .chat-search-bar input {
   box-shadow: inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 rgba(0,0,0,.18) !important;
   -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%);
 }
-html[data-theme="dark"] :is(.set-search,.dh-search,.mc-search,.uc-input-wrap) :is(input,textarea),
+html[data-theme="dark"] :is(.set-search,.mc-search,.uc-input-wrap) :is(input,textarea),
 html[data-theme="dark"] .uc-input {
   background: transparent !important; border: 0 !important; box-shadow: none !important;
   -webkit-backdrop-filter: none; backdrop-filter: none; color: #fff !important;
 }
-html[data-theme="dark"] :is(.set-search,.dh-search) { color: rgba(255,255,255,.6); }
-html[data-theme="dark"] .dh-search :is(span,svg) { color: rgba(255,255,255,.72); }
+html[data-theme="dark"] .set-search { color: rgba(255,255,255,.6); }
 html[data-theme="dark"] input::placeholder, html[data-theme="dark"] textarea::placeholder { color: rgba(255,255,255,.45) !important; opacity: 1; }
 html[data-theme="dark"] :is(input,textarea,select):focus,
 html[data-theme="dark"] :is(.set-search,.mc-search,.uc-input-wrap):focus-within {
@@ -224,47 +221,9 @@ html[data-theme="dark"] .topbar { background: rgba(18,14,16,.6) !important; bord
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   HOME HERO (dashboard header: logo, greeting, quote, search, shortcuts)
-   dashboard.css paints this area with a hard-coded magenta gradient,
-   so it needs its own neutral override. Dark theme only.
+   HOME HERO — solid #980B5A (set in dashboard.css) in BOTH themes.
+   Only the white highlight text needs a dark-theme fix, because the dark
+   theme's neutral --accent-d would otherwise tint it gray.
    ════════════════════════════════════════════════════════════════════ */
-html[data-theme="dark"] .dh-bg {
-  background:
-    radial-gradient(90% 55% at 85% 0%, rgba(255,255,255,.07), transparent 62%),
-    linear-gradient(175deg, #2a0b1c 0%, #190912 55%, #130d10 100%);
-}
-
-/* logo: same app icon, desaturated so it matches the gray theme */
-html[data-theme="dark"] .dh-brand img {
-  filter: grayscale(1) brightness(1.25) contrast(1.05);
-  border: 1px solid rgba(255,255,255,.18);
-  box-shadow: 0 6px 18px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.2);
-}
-html[data-theme="dark"] .dh-brand span { color: #fff; }
-
-/* profile photo ring */
-html[data-theme="dark"] .dh-profile { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.4); }
-
-/* quote: white, last word italic white (was pink) */
-html[data-theme="dark"] .dh-quote, html[data-theme="dark"] .dh-greet { color: #fff; }
-html[data-theme="dark"] .dh-quote em { color: #fff; }
-
-/* search + menu: gray glass */
-html[data-theme="dark"] :is(.dh-search,.dh-menu) {
-  background: var(--gl-fill) !important; background-color: rgba(255,255,255,.04) !important;
-  border: 1px solid rgba(255,255,255,.18) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), inset 0 -1px 0 rgba(0,0,0,.2) !important;
-  color: rgba(255,255,255,.78) !important;
-}
-
-/* shortcut tiles (Memories / Music / Movie / …): gray glass */
-html[data-theme="dark"] .dh-chip {
-  background: var(--gl-fill); background-color: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.16); color: #fff;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.14), inset 0 -1px 0 rgba(0,0,0,.2);
-}
-/* highlighted tile / button keep their white state, text no longer pink-tinted */
-html[data-theme="dark"] .dh-chip.is-primary { background: rgba(255,255,255,.94); border-color: #fff; color: #161214; }
-html[data-theme="dark"] .dh-act { background: var(--gl-fill-strong); border-color: rgba(255,255,255,.22); }
-html[data-theme="dark"] .dh-act.is-active { background: rgba(255,255,255,.94); border-color: #fff; color: #161214; }
-html[data-theme="dark"] .dh-card { border-color: rgba(255,255,255,.16); }
+html[data-theme="dark"] .dh-chip.is-primary,
+html[data-theme="dark"] .dh-act.is-active { color: #980B5A; }

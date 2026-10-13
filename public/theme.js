@@ -10,9 +10,9 @@
   // Home (dashboard) has a blue hero at the very top, so it keeps white icons.
   // Light theme: Home has a magenta hero at the very top, so the bar must be magenta there (not pale pink).
   function barColor(t) {
-    if (t === 'dark') return BAR.dark;
     var d = document.getElementById('page-dashboard');
-    return (d && d.classList.contains('active')) ? '#8B0F5E' : BAR.light;
+    if (d && d.classList.contains('active')) return '#980B5A';   // home hero colour, both themes
+    return t === 'dark' ? BAR.dark : BAR.light;
   }
   function statusStyle(t) {
     if (t === 'dark') return 'DARK';

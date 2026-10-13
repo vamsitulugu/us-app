@@ -15,9 +15,9 @@
   --accent-d: hsl(var(--h),95%,50%);
   --accent-l: hsl(var(--h),100%,78%);
   --accent-glow: hsla(var(--h),100%,62%,0.35);
-  --accent2: #C21A8B;
-  --accent2-d: #C21A8B;
-  --accent2-glow: rgba(194,26,139,0.35);
+  --accent2: #980B5A;
+  --accent2-d: #980B5A;
+  --accent2-glow: rgba(152,11,90,0.35);
   --g1: rgba(255,255,255,0.04);
   --g2: rgba(255,255,255,0.08);
   --g3: rgba(255,255,255,0.13);
@@ -221,7 +221,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
   border: 1px solid var(--border);
 }
 .lc-bday-card.me { background: linear-gradient(135deg, hsla(var(--h),100%,62%,0.12), hsla(var(--h),100%,62%,0.04)); border-color: hsla(var(--h),100%,62%,0.2); }
-.lc-bday-card.pt { background: linear-gradient(135deg, rgba(194,26,139,0.12), rgba(194,26,139,0.04)); border-color: rgba(194,26,139,0.2); }
+.lc-bday-card.pt { background: linear-gradient(135deg, rgba(152,11,90,0.12), rgba(152,11,90,0.04)); border-color: rgba(152,11,90,0.2); }
 .lc-bday-emoji { font-size: 28px; margin-bottom: 8px; }
 .lc-bday-name { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
 .lc-bday-days { font-family: var(--ff-serif); font-size: 34px; color: var(--white); line-height: 1; }
@@ -343,7 +343,8 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
 <link rel="stylesheet" href="/theme-tokens.css?v=2">
 <link rel="stylesheet" href="/theme-light-v2.css?v=2">
 <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
-<link rel="stylesheet" href="/theme-dark-glass.css?v=2">
+<link rel="stylesheet" href="/theme-dark-glass.css?v=3">
+<link rel="stylesheet" href="/no-scrollbar.css?v=1">
 </head>
 <body>
 
@@ -466,9 +467,9 @@ function render() {
 
   // Upcoming celebrations
   const celebrations = [];
-  if (lcState.anniversary) celebrations.push({ name: 'Anniversary 💍', icon: '💍', iconBg: 'linear-gradient(135deg,rgba(194,26,139,0.2),rgba(194,26,139,0.05))', days: annivDays, date: fmtDateShort(lcState.anniversary) });
+  if (lcState.anniversary) celebrations.push({ name: 'Anniversary 💍', icon: '💍', iconBg: 'linear-gradient(135deg,rgba(152,11,90,0.2),rgba(152,11,90,0.05))', days: annivDays, date: fmtDateShort(lcState.anniversary) });
   if (lcState.myBday) celebrations.push({ name: `${lcState.myName}'s Birthday 🎂`, icon: '🎂', iconBg: 'linear-gradient(135deg,rgba(251,191,36,0.2),rgba(251,191,36,0.05))', days: myBdayDays, date: fmtDateShort(lcState.myBday) });
-  if (lcState.ptBday) celebrations.push({ name: `${lcState.partnerName}'s Birthday 🎂`, icon: '🎂', iconBg: 'linear-gradient(135deg,rgba(194,26,139,0.2),rgba(194,26,139,0.05))', days: ptBdayDays, date: fmtDateShort(lcState.ptBday) });
+  if (lcState.ptBday) celebrations.push({ name: `${lcState.partnerName}'s Birthday 🎂`, icon: '🎂', iconBg: 'linear-gradient(135deg,rgba(152,11,90,0.2),rgba(152,11,90,0.05))', days: ptBdayDays, date: fmtDateShort(lcState.ptBday) });
   // Add upcoming events
   const today = todayStr();
   const upcomingEvts = (lcState.events || []).filter(e => e.date >= today).sort((a,b) => a.date.localeCompare(b.date)).slice(0, 4);
@@ -495,7 +496,7 @@ function render() {
           <defs>
             <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stop-color="hsl(var(--h),100%,62%)"/>
-              <stop offset="100%" stop-color="#C21A8B"/>
+              <stop offset="100%" stop-color="#980B5A"/>
             </linearGradient>
             <filter id="ringGlow">
               <feGaussianBlur stdDeviation="3" result="blur"/>
