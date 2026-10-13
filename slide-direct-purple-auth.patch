@@ -1,0 +1,89 @@
+From 1c070db236094ba8b77b6cc08637141adc0b99cd Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 13 Oct 2026 02:53:39 +0000
+Subject: [PATCH] Slide opens auth card directly; dark purple sign in/up card
+
+---
+ public/landing.html | 31 ++++++++++---------------------
+ 1 file changed, 10 insertions(+), 21 deletions(-)
+
+diff --git a/public/landing.html b/public/landing.html
+index f9d7b26..5dc8e96 100644
+--- a/public/landing.html
++++ b/public/landing.html
+@@ -312,7 +312,15 @@ body.native-auth-only #authModal .modal-close{display:none}
+ html.ms-on body > *:not(#mobileStart):not(#authModal){display:none!important}
+ html.ms-on #mobileStart{display:flex}
+ html.ms-on.ms-auth #mobileStart{display:none}
+-html.ms-on #authModal{position:fixed;background:linear-gradient(180deg,#3A0425,#14030e)}
++html.ms-on #authModal{position:fixed;background:linear-gradient(180deg,#2a0f52,#0f0620)}
++/* dark purple Sign In / Sign Up card (replaces the pink accent inside the card) */
++html.ms-on #authModal{--accent:#6d32d6;--accent2:#4a1d96;--accent-glow:rgba(109,50,214,.40)}
++html.ms-on #authModal .mcard{background:rgba(24,10,46,.97);border-color:rgba(167,139,250,.22);box-shadow:0 30px 90px rgba(8,2,22,.75),inset 0 1px 0 rgba(255,255,255,.06)}
++html.ms-on #authModal .auth-logo-row img{filter:drop-shadow(0 0 14px rgba(124,77,224,.65))}
++html.ms-on #authModal .auth-logo-row .brand-tag{color:#b9a2f5}
++html.ms-on #authModal .auth-tabs{background:rgba(10,3,24,.55)}
++html.ms-on #authModal .auth-tab.active{background:linear-gradient(135deg,#6d32d6,#4a1d96);color:#fff}
++html.ms-on #authModal .field input:focus{box-shadow:0 0 0 3px rgba(109,50,214,.35)}
+ #mobileStart{
+   position:fixed;inset:0;z-index:900;overflow:hidden;
+   display:none;flex-direction:column;align-items:center;
+@@ -354,18 +362,6 @@ html.ms-on.ms-auth #mobileStart{display:none}
+ .ms-slide.snap .ms-slide-label{transition:opacity .28s}
+ @media (prefers-reduced-motion:no-preference){.ms-slide:not(.dragged) .ms-slide-knob{animation:msNudge 2.4s ease-in-out 1.2s infinite}}
+ @keyframes msNudge{0%,70%,100%{transform:translateX(0)}82%{transform:translateX(10px)}92%{transform:translateX(0)}}
+-/* step 2: Sign In / Sign Up cards */
+-.ms-choose{display:none;width:100%;gap:clamp(8px,1.6dvh,14px);flex-direction:column;animation:msRise .4s var(--ease)}
+-@keyframes msRise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+-#mobileStart.ms-step2 .ms-slide{display:none}
+-#mobileStart.ms-step2 .ms-choose{display:flex}
+-.ms-card{display:flex;align-items:center;gap:14px;width:100%;padding:clamp(12px,2.2dvh,18px) 18px;border-radius:22px;cursor:pointer;text-align:left;color:#fff;
+-  background:rgba(20,3,14,.62);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,160,225,.35);font-family:var(--ff-sans)}
+-.ms-card.primary{background:linear-gradient(135deg,#b0127a,#d6379b);border-color:rgba(255,255,255,.35)}
+-.ms-card .ico{width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+-.ms-card b{display:block;font-size:16px}
+-.ms-card span{display:block;font-size:12px;opacity:.8;margin-top:2px}
+-.ms-back{background:none;border:none;color:rgba(255,255,255,.75);font:500 13px var(--ff-sans);padding:6px;cursor:pointer}
+ .mcard{background:rgba(9,4,7,.96);backdrop-filter:blur(30px);border:1px solid var(--border2);border-radius:26px;padding:36px 32px;width:100%;max-width:460px;color:var(--white);box-shadow:0 30px 90px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.06);animation:popIn .35s cubic-bezier(.34,1.56,.64,1);position:relative;max-height:88vh;overflow-y:auto}
+ @keyframes popIn{from{opacity:0;transform:scale(.88) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
+ .modal-close{position:absolute;top:16px;right:18px;background:var(--g1);border:1px solid var(--border);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:16px;transition:all .2s}
+@@ -435,11 +431,6 @@ html.ms-on.ms-auth #mobileStart{display:none}
+       <div class="ms-slide-label" id="msSlideLabel">Get Started</div>
+       <div class="ms-slide-knob" id="msKnob"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+     </div>
+-    <div class="ms-choose">
+-      <button class="ms-card primary" type="button" onclick="msOpen('login')"><div class="ico">&#128150;</div><div><b>Sign In</b><span>Welcome back to your space</span></div></button>
+-      <button class="ms-card" type="button" onclick="msOpen('signup')"><div class="ico">&#10024;</div><div><b>Sign Up</b><span>Create your space together</span></div></button>
+-      <button class="ms-back" type="button" onclick="msBack()">&larr; Back</button>
+-    </div>
+   </div>
+ </main>
+ 
+@@ -913,7 +904,6 @@ function isInsideNativeApp(){
+ // Mobile start screen (phones: mobile web + installed APK, logged out).
+ // The head script adds html.ms-on before paint; these helpers drive the
+ // two steps: Get Started -> Sign In / Sign Up cards -> auth form.
+-function msGetStarted(){ document.getElementById('mobileStart').classList.add('ms-step2'); }
+ // Slide-to-start: drag the arrow knob (or press Enter/Right-arrow) to the end
+ // and the Sign In / Sign Up cards open. Releasing early snaps back.
+ (function(){
+@@ -930,7 +920,7 @@ function msGetStarted(){ document.getElementById('mobileStart').classList.add('m
+   const finish=()=>{
+     if(done) return; done=true; dx=max; el.classList.add('snap'); render();
+     if(navigator.vibrate) try{navigator.vibrate(18)}catch(e){}
+-    setTimeout(()=>{ msGetStarted(); reset(); },220);
++    setTimeout(()=>{ msOpen('login'); reset(); },200);
+   };
+   const reset=()=>{ done=false; dx=0; el.classList.remove('dragged'); el.classList.add('snap'); render(); };
+   knob.addEventListener('pointerdown',e=>{
+@@ -947,7 +937,6 @@ function msGetStarted(){ document.getElementById('mobileStart').classList.add('m
+   window.addEventListener('resize',()=>{ measure(); render(); });
+   measure(); render();
+ })();
+-function msBack(){ document.getElementById('mobileStart').classList.remove('ms-step2'); }
+ function msOpen(view){
+   document.documentElement.classList.add('ms-auth');
+   openAuth(view);
+-- 
+2.43.0
+
