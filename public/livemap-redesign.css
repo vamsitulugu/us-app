@@ -24,7 +24,7 @@
   --lm2-hover-bg:#191919;
   --lm2-selected-bg:#222222;
 
-  --lm2-primary-grad:linear-gradient(135deg,#980B5A,#980B5A);
+  --lm2-primary-grad:linear-gradient(135deg,#6B093A,#6B093A);
   --lm2-secondary-bg:#232323;
   --lm2-btn-h:48px;
   --lm2-btn-radius:14px;
@@ -86,7 +86,7 @@
 }
 #page-map .btn-accent:hover{
   transform:translateY(-2px);
-  box-shadow:0 10px 26px rgba(152,11,90,.35);
+  box-shadow:0 10px 26px rgba(107,9,58,.35);
 }
 #page-map .btn-glass{
   background:var(--lm2-secondary-bg)!important;
@@ -100,7 +100,7 @@
   background:#2b2b2b!important;
   transform:translateY(-1px);
 }
-#page-map .lm-style-btn.active{box-shadow:0 0 0 1px rgba(152,11,90,.5) inset}
+#page-map .lm-style-btn.active{box-shadow:0 0 0 1px rgba(107,9,58,.5) inset}
 /* ── 8. Icons ────────────────────────────────────────────────────── */
 /* ── 5. Header ───────────────────────────────────────────────────── */
 /* ── 5. Partner cards row ────────────────────────────────────────── */
@@ -273,9 +273,9 @@
 }
 .lm2-call-dock.lm2-dock-row .lm2-dock-resizer::before{ width:4px;height:40px; }
 /* Phase 4: Route History privacy toggle (opt-in switch + retention chips) */
-#lmRouteRetentionRow .lm-chip.active{box-shadow:0 0 0 1px rgba(152,11,90,.5) inset;background:rgba(152,11,90,.12)}
+#lmRouteRetentionRow .lm-chip.active{box-shadow:0 0 0 1px rgba(107,9,58,.5) inset;background:rgba(107,9,58,.12)}
 /* Phase 5: voice-nav toggle + camera-mode button active states */
-.lm-voice-nav-btn.active{background:rgba(152,11,90,.25);border-color:#980B5A}
+.lm-voice-nav-btn.active{background:rgba(107,9,58,.25);border-color:#6B093A}
 /* Daily narrative timeline (item 2) — vertical chain of place_visits
    with per-category icon, matches existing dark-glass premium tokens. */
 .lm-timeline{display:flex;flex-direction:column}
@@ -290,4 +290,4 @@
 .lm-timeline-time{font-size:10px;color:var(--text3,rgba(255,255,255,.5));margin-top:1px}
 .lm-timeline-connector{width:1px;height:12px;background:var(--border,rgba(255,255,255,.12));margin-left:14px}
 .lm-journey-line{font-size:12px;color:var(--white,#fff);line-height:1.6}
-.lm-journey-arrow{color:var(--accent,#980B5A);margin:0 2px}
+.lm-journey-arrow{color:var(--accent,#6B093A);margin:0 2px}

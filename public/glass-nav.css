@@ -118,7 +118,7 @@
 #botNav .bot-ni.active { color: #fff; font-weight: 700; }
 #botNav .bot-ni.active .gn-ico {
   stroke-width: 1.9;
-  filter: drop-shadow(0 0 6px var(--accent, rgba(152,11,90, .9)));
+  filter: drop-shadow(0 0 6px var(--accent, rgba(107,9,58, .9)));
 }
 #botNav .bot-ni.active .gn-fill { fill: currentColor; fill-rule: evenodd; }
 @media (hover: hover) and (pointer: fine) {
@@ -142,7 +142,7 @@
   width: var(--gn-orb); height: var(--gn-orb);
   border-radius: 50%;
   position: relative; z-index: 1;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, .5), 0 0 18px rgba(152,11,90, .35);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .5), 0 0 18px rgba(107,9,58, .35);
 }
 /* hairline ring between orb and notch edge */
 #botNav .nav-twin-ico::before {

@@ -12,8 +12,8 @@
 ═══════════════════════════════════════════════════════════════ */
 :root{
   --h:322;
-  --accent:#980B5A; --accent-d:#980B5A; --accent-l:#980B5A; --accent-glow:rgba(152,11,90,.35);
-  --accent2:#980B5A; --accent2-d:#980B5A; --accent2-glow:rgba(152,11,90,.32);
+  --accent:#6B093A; --accent-d:#6B093A; --accent-l:#6B093A; --accent-glow:rgba(107,9,58,.35);
+  --accent2:#6B093A; --accent2-d:#6B093A; --accent2-glow:rgba(107,9,58,.32);
 
   --ff-serif:'DM Serif Display',Georgia,serif;
   --ff-sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
@@ -50,8 +50,8 @@ body{
   font-family:var(--ff-sans);color:var(--mx-text);line-height:1.45;overflow:hidden;
   overscroll-behavior:none;-webkit-font-smoothing:antialiased;
   background:
-    radial-gradient(120% 55% at 50% -8%,rgba(152,11,90,.42),transparent 62%),
-    radial-gradient(90% 40% at 100% 100%,rgba(152,11,90,.22),transparent 70%),
+    radial-gradient(120% 55% at 50% -8%,rgba(107,9,58,.42),transparent 62%),
+    radial-gradient(90% 40% at 100% 100%,rgba(107,9,58,.22),transparent 70%),
     var(--mx-bg);
 }
 @supports (background:color-mix(in srgb,red 10%,blue)){
@@ -78,7 +78,7 @@ audio{display:none}
 }
 .screen.active{display:block}
 .screen.pushed{z-index:2;background-color:var(--mx-bg);
-  background-image:radial-gradient(120% 40% at 50% -6%,rgba(152,11,90,.34),transparent 60%)}
+  background-image:radial-gradient(120% 40% at 50% -6%,rgba(107,9,58,.34),transparent 60%)}
 .screen.enter{animation:mxIn .32s var(--mx-ease)}
 .screen.leave{animation:mxOut .24s var(--mx-ease) forwards}
 @keyframes mxIn{from{transform:translateX(26px);opacity:0}to{transform:none;opacity:1}}
@@ -435,7 +435,7 @@ body:not(.playing) .pl-art{transform:scale(.9)}
 .rec-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .rec-row{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid rgba(255,255,255,.04)}
 .rec-ico{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;flex:none;background:rgba(255,255,255,.07);color:var(--mx-red);border:1px solid var(--mx-line)}
-.rec-ico.video{color:#980B5A}
+.rec-ico.video{color:#6B093A}
 .rec-main{flex:1;min-width:0}
 .rec-t{font-size:14.5px;font-weight:600}
 .rec-s{font-size:12px;color:var(--mx-text3);margin-top:2px}

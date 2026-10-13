@@ -11,7 +11,7 @@
 
 .pf {
   --pf-card: linear-gradient(180deg, #440F2D, #30091f);
-  --pf-tint: rgba(152,11,90, .16);
+  --pf-tint: rgba(107,9,58, .16);
   /* Full width like every other page: the .content wrapper already provides
      the side padding, so the page just fills it (no fixed phone-width column). */
   width: 100%;
@@ -109,9 +109,9 @@
   overflow: hidden;
   padding: 18px 14px 14px;
   border-radius: 22px;
-  border: 1px solid rgba(152,11,90, .35);
+  border: 1px solid rgba(107,9,58, .35);
   background:
-    radial-gradient(120% 90% at 50% 0%, rgba(152,11,90, .30), transparent 70%),
+    radial-gradient(120% 90% at 50% 0%, rgba(107,9,58, .30), transparent 70%),
     linear-gradient(180deg, #400E2A, #260618);
   box-shadow: 0 14px 40px rgba(0, 0, 0, .45);
 }
@@ -128,7 +128,7 @@
   overflow: hidden;
   border-radius: 50%;
   border: 3px solid var(--accent);
-  box-shadow: 0 0 0 3px rgba(152,11,90, .2), 0 8px 24px rgba(0, 0, 0, .5);
+  box-shadow: 0 0 0 3px rgba(107,9,58, .2), 0 8px 24px rgba(0, 0, 0, .5);
   cursor: pointer;
   color: var(--white);
   transition: var(--t-spring);
@@ -171,9 +171,9 @@
   right: -10px;
   top: 50%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(152,11,90, .6), transparent);
+  background: linear-gradient(90deg, transparent, rgba(107,9,58, .6), transparent);
 }
-.pf-heart-link .pf-i { position: relative; width: 48px; height: 48px; fill: rgba(152,11,90, .25); filter: drop-shadow(0 0 10px rgba(152,11,90, .6)); background: #12080e; border-radius: 50%; padding: 6px; box-sizing: content-box; }
+.pf-heart-link .pf-i { position: relative; width: 48px; height: 48px; fill: rgba(107,9,58, .25); filter: drop-shadow(0 0 10px rgba(107,9,58, .6)); background: #12080e; border-radius: 50%; padding: 6px; box-sizing: content-box; }
 .pf-since-l { margin-top: 6px; font-size: 11px; color: var(--text2); }
 .pf-since-d {
   display: inline-flex;
@@ -234,7 +234,7 @@
 .pf-stat-l { display: block; margin-top: 2px; font-size: 12px; color: var(--text2); }
 
 /* ── Next important date ── */
-.pf-next { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 14px; background: rgba(152,11,90, .10); border: 1px solid rgba(152,11,90, .25); cursor: pointer; }
+.pf-next { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 14px; background: rgba(107,9,58, .10); border: 1px solid rgba(107,9,58, .25); cursor: pointer; }
 .pf-next-t { flex: 1; min-width: 0; }
 .pf-next-t b { display: block; font-size: 14px; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pf-next-t span { font-size: 12px; color: var(--text2); }
@@ -316,7 +316,7 @@
 
 /* ── Milestones ── */
 .pf-tl { position: relative; padding-left: 24px; }
-.pf-tl::before { content: ''; position: absolute; left: 7px; top: 6px; bottom: 6px; width: 2px; background: linear-gradient(180deg, var(--accent), rgba(152,11,90, .06)); }
+.pf-tl::before { content: ''; position: absolute; left: 7px; top: 6px; bottom: 6px; width: 2px; background: linear-gradient(180deg, var(--accent), rgba(107,9,58, .06)); }
 .pf-year { position: relative; margin: 18px 0 10px; font-size: 14px; font-weight: 600; color: var(--white); }
 .pf-year:first-child { margin-top: 0; }
 .pf-year::before { content: ''; position: absolute; left: -24px; top: 3px; width: 10px; height: 10px; border-radius: 50%; background: #fff; border: 3px solid var(--accent); box-sizing: content-box; margin-left: -3px; }
@@ -334,10 +334,10 @@
 .pf-opt { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; background: none; border: 0; border-bottom: 1px solid var(--border); color: var(--white); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
 .pf-opt:last-child { border-bottom: 0; }
 .pf-opt .pf-radio { margin-left: auto; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border2); display: grid; place-items: center; }
-.pf-opt.is-on { background: rgba(152,11,90, .12); }
+.pf-opt.is-on { background: rgba(107,9,58, .12); }
 .pf-opt.is-on .pf-radio { border-color: var(--accent); background: var(--accent); }
 .pf-opt.is-on .pf-radio::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #fff; }
-.pf-tip { display: flex; gap: 10px; padding: 12px 14px; border-radius: 14px; font-size: 13px; line-height: 1.6; color: var(--text2); background: rgba(152,11,90, .10); border: 1px solid rgba(152,11,90, .22); }
+.pf-tip { display: flex; gap: 10px; padding: 12px 14px; border-radius: 14px; font-size: 13px; line-height: 1.6; color: var(--text2); background: rgba(107,9,58, .10); border: 1px solid rgba(107,9,58, .22); }
 
 /* ── Story editor ── */
 .pf-ta { width: 100%; min-height: 110px; resize: vertical; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--border2); background: rgba(255, 255, 255, .04); color: var(--white); font: inherit; font-size: 14px; line-height: 1.5; }

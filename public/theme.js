@@ -11,7 +11,7 @@
   // Light theme: Home has a magenta hero at the very top, so the bar must be magenta there (not pale pink).
   function barColor(t) {
     var d = document.getElementById('page-dashboard');
-    if (d && d.classList.contains('active')) return '#980B5A';   // home hero colour, both themes
+    if (d && d.classList.contains('active')) return '#6B093A';   // home hero colour, both themes
     return t === 'dark' ? BAR.dark : BAR.light;
   }
   function statusStyle(t) {

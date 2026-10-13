@@ -221,9 +221,9 @@ html[data-theme="dark"] .topbar { background: rgba(18,14,16,.6) !important; bord
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   HOME HERO — solid #980B5A (set in dashboard.css) in BOTH themes.
+   HOME HERO — solid #6B093A (set in dashboard.css) in BOTH themes.
    Only the white highlight text needs a dark-theme fix, because the dark
    theme's neutral --accent-d would otherwise tint it gray.
    ════════════════════════════════════════════════════════════════════ */
 html[data-theme="dark"] .dh-chip.is-primary,
-html[data-theme="dark"] .dh-act.is-active { color: #980B5A; }
+html[data-theme="dark"] .dh-act.is-active { color: #6B093A; }

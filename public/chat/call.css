@@ -23,8 +23,8 @@
 }
 .call-bg-blur:not([style*="background-image"]) {
   background:
-    radial-gradient(circle at 50% 15%, rgba(152,11,90,0.35), transparent 55%),
-    radial-gradient(circle at 20% 85%, rgba(152,11,90,0.16), transparent 50%);
+    radial-gradient(circle at 50% 15%, rgba(107,9,58,0.35), transparent 55%),
+    radial-gradient(circle at 20% 85%, rgba(107,9,58,0.16), transparent 50%);
 }
 .call-bg-scrim {
   position: absolute; inset: 0; pointer-events: none;
@@ -59,14 +59,14 @@
 .call-avatar-ring {
   width: 168px; height: 168px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, var(--accent,#980B5A), var(--accent2,#980B5A));
+  background: linear-gradient(135deg, var(--accent,#6B093A), var(--accent2,#6B093A));
   padding: 4px;
   flex-shrink: 0;
 }
 .call-avatar-ring.pulse { animation: callPulseRing 1.8s ease-out infinite, callBreathe 3.6s ease-in-out infinite; }
 .call-avatar-ring.connected {
   animation: callBreatheSoft 4s ease-in-out infinite;
-  box-shadow: 0 0 50px var(--accent-glow, rgba(152,11,90,0.4));
+  box-shadow: 0 0 50px var(--accent-glow, rgba(107,9,58,0.4));
 }
 @keyframes callPulseRing {
   0%   { box-shadow: 0 0 0 0 rgba(255,255,255,0.25); }
@@ -77,8 +77,8 @@
   50%     { transform: scale(1.035); }
 }
 @keyframes callBreatheSoft {
-  0%,100% { box-shadow: 0 0 46px var(--accent-glow, rgba(152,11,90,0.32)); }
-  50%     { box-shadow: 0 0 62px var(--accent-glow, rgba(152,11,90,0.48)); }
+  0%,100% { box-shadow: 0 0 46px var(--accent-glow, rgba(107,9,58,0.32)); }
+  50%     { box-shadow: 0 0 62px var(--accent-glow, rgba(107,9,58,0.48)); }
 }
 .call-avatar {
   width: 100%; height: 100%; border-radius: 50%; overflow: hidden;
@@ -141,8 +141,8 @@
 
 .call-btn-end, .call-btn-decline {
   width: 64px; height: 64px; border-radius: 50%;
-  background: #980B5A;
-  box-shadow: 0 8px 24px rgba(152,11,90,0.45);
+  background: #6B093A;
+  box-shadow: 0 8px 24px rgba(107,9,58,0.45);
   transform: rotate(135deg);
 }
 .call-btn-accept {
@@ -322,7 +322,7 @@
 .call-signal-bars span:nth-child(4) { height: 13px; }
 .call-signal-bars span.active { background: #34c759; }
 .call-signal-bars.weak span.active { background: #ffcc00; }
-.call-signal-bars.poor span.active { background: #980B5A; }
+.call-signal-bars.poor span.active { background: #6B093A; }
 
 /* Shift content down so it clears the top bar */
 .call-content { padding-top: max(78px, calc(env(safe-area-inset-top) + 66px)); }
@@ -365,7 +365,7 @@
 }
 .call-pip-mic-off {
   position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%;
-  background: #980B5A; display: flex; align-items: center; justify-content: center;
+  background: #6B093A; display: flex; align-items: center; justify-content: center;
 }
 .call-pip-mic-off svg { width: 10px; height: 10px; }
 /* ─── Mid-call video upgrade banner ─── */

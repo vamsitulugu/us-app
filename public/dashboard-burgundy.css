@@ -3,7 +3,7 @@
    Loaded after the theme files so it wins in both light and dark mode.
    Burgundy is sampled from the Hug / Touch / Miss card artwork.
    ══════════════════════════════════════════════════════════════ */
-:root { --dh-burgundy: #980B5A; --dh-burgundy-d: #980B5A; }
+:root { --dh-burgundy: #6B093A; --dh-burgundy-d: #6B093A; }
 
 /* Search bar: burgundy fill, white icon + white placeholder text */
 .dh-search {
