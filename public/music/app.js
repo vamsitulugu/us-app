@@ -12,12 +12,9 @@
   const esc = MX.esc, icon = MX.icon, $ = (s, r) => (r || document).querySelector(s);
 
   const home = $('#home');
-  home.innerHTML = `<header class="hdr"><div class="hdr-brand"><div class="hdr-logo">${icon('heart', 'fill')}</div>
-      <div><div class="hdr-title">Music</div><div class="hdr-sub">Feel the same beat together ${icon('heart')}</div></div></div>
-      <div class="hdr-actions"><button class="icon-btn" data-act="open-search" aria-label="Search">${icon('search')}</button><button class="icon-btn" data-act="open-settings" aria-label="Settings">${icon('settings')}</button></div></header>
+  home.innerHTML = `<header class="hdr"><div class="hdr-actions"><button class="icon-btn" data-act="open-search" aria-label="Search">${icon('search')}</button><button class="icon-btn" data-act="open-settings" aria-label="More">${icon('more')}</button></div></header>
     <nav class="tabs" id="homeTabs"><button class="tab" data-act="home-tab" data-t="music">Music</button><button class="tab" data-act="home-tab" data-t="recs">My Recordings</button></nav>
     <div id="paneMusic"></div><div id="paneRecs" class="hidden"></div>`;
-  $('#home svg.fill') && ($('#home .hdr-logo svg').style.fill = '#fff');
 
   let tab = 'music'; const mounted = {};
   function setTab(t) {

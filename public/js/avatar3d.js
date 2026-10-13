@@ -49,7 +49,7 @@
       this.canvas.style.cssText = `position:absolute;left:-999px;top:-999px;width:${size}px;height:${size}px;pointer-events:none;z-index:${who === 'my' ? 640 : 650};transform:translate(-50%,-72%);filter:drop-shadow(0 4px 6px rgba(0,0,0,.45));`;
 
       this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, alpha: true, antialias: true });
-      this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      this.renderer.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1));
       this.renderer.setSize(size, size, false);
 
       this.scene = new THREE.Scene();
@@ -183,6 +183,7 @@
 
     _tick(now) {
       this._raf = requestAnimationFrame(this._tick.bind(this));
+      if (document.hidden || this.canvas.style.left === '-999px' || !this.canvas.offsetParent) return;
       const dt = 0.032;
       this._t += dt * (0.6 + Math.min(2.2, this.speedKmh / 12));
       const g = this.group.children[0]?.parent === this.group ? null : null;

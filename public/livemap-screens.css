@@ -129,7 +129,7 @@ button.lms-row:active { background: var(--g1); }
 .lms-mapwrap #mapView { height: clamp(300px, 46dvh, 520px) !important; min-height: 300px; }
 #lmsTrackMapSlot .lms-mapwrap #mapView { height: 260px !important; min-height: 220px; }
 .lms-fabs { position: absolute; right: 12px; top: 12px; z-index: 600; display: flex; flex-direction: column; gap: 10px; }
-.lms-fab { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border2); background: rgba(14,6,10, .82); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); color: var(--white); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 18px rgba(0, 0, 0, .45); padding: 0; }
+.lms-fab { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border2); background: rgba(14,6,10, .82); color: var(--white); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 18px rgba(0, 0, 0, .45); padding: 0; }
 .lms-fab:active { transform: scale(.93); }
 .lms-stylepop { position: absolute; right: 64px; top: 12px; z-index: 610; display: none; flex-direction: column; min-width: 138px; padding: 6px; border-radius: 16px; background: rgba(14,6,10, .94); border: 1px solid var(--border2); box-shadow: 0 14px 40px rgba(0, 0, 0, .6); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
 .lms-stylepop.open { display: flex; }
@@ -357,3 +357,9 @@ button.lms-row:active { background: var(--g1); }
 @media (min-width: 1600px) {
   #page-map { --lms-pad: 36px; }
 }
+
+/* Smooth scrolling: let the browser scroll vertically over the map (MapLibre cooperative
+   gestures handle two-finger pan/zoom) and drop blur layers that sit over the WebGL canvas. */
+#page-map .lm2-map-wrap, #page-map .lm2-map-wrap #mapView, #page-map .lms-mapwrap #mapView { touch-action: pan-x pan-y !important; }
+#page-map .lms-fab, #page-map .lms-stylepop { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+#page-map .lms-body { scroll-behavior: auto; will-change: scroll-position; }

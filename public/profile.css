@@ -6,8 +6,6 @@
    ══════════════════════════════════════════════════════════════ */
 
 /* Own header instead of the global top bar; page padding handled here */
-.main:has(#page-profile.active) > .topbar { display: none; }
-.content:has(#page-profile.active) { padding-top: 0 !important; }
 
 .pf {
   --pf-card: linear-gradient(180deg, #440F2D, #30091f);
@@ -483,3 +481,7 @@
   .pf-view[data-view="settings"] .pf-body,
   .pf-view[data-view="love"] .pf-body { column-count: 3; }
 }
+
+/* Global top bar is now shown on this page too — the page's own bar is just the 3-dots row */
+.pf-bar { position: static; padding: 0 0 8px; background: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+@media (max-width: 700px) { .pf-bar { padding: 0 0 6px; } }

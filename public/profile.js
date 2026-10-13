@@ -25,6 +25,7 @@
   /* ── Icons (24px stroke set, inline so they never wait on a CDN) ── */
   const P = {
     gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+    more: '<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',
     back: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
     chev: '<path d="m9 18 6-6-6-6"/>',
     plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
@@ -165,7 +166,7 @@
       /* main */
       '<section class="pf-view" data-view="main">' +
         '<header class="pf-bar">' +
-        '<button class="pf-icon-btn" data-act="open:settings" aria-label="Profile and settings">' + ico('gear') + '</button></header>' +
+        '<button class="pf-icon-btn" data-act="open:settings" aria-label="Profile and settings">' + ico('more') + '</button></header>' +
         '<div class="pf-body">' +
           '<div class="pf-hero"><div class="pf-couple">' +
             '<div class="pf-person"><div class="pf-av-wrap"><button type="button" class="pf-av av1" id="profAv1" data-act="pickAvatar" aria-label="Change your photo"></button><span class="pf-cam">' + ico('camera') + '</span></div>' +

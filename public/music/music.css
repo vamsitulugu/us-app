@@ -97,6 +97,7 @@ audio{display:none}
 .hdr-sub .i{width:11px;height:11px;color:var(--mx-red);fill:currentColor;vertical-align:-1px}
 .hdr h1{flex:1;min-width:0;font-size:19px;font-weight:700}
 .hdr-actions{display:flex;gap:8px;margin-left:auto}
+#home > .hdr{padding-top:calc(6px + var(--sat));padding-bottom:6px}
 .icon-btn{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;flex:none;
   background:var(--mx-card);border:1px solid var(--mx-line);transition:transform .15s,background .15s}
 .icon-btn:active{transform:scale(.92);background:var(--mx-card2)}

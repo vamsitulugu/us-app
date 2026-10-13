@@ -90,7 +90,10 @@
         pitch: 0,
         bearing: 0,
         attributionControl: true,
-        antialias: true
+        antialias: true,
+        // Touch screens: one finger scrolls the page, two fingers move/zoom the map
+        cooperativeGestures: !!(window.matchMedia && window.matchMedia('(pointer:coarse)').matches),
+        fadeDuration: 0
       });
       if (opts.zoomControl !== false) {
         this.gl.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
