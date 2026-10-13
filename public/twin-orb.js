@@ -427,7 +427,16 @@
   }
 
   // Called every time the Twin page becomes the active page.
+  // BOTH mode has no dock, so the orb must stay closed there — show() is a
+  // no-op while suppressed (page-switch handlers call show() blindly).
+  var suppressed = false;
+  function setSuppressed(v) {
+    suppressed = !!v;
+    if (suppressed) hide();
+  }
+
   function show() {
+    if (suppressed) return;
     ensureCanvas();
     pageVisible = true;
     canvas.style.display = 'block';
@@ -449,6 +458,7 @@
     init: init,
     show: show,
     hide: hide,
+    setSuppressed: setSuppressed,
     isPageVisible: isPageVisible,
     goTo: goTo,
     refresh: refresh,

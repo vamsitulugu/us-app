@@ -81,8 +81,25 @@
     document.getElementById('aiWrapYou').style.display = mode === 'you' ? '' : 'none';
     document.getElementById('bothModeWrap').style.display = mode === 'both' ? '' : 'none';
     if (mode === 'both') {
+      // Close the Twin orb — its dock lives in the hidden YOU view.
+      if (window.TwinOrb) TwinOrb.setSuppressed(true);
+      const dw = document.getElementById('twinDockOrbWrap');
+      if (dw) dw.classList.remove('is-docked');
       restoreOrHome();
     } else {
+      // Bring the orb back onto the YOU dock.
+      if (window.TwinOrb) {
+        TwinOrb.setSuppressed(false);
+        TwinOrb.show();
+        requestAnimationFrame(() => {
+          const a = document.getElementById('twinDockAnchor');
+          if (a) {
+            TwinOrb.goTo(a, { animate: false });
+            const w = document.getElementById('twinDockOrbWrap');
+            if (w) w.classList.add('is-docked');
+          }
+        });
+      }
       unsubscribeRealtime();
       if (state.pollTimer) { clearInterval(state.pollTimer); state.pollTimer = null; }
     }
