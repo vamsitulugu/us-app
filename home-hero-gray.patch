@@ -1,0 +1,259 @@
+From 98125bdb3c5a5fd2c33705103d51b14e0e94823a Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 13 Oct 2026 11:13:01 +0000
+Subject: [PATCH 1/2] Dark theme: neutral gray home hero (logo, quote, search,
+ shortcuts)
+
+---
+ public/theme-dark-glass.css | 46 +++++++++++++++++++++++++++++++++++++
+ 1 file changed, 46 insertions(+)
+
+diff --git a/public/theme-dark-glass.css b/public/theme-dark-glass.css
+index 01d05d2..dadbcc7 100644
+--- a/public/theme-dark-glass.css
++++ b/public/theme-dark-glass.css
+@@ -222,3 +222,49 @@ html[data-theme="dark"] .topbar { background: rgba(18,14,16,.6) !important; bord
+   html[data-theme="dark"] #botNav .gn-glass { background: rgba(48,43,46,.92) !important; }
+   html[data-theme="dark"] :is(.card,.set-list,.modal) { background: #2a2527 !important; }
+ }
++
++/* ════════════════════════════════════════════════════════════════════
++   HOME HERO (dashboard header: logo, greeting, quote, search, shortcuts)
++   dashboard.css paints this area with a hard-coded magenta gradient,
++   so it needs its own neutral override. Dark theme only.
++   ════════════════════════════════════════════════════════════════════ */
++html[data-theme="dark"] .dh-bg {
++  background:
++    radial-gradient(90% 55% at 85% 0%, rgba(255,255,255,.07), transparent 62%),
++    linear-gradient(175deg, #2a0b1c 0%, #190912 55%, #130d10 100%);
++}
++
++/* logo: same app icon, desaturated so it matches the gray theme */
++html[data-theme="dark"] .dh-brand img {
++  filter: grayscale(1) brightness(1.25) contrast(1.05);
++  border: 1px solid rgba(255,255,255,.18);
++  box-shadow: 0 6px 18px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.2);
++}
++html[data-theme="dark"] .dh-brand span { color: #fff; }
++
++/* profile photo ring */
++html[data-theme="dark"] .dh-profile { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.4); }
++
++/* quote: white, last word italic white (was pink) */
++html[data-theme="dark"] .dh-quote, html[data-theme="dark"] .dh-greet { color: #fff; }
++html[data-theme="dark"] .dh-quote em { color: #fff; }
++
++/* search + menu: gray glass */
++html[data-theme="dark"] :is(.dh-search,.dh-menu) {
++  background: var(--gl-fill) !important; background-color: rgba(255,255,255,.04) !important;
++  border: 1px solid rgba(255,255,255,.18) !important;
++  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), inset 0 -1px 0 rgba(0,0,0,.2) !important;
++  color: rgba(255,255,255,.78) !important;
++}
++
++/* shortcut tiles (Memories / Music / Movie / …): gray glass */
++html[data-theme="dark"] .dh-chip {
++  background: var(--gl-fill); background-color: rgba(255,255,255,.04);
++  border: 1px solid rgba(255,255,255,.16); color: #fff;
++  box-shadow: inset 0 1px 0 rgba(255,255,255,.14), inset 0 -1px 0 rgba(0,0,0,.2);
++}
++/* highlighted tile / button keep their white state, text no longer pink-tinted */
++html[data-theme="dark"] .dh-chip.is-primary { background: rgba(255,255,255,.94); border-color: #fff; color: #161214; }
++html[data-theme="dark"] .dh-act { background: var(--gl-fill-strong); border-color: rgba(255,255,255,.22); }
++html[data-theme="dark"] .dh-act.is-active { background: rgba(255,255,255,.94); border-color: #fff; color: #161214; }
++html[data-theme="dark"] .dh-card { border-color: rgba(255,255,255,.16); }
+-- 
+2.43.0
+
+
+From b67eb9dd1bc0dfa64ecef66945147e22762f7a30 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 13 Oct 2026 11:13:07 +0000
+Subject: [PATCH 2/2] Bump cache for gray hero
+
+---
+ public/collection.html     | 2 +-
+ public/daily-routine.html  | 2 +-
+ public/dreamgoals.html     | 2 +-
+ public/games.html          | 2 +-
+ public/globe.html          | 2 +-
+ public/index.html          | 2 +-
+ public/lovecounter.html    | 2 +-
+ public/meetplanner.html    | 2 +-
+ public/movie.html          | 2 +-
+ public/music.html          | 2 +-
+ public/places.html         | 2 +-
+ public/privacy-policy.html | 2 +-
+ public/sw.js               | 2 +-
+ 13 files changed, 13 insertions(+), 13 deletions(-)
+
+diff --git a/public/collection.html b/public/collection.html
+index 53c9d95..eb048af 100644
+--- a/public/collection.html
++++ b/public/collection.html
+@@ -259,7 +259,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=1">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/daily-routine.html b/public/daily-routine.html
+index d6efefe..e377e95 100644
+--- a/public/daily-routine.html
++++ b/public/daily-routine.html
+@@ -164,7 +164,7 @@ button{font-family:inherit}
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=1">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/dreamgoals.html b/public/dreamgoals.html
+index 7399f56..9a11c11 100644
+--- a/public/dreamgoals.html
++++ b/public/dreamgoals.html
+@@ -254,7 +254,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=1">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/games.html b/public/games.html
+index 64eb07f..2b30462 100644
+--- a/public/games.html
++++ b/public/games.html
+@@ -540,7 +540,7 @@ button{font-family:inherit;cursor:pointer}
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=1">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/globe.html b/public/globe.html
+index f498f11..f76ec95 100644
+--- a/public/globe.html
++++ b/public/globe.html
+@@ -433,7 +433,7 @@
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=1">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=2">
+ </head>
+ <body>
+ <div id="app">
+diff --git a/public/index.html b/public/index.html
+index 9d8a3cd..266a077 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -4855,7 +4855,7 @@ select option { background: #270719; color: #fff; }
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+ <link rel="stylesheet" href="/dashboard-burgundy.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=1">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=2">
+ </head>
+ 
+ <body class="t-blue">
+diff --git a/public/lovecounter.html b/public/lovecounter.html
+index 64bcc85..259deaa 100644
+--- a/public/lovecounter.html
++++ b/public/lovecounter.html
+@@ -343,7 +343,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=1">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/meetplanner.html b/public/meetplanner.html
+index 61a5c4e..98fbcc9 100644
+--- a/public/meetplanner.html
++++ b/public/meetplanner.html
+@@ -369,7 +369,7 @@ textarea.mp-input{resize:vertical;min-height:84px;line-height:1.6}
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=1">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/movie.html b/public/movie.html
+index a9069eb..59f8348 100644
+--- a/public/movie.html
++++ b/public/movie.html
+@@ -15,7 +15,7 @@
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=1">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/music.html b/public/music.html
+index 49e3acb..2aa0bc2 100644
+--- a/public/music.html
++++ b/public/music.html
+@@ -15,7 +15,7 @@
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=1">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/places.html b/public/places.html
+index b4036f5..409f53d 100644
+--- a/public/places.html
++++ b/public/places.html
+@@ -186,7 +186,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=1">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/privacy-policy.html b/public/privacy-policy.html
+index 87054c8..3258ab2 100644
+--- a/public/privacy-policy.html
++++ b/public/privacy-policy.html
+@@ -94,7 +94,7 @@
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=1">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=2">
+ </head>
+ <body>
+ 
+diff --git a/public/sw.js b/public/sw.js
+index 15b5bd2..250a9ff 100644
+--- a/public/sw.js
++++ b/public/sw.js
+@@ -1,5 +1,5 @@
+ // Service Worker for Twin Hearts 💕 PWA — v5
+-const CACHE = 'uwl-v29'; // bumped: purges stale cached assets (incl. old movie.css) on activate
++const CACHE = 'uwl-v30'; // bumped: purges stale cached assets (incl. old movie.css) on activate
+ const OFFLINE_ASSETS = [
+   '/',
+   '/index.html',
+-- 
+2.43.0
+
