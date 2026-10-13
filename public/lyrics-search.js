@@ -29,9 +29,10 @@
    * @returns {Promise<object>} { found, provider, lyricsNative, lyricsLatin, syncType }
    */
   async function search(clean, durationSec, ids) {
-    if (!clean || !clean.cleanTitle) return { found: false };
+    if (!clean || (!clean.cleanTitle && !clean.filename)) return { found: false };
     return window.LyricsImportService.searchBeforeImport({
-      title: clean.cleanTitle,
+      title: clean.cleanTitle || '',
+      filename: clean.filename,
       artist: clean.cleanArtist,
       album: clean.cleanAlbum,
       durationSec,

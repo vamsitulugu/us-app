@@ -57,6 +57,26 @@
     return data;
   }
 
+  // FAST upload: browser → Supabase Storage directly via a signed URL.
+  // Falls back to the old /api/media/upload-audio route if that fails.
+  async function uploadAudio(file, ctx) {
+    try {
+      const s = await api('POST', '/api/media/audio-upload-url', { coupleId: ctx.coupleId, filename: file.name, size: file.size });
+      const form = new FormData();
+      form.append('cacheControl', '3600');
+      form.append('', file);
+      const r = await fetch(s.signedUrl, { method: 'PUT', body: form });
+      if (!r.ok) throw new Error('direct upload ' + r.status);
+      return { url: s.url, path: s.path };
+    } catch (e) {
+      const f = new FormData(); f.append('file', file); f.append('coupleId', ctx.coupleId);
+      return api('POST', '/api/media/upload-audio', f, true);
+    }
+  }
+  function withTimeout(p, ms, fallback) {
+    return Promise.race([p, new Promise(r => setTimeout(() => r(fallback), ms))]);
+  }
+
   function escH(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   function fmtDur(sec) { if (!sec) return '0:00'; const m = Math.floor(sec / 60), s = Math.floor(sec % 60); return m + ':' + (s + '').padStart(2, '0'); }
   function toast(msg) { if (window.MusicPlayer && window.MusicPlayer.toast) window.MusicPlayer.toast(msg); }
@@ -236,9 +256,10 @@
 
   function enqueueFiles(fileList, inputEl) {
     const files = Array.from(fileList).filter(f => window.MetadataService.isSupported(f));
-    if (!files.length) { toast('No valid audio files selected'); return; }
-    queue.push(...files);
     if (inputEl) inputEl.value = ''; // allow re-selecting the same file later
+    if (!files.length) { toast('No valid audio files selected'); return; }
+    if (files.length > 1) { runBatch(files); return; }  // multi-select => automatic quick import
+    queue.push(...files);
     if (!current) processNext();
   }
 
@@ -246,54 +267,91 @@
     if (!queue.length) { current = null; return; }
     const file = queue.shift();
     current = { file };
+    const ctx = getCoupleCtx();
+    // Start uploading the audio the moment the file is picked — it runs
+    // while the user reviews the form, so Save is near-instant.
+    const uploadPromise = ctx ? uploadAudio(file, ctx) : null;
+    if (uploadPromise) uploadPromise.catch(() => {});
     showProgress(file.name);
 
     try {
-      // STEP 1 — read raw metadata (async, non-blocking UI)
       setProgressStep('meta');
       const rawMeta = await window.MetadataService.extract(file);
-      // STEP 2 — normalize instantly, locally, no API calls. Preserves
-      // every raw* field and adds clean* fields alongside them (this is
-      // also where the "[object Object]" Album Artist bug is fully
-      // neutralized — MetadataNormalizer.coerceToString never lets a raw
-      // object reach the form, even if metadata-service missed a shape).
       const meta = window.MetadataNormalizer.normalize(rawMeta);
       current.meta = meta;
-
-      // STEP 3 — artwork already extracted as part of meta (local, instant)
-      setProgressStep('art');
       current.pictureDataUrl = meta.pictureDataUrl;
-      await tinyDelay(150); // lets the animation actually be visible/readable
 
-      // STEP 5 — search lyrics automatically in the background using ONLY
-      // cleaned metadata (never the branded raw tags), via the multi-
-      // attempt strategy in lyrics-search.js. Not awaited here — it keeps
-      // running while the verify form is open, so it's usually ready by
-      // the time the user reviews the form.
-      setProgressStep('lyrics');
       const lyricsPromise = window.LyricsSearch.search(
-        { cleanTitle: meta.cleanTitle, cleanArtist: meta.cleanArtist, cleanAlbum: meta.cleanAlbum },
+        { cleanTitle: meta.cleanTitle, cleanArtist: meta.cleanArtist, cleanAlbum: meta.cleanAlbum, filename: file.name },
         meta.durationSec
       );
 
       hideProgress();
       const verified = await openVerifyForm(file, meta, lyricsPromise);
-      if (verified === null) { // user cancelled
-        processNext();
-        return;
-      }
+      if (verified === null) { processNext(); return; } // cancelled
 
       showProgress(file.name);
       setProgressStep('save');
-      await saveSong(file, verified);
+      await saveSong(file, verified, uploadPromise);
       setProgressStep('done');
-      await tinyDelay(600);
+      await tinyDelay(250);
       hideProgress();
     } catch (e) {
       hideProgress();
       toast('Import failed: ' + e.message + ' — try again or edit manually');
     }
     processNext();
+  }
+
+  /* ═══════════════════════════════════════
+     BATCH (multi-select): fully automatic, 3 songs at a time.
+     Metadata → duplicate check → [upload ‖ lyrics ‖ artwork] → save.
+     Duplicates are skipped; lyrics missed here are retried by the
+     background worker. Edit any song afterwards from the song menu.
+  ═══════════════════════════════════════ */
+  async function runBatch(files) {
+    const ctx = getCoupleCtx();
+    if (!ctx) { toast('Not connected yet'); return; }
+    let idx = 0, done = 0, ok = 0, skipped = 0, failed = 0;
+    const total = files.length;
+    showProgress(`0 / ${total} songs`);
+    document.getElementById('misStepLabel').textContent = 'Importing songs…';
+    const tick = () => { document.getElementById('misStepSub').textContent = `${done} / ${total} songs`; };
+
+    const worker = async () => {
+      while (idx < files.length) {
+        const file = files[idx++];
+        try { (await importOneAuto(file, ctx)) === 'dup' ? skipped++ : ok++; }
+        catch (e) { failed++; console.warn('[import]', file.name, e.message); }
+        done++; tick();
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(3, total) }, worker));
+    hideProgress();
+    toast(`✅ ${ok} imported` + (skipped ? ` · ${skipped} already existed` : '') + (failed ? ` · ${failed} failed` : ''));
+  }
+
+  async function importOneAuto(file, ctx) {
+    const meta = window.MetadataNormalizer.normalize(await window.MetadataService.extract(file));
+    const title = meta.cleanTitle || (file.name || 'Untitled').replace(/\.[^.]+$/, '');
+    const artist = meta.cleanArtist || 'Unknown Artist';
+    if (window.CacheService.findDuplicate(window.Store.songs, { title, artist, durationSec: meta.durationSec })) return 'dup';
+
+    const [audioRes, lyricsRes, coverUrl] = await Promise.all([
+      uploadAudio(file, ctx),
+      withTimeout(window.LyricsSearch.search({ cleanTitle: title, cleanArtist: meta.cleanArtist, cleanAlbum: meta.cleanAlbum, filename: file.name }, meta.durationSec), 9000, { found: false }),
+      meta.pictureDataUrl ? window.ArtworkService.uploadArtwork(ctx.coupleId, meta.pictureDataUrl, file) : Promise.resolve(null),
+    ]);
+    await createSongRow(ctx, {
+      meta, audioRes, coverUrl, lyricsRes,
+      verified: {
+        title, artist, album: meta.cleanAlbum || null, genre: meta.cleanGenre || null, year: meta.year || null,
+        albumArtist: meta.cleanAlbumArtist || null, composer: meta.cleanComposer || null,
+        track: meta.track || null, disc: meta.disc || null, visibility: 'both',
+      },
+      quiet: true,
+    });
+    return 'ok';
   }
 
   function tinyDelay(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -417,7 +475,7 @@
   /* ═══════════════════════════════════════
      SAVE (Steps 6/7/8 — upload, cache lyrics + art, expanded DB row)
   ═══════════════════════════════════════ */
-  async function saveSong(file, verified) {
+  async function saveSong(file, verified, uploadPromise) {
     const ctx = getCoupleCtx();
     if (!ctx) { toast('Not connected yet'); return; }
 
@@ -429,26 +487,17 @@
       if (removed) window.Store.songs = window.Store.songs.filter(s => s.id !== verified._replaceId);
     }
 
-    // Upload audio (existing endpoint, untouched)
-    const audioForm = new FormData();
-    audioForm.append('file', file);
-    audioForm.append('coupleId', ctx.coupleId);
-    const audioRes = await api('POST', '/api/media/upload-audio', audioForm, true);
+    // Audio is usually already uploaded (started when the file was picked);
+    // artwork uploads in parallel with whatever is left of it.
+    const coverP = current.pictureDataUrl
+      ? window.ArtworkService.uploadArtwork(ctx.coupleId, current.replacedArtFile || current.pictureDataUrl, current.replacedArtFile ? null : file)
+      : Promise.resolve(null);
+    const [audioRes, coverUrl] = await Promise.all([uploadPromise || uploadAudio(file, ctx), coverP]);
 
-    // Upload artwork if we have any (embedded or user-replaced), Step 7 —
-    // cached by file fingerprint so the same file is never re-uploaded twice
-    let coverUrl = null;
-    if (current.pictureDataUrl) {
-      coverUrl = await window.ArtworkService.uploadArtwork(
-        ctx.coupleId,
-        current.replacedArtFile || current.pictureDataUrl,
-        current.replacedArtFile ? null : file
-      );
-    }
+    await createSongRow(ctx, { meta: verified.meta, audioRes, coverUrl, lyricsRes: verified.lyricsRes || { found: false }, verified });
+  }
 
-    const meta = verified.meta;
-    const lyricsRes = verified.lyricsRes || { found: false };
-
+  async function createSongRow(ctx, { meta, audioRes, coverUrl, lyricsRes, verified, quiet }) {
     const song = await api('POST', '/api/music', {
       coupleId: ctx.coupleId,
       title: verified.title,
@@ -472,9 +521,6 @@
       lyricsCached: !!lyricsRes.found,
       lyricsSource: lyricsRes.found ? lyricsRes.source : null,
       lyricsUpdatedAt: lyricsRes.found ? new Date().toISOString() : null,
-      // Metadata Normalization Engine — store BOTH versions permanently
-      // (Step: DATABASE). Original MP3/tags are never modified; this is
-      // purely additional bookkeeping on the song row.
       rawTitle: meta.rawTitle, cleanTitle: meta.cleanTitle,
       rawArtist: meta.rawArtist, cleanArtist: meta.cleanArtist,
       rawAlbum: meta.rawAlbum, cleanAlbum: meta.cleanAlbum,
@@ -483,16 +529,13 @@
 
     window.Store.songs.unshift(song);
     window.AudioService.setLibrary(window.Store.songs);
-    if (window.MusicPlayer && window.MusicPlayer.loadSongs) { /* already merged locally above */ }
     if (typeof window.renderMusicTracks === 'function') window.renderMusicTracks();
     if (typeof window.checkAchievements === 'function') window.checkAchievements();
 
-    // Step 8 — background lyric search, fired AFTER save, never blocking
-    // the user. If lyrics_cached is already true (fast path found them
-    // before Save was clicked), the worker sees that and skips instantly.
+    // No lyrics yet? the background worker keeps trying after save (never blocks).
     window.LyricsBackgroundWorker.enqueue(song, ctx.coupleId);
-
-    toast('✅ ' + verified.title + ' imported!');
+    if (!quiet) toast('✅ ' + verified.title + ' imported!');
+    return song;
   }
 
   /* ═══════════════════════════════════════

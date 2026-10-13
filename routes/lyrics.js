@@ -27,7 +27,7 @@ try { Sanscript = require('@indic-transliteration/sanscript'); } catch (e) {
 
 const LRCLIB_BASE = 'https://lrclib.net/api';
 const DURATION_TOLERANCE = 3; // seconds
-const FETCH_TIMEOUT_MS = 2500;
+const FETCH_TIMEOUT_MS = 4000;
 const MISSING_RETRY_COOLDOWN_MS = 24 * 60 * 60 * 1000; // don't re-hit providers for a song that failed <24h ago
 
 /* ─────────────────────────────────────────────
@@ -39,7 +39,7 @@ function normalize(s) {
     .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
     .replace(/\(.*?\)|\[.*?\]/g, ' ')
     .replace(/feat\.?|ft\.?|official|video|audio|lyrics?|remaster(ed)?/g, ' ')
-    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/[^\p{L}\p{N}\p{M}]+/gu, ' ')
     .trim()
     .replace(/\s+/g, ' ');
 }
@@ -51,11 +51,11 @@ function similarity(a, b) {
   ta.forEach(t => { if (tb.has(t)) shared++; });
   return shared / Math.max(ta.size, tb.size);
 }
-async function fetchJson(url, timeoutMs = FETCH_TIMEOUT_MS) {
+async function fetchJson(url, timeoutMs = FETCH_TIMEOUT_MS, extraHeaders = {}) {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const r = await fetch(url, { headers: { 'User-Agent': 'US-Couple-App/1.0' }, signal: controller.signal });
+    const r = await fetch(url, { headers: { 'User-Agent': 'US-Couple-App/1.0', ...extraHeaders }, signal: controller.signal });
     if (!r.ok) return null;
     try { return await r.json(); } catch (e) { return null; }
   } catch (e) {
@@ -108,10 +108,9 @@ function candidateScriptMismatch(expectedScript, candidateLrc) {
 }
 
 /* ─────────────────────────────────────────────
-   PROVIDERS — searched in priority order. Each provider function:
-     - never throws (catches its own errors)
-     - returns { lrc, syncType } on success, or null on miss/failure
-     - logs its own attempt to lyrics_search_history via logAttempt()
+   LYRICS ENGINE v5 — identify the song first, then search every
+   provider IN PARALLEL with every candidate name, score each result
+   (title + artist + duration), and take the best synced match.
 ───────────────────────────────────────────── */
 async function logAttempt({ songId, provider, query, success, responseTimeMs }) {
   try {
@@ -121,130 +120,144 @@ async function logAttempt({ songId, provider, query, success, responseTimeMs }) 
   } catch (e) { /* logging must never break the search */ }
 }
 
-// Priority 1 — LRCLIB (synced, free, no key required)
-async function providerLRCLIB({ songId, title, artist, album, durationSec }) {
-  const started = Date.now();
-  const expectedScript = detectScript(`${title || ''} ${artist || ''}`);
+// Strip website junk ("Rock On Bro - .Co", "SenSongsMp3.Co", "(From "Peddi")", "320kbps", "01 - ")
+const JUNK_RE = /\b[\w-]+\.(com|co|in|net|org|me|fm|info|mobi)\b|\b(sensongsmp3|naasongs|masstamilan|isaimini|starmusiq|pagalworld|mrjatt|djpunjab|tamilwire|kuttyweb|moviesda|songspk|wapking|downloadming|raagtunes|a2zwap|naa\s*songs)\b|\b\d{2,3}\s*kbps\b|\b(official|lyrical?|full|audio|video|song|hd|hq)\b(\s+(audio|video|song))?/gi;
+function stripJunk(s) {
+  let t = String(s || '').replace(/_/g, ' ');
+  t = t.replace(/^\s*\d{1,3}\s*[-._)]\s*/, '');                       // leading track number
+  t = t.split(/\s[-–—|:]\s/).filter(p => p.trim() && !/^\.?(com|co|in|net|org|me|fm)$/i.test(p.trim())).join(' - ');
+  t = t.replace(JUNK_RE, ' ');
+  t = t.replace(/\(\s*\)|\[\s*\]/g, ' ').replace(/\s{2,}/g, ' ');
+  return t.replace(/^[\s\-–—:|,._]+|[\s\-–—:|,._]+$/g, '').trim();
+}
+function movieFrom(s) {
+  const m = String(s || '').match(/[\(\[]\s*(?:from|movie|film)?\s*[:\-]?\s*["“']?([^()\[\]"”']{2,60})["”']?\s*[\)\]]/i);
+  return m && /from|movie|film/i.test(m[0]) ? m[1].trim() : null;
+}
+function stripBrackets(s) { return String(s || '').replace(/\s*[\(\[][^()\[\]]*[\)\]]/g, ' ').replace(/\s{2,}/g, ' ').trim(); }
+function firstArtist(a) { return String(a || '').split(/,|&|\bfeat\.?\b|\bft\.?\b|\band\b|;|\//i)[0].trim(); }
+
+function buildCandidates({ title, artist, album, filename }) {
+  const out = [];
+  const add = (t, a) => {
+    t = stripJunk(stripBrackets(t)); a = a ? stripJunk(a) : '';
+    if (!t || t.length < 2) return;
+    out.push({ title: t, artist: a });
+    if (a && firstArtist(a) !== a) out.push({ title: t, artist: firstArtist(a) });
+    out.push({ title: t, artist: '' });
+  };
+  add(title, artist);
+  if (filename) {
+    const base = String(filename).replace(/\.[a-z0-9]{2,4}$/i, '');
+    const parts = stripJunk(base).split(/\s[-–]\s/);
+    if (parts.length >= 2) { add(parts[1], parts[0]); add(parts[0], parts[1]); }
+    add(base, artist);
+  }
+  const movie = movieFrom(title) || movieFrom(filename);
+  if (movie) add(title, movie);
+  // dedupe
+  const seen = new Set();
+  return out.filter(c => { const k = normalize(c.title) + '|' + normalize(c.artist); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 6);
+}
+
+function scoreCandidate(want, got, durationSec) {
+  const t = similarity(want.title, got.title);
+  const a = want.artist ? Math.max(similarity(want.artist, got.artist), similarity(firstArtist(want.artist), got.artist)) : 0.5;
+  let d = 0.5, durOk = true;
+  if (durationSec && got.duration) {
+    const diff = Math.abs(got.duration - durationSec);
+    d = diff <= DURATION_TOLERANCE ? 1 : Math.max(0, 1 - diff / 30);
+    if (diff > 8) durOk = false;
+  }
+  return { score: t * 0.55 + a * 0.2 + d * 0.25, titleScore: t, durOk };
+}
+
+// ── Provider: LRCLIB (all candidates, in parallel) ──
+async function searchLRCLIB(cands, durationSec, album) {
   const jobs = [];
-
-  if (title && artist) {
-    const qs = new URLSearchParams({ track_name: title, artist_name: artist });
-    if (album) qs.set('album_name', album);
-    if (durationSec) qs.set('duration', String(Math.round(durationSec)));
-    jobs.push({ type: 'direct', promise: fetchJson(`${LRCLIB_BASE}/get?${qs.toString()}`) });
-  }
-  const attempts = [];
-  if (title && artist) attempts.push(`${title} ${artist}`);
-  if (title) attempts.push(title);
-  [...new Set(attempts.filter(Boolean))].forEach(q => {
-    jobs.push({ type: 'search', promise: fetchJson(`${LRCLIB_BASE}/search?q=${encodeURIComponent(q)}`) });
+  cands.forEach(c => {
+    if (c.artist) {
+      const qs = new URLSearchParams({ track_name: c.title, artist_name: c.artist });
+      if (album) qs.set('album_name', stripJunk(album));
+      if (durationSec) qs.set('duration', String(Math.round(durationSec)));
+      jobs.push(fetchJson(`${LRCLIB_BASE}/get?${qs}`).then(r => r ? [r] : []));
+    }
+    jobs.push(fetchJson(`${LRCLIB_BASE}/search?q=${encodeURIComponent((c.title + ' ' + c.artist).trim())}`).then(r => Array.isArray(r) ? r : []));
+    jobs.push(fetchJson(`${LRCLIB_BASE}/search?track_name=${encodeURIComponent(c.title)}`).then(r => Array.isArray(r) ? r : []));
   });
-
-  const settled = await Promise.allSettled(jobs.map(j => j.promise));
-  const directIdx = jobs.findIndex(j => j.type === 'direct');
-  if (directIdx > -1 && settled[directIdx].status === 'fulfilled') {
-    const direct = settled[directIdx].value;
-    if (direct && direct.syncedLyrics && !candidateScriptMismatch(expectedScript, direct.syncedLyrics)) {
-      await logAttempt({ songId, provider: 'lrclib', query: `${title} ${artist || ''}`, success: true, responseTimeMs: Date.now() - started });
-      return { lrc: direct.syncedLyrics, syncType: 'synced' };
-    }
-  }
-  let best = null, bestScore = -1;
-  jobs.forEach((job, i) => {
-    if (job.type !== 'search') return;
-    const r = settled[i];
-    if (r.status !== 'fulfilled' || !Array.isArray(r.value)) return;
-    for (const cand of r.value) {
-      if (!cand.syncedLyrics || candidateScriptMismatch(expectedScript, cand.syncedLyrics)) continue;
-      const titleScore = similarity(title || '', cand.trackName || '');
-      const artistScore = artist ? similarity(artist, cand.artistName || '') : 0.5;
-      let durScore = 0.5;
-      if (durationSec && cand.duration) {
-        durScore = Math.abs(cand.duration - durationSec) <= DURATION_TOLERANCE ? 1 : Math.max(0, 1 - Math.abs(cand.duration - durationSec) / 30);
-      }
-      const score = titleScore * 0.5 + artistScore * 0.3 + durScore * 0.2;
-      if (score > bestScore) { bestScore = score; best = cand; }
-    }
-  });
-  if (best && bestScore >= 0.35) {
-    await logAttempt({ songId, provider: 'lrclib', query: `${title} ${artist || ''}`, success: true, responseTimeMs: Date.now() - started });
-    return { lrc: best.syncedLyrics, syncType: 'synced' };
-  }
-  await logAttempt({ songId, provider: 'lrclib', query: `${title} ${artist || ''}`, success: false, responseTimeMs: Date.now() - started });
-  return null;
+  const all = (await Promise.all(jobs)).flat();
+  return all.map(r => ({
+    provider: 'lrclib', title: r.trackName || '', artist: r.artistName || '', duration: r.duration || 0,
+    synced: r.syncedLyrics || null, plain: r.plainLyrics || null,
+  })).filter(r => r.synced || r.plain);
 }
 
-// Priority 2 — LRCMUX (community synced-lyrics mirror). Endpoint shape
-// varies by deployment — wrapped in try/catch so a dead/misconfigured
-// mirror just counts as a miss and the chain moves on, per Step 14.
-async function providerLRCMUX({ songId, title, artist, durationSec }) {
+// ── Provider: NetEase (big catalogue incl. Indian film songs, synced) ──
+async function searchNetEase(cands, durationSec) {
+  const H = { 'User-Agent': 'Mozilla/5.0', Referer: 'https://music.163.com/' };
+  const queries = [...new Set(cands.slice(0, 3).map(c => (c.title + ' ' + c.artist).trim()))];
+  const found = [];
+  await Promise.all(queries.map(async q => {
+    const r = await fetchJson(`https://music.163.com/api/search/get?s=${encodeURIComponent(q)}&type=1&limit=6`, 4000, H);
+    ((r && r.result && r.result.songs) || []).forEach(s => found.push({
+      id: s.id, title: s.name || '', artist: (s.artists || []).map(x => x.name).join(', '), duration: (s.duration || 0) / 1000,
+    }));
+  }));
+  const uniq = [...new Map(found.map(f => [f.id, f])).values()];
+  const want = cands[0];
+  const ranked = uniq.map(u => ({ u, ...scoreCandidate(want, u, durationSec) })).sort((a, b) => b.score - a.score).slice(0, 2);
+  const out = [];
+  await Promise.all(ranked.map(async ({ u }) => {
+    const l = await fetchJson(`https://music.163.com/api/song/lyric?id=${u.id}&lv=1&kv=1&tv=-1`, 4000, H);
+    const lrc = l && l.lrc && l.lrc.lyric;
+    if (lrc && /\[\d{1,2}:\d{2}/.test(lrc)) out.push({ provider: 'netease', ...u, synced: lrc, plain: null });
+  }));
+  return out;
+}
+
+// ── Provider: lyrics.ovh (plain text last resort) ──
+async function searchOvh(cands) {
+  const c = cands.find(x => x.artist);
+  if (!c) return [];
+  const d = await fetchJson(`https://api.lyrics.ovh/v1/${encodeURIComponent(c.artist)}/${encodeURIComponent(c.title)}`, 4000);
+  return d && d.lyrics && d.lyrics.trim() ? [{ provider: 'lyricsovh', title: c.title, artist: c.artist, duration: 0, synced: null, plain: d.lyrics.trim() }] : [];
+}
+
+async function smartSearch({ songId, title, artist, album, durationSec, filename }) {
   const started = Date.now();
-  if (!title || !artist) { await logAttempt({ songId, provider: 'lrcmux', query: title, success: false, responseTimeMs: 0 }); return null; }
-  try {
-    const qs = new URLSearchParams({ title, artist });
-    if (durationSec) qs.set('duration', String(Math.round(durationSec)));
-    const data = await fetchJson(`https://lrcmux.deno.dev/api/search?${qs.toString()}`);
-    const lrc = data && (data.syncedLyrics || data.lrc || (Array.isArray(data.results) && data.results[0] && data.results[0].syncedLyrics));
-    if (lrc) {
-      await logAttempt({ songId, provider: 'lrcmux', query: `${title} ${artist}`, success: true, responseTimeMs: Date.now() - started });
-      return { lrc, syncType: 'synced' };
-    }
-  } catch (e) { /* fall through to miss */ }
-  await logAttempt({ songId, provider: 'lrcmux', query: `${title} ${artist || ''}`, success: false, responseTimeMs: Date.now() - started });
-  return null;
-}
+  const cands = buildCandidates({ title, artist, album, filename });
+  if (!cands.length) return null;
+  const want = cands[0];
+  const expectedScript = detectScript(`${title || ''} ${artist || ''}`);
 
-// Priority 3 — lyrics.ovh (free, plain/unsynced text only). Last-resort
-// fallback so "no lyrics at all" is rarer, clearly marked sync_type='plain'
-// so the player can show it without pretending it's timestamp-synced.
-async function providerLyricsOvh({ songId, title, artist }) {
-  const started = Date.now();
-  if (!title || !artist) { await logAttempt({ songId, provider: 'lyricsovh', query: title, success: false, responseTimeMs: 0 }); return null; }
-  try {
-    const data = await fetchJson(`https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`);
-    if (data && data.lyrics && data.lyrics.trim()) {
-      await logAttempt({ songId, provider: 'lyricsovh', query: `${title} ${artist}`, success: true, responseTimeMs: Date.now() - started });
-      return { lrc: data.lyrics.trim(), syncType: 'plain' };
-    }
-  } catch (e) { /* fall through to miss */ }
-  await logAttempt({ songId, provider: 'lyricsovh', query: `${title} ${artist || ''}`, success: false, responseTimeMs: Date.now() - started });
-  return null;
-}
-
-const PROVIDERS = [
-  { id: 'lrclib', run: providerLRCLIB },
-  { id: 'lrcmux', run: providerLRCMUX },
-  { id: 'lyricsovh', run: providerLyricsOvh },
-];
-
-/* ─────────────────────────────────────────────
-   SMART SEARCH ENGINE — Step 5 multi-attempt strategy, run once
-   PER PROVIDER, in priority order, stopping at the first success
-   across the whole provider list.
-───────────────────────────────────────────── */
-function fuzzyTitle(title) {
-  if (!title) return title;
-  return title.replace(/\s*[\(\[][^()\[\]]*[\)\]]\s*$/g, '').trim() || title;
-}
-
-async function smartSearch({ songId, title, artist, album, durationSec }) {
-  const attempts = [
-    { title, artist },
-    { title, artist: undefined },
-    { title, artist: undefined, album },
-    { title, artist: undefined, durationSec },
-    { title: fuzzyTitle(title), artist },
-  ];
-  for (const provider of PROVIDERS) {
-    for (const attempt of attempts) {
-      const result = await provider.run({
-        songId, title: attempt.title, artist: attempt.artist, album: attempt.album, durationSec,
-      });
-      if (result && result.lrc) return { ...result, provider: provider.id };
-    }
+  const [lr, ne] = await Promise.all([
+    searchLRCLIB(cands, durationSec, album).catch(() => []),
+    searchNetEase(cands, durationSec).catch(() => []),
+  ]);
+  const pool = [...lr, ...ne];
+  let best = null;
+  for (const r of pool) {
+    if (!r.synced) continue;
+    if (candidateScriptMismatch(expectedScript, r.synced)) continue;
+    // best score over every candidate name we generated
+    const s = Math.max(...cands.map(c => scoreCandidate(c, r, durationSec).score));
+    const t = Math.max(...cands.map(c => scoreCandidate(c, r, durationSec).titleScore));
+    const durOk = scoreCandidate(want, r, durationSec).durOk;
+    if (t < 0.5 || !durOk || s < 0.5) continue;
+    if (!best || s > best.s) best = { s, r };
   }
+  const log = (p, ok) => logAttempt({ songId, provider: p, query: `${want.title} ${want.artist}`, success: ok, responseTimeMs: Date.now() - started });
+  if (best) { log(best.r.provider, true); return { lrc: best.r.synced, syncType: 'synced', provider: best.r.provider }; }
+
+  // plain-text fallback (LRCLIB plain first, then lyrics.ovh)
+  const plainLr = pool.filter(r => r.plain && Math.max(...cands.map(c => scoreCandidate(c, r, durationSec).titleScore)) >= 0.6)[0];
+  if (plainLr) { log('lrclib', true); return { lrc: plainLr.plain, syncType: 'plain', provider: 'lrclib' }; }
+  const ovh = await searchOvh(cands).catch(() => []);
+  if (ovh[0]) { log('lyricsovh', true); return { lrc: ovh[0].plain, syncType: 'plain', provider: 'lyricsovh' }; }
+  log('all', false);
   return null;
 }
+
 
 /* ─────────────────────────────────────────────
    POST /api/lyrics/auto-fetch
@@ -252,8 +265,8 @@ async function smartSearch({ songId, title, artist, album, durationSec }) {
    body: { songId, coupleId, title, artist, album, durationSec }
 ───────────────────────────────────────────── */
 router.post('/auto-fetch', async (req, res) => {
-  const { songId, coupleId, title, artist, album, durationSec } = req.body;
-  if (!title) return res.status(400).json({ found: false, error: 'title required' });
+  const { songId, coupleId, title, artist, album, durationSec, filename } = req.body;
+  if (!title && !filename) return res.status(400).json({ found: false, error: 'title required' });
 
   try {
     if (songId) {
@@ -268,7 +281,7 @@ router.post('/auto-fetch', async (req, res) => {
       }
     }
 
-    const result = await smartSearch({ songId, title, artist, album, durationSec });
+    const result = await smartSearch({ songId, title, artist, album, durationSec, filename });
 
     if (result) {
       const lrcLatin = transliterateLRC(result.lrc);

@@ -185,6 +185,26 @@ router.post('/upload-audio', handleUploadErrors(uploadAudio.single('file')), asy
     return res.json({ url: urlData.publicUrl, path: name });
 });
 
+// ── POST /api/media/audio-upload-url ───────────────────
+// FAST PATH: returns a one-time signed URL so the browser uploads the song
+// straight to Supabase Storage (skips the browser → Render → Supabase double
+// transfer and Render cold-starts). The returned publicUrl is exactly what
+// POST /api/music already validates, so nothing else changes.
+router.post('/audio-upload-url', async (req, res) => {
+    const { coupleId, filename, size } = req.body || {};
+    if (!coupleId) return res.status(400).json({ error: 'coupleId required' });
+    const ext = audioExt(filename || '');
+    if (!ext) return res.status(400).json({ error: 'Unsupported audio format' });
+    if (size && size > 60 * 1024 * 1024) return res.status(413).json({ error: 'That file is too large to upload.' });
+
+    const name   = `${coupleId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const bucket = 'couple-music';
+    const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(name);
+    if (error || !data) return res.status(500).json({ error: (error && error.message) || 'Could not create upload URL' });
+    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(name);
+    return res.json({ signedUrl: data.signedUrl, token: data.token, path: name, url: urlData.publicUrl, contentType: AUDIO_EXT_TYPES[ext] });
+});
+
 // ── POST /api/media/upload-cover ───────────────────────
 // Uploads album art to the public 'couple-music-covers' bucket.
 router.post('/upload-cover', handleUploadErrors(upload.single('file')), async (req, res) => {

@@ -33,7 +33,8 @@
   // Separator characters/sequences commonly used to glue branding onto titles
   const SEPARATOR_RE = /(::|--|\|\||\||~|»|>>|_{2,})/g;
 
-  function stripSites(s) { return s.replace(SITE_RE, ' '); }
+  const DOMAIN_RE = /(\s[-–|:]\s*)?\b[\w-]*\.(com|co|in|net|org|me|fm|info|mobi)\b|\s[-–|:]\s*\.[a-z]{2,4}\s*$/gi;
+  function stripSites(s) { return s.replace(SITE_RE, ' ').replace(DOMAIN_RE, ' '); }
   function stripQualityTags(s) { return s.replace(QUALITY_TAGS_RE, ' '); }
   function stripSeparatorArtifacts(s) { return s.replace(SEPARATOR_RE, ' '); }
 

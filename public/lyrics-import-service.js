@@ -30,15 +30,15 @@
    * attaches whatever lyrics come back directly onto the POST /api/music
    * payload once the song is created, so nothing is fetched twice.
    */
-  async function searchBeforeImport({ title, artist, album, durationSec, songId, coupleId }) {
-    if (!title) return { found: false };
+  async function searchBeforeImport({ title, artist, album, durationSec, songId, coupleId, filename }) {
+    if (!title && !filename) return { found: false };
     try {
       const r = await fetch(API + '/api/lyrics/auto-fetch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title, artist: artist || undefined, album: album || undefined, durationSec: durationSec || undefined,
-          songId: songId || undefined, coupleId: coupleId || undefined,
+          songId: songId || undefined, coupleId: coupleId || undefined, filename: filename || undefined,
         }),
       });
       if (!r.ok) return { found: false };
