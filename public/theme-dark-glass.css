@@ -83,11 +83,14 @@ html[data-theme="dark"] :is(.set-row,.cat-row):hover { background: rgba(255,255,
 html[data-theme="dark"] .cat-row { border-bottom-color: rgba(255,255,255,.09); }
 
 /* today's event keeps its white highlight, text goes dark-neutral (not burgundy) */
-html[data-theme="dark"] .dw-ev.is-today { background: rgba(255,255,255,.94) !important; color: #161214; border-color: #fff !important; }
-html[data-theme="dark"] .dw-ev.is-today .dw-ev-d { color: #161214 !important; }
-html[data-theme="dark"] .dw-ev.is-today .dw-ev-ico { background: rgba(0,0,0,.08); }
+html[data-theme="dark"] .dw-ev.is-today {
+  background: var(--gl-fill-strong) !important; background-color: rgba(255,255,255,.04) !important;
+  color: #fff; border-color: rgba(255,255,255,.30) !important;
+}
+html[data-theme="dark"] .dw-ev.is-today :is(.dw-ev-d,.dw-ev-tx,.dw-ev-tx b,.dw-ev-tx i) { color: #fff !important; }
+html[data-theme="dark"] .dw-ev.is-today .dw-ev-tx i { color: rgba(255,255,255,.72) !important; }
 html[data-theme="dark"] .dw-ev .dw-ev-d { color: #fff !important; }
-html[data-theme="dark"] .dw-ev .dw-ev-ico { background: rgba(255,255,255,.12); }
+html[data-theme="dark"] .dw-ev .dw-ev-ico, html[data-theme="dark"] .dw-ev.is-today .dw-ev-ico { background: rgba(255,255,255,.12); color: #fff; }
 
 /* big neutral panels (were deep pink) */
 html[data-theme="dark"] .dh-sheet { background: #130e10 !important; border-top: 1px solid var(--gl-line); }
@@ -168,15 +171,16 @@ html[data-theme="dark"] .set-hero-av > span { border-color: rgba(255,255,255,.4)
 
 /* ═════════════ CHAT ═════════════ */
 html[data-theme="dark"] #page-chat { --text2: rgba(255,255,255,.72); --text3: rgba(255,255,255,.52); --border: rgba(255,255,255,.12); --border2: rgba(255,255,255,.22); }
-/* partner (left) bubbles → black */
+/* partner (left) bubbles -> gray */
 html[data-theme="dark"] #page-chat :is(.chat-bubble.theirs,.msg-row.them .bubble) {
-  background: #000 !important; color: #fff !important; border: 1px solid rgba(255,255,255,.10) !important;
+  background: linear-gradient(135deg, #4a4a52, #34343a) !important; color: #fff !important;
+  border: 1px solid rgba(255,255,255,.14) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.14);
 }
-html[data-theme="dark"] #page-chat :is(.chat-bubble.theirs,.msg-row.them .bubble) :is(.chat-time,.msg-time,time,.chat-meta,small,.bubble-meta) { color: rgba(255,255,255,.5) !important; }
-/* my (right) bubbles → gray glass */
+html[data-theme="dark"] #page-chat :is(.chat-bubble.theirs,.msg-row.them .bubble) :is(.chat-time,.msg-time,time,.chat-meta,small,.bubble-meta) { color: rgba(255,255,255,.58) !important; }
+/* my (right) bubbles -> #6B093A */
 html[data-theme="dark"] #page-chat :is(.chat-bubble.mine,.msg-row.me .bubble) {
-  background: linear-gradient(135deg, rgba(120,120,128,.92), rgba(70,70,77,.92)) !important; color: #fff !important;
-  border: 1px solid rgba(255,255,255,.16) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.22);
+  background: #6B093A !important; color: #fff !important;
+  border: 1px solid rgba(255,255,255,.12) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.14);
 }
 html[data-theme="dark"] .chat-call-log, html[data-theme="dark"] .chat-date-sep span {
   background: rgba(255,255,255,.08) !important; color: rgba(255,255,255,.74) !important; border: 1px solid var(--gl-line) !important;
@@ -221,9 +225,22 @@ html[data-theme="dark"] .topbar { background: rgba(18,14,16,.6) !important; bord
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   HOME HERO — solid #6B093A (set in dashboard.css) in BOTH themes.
-   Only the white highlight text needs a dark-theme fix, because the dark
-   theme's neutral --accent-d would otherwise tint it gray.
+   HOME HERO (dark theme) — hero background is solid #6B093A (dashboard.css).
+   Search, menu, shortcut tiles and the Hug / Touch / Miss You buttons are
+   gray glass on top of it. The "selected" tile/button is a stronger glass,
+   not white.
    ════════════════════════════════════════════════════════════════════ */
-html[data-theme="dark"] .dh-chip.is-primary,
-html[data-theme="dark"] .dh-act.is-active { color: #6B093A; }
+html[data-theme="dark"] :is(.dh-search,.dh-menu,.dh-chip,.dh-act) {
+  background: linear-gradient(180deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.05) 100%), rgba(34,30,32,.42) !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  box-shadow: 0 8px 22px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -1px 0 rgba(0,0,0,.22) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(140%) !important; backdrop-filter: blur(18px) saturate(140%) !important;
+  color: #fff !important;
+}
+html[data-theme="dark"] .dh-search { color: rgba(255,255,255,.78) !important; }
+html[data-theme="dark"] .dh-search :is(span,svg) { color: rgba(255,255,255,.78) !important; }
+html[data-theme="dark"] :is(.dh-chip.is-primary,.dh-act.is-active) {
+  background: linear-gradient(180deg, rgba(255,255,255,.26) 0%, rgba(255,255,255,.10) 100%), rgba(34,30,32,.42) !important;
+  border-color: rgba(255,255,255,.38) !important; color: #fff !important;
+}
+html[data-theme="dark"] .dh-profile { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.4); }

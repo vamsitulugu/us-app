@@ -1,0 +1,267 @@
+From 088763a89396e8867af6c40d43b7b02c5e8c99e6 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 13 Oct 2026 11:51:05 +0000
+Subject: [PATCH] Dark: glass home hero buttons/search, no white highlights,
+ gray partner / #6B093A my chat bubbles
+
+---
+ public/collection.html      |  2 +-
+ public/daily-routine.html   |  2 +-
+ public/dreamgoals.html      |  2 +-
+ public/games.html           |  2 +-
+ public/globe.html           |  2 +-
+ public/index.html           |  2 +-
+ public/lovecounter.html     |  2 +-
+ public/meetplanner.html     |  2 +-
+ public/movie.html           |  2 +-
+ public/music.html           |  2 +-
+ public/places.html          |  2 +-
+ public/privacy-policy.html  |  2 +-
+ public/sw.js                |  2 +-
+ public/theme-dark-glass.css | 47 +++++++++++++++++++++++++------------
+ 14 files changed, 45 insertions(+), 28 deletions(-)
+
+diff --git a/public/collection.html b/public/collection.html
+index de14975..6ec97a2 100644
+--- a/public/collection.html
++++ b/public/collection.html
+@@ -259,7 +259,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=4">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=5">
+ <link rel="stylesheet" href="/no-scrollbar.css?v=1">
+ </head>
+ <body>
+diff --git a/public/daily-routine.html b/public/daily-routine.html
+index 0e33711..d18d7e7 100644
+--- a/public/daily-routine.html
++++ b/public/daily-routine.html
+@@ -164,7 +164,7 @@ button{font-family:inherit}
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=4">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=5">
+ <link rel="stylesheet" href="/no-scrollbar.css?v=1">
+ </head>
+ <body>
+diff --git a/public/dreamgoals.html b/public/dreamgoals.html
+index d1cf907..3f8c87c 100644
+--- a/public/dreamgoals.html
++++ b/public/dreamgoals.html
+@@ -254,7 +254,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=4">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=5">
+ <link rel="stylesheet" href="/no-scrollbar.css?v=1">
+ </head>
+ <body>
+diff --git a/public/games.html b/public/games.html
+index 393e550..43ca272 100644
+--- a/public/games.html
++++ b/public/games.html
+@@ -540,7 +540,7 @@ button{font-family:inherit;cursor:pointer}
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=4">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=5">
+ <link rel="stylesheet" href="/no-scrollbar.css?v=1">
+ </head>
+ <body>
+diff --git a/public/globe.html b/public/globe.html
+index 79d6b57..17832cb 100644
+--- a/public/globe.html
++++ b/public/globe.html
+@@ -433,7 +433,7 @@
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=4">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=5">
+ <link rel="stylesheet" href="/no-scrollbar.css?v=1">
+ </head>
+ <body>
+diff --git a/public/index.html b/public/index.html
+index f34974f..43714ce 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -4855,7 +4855,7 @@ select option { background: #270719; color: #fff; }
+ <link rel="stylesheet" href="/theme-light-v2.css?v=4">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+ <link rel="stylesheet" href="/dashboard-burgundy.css?v=3">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=4">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=5">
+ <link rel="stylesheet" href="/no-scrollbar.css?v=1">
+ </head>
+ 
+diff --git a/public/lovecounter.html b/public/lovecounter.html
+index 3a9a455..37e188a 100644
+--- a/public/lovecounter.html
++++ b/public/lovecounter.html
+@@ -343,7 +343,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=4">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=5">
+ <link rel="stylesheet" href="/no-scrollbar.css?v=1">
+ </head>
+ <body>
+diff --git a/public/meetplanner.html b/public/meetplanner.html
+index e2a9757..3f51dbf 100644
+--- a/public/meetplanner.html
++++ b/public/meetplanner.html
+@@ -369,7 +369,7 @@ textarea.mp-input{resize:vertical;min-height:84px;line-height:1.6}
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=4">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=5">
+ <link rel="stylesheet" href="/no-scrollbar.css?v=1">
+ </head>
+ <body>
+diff --git a/public/movie.html b/public/movie.html
+index d1d6ea8..6a181aa 100644
+--- a/public/movie.html
++++ b/public/movie.html
+@@ -15,7 +15,7 @@
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=4">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=5">
+ <link rel="stylesheet" href="/no-scrollbar.css?v=1">
+ </head>
+ <body>
+diff --git a/public/music.html b/public/music.html
+index 51b4d51..1dad33d 100644
+--- a/public/music.html
++++ b/public/music.html
+@@ -15,7 +15,7 @@
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=4">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=5">
+ <link rel="stylesheet" href="/no-scrollbar.css?v=1">
+ </head>
+ <body>
+diff --git a/public/places.html b/public/places.html
+index 9933a6e..fe9c61b 100644
+--- a/public/places.html
++++ b/public/places.html
+@@ -186,7 +186,7 @@ body{font-family:var(--ff-sans);color:var(--text);min-height:100vh;min-height:10
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=4">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=5">
+ <link rel="stylesheet" href="/no-scrollbar.css?v=1">
+ </head>
+ <body>
+diff --git a/public/privacy-policy.html b/public/privacy-policy.html
+index 57defa8..7b03e3e 100644
+--- a/public/privacy-policy.html
++++ b/public/privacy-policy.html
+@@ -94,7 +94,7 @@
+ <link rel="stylesheet" href="/theme-tokens.css?v=2">
+ <link rel="stylesheet" href="/theme-light-v2.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/theme-dark-glass.css?v=4">
++<link rel="stylesheet" href="/theme-dark-glass.css?v=5">
+ <link rel="stylesheet" href="/no-scrollbar.css?v=1">
+ </head>
+ <body>
+diff --git a/public/sw.js b/public/sw.js
+index 1aa4ce7..9c794f5 100644
+--- a/public/sw.js
++++ b/public/sw.js
+@@ -1,5 +1,5 @@
+ // Service Worker for Twin Hearts 💕 PWA — v5
+-const CACHE = 'uwl-v32'; // bumped: purges stale cached assets (incl. old movie.css) on activate
++const CACHE = 'uwl-v33'; // bumped: purges stale cached assets (incl. old movie.css) on activate
+ const OFFLINE_ASSETS = [
+   '/',
+   '/index.html',
+diff --git a/public/theme-dark-glass.css b/public/theme-dark-glass.css
+index 0e15c97..8b10687 100644
+--- a/public/theme-dark-glass.css
++++ b/public/theme-dark-glass.css
+@@ -83,11 +83,14 @@ html[data-theme="dark"] :is(.set-row,.cat-row):hover { background: rgba(255,255,
+ html[data-theme="dark"] .cat-row { border-bottom-color: rgba(255,255,255,.09); }
+ 
+ /* today's event keeps its white highlight, text goes dark-neutral (not burgundy) */
+-html[data-theme="dark"] .dw-ev.is-today { background: rgba(255,255,255,.94) !important; color: #161214; border-color: #fff !important; }
+-html[data-theme="dark"] .dw-ev.is-today .dw-ev-d { color: #161214 !important; }
+-html[data-theme="dark"] .dw-ev.is-today .dw-ev-ico { background: rgba(0,0,0,.08); }
++html[data-theme="dark"] .dw-ev.is-today {
++  background: var(--gl-fill-strong) !important; background-color: rgba(255,255,255,.04) !important;
++  color: #fff; border-color: rgba(255,255,255,.30) !important;
++}
++html[data-theme="dark"] .dw-ev.is-today :is(.dw-ev-d,.dw-ev-tx,.dw-ev-tx b,.dw-ev-tx i) { color: #fff !important; }
++html[data-theme="dark"] .dw-ev.is-today .dw-ev-tx i { color: rgba(255,255,255,.72) !important; }
+ html[data-theme="dark"] .dw-ev .dw-ev-d { color: #fff !important; }
+-html[data-theme="dark"] .dw-ev .dw-ev-ico { background: rgba(255,255,255,.12); }
++html[data-theme="dark"] .dw-ev .dw-ev-ico, html[data-theme="dark"] .dw-ev.is-today .dw-ev-ico { background: rgba(255,255,255,.12); color: #fff; }
+ 
+ /* big neutral panels (were deep pink) */
+ html[data-theme="dark"] .dh-sheet { background: #130e10 !important; border-top: 1px solid var(--gl-line); }
+@@ -168,15 +171,16 @@ html[data-theme="dark"] .set-hero-av > span { border-color: rgba(255,255,255,.4)
+ 
+ /* ═════════════ CHAT ═════════════ */
+ html[data-theme="dark"] #page-chat { --text2: rgba(255,255,255,.72); --text3: rgba(255,255,255,.52); --border: rgba(255,255,255,.12); --border2: rgba(255,255,255,.22); }
+-/* partner (left) bubbles → black */
++/* partner (left) bubbles -> gray */
+ html[data-theme="dark"] #page-chat :is(.chat-bubble.theirs,.msg-row.them .bubble) {
+-  background: #000 !important; color: #fff !important; border: 1px solid rgba(255,255,255,.10) !important;
++  background: linear-gradient(135deg, #4a4a52, #34343a) !important; color: #fff !important;
++  border: 1px solid rgba(255,255,255,.14) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.14);
+ }
+-html[data-theme="dark"] #page-chat :is(.chat-bubble.theirs,.msg-row.them .bubble) :is(.chat-time,.msg-time,time,.chat-meta,small,.bubble-meta) { color: rgba(255,255,255,.5) !important; }
+-/* my (right) bubbles → gray glass */
++html[data-theme="dark"] #page-chat :is(.chat-bubble.theirs,.msg-row.them .bubble) :is(.chat-time,.msg-time,time,.chat-meta,small,.bubble-meta) { color: rgba(255,255,255,.58) !important; }
++/* my (right) bubbles -> #6B093A */
+ html[data-theme="dark"] #page-chat :is(.chat-bubble.mine,.msg-row.me .bubble) {
+-  background: linear-gradient(135deg, rgba(120,120,128,.92), rgba(70,70,77,.92)) !important; color: #fff !important;
+-  border: 1px solid rgba(255,255,255,.16) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.22);
++  background: #6B093A !important; color: #fff !important;
++  border: 1px solid rgba(255,255,255,.12) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.14);
+ }
+ html[data-theme="dark"] .chat-call-log, html[data-theme="dark"] .chat-date-sep span {
+   background: rgba(255,255,255,.08) !important; color: rgba(255,255,255,.74) !important; border: 1px solid var(--gl-line) !important;
+@@ -221,9 +225,22 @@ html[data-theme="dark"] .topbar { background: rgba(18,14,16,.6) !important; bord
+ }
+ 
+ /* ════════════════════════════════════════════════════════════════════
+-   HOME HERO — solid #6B093A (set in dashboard.css) in BOTH themes.
+-   Only the white highlight text needs a dark-theme fix, because the dark
+-   theme's neutral --accent-d would otherwise tint it gray.
++   HOME HERO (dark theme) — hero background is solid #6B093A (dashboard.css).
++   Search, menu, shortcut tiles and the Hug / Touch / Miss You buttons are
++   gray glass on top of it. The "selected" tile/button is a stronger glass,
++   not white.
+    ════════════════════════════════════════════════════════════════════ */
+-html[data-theme="dark"] .dh-chip.is-primary,
+-html[data-theme="dark"] .dh-act.is-active { color: #6B093A; }
++html[data-theme="dark"] :is(.dh-search,.dh-menu,.dh-chip,.dh-act) {
++  background: linear-gradient(180deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.05) 100%), rgba(34,30,32,.42) !important;
++  border: 1px solid rgba(255,255,255,.18) !important;
++  box-shadow: 0 8px 22px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -1px 0 rgba(0,0,0,.22) !important;
++  -webkit-backdrop-filter: blur(18px) saturate(140%) !important; backdrop-filter: blur(18px) saturate(140%) !important;
++  color: #fff !important;
++}
++html[data-theme="dark"] .dh-search { color: rgba(255,255,255,.78) !important; }
++html[data-theme="dark"] .dh-search :is(span,svg) { color: rgba(255,255,255,.78) !important; }
++html[data-theme="dark"] :is(.dh-chip.is-primary,.dh-act.is-active) {
++  background: linear-gradient(180deg, rgba(255,255,255,.26) 0%, rgba(255,255,255,.10) 100%), rgba(34,30,32,.42) !important;
++  border-color: rgba(255,255,255,.38) !important; color: #fff !important;
++}
++html[data-theme="dark"] .dh-profile { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.4); }
+-- 
+2.43.0
+
