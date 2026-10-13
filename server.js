@@ -128,6 +128,7 @@ app.use('/api/movie', require('./routes/routes-movie'));
 app.use('/api/movie-library', require('./routes/movie-library'));
 app.use('/api/meetplanner', require('./routes/meetplanner'));
 app.use('/api/daily-routine', require('./routes/daily-routine'));
+app.use('/api/support', require('./routes/support'));
 
 // ── Public release/flag endpoints (no auth — called by the app itself) ─
 app.use('/api/releases', require('./routes/releases'));
@@ -151,6 +152,7 @@ app.use('/api/admin/releases', require('./routes/admin-releases'));
 app.use('/api/admin/notifications', require('./routes/admin-notifications'));
 app.use('/api/admin/flags', require('./routes/admin-flags'));
 app.use('/api/admin/health', require('./routes/admin-health'));
+app.use('/api/admin/support', require('./routes/admin-support'));
 app.use('/admin', express.static(path.join(__dirname, 'admin'), {
   etag: true,
   lastModified: true,

@@ -15,6 +15,7 @@ const ICONS = {
   notifications: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
   flags: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22V15"/>',
   health: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  support: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="10" r="1"/><circle cx="15" cy="10" r="1"/><path d="M9.5 13a3.5 3.5 0 0 0 5 0"/>',
   audit: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6M9 11h2"/>'
 };
 
@@ -26,6 +27,7 @@ const NAV = [
   { id: 'notifications', label: 'Notifications', icon: 'notifications' },
   { id: 'flags', label: 'Feature Flags', icon: 'flags' },
   { id: 'health', label: 'App Health', icon: 'health' },
+  { id: 'support', label: 'Support & Care', icon: 'support' },
   { id: 'audit', label: 'Audit Logs', icon: 'audit' }
 ];
 
@@ -761,6 +763,384 @@ async function loadAudit() {
   } catch (e) { el.innerHTML = `<div class="error-state">${esc(e.message)}</div>`; }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   SUPPORT & CUSTOMER CARE
+   ═══════════════════════════════════════════════════════════════ */
+let supportActiveTicketId = null;
+let supportPollTimer = null;
+let supportFilterStatus = 'all';
+let supportSearchQuery = '';
+
+const CANNED_REPLIES = [
+  'Select a quick response…',
+  'Hello! Welcome to Twin Hearts support. How can I help you today?',
+  'Thank you for reporting this. We have resolved the issue on your account. Please reload the app!',
+  'Could you please share your partner\'s registered phone number so we can check your connection?',
+  'Please check that push notifications are enabled in both Twin Hearts Settings and your phone system settings.',
+  'Your data and photos are safely backed up in the cloud. Let us know if you need help syncing.',
+  'We have noted your feedback and will include this in our upcoming app release. Thank you for using Twin Hearts! 💕'
+];
+
+renderers.support = async (el) => {
+  if (supportPollTimer) clearInterval(supportPollTimer);
+
+  el.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h2>Customer Care &amp; Support</h2>
+        <p>Live user chats, Twin Care AI conversations, and manual care management</p>
+      </div>
+      <div>
+        <button class="btn secondary small" id="supportRefreshBtn">↻ Refresh</button>
+      </div>
+    </div>
+
+    <!-- KPI Summary -->
+    <div class="grid grid-4" id="supportKpis" style="margin-bottom:16px">
+      <div class="card kpi"><div class="label">Total Inquiries</div><div class="val" id="kpiSupTotal">—</div></div>
+      <div class="card kpi"><div class="label">Waiting Admin Reply</div><div class="val" id="kpiSupWaiting" style="color:var(--amber)">—</div></div>
+      <div class="card kpi"><div class="label">Active / AI Mode</div><div class="val" id="kpiSupOpen" style="color:var(--green)">—</div></div>
+      <div class="card kpi"><div class="label">Resolved</div><div class="val" id="kpiSupResolved" style="color:var(--text3)">—</div></div>
+    </div>
+
+    <!-- Split layout: tickets list + chat thread -->
+    <div class="support-layout">
+      <!-- Left sidebar -->
+      <div class="support-sidebar">
+        <div class="support-sidebar-header">
+          <input type="search" id="supportSearchInput" placeholder="Search user, email or message…" autocomplete="off" value="${esc(supportSearchQuery)}">
+          <div style="display:flex;gap:6px">
+            <select id="supportStatusFilter" style="flex:1">
+              <option value="all" ${supportFilterStatus === 'all' ? 'selected' : ''}>All Conversations</option>
+              <option value="waiting" ${supportFilterStatus === 'waiting' ? 'selected' : ''}>⚠️ Needs Reply</option>
+              <option value="open" ${supportFilterStatus === 'open' ? 'selected' : ''}>Active / Open</option>
+              <option value="resolved" ${supportFilterStatus === 'resolved' ? 'selected' : ''}>Resolved</option>
+            </select>
+          </div>
+        </div>
+        <div class="support-ticket-list" id="supportTicketList">
+          <div class="loading-state">Loading conversations…</div>
+        </div>
+      </div>
+
+      <!-- Right chat thread -->
+      <div class="support-main" id="supportMainPane">
+        <div class="support-main-empty">
+          <div style="font-size:36px">💬</div>
+          <h3>Select a Conversation</h3>
+          <p>Choose any inquiry from the left to view message history, AI answers, or reply live.</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('supportRefreshBtn').addEventListener('click', () => {
+    loadSupportOverview();
+    loadSupportTickets();
+    if (supportActiveTicketId) loadActiveTicket(supportActiveTicketId);
+  });
+
+  document.getElementById('supportStatusFilter').addEventListener('change', (e) => {
+    supportFilterStatus = e.target.value;
+    loadSupportTickets();
+  });
+
+  document.getElementById('supportSearchInput').addEventListener('input', debounce((e) => {
+    supportSearchQuery = e.target.value;
+    loadSupportTickets();
+  }, 300));
+
+  await loadSupportOverview();
+  await loadSupportTickets();
+
+  // Polling every 5s while on the support page
+  supportPollTimer = setInterval(() => {
+    if (state.currentPage === 'support') {
+      loadSupportOverview(true);
+      loadSupportTickets(true);
+      if (supportActiveTicketId) loadActiveTicket(supportActiveTicketId, true);
+    } else {
+      clearInterval(supportPollTimer);
+    }
+  }, 5000);
+};
+
+async function loadSupportOverview(silent = false) {
+  try {
+    const data = await api('/support/overview');
+    if (data.stats) {
+      document.getElementById('kpiSupTotal').textContent = data.stats.total;
+      document.getElementById('kpiSupWaiting').textContent = data.stats.waiting_admin;
+      document.getElementById('kpiSupOpen').textContent = data.stats.open;
+      document.getElementById('kpiSupResolved').textContent = data.stats.resolved;
+    }
+  } catch (e) {
+    if (!silent) console.error('support overview error:', e);
+  }
+}
+
+async function loadSupportTickets(silent = false) {
+  const container = document.getElementById('supportTicketList');
+  if (!container) return;
+
+  try {
+    let url = `/support/tickets?status=${encodeURIComponent(supportFilterStatus)}`;
+    if (supportSearchQuery) url += `&search=${encodeURIComponent(supportSearchQuery)}`;
+    const data = await api(url);
+    const tickets = data.tickets || [];
+
+    if (!tickets.length) {
+      container.innerHTML = `<div class="empty-state">No conversations found.</div>`;
+      return;
+    }
+
+    container.innerHTML = tickets.map(t => {
+      const isSelected = t.id === supportActiveTicketId;
+      const statusBadge = t.status === 'waiting_admin' 
+        ? `<span class="badge" style="background:#5c1d0c;color:#fb923c">⚠️ Waiting</span>`
+        : t.status === 'resolved'
+        ? `<span class="badge" style="background:#1e293b;color:#94a3b8">Resolved</span>`
+        : `<span class="badge" style="background:#134e4a;color:#2dd4bf">Open</span>`;
+
+      const modeBadge = t.mode === 'human'
+        ? `<span class="badge" style="background:#701a75;color:#f472b6">👤 Human</span>`
+        : `<span class="badge" style="background:#1e3a8a;color:#60a5fa">🤖 AI</span>`;
+
+      const unreadHtml = t.unread_admin > 0
+        ? `<span style="background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px">${t.unread_admin} new</span>`
+        : '';
+
+      const timeStr = t.updated_at ? fmtDate(t.updated_at) : '';
+
+      return `
+        <div class="ticket-row ${isSelected ? 'active' : ''}" data-ticket-id="${t.id}" onclick="selectSupportTicket('${t.id}')">
+          <div class="ticket-row-top">
+            <span class="ticket-user-name">${esc(t.user_name || 'User')} ${unreadHtml}</span>
+            <span class="ticket-time">${timeStr}</span>
+          </div>
+          <div class="ticket-snippet">${esc(t.last_message || 'No messages yet')}</div>
+          <div class="ticket-meta">
+            ${statusBadge}
+            ${modeBadge}
+            ${t.user_phone ? `<span style="font-size:11px;color:var(--text3)">📞 ${esc(t.user_phone)}</span>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // If an active ticket is set, keep it highlighted
+    if (supportActiveTicketId) {
+      const activeEl = container.querySelector(`[data-ticket-id="${supportActiveTicketId}"]`);
+      if (activeEl) activeEl.classList.add('active');
+    }
+  } catch (e) {
+    if (!silent) container.innerHTML = `<div class="error-state">${esc(e.message)}</div>`;
+  }
+}
+
+async function selectSupportTicket(ticketId) {
+  supportActiveTicketId = ticketId;
+  document.querySelectorAll('.ticket-row').forEach(r => {
+    r.classList.toggle('active', r.dataset.ticketId === ticketId);
+  });
+  await loadActiveTicket(ticketId);
+}
+
+async function loadActiveTicket(ticketId, isPoll = false) {
+  const mainPane = document.getElementById('supportMainPane');
+  if (!mainPane) return;
+
+  try {
+    const data = await api(`/support/ticket/${ticketId}`);
+    const t = data.ticket;
+    if (!t) return;
+
+    // Check if user is typing or if message list needs update
+    const messages = t.messages || [];
+
+    if (!isPoll || !document.getElementById('supportMessagesScroll')) {
+      mainPane.innerHTML = `
+        <div class="support-thread-header">
+          <div class="support-thread-user">
+            <h3>${esc(t.user_name || 'Valued User')} ${t.mode === 'human' ? '👤 Live Chat' : '🤖 AI Assisted'}</h3>
+            <p>
+              ${t.user_phone ? `Phone: ${esc(t.user_phone)} · ` : ''}
+              ${t.user_email ? `Email: ${esc(t.user_email)} · ` : ''}
+              ${t.couple_id ? `Couple: ${esc(String(t.couple_id).slice(0, 8))}… · ` : ''}
+              Started: ${fmtDate(t.created_at)}
+            </p>
+          </div>
+          <div class="support-thread-actions">
+            <select id="ticketStatusSelect" onchange="changeTicketStatus('${t.id}', this.value)" style="background:var(--panel);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 9px;font-size:12px">
+              <option value="open" ${t.status === 'open' ? 'selected' : ''}>Status: Open</option>
+              <option value="waiting_admin" ${t.status === 'waiting_admin' ? 'selected' : ''}>Status: Waiting Admin</option>
+              <option value="waiting_user" ${t.status === 'waiting_user' ? 'selected' : ''}>Status: Waiting User</option>
+              <option value="resolved" ${t.status === 'resolved' ? 'selected' : ''}>Status: Resolved</option>
+            </select>
+            <button class="btn danger small" onclick="deleteSupportTicket('${t.id}')">Delete</button>
+          </div>
+        </div>
+
+        <div class="support-messages-scroll" id="supportMessagesScroll">
+          <!-- Messages -->
+        </div>
+
+        <div class="support-composer">
+          <div class="support-composer-tools">
+            <select id="cannedRepliesSelect" onchange="applyCannedReply(this.value)" style="background:var(--panel);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:12px">
+              ${CANNED_REPLIES.map((r, i) => `<option value="${i === 0 ? '' : esc(r)}">${esc(r)}</option>`).join('')}
+            </select>
+          </div>
+          <textarea id="adminReplyText" placeholder="Type a direct reply to the user (sent directly to user's chat bar)..." rows="3"></textarea>
+          <div class="support-composer-actions">
+            <span style="font-size:12px;color:var(--text3)">Replying as Twin Hearts Support</span>
+            <div style="display:flex;gap:8px">
+              <button class="btn secondary small" onclick="resolveAndReply('${t.id}')">Send &amp; Resolve</button>
+              <button class="btn small" id="adminSendReplyBtn" onclick="sendAdminReply('${t.id}')">Send Reply</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Enter key to send (Ctrl+Enter or Cmd+Enter)
+      const ta = document.getElementById('adminReplyText');
+      if (ta) {
+        ta.addEventListener('keydown', (e) => {
+          if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            sendAdminReply(t.id);
+          }
+        });
+      }
+    }
+
+    renderSupportMessages(messages);
+  } catch (e) {
+    if (!isPoll) mainPane.innerHTML = `<div class="error-state">${esc(e.message)}</div>`;
+  }
+}
+
+function renderSupportMessages(messages) {
+  const scrollEl = document.getElementById('supportMessagesScroll');
+  if (!scrollEl) return;
+
+  const atBottom = scrollEl.scrollHeight - scrollEl.scrollTop <= scrollEl.clientHeight + 50;
+
+  scrollEl.innerHTML = (messages || []).map(m => {
+    const isUser = m.sender === 'user';
+    const isAdmin = m.sender === 'admin';
+    const isAi = m.sender === 'ai';
+
+    const avatarChar = isUser ? '👤' : isAdmin ? '🛡️' : '🤖';
+    const tagHtml = isAi ? '<span class="badge info" style="font-size:9px;padding:1px 5px">AI Generated</span>'
+      : isAdmin ? '<span class="badge" style="font-size:9px;padding:1px 5px;background:var(--accent);color:#fff">Admin</span>'
+      : '<span class="badge" style="font-size:9px;padding:1px 5px;background:#380725;color:#f5c8e2">Customer</span>';
+
+    return `
+      <div class="adm-msg-row ${m.sender}">
+        <div class="adm-avatar ${m.sender}">${avatarChar}</div>
+        <div class="adm-msg-body">
+          <div class="adm-msg-header">
+            <span>${esc(m.sender_name || (isUser ? 'Customer' : isAdmin ? 'Support Team' : 'Twin Care AI'))}</span>
+            ${tagHtml}
+            <span style="opacity:0.7">${fmtDate(m.created_at)}</span>
+          </div>
+          <div class="adm-msg-bubble">${esc(m.text)}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if (atBottom) {
+    scrollEl.scrollTop = scrollEl.scrollHeight;
+  }
+}
+
+function applyCannedReply(text) {
+  if (!text) return;
+  const ta = document.getElementById('adminReplyText');
+  if (ta) {
+    ta.value = text;
+    ta.focus();
+  }
+  document.getElementById('cannedRepliesSelect').selectedIndex = 0;
+}
+
+async function sendAdminReply(ticketId) {
+  const ta = document.getElementById('adminReplyText');
+  const text = (ta?.value || '').trim();
+  if (!text) return;
+
+  const btn = document.getElementById('adminSendReplyBtn');
+  btn.disabled = true;
+
+  try {
+    const res = await api(`/support/ticket/${ticketId}/reply`, {
+      method: 'POST',
+      body: JSON.stringify({ text })
+    });
+    ta.value = '';
+    toast('Reply sent to customer!');
+    await loadActiveTicket(ticketId);
+    await loadSupportOverview(true);
+    await loadSupportTickets(true);
+  } catch (e) {
+    toast('Failed to send reply: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function resolveAndReply(ticketId) {
+  const ta = document.getElementById('adminReplyText');
+  const text = (ta?.value || '').trim();
+  if (text) {
+    await sendAdminReply(ticketId);
+  }
+  await changeTicketStatus(ticketId, 'resolved');
+}
+
+async function changeTicketStatus(ticketId, status) {
+  try {
+    await api(`/support/ticket/${ticketId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status })
+    });
+    toast(`Ticket marked as ${status}`);
+    await loadActiveTicket(ticketId, true);
+    await loadSupportOverview(true);
+    await loadSupportTickets(true);
+  } catch (e) {
+    toast('Status update failed: ' + e.message, 'error');
+  }
+}
+
+async function deleteSupportTicket(ticketId) {
+  const ok = await confirmDialog({
+    title: 'Delete Support Conversation?',
+    body: 'This will permanently remove this customer inquiry and all message logs.',
+    confirmLabel: 'Delete Ticket'
+  });
+  if (!ok) return;
+
+  try {
+    await api(`/support/ticket/${ticketId}`, { method: 'DELETE' });
+    toast('Ticket deleted');
+    supportActiveTicketId = null;
+    document.getElementById('supportMainPane').innerHTML = `
+      <div class="support-main-empty">
+        <div style="font-size:36px">💬</div>
+        <h3>Select a Conversation</h3>
+        <p>Choose any inquiry from the left to view message history, AI answers, or reply live.</p>
+      </div>
+    `;
+    await loadSupportOverview();
+    await loadSupportTickets();
+  } catch (e) {
+    toast('Failed to delete ticket: ' + e.message, 'error');
+  }
+}
+
 /* ── Utilities ─────────────────────────────────────────────────── */
 function skeletonRows(rows, cols) {
   return `<table><tbody>${Array.from({ length: rows }).map(() => `<tr class="skeleton-row">${Array.from({ length: cols }).map(() => `<td></td>`).join('')}</tr>`).join('')}</tbody></table>`;
@@ -769,3 +1149,4 @@ function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTi
 
 /* ── Boot ─────────────────────────────────────────────────────── */
 checkAuth();
+
