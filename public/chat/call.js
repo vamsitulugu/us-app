@@ -316,16 +316,41 @@ async function initSignalCursor() {
     } catch (e) {}
   }
   let lastSignalId = 0;
+  // FIX (issue 3 — "one side opens, other side stuck on ring screen"):
+  // pollSignal() is triggered by the 500ms timer AND by the realtime
+  // 'signal_ping'. Two overlapping polls read the same lastSignalId, so the
+  // same 'answer' was applied twice -> the 2nd setRemoteDescription threw,
+  // the exception aborted the for-loop and every ICE row after it was
+  // dropped (lastSignalId had already advanced) -> connection never formed.
+  // Now: one poll at a time, rows are processed in id order, each row is
+  // isolated in its own try/catch, and rows are never processed twice.
+  let _pollingSignal = false, _pollAgain = false;
+  const _handledSignalIds = new Set();
   async function pollSignal() {
     if (!coupleId()) return;
+    if (_pollingSignal) { _pollAgain = true; return; }
+    _pollingSignal = true;
     try {
-      const r = await fetch(API + '/api/call/signal/' + coupleId() + '?role=' + otherRole() + '&after=' + lastSignalId, { cache: 'no-store' });
-      if (!r.ok) return;
-      const rows = await r.json();
-      if (!rows.length) return;
-      lastSignalId = Math.max(...rows.map(x => x.id));
-      for (const row of rows) await handleSignal(row.payload);
-    } catch (e) {}
+      do {
+        _pollAgain = false;
+        let rows = [];
+        try {
+          const r = await fetch(API + '/api/call/signal/' + coupleId() + '?role=' + otherRole() + '&after=' + lastSignalId, { cache: 'no-store' });
+          if (!r.ok) break;
+          rows = await r.json();
+        } catch (e) { break; }
+        if (!rows.length) continue;
+        rows.sort((a, b) => a.id - b.id);
+        lastSignalId = Math.max(lastSignalId, rows[rows.length - 1].id);
+        for (const row of rows) {
+          if (_handledSignalIds.has(row.id)) continue;
+          _handledSignalIds.add(row.id);
+          if (_handledSignalIds.size > 500) _handledSignalIds.delete(_handledSignalIds.values().next().value);
+          try { await handleSignal(row.payload); }
+          catch (e) { console.warn('[Call] signal handler error', row.payload && row.payload.type, e); }
+        }
+      } while (_pollAgain);
+    } finally { _pollingSignal = false; }
   }
 
   let iceQueue = [];
@@ -377,7 +402,13 @@ async function initSignalCursor() {
       showIncoming(m);
     }
     else if (m.type === 'answer' && pc) {
+      // duplicate / late answer — already applied, ignore instead of throwing
+      if (pc.signalingState !== 'have-local-offer') return;
       await pc.setRemoteDescription(new RTCSessionDescription(m.sdp));
+      // FIX (issue 2): leave the loud ringback route right away (earpiece
+      // unless the user already tapped Speaker) instead of waiting for
+      // connectionState === 'connected'.
+      setConnectedAudio();
       onConnecting();
       for (const cand of iceQueue) { try { await pc.addIceCandidate(cand); } catch (e) {} }
       iceQueue = [];
@@ -624,6 +655,10 @@ async function initSignalCursor() {
       const remoteAudio = document.createElement('audio');
       remoteAudio.id = 'callRemoteAudio'; remoteAudio.autoplay = true; remoteAudio.srcObject = remoteStream;
       el.appendChild(remoteAudio);
+      // FIX (issue 2): some OEM audio stacks re-route to the loudspeaker
+      // when the first WebRTC stream starts playing — re-apply the user's
+      // chosen route (earpiece by default) just after playback begins.
+      [250, 900, 2000].forEach(d => setTimeout(() => { if (pc && !isSpeakerOn) setConnectedAudio(); }, d));
     }
     startTimer();
     startSignalMonitor();
@@ -1048,6 +1083,13 @@ async function initSignalCursor() {
     callStarting = true;
     clearRingTimeout();
     isMuted = false; isCamOff = false; isSpeakerOn = false;
+    // FIX (issue 2): setRinging() left Android in MODE_NORMAL with the loud
+    // speaker forced ON. Nothing switched it back until the call fully
+    // connected, so the call audio came out of the main speaker without the
+    // person touching the Speaker button. Stop the ringtone and move to the
+    // earpiece (communication mode) the moment the call is picked up.
+    stopRingtone();
+    setConnectedAudio();
     const offer = pendingOffer;
     const myToken = ++callToken;
     try {
@@ -1128,6 +1170,20 @@ async function initSignalCursor() {
     pc.onicecandidate = e => { if (e.candidate) pushSignal({ type: 'ice', candidate: e.candidate }); };
     pc.oniceconnectionstatechange = () => {
       if (callContext === 'watch_together') console.log('[WatchVoice] iceConnectionState:', pc.iceConnectionState);
+      // FIX (issue 3): on some devices connectionState never flips to
+      // 'connected' even though ICE is up, leaving that side on the ring
+      // screen. Treat ICE connected/completed as connected for the chat UI.
+      if (callContext !== 'watch_together' && pc &&
+          (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') &&
+          !document.getElementById('callTimer') && !(callType === 'video' && document.getElementById('callRemoteVideo'))) {
+        clearRingTimeout();
+        setConnectedAudio();
+        renderActive();
+        window.playAppSound?.(callType === 'video' ? 'call.video.connected' : 'call.connected');
+      }
+      if (pc && pc.iceConnectionState === 'failed' && typeof pc.restartIce === 'function') {
+        try { pc.restartIce(); } catch (e) {}
+      }
     };
     let disconnectGrace = null;
     pc.onconnectionstatechange = () => {

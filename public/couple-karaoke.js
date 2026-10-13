@@ -81,6 +81,7 @@
   const Channel = (function () {
     let ctx = null, myKey = null, peerKey = null, lastPeerSeq = 0, pollTimer = null, fastTimer = null;
     let outbox = [];
+    let minTs = 0; // ignore peer messages older than this (stale replays from a previous room)
     const handlers = [];
 
     function init() {
@@ -94,7 +95,9 @@
       if (!ctx && !init()) return;
       const payload = { ...msg, from: ctx.role, ts: Date.now(), seq: Date.now() + Math.random() };
       outbox.push(payload);
-      if (outbox.length > 20) outbox = outbox.slice(-20);
+      // FIX (issue 1): was 20 — a burst of ICE candidates could push the
+      // offer/answer out of the outbox before the partner's next poll.
+      if (outbox.length > 60) outbox = outbox.slice(-60);
       try {
         await window.MusicPlayer.api('POST', '/api/data/state', { coupleId: ctx.coupleId, state: { [myKey]: outbox }, senderRole: ctx.role });
       } catch (e) {}
@@ -106,11 +109,14 @@
         const msgs = state && state[peerKey];
         if (!Array.isArray(msgs)) return;
         const fresh = msgs.filter(m => m.seq > lastPeerSeq).sort((a, b) => a.seq - b.seq);
+        // advance the cursor over everything, but only DELIVER non-stale msgs
+        const deliver = fresh.filter(m => !minTs || (m.ts || 0) >= minTs);
         if (!fresh.length) return;
         lastPeerSeq = fresh[fresh.length - 1].seq;
-        fresh.forEach(msg => handlers.forEach(h => { try { h(msg); } catch (e) {} }));
+        deliver.forEach(msg => handlers.forEach(h => { try { h(msg); } catch (e) {} }));
       } catch (e) {}
     }
+    function setMinTs(t) { minTs = t || 0; }
     function startPolling(fast) {
       stopPolling();
       pollTimer = setInterval(pollOnce, SIGNAL_POLL_MS);
@@ -126,7 +132,7 @@
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') pollOnce();
     });
-    return { init, send, startPolling, stopPolling, on, off, get ctx() { return ctx; } };
+    return { init, send, startPolling, stopPolling, on, off, setMinTs, get ctx() { return ctx; } };
   })();
 
   /* ═══════════════════════════════════════
@@ -164,6 +170,8 @@
     pc: null, localStream: null, remoteStream: null,
     cameraFacing: 'user', muted: false, cameraOff: false, speakerMuted: false,
     lastHostSync: null, lastHostMsgAt: 0, syncBroadcastTimer: null, staleCheckTimer: null,
+    iceQueue: [], pendingOffer: null, peerReady: false, lastOffer: null, lastOfferId: null, lastAnswer: null,
+    answered: false, offerTimer: null, readyTimer: null, minDelta: null, loadingSong: null, joinedAt: 0,
     recording: false, recorder: null, recChunks: [], recCanvasStream: null, recRafId: null,
   };
 
@@ -353,15 +361,95 @@
   /* ═══════════════════════════════════════
      WEBRTC
   ═══════════════════════════════════════ */
-  async function setupPeerConnection(isHost) {
-    Room.pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-    Room.remoteStream = new MediaStream();
-    document.getElementById('ckPartnerVideo').srcObject = Room.remoteStream;
+  /* FIX (issue 1 — "video comes on one side, not on the other"):
+     Root causes in the old handshake:
+       1. The host sent its offer immediately; the guest was still in
+          getUserMedia() with no RTCPeerConnection yet, so the offer was
+          silently dropped (`&& Room.pc`) and never answered.
+       2. ICE candidates arriving before the remote description were
+          swallowed by `.catch(() => {})` (no queue).
+       3. STUN-only — no TURN, so many mobile-network pairs can't connect.
+       4. Old offers/ICE/'leave' messages from a previous room were replayed.
+       5. The partner <video> was never explicitly play()ed.
+     New flow: guest builds its peer connection first, then announces
+     'ready'; host answers 'ready' with the offer and re-sends it until
+     answered; ICE is queued; TURN credentials are used; failures trigger an
+     ICE restart; partner video is play()ed on every new track. */
+  function playPartnerVideo() {
+    const v = document.getElementById('ckPartnerVideo');
+    if (!v) return;
+    if (v.srcObject !== Room.remoteStream) v.srcObject = Room.remoteStream;
+    v.muted = Room.speakerMuted;
+    const p = v.play();
+    if (p && p.catch) p.catch(() => {
+      // autoplay blocked — retry on the next tap anywhere in the room
+      const retry = () => { v.play().catch(() => {}); document.removeEventListener('click', retry, true); };
+      document.addEventListener('click', retry, true);
+    });
+  }
+  async function flushIce() {
+    const q = Room.iceQueue; Room.iceQueue = [];
+    for (const c of q) { try { await Room.pc.addIceCandidate(c); } catch (e) {} }
+  }
+  async function hostOffer(restart) {
+    const pc = Room.pc;
+    if (!pc || !Room.isHost) return;
+    if (restart || !Room.lastOffer) {
+      const offer = await pc.createOffer(restart ? { iceRestart: true } : undefined);
+      await pc.setLocalDescription(offer);
+      Room.lastOffer = { sdp: pc.localDescription.toJSON ? pc.localDescription.toJSON() : offer, oid: Date.now() };
+      Room.answered = false;
+    }
+    Channel.send({ type: 'offer', sdp: Room.lastOffer.sdp, oid: Room.lastOffer.oid });
+  }
+  async function applyOffer(msg) {
+    if (!Room.pc) { Room.pendingOffer = msg; return; }
+    if (Room.lastOfferId === msg.oid && Room.pc.remoteDescription) {
+      // duplicate offer — our answer was probably lost, just re-send it
+      if (Room.lastAnswer) Channel.send({ type: 'answer', sdp: Room.lastAnswer, oid: msg.oid });
+      return;
+    }
+    Room.lastOfferId = msg.oid;
+    await Room.pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+    await flushIce();
+    const answer = await Room.pc.createAnswer();
+    await Room.pc.setLocalDescription(answer);
+    Room.lastAnswer = Room.pc.localDescription.toJSON ? Room.pc.localDescription.toJSON() : answer;
+    Channel.send({ type: 'answer', sdp: Room.lastAnswer, oid: msg.oid });
+    if (Room.readyTimer) { clearInterval(Room.readyTimer); Room.readyTimer = null; }
+  }
 
-    Room.pc.ontrack = (e) => { e.streams[0].getTracks().forEach(t => Room.remoteStream.addTrack(t)); };
+  async function setupPeerConnection(isHost) {
+    let iceServers = ICE_SERVERS;
+    try {
+      const d = await window.MusicPlayer.api('GET', '/api/call/turn-creds');
+      if (d && d.iceServers && d.iceServers.length) iceServers = d.iceServers;
+    } catch (e) {}
+    Room.pc = new RTCPeerConnection({ iceServers });
+    Room.remoteStream = new MediaStream();
+    playPartnerVideo();
+
+    Room.pc.ontrack = (e) => {
+      const add = (t) => {
+        if (!Room.remoteStream.getTracks().includes(t)) Room.remoteStream.addTrack(t);
+        t.onunmute = playPartnerVideo;
+      };
+      if (e.streams && e.streams[0]) e.streams[0].getTracks().forEach(add); else add(e.track);
+      playPartnerVideo();
+    };
     Room.pc.onicecandidate = (e) => { if (e.candidate) Channel.send({ type: 'ice', candidate: e.candidate.toJSON() }); };
     Room.pc.onconnectionstatechange = () => {
-      if (Room.pc.connectionState === 'connected') hideConnecting();
+      const st = Room.pc && Room.pc.connectionState;
+      if (st === 'connected') {
+        hideConnecting();
+        if (Room.offerTimer) { clearInterval(Room.offerTimer); Room.offerTimer = null; }
+        playPartnerVideo();
+      } else if (st === 'disconnected') {
+        try { Room.pc.restartIce(); } catch (e) {}
+      } else if (st === 'failed') {
+        if (Room.isHost) hostOffer(true).catch(() => {});   // renegotiate with ICE restart
+        else Channel.send({ type: 'ready' });               // ask host to re-offer
+      }
     };
 
     try {
@@ -372,11 +460,26 @@
     }
     document.getElementById('ckSelfVideo').srcObject = Room.localStream;
     Room.localStream.getTracks().forEach(t => Room.pc.addTrack(t, Room.localStream));
+    // No camera/mic -> still make sure we can RECEIVE the partner's video/audio
+    if (!Room.localStream.getVideoTracks().length) Room.pc.addTransceiver('video', { direction: 'recvonly' });
+    if (!Room.localStream.getAudioTracks().length) Room.pc.addTransceiver('audio', { direction: 'recvonly' });
+
+    if (Room.pendingOffer) { const o = Room.pendingOffer; Room.pendingOffer = null; await applyOffer(o); }
 
     if (isHost) {
-      const offer = await Room.pc.createOffer();
-      await Room.pc.setLocalDescription(offer);
-      Channel.send({ type: 'offer', sdp: offer });
+      // Offer only once the guest says it is ready (or immediately if it already did);
+      // keep re-sending until answered so a dropped message can't stall video.
+      if (Room.peerReady) await hostOffer(false);
+      Room.offerTimer = setInterval(() => {
+        if (!Room.open || !Room.pc || Room.answered || Room.pc.connectionState === 'connected') return;
+        if (Room.peerReady) hostOffer(false).catch(() => {});
+      }, 4000);
+    } else {
+      Channel.send({ type: 'ready' });
+      Room.readyTimer = setInterval(() => {
+        if (!Room.open || !Room.pc || Room.pc.remoteDescription) { clearInterval(Room.readyTimer); Room.readyTimer = null; return; }
+        Channel.send({ type: 'ready' });
+      }, 3000);
     }
   }
 
@@ -384,15 +487,20 @@
     Channel.on(async (msg) => {
       if (!Room.open) return;
       try {
-        if (msg.type === 'offer' && Room.pc) {
+        if (msg.type === 'ready' && Room.isHost) {
+          Room.peerReady = true;
+          if (Room.pc) await hostOffer(Room.pc.connectionState === 'failed');
+        } else if (msg.type === 'offer' && !Room.isHost) {
+          await applyOffer(msg);
+        } else if (msg.type === 'answer' && Room.isHost && Room.pc) {
+          if (Room.pc.signalingState !== 'have-local-offer') return; // duplicate answer
+          if (msg.oid && Room.lastOffer && msg.oid !== Room.lastOffer.oid) return; // answer to an older offer
           await Room.pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
-          const answer = await Room.pc.createAnswer();
-          await Room.pc.setLocalDescription(answer);
-          Channel.send({ type: 'answer', sdp: answer });
-        } else if (msg.type === 'answer' && Room.pc) {
-          await Room.pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
-        } else if (msg.type === 'ice' && Room.pc) {
-          await Room.pc.addIceCandidate(new RTCIceCandidate(msg.candidate)).catch(() => {});
+          Room.answered = true;
+          await flushIce();
+        } else if (msg.type === 'ice') {
+          if (Room.pc && Room.pc.remoteDescription) await Room.pc.addIceCandidate(new RTCIceCandidate(msg.candidate)).catch(() => {});
+          else Room.iceQueue.push(new RTCIceCandidate(msg.candidate));
         } else if (msg.type === 'sync' && !Room.isHost) {
           Room.lastHostMsgAt = Date.now();
           hideStaleBanner();
@@ -402,12 +510,12 @@
           hideStaleBanner();
           handleHostControl(msg);
         } else if (msg.type === 'request_sync' && Room.isHost) {
-          // guest is asking for an immediate resync — comply right away
           broadcastSyncTick();
         } else if (msg.type === 'reaction') {
           spawnFloatingReaction(msg.emoji);
         } else if (msg.type === 'leave') {
-          onPartnerLeft();
+          // ignore a stale 'leave' from a previous room (5s clock-drift tolerance)
+          if ((msg.ts || 0) >= Room.joinedAt - 5000) onPartnerLeft();
         }
       } catch (e) { console.warn('Couple Karaoke signal error', e); }
     });
@@ -433,11 +541,25 @@
   }
   function handleHostSync(msg) {
     Room.lastHostSync = msg;
-    if (Room.songId !== msg.songId) { loadGuestSong(msg.songId, msg.currentTime, msg.playing); return; }
-    const travel = (Date.now() - msg.ts) / 1000;
-    const expected = msg.currentTime + (msg.playing ? Math.max(0, travel) : 0);
+    if (Room.songId !== msg.songId) {
+      // FIX: every sync tick used to start another parallel load of the same song
+      if (Room.loadingSong !== msg.songId) {
+        Room.loadingSong = msg.songId;
+        Promise.resolve(loadGuestSong(msg.songId, msg.currentTime, msg.playing)).finally(() => { Room.loadingSong = null; });
+      }
+      return;
+    }
+    // FIX (song/lyric drift): msg.ts is the HOST's clock and Date.now() is the
+    // guest's, so the old `Date.now() - msg.ts` mixed in the phones' clock
+    // difference + polling delay. Use the smallest delta seen (= clock offset
+    // + minimum network latency) as the baseline and add only the EXTRA delay
+    // of this message, plus a typical ~150ms one-way latency.
+    const delta = Date.now() - msg.ts;
+    Room.minDelta = (Room.minDelta == null) ? delta : Math.min(delta, Room.minDelta + 2);
+    const travel = Math.max(0, (delta - Room.minDelta) + 150) / 1000;
+    const expected = msg.currentTime + (msg.playing ? travel : 0);
     const audio = window.AudioService.audio;
-    if (Math.abs(audio.currentTime - expected) > DRIFT_THRESHOLD) audio.currentTime = expected;
+    if (audio.readyState >= 1 && Math.abs(audio.currentTime - expected) > DRIFT_THRESHOLD) audio.currentTime = expected;
     if (msg.playing && audio.paused) audio.play().catch(() => {});
     if (!msg.playing && !audio.paused) audio.pause();
   }
@@ -604,7 +726,7 @@
       document.getElementById('ckProgressFill').style.width = (cur / dur * 100) + '%';
       document.getElementById('ckCurTime').textContent = fmtTime(cur);
       document.getElementById('ckDurTime').textContent = fmtTime(dur);
-      updateDuetLyricHighlight(cur);
+      updateDuetLyricHighlight(cur + 0.2); // small lead so lyrics never lag the audio
     });
     window.AudioService.on('state', (playing) => {
       const btn = document.getElementById('ckPlayBtn'); if (btn && Room.open) btn.textContent = playing ? '⏸' : '▶';
@@ -804,6 +926,10 @@
     Room.open = true; Room.isHost = isHost; Room.songId = songId;
     Room.songList = window.Store.songs;
     Room.lastHostMsgAt = Date.now();
+    Room.joinedAt = Date.now();
+    Room.iceQueue = []; Room.pendingOffer = null; Room.peerReady = false; Room.lastOffer = null;
+    Room.lastOfferId = null; Room.lastAnswer = null; Room.answered = false; Room.minDelta = null; Room.loadingSong = null;
+    Channel.setMinTs(Date.now() - 30000); // drop stale offers/ICE/leave from earlier rooms
     injectRoom();
     document.getElementById('ckRoom').classList.add('open');
     showConnecting();
@@ -843,6 +969,8 @@
     }, 1500);
 
     Channel.startPolling(true);
+    // Offers/ICE that arrive while we are still opening the camera are buffered
+    // (Room.pendingOffer / Room.iceQueue) and applied once the peer connection exists.
     await setupPeerConnection(isHost);
 
     setTimeout(hideConnecting, 6000);
@@ -858,6 +986,9 @@
     Room.open = false;
     if (Room.syncBroadcastTimer) clearInterval(Room.syncBroadcastTimer);
     if (Room.staleCheckTimer) clearInterval(Room.staleCheckTimer);
+    if (Room.offerTimer) { clearInterval(Room.offerTimer); Room.offerTimer = null; }
+    if (Room.readyTimer) { clearInterval(Room.readyTimer); Room.readyTimer = null; }
+    Channel.setMinTs(0);
     if (Room.recording) stopRecording();
     if (Room.pc) { Room.pc.close(); Room.pc = null; }
     if (Room.localStream) { Room.localStream.getTracks().forEach(t => t.stop()); Room.localStream = null; }

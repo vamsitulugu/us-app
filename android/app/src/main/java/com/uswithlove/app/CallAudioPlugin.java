@@ -111,9 +111,39 @@ public class CallAudioPlugin extends Plugin {
       am.setBluetoothScoOn(false);
       am.requestAudioFocus(null, AudioManager.STREAM_VOICE_CALL, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
       am.setMode(AudioManager.MODE_IN_COMMUNICATION);
-      am.setSpeakerphoneOn(speakerOn);
+      applyRoute(am, speakerOn);
+      // Some OEMs reset the route a moment after the mode change /
+      // first WebRTC audio frame — re-apply once more shortly after.
+      new Handler(Looper.getMainLooper()).postDelayed(() -> {
+        AudioManager am2 = audioManager();
+        if (am2 != null && am2.getMode() == AudioManager.MODE_IN_COMMUNICATION) applyRoute(am2, speakerOn);
+      }, 400);
     }
     call.resolve();
+  }
+
+  // Explicit routing. setSpeakerphoneOn() alone is unreliable on Android 12+
+  // (deprecated, ignored by some devices) — use setCommunicationDevice().
+  // Earpiece by default; a connected headset / bluetooth device wins over
+  // the earpiece when speaker is off.
+  private void applyRoute(AudioManager am, boolean speakerOn) {
+    if (android.os.Build.VERSION.SDK_INT >= 31) {
+      try {
+        android.media.AudioDeviceInfo target = null, headset = null, earpiece = null;
+        for (android.media.AudioDeviceInfo d : am.getAvailableCommunicationDevices()) {
+          int t = d.getType();
+          if (t == android.media.AudioDeviceInfo.TYPE_BUILTIN_SPEAKER && speakerOn) target = d;
+          else if (t == android.media.AudioDeviceInfo.TYPE_BUILTIN_EARPIECE) earpiece = d;
+          else if (t == android.media.AudioDeviceInfo.TYPE_WIRED_HEADSET
+                || t == android.media.AudioDeviceInfo.TYPE_WIRED_HEADPHONES
+                || t == android.media.AudioDeviceInfo.TYPE_USB_HEADSET
+                || t == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_SCO) headset = d;
+        }
+        if (!speakerOn) target = (headset != null) ? headset : earpiece;
+        if (target != null) am.setCommunicationDevice(target);
+      } catch (Exception e) { /* fall through to legacy call */ }
+    }
+    am.setSpeakerphoneOn(speakerOn);
   }
 
   // Used when the user taps the in-call speaker toggle.
@@ -123,7 +153,7 @@ public class CallAudioPlugin extends Plugin {
     AudioManager am = audioManager();
     if (am != null) {
       if (!speakerOn) { am.stopBluetoothSco(); am.setBluetoothScoOn(false); }
-      am.setSpeakerphoneOn(speakerOn);
+      applyRoute(am, speakerOn);
     }
     call.resolve();
   }
@@ -135,6 +165,7 @@ public class CallAudioPlugin extends Plugin {
   public void release(PluginCall call) {
     AudioManager am = audioManager();
     if (am != null) {
+      if (android.os.Build.VERSION.SDK_INT >= 31) { try { am.clearCommunicationDevice(); } catch (Exception e) {} }
       am.setMode(AudioManager.MODE_NORMAL);
       am.setSpeakerphoneOn(false);
     }

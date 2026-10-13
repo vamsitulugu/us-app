@@ -18,6 +18,27 @@ const Chat = (function () {
   const seenIds = new Set();
   function trackKey(m) { return m.client_id || m.id; }
 
+  // FIX (issue 4): loading="lazy" on images inside the chat scroller is
+  // unreliable in Android WebView (images appended at the bottom can stay
+  // blank until a reflow/refresh), so chat images now load eagerly. If one
+  // still fails (CDN not ready right after upload) retry with a cache-bust.
+  window.__chatImgRetry = function (img) {
+    const n = +(img.dataset.retry || 0);
+    if (n >= 3 || !img.src || img.src.startsWith('blob:')) return;
+    img.dataset.retry = n + 1;
+    const base = img.src.replace(/[?&]_r=[0-9]+/, "").replace(/[?&]$/, "");
+    setTimeout(() => { img.src = base + (base.includes('?') ? '&' : '?') + '_r=' + Date.now(); }, 400 * (n + 1));
+  };
+  // Resolve once every URL is decoded in cache (or after timeoutMs).
+  function preloadImages(urls, timeoutMs) {
+    return new Promise(resolve => {
+      let left = urls.length; if (!left) return resolve();
+      const done = () => { if (--left <= 0) resolve(); };
+      setTimeout(resolve, timeoutMs || 4000);
+      urls.forEach(u => { const im = new Image(); im.onload = im.onerror = done; im.src = u; });
+    });
+  }
+
   function coupleId() { return window.S && window.S.coupleId; }
   function myRole() { return window.S && window.S.role; }
   function otherRole() { return myRole() === 'user1' ? 'user2' : 'user1'; }
@@ -464,7 +485,13 @@ function reanchorAfterImages() {
     // _sendFailed are included so a pending image_group's progress rings
     // and per-tile retry state actually get patched into the DOM instead
     // of being treated as "nothing changed" and silently skipped.
-    return trackKey(m) + '|' + (m.deleted ? 1 : 0) + '|' + (m.delivered ? 1 : 0) + '|' + (m.read ? 1 : 0) + '|' + (m.text || '') + '|' + rx + '|' + (m.pinned ? 1 : 0) + '|' + starred + '|' + (m._uploadRev || 0) + '|' + (m._sendFailed ? 1 : 0);
+    // FIX (issue 4): media URL was missing from the signature, so when an
+    // optimistic image bubble was swapped for the server-confirmed row (new
+    // media_url / media_meta) the signature stayed identical and render()
+    // never repainted it — the broken/empty preview stayed until a refresh.
+    const _mi = (m.media_meta && m.media_meta.items) ? m.media_meta.items.map(i => i.url).join(',') : '';
+    const _media = (m.media_url || m.mediaUrl || '') + '#' + _mi + '#' + (m._pending ? 1 : 0);
+    return trackKey(m) + '|' + _media + '|' + (m.deleted ? 1 : 0) + '|' + (m.delivered ? 1 : 0) + '|' + (m.read ? 1 : 0) + '|' + (m.text || '') + '|' + rx + '|' + (m.pinned ? 1 : 0) + '|' + starred + '|' + (m._uploadRev || 0) + '|' + (m._sendFailed ? 1 : 0);
   }
 
   // ─── RENDER ──────────────────────────────────────────
@@ -695,7 +722,7 @@ function reanchorAfterImages() {
         ? `<div class="chat-view-once opened"><span class="vo-icon">👁️</span><span>Opened</span></div>`
         : `<div class="chat-view-once pending" onclick="Chat.openViewOnce('${m.id}')"><span class="vo-icon">🔒</span><span>${mine ? 'Photo sent' : 'Tap to view photo'}</span></div>`;
     }
-    else if (m.type === 'image') body = `<img src="${esc(m.media_url)}" class="chat-img" onclick="Chat.openMediaViewer('${m.id}')" loading="lazy" draggable="false">${m.view_once ? '<span class="vo-badge" title="View once">1</span>' : ''}`;
+    else if (m.type === 'image') body = `<img src="${esc(m.media_url)}" class="chat-img" onclick="Chat.openMediaViewer('${m.id}')" decoding="async" onerror="window.__chatImgRetry(this)" draggable="false">${m.view_once ? '<span class="vo-badge" title="View once">1</span>' : ''}`;
     else if (m.type === 'image_group') body = renderPhotoGrid(m) + (m.text ? `<div class="chat-text photo-caption">${linkify(applyWaFormatting(esc(m.text)))}</div>` : '');
     else if (m.type === 'video') body = `<video class="chat-video" src="${esc(m.media_url)}" controls preload="metadata" playsinline></video>${m.text ? `<div class="chat-text photo-caption">${linkify(applyWaFormatting(esc(m.text)))}</div>` : ''}${m.view_once ? '<span class="vo-badge" title="View once">1</span>' : ''}`;
     else if (m.type === 'file') body = renderFileBubble(m);
@@ -977,7 +1004,12 @@ function reanchorAfterImages() {
     const clientId = genClientId();
     const optimistic = {
       id: 'temp_' + clientId, client_id: clientId, couple_id: coupleId(), sender_role: myRole(),
-      created_at: new Date().toISOString(), delivered: false, read: false, ...payload
+      created_at: new Date().toISOString(), delivered: false, read: false, ...payload,
+      // FIX (issue 4): payload uses camelCase (mediaUrl/mediaMeta) but the
+      // renderer reads media_url/media_meta — optimistic media bubbles
+      // rendered <img src="undefined"> until the server row replaced them.
+      media_url: payload.mediaUrl || payload.media_url || null,
+      media_meta: payload.mediaMeta || payload.media_meta || null
     };
     msgs.push(optimistic); render(); scrollToBottom(true);
     if (effectToPlay) playSendEffect(effectToPlay);
@@ -1483,15 +1515,17 @@ function reanchorAfterImages() {
         coupleId: coupleId(), clientId, senderRole: myRole(),
         type: 'image_group', text: m.text || null, mediaUrl: items[0].url, mediaMeta
       });
+      // FIX (issue 4): swapping to the hosted URL while its bytes were still
+      // downloading showed blank tiles (blob already revoked). Warm the
+      // cache first (blob preview stays visible meanwhile), then swap.
+      await preloadImages(items.map(it => it.url), 4000);
       const idx2 = msgs.findIndex(x => x.client_id === clientId);
-      if (idx2 > -1) {
-        // Server row now holds the permanent hosted URLs — release the
-        // local blob: previews so they don't leak memory.
-        (msgs[idx2]._items || []).forEach(it => { try { URL.revokeObjectURL(it.localUrl); } catch (e) {} });
-        msgs[idx2] = saved;
-      }
+      let oldItems = [];
+      if (idx2 > -1) { oldItems = msgs[idx2]._items || []; msgs[idx2] = saved; }
       lastMsgId = Math.max(lastMsgId, saved.id);
       render();
+      // Release local blob: previews only after the swap has painted.
+      oldItems.forEach(it => { try { URL.revokeObjectURL(it.localUrl); } catch (e) {} });
       [1500, 4000, 8000].forEach(delay => setTimeout(refreshRecentStatuses, delay));
     } catch (e) {
       // Same reasoning as sendMessage()'s catch: the upsert is idempotent
@@ -1597,7 +1631,7 @@ function reanchorAfterImages() {
       const moreOverlay = (isLastVisible && extra > 0) ? `<div class="gph-more">+${extra}</div>` : '';
       const tapHandler = pending ? '' : `onclick="event.stopPropagation();Chat.openMediaGroupViewer('${m.id}', ${i})"`;
       tiles += `<div class="gph" ${tapHandler}>
-        <img src="${esc(src)}" loading="lazy" draggable="false" alt="Photo">
+        <img src="${esc(src)}" decoding="async" onerror="window.__chatImgRetry(this)" draggable="false" alt="Photo">
         ${overlay}${moreOverlay}
       </div>`;
     }

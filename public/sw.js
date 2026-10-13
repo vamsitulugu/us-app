@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v35'; // bumped: purges stale cached assets (incl. old movie.css) on activate
+const CACHE = 'uwl-v36'; // bumped: call/karaoke/chat-image fixes
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',

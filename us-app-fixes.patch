@@ -1,0 +1,592 @@
+diff --git a/android/app/src/main/java/com/uswithlove/app/CallAudioPlugin.java b/android/app/src/main/java/com/uswithlove/app/CallAudioPlugin.java
+index 191e0b4..c8938f2 100644
+--- a/android/app/src/main/java/com/uswithlove/app/CallAudioPlugin.java
++++ b/android/app/src/main/java/com/uswithlove/app/CallAudioPlugin.java
+@@ -111,11 +111,41 @@ public class CallAudioPlugin extends Plugin {
+       am.setBluetoothScoOn(false);
+       am.requestAudioFocus(null, AudioManager.STREAM_VOICE_CALL, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+       am.setMode(AudioManager.MODE_IN_COMMUNICATION);
+-      am.setSpeakerphoneOn(speakerOn);
++      applyRoute(am, speakerOn);
++      // Some OEMs reset the route a moment after the mode change /
++      // first WebRTC audio frame — re-apply once more shortly after.
++      new Handler(Looper.getMainLooper()).postDelayed(() -> {
++        AudioManager am2 = audioManager();
++        if (am2 != null && am2.getMode() == AudioManager.MODE_IN_COMMUNICATION) applyRoute(am2, speakerOn);
++      }, 400);
+     }
+     call.resolve();
+   }
+ 
++  // Explicit routing. setSpeakerphoneOn() alone is unreliable on Android 12+
++  // (deprecated, ignored by some devices) — use setCommunicationDevice().
++  // Earpiece by default; a connected headset / bluetooth device wins over
++  // the earpiece when speaker is off.
++  private void applyRoute(AudioManager am, boolean speakerOn) {
++    if (android.os.Build.VERSION.SDK_INT >= 31) {
++      try {
++        android.media.AudioDeviceInfo target = null, headset = null, earpiece = null;
++        for (android.media.AudioDeviceInfo d : am.getAvailableCommunicationDevices()) {
++          int t = d.getType();
++          if (t == android.media.AudioDeviceInfo.TYPE_BUILTIN_SPEAKER && speakerOn) target = d;
++          else if (t == android.media.AudioDeviceInfo.TYPE_BUILTIN_EARPIECE) earpiece = d;
++          else if (t == android.media.AudioDeviceInfo.TYPE_WIRED_HEADSET
++                || t == android.media.AudioDeviceInfo.TYPE_WIRED_HEADPHONES
++                || t == android.media.AudioDeviceInfo.TYPE_USB_HEADSET
++                || t == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_SCO) headset = d;
++        }
++        if (!speakerOn) target = (headset != null) ? headset : earpiece;
++        if (target != null) am.setCommunicationDevice(target);
++      } catch (Exception e) { /* fall through to legacy call */ }
++    }
++    am.setSpeakerphoneOn(speakerOn);
++  }
++
+   // Used when the user taps the in-call speaker toggle.
+   @PluginMethod
+   public void setSpeaker(PluginCall call) {
+@@ -123,7 +153,7 @@ public class CallAudioPlugin extends Plugin {
+     AudioManager am = audioManager();
+     if (am != null) {
+       if (!speakerOn) { am.stopBluetoothSco(); am.setBluetoothScoOn(false); }
+-      am.setSpeakerphoneOn(speakerOn);
++      applyRoute(am, speakerOn);
+     }
+     call.resolve();
+   }
+@@ -135,6 +165,7 @@ public class CallAudioPlugin extends Plugin {
+   public void release(PluginCall call) {
+     AudioManager am = audioManager();
+     if (am != null) {
++      if (android.os.Build.VERSION.SDK_INT >= 31) { try { am.clearCommunicationDevice(); } catch (Exception e) {} }
+       am.setMode(AudioManager.MODE_NORMAL);
+       am.setSpeakerphoneOn(false);
+     }
+diff --git a/public/chat/call.js b/public/chat/call.js
+index b2374bf..0e4570d 100644
+--- a/public/chat/call.js
++++ b/public/chat/call.js
+@@ -316,16 +316,41 @@ async function initSignalCursor() {
+     } catch (e) {}
+   }
+   let lastSignalId = 0;
++  // FIX (issue 3 — "one side opens, other side stuck on ring screen"):
++  // pollSignal() is triggered by the 500ms timer AND by the realtime
++  // 'signal_ping'. Two overlapping polls read the same lastSignalId, so the
++  // same 'answer' was applied twice -> the 2nd setRemoteDescription threw,
++  // the exception aborted the for-loop and every ICE row after it was
++  // dropped (lastSignalId had already advanced) -> connection never formed.
++  // Now: one poll at a time, rows are processed in id order, each row is
++  // isolated in its own try/catch, and rows are never processed twice.
++  let _pollingSignal = false, _pollAgain = false;
++  const _handledSignalIds = new Set();
+   async function pollSignal() {
+     if (!coupleId()) return;
++    if (_pollingSignal) { _pollAgain = true; return; }
++    _pollingSignal = true;
+     try {
+-      const r = await fetch(API + '/api/call/signal/' + coupleId() + '?role=' + otherRole() + '&after=' + lastSignalId, { cache: 'no-store' });
+-      if (!r.ok) return;
+-      const rows = await r.json();
+-      if (!rows.length) return;
+-      lastSignalId = Math.max(...rows.map(x => x.id));
+-      for (const row of rows) await handleSignal(row.payload);
+-    } catch (e) {}
++      do {
++        _pollAgain = false;
++        let rows = [];
++        try {
++          const r = await fetch(API + '/api/call/signal/' + coupleId() + '?role=' + otherRole() + '&after=' + lastSignalId, { cache: 'no-store' });
++          if (!r.ok) break;
++          rows = await r.json();
++        } catch (e) { break; }
++        if (!rows.length) continue;
++        rows.sort((a, b) => a.id - b.id);
++        lastSignalId = Math.max(lastSignalId, rows[rows.length - 1].id);
++        for (const row of rows) {
++          if (_handledSignalIds.has(row.id)) continue;
++          _handledSignalIds.add(row.id);
++          if (_handledSignalIds.size > 500) _handledSignalIds.delete(_handledSignalIds.values().next().value);
++          try { await handleSignal(row.payload); }
++          catch (e) { console.warn('[Call] signal handler error', row.payload && row.payload.type, e); }
++        }
++      } while (_pollAgain);
++    } finally { _pollingSignal = false; }
+   }
+ 
+   let iceQueue = [];
+@@ -377,7 +402,13 @@ async function initSignalCursor() {
+       showIncoming(m);
+     }
+     else if (m.type === 'answer' && pc) {
++      // duplicate / late answer — already applied, ignore instead of throwing
++      if (pc.signalingState !== 'have-local-offer') return;
+       await pc.setRemoteDescription(new RTCSessionDescription(m.sdp));
++      // FIX (issue 2): leave the loud ringback route right away (earpiece
++      // unless the user already tapped Speaker) instead of waiting for
++      // connectionState === 'connected'.
++      setConnectedAudio();
+       onConnecting();
+       for (const cand of iceQueue) { try { await pc.addIceCandidate(cand); } catch (e) {} }
+       iceQueue = [];
+@@ -624,6 +655,10 @@ async function initSignalCursor() {
+       const remoteAudio = document.createElement('audio');
+       remoteAudio.id = 'callRemoteAudio'; remoteAudio.autoplay = true; remoteAudio.srcObject = remoteStream;
+       el.appendChild(remoteAudio);
++      // FIX (issue 2): some OEM audio stacks re-route to the loudspeaker
++      // when the first WebRTC stream starts playing — re-apply the user's
++      // chosen route (earpiece by default) just after playback begins.
++      [250, 900, 2000].forEach(d => setTimeout(() => { if (pc && !isSpeakerOn) setConnectedAudio(); }, d));
+     }
+     startTimer();
+     startSignalMonitor();
+@@ -1048,6 +1083,13 @@ async function initSignalCursor() {
+     callStarting = true;
+     clearRingTimeout();
+     isMuted = false; isCamOff = false; isSpeakerOn = false;
++    // FIX (issue 2): setRinging() left Android in MODE_NORMAL with the loud
++    // speaker forced ON. Nothing switched it back until the call fully
++    // connected, so the call audio came out of the main speaker without the
++    // person touching the Speaker button. Stop the ringtone and move to the
++    // earpiece (communication mode) the moment the call is picked up.
++    stopRingtone();
++    setConnectedAudio();
+     const offer = pendingOffer;
+     const myToken = ++callToken;
+     try {
+@@ -1128,6 +1170,20 @@ async function initSignalCursor() {
+     pc.onicecandidate = e => { if (e.candidate) pushSignal({ type: 'ice', candidate: e.candidate }); };
+     pc.oniceconnectionstatechange = () => {
+       if (callContext === 'watch_together') console.log('[WatchVoice] iceConnectionState:', pc.iceConnectionState);
++      // FIX (issue 3): on some devices connectionState never flips to
++      // 'connected' even though ICE is up, leaving that side on the ring
++      // screen. Treat ICE connected/completed as connected for the chat UI.
++      if (callContext !== 'watch_together' && pc &&
++          (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') &&
++          !document.getElementById('callTimer') && !(callType === 'video' && document.getElementById('callRemoteVideo'))) {
++        clearRingTimeout();
++        setConnectedAudio();
++        renderActive();
++        window.playAppSound?.(callType === 'video' ? 'call.video.connected' : 'call.connected');
++      }
++      if (pc && pc.iceConnectionState === 'failed' && typeof pc.restartIce === 'function') {
++        try { pc.restartIce(); } catch (e) {}
++      }
+     };
+     let disconnectGrace = null;
+     pc.onconnectionstatechange = () => {
+diff --git a/public/chat/chat.js b/public/chat/chat.js
+index 6d0c347..935d93c 100644
+--- a/public/chat/chat.js
++++ b/public/chat/chat.js
+@@ -18,6 +18,27 @@ const Chat = (function () {
+   const seenIds = new Set();
+   function trackKey(m) { return m.client_id || m.id; }
+ 
++  // FIX (issue 4): loading="lazy" on images inside the chat scroller is
++  // unreliable in Android WebView (images appended at the bottom can stay
++  // blank until a reflow/refresh), so chat images now load eagerly. If one
++  // still fails (CDN not ready right after upload) retry with a cache-bust.
++  window.__chatImgRetry = function (img) {
++    const n = +(img.dataset.retry || 0);
++    if (n >= 3 || !img.src || img.src.startsWith('blob:')) return;
++    img.dataset.retry = n + 1;
++    const base = img.src.replace(/[?&]_r=[0-9]+/, "").replace(/[?&]$/, "");
++    setTimeout(() => { img.src = base + (base.includes('?') ? '&' : '?') + '_r=' + Date.now(); }, 400 * (n + 1));
++  };
++  // Resolve once every URL is decoded in cache (or after timeoutMs).
++  function preloadImages(urls, timeoutMs) {
++    return new Promise(resolve => {
++      let left = urls.length; if (!left) return resolve();
++      const done = () => { if (--left <= 0) resolve(); };
++      setTimeout(resolve, timeoutMs || 4000);
++      urls.forEach(u => { const im = new Image(); im.onload = im.onerror = done; im.src = u; });
++    });
++  }
++
+   function coupleId() { return window.S && window.S.coupleId; }
+   function myRole() { return window.S && window.S.role; }
+   function otherRole() { return myRole() === 'user1' ? 'user2' : 'user1'; }
+@@ -464,7 +485,13 @@ function reanchorAfterImages() {
+     // _sendFailed are included so a pending image_group's progress rings
+     // and per-tile retry state actually get patched into the DOM instead
+     // of being treated as "nothing changed" and silently skipped.
+-    return trackKey(m) + '|' + (m.deleted ? 1 : 0) + '|' + (m.delivered ? 1 : 0) + '|' + (m.read ? 1 : 0) + '|' + (m.text || '') + '|' + rx + '|' + (m.pinned ? 1 : 0) + '|' + starred + '|' + (m._uploadRev || 0) + '|' + (m._sendFailed ? 1 : 0);
++    // FIX (issue 4): media URL was missing from the signature, so when an
++    // optimistic image bubble was swapped for the server-confirmed row (new
++    // media_url / media_meta) the signature stayed identical and render()
++    // never repainted it — the broken/empty preview stayed until a refresh.
++    const _mi = (m.media_meta && m.media_meta.items) ? m.media_meta.items.map(i => i.url).join(',') : '';
++    const _media = (m.media_url || m.mediaUrl || '') + '#' + _mi + '#' + (m._pending ? 1 : 0);
++    return trackKey(m) + '|' + _media + '|' + (m.deleted ? 1 : 0) + '|' + (m.delivered ? 1 : 0) + '|' + (m.read ? 1 : 0) + '|' + (m.text || '') + '|' + rx + '|' + (m.pinned ? 1 : 0) + '|' + starred + '|' + (m._uploadRev || 0) + '|' + (m._sendFailed ? 1 : 0);
+   }
+ 
+   // ─── RENDER ──────────────────────────────────────────
+@@ -695,7 +722,7 @@ function reanchorAfterImages() {
+         ? `<div class="chat-view-once opened"><span class="vo-icon">👁️</span><span>Opened</span></div>`
+         : `<div class="chat-view-once pending" onclick="Chat.openViewOnce('${m.id}')"><span class="vo-icon">🔒</span><span>${mine ? 'Photo sent' : 'Tap to view photo'}</span></div>`;
+     }
+-    else if (m.type === 'image') body = `<img src="${esc(m.media_url)}" class="chat-img" onclick="Chat.openMediaViewer('${m.id}')" loading="lazy" draggable="false">${m.view_once ? '<span class="vo-badge" title="View once">1</span>' : ''}`;
++    else if (m.type === 'image') body = `<img src="${esc(m.media_url)}" class="chat-img" onclick="Chat.openMediaViewer('${m.id}')" decoding="async" onerror="window.__chatImgRetry(this)" draggable="false">${m.view_once ? '<span class="vo-badge" title="View once">1</span>' : ''}`;
+     else if (m.type === 'image_group') body = renderPhotoGrid(m) + (m.text ? `<div class="chat-text photo-caption">${linkify(applyWaFormatting(esc(m.text)))}</div>` : '');
+     else if (m.type === 'video') body = `<video class="chat-video" src="${esc(m.media_url)}" controls preload="metadata" playsinline></video>${m.text ? `<div class="chat-text photo-caption">${linkify(applyWaFormatting(esc(m.text)))}</div>` : ''}${m.view_once ? '<span class="vo-badge" title="View once">1</span>' : ''}`;
+     else if (m.type === 'file') body = renderFileBubble(m);
+@@ -977,7 +1004,12 @@ function reanchorAfterImages() {
+     const clientId = genClientId();
+     const optimistic = {
+       id: 'temp_' + clientId, client_id: clientId, couple_id: coupleId(), sender_role: myRole(),
+-      created_at: new Date().toISOString(), delivered: false, read: false, ...payload
++      created_at: new Date().toISOString(), delivered: false, read: false, ...payload,
++      // FIX (issue 4): payload uses camelCase (mediaUrl/mediaMeta) but the
++      // renderer reads media_url/media_meta — optimistic media bubbles
++      // rendered <img src="undefined"> until the server row replaced them.
++      media_url: payload.mediaUrl || payload.media_url || null,
++      media_meta: payload.mediaMeta || payload.media_meta || null
+     };
+     msgs.push(optimistic); render(); scrollToBottom(true);
+     if (effectToPlay) playSendEffect(effectToPlay);
+@@ -1483,15 +1515,17 @@ function reanchorAfterImages() {
+         coupleId: coupleId(), clientId, senderRole: myRole(),
+         type: 'image_group', text: m.text || null, mediaUrl: items[0].url, mediaMeta
+       });
++      // FIX (issue 4): swapping to the hosted URL while its bytes were still
++      // downloading showed blank tiles (blob already revoked). Warm the
++      // cache first (blob preview stays visible meanwhile), then swap.
++      await preloadImages(items.map(it => it.url), 4000);
+       const idx2 = msgs.findIndex(x => x.client_id === clientId);
+-      if (idx2 > -1) {
+-        // Server row now holds the permanent hosted URLs — release the
+-        // local blob: previews so they don't leak memory.
+-        (msgs[idx2]._items || []).forEach(it => { try { URL.revokeObjectURL(it.localUrl); } catch (e) {} });
+-        msgs[idx2] = saved;
+-      }
++      let oldItems = [];
++      if (idx2 > -1) { oldItems = msgs[idx2]._items || []; msgs[idx2] = saved; }
+       lastMsgId = Math.max(lastMsgId, saved.id);
+       render();
++      // Release local blob: previews only after the swap has painted.
++      oldItems.forEach(it => { try { URL.revokeObjectURL(it.localUrl); } catch (e) {} });
+       [1500, 4000, 8000].forEach(delay => setTimeout(refreshRecentStatuses, delay));
+     } catch (e) {
+       // Same reasoning as sendMessage()'s catch: the upsert is idempotent
+@@ -1597,7 +1631,7 @@ function reanchorAfterImages() {
+       const moreOverlay = (isLastVisible && extra > 0) ? `<div class="gph-more">+${extra}</div>` : '';
+       const tapHandler = pending ? '' : `onclick="event.stopPropagation();Chat.openMediaGroupViewer('${m.id}', ${i})"`;
+       tiles += `<div class="gph" ${tapHandler}>
+-        <img src="${esc(src)}" loading="lazy" draggable="false" alt="Photo">
++        <img src="${esc(src)}" decoding="async" onerror="window.__chatImgRetry(this)" draggable="false" alt="Photo">
+         ${overlay}${moreOverlay}
+       </div>`;
+     }
+diff --git a/public/couple-karaoke.js b/public/couple-karaoke.js
+index db1c873..6029a47 100644
+--- a/public/couple-karaoke.js
++++ b/public/couple-karaoke.js
+@@ -81,6 +81,7 @@
+   const Channel = (function () {
+     let ctx = null, myKey = null, peerKey = null, lastPeerSeq = 0, pollTimer = null, fastTimer = null;
+     let outbox = [];
++    let minTs = 0; // ignore peer messages older than this (stale replays from a previous room)
+     const handlers = [];
+ 
+     function init() {
+@@ -94,7 +95,9 @@
+       if (!ctx && !init()) return;
+       const payload = { ...msg, from: ctx.role, ts: Date.now(), seq: Date.now() + Math.random() };
+       outbox.push(payload);
+-      if (outbox.length > 20) outbox = outbox.slice(-20);
++      // FIX (issue 1): was 20 — a burst of ICE candidates could push the
++      // offer/answer out of the outbox before the partner's next poll.
++      if (outbox.length > 60) outbox = outbox.slice(-60);
+       try {
+         await window.MusicPlayer.api('POST', '/api/data/state', { coupleId: ctx.coupleId, state: { [myKey]: outbox }, senderRole: ctx.role });
+       } catch (e) {}
+@@ -106,11 +109,14 @@
+         const msgs = state && state[peerKey];
+         if (!Array.isArray(msgs)) return;
+         const fresh = msgs.filter(m => m.seq > lastPeerSeq).sort((a, b) => a.seq - b.seq);
++        // advance the cursor over everything, but only DELIVER non-stale msgs
++        const deliver = fresh.filter(m => !minTs || (m.ts || 0) >= minTs);
+         if (!fresh.length) return;
+         lastPeerSeq = fresh[fresh.length - 1].seq;
+-        fresh.forEach(msg => handlers.forEach(h => { try { h(msg); } catch (e) {} }));
++        deliver.forEach(msg => handlers.forEach(h => { try { h(msg); } catch (e) {} }));
+       } catch (e) {}
+     }
++    function setMinTs(t) { minTs = t || 0; }
+     function startPolling(fast) {
+       stopPolling();
+       pollTimer = setInterval(pollOnce, SIGNAL_POLL_MS);
+@@ -126,7 +132,7 @@
+     document.addEventListener('visibilitychange', () => {
+       if (document.visibilityState === 'visible') pollOnce();
+     });
+-    return { init, send, startPolling, stopPolling, on, off, get ctx() { return ctx; } };
++    return { init, send, startPolling, stopPolling, on, off, setMinTs, get ctx() { return ctx; } };
+   })();
+ 
+   /* ═══════════════════════════════════════
+@@ -164,6 +170,8 @@
+     pc: null, localStream: null, remoteStream: null,
+     cameraFacing: 'user', muted: false, cameraOff: false, speakerMuted: false,
+     lastHostSync: null, lastHostMsgAt: 0, syncBroadcastTimer: null, staleCheckTimer: null,
++    iceQueue: [], pendingOffer: null, peerReady: false, lastOffer: null, lastOfferId: null, lastAnswer: null,
++    answered: false, offerTimer: null, readyTimer: null, minDelta: null, loadingSong: null, joinedAt: 0,
+     recording: false, recorder: null, recChunks: [], recCanvasStream: null, recRafId: null,
+   };
+ 
+@@ -353,15 +361,95 @@
+   /* ═══════════════════════════════════════
+      WEBRTC
+   ═══════════════════════════════════════ */
++  /* FIX (issue 1 — "video comes on one side, not on the other"):
++     Root causes in the old handshake:
++       1. The host sent its offer immediately; the guest was still in
++          getUserMedia() with no RTCPeerConnection yet, so the offer was
++          silently dropped (`&& Room.pc`) and never answered.
++       2. ICE candidates arriving before the remote description were
++          swallowed by `.catch(() => {})` (no queue).
++       3. STUN-only — no TURN, so many mobile-network pairs can't connect.
++       4. Old offers/ICE/'leave' messages from a previous room were replayed.
++       5. The partner <video> was never explicitly play()ed.
++     New flow: guest builds its peer connection first, then announces
++     'ready'; host answers 'ready' with the offer and re-sends it until
++     answered; ICE is queued; TURN credentials are used; failures trigger an
++     ICE restart; partner video is play()ed on every new track. */
++  function playPartnerVideo() {
++    const v = document.getElementById('ckPartnerVideo');
++    if (!v) return;
++    if (v.srcObject !== Room.remoteStream) v.srcObject = Room.remoteStream;
++    v.muted = Room.speakerMuted;
++    const p = v.play();
++    if (p && p.catch) p.catch(() => {
++      // autoplay blocked — retry on the next tap anywhere in the room
++      const retry = () => { v.play().catch(() => {}); document.removeEventListener('click', retry, true); };
++      document.addEventListener('click', retry, true);
++    });
++  }
++  async function flushIce() {
++    const q = Room.iceQueue; Room.iceQueue = [];
++    for (const c of q) { try { await Room.pc.addIceCandidate(c); } catch (e) {} }
++  }
++  async function hostOffer(restart) {
++    const pc = Room.pc;
++    if (!pc || !Room.isHost) return;
++    if (restart || !Room.lastOffer) {
++      const offer = await pc.createOffer(restart ? { iceRestart: true } : undefined);
++      await pc.setLocalDescription(offer);
++      Room.lastOffer = { sdp: pc.localDescription.toJSON ? pc.localDescription.toJSON() : offer, oid: Date.now() };
++      Room.answered = false;
++    }
++    Channel.send({ type: 'offer', sdp: Room.lastOffer.sdp, oid: Room.lastOffer.oid });
++  }
++  async function applyOffer(msg) {
++    if (!Room.pc) { Room.pendingOffer = msg; return; }
++    if (Room.lastOfferId === msg.oid && Room.pc.remoteDescription) {
++      // duplicate offer — our answer was probably lost, just re-send it
++      if (Room.lastAnswer) Channel.send({ type: 'answer', sdp: Room.lastAnswer, oid: msg.oid });
++      return;
++    }
++    Room.lastOfferId = msg.oid;
++    await Room.pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
++    await flushIce();
++    const answer = await Room.pc.createAnswer();
++    await Room.pc.setLocalDescription(answer);
++    Room.lastAnswer = Room.pc.localDescription.toJSON ? Room.pc.localDescription.toJSON() : answer;
++    Channel.send({ type: 'answer', sdp: Room.lastAnswer, oid: msg.oid });
++    if (Room.readyTimer) { clearInterval(Room.readyTimer); Room.readyTimer = null; }
++  }
++
+   async function setupPeerConnection(isHost) {
+-    Room.pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
++    let iceServers = ICE_SERVERS;
++    try {
++      const d = await window.MusicPlayer.api('GET', '/api/call/turn-creds');
++      if (d && d.iceServers && d.iceServers.length) iceServers = d.iceServers;
++    } catch (e) {}
++    Room.pc = new RTCPeerConnection({ iceServers });
+     Room.remoteStream = new MediaStream();
+-    document.getElementById('ckPartnerVideo').srcObject = Room.remoteStream;
+-
+-    Room.pc.ontrack = (e) => { e.streams[0].getTracks().forEach(t => Room.remoteStream.addTrack(t)); };
++    playPartnerVideo();
++
++    Room.pc.ontrack = (e) => {
++      const add = (t) => {
++        if (!Room.remoteStream.getTracks().includes(t)) Room.remoteStream.addTrack(t);
++        t.onunmute = playPartnerVideo;
++      };
++      if (e.streams && e.streams[0]) e.streams[0].getTracks().forEach(add); else add(e.track);
++      playPartnerVideo();
++    };
+     Room.pc.onicecandidate = (e) => { if (e.candidate) Channel.send({ type: 'ice', candidate: e.candidate.toJSON() }); };
+     Room.pc.onconnectionstatechange = () => {
+-      if (Room.pc.connectionState === 'connected') hideConnecting();
++      const st = Room.pc && Room.pc.connectionState;
++      if (st === 'connected') {
++        hideConnecting();
++        if (Room.offerTimer) { clearInterval(Room.offerTimer); Room.offerTimer = null; }
++        playPartnerVideo();
++      } else if (st === 'disconnected') {
++        try { Room.pc.restartIce(); } catch (e) {}
++      } else if (st === 'failed') {
++        if (Room.isHost) hostOffer(true).catch(() => {});   // renegotiate with ICE restart
++        else Channel.send({ type: 'ready' });               // ask host to re-offer
++      }
+     };
+ 
+     try {
+@@ -372,11 +460,26 @@
+     }
+     document.getElementById('ckSelfVideo').srcObject = Room.localStream;
+     Room.localStream.getTracks().forEach(t => Room.pc.addTrack(t, Room.localStream));
++    // No camera/mic -> still make sure we can RECEIVE the partner's video/audio
++    if (!Room.localStream.getVideoTracks().length) Room.pc.addTransceiver('video', { direction: 'recvonly' });
++    if (!Room.localStream.getAudioTracks().length) Room.pc.addTransceiver('audio', { direction: 'recvonly' });
++
++    if (Room.pendingOffer) { const o = Room.pendingOffer; Room.pendingOffer = null; await applyOffer(o); }
+ 
+     if (isHost) {
+-      const offer = await Room.pc.createOffer();
+-      await Room.pc.setLocalDescription(offer);
+-      Channel.send({ type: 'offer', sdp: offer });
++      // Offer only once the guest says it is ready (or immediately if it already did);
++      // keep re-sending until answered so a dropped message can't stall video.
++      if (Room.peerReady) await hostOffer(false);
++      Room.offerTimer = setInterval(() => {
++        if (!Room.open || !Room.pc || Room.answered || Room.pc.connectionState === 'connected') return;
++        if (Room.peerReady) hostOffer(false).catch(() => {});
++      }, 4000);
++    } else {
++      Channel.send({ type: 'ready' });
++      Room.readyTimer = setInterval(() => {
++        if (!Room.open || !Room.pc || Room.pc.remoteDescription) { clearInterval(Room.readyTimer); Room.readyTimer = null; return; }
++        Channel.send({ type: 'ready' });
++      }, 3000);
+     }
+   }
+ 
+@@ -384,15 +487,20 @@
+     Channel.on(async (msg) => {
+       if (!Room.open) return;
+       try {
+-        if (msg.type === 'offer' && Room.pc) {
+-          await Room.pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+-          const answer = await Room.pc.createAnswer();
+-          await Room.pc.setLocalDescription(answer);
+-          Channel.send({ type: 'answer', sdp: answer });
+-        } else if (msg.type === 'answer' && Room.pc) {
++        if (msg.type === 'ready' && Room.isHost) {
++          Room.peerReady = true;
++          if (Room.pc) await hostOffer(Room.pc.connectionState === 'failed');
++        } else if (msg.type === 'offer' && !Room.isHost) {
++          await applyOffer(msg);
++        } else if (msg.type === 'answer' && Room.isHost && Room.pc) {
++          if (Room.pc.signalingState !== 'have-local-offer') return; // duplicate answer
++          if (msg.oid && Room.lastOffer && msg.oid !== Room.lastOffer.oid) return; // answer to an older offer
+           await Room.pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+-        } else if (msg.type === 'ice' && Room.pc) {
+-          await Room.pc.addIceCandidate(new RTCIceCandidate(msg.candidate)).catch(() => {});
++          Room.answered = true;
++          await flushIce();
++        } else if (msg.type === 'ice') {
++          if (Room.pc && Room.pc.remoteDescription) await Room.pc.addIceCandidate(new RTCIceCandidate(msg.candidate)).catch(() => {});
++          else Room.iceQueue.push(new RTCIceCandidate(msg.candidate));
+         } else if (msg.type === 'sync' && !Room.isHost) {
+           Room.lastHostMsgAt = Date.now();
+           hideStaleBanner();
+@@ -402,12 +510,12 @@
+           hideStaleBanner();
+           handleHostControl(msg);
+         } else if (msg.type === 'request_sync' && Room.isHost) {
+-          // guest is asking for an immediate resync — comply right away
+           broadcastSyncTick();
+         } else if (msg.type === 'reaction') {
+           spawnFloatingReaction(msg.emoji);
+         } else if (msg.type === 'leave') {
+-          onPartnerLeft();
++          // ignore a stale 'leave' from a previous room (5s clock-drift tolerance)
++          if ((msg.ts || 0) >= Room.joinedAt - 5000) onPartnerLeft();
+         }
+       } catch (e) { console.warn('Couple Karaoke signal error', e); }
+     });
+@@ -433,11 +541,25 @@
+   }
+   function handleHostSync(msg) {
+     Room.lastHostSync = msg;
+-    if (Room.songId !== msg.songId) { loadGuestSong(msg.songId, msg.currentTime, msg.playing); return; }
+-    const travel = (Date.now() - msg.ts) / 1000;
+-    const expected = msg.currentTime + (msg.playing ? Math.max(0, travel) : 0);
++    if (Room.songId !== msg.songId) {
++      // FIX: every sync tick used to start another parallel load of the same song
++      if (Room.loadingSong !== msg.songId) {
++        Room.loadingSong = msg.songId;
++        Promise.resolve(loadGuestSong(msg.songId, msg.currentTime, msg.playing)).finally(() => { Room.loadingSong = null; });
++      }
++      return;
++    }
++    // FIX (song/lyric drift): msg.ts is the HOST's clock and Date.now() is the
++    // guest's, so the old `Date.now() - msg.ts` mixed in the phones' clock
++    // difference + polling delay. Use the smallest delta seen (= clock offset
++    // + minimum network latency) as the baseline and add only the EXTRA delay
++    // of this message, plus a typical ~150ms one-way latency.
++    const delta = Date.now() - msg.ts;
++    Room.minDelta = (Room.minDelta == null) ? delta : Math.min(delta, Room.minDelta + 2);
++    const travel = Math.max(0, (delta - Room.minDelta) + 150) / 1000;
++    const expected = msg.currentTime + (msg.playing ? travel : 0);
+     const audio = window.AudioService.audio;
+-    if (Math.abs(audio.currentTime - expected) > DRIFT_THRESHOLD) audio.currentTime = expected;
++    if (audio.readyState >= 1 && Math.abs(audio.currentTime - expected) > DRIFT_THRESHOLD) audio.currentTime = expected;
+     if (msg.playing && audio.paused) audio.play().catch(() => {});
+     if (!msg.playing && !audio.paused) audio.pause();
+   }
+@@ -604,7 +726,7 @@
+       document.getElementById('ckProgressFill').style.width = (cur / dur * 100) + '%';
+       document.getElementById('ckCurTime').textContent = fmtTime(cur);
+       document.getElementById('ckDurTime').textContent = fmtTime(dur);
+-      updateDuetLyricHighlight(cur);
++      updateDuetLyricHighlight(cur + 0.2); // small lead so lyrics never lag the audio
+     });
+     window.AudioService.on('state', (playing) => {
+       const btn = document.getElementById('ckPlayBtn'); if (btn && Room.open) btn.textContent = playing ? '⏸' : '▶';
+@@ -804,6 +926,10 @@
+     Room.open = true; Room.isHost = isHost; Room.songId = songId;
+     Room.songList = window.Store.songs;
+     Room.lastHostMsgAt = Date.now();
++    Room.joinedAt = Date.now();
++    Room.iceQueue = []; Room.pendingOffer = null; Room.peerReady = false; Room.lastOffer = null;
++    Room.lastOfferId = null; Room.lastAnswer = null; Room.answered = false; Room.minDelta = null; Room.loadingSong = null;
++    Channel.setMinTs(Date.now() - 30000); // drop stale offers/ICE/leave from earlier rooms
+     injectRoom();
+     document.getElementById('ckRoom').classList.add('open');
+     showConnecting();
+@@ -843,6 +969,8 @@
+     }, 1500);
+ 
+     Channel.startPolling(true);
++    // Offers/ICE that arrive while we are still opening the camera are buffered
++    // (Room.pendingOffer / Room.iceQueue) and applied once the peer connection exists.
+     await setupPeerConnection(isHost);
+ 
+     setTimeout(hideConnecting, 6000);
+@@ -858,6 +986,9 @@
+     Room.open = false;
+     if (Room.syncBroadcastTimer) clearInterval(Room.syncBroadcastTimer);
+     if (Room.staleCheckTimer) clearInterval(Room.staleCheckTimer);
++    if (Room.offerTimer) { clearInterval(Room.offerTimer); Room.offerTimer = null; }
++    if (Room.readyTimer) { clearInterval(Room.readyTimer); Room.readyTimer = null; }
++    Channel.setMinTs(0);
+     if (Room.recording) stopRecording();
+     if (Room.pc) { Room.pc.close(); Room.pc = null; }
+     if (Room.localStream) { Room.localStream.getTracks().forEach(t => t.stop()); Room.localStream = null; }
+diff --git a/public/sw.js b/public/sw.js
+index ac54856..9700acd 100644
+--- a/public/sw.js
++++ b/public/sw.js
+@@ -1,5 +1,5 @@
+ // Service Worker for Twin Hearts 💕 PWA — v5
+-const CACHE = 'uwl-v35'; // bumped: purges stale cached assets (incl. old movie.css) on activate
++const CACHE = 'uwl-v36'; // bumped: call/karaoke/chat-image fixes
+ const OFFLINE_ASSETS = [
+   '/',
+   '/index.html',
