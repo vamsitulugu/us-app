@@ -327,6 +327,8 @@
 
   /* MOBILE: no skeleton shapes — just a centered loading circle. */
   html.al-mobile #appLoader .al-shell { display: none !important; }
+  /* Solid colour = same as the native splash/window/status+nav bars, so no lighter haze or band shows. */
+  html.al-mobile #appLoader::before { display: none !important; }
   html.al-mobile #appLoader {
     align-items: center;
     justify-content: center;
@@ -12429,7 +12431,14 @@ function logOut() {
         });
 
 if (window.Capacitor?.Plugins?.SplashScreen) {
-  window.addEventListener('load', () => window.Capacitor.Plugins.SplashScreen.hide());
+  // Hide the native splash as soon as the loader (inline markup + inline CSS) has painted,
+  // instead of waiting for the full 'load' event — the spinner shows instantly with no
+  // black/gray frame in between. 'load' stays as a fallback; hide() is only called once.
+  let _splashHidden = false;
+  const hideSplashOnce = () => { if (_splashHidden) return; _splashHidden = true; window.Capacitor.Plugins.SplashScreen.hide(); };
+  const afterPaint = () => requestAnimationFrame(() => requestAnimationFrame(hideSplashOnce));
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', afterPaint); else afterPaint();
+  window.addEventListener('load', hideSplashOnce);
 }
 
         // ─── ACCOUNT PICKER ──────────────────────────────────────

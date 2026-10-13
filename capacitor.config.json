@@ -2,6 +2,7 @@
   "appId": "com.uswithlove.app",
   "appName": "Twin Hearts",
   "webDir": "public",
+  "backgroundColor": "#14030e",
   "server": {
     "url": "https://twinhearts.vercel.app",
     "androidScheme": "https",
@@ -19,7 +20,7 @@
     "SplashScreen": {
       "launchShowDuration": 0,
       "launchAutoHide": false,
-      "backgroundColor": "#3A0425",
+      "backgroundColor": "#14030e",
       "androidSplashResourceName": "splash",
       "androidScaleType": "CENTER_INSIDE",
       "showSpinner": false

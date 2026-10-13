@@ -19,8 +19,8 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/splashBackground" />
     <item
-        android:width="176dp"
-        android:height="176dp"
+        android:width="288dp"
+        android:height="288dp"
         android:gravity="center"
-        android:drawable="@mipmap/ic_launcher" />
+        android:drawable="@drawable/splash_logo" />
 </layer-list>

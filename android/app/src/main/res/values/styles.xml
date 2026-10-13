@@ -22,6 +22,11 @@
         <item name="android:navigationBarColor">@color/navigationBarBackground</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+        <!-- Window background shows in the status/nav bar areas and before the WebView paints.
+             It used to be the DayNight default (gray/black) -> the gray/black bars flashed on launch. -->
+        <item name="android:windowBackground">@color/appBackground</item>
+        <item name="android:enforceNavigationBarContrast" tools:targetApi="q">false</item>
+        <item name="android:enforceStatusBarContrast" tools:targetApi="q">false</item>
     </style>
 
 
@@ -34,5 +39,8 @@
         <item name="android:background">@drawable/splash_centered</item>
         <!-- Android 12+ system splash: plum background instead of the default white/black. -->
         <item name="windowSplashScreenBackground">@color/splashBackground</item>
+        <!-- Transparent-background burgundy logo (was the red launcher icon inside a black circle). -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
     </style>
 </resources>

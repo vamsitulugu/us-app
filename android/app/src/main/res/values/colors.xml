@@ -20,7 +20,9 @@
 
     <!-- Matches capacitor.config.json plugins.SplashScreen.backgroundColor,
          used by the responsive launch-screen background (splash_centered.xml). -->
-    <color name="splashBackground">#3A0425</color>
+    <color name="splashBackground">#14030e</color>
+    <!-- One colour for splash -> window -> WebView -> loader, so no gray/black frame can show between them. -->
+    <color name="appBackground">#14030e</color>
 
     <!-- Notification (notify_chat_left_avatar.xml) title/body text colors.
          This is a CUSTOM RemoteViews layout, so Android's automatic

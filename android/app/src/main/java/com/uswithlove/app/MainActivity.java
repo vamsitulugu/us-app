@@ -55,8 +55,10 @@ public class MainActivity extends BridgeActivity {
     registerPlugin(CallAudioPlugin.class);
     registerPlugin(BackgroundLocationPlugin.class);
     registerPlugin(InstallGuardPlugin.class);
+    registerPlugin(BarColorsPlugin.class);
     super.onCreate(savedInstanceState);
     setupSystemBars();
+    installBarsBackground();
     createTouchNotificationChannel();
     createCallsNotificationChannel();
     createSimpleChannel(MESSAGES_CHANNEL_ID, "Messages", "New chat messages from your partner",
@@ -260,6 +262,50 @@ public void onDestroy() {
       // the app's theme and keeping icons visible.
       controller.setAppearanceLightStatusBars(false);
       controller.setAppearanceLightNavigationBars(false);
+    }
+  }
+
+  // ── Status/navigation bar colours ────────────────────────────────
+  // Capacitor's SystemBars pads the decor view by the bar sizes, so the
+  // window background is what shows behind the status bar (top) and the
+  // navigation bar (bottom). This drawable paints those two strips with
+  // their own colours (JS: Capacitor.Plugins.BarColors.set({top, bottom})).
+  static final class BarsBackground extends android.graphics.drawable.Drawable {
+    private final android.view.View decor;
+    private final android.graphics.Paint paint = new android.graphics.Paint();
+    int page = Color.parseColor("#14030e"), top = page, bottom = page;
+    BarsBackground(android.view.View decor) { this.decor = decor; }
+    @Override public void draw(android.graphics.Canvas c) {
+      android.graphics.Rect b = getBounds();
+      paint.setColor(page); c.drawRect(b, paint);
+      int pt = decor.getPaddingTop(), pb = decor.getPaddingBottom();
+      if (pt > 0) { paint.setColor(top); c.drawRect(b.left, b.top, b.right, b.top + pt, paint); }
+      if (pb > 0) { paint.setColor(bottom); c.drawRect(b.left, b.bottom - pb, b.right, b.bottom, paint); }
+    }
+    @Override public void setAlpha(int a) {}
+    @Override public void setColorFilter(android.graphics.ColorFilter f) {}
+    @Override public int getOpacity() { return android.graphics.PixelFormat.OPAQUE; }
+  }
+
+  private BarsBackground barsBg;
+
+  private void installBarsBackground() {
+    Window window = getWindow();
+    barsBg = new BarsBackground(window.getDecorView());
+    window.setBackgroundDrawable(barsBg);
+    // The WebView is black until its first paint — match the app instead.
+    try { if (getBridge() != null && getBridge().getWebView() != null) getBridge().getWebView().setBackgroundColor(barsBg.page); } catch (Exception e) {}
+  }
+
+  public void setBarColors(boolean hasTop, int topColor, boolean hasBottom, int bottomColor) {
+    if (barsBg == null) return;
+    if (hasTop) barsBg.top = topColor;
+    if (hasBottom) barsBg.bottom = bottomColor;
+    barsBg.invalidateSelf();
+    getWindow().getDecorView().invalidate();
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) { // API < 35 uses real bar colours
+      if (hasTop) getWindow().setStatusBarColor(topColor);
+      if (hasBottom) getWindow().setNavigationBarColor(bottomColor);
     }
   }
 
