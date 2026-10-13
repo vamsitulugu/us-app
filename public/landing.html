@@ -317,13 +317,9 @@ html.ms-on #authModal{position:fixed;background:linear-gradient(180deg,#3A0425,#
   position:fixed;inset:0;z-index:900;overflow:hidden;
   display:none;flex-direction:column;align-items:center;
   height:100vh;height:100dvh;
-  padding:calc(env(safe-area-inset-top,0px) + clamp(16px,3.2dvh,30px)) clamp(20px,6vw,32px) calc(env(safe-area-inset-bottom,0px) + clamp(16px,3dvh,28px));
+  padding:calc(env(safe-area-inset-top,0px) + clamp(18px,4dvh,38px)) clamp(20px,6vw,32px) calc(env(safe-area-inset-bottom,0px) + clamp(20px,4dvh,36px));
   color:#fff;font-family:var(--ff-sans);
-  /* one continuous burgundy -> magenta -> burgundy gradient across the whole screen */
-  background:
-    radial-gradient(120% 55% at 50% 58%,rgba(214,55,155,.55) 0%,rgba(214,55,155,0) 70%),
-    radial-gradient(90% 40% at 12% 8%,rgba(255,140,220,.20) 0%,rgba(255,140,220,0) 70%),
-    linear-gradient(180deg,#4a0634 0%,#7d0e57 30%,#8f1068 52%,#6a0a4a 76%,#34051f 100%);
+  background:#4a0634 url('/images/start-bg.jpg') center bottom/cover no-repeat;
 }
 html.ms-on #mobileStart{display:flex}
 html.ms-on.ms-auth #mobileStart{display:none}
@@ -339,30 +335,29 @@ html.ms-on.ms-auth #mobileStart{display:none}
   filter:drop-shadow(0 4px 18px rgba(255,120,210,.35))}
 .ms-hero h1 .b svg{position:absolute;right:-.5em;top:-.35em;width:.62em;height:.62em;fill:#f06bc8;filter:drop-shadow(0 0 8px rgba(240,107,200,.8))}
 .ms-hero p{margin:clamp(8px,1.8dvh,14px) 0 0;font-size:clamp(10px,3vw,12px);letter-spacing:.3em;text-transform:uppercase;color:rgba(255,255,255,.92)}
-/* illustration: sits directly on the gradient, no card / box / border */
-.ms-art{position:relative;flex:1 1 0;min-height:0;width:100%;margin:clamp(6px,1.6dvh,16px) 0 clamp(10px,2dvh,18px)}
-.ms-art::before{content:'';position:absolute;left:50%;top:50%;width:min(92%,420px);aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;
-  background:radial-gradient(circle,rgba(255,130,215,.42) 0%,rgba(255,130,215,.14) 45%,rgba(255,130,215,0) 70%);pointer-events:none}
-.ms-art::after{content:'';position:absolute;left:8%;right:8%;bottom:0;height:3px;border-radius:3px;
-  background:linear-gradient(90deg,transparent,#ff7ad6 30%,#ff7ad6 70%,transparent);box-shadow:0 0 22px 6px rgba(255,90,200,.55);opacity:.85}
-.ms-art{display:flex;justify-content:center;align-items:flex-end}
-.ms-art img{position:relative;z-index:1;display:block;height:calc(100% - 6px);width:auto;max-width:100%;margin-bottom:6px;object-fit:contain;
-  filter:drop-shadow(0 14px 22px rgba(20,0,12,.45));
-  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 5%,#000 95%,transparent 100%),linear-gradient(180deg,#000 0,#000 90%,transparent 100%);
-  -webkit-mask-composite:source-in;
-  mask-image:linear-gradient(90deg,transparent 0,#000 5%,#000 95%,transparent 100%),linear-gradient(180deg,#000 0,#000 90%,transparent 100%);
-  mask-composite:intersect}
+/* couple sticker sits directly on the background image */
+.ms-art{position:relative;flex:1 1 0;min-height:0;width:100%;margin:clamp(6px,1.6dvh,16px) 0 clamp(10px,2dvh,18px);display:flex;justify-content:center;align-items:flex-end}
+.ms-art img{position:relative;z-index:1;display:block;max-height:100%;max-width:100%;width:auto;height:auto;object-fit:contain;filter:drop-shadow(0 14px 22px rgba(20,0,12,.45))}
 .ms-actions{flex:none;width:100%;max-width:420px}
-.ms-start{width:100%;display:flex;align-items:center;justify-content:space-between;
-  padding:7px 7px 7px clamp(26px,8vw,36px);border:none;cursor:pointer;border-radius:999px;background:#fff;color:#a3126f;
-  font:800 clamp(14px,4.2vw,16px) var(--ff-sans);letter-spacing:.14em;text-transform:uppercase;
+/* slide-to-start button */
+.ms-slide{position:relative;width:100%;height:clamp(62px,9dvh,72px);border-radius:999px;background:#fff;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;
   box-shadow:0 10px 30px rgba(20,0,12,.4),0 0 28px rgba(255,120,210,.35)}
-.ms-start i{width:clamp(46px,13vw,54px);height:clamp(46px,13vw,54px);border-radius:50%;flex:none;background:linear-gradient(135deg,#c2188a,#8f1068);display:flex;align-items:center;justify-content:center}
-.ms-start i svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-.ms-start:active{transform:scale(.98)}
+.ms-slide-fill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#ffd3f0,#ff9fdc);border-radius:inherit;pointer-events:none}
+.ms-slide-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding-left:48px;color:#a3126f;pointer-events:none;
+  font:800 clamp(14px,4.2vw,16px) var(--ff-sans);letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
+.ms-slide-knob{position:absolute;left:7px;top:7px;bottom:7px;aspect-ratio:1;border-radius:50%;background:linear-gradient(135deg,#c2188a,#8f1068);display:flex;align-items:center;justify-content:center;cursor:grab;
+  box-shadow:0 4px 14px rgba(143,16,104,.55);will-change:transform}
+.ms-slide-knob:active{cursor:grabbing}
+.ms-slide-knob svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.ms-slide:focus-visible{outline:3px solid #ffb6e6;outline-offset:3px}
+.ms-slide.snap .ms-slide-knob,.ms-slide.snap .ms-slide-fill{transition:transform .28s var(--ease),width .28s var(--ease)}
+.ms-slide.snap .ms-slide-label{transition:opacity .28s}
+@media (prefers-reduced-motion:no-preference){.ms-slide:not(.dragged) .ms-slide-knob{animation:msNudge 2.4s ease-in-out 1.2s infinite}}
+@keyframes msNudge{0%,70%,100%{transform:translateX(0)}82%{transform:translateX(10px)}92%{transform:translateX(0)}}
 /* step 2: Sign In / Sign Up cards */
-.ms-choose{display:none;width:100%;gap:clamp(8px,1.6dvh,14px);flex-direction:column}
-#mobileStart.ms-step2 .ms-start{display:none}
+.ms-choose{display:none;width:100%;gap:clamp(8px,1.6dvh,14px);flex-direction:column;animation:msRise .4s var(--ease)}
+@keyframes msRise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+#mobileStart.ms-step2 .ms-slide{display:none}
 #mobileStart.ms-step2 .ms-choose{display:flex}
 .ms-card{display:flex;align-items:center;gap:14px;width:100%;padding:clamp(12px,2.2dvh,18px) 18px;border-radius:22px;cursor:pointer;text-align:left;color:#fff;
   background:rgba(20,3,14,.62);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,160,225,.35);font-family:var(--ff-sans)}
@@ -433,9 +428,13 @@ html.ms-on.ms-auth #mobileStart{display:none}
     <h1><span class="a">Stay</span><span class="b">Connected<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.7 5 6 5c2 0 3.4 1.1 4.2 2.4h.1C11.1 6.1 12.5 5 14.5 5c3.3 0 5.1 3.4 3.6 6.8C16 16.4 12 21 12 21z" transform="translate(.6 0)"/></svg></span></h1>
     <p>No distance, just us</p>
   </header>
-  <div class="ms-art"><img src="/images/couple-kiss-trim.png" alt=""></div>
+  <div class="ms-art"><img src="/images/start-couple.webp" alt="A couple sitting together" width="900"></div>
   <div class="ms-actions">
-    <button class="ms-start" type="button" onclick="msGetStarted()">Get Started <i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></i></button>
+    <div class="ms-slide" id="msSlide" role="slider" tabindex="0" aria-label="Slide to get started" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="ms-slide-fill"></div>
+      <div class="ms-slide-label" id="msSlideLabel">Get Started</div>
+      <div class="ms-slide-knob" id="msKnob"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+    </div>
     <div class="ms-choose">
       <button class="ms-card primary" type="button" onclick="msOpen('login')"><div class="ico">&#128150;</div><div><b>Sign In</b><span>Welcome back to your space</span></div></button>
       <button class="ms-card" type="button" onclick="msOpen('signup')"><div class="ico">&#10024;</div><div><b>Sign Up</b><span>Create your space together</span></div></button>
@@ -915,6 +914,39 @@ function isInsideNativeApp(){
 // The head script adds html.ms-on before paint; these helpers drive the
 // two steps: Get Started -> Sign In / Sign Up cards -> auth form.
 function msGetStarted(){ document.getElementById('mobileStart').classList.add('ms-step2'); }
+// Slide-to-start: drag the arrow knob (or press Enter/Right-arrow) to the end
+// and the Sign In / Sign Up cards open. Releasing early snaps back.
+(function(){
+  const el=document.getElementById('msSlide'); if(!el) return;
+  const knob=document.getElementById('msKnob'), fill=el.querySelector('.ms-slide-fill'), label=document.getElementById('msSlideLabel');
+  const PAD=7; let startX=0, dx=0, max=0, dragging=false, done=false;
+  const measure=()=>{ max=Math.max(0, el.clientWidth-knob.offsetWidth-PAD*2); };
+  const render=()=>{
+    knob.style.transform='translateX('+dx+'px)';
+    fill.style.width=(dx+knob.offsetWidth+PAD)+'px';
+    label.style.opacity=String(Math.max(0,1-(max?dx/max:0)*1.6));
+    el.setAttribute('aria-valuenow',String(Math.round(max?dx/max*100:0)));
+  };
+  const finish=()=>{
+    if(done) return; done=true; dx=max; el.classList.add('snap'); render();
+    if(navigator.vibrate) try{navigator.vibrate(18)}catch(e){}
+    setTimeout(()=>{ msGetStarted(); reset(); },220);
+  };
+  const reset=()=>{ done=false; dx=0; el.classList.remove('dragged'); el.classList.add('snap'); render(); };
+  knob.addEventListener('pointerdown',e=>{
+    if(done) return; measure(); dragging=true; startX=e.clientX-dx;
+    el.classList.remove('snap'); el.classList.add('dragged'); knob.setPointerCapture(e.pointerId);
+  });
+  knob.addEventListener('pointermove',e=>{
+    if(!dragging) return; dx=Math.min(max,Math.max(0,e.clientX-startX)); render();
+  });
+  const end=()=>{ if(!dragging) return; dragging=false; (dx>=max*0.82)?finish():reset(); };
+  knob.addEventListener('pointerup',end); knob.addEventListener('pointercancel',end);
+  // keyboard / screen-reader support
+  el.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '||e.key==='ArrowRight'){ e.preventDefault(); measure(); finish(); } });
+  window.addEventListener('resize',()=>{ measure(); render(); });
+  measure(); render();
+})();
 function msBack(){ document.getElementById('mobileStart').classList.remove('ms-step2'); }
 function msOpen(view){
   document.documentElement.classList.add('ms-auth');
