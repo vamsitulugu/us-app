@@ -26,12 +26,18 @@
   var uid = 0;
 
   /* ── shared gradient defs, one set per robot so ids never collide ── */
+  /* Gradient stop whose colour can be re-themed from CSS (custom props set on
+     #page-ai). Defaults = original dark-theme palette, so dark mode is unchanged. */
+  function st(off, v, fb) {
+    return '<stop offset="' + off + '" stop-color="' + fb + '" style="stop-color:var(' + v + ',' + fb + ')"/>';
+  }
+
   function defs(p) {
     return '<defs>' +
       '<radialGradient id="' + p + 'h" cx="34%" cy="22%" r="90%">' +
-        '<stop offset="0" stop-color="#ffffff"/><stop offset=".42" stop-color="#f6d9de"/><stop offset="1" stop-color="#b4697a"/></radialGradient>' +
+        st(0, '--tw-art-h0', '#ffffff') + st('.42', '--tw-art-h1', '#f6d9de') + st(1, '--tw-art-h2', '#b4697a') + '</radialGradient>' +
       '<radialGradient id="' + p + 'b" cx="34%" cy="18%" r="95%">' +
-        '<stop offset="0" stop-color="#fff2f4"/><stop offset=".5" stop-color="#e0c5d5"/><stop offset="1" stop-color="#9b4d5e"/></radialGradient>' +
+        st(0, '--tw-art-b0', '#fff2f4') + st('.5', '--tw-art-b1', '#e0c5d5') + st(1, '--tw-art-b2', '#9b4d5e') + '</radialGradient>' +
       '<linearGradient id="' + p + 'v" x1="0" y1="0" x2="0" y2="1">' +
         '<stop offset="0" stop-color="#24101b"/><stop offset="1" stop-color="#040102"/></linearGradient>' +
       '<radialGradient id="' + p + 'r" cx="35%" cy="28%" r="85%">' +
