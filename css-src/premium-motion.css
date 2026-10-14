@@ -146,21 +146,21 @@
 @media (hover: hover) and (pointer: fine) {
   .card:hover, [class*="-card"]:hover {
     transform: translateY(-3px) !important;
-    box-shadow: 0 14px 32px rgba(0,0,0,.35), 0 0 0 1px var(--pm-glass-border) !important;
+    box-shadow: 0 14px 32px rgba(0,0,0,.35) !important;
   }
 }
 /* Touch press — settles back down with a soft glow ring instead of
    a hard snap, consistent with the button press language. */
 .card:active, [class*="-card"]:active {
   transform: translateY(0) scale(.985) !important;
-  box-shadow: 0 6px 18px rgba(0,0,0,.3), 0 0 0 4px var(--pm-glow) !important;
+  box-shadow: 0 6px 18px rgba(0,0,0,.3) !important;
 }
 /* Long-press — .pm-longpress is toggled by premium-motion.js after
    ~420ms of continuous press, giving a distinct "held" cue before
    any context action fires. */
 .card.pm-longpress, [class*="-card"].pm-longpress {
   transform: scale(.97) !important;
-  box-shadow: 0 0 0 10px var(--pm-glow) !important;
+  box-shadow: none !important;
 }
 button, .btn, .ic-btn, .cc-btn, .connect-action-btn, .pk, .storage-action-btn,
 [class*="-tab"]:not([class*="-tabs"]),
@@ -175,7 +175,7 @@ button:active, .btn:active, .ic-btn:active, .cc-btn:active, .connect-action-btn:
 [class*="-chip"]:not([class*="-chips"]):active,
 [class*="-pill"]:not([class*="-pills"]):active {
   transform: scale(.96) !important;
-  box-shadow: 0 0 0 8px var(--pm-glow), 0 4px 16px rgba(0,0,0,.4) !important;
+  box-shadow: none !important;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -455,3 +455,23 @@ button:active, .btn:active, .ic-btn:active, .cc-btn:active, .connect-action-btn:
    VOICE WAVEFORM — kept, retoned to red family only
 ═══════════════════════════════════════════════════════════ */
 .voice-waveform.playing span { background: rgba(255,255,255,.65) !important; }
+
+/* ── Border / focus-ring fix (global) ─────────────────────────────────
+   Wrappers like .love-card-actions / .card-title matched [class*="-card"]
+   and showed a box/ring when tapped. Neutralise them, and remove browser
+   focus rings on mouse/touch interaction.                              */
+[class*="-card-actions"], [class*="-card-title"], [class*="-card-sub"], [class*="-card-ico"],
+[class*="-card-body"], [class*="-card-grid"], [class*="-card-row"] {
+  transform: none !important; box-shadow: none !important; outline: none !important;
+}
+* { -webkit-tap-highlight-color: transparent; }
+:focus { outline: none; }
+:focus:not(:focus-visible) { outline: none !important; box-shadow: none !important; }
+button:active, a:active, [role="button"]:active { outline: none !important; }
+/* subtle ring ONLY for real keyboard navigation */
+button:focus-visible, a:focus-visible, [role="button"]:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid rgba(255,255,255,.35) !important; outline-offset: 2px;
+}
+/* Click ripple/bloom drew a visible ring/border on tap — hide it. */
+.pm-ripple-ring, .pm-bloom { display: none !important; }
+.pm-glass-surface::before { display: none !important; }
