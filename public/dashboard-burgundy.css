@@ -55,3 +55,7 @@ html[data-theme] .dw-ev.is-today .dw-ev-d { color: var(--dh-burgundy) !important
 /* ── Home bottom page groups: 4 per row ── */
 .dw-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
 @media (min-width: 701px) { .dw-grid { grid-template-columns: repeat(4, minmax(88px, 112px)) !important; } }
+
+/* Home page groups with 5 buttons (Us, Explore Together): 5 in one row */
+.dw-grid.dw-grid-5 { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+@media (min-width: 701px) { .dw-grid.dw-grid-5 { grid-template-columns: repeat(5, minmax(88px, 112px)) !important; } }

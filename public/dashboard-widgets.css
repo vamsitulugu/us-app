@@ -127,7 +127,6 @@
 /* ── Closing quote ── */
 .dw-quote { margin: 26px 8px 0; text-align: center; }
 .dw-quote p { margin: 0; font: italic 400 15px/1.45 var(--ff-serif); color: rgba(255, 255, 255, .72); text-wrap: balance; }
-.dw-quote p::before { content: '\201C'; display: block; font-size: 30px; line-height: .6; color: #fcbfe1; margin-bottom: 4px; }
 
 /* ── Chip label wrap (two-word shortcuts) ── */
 .dh-chip { white-space: normal; text-align: center; line-height: 1.15; padding: 0 4px; }

@@ -167,7 +167,6 @@ html[data-theme="light"] .dw-q1 { background: #fff; border-color: var(--border);
 html[data-theme="light"] .dw-page { color: var(--text2); }
 html[data-theme="light"] .dw-page .e, html[data-theme="light"] .dw-page svg { color: var(--accent); }
 html[data-theme="light"] .dw-quote p { color: var(--text2); }
-html[data-theme="light"] .dw-quote p::before { color: var(--accent); }
 
 /* full-screen mood calendar + photo editor */
 html[data-theme="light"] .dw-overlay, html[data-theme="light"] .dw-foot,

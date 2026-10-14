@@ -262,7 +262,7 @@ const DashWidgets = (() => {
     const kids = [top, quick, el('p', 'dw-mood-sub', sub), svg, cols];
     if (pair) {
       const lg = el('div', 'dw-legend');
-      lg.append(el('span', 'you', 'You'), el('span', 'pt', ptName()));
+      lg.append(el('span', 'you', `You ${a ? MOODS[a].e : '—'}`), el('span', 'pt', `${ptName()} ${b ? MOODS[b].e : '—'}`));
       kids.push(lg);
     }
     card.replaceChildren(...kids);
@@ -677,7 +677,7 @@ const DashWidgets = (() => {
     PAGE_GROUPS.forEach(([title, items]) => {
       const sec = el('section', 'dw-sec');
       sec.append(el('h3', 'dw-sec-title', title));
-      const grid = el('div', 'dw-grid');
+      const grid = el('div', 'dw-grid' + (items.length === 5 ? ' dw-grid-5' : ''));
       items.forEach(([page, icon, label]) => {
         const b = el('button', 'dw-page'); b.type = 'button';
         const i = el('i', 'e'); i.setAttribute('data-lucide', icon);
