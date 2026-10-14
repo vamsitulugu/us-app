@@ -36,17 +36,22 @@ html[data-theme] .dw-ev.is-today .dw-ev-tx i { color: rgba(28, 13, 21, .62) !imp
 html[data-theme] .dw-ev.is-today .dw-ev-d { color: var(--dh-burgundy) !important; }
 
 
-/* ── Home shortcuts: always 4 per row (Memories, Music, Movie, Meet Planner / Daily Routine, Help) ── */
+/* ── Home shortcuts (hero): 5 small buttons per row ── */
 .dh .dh-chips {
   display: grid !important;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
   overflow: visible !important;
   flex-wrap: nowrap;
   margin: 0 !important;
   padding: 2px 0 !important;
   scroll-snap-type: none;
 }
-.dh .dh-chips .dh-chip { width: auto !important; min-width: 0; height: 78px; }
-@media (min-width: 701px) { .dh .dh-chips { max-width: 720px; } }
-@media (max-width: 700px) and (max-height: 700px) { .dh .dh-chips .dh-chip { height: 62px; } }
+.dh .dh-chips .dh-chip { width: auto !important; min-width: 0; height: 60px; gap: 5px; border-radius: 16px; font-size: 10px; }
+.dh .dh-chips .dh-chip svg { width: 18px; height: 18px; }
+@media (min-width: 701px) { .dh .dh-chips { max-width: 560px; } }
+@media (max-width: 700px) and (max-height: 700px) { .dh .dh-chips .dh-chip { height: 54px; } }
+
+/* ── Home bottom page groups: 4 per row ── */
+.dw-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+@media (min-width: 701px) { .dw-grid { grid-template-columns: repeat(4, minmax(88px, 112px)) !important; } }

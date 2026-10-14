@@ -626,7 +626,7 @@ const DashWidgets = (() => {
 
   /* ───────────────────────── ALL PAGES + QUOTE ───────────────────────── */
   // Lucide icon names (the app already loads lucide for its other screens)
-  // Grouped like a banking-app services list: a title + up to 5 plain
+  // Grouped like a banking-app services list: a title + up to 4 plain
   // icon buttons per category (no cards). Calendar and Bucket List sit at
   // the very end, as requested. Bottom-nav pages (Chat, Twin, Map, Settings)
   // and the header shortcuts (Memories, Music, Movie, Meet Planner,
@@ -642,6 +642,7 @@ const DashWidgets = (() => {
     ]],
     ['My Space', [
       ['myspace', 'flower-2', 'My Space'], ['period', 'droplet', 'Period Tracker'], ['vault', 'lock', 'Vault'],
+      ['help', 'circle-help', 'Help'],
     ]],
     ['Plans', [
       ['surprise', 'party-popper', 'Surprises'], ['money', 'wallet', 'Money'],
@@ -681,7 +682,7 @@ const DashWidgets = (() => {
         const b = el('button', 'dw-page'); b.type = 'button';
         const i = el('i', 'e'); i.setAttribute('data-lucide', icon);
         b.append(i, el('span', 'l', label));
-        b.onclick = () => goto(page);
+        b.onclick = () => { if (page === 'help') location.href = '/help.html'; else goto(page); };
         grid.append(b);
       });
       sec.append(grid);
