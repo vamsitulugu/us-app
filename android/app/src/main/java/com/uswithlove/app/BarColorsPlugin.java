@@ -12,6 +12,13 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 // natively instead (see MainActivity.BarsBackground).
 @CapacitorPlugin(name = "BarColors")
 public class BarColorsPlugin extends Plugin {
+  // Called by the web layer once the loading spinner has painted.
+  @PluginMethod
+  public void splashDone(PluginCall call) {
+    if (getActivity() instanceof MainActivity) ((MainActivity) getActivity()).releaseSplash();
+    call.resolve();
+  }
+
   @PluginMethod
   public void set(PluginCall call) {
     final String top = call.getString("top");

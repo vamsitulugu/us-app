@@ -50,8 +50,18 @@ public class MainActivity extends BridgeActivity {
   // the app instead of showing the OS's default gray scrim.
   private static final int SYSTEM_BAR_COLOR = Color.parseColor("#14030e");
 
+  // Keeps the native (system) splash on screen until the web loader (spinner)
+  // has actually painted, so there is no blank gray/black frame in between.
+  // Released by JS via BarColors.splashDone(), with a failsafe timeout.
+  private volatile boolean holdSplash = true;
+  public void releaseSplash() { holdSplash = false; }
+
   @Override
   public void onCreate(Bundle savedInstanceState) {
+    androidx.core.splashscreen.SplashScreen splash =
+        androidx.core.splashscreen.SplashScreen.installSplashScreen(this);
+    splash.setKeepOnScreenCondition(() -> holdSplash);
+    new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> holdSplash = false, 4000);
     registerPlugin(CallAudioPlugin.class);
     registerPlugin(BackgroundLocationPlugin.class);
     registerPlugin(InstallGuardPlugin.class);
@@ -292,15 +302,43 @@ public void onDestroy() {
   private void installBarsBackground() {
     Window window = getWindow();
     barsBg = new BarsBackground(window.getDecorView());
+    // Start with the colours used last time, so the bars are already right on launch.
+    android.content.SharedPreferences sp = getSharedPreferences("bar_colors", MODE_PRIVATE);
+    barsBg.top = sp.getInt("top", barsBg.page);
+    barsBg.bottom = sp.getInt("bottom", barsBg.page);
     window.setBackgroundDrawable(barsBg);
     // The WebView is black until its first paint — match the app instead.
     try { if (getBridge() != null && getBridge().getWebView() != null) getBridge().getWebView().setBackgroundColor(barsBg.page); } catch (Exception e) {}
   }
 
+  // @capacitor/core's SystemBars calls decorView.setBackgroundColor(...) whenever it
+  // restyles the bars, which silently throws our custom drawable away. Put it back.
+  private void reinstallBarsBackground() {
+    if (barsBg == null) return;
+    getWindow().setBackgroundDrawable(barsBg);
+    getWindow().getDecorView().invalidate();
+  }
+
+  @Override
+  public void onResume() {
+    super.onResume();
+    reinstallBarsBackground();
+    getWindow().getDecorView().post(this::reinstallBarsBackground);
+  }
+
+  @Override
+  public void onConfigurationChanged(android.content.res.Configuration newConfig) {
+    super.onConfigurationChanged(newConfig);
+    getWindow().getDecorView().post(this::reinstallBarsBackground);
+  }
+
   public void setBarColors(boolean hasTop, int topColor, boolean hasBottom, int bottomColor) {
     if (barsBg == null) return;
+    reinstallBarsBackground();
     if (hasTop) barsBg.top = topColor;
     if (hasBottom) barsBg.bottom = bottomColor;
+    getSharedPreferences("bar_colors", MODE_PRIVATE).edit()
+        .putInt("top", barsBg.top).putInt("bottom", barsBg.bottom).apply();
     barsBg.invalidateSelf();
     getWindow().getDecorView().invalidate();
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) { // API < 35 uses real bar colours

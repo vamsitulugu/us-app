@@ -21,15 +21,19 @@
   }
   // Android 15+: @capacitor/status-bar can't colour the bars any more, so also
   // paint them natively via the BarColors plugin (top = status bar, bottom = nav bar).
+  // On Home both bars use the Home hero colour (status bar on top, navigation bar at the bottom).
+  function homeActive() { var d = document.getElementById('page-dashboard'); return !!(d && d.classList.contains('active')); }
+  function bottomColor(t) { return homeActive() ? '#6B093A' : (BAR[t] || BAR.dark); }
   function pushBarColors(t) {
     try {
       var b = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.BarColors;
-      if (b) b.set({ top: barColor(t), bottom: BAR[t] || BAR.dark });
+      if (b) b.set({ top: barColor(t), bottom: bottomColor(t) });
     } catch (e) {}
   }
   window.refreshStatusBar = function () {
-    try { pushBarColors(resolve(pref())); } catch (e) {}
     try { var s = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.StatusBar; if (s) { var _t = resolve(pref()); s.setStyle({ style: statusStyle(_t) }); s.setBackgroundColor({ color: barColor(_t) }); } var _m = document.getElementById('themeColorMeta'); if (_m) _m.setAttribute('content', barColor(resolve(pref()))); } catch (e) {}
+    // Native bar colours go LAST so nothing the status-bar plugin does can override them.
+    try { pushBarColors(resolve(pref())); } catch (e) {}
   };
   document.addEventListener('DOMContentLoaded', function () {
     var host = document.getElementById('page-dashboard');
@@ -41,11 +45,11 @@
     var m = document.getElementById('themeColorMeta') || document.querySelector('meta[name="theme-color"]');
     if (m) m.setAttribute('content', barColor(t));
     try { window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: t, pref: pref() } })); } catch (e) {}
-    pushBarColors(t);
     try {
       var s = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.StatusBar;
       if (s) { s.setBackgroundColor({ color: barColor(t) }); s.setStyle({ style: statusStyle(t) }); }
     } catch (e) {}
+    pushBarColors(t);
   }
   window.Theme = {
     get: pref, resolved: function () { return resolve(pref()); }, bar: function () { return barColor(resolve(pref())); },
@@ -55,4 +59,8 @@
   if (mq && mq.addEventListener) mq.addEventListener('change', function () { if (pref() === 'system') apply(); });
   document.documentElement.setAttribute('data-theme', resolve(pref()));
   document.addEventListener('DOMContentLoaded', apply);
+  // Re-assert once the app has fully started (native layer may restyle bars during startup).
+  window.addEventListener('load', function () {
+    [0, 400, 1500].forEach(function (ms) { setTimeout(function () { try { window.refreshStatusBar(); } catch (e) {} }, ms); });
+  });
 })();

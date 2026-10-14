@@ -1,0 +1,191 @@
+diff --git a/android/app/src/main/java/com/uswithlove/app/BarColorsPlugin.java b/android/app/src/main/java/com/uswithlove/app/BarColorsPlugin.java
+index 0340916..468d4c4 100644
+--- a/android/app/src/main/java/com/uswithlove/app/BarColorsPlugin.java
++++ b/android/app/src/main/java/com/uswithlove/app/BarColorsPlugin.java
+@@ -12,6 +12,13 @@ import com.getcapacitor.annotation.CapacitorPlugin;
+ // natively instead (see MainActivity.BarsBackground).
+ @CapacitorPlugin(name = "BarColors")
+ public class BarColorsPlugin extends Plugin {
++  // Called by the web layer once the loading spinner has painted.
++  @PluginMethod
++  public void splashDone(PluginCall call) {
++    if (getActivity() instanceof MainActivity) ((MainActivity) getActivity()).releaseSplash();
++    call.resolve();
++  }
++
+   @PluginMethod
+   public void set(PluginCall call) {
+     final String top = call.getString("top");
+diff --git a/android/app/src/main/java/com/uswithlove/app/MainActivity.java b/android/app/src/main/java/com/uswithlove/app/MainActivity.java
+index f1fc06b..847f98e 100644
+--- a/android/app/src/main/java/com/uswithlove/app/MainActivity.java
++++ b/android/app/src/main/java/com/uswithlove/app/MainActivity.java
+@@ -50,8 +50,18 @@ public class MainActivity extends BridgeActivity {
+   // the app instead of showing the OS's default gray scrim.
+   private static final int SYSTEM_BAR_COLOR = Color.parseColor("#14030e");
+ 
++  // Keeps the native (system) splash on screen until the web loader (spinner)
++  // has actually painted, so there is no blank gray/black frame in between.
++  // Released by JS via BarColors.splashDone(), with a failsafe timeout.
++  private volatile boolean holdSplash = true;
++  public void releaseSplash() { holdSplash = false; }
++
+   @Override
+   public void onCreate(Bundle savedInstanceState) {
++    androidx.core.splashscreen.SplashScreen splash =
++        androidx.core.splashscreen.SplashScreen.installSplashScreen(this);
++    splash.setKeepOnScreenCondition(() -> holdSplash);
++    new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> holdSplash = false, 4000);
+     registerPlugin(CallAudioPlugin.class);
+     registerPlugin(BackgroundLocationPlugin.class);
+     registerPlugin(InstallGuardPlugin.class);
+@@ -292,15 +302,43 @@ public void onDestroy() {
+   private void installBarsBackground() {
+     Window window = getWindow();
+     barsBg = new BarsBackground(window.getDecorView());
++    // Start with the colours used last time, so the bars are already right on launch.
++    android.content.SharedPreferences sp = getSharedPreferences("bar_colors", MODE_PRIVATE);
++    barsBg.top = sp.getInt("top", barsBg.page);
++    barsBg.bottom = sp.getInt("bottom", barsBg.page);
+     window.setBackgroundDrawable(barsBg);
+     // The WebView is black until its first paint — match the app instead.
+     try { if (getBridge() != null && getBridge().getWebView() != null) getBridge().getWebView().setBackgroundColor(barsBg.page); } catch (Exception e) {}
+   }
+ 
++  // @capacitor/core's SystemBars calls decorView.setBackgroundColor(...) whenever it
++  // restyles the bars, which silently throws our custom drawable away. Put it back.
++  private void reinstallBarsBackground() {
++    if (barsBg == null) return;
++    getWindow().setBackgroundDrawable(barsBg);
++    getWindow().getDecorView().invalidate();
++  }
++
++  @Override
++  public void onResume() {
++    super.onResume();
++    reinstallBarsBackground();
++    getWindow().getDecorView().post(this::reinstallBarsBackground);
++  }
++
++  @Override
++  public void onConfigurationChanged(android.content.res.Configuration newConfig) {
++    super.onConfigurationChanged(newConfig);
++    getWindow().getDecorView().post(this::reinstallBarsBackground);
++  }
++
+   public void setBarColors(boolean hasTop, int topColor, boolean hasBottom, int bottomColor) {
+     if (barsBg == null) return;
++    reinstallBarsBackground();
+     if (hasTop) barsBg.top = topColor;
+     if (hasBottom) barsBg.bottom = bottomColor;
++    getSharedPreferences("bar_colors", MODE_PRIVATE).edit()
++        .putInt("top", barsBg.top).putInt("bottom", barsBg.bottom).apply();
+     barsBg.invalidateSelf();
+     getWindow().getDecorView().invalidate();
+     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) { // API < 35 uses real bar colours
+diff --git a/public/dashboard-burgundy.css b/public/dashboard-burgundy.css
+index e42ef02..8e71672 100644
+--- a/public/dashboard-burgundy.css
++++ b/public/dashboard-burgundy.css
+@@ -34,3 +34,19 @@ html[data-theme] .dw-ev.is-today {
+ html[data-theme] .dw-ev.is-today .dw-ev-ico { background: rgba(114, 2, 47, .1); }
+ html[data-theme] .dw-ev.is-today .dw-ev-tx i { color: rgba(28, 13, 21, .62) !important; }
+ html[data-theme] .dw-ev.is-today .dw-ev-d { color: var(--dh-burgundy) !important; }
++
++
++/* ── Home shortcuts: always 4 per row (Memories, Music, Movie, Meet Planner / Daily Routine, Help) ── */
++.dh .dh-chips {
++  display: grid !important;
++  grid-template-columns: repeat(4, minmax(0, 1fr));
++  gap: 10px;
++  overflow: visible !important;
++  flex-wrap: nowrap;
++  margin: 0 !important;
++  padding: 2px 0 !important;
++  scroll-snap-type: none;
++}
++.dh .dh-chips .dh-chip { width: auto !important; min-width: 0; height: 78px; }
++@media (min-width: 701px) { .dh .dh-chips { max-width: 720px; } }
++@media (max-width: 700px) and (max-height: 700px) { .dh .dh-chips .dh-chip { height: 62px; } }
+diff --git a/public/index.html b/public/index.html
+index c66bf27..422c088 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -4857,7 +4857,7 @@ select option { background: #270719; color: #fff; }
+ <link rel="stylesheet" href="/theme-light-v2.css?v=4">
+ <link rel="stylesheet" href="/theme-light-burgundy.css?v=2">
+ <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
+-<link rel="stylesheet" href="/dashboard-burgundy.css?v=3">
++<link rel="stylesheet" href="/dashboard-burgundy.css?v=4">
+ <link rel="stylesheet" href="/theme-dark-glass.css?v=5">
+ <link rel="stylesheet" href="/no-scrollbar.css?v=1">
+ </head>
+@@ -5344,6 +5344,7 @@ select option { background: #270719; color: #fff; }
+               <button class="dh-chip" type="button" onclick="goto('movie')"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.2"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5"/></svg>Movie</button>
+               <button class="dh-chip" type="button" onclick="goto('meetplanner')"><svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>Meet Planner</button>
+               <button class="dh-chip" type="button" onclick="goto('dailyroutine')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Daily Routine</button>
++              <button class="dh-chip" type="button" onclick="location.href='/help.html'"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4.2M12 17.5h.01"/></svg>Help</button>
+             </nav>
+           </div>
+ 
+@@ -12435,7 +12436,11 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
+   // instead of waiting for the full 'load' event — the spinner shows instantly with no
+   // black/gray frame in between. 'load' stays as a fallback; hide() is only called once.
+   let _splashHidden = false;
+-  const hideSplashOnce = () => { if (_splashHidden) return; _splashHidden = true; window.Capacitor.Plugins.SplashScreen.hide(); };
++  const hideSplashOnce = () => {
++    if (_splashHidden) return; _splashHidden = true;
++    try { window.Capacitor.Plugins.BarColors && window.Capacitor.Plugins.BarColors.splashDone(); } catch (e) {}
++    try { window.Capacitor.Plugins.SplashScreen.hide(); } catch (e) {}
++  };
+   const afterPaint = () => requestAnimationFrame(() => requestAnimationFrame(hideSplashOnce));
+   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', afterPaint); else afterPaint();
+   window.addEventListener('load', hideSplashOnce);
+diff --git a/public/theme.js b/public/theme.js
+index 3c3a9a1..c0494f1 100644
+--- a/public/theme.js
++++ b/public/theme.js
+@@ -21,15 +21,19 @@
+   }
+   // Android 15+: @capacitor/status-bar can't colour the bars any more, so also
+   // paint them natively via the BarColors plugin (top = status bar, bottom = nav bar).
++  // On Home both bars use the Home hero colour (status bar on top, navigation bar at the bottom).
++  function homeActive() { var d = document.getElementById('page-dashboard'); return !!(d && d.classList.contains('active')); }
++  function bottomColor(t) { return homeActive() ? '#6B093A' : (BAR[t] || BAR.dark); }
+   function pushBarColors(t) {
+     try {
+       var b = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.BarColors;
+-      if (b) b.set({ top: barColor(t), bottom: BAR[t] || BAR.dark });
++      if (b) b.set({ top: barColor(t), bottom: bottomColor(t) });
+     } catch (e) {}
+   }
+   window.refreshStatusBar = function () {
+-    try { pushBarColors(resolve(pref())); } catch (e) {}
+     try { var s = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.StatusBar; if (s) { var _t = resolve(pref()); s.setStyle({ style: statusStyle(_t) }); s.setBackgroundColor({ color: barColor(_t) }); } var _m = document.getElementById('themeColorMeta'); if (_m) _m.setAttribute('content', barColor(resolve(pref()))); } catch (e) {}
++    // Native bar colours go LAST so nothing the status-bar plugin does can override them.
++    try { pushBarColors(resolve(pref())); } catch (e) {}
+   };
+   document.addEventListener('DOMContentLoaded', function () {
+     var host = document.getElementById('page-dashboard');
+@@ -41,11 +45,11 @@
+     var m = document.getElementById('themeColorMeta') || document.querySelector('meta[name="theme-color"]');
+     if (m) m.setAttribute('content', barColor(t));
+     try { window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: t, pref: pref() } })); } catch (e) {}
+-    pushBarColors(t);
+     try {
+       var s = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.StatusBar;
+       if (s) { s.setBackgroundColor({ color: barColor(t) }); s.setStyle({ style: statusStyle(t) }); }
+     } catch (e) {}
++    pushBarColors(t);
+   }
+   window.Theme = {
+     get: pref, resolved: function () { return resolve(pref()); }, bar: function () { return barColor(resolve(pref())); },
+@@ -55,4 +59,8 @@
+   if (mq && mq.addEventListener) mq.addEventListener('change', function () { if (pref() === 'system') apply(); });
+   document.documentElement.setAttribute('data-theme', resolve(pref()));
+   document.addEventListener('DOMContentLoaded', apply);
++  // Re-assert once the app has fully started (native layer may restyle bars during startup).
++  window.addEventListener('load', function () {
++    [0, 400, 1500].forEach(function (ms) { setTimeout(function () { try { window.refreshStatusBar(); } catch (e) {} }, ms); });
++  });
+ })();
