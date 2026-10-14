@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v38'; // bumped: game + place card images
+const CACHE = 'uwl-v39'; // bumped: desktop-layout.css
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',

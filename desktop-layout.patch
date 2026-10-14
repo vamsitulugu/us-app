@@ -1,0 +1,153 @@
+diff --git a/public/desktop-layout.css b/public/desktop-layout.css
+new file mode 100644
+index 0000000..0f6d9b8
+--- /dev/null
++++ b/public/desktop-layout.css
+@@ -0,0 +1,124 @@
++/* ══════════════════════════════════════════════════════════════
++   DESKTOP LAYOUT FIX  (laptop / desktop only — nothing here applies < 1024px)
++   Makes Dashboard, Settings and Couple Level use the same structure on a
++   laptop as on mobile: equal-width cards, equal heights per row, even gaps,
++   nothing cut off. Layout only — colours still come from the active theme.
++   Linked LAST in index.html so it wins over earlier files.
++   ══════════════════════════════════════════════════════════════ */
++
++@media (min-width: 1024px) {
++
++  /* ─────────────── DASHBOARD ─────────────── */
++
++  /* "Coming up": equal cards, none cut off (scrolls only if there are many) */
++  .dw-events {
++    display: grid !important;
++    grid-auto-flow: column;
++    grid-auto-columns: calc((100% - 10px) / 2);
++    gap: 10px;
++    overflow-x: auto;
++    padding: 2px 0 4px !important;
++    margin: 0 !important;
++  }
++  .dw-ev { min-width: 0 !important; max-width: none !important; width: auto; }
++  .dw-events:has(.is-empty) { grid-auto-columns: 100% !important; }
++
++  /* Mood card: even padding, graph not stretched, legend never boxed */
++  .dw-mood { padding: 18px 20px 14px; }
++  .dw-quick { gap: 10px; }
++  .dw-q1 { height: 48px; }
++  .dw-graph { height: 64px; }
++  .dw-legend { flex-wrap: wrap; align-items: center; }
++  .dw-legend span {
++    background: none !important; border: 0 !important; box-shadow: none !important;
++    padding: 0 !important; width: auto !important; height: auto !important; min-height: 0 !important;
++  }
++
++  /* "All pages" (Us / Explore Together / My Space / Plans):
++     2 × 2 cards, icons spread evenly on the same 5-column grid */
++  .dw-allpages { margin-top: 28px; }
++  .dw-pages {
++    display: grid;
++    grid-template-columns: repeat(2, minmax(0, 1fr));
++    gap: 20px;
++    align-items: stretch;
++  }
++  .dw-sec {
++    padding: 20px 22px 18px;
++    border: 1px solid color-mix(in srgb, currentColor 14%, transparent) !important;
++    background: color-mix(in srgb, currentColor 5%, transparent);
++    border-radius: 22px;
++  }
++  .dw-sec:first-child { border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent) !important; }
++  .dw-sec-title { margin: 0 0 16px 2px; }
++  .dw-grid,
++  .dw-grid.dw-grid-5 {
++    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
++    gap: 18px 8px;
++    justify-items: center;
++  }
++  .dw-page { width: 100%; padding: 8px 4px; border-radius: 14px; }
++  .dw-page:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
++  .dw-quote { margin-top: 32px; }
++
++  /* ─────────────── SETTINGS (home) ─────────────── */
++
++  #setHome { max-width: 1240px; margin-inline: auto; }
++
++  #setSections {
++    display: grid !important;
++    grid-template-columns: repeat(3, minmax(0, 1fr));
++    grid-template-areas:
++      "acc  pref sec"
++      "data pref sup"
++      "out  pref about";
++    gap: 18px 24px !important;
++    column-gap: 24px !important;
++    align-items: stretch !important;
++  }
++  #setSections > .set-sec {
++    display: flex; flex-direction: column;
++    margin: 0 !important; min-width: 0;
++  }
++  #setSections > .set-sec:nth-child(1) { grid-area: acc; }
++  #setSections > .set-sec:nth-child(2) { grid-area: pref; }
++  #setSections > .set-sec:nth-child(3) { grid-area: sec; }
++  #setSections > .set-sec:nth-child(4) { grid-area: data; }
++  #setSections > .set-sec:nth-child(5) { grid-area: sup; }
++  #setSections > .set-sec:nth-child(6) { grid-area: about; }
++  #setSections > .set-sec:nth-child(7) { grid-area: out; }
++  #setSections > .set-sec > .set-list { flex: 1; }
++  #setSections .set-row { min-height: 60px; }
++
++  /* Settings sub-pages (Profile, Notifications …): centred, same width */
++  #page-settings .set-sub { max-width: 1240px; margin-inline: auto; }
++
++  /* ─────────────── COUPLE LEVEL ─────────────── */
++
++  /* Badge rows: always one even row (5 locked / earned badges, no orphan) */
++  .lv-row {
++    grid-auto-flow: column !important;
++    grid-template-columns: none !important;
++    grid-auto-columns: minmax(0, 1fr) !important;
++    gap: 10px;
++  }
++  .lv-badge { min-width: 0; }
++  .lv-badge b, .lv-badge small { overflow-wrap: anywhere; }
++}
++
++@media (min-width: 1200px) {
++  /* Two columns stretch to the same height; last card in each column fills */
++  .lv-grid { align-items: stretch !important; }
++  .lv-col > .lv-card:last-child { flex: 1; }
++  .lv-earn-list { gap: 12px; }
++}
++
++/* Wide monitors: three "Coming up" cards fit */
++@media (min-width: 1600px) {
++  .dw-events { grid-auto-columns: calc((100% - 20px) / 3); }
++}
++
++/* Smaller laptops (1024–1279): single-column dashboard — keep pages grid tidy */
++@media (min-width: 1024px) and (max-width: 1279px) {
++  .dw-events { grid-auto-columns: calc((100% - 20px) / 3); }
++}
+diff --git a/public/index.html b/public/index.html
+index ecd83a6..7926d09 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -4860,6 +4860,7 @@ select option { background: #270719; color: #fff; }
+ <link rel="stylesheet" href="/dashboard-burgundy.css?v=6">
+ <link rel="stylesheet" href="/theme-dark-glass.css?v=5">
+ <link rel="stylesheet" href="/no-scrollbar.css?v=1">
++<link rel="stylesheet" href="/desktop-layout.css?v=1">
+ </head>
+ 
+ <body class="t-blue">
+diff --git a/public/sw.js b/public/sw.js
+index 73d6469..059bc64 100644
+--- a/public/sw.js
++++ b/public/sw.js
+@@ -1,5 +1,5 @@
+ // Service Worker for Twin Hearts 💕 PWA — v5
+-const CACHE = 'uwl-v38'; // bumped: game + place card images
++const CACHE = 'uwl-v39'; // bumped: desktop-layout.css
+ const OFFLINE_ASSETS = [
+   '/',
+   '/index.html',
