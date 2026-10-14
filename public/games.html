@@ -68,6 +68,9 @@ button{font-family:inherit;cursor:pointer}
 .gcard:active{transform:scale(.97)}
 .gcard-art{height:132px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .gcard-art::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 70% -10%,rgba(255,255,255,.18),transparent 60%)}
+.gcard-art.has-img{height:auto;aspect-ratio:16/9;background:#1a0212}
+.gcard-art.has-img::after{display:none}
+.gcard-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .gcard-emoji{font-size:58px;filter:drop-shadow(0 6px 18px rgba(0,0,0,.45));animation:gfloat 3.2s ease-in-out infinite;z-index:1}
 @keyframes gfloat{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-9px) rotate(2deg)}}
 .gcard-badges{position:absolute;top:9px;left:9px;display:flex;gap:5px;z-index:2}
@@ -1069,8 +1072,8 @@ const Hub = {
       const isFav = favs.includes(g.id);
       const live = partnerPresence.online && partnerPresence.game===g.id;
       return `<div class="gcard" onclick="Hub.openGame('${g.id}')">
-        <div class="gcard-art" style="background:${g.grad}">
-          <div class="gcard-emoji">${g.emoji}</div>
+        <div class="gcard-art has-img" style="background:${g.grad}">
+          <img class="gcard-img" src="/images/games/${g.id}.webp" alt="${g.title}" loading="lazy" draggable="false" onerror="this.remove();this.parentNode&&this.parentNode.classList.remove('has-img')">
           <div class="gcard-badges">${g.badge==='new'?'<span class="gbadge new">New</span>':''}${g.badge==='trend'?'<span class="gbadge trend">🔥 Trending</span>':''}</div>
           <div class="gfav ${isFav?'on':''}" onclick="event.stopPropagation();Hub.toggleFav('${g.id}',this)">${isFav?'❤️':'🤍'}</div>
           ${live?`<div class="gcard-live"><span class="dot" style="width:5px;height:5px;border-radius:50%;background:#7cffcf;animation:blk 1.2s infinite"></span>${esc(ID.partnerName)} is playing</div>`:''}

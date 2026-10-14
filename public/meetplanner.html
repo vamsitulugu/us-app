@@ -148,6 +148,9 @@ body{height:100%;min-height:0!important;overflow:hidden!important;overscroll-beh
 .mp-rail::-webkit-scrollbar{height:0}
 .mp-dest{flex:0 0 128px;height:140px;border-radius:20px;position:relative;overflow:hidden;cursor:pointer;scroll-snap-align:start;transition:var(--mp-t);border:1px solid var(--mp-line)}
 .mp-dest:active{transform:scale(.95)}
+.mp-dest.has-img{height:128px}
+.mp-dest.has-img::after,.mp-dest.has-img .mp-art,.mp-dest.has-img .mp-dest-n{display:none}
+.mp-dest-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .mp-art{position:absolute;right:-6px;top:6px;font-size:62px;opacity:.9;filter:drop-shadow(0 6px 12px rgba(0,0,0,.35))}
 .mp-dest::after,.mp-tile::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(0,0,0,.72))}
 .mp-dest-n{position:absolute;left:11px;bottom:10px;right:6px;z-index:2;font-size:13px;font-weight:700;overflow-wrap:normal;word-break:keep-all}
@@ -633,7 +636,7 @@ textarea.mp-input{resize:vertical;min-height:84px;line-height:1.6}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="/premium-motion.js"></script>
 <script src="/premium-states.js"></script>
-<script src="/meetplanner.js"></script>
+<script src="/meetplanner.js?v=2"></script>
 <script src="/search/search-utils.js?v=2"></script>
 <script src="/search/category-map.js?v=2"></script>
 <script src="/search/geolocation-service.js?v=2"></script>

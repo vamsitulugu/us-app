@@ -238,7 +238,8 @@ function renderHome() {
   if (!$('mpPopular').dataset.done) {
     $('mpPopular').dataset.done = '1';
     $('mpPopular').innerHTML = POPULAR.map((c, i) => `
-      <div class="mp-dest" style="background:linear-gradient(150deg,${c.g[0]},${c.g[1]})" onclick="mpPickPopular(${i})">
+      <div class="mp-dest has-img" title="${c.n}" style="background:linear-gradient(150deg,${c.g[0]},${c.g[1]})" onclick="mpPickPopular(${i})">
+        <img class="mp-dest-img" src="/images/places/${c.n.toLowerCase()}.webp" alt="${c.n}" loading="lazy" draggable="false" onerror="this.remove();this.parentNode.classList.remove('has-img')">
         <div class="mp-art">${c.e}</div><div class="mp-dest-n">${c.n}</div></div>`).join('');
   }
 }
