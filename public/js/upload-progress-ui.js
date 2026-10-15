@@ -26,6 +26,7 @@
       '.uq-bar{height:5px;border-radius:99px;background:rgba(255,255,255,0.16);overflow:hidden}' +
       '.uq-bar-fill{height:100%;border-radius:99px;background:#34d399;transition:width .2s ease}' +
       '.uq-fail{color:#f87171;margin-top:6px;display:flex;align-items:center;justify-content:space-between;gap:10px}' +
+      '.uq-fail[hidden]{display:none}' +
       '.uq-retry{background:rgba(255,255,255,0.14);border:none;color:#fff;border-radius:8px;' +
       'padding:4px 10px;font-size:12px;cursor:pointer}';
     var el = document.createElement('style');

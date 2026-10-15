@@ -4844,6 +4844,7 @@ select option { background: #270719; color: #fff; }
   <script src="/js/gallery-viewer.js"></script>
   <script src="/js/upload-queue.js"></script>
   <script src="/js/upload-progress-ui.js"></script>
+  <script src="/js/frame-preloader.js"></script>
   <script src="/safe-delete.js"></script>
   <link rel="stylesheet" href="/glass-nav.css">
   <link rel="stylesheet" href="/dashboard.css">
@@ -5387,18 +5388,18 @@ select option { background: #270719; color: #fff; }
       </div>
       <div class="page" id="page-lovecounter">
   <div class="iframe-page-wrap">
-    <iframe id="lovecounterFrame" src="/lovecounter.html" title="Love Counter" loading="lazy"></iframe>
+    <iframe id="lovecounterFrame" data-src="/lovecounter.html" title="Love Counter"></iframe>
   </div>
 </div>
 
 <div class="page" id="page-collection">
   <div class="iframe-page-wrap">
-    <iframe id="collectionFrame" src="/collection.html" title="Collection" loading="lazy"></iframe>
+    <iframe id="collectionFrame" data-src="/collection.html" title="Collection"></iframe>
   </div>
 </div>
 <div class="page" id="page-globe">
   <div class="iframe-page-wrap">
-    <iframe id="globeFrame" src="/globe.html" title="Memory Globe" loading="lazy"></iframe>
+    <iframe id="globeFrame" data-src="/globe.html" title="Memory Globe"></iframe>
   </div>
 </div>
       <!-- ════ CHAT ════ -->
@@ -7249,14 +7250,14 @@ select option { background: #270719; color: #fff; }
       <!-- ════ GAMES PAGE ════ -->
       <div class="page" id="page-games">
         <div class="iframe-page-wrap">
-          <iframe id="gamesFrame" src="/games.html" title="Couple Games" allow="autoplay" loading="lazy"></iframe>
+          <iframe id="gamesFrame" data-src="/games.html" title="Couple Games" allow="autoplay"></iframe>
         </div>
       </div>
 
       <!-- ════ WATCH TOGETHER PAGE ════ -->
       <div class="page" id="page-movie">
         <div class="iframe-page-wrap">
-          <iframe id="movieFrame" src="/movie.html" title="Watch Together" allow="autoplay; fullscreen" loading="lazy"></iframe>
+          <iframe id="movieFrame" data-src="/movie.html" title="Watch Together" allow="autoplay; fullscreen"></iframe>
         </div>
       </div>
  
@@ -7264,33 +7265,33 @@ select option { background: #270719; color: #fff; }
       <!-- DELETE your old page-music div and replace with: -->
       <div class="page" id="page-music">
         <div class="iframe-page-wrap">
-          <iframe id="musicFrame" src="/music.html" title="Music" allow="autoplay" loading="lazy"></iframe>
+          <iframe id="musicFrame" data-src="/music.html" title="Music" allow="autoplay"></iframe>
         </div>
       </div>
  
       <!-- ════ DREAM GOALS PAGE ════ -->
       <div class="page" id="page-dreamgoals">
         <div class="iframe-page-wrap">
-          <iframe id="dreamgoalsFrame" src="/dreamgoals.html" title="Dream Goals" allow="autoplay" loading="lazy"></iframe>
+          <iframe id="dreamgoalsFrame" data-src="/dreamgoals.html" title="Dream Goals" allow="autoplay"></iframe>
         </div>
       </div>
 
       <!-- ════ PLACES MEMORY PAGE ════ -->
       <div class="page" id="page-places">
   <div class="iframe-page-wrap">
-    <iframe id="placesFrame" src="/places.html" title="Places Memory" allow="autoplay" loading="lazy"></iframe>
+    <iframe id="placesFrame" data-src="/places.html" title="Places Memory" allow="autoplay"></iframe>
   </div>
 </div>
 
 <div class="page" id="page-meetplanner">
   <div class="iframe-page-wrap">
-    <iframe id="meetplannerFrame" src="/meetplanner.html" title="Live Meet Planner" allow="geolocation" loading="lazy"></iframe>
+    <iframe id="meetplannerFrame" data-src="/meetplanner.html" title="Live Meet Planner" allow="geolocation"></iframe>
   </div>
 </div>
 
 <div class="page" id="page-dailyroutine">
   <div class="iframe-page-wrap">
-    <iframe id="dailyroutineFrame" src="/daily-routine.html" title="Daily Routine" allow="autoplay" loading="lazy"></iframe>
+    <iframe id="dailyroutineFrame" data-src="/daily-routine.html" title="Daily Routine" allow="autoplay"></iframe>
   </div>
 </div>
 
@@ -8152,8 +8153,17 @@ function saveLocal() {
   'myAvatar', 'partnerAvatar', 'paired', '_pairToastShown'];
       const saved = {};
       protect.forEach(k => { if (S[k] !== undefined) saved[k] = S[k]; });
+      // Photos added on this device whose save hasn't reached the cloud yet:
+      // the cloud copy doesn't have them, so a plain Object.assign would wipe
+      // them from S.photos (this is what made bulk uploads "disappear").
+      const pendingPhotos = (S.photos || []).filter(p => _unsavedPhotoIds.has(p.id));
       Object.assign(S, state);
       Object.assign(S, saved);
+      if (pendingPhotos.length) {
+        if (!Array.isArray(S.photos)) S.photos = [];
+        const have = new Set(S.photos.map(p => p.id));
+        pendingPhotos.forEach(p => { if (!have.has(p.id)) S.photos.push(p); });
+      }
       delete S.vaultPin; // legacy plaintext PIN from older versions — the PIN lives (hashed) on the server only
     }
     pullPartnerProfile();
@@ -8171,12 +8181,14 @@ async function saveToCloud() {
   _isSaving = true;
   try {
     const st = { ...S }; delete st.coupleId;
+    const coveredPhotoIds = (S.photos || []).map(p => p.id);
     await api('POST', '/api/data/state', {
       coupleId: S.coupleId,
       state: st,
       senderRole: S.role,      // ADD THIS
       myName: S.myName         // ADD THIS
     });
+    coveredPhotoIds.forEach(id => _unsavedPhotoIds.delete(id));
     saveLocal(); updateSyncStatus(true);
   } catch (e) { saveLocal(); console.warn('Cloud save:', e.message); }
   finally {
@@ -8185,6 +8197,7 @@ async function saveToCloud() {
   }
 }
         let _loadInFlight = false;
+        const _unsavedPhotoIds = new Set(); // photo ids added locally, not yet confirmed saved to cloud
         function scheduleSave() { clearTimeout(autoSaveTimer); autoSaveTimer = setTimeout(saveToCloud, 600); }
         window.addEventListener('beforeunload', () => {
   clearTimeout(autoSaveTimer);
@@ -9647,7 +9660,7 @@ const p = await Notification.requestPermission();
             savePhoto(media.url, file.name, 'video', media.path);
           } catch (e) { toast('Upload failed for ' + file.name); }
         }
-        function savePhoto(url, name, type, path) { S.photos.push({ id: Date.now() + '_' + Math.random().toString(36).slice(2, 7), url, name, type: type || 'image', date: todayStr(), path: path || null }); renderPhotos(); scheduleSave(); }
+        function savePhoto(url, name, type, path) { const id = Date.now() + '_' + Math.random().toString(36).slice(2, 7); _unsavedPhotoIds.add(id); S.photos.push({ id, url, name, type: type || 'image', date: todayStr(), path: path || null }); renderPhotos(); scheduleSave(); }
         function renderPhotos() {
           const grid = document.getElementById('photoGrid');
           document.getElementById('photoCountTag').textContent = S.photos.length;

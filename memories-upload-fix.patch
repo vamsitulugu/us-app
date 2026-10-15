@@ -1,0 +1,66 @@
+diff --git a/public/index.html b/public/index.html
+index 9a37b06..9ca31ce 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -8152,8 +8152,17 @@ function saveLocal() {
+   'myAvatar', 'partnerAvatar', 'paired', '_pairToastShown'];
+       const saved = {};
+       protect.forEach(k => { if (S[k] !== undefined) saved[k] = S[k]; });
++      // Photos added on this device whose save hasn't reached the cloud yet:
++      // the cloud copy doesn't have them, so a plain Object.assign would wipe
++      // them from S.photos (this is what made bulk uploads "disappear").
++      const pendingPhotos = (S.photos || []).filter(p => _unsavedPhotoIds.has(p.id));
+       Object.assign(S, state);
+       Object.assign(S, saved);
++      if (pendingPhotos.length) {
++        if (!Array.isArray(S.photos)) S.photos = [];
++        const have = new Set(S.photos.map(p => p.id));
++        pendingPhotos.forEach(p => { if (!have.has(p.id)) S.photos.push(p); });
++      }
+       delete S.vaultPin; // legacy plaintext PIN from older versions — the PIN lives (hashed) on the server only
+     }
+     pullPartnerProfile();
+@@ -8171,12 +8180,14 @@ async function saveToCloud() {
+   _isSaving = true;
+   try {
+     const st = { ...S }; delete st.coupleId;
++    const coveredPhotoIds = (S.photos || []).map(p => p.id);
+     await api('POST', '/api/data/state', {
+       coupleId: S.coupleId,
+       state: st,
+       senderRole: S.role,      // ADD THIS
+       myName: S.myName         // ADD THIS
+     });
++    coveredPhotoIds.forEach(id => _unsavedPhotoIds.delete(id));
+     saveLocal(); updateSyncStatus(true);
+   } catch (e) { saveLocal(); console.warn('Cloud save:', e.message); }
+   finally {
+@@ -8185,6 +8196,7 @@ async function saveToCloud() {
+   }
+ }
+         let _loadInFlight = false;
++        const _unsavedPhotoIds = new Set(); // photo ids added locally, not yet confirmed saved to cloud
+         function scheduleSave() { clearTimeout(autoSaveTimer); autoSaveTimer = setTimeout(saveToCloud, 600); }
+         window.addEventListener('beforeunload', () => {
+   clearTimeout(autoSaveTimer);
+@@ -9647,7 +9659,7 @@ const p = await Notification.requestPermission();
+             savePhoto(media.url, file.name, 'video', media.path);
+           } catch (e) { toast('Upload failed for ' + file.name); }
+         }
+-        function savePhoto(url, name, type, path) { S.photos.push({ id: Date.now() + '_' + Math.random().toString(36).slice(2, 7), url, name, type: type || 'image', date: todayStr(), path: path || null }); renderPhotos(); scheduleSave(); }
++        function savePhoto(url, name, type, path) { const id = Date.now() + '_' + Math.random().toString(36).slice(2, 7); _unsavedPhotoIds.add(id); S.photos.push({ id, url, name, type: type || 'image', date: todayStr(), path: path || null }); renderPhotos(); scheduleSave(); }
+         function renderPhotos() {
+           const grid = document.getElementById('photoGrid');
+           document.getElementById('photoCountTag').textContent = S.photos.length;
+diff --git a/public/js/upload-progress-ui.js b/public/js/upload-progress-ui.js
+index 67c5fb0..5caa0a4 100644
+--- a/public/js/upload-progress-ui.js
++++ b/public/js/upload-progress-ui.js
+@@ -26,6 +26,7 @@
+       '.uq-bar{height:5px;border-radius:99px;background:rgba(255,255,255,0.16);overflow:hidden}' +
+       '.uq-bar-fill{height:100%;border-radius:99px;background:#34d399;transition:width .2s ease}' +
+       '.uq-fail{color:#f87171;margin-top:6px;display:flex;align-items:center;justify-content:space-between;gap:10px}' +
++      '.uq-fail[hidden]{display:none}' +
+       '.uq-retry{background:rgba(255,255,255,0.14);border:none;color:#fff;border-radius:8px;' +
+       'padding:4px 10px;font-size:12px;cursor:pointer}';
+     var el = document.createElement('style');
