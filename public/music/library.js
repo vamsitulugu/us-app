@@ -400,9 +400,14 @@
      ADD SONGS — hands files to the existing import pipeline
      (reads tags + artwork, finds lyrics, de-duplicates, uploads).
   ═══════════════════════════════════════════════════════ */
-  MX.act('add-songs', () => {
+  MX.act('add-songs', async () => {
     if (!MX.ctx()) { MX.toast('Connect with your partner first'); return; }
     if (!MX.online()) { MX.toast("You're offline — connect to add songs"); return; }
+    // ══ Pro gate ══ adding songs is a Pro feature
+    if (window.ProCard) {
+      const ok = await window.ProCard.requirePro('Music');
+      if (!ok) return; // Pro upgrade card is now open
+    }
     const inp = document.getElementById('fileIn'); if (inp) { inp.value = ''; inp.click(); }
   });
   document.addEventListener('change', (e) => {

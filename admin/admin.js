@@ -16,6 +16,7 @@ const ICONS = {
   flags: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22V15"/>',
   health: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
   support: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="10" r="1"/><circle cx="15" cy="10" r="1"/><path d="M9.5 13a3.5 3.5 0 0 0 5 0"/>',
+  pro: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/><path d="M7 11h2v6h-2zM15 11h2v6h-2zM11 15h2v2h-2z"/>',
   audit: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6M9 11h2"/>'
 };
 
@@ -28,7 +29,8 @@ const NAV = [
   { id: 'flags', label: 'Feature Flags', icon: 'flags' },
   { id: 'health', label: 'App Health', icon: 'health' },
   { id: 'support', label: 'Support & Care', icon: 'support' },
-  { id: 'audit', label: 'Audit Logs', icon: 'audit' }
+  { id: 'audit', label: 'Audit Logs', icon: 'audit' },
+  { id: 'pro', label: 'Pro Upgrades', icon: 'pro' }
 ];
 
 let state = { adminEmail: null, currentPage: 'overview' };
@@ -766,6 +768,80 @@ async function loadAudit() {
 /* ═══════════════════════════════════════════════════════════════
    SUPPORT & CUSTOMER CARE
    ═══════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════
+   PRO UPGRADES — admin reviews payment requests and activates Pro
+   ════════════════════════════════════════════════════════════════ */
+let proPage = 1;
+renderers.pro = async (el) => {
+  el.innerHTML = `
+    <div class="page-header"><div><h2>Pro Upgrades</h2><p>Review payment requests &amp; activate Pro for couples</p></div></div>
+    <div class="card"><div class="table-wrap" id="proTable"><div class="loading-state">Loading…</div></div></div>`;
+  loadPro();
+};
+
+async function loadPro() {
+  const tableEl = document.getElementById('proTable');
+  tableEl.innerHTML = skeletonRows(5, 6);
+  try {
+    const data = await api('/pro');
+    if (!data.requests.length) {
+      tableEl.innerHTML = `<div class="empty-state">No Pro upgrade requests yet.</div>`;
+      return;
+    }
+    tableEl.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Couple</th><th>Plan</th><th>Paid by</th><th>Partner</th><th>Transaction ID</th><th>Status</th><th>Requested</th><th>Proof</th><th>Action</th></tr></thead><tbody>
+      ${data.requests.map(r => {
+        const c = r.couple || {};
+        const statusBadge = r.status === 'pending' ? 'badge draft' : (r.status === 'approved' ? 'badge published' : 'badge disabled');
+        return `<tr>
+          <td>${esc(c.user1_name)} &amp; ${esc(c.user2_name)}<br><span style="font-size:11px;color:var(--text3)">${esc(c.paired ? 'Paired' : 'Unpaired')}</span></td>
+          <td><span style="font-weight:700">${esc(r.plan)}</span></td>
+          <td>${esc(r.paid_by_name || '—')}<br><span style="font-size:11px;color:var(--text3)">${esc(r.paid_by_phone || '—')}</span></td>
+          <td>${esc(r.partner_name || '—')}<br><span style="font-size:11px;color:var(--text3)">${esc(r.partner_phone || '—')}</span></td>
+          <td style="font-size:11.5px;font-family:ui-monospace,monospace">${esc(r.transaction_id || '—')}</td>
+          <td><span class="${statusBadge}">${esc(r.status)}</span></td>
+          <td style="font-size:11.5px">${fmtDate(r.requested_at)}</td>
+          <td>${r.payment_proof_url ? `<a href="${esc(r.payment_proof_url)}" target="_blank" rel="noopener" class="btn secondary small" style="padding:4px 8px">View proof</a>` : `<span style="font-size:11px;color:var(--text3)">none</span>`}</td>
+          <td>
+            ${r.status === 'pending' ? `
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="btn secondary small" data-approve="${r.id}" data-plan="${r.plan}">Approve ${r.plan === 'lifetime' ? 'Lifetime' : 'Monthly'}</button>
+                <button class="btn danger small" data-reject="${r.id}">Reject</button>
+              </div>` : `<span style="font-size:11px;color:var(--text3)">Reviewed ${fmtDate(r.reviewed_at)}</span>`}
+          </td>
+        </tr>`;
+      }).join('')}
+      </tbody></table></div>`;
+
+    tableEl.querySelectorAll('[data-approve]').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.dataset.approve;
+      const plan = btn.dataset.plan === 'lifetime' ? 'lifetime' : 'monthly';
+      const ok = await confirmDialog({
+        title: `Approve Pro (${plan === 'lifetime' ? 'Lifetime ₹499' : 'Monthly ₹99'})?`,
+        body: `This activates Pro for the couple. ${plan === 'monthly' ? 'Valid for 30 days.' : 'Valid forever.'}`,
+        confirmLabel: 'Approve & activate Pro'
+      });
+      if (!ok) return;
+      try {
+        await api(`/pro/${id}/approve`, { method: 'POST', body: JSON.stringify({ plan }) });
+        toast('Pro activated');
+        loadPro();
+      } catch (e) { toast(e.message, 'error'); }
+    }));
+    tableEl.querySelectorAll('[data-reject]').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.dataset.reject;
+      const note = prompt('Reason for rejection (optional):');
+      if (note === null) return;
+      try {
+        await api(`/pro/${id}/reject`, { method: 'POST', body: JSON.stringify({ note }) });
+        toast('Request rejected');
+        loadPro();
+      } catch (e) { toast(e.message, 'error'); }
+    }));
+  } catch (e) {
+    tableEl.innerHTML = `<div class="error-state">${esc(e.message)}</div>`;
+  }
+}
+
 let supportActiveTicketId = null;
 let supportPollTimer = null;
 let supportFilterStatus = 'all';

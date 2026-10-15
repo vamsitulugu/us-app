@@ -491,7 +491,7 @@
       <div class="stat-chip" onclick="openStats()"><span>📸</span><span class="val" id="statMemories">0</span><span>memories</span></div>
       <div class="stat-chip" onclick="openStats()"><span>💰</span><span class="val" id="statCost">₹0</span><span>spent</span></div>
     </div>
-    <button class="add-memory-btn" onclick="openAddMemory()"><span>📍</span> Pin a Memory</button>
+    <button class="add-memory-btn" onclick="ProCard.requirePro('Memory Globe').then(ok=>{if(ok)openAddMemory();})"><span>📍</span> Pin a Memory</button>
   </div>
 
   <div id="cityTooltip">
@@ -2281,9 +2281,7 @@ document.addEventListener('click', e => {
   })();
 </script>
 <script src="/ui-icons.js"></script>
-<script src="/js/audio/sound-engine.js"></script>
-<script src="/js/audio/sound-library.js"></script>
-<script src="/js/audio/audio-integration.js"></script>
+<script src="/js/pro-card.js?v=1"></script>
 
 </body>
 </html>

@@ -397,5 +397,20 @@
 
 <script src="/movie.js?v=6"></script>
 <script src="/movie-collection.js?v=2"></script>
+<script src="/js/pro-card.js?v=1"></script>
+<script>
+  // Gate "add movie from cloud" behind Pro
+  (function () {
+    var el = document.getElementById('btnCloudUpload');
+    if (!el) return;
+    var orig = el.onclick;
+    el.onclick = function (e) {
+      ProCard.requirePro('Watch Together').then(function (ok) {
+        if (!ok) { e.preventDefault(); e.stopPropagation(); return; }
+        if (orig) orig.call(el, e);
+      });
+    };
+  })();
+</script>
 </body>
 </html>

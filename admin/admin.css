@@ -198,6 +198,9 @@ tbody tr:hover { background: var(--panel2); cursor: default; }
 .text-muted { color: var(--text2); }
 .hint { font-size: 12px; color: var(--text3); margin-top: 4px; }
 
+/* ── Pro Upgrades page ── */
+.badge.pending { background: rgba(251,191,36,.15); color: var(--amber); }
+
 /* ── Support Control Center ───────────────────────────────────── */
 .support-layout {
   display: grid;

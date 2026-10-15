@@ -707,6 +707,18 @@
       background: var(--text3)
     }
 
+    /* ════ Pro badge on couple widget ════ */
+    .sb-pro-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 42px; height: 20px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-d));
+      color: #fff; font-size: 10px; font-weight: 800;
+      letter-spacing: 0.5px; margin-left: 6px;
+      box-shadow: 0 2px 8px var(--accent-glow);
+      border: 1px solid rgba(255,255,255,0.2);
+      white-space: nowrap;
+    }
+
     @keyframes blink {
 
       0%,
@@ -5290,6 +5302,7 @@ select option { background: #270719; color: #fff; }
         <span style="font-size:13px;color:var(--text3)">♥</span>
         <div class="av av2" id="sbAv2">P</div>
         <span class="couple-names" id="coupleLabel">You & Partner</span>
+        <span id="sbProBadge" class="sb-pro-badge" style="display:none">Pro</span>
       </div>
       <div id="partnerLastSeen" style="font-size:10px;color:var(--text3);margin-top:6px;padding-left:2px;display:none"></div>
 <div id="hbSidebarPresence" style="margin-top:2px;padding-left:2px"></div>
@@ -5322,6 +5335,10 @@ select option { background: #270719; color: #fff; }
     <div class="nav-group">
       <div class="nav-label">AI & Tools</div>
       <div class="ni" data-page="ai"><span class="ico">🤖</span>Twin</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Pro</div>
+      <div class="ni" data-page="pro"><span class="ico">💎</span>Pro Upgrade<span class="ico ni-chev">›</span></div>
     </div>
     <div class="sb-foot">
       <div class="ni" data-page="settings" style="margin:0"><span class="ico">⚙️</span>Settings</div>
@@ -5436,6 +5453,11 @@ select option { background: #270719; color: #fff; }
 <div class="page" id="page-globe">
   <div class="iframe-page-wrap">
     <iframe id="globeFrame" data-src="/globe.html" title="Memory Globe"></iframe>
+  </div>
+</div>
+<div class="page" id="page-pro">
+  <div class="iframe-page-wrap">
+    <iframe id="proFrame" data-src="/pro.html" title="Go Pro"></iframe>
   </div>
 </div>
       <!-- ════ CHAT ════ -->
@@ -7695,6 +7717,7 @@ select option { background: #270719; color: #fff; }
 <script src="/twin-art.js?v=2"></script>
 <script src="/twin-orb.js"></script>
 <script src="/both-mode.js"></script>
+<script src="/js/pro-card.js?v=1"></script>
 <script src="/twin-mini-orb.js" defer></script>
 <script>
   // Notification deep-linking: chat/call/globe/music/etc. pushes include
@@ -13977,6 +14000,41 @@ if (navigator.serviceWorker) {
 })();
 
 applyRebranding();
+
+// ════════════════════════════════════════════════════════════════
+//  Pro badge on the couple widget — refreshes Pro state on load
+//  and whenever the Pro modal closes (so a fresh approval shows).
+// ════════════════════════════════════════════════════════════════
+async function refreshProBadge() {
+  try {
+    const cid = (window.S && S.coupleId) || (function () {
+      try { return JSON.parse(localStorage.getItem('uwl_v5') || 'null')?.coupleId; } catch (e) { return null; }
+    })();
+    if (!cid) return;
+    const res = await fetch('/api/pro/status?coupleId=' + encodeURIComponent(cid), { credentials: 'include' });
+    if (!res.ok) return;
+    const st = await res.json();
+    const badge = document.getElementById('sbProBadge');
+    if (badge && st.isPro) {
+      badge.style.display = 'inline-flex';
+      badge.textContent = st.plan === 'lifetime' ? 'Pro (Lifetime)' : 'Pro';
+    } else if (badge) {
+      badge.style.display = 'none';
+    }
+  } catch (e) { /* non-fatal — badge simply stays hidden */ }
+}
+refreshProBadge();
+window.addEventListener('storage', refreshProBadge);
+
+// Listen for Pro modal close so a newly-approved badge appears immediately.
+document.addEventListener('click', function (e) {
+  const el = document.getElementById('th-pro-modal');
+  if (el && !el.classList.contains('open') && el.dataset.checked !== '1') {
+    el.dataset.checked = '1';
+    setTimeout(refreshProBadge, 600);
+  }
+});
+
 init();
         // Register PWA service worker (single registration — this used to be
         // two separate navigator.serviceWorker.register('/sw.js') calls;
@@ -14064,11 +14122,6 @@ init();
 <script src="/gender-access.js"></script>
 <script src="/dashboard-widgets.js?v=3"></script>
 <script src="/app-polish.js"></script>
-
-<!-- Premium Sound System (additive, non-invasive) -->
-<script src="/js/audio/sound-engine.js"></script>
-<script src="/js/audio/sound-library.js"></script>
-<script src="/js/audio/audio-integration.js"></script>
 
 <!-- Live Map redesign layer (additive UI only — see livemap-redesign.css) -->
 <script src="/livemap-redesign.js"></script>
