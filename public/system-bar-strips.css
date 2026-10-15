@@ -13,7 +13,7 @@ body::after {
   content: ''; position: fixed; left: 0; right: 0; bottom: 0; z-index: 2147482999;
   height: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
   background: var(--sb-bottom);
-  border-radius: var(--sb-bottom-radius) var(--sb-bottom-radius) 0 0;
+  border-radius: 0 0 var(--sb-bottom-radius) var(--sb-bottom-radius);
   pointer-events: none;
 }
 /* Full-screen experiences (call, movie, etc.) hide it like they hide the nav bar */
