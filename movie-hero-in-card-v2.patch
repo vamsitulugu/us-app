@@ -70,14 +70,3 @@ index dd6dc12..0a54a7d 100644
  </body>
  </html>
 \ No newline at end of file
-diff --git a/public/sw.js b/public/sw.js
-index 719bdd7..881645e 100644
---- a/public/sw.js
-+++ b/public/sw.js
-@@ -1,5 +1,5 @@
- // Service Worker for Twin Hearts 💕 PWA — v5
--const CACHE = 'uwl-v45'; // bumped: frame-preloader.js added (fixes blank iframe pages)
-+const CACHE = 'uwl-v47'; // bumped: movie hero image inside main card
- const OFFLINE_ASSETS = [
-   '/',
-   '/index.html',

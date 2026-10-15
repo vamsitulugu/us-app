@@ -171,6 +171,8 @@
 /* Toast must sit above the shell's floating bottom nav */
 .mc-toast { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
 
-/* Watch Together hero image card (Home tab, between banner and rows) */
-.wt-hero-card { margin: 14px 0 4px; border-radius: 22px; overflow: hidden; border: 1px solid var(--wt-card-brd); box-shadow: 0 10px 28px rgba(0,0,0,.28); aspect-ratio: 16 / 9; background: #14060e; }
-.wt-hero-card img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* Main movie card (Home tab banner) uses the Watch Together couple image
+   as its background. Fallback colour shows while the image loads. */
+.mc-banner-hero { background-color: #14060e; background-image: url('/images/movie/watch-together.webp'); background-size: cover; background-position: center center; }
+.mc-banner-hero .mc-banner-shade { background: linear-gradient(0deg, rgba(8,2,5,0.92) 4%, rgba(8,2,5,0.45) 40%, rgba(8,2,5,0.05) 75%); }

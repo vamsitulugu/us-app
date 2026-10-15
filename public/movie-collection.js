@@ -111,8 +111,8 @@
     const f = featured();
     if (f) {
       const st = STATUS[f.status] || STATUS.watchlist;
-      $('mcBanner').innerHTML = `<div class="mc-banner" style="${posterStyle(f)}">
-        <div class="mc-banner-shade"></div>${posterEmoji(f) ? `<div class="mc-banner-emoji">${g(f.genre).e}</div>` : ''}
+      $('mcBanner').innerHTML = `<div class="mc-banner mc-banner-hero">
+        <div class="mc-banner-shade"></div>
         <button type="button" class="mc-banner-more" id="mcBannerMore" aria-label="More options"><i data-lucide="more-vertical"></i></button>
         <div class="mc-banner-body">
           <div class="mc-banner-title">${esc(f.title)}</div>
@@ -122,8 +122,8 @@
             <button type="button" class="wt-btn wt-btn-ghost" id="mcBannerDetails"><span>View Details</span></button>
           </div></div></div>`;
     } else {
-      $('mcBanner').innerHTML = `<div class="mc-banner mc-banner-empty">
-        <div class="mc-banner-shade"></div><div class="mc-banner-emoji">🎬</div>
+      $('mcBanner').innerHTML = `<div class="mc-banner mc-banner-hero mc-banner-empty">
+        <div class="mc-banner-shade"></div>
         <div class="mc-banner-body">
           <div class="mc-banner-title">Watch Together</div>
           <p class="mc-banner-sub">Different places. Same movie. Same moment. ❤️</p>
