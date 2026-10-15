@@ -1,27 +1,48 @@
 /* frame-preloader.js
- * Loads the iframe-based pages (Movie, Music, Daily Routine, Meet Planner,
- * Love Counter, Dream Goals, Globe, Places, Collection, Games) so they open
- * instantly instead of showing a blank page.
+ * Makes the iframe-based pages (Movie, Music, Daily Routine, Meet Planner,
+ * Love Counter, Dream Goals, Globe, Places, Collection, Games) open instantly.
  *
  * index.html declares these iframes with `data-src` (no `src`). This script:
  *   1. Loads a frame immediately when its page becomes the active page.
- *   2. Warms up every other frame in the background, one at a time, once the
- *      dashboard has finished loading, so later taps are instant.
+ *   2. Warms up every other frame in the background right after the shell
+ *      is ready, so they are already loaded AND laid out (see the
+ *      "Instant iframe pages" CSS in index.html) by the time you tap them.
+ *   3. Shows a themed cover over a frame only until its first load finishes,
+ *      so a frame that is still loading never flashes blank/black.
  */
 (function () {
   'use strict';
 
-  // Warm-up order: lightweight pages first, heavy (WebGL/media) pages last.
+  // Warm-up order: most-used / lightweight first, heavy (WebGL) last.
   var ORDER = [
-    'dailyroutineFrame', 'lovecounterFrame', 'meetplannerFrame',
-    'dreamgoalsFrame', 'placesFrame', 'collectionFrame',
-    'musicFrame', 'movieFrame', 'gamesFrame', 'globeFrame'
+    'musicFrame', 'movieFrame', 'dailyroutineFrame', 'meetplannerFrame',
+    'lovecounterFrame', 'dreamgoalsFrame', 'placesFrame', 'collectionFrame',
+    'gamesFrame', 'globeFrame'
   ];
+
+  function addCover(frame) {
+    var wrap = frame.parentNode;
+    if (!wrap || wrap.querySelector('.us-frame-cover')) return null;
+    var cover = document.createElement('div');
+    cover.className = 'us-frame-cover';
+    wrap.appendChild(cover);
+    return cover;
+  }
 
   function loadFrame(frame) {
     if (!frame) return;
     var url = frame.getAttribute('data-src');
-    if (!url) return;                       // already loaded or nothing to load
+    if (!url) return;
+    var cover = addCover(frame);
+    if (cover) {
+      frame.addEventListener('load', function () {
+        // wait one frame so the child has painted before the cover fades
+        requestAnimationFrame(function () {
+          cover.classList.add('done');
+          setTimeout(function () { if (cover.parentNode) cover.parentNode.removeChild(cover); }, 250);
+        });
+      }, { once: true });
+    }
     frame.setAttribute('src', url);
     frame.removeAttribute('data-src');
   }
@@ -35,35 +56,31 @@
     for (var i = 0; i < frames.length; i++) loadFrame(frames[i]);
   }
 
-  function idle(fn, timeout) {
-    if (window.requestIdleCallback) window.requestIdleCallback(fn, { timeout: timeout || 2000 });
-    else setTimeout(fn, 300);
+  function idle(fn) {
+    if (window.requestIdleCallback) window.requestIdleCallback(fn, { timeout: 1500 });
+    else setTimeout(fn, 200);
   }
 
   function warmUpNext(i) {
     if (i >= ORDER.length) return;
     idle(function () {
       loadById(ORDER[i]);
-      setTimeout(function () { warmUpNext(i + 1); }, 400);
+      setTimeout(function () { warmUpNext(i + 1); }, 250);
     });
   }
 
   function start() {
-    // 1) Open-on-demand: whenever a .page becomes active, load its frame NOW.
     var pages = document.querySelectorAll('.page');
     var obs = new MutationObserver(loadActivePageFrame);
     for (var i = 0; i < pages.length; i++) {
       obs.observe(pages[i], { attributes: true, attributeFilter: ['class'] });
     }
     loadActivePageFrame();
-
-    // 2) Background warm-up after the main app has finished loading.
-    function begin() { setTimeout(function () { warmUpNext(0); }, 800); }
-    if (document.readyState === 'complete') begin();
-    else window.addEventListener('load', begin, { once: true });
+    // Start warming right after the shell is ready (not after window.load,
+    // which waits for every image and made the first tap slow).
+    setTimeout(function () { warmUpNext(0); }, 500);
   }
 
-  // Safety net for any code that navigates before the observer fires.
   window.USFramePreloader = { load: loadById, loadActive: loadActivePageFrame };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);

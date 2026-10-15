@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v45'; // bumped: frame-preloader.js added (fixes blank iframe pages)
+const CACHE = 'uwl-v46'; // bumped: instant iframe pages (no blank flash)
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
