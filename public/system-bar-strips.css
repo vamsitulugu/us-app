@@ -2,18 +2,23 @@
    TOP    : status-bar area. Home = hero colour in BOTH themes (dark theme used to paint it black).
    BOTTOM : solid black strip behind the phone's gesture/navigation bar, with curved top corners,
             so the page no longer shows through under the system navigation bar. */
-:root { --sb-home: #6B093A; --sb-bottom: #000; --sb-bottom-radius: 18px; }
+:root { --sb-home: #6B093A; --sb-bottom: #000; --sb-curve: 10px; }
 
 /* Home: status-bar strip takes the hero colour (class set by theme.js, :has() as a second route) */
 html[data-theme="dark"] body.on-home::before { background: var(--sb-home) !important; }
 html[data-theme="dark"] body:has(#page-dashboard.active)::before { background: var(--sb-home) !important; }
 
 /* Bottom strip */
+/* Flat black strip; its two ends curve UPWARD (a wide "U"): concave fillets at left and right.
+   --sb-curve must stay <= the nav pill's bottom gap (10px) so it never touches the nav bar. */
 body::after {
+  --sb-inset: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
   content: ''; position: fixed; left: 0; right: 0; bottom: 0; z-index: 2147482999;
-  height: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
-  background: var(--sb-bottom);
-  border-radius: 0 0 var(--sb-bottom-radius) var(--sb-bottom-radius);
+  height: calc(var(--sb-inset) + var(--sb-curve));
+  background:
+    radial-gradient(circle at 100% 0, transparent calc(var(--sb-curve) - .5px), var(--sb-bottom) var(--sb-curve)) 0 0 / var(--sb-curve) var(--sb-curve) no-repeat,
+    radial-gradient(circle at 0 0, transparent calc(var(--sb-curve) - .5px), var(--sb-bottom) var(--sb-curve)) 100% 0 / var(--sb-curve) var(--sb-curve) no-repeat,
+    linear-gradient(var(--sb-bottom), var(--sb-bottom)) 0 100% / 100% var(--sb-inset) no-repeat;
   pointer-events: none;
 }
 /* Full-screen experiences (call, movie, etc.) hide it like they hide the nav bar */
