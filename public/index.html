@@ -7837,7 +7837,7 @@ async function removePartner() {
     saveLocal(); applyNames(); updatePairStatus(); renderAll();
     toast('💔 Partner removed. Your data is safe — share your new code to pair again.');
     if (S.role === 'user2') {
-      setTimeout(() => { localStorage.removeItem('uwl_v5'); window.location.href = '/landing.html'; }, 2500);
+      setTimeout(() => { localStorage.removeItem('uwl_v5'); window.location.replace('/landing.html'); }, 2500);
     }
   } catch (e) { toast('Could not remove partner: ' + e.message); }
 }
@@ -8301,7 +8301,7 @@ if (_unpairStrikes < 4) {
     applyNames(); updatePairStatus();
     toast('💔 The partner connection was removed.', 4000);
     if (S.role === 'user2') {
-      setTimeout(() => { localStorage.removeItem('uwl_v5'); window.location.href = '/landing.html'; }, 2500);
+      setTimeout(() => { localStorage.removeItem('uwl_v5'); window.location.replace('/landing.html'); }, 2500);
       return;
     }
     S.partnerName = 'Partner'; renderAll();
@@ -12396,7 +12396,7 @@ function logOut() {
   const uid = S.userId;
   resetForNewAccount();   // was: localStorage.removeItem('uwl_v5') only
   if (window.SessionManager && uid) SessionManager.forgetAccount(uid);
-  window.location.href = '/landing.html';
+  window.location.replace('/landing.html');
 }   
         function quickMood(el, mood) {
           document.querySelectorAll('#dashMoodRow .mood').forEach(m => m.classList.remove('sel'));
@@ -12468,7 +12468,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
           },
           hide() { document.getElementById('accountPicker').style.display = 'none'; },
           select(userId) { this.hide(); restoreAccount(userId); },
-          useAnother() { window.location.href = '/landing.html?newAccount=1'; }
+          useAnother() { window.location.replace('/landing.html?newAccount=1'); }
         };
 
         // ─── RESTORE ONE ACCOUNT ─────────────────────────────────
@@ -12517,7 +12517,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
                 if (remaining.length > 0) { AccountPicker.show(remaining); return; }
                 AppLoader.showAuthSkeleton();
                 AppLoader.ready('auth');
-                window.location.href = '/landing.html';
+                window.location.replace('/landing.html');
                 return;
               }
               // Couldn't reach the backend right now — fall back to local
@@ -12532,7 +12532,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
                 toast('Could not connect. Check your internet and try again.');
                 const accounts = SessionManager ? SessionManager.getAccounts() : [];
                 if (accounts.length > 1) AccountPicker.show(accounts);
-                else window.location.href = '/landing.html';
+                else window.location.replace('/landing.html');
               }
               return;
             }
@@ -12708,7 +12708,7 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
         if (accounts.length === 0) {
           AppLoader.showAuthSkeleton();
           AppLoader.ready('auth');
-          window.location.href = '/landing.html';
+          window.location.replace('/landing.html');
           return;
         }
 

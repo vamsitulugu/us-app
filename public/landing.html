@@ -15,6 +15,11 @@
     var signedIn=!!(s&&s.setupDone&&s.coupleId);
     var forced=/[?&]desktop=1/.test(location.search);
     if((native||ua||narrow)&&!signedIn&&!forced) document.documentElement.classList.add('ms-on');
+    // Signed-in phone users never need this page: go straight to the app
+    // (replace, so landing is not left in the Back history).
+    if((native||ua||narrow)&&signedIn&&!forced&&!/[?&]newAccount=1/.test(location.search)){
+      try{ if(!sessionStorage.getItem('uwl_ls_bounce')){ sessionStorage.setItem('uwl_ls_bounce','1'); location.replace('/'); return; } }catch(e){}
+    }
   }catch(e){}
 })();
 </script>
@@ -309,18 +314,48 @@ body.native-auth-only #authModal .modal-close{display:none}
 
 /* ── Mobile start screen (phones: web + APK, logged-out) ─────────── */
 #mobileStart{display:none}
-html.ms-on body > *:not(#mobileStart):not(#authModal){display:none!important}
+html.ms-on body > *:not(#mobileStart):not(#msChoose):not(#authModal):not(#prepOverlay):not(#apkGuideModal){display:none!important}
 html.ms-on #mobileStart{display:flex}
 html.ms-on.ms-auth #mobileStart{display:none}
-html.ms-on #authModal{position:fixed;background:linear-gradient(180deg,#2a0f52,#0f0620)}
-/* dark purple Sign In / Sign Up card (replaces the pink accent inside the card) */
-html.ms-on #authModal{--accent:#6d32d6;--accent2:#4a1d96;--accent-glow:rgba(109,50,214,.40)}
-html.ms-on #authModal .mcard{background:rgba(24,10,46,.97);border-color:rgba(167,139,250,.22);box-shadow:0 30px 90px rgba(8,2,22,.75),inset 0 1px 0 rgba(255,255,255,.06)}
-html.ms-on #authModal .auth-logo-row img{filter:drop-shadow(0 0 14px rgba(124,77,224,.65))}
-html.ms-on #authModal .auth-logo-row .brand-tag{color:#b9a2f5}
-html.ms-on #authModal .auth-tabs{background:rgba(10,3,24,.55)}
-html.ms-on #authModal .auth-tab.active{background:linear-gradient(135deg,#6d32d6,#4a1d96);color:#fff}
-html.ms-on #authModal .field input:focus{box-shadow:0 0 0 3px rgba(109,50,214,.35)}
+html.ms-on #authModal,body.native-auth-only #authModal{position:fixed;background:linear-gradient(180deg,#3A0425 0%,#14030e 60%)}
+/* Sign In / Sign Up card — same colours as the app's dark home theme */
+#authModal{--accent:#B0127A;--accent2:#8A0E5F;--accent-glow:rgba(138,14,95,.40)}
+#authModal .mcard{background:#3E0D28;border-color:rgba(194,26,139,.34);box-shadow:0 24px 60px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.05)}
+#authModal .auth-logo-row img{filter:drop-shadow(0 0 12px rgba(176,18,122,.55))}
+#authModal .auth-logo-row .brand-tag{color:#C7A3B8}
+#authModal .auth-tabs{background:rgba(20,3,14,.55)}
+#authModal .auth-tab.active{background:linear-gradient(180deg,#B0127A,#8A0E5F);color:#fff}
+#authModal .auth-btn{background:linear-gradient(180deg,#B0127A,#8A0E5F);box-shadow:0 8px 20px rgba(138,14,95,.40)}
+#authModal .field input:focus{box-shadow:0 0 0 3px rgba(176,18,122,.30)}
+/* Step 2 on phones in a browser: Download the app / Continue in browser */
+#msChoose{display:none;position:fixed;inset:0;z-index:900;overflow-y:auto;flex-direction:column;align-items:center;justify-content:center;height:100vh;height:100dvh;
+  padding:calc(env(safe-area-inset-top,0px) + 70px) 22px calc(env(safe-area-inset-bottom,0px) + 28px);color:#FEF4FA;font-family:var(--ff-sans);
+  background:linear-gradient(180deg,#3A0425 0%,#14030e 60%)}
+html.ms-on.ms-choose #msChoose{display:flex}
+html.ms-on.ms-choose #mobileStart{display:none}
+.mc-back{position:absolute;left:16px;top:calc(env(safe-area-inset-top,0px) + 14px);width:42px;height:42px;border-radius:14px;border:1px solid rgba(194,26,139,.34);background:rgba(194,26,139,.11);color:#FEF4FA;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.mc-back svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.mc-brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.mc-brand img{width:52px;height:52px;border-radius:15px;box-shadow:0 8px 24px rgba(176,18,122,.45)}
+.mc-brand b{display:block;font-family:var(--ff-serif);font-weight:400;font-size:26px;line-height:1.05}
+.mc-brand small{display:block;font-size:8.5px;letter-spacing:.34em;text-transform:uppercase;color:#C7A3B8;margin-top:5px}
+.mc-title{font-family:var(--ff-serif);font-weight:400;font-size:clamp(26px,8vw,32px);line-height:1.15;text-align:center;margin:0 0 8px}
+.mc-sub{font-size:13px;color:#C7A3B8;text-align:center;margin:0 0 26px}
+.mc-cards{width:100%;max-width:420px;display:flex;flex-direction:column;gap:16px}
+.mc-card{position:relative;display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:18px 16px;border-radius:20px;cursor:pointer;font-family:var(--ff-sans);color:#FEF4FA;background:#3E0D28;border:1px solid rgba(194,26,139,.34);box-shadow:0 10px 28px rgba(0,0,0,.45);transition:transform .15s}
+.mc-card:active{transform:scale(.98)}
+.mc-card-main{background:linear-gradient(180deg,#B0127A 0%,#8A0E5F 100%);border-color:rgba(255,255,255,.18);box-shadow:0 8px 20px rgba(138,14,95,.40)}
+.mc-ico{flex:none;width:48px;height:48px;border-radius:15px;display:flex;align-items:center;justify-content:center;background:rgba(194,26,139,.14);border:1px solid rgba(194,26,139,.30)}
+.mc-card-main .mc-ico{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.22)}
+.mc-ico svg,.mc-go svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mc-txt{flex:1;min-width:0}
+.mc-txt b{display:block;font-size:16px;font-weight:600}
+.mc-txt small{display:block;font-size:12px;margin-top:3px;color:#C7A3B8;line-height:1.4}
+.mc-card-main .mc-txt small{color:rgba(255,255,255,.88)}
+.mc-go{flex:none;opacity:.8}
+.mc-go svg{width:20px;height:20px}
+.mc-badge{position:absolute;top:-9px;right:14px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:99px;background:#FEF4FA;color:#8A0E5F}
+.mc-note{max-width:420px;margin:22px 0 0;font-size:11.5px;line-height:1.5;color:#C7A3B8;text-align:center}
 #mobileStart{
   position:fixed;inset:0;z-index:900;overflow:hidden;
   display:none;flex-direction:column;align-items:center;
@@ -433,6 +468,32 @@ html.ms-on.ms-auth #mobileStart{display:none}
       <div class="ms-slide-knob" id="msKnob"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
     </div>
   </div>
+</main>
+
+
+<!-- Mobile step 2 (phones in a browser): Download the app / Continue in browser -->
+<main id="msChoose" aria-label="Choose how to continue">
+  <button class="mc-back" type="button" onclick="msBackToStart()" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+  <div class="mc-brand">
+    <img src="/icons/icon-512.png" alt="Twin Hearts logo">
+    <div><b>Twin Hearts</b><small>Everything Together</small></div>
+  </div>
+  <h2 class="mc-title">How would you like<br>to continue?</h2>
+  <p class="mc-sub">Pick the way that suits you best</p>
+  <div class="mc-cards">
+    <button class="mc-card mc-card-main" type="button" onclick="msDownloadApk()">
+      <span class="mc-badge">Recommended</span>
+      <span class="mc-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M12 15l-4-4M12 15l4-4M4 20h16"/></svg></span>
+      <span class="mc-txt"><b>Download the app</b><small id="mcApkMeta">Android APK</small></span>
+      <span class="mc-go"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span>
+    </button>
+    <button class="mc-card" type="button" onclick="msContinueWeb()">
+      <span class="mc-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg></span>
+      <span class="mc-txt"><b>Continue in browser</b><small>Use the web app, no install needed</small></span>
+      <span class="mc-go"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span>
+    </button>
+  </div>
+  <p class="mc-note">You can switch to the app any time later.</p>
 </main>
 
 <div id="bg"></div>
@@ -877,9 +938,10 @@ function saveAndGo(data){
       userId: data.userId, email: data.email || '', myName: data.myName, coupleId: data.coupleId
     });
   }
-  window.location.href='/';
+  try { sessionStorage.removeItem('uwl_ls_bounce'); } catch(e){}
+  window.location.replace('/');
 }
-function goToApp(){ window.location.href='/'; }
+function goToApp(){ window.location.replace('/'); }
 
 /* ═══════════════════════════════════════════════════════════════
    SMART PLATFORM DETECTION + INSTALL EXPERIENCE
@@ -921,7 +983,7 @@ function isInsideNativeApp(){
   const finish=()=>{
     if(done) return; done=true; dx=max; el.classList.add('snap'); render();
     if(navigator.vibrate) try{navigator.vibrate(18)}catch(e){}
-    setTimeout(()=>{ msOpen('login'); reset(); },200);
+    setTimeout(()=>{ msNext(); reset(); },200);
   };
   const reset=()=>{ done=false; dx=0; el.classList.remove('dragged'); el.classList.add('snap'); render(); };
   knob.addEventListener('pointerdown',e=>{
@@ -938,7 +1000,27 @@ function isInsideNativeApp(){
   window.addEventListener('resize',()=>{ measure(); render(); });
   measure(); render();
 })();
+// After the swipe: inside the installed app (or an installed PWA) go straight
+// to Sign In; in a normal browser show the Download / Continue-in-browser step.
+function msNext(){
+  if(isInsideNativeApp()||isStandalone()){ msOpen('login'); return; }
+  renderChooseMeta();
+  document.documentElement.classList.add('ms-choose');
+}
+function msBackToStart(){ document.documentElement.classList.remove('ms-choose'); }
+function msContinueWeb(){ msOpen('login'); }
+function msDownloadApk(){
+  const p=detectPlatform();
+  if(p==='ios'||p==='ipados'){ alert('The app file (APK) works on Android phones only. Please continue in the browser instead.'); return; }
+  startApkDownload();
+}
+function renderChooseMeta(){
+  const el=document.getElementById('mcApkMeta'); if(!el) return;
+  const parts=['Android APK']; if(appMeta.version) parts.push('v'+appMeta.version); if(appMeta.size) parts.push(appMeta.size);
+  el.textContent=parts.join(' • ');
+}
 function msOpen(view){
+  document.documentElement.classList.remove('ms-choose');
   document.documentElement.classList.add('ms-auth');
   openAuth(view);
 }
@@ -995,7 +1077,7 @@ async function fetchAppMeta(){
       if(!r.ok) throw new Error('no meta');
       appMeta = await r.json();
     }catch(e){ /* no build published yet — card falls back to honest placeholders */ }
-    renderInstallCard();
+    renderInstallCard(); renderChooseMeta();
   })();
   return appMetaPromise;
 }
