@@ -1,0 +1,20 @@
+/* System-bar strips (the app draws edge-to-edge, so the web layer paints these).
+   TOP    : status-bar area. Home = hero colour in BOTH themes (dark theme used to paint it black).
+   BOTTOM : solid black strip behind the phone's gesture/navigation bar, with curved top corners,
+            so the page no longer shows through under the system navigation bar. */
+:root { --sb-home: #6B093A; --sb-bottom: #000; --sb-bottom-radius: 18px; }
+
+/* Home: status-bar strip takes the hero colour (class set by theme.js, :has() as a second route) */
+html[data-theme="dark"] body.on-home::before { background: var(--sb-home) !important; }
+html[data-theme="dark"] body:has(#page-dashboard.active)::before { background: var(--sb-home) !important; }
+
+/* Bottom strip */
+body::after {
+  content: ''; position: fixed; left: 0; right: 0; bottom: 0; z-index: 2147482999;
+  height: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+  background: var(--sb-bottom);
+  border-radius: var(--sb-bottom-radius) var(--sb-bottom-radius) 0 0;
+  pointer-events: none;
+}
+/* Full-screen experiences (call, movie, etc.) hide it like they hide the nav bar */
+body[data-immersive="1"]::after { display: none; }

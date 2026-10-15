@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v40'; // bumped: premium-motion.css focus/border fix
+const CACHE = 'uwl-v41'; // bumped: system-bar strips (home status bar colour + black bottom strip)
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',

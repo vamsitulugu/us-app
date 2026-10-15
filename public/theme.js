@@ -24,7 +24,9 @@
   // On Home both bars use the Home hero colour (status bar on top, navigation bar at the bottom).
   function homeActive() { var d = document.getElementById('page-dashboard'); return !!(d && d.classList.contains('active')); }
   function bottomColor(t) { return homeActive() ? '#6B093A' : (BAR[t] || BAR.dark); }
+  function markHome() { try { if (document.body) document.body.classList.toggle('on-home', homeActive()); } catch (e) {} }
   function pushBarColors(t) {
+    markHome();
     try {
       var b = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.BarColors;
       if (b) b.set({ top: barColor(t), bottom: bottomColor(t) });
