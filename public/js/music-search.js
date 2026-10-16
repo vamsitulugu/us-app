@@ -157,4 +157,4 @@
   function close() { const m = document.getElementById('th-ms-modal'); if (m) m.classList.remove('open'); }
 
   global.MusicSearch = { open, close, select, addSelected, search };
-})();
+})(window);
