@@ -1,0 +1,49 @@
+diff --git a/public/movie.html b/public/movie.html
+index 5e6caed..fb7d079 100644
+--- a/public/movie.html
++++ b/public/movie.html
+@@ -151,6 +151,9 @@
+         <p class="wt-hint">Waiting for your partner to join…</p>
+         <button class="wt-btn wt-btn-ghost" id="btnCancelStart">Cancel</button>
+       </div>
++
++      <!-- Leave the lobby and go back to the movie section (ends the pending session for both) -->
++      <button class="wt-btn wt-btn-ghost wt-btn-block" id="btnCancelMovie" type="button" style="margin-top:14px">✕ Cancel Movie Together</button>
+     </div>
+   </section>
+ 
+diff --git a/public/movie.js b/public/movie.js
+index b4fb140..70b6acb 100644
+--- a/public/movie.js
++++ b/public/movie.js
+@@ -212,6 +212,7 @@
+     els.lobby.hidden = sub === 'empty';
+     els.waiting.hidden = sub !== 'waiting';
+     $('bothReadyBlock').hidden = sub === 'waiting' || $('bothReadyBlock').hidden;
++    const cm = $('btnCancelMovie'); if (cm) cm.hidden = sub !== 'lobby';
+   }
+ 
+   function fmtTime(sec) {
+@@ -685,6 +686,22 @@
+     } catch (e) { toast('Could not start session: ' + e.message); }
+   };
+ 
++  // Leave the "I'm ready" lobby and return to the movie section without
++  // closing the page. Ends the pending (not-yet-started) session for both
++  // partners — no watch-history entry is written because no movieTitle is sent.
++  $('btnCancelMovie').onclick = async () => {
++    const btn = $('btnCancelMovie'); btn.disabled = true;
++    try {
++      state.room = await api('POST', `/${COUPLE_ID}/end`, { role: ROLE });
++      try { broadcastRoom(state.room); } catch (_) {}
++      if (state.localObjectUrl) { try { URL.revokeObjectURL(state.localObjectUrl); } catch (_) {} state.localObjectUrl = null; }
++      state.localFile = null; state.myTitle = null; state.myDuration = null;
++      renderFromRoom();
++      toast('Movie Together cancelled');
++    } catch (e) { toast('Could not cancel.'); }
++    finally { btn.disabled = false; }
++  };
++
+   $('btnCancelStart').onclick = async () => {
+     try {
+       state.room = await api('POST', `/${COUPLE_ID}/cancel-start`, { role: ROLE });

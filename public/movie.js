@@ -212,6 +212,7 @@
     els.lobby.hidden = sub === 'empty';
     els.waiting.hidden = sub !== 'waiting';
     $('bothReadyBlock').hidden = sub === 'waiting' || $('bothReadyBlock').hidden;
+    const cm = $('btnCancelMovie'); if (cm) cm.hidden = sub !== 'lobby';
   }
 
   function fmtTime(sec) {
@@ -683,6 +684,22 @@
       broadcastRoom(state.room);
       renderFromRoom();
     } catch (e) { toast('Could not start session: ' + e.message); }
+  };
+
+  // Leave the "I'm ready" lobby and return to the movie section without
+  // closing the page. Ends the pending (not-yet-started) session for both
+  // partners — no watch-history entry is written because no movieTitle is sent.
+  $('btnCancelMovie').onclick = async () => {
+    const btn = $('btnCancelMovie'); btn.disabled = true;
+    try {
+      state.room = await api('POST', `/${COUPLE_ID}/end`, { role: ROLE });
+      try { broadcastRoom(state.room); } catch (_) {}
+      if (state.localObjectUrl) { try { URL.revokeObjectURL(state.localObjectUrl); } catch (_) {} state.localObjectUrl = null; }
+      state.localFile = null; state.myTitle = null; state.myDuration = null;
+      renderFromRoom();
+      toast('Movie Together cancelled');
+    } catch (e) { toast('Could not cancel.'); }
+    finally { btn.disabled = false; }
   };
 
   $('btnCancelStart').onclick = async () => {
