@@ -23,7 +23,7 @@ function envTrim(...names) {
   return '';
 }
 
-let TMDB_API_KEY = envTrim('TMDB_API_KEY', 'TMDB_APT_KEY', 'THEMOVIEDB_API_KEY') || '3ee8bb869b3fc960cf15d4753c106b03';
+let TMDB_API_KEY = envTrim('TMDB_API_KEY', 'TMDB_APT_KEY', 'THEMOVIEDB_API_KEY');
 let TMDB_READ_TOKEN = envTrim('TMDB_READ_TOKEN', 'TMDB_ACCESS_TOKEN');
 if (TMDB_API_KEY.startsWith('eyJ') && !TMDB_READ_TOKEN) {
   TMDB_READ_TOKEN = TMDB_API_KEY;
