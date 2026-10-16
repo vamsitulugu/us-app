@@ -58,15 +58,75 @@
     t.textContent = msg; t.hidden = false;
     clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2400);
   }
-  const find = (id) => S.movies.find((m) => String(m.id) === String(id));
+  // Curated fallback suggestions if collection has few movies
+  const CURATED_SUGGESTIONS = [
+    {
+      id: 'curated_1',
+      title: 'La La Land',
+      year: '2016',
+      genre: 'Romance',
+      rating: 4,
+      status: 'watchlist',
+      owner: 'both',
+      poster: 'https://image.tmdb.org/t/p/w780/nlPCdZlHtRNcF6C9hzUH4ebmV1w.jpg',
+      backdrop: 'https://image.tmdb.org/t/p/w780/nlPCdZlHtRNcF6C9hzUH4ebmV1w.jpg',
+      review: 'A jazz pianist falls for an aspiring actress in Los Angeles.',
+      fav: false,
+      isCurated: true
+    },
+    {
+      id: 'curated_2',
+      title: 'Interstellar',
+      year: '2014',
+      genre: 'Sci-Fi',
+      rating: 5,
+      status: 'watchlist',
+      owner: 'both',
+      poster: 'https://image.tmdb.org/t/p/w780/8sNiAPPYU14PUepFNeSNGUTiHW.jpg',
+      backdrop: 'https://image.tmdb.org/t/p/w780/8sNiAPPYU14PUepFNeSNGUTiHW.jpg',
+      review: "A team of explorers travel through a wormhole in space in an attempt to ensure humanity's survival.",
+      fav: false,
+      isCurated: true
+    },
+    {
+      id: 'curated_3',
+      title: 'Before Sunrise',
+      year: '1995',
+      genre: 'Romance',
+      rating: 4,
+      status: 'watchlist',
+      owner: 'both',
+      poster: 'https://image.tmdb.org/t/p/w780/qA2TyqPldTtoTVY3LKrNIG5g6bH.jpg',
+      backdrop: 'https://image.tmdb.org/t/p/w780/qA2TyqPldTtoTVY3LKrNIG5g6bH.jpg',
+      review: 'A young man and woman meet on a train in Europe, and wind up spending one evening together in Vienna.',
+      fav: false,
+      isCurated: true
+    }
+  ];
+
+  const find = (id) => S.movies.find((m) => String(m.id) === String(id)) || CURATED_SUGGESTIONS.find((c) => String(c.id) === String(id));
+
+  function ensureInCollection(m) {
+    if (!m) return null;
+    let exist = S.movies.find((x) => String(x.id) === String(m.id) || (x.title && x.title.toLowerCase() === m.title.toLowerCase()));
+    if (!exist && m.isCurated) {
+      const copy = { ...m, id: String(Date.now()), isCurated: false };
+      S.movies.push(copy);
+      save();
+      render();
+      return copy;
+    }
+    return exist || m;
+  }
 
   // ── poster art (image if present, else genre-tinted placeholder) ──
   function posterStyle(m) {
-    if (m && m.poster) return `background-image:url('${m.poster}')`;
+    const url = m && (m.backdrop || m.poster);
+    if (url) return `background-image:url('${esc(String(url).replace(/'/g, '%27'))}')`;
     const c = g(m && m.genre).c;
     return `background-image:linear-gradient(150deg,${c[0]},${c[1]})`;
   }
-  const posterEmoji = (m) => (m && m.poster ? '' : `<span class="mc-ph">${g(m && m.genre).e}</span>`);
+  const posterEmoji = (m) => (m && (m.backdrop || m.poster) ? '' : `<span class="mc-ph">${g(m && m.genre).e}</span>`);
 
   // ═══════════ Tabs ═══════════
   function go(tab, opts) {
@@ -89,10 +149,128 @@
 
   // ═══════════ Home ═══════════
   function featured() {
-    if (!S.movies.length) return null;
+    if (!S.movies.length) return CURATED_SUGGESTIONS[0];
     const favs = S.movies.filter((m) => m.fav).sort(byRecent);
     return favs[0] || S.movies.slice().sort(byRecent)[0];
   }
+
+  let heroIds = [], heroKey = '', heroIdx = 0, heroTimer = 0, heroTouched = 0, heroEl = null;
+
+  function heroMovies() {
+    const userPool = S.movies.slice().sort((a, b) => {
+      if (a.fav && !b.fav) return -1;
+      if (!a.fav && b.fav) return 1;
+      return Number(b.id) - Number(a.id);
+    });
+
+    if (userPool.length >= 3) {
+      return userPool.slice(0, 12);
+    }
+    if (userPool.length > 0) {
+      const needed = 3 - userPool.length;
+      const suggestions = CURATED_SUGGESTIONS.filter((c) => !userPool.some((u) => (u.title || '').toLowerCase() === c.title.toLowerCase())).slice(0, needed);
+      return [...userPool, ...suggestions];
+    }
+    return CURATED_SUGGESTIONS;
+  }
+
+  function heroSlide(m, i) {
+    const st = STATUS[m.status] || STATUS.watchlist;
+    const bg = posterStyle(m);
+    const eyebrow = m.fav
+      ? '♥ You loved this'
+      : (m.status === 'watching'
+        ? '🍿 Currently Watching'
+        : (m.status === 'watched'
+          ? '✅ Watched Together'
+          : (m.isCurated ? '✨ Suggested for you' : '🎬 Watch Together')));
+    return `
+      <div class="mc-hero-slide" data-id="${esc(m.id)}" data-idx="${i}">
+        <div class="mc-banner-art" style="${bg}"></div>
+        <div class="mc-banner-shade"></div>
+        ${posterEmoji(m) ? `<div class="mc-banner-emoji">${g(m.genre).e}</div>` : ''}
+        <button type="button" class="mc-banner-more" data-act="banner-more" data-id="${esc(m.id)}" aria-label="More options">
+          <i data-lucide="more-vertical"></i>
+        </button>
+        <div class="mc-banner-body">
+          <span class="mc-banner-eyebrow">${eyebrow}</span>
+          <div class="mc-banner-title">${esc(m.title)}</div>
+          <div class="mc-chips">
+            <span>${esc(m.genre || 'Movie')}</span>
+            ${m.year ? `<span>${esc(m.year)}</span>` : ''}
+            ${m.rating ? `<span>⭐ ${m.rating}/5</span>` : ''}
+            <span>${st.label}</span>
+          </div>
+          <div class="mc-banner-btns">
+            <button type="button" class="wt-btn wt-btn-primary" data-act="banner-watch" data-id="${esc(m.id)}">
+              <i data-lucide="heart"></i><span>Watch Together</span>
+            </button>
+            <button type="button" class="wt-btn wt-btn-ghost" data-act="banner-details" data-id="${esc(m.id)}">
+              <span>View Details</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function heroSlider(list) {
+    if (!list.length) {
+      return `<div class="mc-banner mc-banner-empty">
+        <div class="mc-banner-shade"></div>
+        <div class="mc-banner-body">
+          <span class="mc-banner-eyebrow">🎬 Watch Together</span>
+          <div class="mc-banner-title">Watch Together</div>
+          <p class="mc-banner-sub">Different places. Same movie. Same moment. ❤️</p>
+          <div class="mc-banner-btns">
+            <button type="button" class="wt-btn wt-btn-primary" id="mcBannerWatch"><i data-lucide="heart"></i><span>Watch Together</span></button>
+            <button type="button" class="wt-btn wt-btn-ghost" id="mcBannerAdd"><i data-lucide="plus"></i><span>Add a Movie</span></button>
+          </div>
+        </div>
+      </div>`;
+    }
+    return `
+      <div class="mc-banner mc-banner-slider">
+        <div class="mc-banner-track" id="mcHeroTrack">
+          ${list.map((m, i) => heroSlide(m, i)).join('')}
+        </div>
+        ${list.length > 1 ? `
+          <div class="mc-banner-dots" id="mcHeroDots">
+            ${list.map((_, i) => `<i class="${i === heroIdx ? 'on' : ''}" data-goto="${i}"></i>`).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  function bindHero() {
+    heroEl = $('mcHeroTrack');
+    if (!heroEl) return;
+    const t = heroEl;
+    if (heroIdx && t.clientWidth) t.scrollLeft = heroIdx * t.clientWidth;
+    t.addEventListener('scroll', () => {
+      if (!t.clientWidth) return;
+      const i = Math.round(t.scrollLeft / t.clientWidth);
+      if (i !== heroIdx) {
+        heroIdx = i;
+        const d = $('mcHeroDots');
+        if (d) Array.from(d.children).forEach((x, k) => x.classList.toggle('on', k === i));
+      }
+    }, { passive: true });
+    ['touchstart', 'pointerdown', 'wheel'].forEach((ev) =>
+      t.addEventListener(ev, () => { heroTouched = Date.now(); }, { passive: true })
+    );
+  }
+
+  function heroTick() {
+    const t = heroEl;
+    if (!t || !t.isConnected || document.hidden || !t.offsetParent || !t.clientWidth) return;
+    if (Date.now() - heroTouched < 6000) return;
+    const n = t.children.length;
+    if (n < 2) return;
+    t.scrollTo({ left: ((heroIdx + 1) % n) * t.clientWidth, behavior: 'smooth' });
+  }
+
   function card(m) {
     return `<button type="button" class="mc-card" data-open="${esc(m.id)}">
       <span class="mc-poster" style="${posterStyle(m)}">${posterEmoji(m)}
@@ -108,30 +286,11 @@
       <div class="mc-hscroll">${list.slice(0, 12).map(card).join('')}</div>`;
   }
   function renderHome() {
-    const f = featured();
-    if (f) {
-      const st = STATUS[f.status] || STATUS.watchlist;
-      $('mcBanner').innerHTML = `<div class="mc-banner mc-banner-hero">
-        <div class="mc-banner-shade"></div>
-        <button type="button" class="mc-banner-more" id="mcBannerMore" aria-label="More options"><i data-lucide="more-vertical"></i></button>
-        <div class="mc-banner-body">
-          <div class="mc-banner-title">${esc(f.title)}</div>
-          <div class="mc-chips"><span>${esc(f.genre || 'Movie')}</span>${f.year ? `<span>${esc(f.year)}</span>` : ''}<span>${st.label}</span></div>
-          <div class="mc-banner-btns">
-            <button type="button" class="wt-btn wt-btn-primary" id="mcBannerWatch"><i data-lucide="heart"></i><span>Watch Together</span></button>
-            <button type="button" class="wt-btn wt-btn-ghost" id="mcBannerDetails"><span>View Details</span></button>
-          </div></div></div>`;
-    } else {
-      $('mcBanner').innerHTML = `<div class="mc-banner mc-banner-hero mc-banner-empty">
-        <div class="mc-banner-shade"></div>
-        <div class="mc-banner-body">
-          <div class="mc-banner-title">Watch Together</div>
-          <p class="mc-banner-sub">Different places. Same movie. Same moment. ❤️</p>
-          <div class="mc-banner-btns">
-            <button type="button" class="wt-btn wt-btn-primary" id="mcBannerWatch"><i data-lucide="heart"></i><span>Watch Together</span></button>
-            <button type="button" class="wt-btn wt-btn-ghost" id="mcBannerAdd"><i data-lucide="plus"></i><span>Add a Movie</span></button>
-          </div></div></div>`;
-    }
+    const slides = heroMovies();
+    $('mcBanner').innerHTML = heroSlider(slides);
+    bindHero();
+    if (!heroTimer) heroTimer = setInterval(heroTick, 5500);
+
     const all = S.movies.slice().sort(byRecent);
     const html =
       row('Currently Watching', all.filter((m) => m.status === 'watching'), 'watching') +
@@ -244,6 +403,7 @@
           $('mcScene').value = '';
           $('mcOwner').value = 'my';
           S.pendingPoster = m.poster_url || '';
+          S.pendingBackdrop = m.backdrop_url || '';
           S.pendingRating = Math.round((m.rating || 0) / 2); // TMDB is 0-10, ours is 0-5
           paintStars(S.pendingRating);
           paintPoster(S.pendingPoster);
@@ -280,11 +440,12 @@
     $('mcScene').value = m ? m.scene || '' : '';
     $('mcOwner').value = (m && m.owner) || 'my';
     S.pendingPoster = m ? m.poster || '' : '';
+    S.pendingBackdrop = m ? m.backdrop || '' : '';
     S.pendingRating = m ? m.rating || 0 : 0;
     paintStars(S.pendingRating); paintPoster(S.pendingPoster);
     $('mcFormBackdrop').hidden = false;
   }
-  function closeForm() { $('mcFormBackdrop').hidden = true; S.editId = null; }
+  function closeForm() { $('mcFormBackdrop').hidden = true; S.editId = null; S.pendingBackdrop = ''; }
   function compress(file, maxW) {
     return new Promise((resolve, reject) => {
       const fr = new FileReader();
@@ -312,7 +473,7 @@
       id: old ? old.id : String(Date.now()),
       title, year: $('mcYear').value, genre: $('mcGenre').value, rating: S.pendingRating || 0,
       status: $('mcStatus').value, review: $('mcReview').value.trim(), scene: $('mcScene').value.trim(),
-      owner: $('mcOwner').value, poster: S.pendingPoster || '', fav: old ? !!old.fav : false,
+      owner: $('mcOwner').value, poster: S.pendingPoster || '', backdrop: S.pendingBackdrop || (old && old.backdrop) || '', fav: old ? !!old.fav : false,
     };
     const prev = S.movies.slice();
     if (old) S.movies[S.movies.findIndex((x) => String(x.id) === String(old.id))] = movie; else S.movies.push(movie);
@@ -340,11 +501,17 @@
     go('watch');
     toast(m ? `Pick "${m.title}" from your phone or the cloud` : 'Pick a movie to watch together');
   }
-  function bannerMenu() {
-    const f = featured();
+  function bannerMenu(movie) {
+    let f = movie || (heroIds.length ? find(heroIds[heroIdx]) : featured());
+    if (f && f.isCurated) f = ensureInCollection(f);
     const items = [];
     if (f) {
-      items.push(['view', 'eye', 'View Details'], ['edit', 'pencil', 'Edit Movie'], ['fav', f.fav ? 'star-off' : 'star', f.fav ? 'Remove from Favorites' : 'Add to Favorites'], ['del', 'trash-2', 'Delete Movie', true]);
+      items.push(
+        ['view', 'eye', 'View Details'],
+        ['edit', 'pencil', 'Edit Movie'],
+        ['fav', f.fav ? 'star-off' : 'star', f.fav ? 'Remove from Favorites' : 'Add to Favorites'],
+        ['del', 'trash-2', 'Delete Movie', true]
+      );
     }
     items.push(['add', 'plus', 'Add New Movie'], ['lib', 'library', 'Open Library']);
     $('mcActionsList').innerHTML = items.map(([k, ic, label, danger]) =>
@@ -354,8 +521,16 @@
       const b = e.target.closest('[data-act]'); if (!b) return;
       $('mcActionsBackdrop').hidden = true;
       const a = b.dataset.act;
-      if (a === 'view') openDetail(f.id); else if (a === 'edit') openForm(f.id); else if (a === 'fav') toggleFav(f.id);
-      else if (a === 'del') askDelete(f.id); else if (a === 'add') openForm(); else if (a === 'lib') go('library', { reset: true });
+      if (!f) {
+        if (a === 'add') openForm(); else if (a === 'lib') go('library', { reset: true });
+        return;
+      }
+      if (a === 'view') openDetail(f.id);
+      else if (a === 'edit') openForm(f.id);
+      else if (a === 'fav') toggleFav(f.id);
+      else if (a === 'del') askDelete(f.id);
+      else if (a === 'add') openForm();
+      else if (a === 'lib') go('library', { reset: true });
     };
   }
 
@@ -379,6 +554,43 @@
       const own = t.closest('[data-owner]'); if (own) { S.owner = own.dataset.owner; renderLibrary(); icons(); return; }
       if (t.closest('[data-genre-clear]')) { S.genre = null; renderLibrary(); icons(); return; }
       const gn = t.closest('[data-genre]'); if (gn) { S.genre = gn.dataset.genre; S.filter = 'all'; S.owner = 'all'; go('library'); return; }
+
+      // Banner Hero Slider Actions
+      const bWatch = t.closest('[data-act="banner-watch"]');
+      if (bWatch) {
+        let m = find(bWatch.dataset.id);
+        if (m && m.isCurated) m = ensureInCollection(m);
+        watchWith(m);
+        return;
+      }
+      const bDetails = t.closest('[data-act="banner-details"]');
+      if (bDetails) {
+        let m = find(bDetails.dataset.id);
+        if (m && m.isCurated) m = ensureInCollection(m);
+        if (m) openDetail(m.id);
+        return;
+      }
+      const bMore = t.closest('[data-act="banner-more"]');
+      if (bMore) {
+        const m = find(bMore.dataset.id);
+        bannerMenu(m);
+        return;
+      }
+      const dot = t.closest('[data-goto]');
+      if (dot && heroEl && heroEl.clientWidth) {
+        const idx = Number(dot.dataset.goto);
+        heroEl.scrollTo({ left: idx * heroEl.clientWidth, behavior: 'smooth' });
+        heroTouched = Date.now();
+        return;
+      }
+      const heroSlideEl = t.closest('.mc-hero-slide');
+      if (heroSlideEl && !t.closest('button') && !t.closest('.mc-banner-dots')) {
+        let m = find(heroSlideEl.dataset.id);
+        if (m && m.isCurated) m = ensureInCollection(m);
+        if (m) openDetail(m.id);
+        return;
+      }
+
       const id = t.closest('[id]') ? t.closest('[id]').id : '';
       switch (id) {
         case 'mcBannerWatch': case 'mcDWatch': watchWith(find(S.detailId) || featured()); break;
