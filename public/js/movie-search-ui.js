@@ -129,7 +129,7 @@
     const addBtn = document.getElementById('th-msv-btn-add');
     if (!currentResults.length) { emptyEl.innerHTML = '<div class="ico">😕</div><div>No movies found</div>'; emptyEl.style.display = 'block'; listEl.innerHTML = ''; addBtn.classList.remove('ready'); return; }
     emptyEl.style.display = 'none';
-    listEl.innerHTML = currentResults.map((m, i) => `<div class="th-msv-item${i === 0 ? ' selected' : ''}" data-idx="${i}" onclick="window.MovieSearchUI.select(${i})">${m.poster_url ? '<img class="th-msv-item-art" src="' + esc(m.poster_url) + '" alt="">' : '<div class="th-msv-item-art">🎬</div>'}<div class="th-msv-item-info"><div class="th-msv-item-title">' + esc(m.title) + '</div><div class="th-msv-item-meta">' + (m.year ? esc(m.year) + ' • ' : '') + (m.rating ? '⭐ ' + esc(m.rating) + '/10' : '') + '</div></div><div class="th-msv-item-check">' + (selectedMovie === m.id ? '<i>✓</i>' : '') + '</div></div>`).join('');
+    listEl.innerHTML = currentResults.map((m, i) => `<div class="th-msv-item${i === 0 ? ' selected' : ''}" data-idx="${i}" onclick="window.MovieSearchUI.select(${i})">${m.poster_url ? `<img class="th-msv-item-art" src="${esc(m.poster_url)}" alt="">` : '<div class="th-msv-item-art">🎬</div>'}<div class="th-msv-item-info"><div class="th-msv-item-title">${esc(m.title)}</div><div class="th-msv-item-meta">${m.year ? esc(m.year) + ' • ' : ''}${m.rating ? '⭐ ' + esc(Number(m.rating).toFixed(1)) + '/10' : ''}</div></div><div class="th-msv-item-check">${i === 0 ? '<i>✓</i>' : ''}</div></div>`).join('');
     if (selectedMovie === null && currentResults.length) select(0);
   }
 
@@ -155,7 +155,9 @@
       ]);
       if (d) {
         titleEl.textContent = d.title;
-        metaEl.textContent = (d.year ? esc(d.year) + ' • ' : '') + (d.genre ? esc(d.genre) + ' • ' : '') + (d.runtime ? esc(d.runtime) + ' min' : '') + (d.rating ? ' • ⭐ ' + esc(d.rating) + '/10' : '');
+        metaEl.textContent = (d.year ? d.year + ' • ' : '') + (d.genre ? d.genre + ' • ' : '') + (d.runtime ? d.runtime + ' min' : '') + (d.rating ? ' • ⭐ ' + Number(d.rating).toFixed(1) + '/10' : '');
+        // keep the real genre/runtime on the selected movie so the Add form can use them
+        if (selectedMovie && String(selectedMovie.tmdb_id) === String(tmdbId)) { selectedMovie.genre = d.genre || selectedMovie.genre; selectedMovie.runtime = d.runtime || selectedMovie.runtime; }
         overviewEl.textContent = d.overview || 'No overview available.';
         detailsEl.classList.remove('hidden');
       }
@@ -195,4 +197,4 @@
   function close() { const m = document.getElementById('th-msv-modal'); if (m) m.classList.remove('open'); }
 
   global.MovieSearchUI = { open, close, select, addSelected, search, setOnAdd };
-})();
+})(window);

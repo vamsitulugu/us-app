@@ -221,6 +221,14 @@
     $('mcStars').innerHTML = [1, 2, 3, 4, 5].map((v) => `<button type="button" class="mc-star" data-v="${v}">☆</button>`).join('');
   }
 
+  // TMDB genre names (e.g. "Science Fiction, Adventure") -> one of this app's GENRES keys
+  function mapTmdbGenre(g) {
+    const first = String(g || '').split(',').map((x) => x.trim()).filter(Boolean);
+    const alias = { 'Science Fiction': 'Sci-Fi', 'Sci-Fi & Fantasy': 'Sci-Fi', Adventure: 'Action', Crime: 'Thriller', Mystery: 'Thriller', War: 'Drama', History: 'Drama', Family: 'Comedy', Music: 'Romance' };
+    for (const n of first) { const k = GENRES[n] ? n : alias[n]; if (k && GENRES[k]) return k; }
+    return 'Other';
+  }
+
   // ── Search TMDB and pre-fill the add form ──
   function searchTMDB() {
     try {
@@ -230,7 +238,7 @@
         try {
           $('mcTitle').value = m.title || '';
           $('mcYear').value = m.year || '';
-          $('mcGenre').value = m.genre || 'Romance';
+          $('mcGenre').value = mapTmdbGenre(m.genre);
           $('mcStatus').value = 'watchlist';
           $('mcReview').value = m.overview || '';
           $('mcScene').value = '';
