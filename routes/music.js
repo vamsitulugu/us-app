@@ -177,18 +177,33 @@ router.get('/:coupleId', async (req, res) => {
 router.post('/', async (req, res) => {
   const b = req.body || {};
   const coupleId   = b.coupleId;
-  const uploadedBy = okRole(b.uploadedBy);
+  const uploadedBy = okRole(b.uploadedBy || b.viewer);
   const title      = str(b.title, 200);
-  const audioUrl   = typeof b.audioUrl === 'string' ? b.audioUrl : '';
+  const audioUrl   = typeof b.audioUrl === 'string' ? b.audioUrl
+                   : (typeof b.audio_url === 'string' ? b.audio_url : '');
+  const coverUrl   = b.coverUrl || b.cover_url || null;
+  const durationSec = b.durationSec != null ? b.durationSec : b.duration_sec;
+  const isDeezer   = b.source === 'deezer';
 
   if (!coupleId || !title || !audioUrl || !uploadedBy) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
-  // The audio must be a file this couple uploaded through /api/media/upload-audio.
-  if (!/^https:\/\//i.test(audioUrl) || !pathFromPublicUrl(audioUrl, AUDIO_BUCKET, coupleId)) {
+  if (!/^https:\/\//i.test(audioUrl)) {
+    return res.status(400).json({ error: 'audioUrl must be an https URL' });
+  }
+  if (isDeezer) {
+    // Songs added from the in-app Deezer search: the audio lives on Deezer's CDN,
+    // not in our storage bucket, so only allow Deezer hosts.
+    let host = '';
+    try { host = new URL(audioUrl).hostname.toLowerCase(); } catch (_) {}
+    if (!/(^|\.)(dzcdn\.net|deezer\.com)$/.test(host)) {
+      return res.status(400).json({ error: 'Unsupported audio host' });
+    }
+  } else if (!pathFromPublicUrl(audioUrl, AUDIO_BUCKET, coupleId)) {
+    // Otherwise the audio must be a file this couple uploaded through /api/media/upload-audio.
     return res.status(400).json({ error: 'audioUrl must point to this couple\'s uploaded audio' });
   }
-  if (b.coverUrl && !/^https:\/\//i.test(b.coverUrl)) {
+  if (coverUrl && !/^https:\/\//i.test(coverUrl)) {
     return res.status(400).json({ error: 'coverUrl must be an https URL' });
   }
   const visibility = VISIBILITIES.includes(b.visibility) ? b.visibility : 'both';
@@ -201,8 +216,8 @@ router.post('/', async (req, res) => {
     title,
     artist:       str(b.artist, 200) || 'Unknown Artist',
     audio_url:    audioUrl,
-    cover_url:    b.coverUrl || null,
-    duration_sec: int(b.durationSec) || 0,
+    cover_url:    coverUrl,
+    duration_sec: int(durationSec) || 0,
     lyrics:       b.lyrics || '',
     visibility,
     uploaded_by:  uploadedBy,

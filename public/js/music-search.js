@@ -163,15 +163,27 @@
     if (!selectedSongId) return;
     const track = currentResults.find((t) => t.id === selectedSongId); if (!track) return;
     const addBtn = document.getElementById('th-ms-btn-add'); addBtn.disabled = true; addBtn.textContent = 'Adding…';
+    const say = (m) => { try { if (window.MX && window.MX.toast) window.MX.toast(m); else if (typeof toast === 'function') toast(m); } catch (_) {} };
     try {
       const c = window.MX && window.MX.ctx ? window.MX.ctx() : null;
-      const coupleId = c ? c.coupleId : null;
-      const r = await fetch(`${API_BASE}/api/music`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: track.title, artist: track.artist, album: track.album, audio_url: track.preview || track.deezerLink, cover_url: track.cover, duration_sec: track.duration, source: 'deezer', external_id: track.deezerId, coupleId: coupleId, visibility: 'both' }) }); if (!r.ok) throw new Error('Backend add failed'); const data = await r.json(); const songId = data.songId || data.id;
-      if (window.LyricsBackgroundWorker && songId) { window.LyricsBackgroundWorker.enqueue({ id: songId, title: track.title, artist: track.artist, album: track.album, duration_sec: track.duration, couple_id: coupleId }, coupleId); }
-      if (typeof toast === 'function') toast('Added "' + esc(track.title) + '" — lyrics loading…', 'success');
-      if (window.MX && window.MX.emit) window.MX.emit('library');
+      if (!c || !c.coupleId) throw new Error('Not signed in / not paired');
+      const audio = track.preview || track.deezerLink;
+      if (!audio) throw new Error('No playable audio for this song');
+      const r = await fetch(`${API_BASE}/api/music`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        coupleId: c.coupleId, uploadedBy: c.role, viewer: c.role, visibility: 'both',
+        title: track.title, artist: track.artist, album: track.album,
+        audioUrl: audio, coverUrl: track.cover || null, durationSec: track.duration,
+        source: 'deezer', externalId: track.deezerId
+      }) });
+      if (!r.ok) { let msg = 'Backend add failed (' + r.status + ')'; try { const j = await r.json(); if (j && j.error) msg = j.error; } catch (_) {} throw new Error(msg); }
+      const data = await r.json(); const songId = data.id || data.songId;
+      if (window.LyricsBackgroundWorker && songId) { try { window.LyricsBackgroundWorker.enqueue({ id: songId, title: track.title, artist: track.artist, album: track.album, duration_sec: track.duration, couple_id: c.coupleId }, c.coupleId); } catch (_) {} }
+      say('Added "' + track.title + '" to your library');
+      // Re-fetch the library so the new song shows up right away, and tell the partner's device.
+      try { if (window.MX && window.MX.data && window.MX.data.loadSongs) await window.MX.data.loadSongs(true); else if (window.MX && window.MX.emit) window.MX.emit('library'); } catch (_) {}
+      try { if (window.MX && window.MX.rt && window.MX.rt.ping) window.MX.rt.ping('songs'); } catch (_) {}
       close();
-    } catch (e) { console.error('[music-search] add failed:', e); if (typeof toast === 'function') toast('Could not add song — try again', 'error'); } finally { addBtn.disabled = false; addBtn.textContent = 'Add to Library'; }
+    } catch (e) { console.error('[music-search] add failed:', e); say('Could not add song — ' + (e.message || 'try again')); } finally { addBtn.disabled = false; addBtn.textContent = 'Add to Library'; }
   }
 
   function syncViewport() {
