@@ -4,4 +4,12 @@
     <string name="title_activity_main">Twin Hearts</string>
     <string name="package_name">com.uswithlove.app</string>
     <string name="custom_url_scheme">com.uswithlove.app</string>
+    <string name="shortcut_chat">Chat</string>
+    <string name="shortcut_chat_long">Open chat with your partner</string>
+    <string name="shortcut_globe">Memory Globe</string>
+    <string name="shortcut_globe_long">View your shared memories on the globe</string>
+    <string name="shortcut_pro">Go Pro</string>
+    <string name="shortcut_pro_long">Upgrade to Pro subscription</string>
+    <string name="shortcut_vault">Secret Vault</string>
+    <string name="shortcut_vault_long">Open your private vault</string>
 </resources>

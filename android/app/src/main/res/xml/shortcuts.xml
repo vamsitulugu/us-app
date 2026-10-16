@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="chat"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_chat"
+        android:shortcutLongLabel="@string/shortcut_chat_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.uswithlove.app"
+            android:targetClass="com.uswithlove.app.MainActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="globe"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_globe"
+        android:shortcutLongLabel="@string/shortcut_globe_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.uswithlove.app"
+            android:targetClass="com.uswithlove.app.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="pro"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_pro"
+        android:shortcutLongLabel="@string/shortcut_pro_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.uswithlove.app"
+            android:targetClass="com.uswithlove.app.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="vault"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_vault"
+        android:shortcutLongLabel="@string/shortcut_vault_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.uswithlove.app"
+            android:targetClass="com.uswithlove.app.MainActivity" />
+    </shortcut>
+</shortcuts>

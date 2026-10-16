@@ -13,6 +13,14 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 import com.uswithlove.app.tracking.BackgroundLocationPlugin;
+import com.uswithlove.app.BiometricAuthPlugin;
+import com.uswithlove.app.DeviceInfoPlugin;
+import com.uswithlove.app.NetworkInfoPlugin;
+import com.uswithlove.app.ClipboardPlugin;
+import com.uswithlove.app.LocalNotificationsPlugin;
+import com.uswithlove.app.PictureInPicturePlugin;
+import com.uswithlove.app.NativeToastPlugin;
+import com.uswithlove.app.KeyboardPlugin;
 
 public class MainActivity extends BridgeActivity {
   // Must match the channel id the backend sets on Touch push messages
@@ -66,6 +74,14 @@ public class MainActivity extends BridgeActivity {
     registerPlugin(BackgroundLocationPlugin.class);
     registerPlugin(InstallGuardPlugin.class);
     registerPlugin(BarColorsPlugin.class);
+    registerPlugin(BiometricAuthPlugin.class);
+    registerPlugin(DeviceInfoPlugin.class);
+    registerPlugin(NetworkInfoPlugin.class);
+    registerPlugin(ClipboardPlugin.class);
+    registerPlugin(LocalNotificationsPlugin.class);
+    registerPlugin(PictureInPicturePlugin.class);
+    registerPlugin(NativeToastPlugin.class);
+    registerPlugin(KeyboardPlugin.class);
     super.onCreate(savedInstanceState);
     setupSystemBars();
     installBarsBackground();
@@ -86,6 +102,7 @@ public class MainActivity extends BridgeActivity {
     createSimpleChannel(GENERAL_CHANNEL_ID, "General", "Everything else Twin Hearts lets you know about",
         NotificationManager.IMPORTANCE_DEFAULT, new long[]{0, 150});
     handleDeepLink(getIntent());
+    handleShareIntent(getIntent());
   }
 
   @Override
@@ -93,6 +110,7 @@ public class MainActivity extends BridgeActivity {
     super.onNewIntent(intent);
     setIntent(intent);
     handleDeepLink(intent);
+    handleShareIntent(intent);
   }
 
   private static final String APP_ORIGIN = "https://twinhearts.vercel.app";
@@ -210,6 +228,49 @@ public class MainActivity extends BridgeActivity {
     // by well under the 30s ring timeout in call.js so a genuinely broken
     // bridge doesn't retry forever in practice.
     pendingLinkHandler.postDelayed(this::retryPendingDeepLink, 150);
+  }
+
+  // ── Share Target handling ──
+  // When a user shares a photo or video to Twin Hearts from another app,
+  // this extracts the media URI and hands it to the JS layer so it can be
+  // uploaded via /api/media/upload (same flow as the in-app photo picker).
+  private void handleShareIntent(android.content.Intent intent) {
+    String action = intent.getAction();
+    String type = intent.getType();
+    if (action == null || (!action.equals(Intent.ACTION_SEND) && !action.equals(Intent.ACTION_SEND_MULTIPLE))) return;
+
+    java.util.ArrayList<String> uris = new java.util.ArrayList<>();
+    if (Intent.ACTION_SEND.equals(action) && intent.getExtras() != null) {
+      android.net.Uri uri = (android.net.Uri) intent.getExtras().get(Intent.EXTRA_STREAM);
+      if (uri != null) uris.add(uri.toString());
+    } else if (Intent.ACTION_SEND_MULTIPLE.equals(action)) {
+      java.util.ArrayList<android.net.Uri> uriList = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+      if (uriList != null) {
+        for (android.net.Uri uri : uriList) uris.add(uri.toString());
+      }
+    }
+
+    if (uris.isEmpty()) return;
+
+    final String json = new org.json.JSONObject()
+        .put("action", action)
+        .put("type", type)
+        .put("uris", new org.json.JSONArray(uris))
+        .toString();
+
+    final android.webkit.WebView webView = getBridge() != null ? getBridge().getWebView() : null;
+    if (webView != null && webView.getUrl() != null && webView.getUrl().startsWith(APP_ORIGIN)) {
+      webView.post(() -> webView.evaluateJavascript(
+          "window.handleSharedMedia && window.handleSharedMedia(" + org.json.JSONObject.quote(json) + ");", null));
+    } else {
+      pendingLinkHandler.post(() -> {
+        android.webkit.WebView wv = getBridge() != null ? getBridge().getWebView() : null;
+        if (wv != null) {
+          wv.evaluateJavascript(
+              "window.handleSharedMedia && window.handleSharedMedia(" + org.json.JSONObject.quote(json) + ");", null);
+        }
+      });
+    }
   }
 
   @Override

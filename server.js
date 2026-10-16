@@ -105,6 +105,10 @@ app.use(express.static(path.join(__dirname, 'public'), {
   }
 }));
 
+// ── Rate Limiting ───────────────────────────────────────
+app.use('/api/auth', authLimiter);  // 20 attempts per 15 min per IP
+app.use('/api/',     apiLimiter);   // 60 calls per minute per IP
+
 // ── API Routes ─────────────────────────────────────────
 app.use('/api/auth',  authRoutes);
 app.use('/api/data',  dataRoutes);

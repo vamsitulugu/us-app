@@ -133,7 +133,7 @@
           <button class="tile accent" data-act="play-list" data-ctx="all"><span class="tile-ico">${icon('play')}</span>Play All</button>
           <button class="tile" data-act="play-list" data-ctx="all" data-shuffle="1"><span class="tile-ico">${icon('shuffle')}</span>Shuffle</button>
           <button class="tile" data-act="download-all"><span class="tile-ico">${icon('download')}</span>Download</button>
-          <button class="tile" data-act="open-search"><span class="tile-ico">${icon('search')}</span>Search</button>
+          <button class="tile" data-act="open-search"><span class="tile-ico">${icon('search')}</span>Search</button><button class="tile accent" data-act="search-online"><span class="tile-ico">🌐</span>Search Online</button>
         </div>
         ${mx.length ? `<div class="section-h"><h2>Made for Us</h2></div><div class="hscroll">${mx.map(mixCard).join('')}</div>` : ''}
         <div class="section-h"><h2>Our Playlists</h2>${S.playlistsAvailable ? `<button class="link" data-act="new-playlist">New ${icon('plus')}</button>` : ''}</div>
@@ -142,6 +142,7 @@
       </div>`;
     };
     render();
+    if (window.LyricsPreFetch) window.LyricsPreFetch.warmUp(S.songs);
     const evs = ['library', 'playlists', 'downloads', 'connectivity'];
     const offs = evs.map((e) => MX.on(e, () => render()));
     A().on('track', () => render());
@@ -177,7 +178,7 @@
   const LIB_TABS = [['my', 'My Playlist'], ['partner', 'Partner Playlist'], ['liked', 'Liked Songs']];
   MX.nav.register('library', (el, params) => {
     let tab = params.tab || 'my', q = '';
-    el.innerHTML = MX.hdr('Playlists', `<button class="icon-btn" data-act="lib-search" aria-label="Search">${icon('search')}</button><button class="icon-btn primary" data-act="add-songs" aria-label="Add songs">${icon('plus')}</button>`) +
+    el.innerHTML = MX.hdr('Playlists', `<button class="icon-btn" data-act="lib-search" aria-label="Search">${icon('search')}</button><button class="icon-btn primary" data-act="add-songs" aria-label="Add songs">${icon('plus')}</button><button class="icon-btn accent" data-act="search-online" aria-label="Search Online">🌐</button>`) +
       `<div class="tabs compact" id="libTabs">${LIB_TABS.map(([k, l]) => `<button class="tab" data-act="lib-tab" data-tab="${k}">${l}</button>`).join('')}</div>
        <div id="libSearchWrap"></div><div class="section" id="libBody"></div>`;
     const body = el.querySelector('#libBody');
@@ -400,6 +401,12 @@
      ADD SONGS — hands files to the existing import pipeline
      (reads tags + artwork, finds lyrics, de-duplicates, uploads).
   ═══════════════════════════════════════════════════════ */
+  MX.act('search-online', async () => {
+    if (!MX.ctx()) { MX.toast('Connect with your partner first'); return; }
+    if (!MX.online()) { MX.toast("You're offline — connect to search"); return; }
+    if (window.MusicSearch) window.MusicSearch.open();
+  });
+
   MX.act('add-songs', async () => {
     if (!MX.ctx()) { MX.toast('Connect with your partner first'); return; }
     if (!MX.online()) { MX.toast("You're offline — connect to add songs"); return; }

@@ -29,6 +29,22 @@
       "style": "DARK",
       "backgroundColor": "#14030e",
       "overlaysWebView": true
+    },
+    "BiometricAuth": {
+      "title": "Unlock Twin Hearts",
+      "subtitle": "Use your fingerprint or face",
+      "description": "Biometric authentication required to access your private vault",
+      "negativeButtonText": "Cancel"
+    },
+    "LocalNotifications": {
+      "channelId": "twin_hearts_local",
+      "channelName": "Twin Hearts Reminders",
+      "channelDescription": "Anniversary, birthday, and reminder notifications"
+    },
+    "Keyboard": {
+      "resize": "body",
+      "style": "dark",
+      "resizeOnFullScreen": true
     }
   }
 }
