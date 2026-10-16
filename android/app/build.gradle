@@ -57,6 +57,10 @@ dependencies {
     // notification-appearance dependency; does not touch FCM, channels,
     // actions, or delivery.
     implementation 'com.github.bumptech.glide:glide:4.16.0'
+
+    // AndroidX Biometric — BiometricAuthPlugin imports androidx.biometric.BiometricManager.
+    // Without this the build fails with "package androidx.biometric does not exist".
+    implementation 'androidx.biometric:biometric:1.1.0'
 }
 
 apply from: 'capacitor.build.gradle'
