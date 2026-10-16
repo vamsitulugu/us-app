@@ -20,6 +20,7 @@
 
   let currentResults = [];
   let selectedSongId = null;
+  let adding = false;
 
   /* ── styles ────────────────────────────────────────────────── */
   function injectStyles() {
@@ -142,7 +143,7 @@
       return `<div class="th-ms-item${i === 0 ? ' selected' : ''}" data-idx="${i}" onclick="window.MusicSearch.select(${i})">`
         + art
         + `<div class="th-ms-item-info"><div class="th-ms-item-title">${esc(t.title)}</div><div class="th-ms-item-artist">${meta}</div></div>`
-        + `<div class="th-ms-item-duration">${fmtDuration(t.duration)}</div>`
+        + `<div class="th-ms-item-duration">${t.preview ? '30s preview' : fmtDuration(t.duration)}</div>`
         + `<div class="th-ms-item-check">${i === 0 ? '✓' : ''}</div>`
         + `</div>`;
     }).join('');
@@ -160,8 +161,9 @@
   function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
   async function addSelected() {
-    if (!selectedSongId) return;
+    if (adding || !selectedSongId) return;
     const track = currentResults.find((t) => t.id === selectedSongId); if (!track) return;
+    adding = true;
     const addBtn = document.getElementById('th-ms-btn-add'); addBtn.disabled = true; addBtn.textContent = 'Adding…';
     const say = (m) => { try { if (window.MX && window.MX.toast) window.MX.toast(m); else if (typeof toast === 'function') toast(m); } catch (_) {} };
     try {
@@ -172,18 +174,17 @@
       const r = await fetch(`${API_BASE}/api/music`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
         coupleId: c.coupleId, uploadedBy: c.role, viewer: c.role, visibility: 'both',
         title: track.title, artist: track.artist, album: track.album,
-        audioUrl: audio, coverUrl: track.cover || null, durationSec: track.duration,
+        audioUrl: audio, coverUrl: track.cover || null, durationSec: track.preview ? 30 : track.duration,
         source: 'deezer', externalId: track.deezerId
-      }) });
+      }), signal: AbortSignal.timeout(45000) });
       if (!r.ok) { let msg = 'Backend add failed (' + r.status + ')'; try { const j = await r.json(); if (j && j.error) msg = j.error; } catch (_) {} throw new Error(msg); }
       const data = await r.json(); const songId = data.id || data.songId;
       if (window.LyricsBackgroundWorker && songId) { try { window.LyricsBackgroundWorker.enqueue({ id: songId, title: track.title, artist: track.artist, album: track.album, duration_sec: track.duration, couple_id: c.coupleId }, c.coupleId); } catch (_) {} }
-      say('Added "' + track.title + '" to your library');
-      // Re-fetch the library so the new song shows up right away, and tell the partner's device.
-      try { if (window.MX && window.MX.data && window.MX.data.loadSongs) await window.MX.data.loadSongs(true); else if (window.MX && window.MX.emit) window.MX.emit('library'); } catch (_) {}
-      try { if (window.MX && window.MX.rt && window.MX.rt.ping) window.MX.rt.ping('songs'); } catch (_) {}
       close();
-    } catch (e) { console.error('[music-search] add failed:', e); say('Could not add song — ' + (e.message || 'try again')); } finally { addBtn.disabled = false; addBtn.textContent = 'Add to Library'; }
+      say('Added "' + track.title + '" to your library');
+      try { if (window.MX && window.MX.data && window.MX.data.loadSongs) window.MX.data.loadSongs(true); else if (window.MX && window.MX.emit) window.MX.emit('library'); } catch (_) {}
+      try { if (window.MX && window.MX.rt && window.MX.rt.ping) window.MX.rt.ping('songs'); } catch (_) {}
+    } catch (e) { console.error('[music-search] add failed:', e); say('Could not add song — ' + (e.message || 'try again')); } finally { adding = false; addBtn.disabled = false; addBtn.textContent = 'Add to Library'; }
   }
 
   function syncViewport() {

@@ -203,7 +203,21 @@
   function setLevel(i, v) { if (G.ok && G.gains[i]) G.gains[i].gain.value = v; else if (canSetVolume()) decks[i].volume = v; }
 
   /* ── source resolution ─────────────────────────────────── */
-  async function resolveSrc(song) { const b = await off.blobUrl(song); return b || song.audio_url; }
+  // Songs added from search use signed Deezer preview links that expire — fetch a fresh one when needed.
+  const dzUrl = (u) => /dzcdn\.net/i.test(u || '');
+  const dzExpired = (u) => { const m = /(?:^|[?&~=])exp=(\d+)/.exec(u || ''); return m ? (+m[1] * 1000 < Date.now() + 5 * 60 * 1000) : false; };
+  async function refreshDeezer(song) {
+    try {
+      const r = await fetch(MX.API + '/api/music/deezer-refresh?title=' + encodeURIComponent(song.title || '') + '&artist=' + encodeURIComponent(song.artist || ''), { signal: AbortSignal.timeout(8000) });
+      if (!r.ok) return null; const j = await r.json(); return j.preview || null;
+    } catch (e) { return null; }
+  }
+  const dzTried = {};
+  async function resolveSrc(song) {
+    const b = await off.blobUrl(song); if (b) return b;
+    if (dzUrl(song.audio_url) && dzExpired(song.audio_url)) { const f = await refreshDeezer(song); if (f) { song.audio_url = f; return f; } }
+    return song.audio_url;
+  }
 
   /* ── core playback ─────────────────────────────────────── */
   function cancelCrossfade(finish) {
@@ -383,6 +397,12 @@
       if (remote && d.crossOrigin && !retriedCors && !G.ok) {
         retriedCors = true; corsFailed = true; decks.forEach((x) => x.removeAttribute('crossorigin'));
         const t = d.currentTime; playCurrent({ startAt: t }); return;
+      }
+      const cs = currentSong();
+      if (remote && cs && dzUrl(d.src) && !dzTried[cs.id]) {
+        dzTried[cs.id] = 1;
+        refreshDeezer(cs).then((f) => { if (f) { cs.audio_url = f; playCurrent(); } else { emit('loading', false); emit('error', 'This song could not be loaded.'); emit('state', false); } });
+        return;
       }
       emit('loading', false);
       emit('error', 'This song could not be loaded.');

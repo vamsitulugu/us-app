@@ -1,0 +1,161 @@
+diff --git a/public/js/music-search.js b/public/js/music-search.js
+index f871543..8b5ab59 100644
+--- a/public/js/music-search.js
++++ b/public/js/music-search.js
+@@ -20,6 +20,7 @@
+ 
+   let currentResults = [];
+   let selectedSongId = null;
++  let adding = false;
+ 
+   /* ── styles ────────────────────────────────────────────────── */
+   function injectStyles() {
+@@ -142,7 +143,7 @@
+       return `<div class="th-ms-item${i === 0 ? ' selected' : ''}" data-idx="${i}" onclick="window.MusicSearch.select(${i})">`
+         + art
+         + `<div class="th-ms-item-info"><div class="th-ms-item-title">${esc(t.title)}</div><div class="th-ms-item-artist">${meta}</div></div>`
+-        + `<div class="th-ms-item-duration">${fmtDuration(t.duration)}</div>`
++        + `<div class="th-ms-item-duration">${t.preview ? '30s preview' : fmtDuration(t.duration)}</div>`
+         + `<div class="th-ms-item-check">${i === 0 ? '✓' : ''}</div>`
+         + `</div>`;
+     }).join('');
+@@ -160,8 +161,9 @@
+   function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+ 
+   async function addSelected() {
+-    if (!selectedSongId) return;
++    if (adding || !selectedSongId) return;
+     const track = currentResults.find((t) => t.id === selectedSongId); if (!track) return;
++    adding = true;
+     const addBtn = document.getElementById('th-ms-btn-add'); addBtn.disabled = true; addBtn.textContent = 'Adding…';
+     const say = (m) => { try { if (window.MX && window.MX.toast) window.MX.toast(m); else if (typeof toast === 'function') toast(m); } catch (_) {} };
+     try {
+@@ -172,18 +174,17 @@
+       const r = await fetch(`${API_BASE}/api/music`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+         coupleId: c.coupleId, uploadedBy: c.role, viewer: c.role, visibility: 'both',
+         title: track.title, artist: track.artist, album: track.album,
+-        audioUrl: audio, coverUrl: track.cover || null, durationSec: track.duration,
++        audioUrl: audio, coverUrl: track.cover || null, durationSec: track.preview ? 30 : track.duration,
+         source: 'deezer', externalId: track.deezerId
+-      }) });
++      }), signal: AbortSignal.timeout(45000) });
+       if (!r.ok) { let msg = 'Backend add failed (' + r.status + ')'; try { const j = await r.json(); if (j && j.error) msg = j.error; } catch (_) {} throw new Error(msg); }
+       const data = await r.json(); const songId = data.id || data.songId;
+       if (window.LyricsBackgroundWorker && songId) { try { window.LyricsBackgroundWorker.enqueue({ id: songId, title: track.title, artist: track.artist, album: track.album, duration_sec: track.duration, couple_id: c.coupleId }, c.coupleId); } catch (_) {} }
++      close();
+       say('Added "' + track.title + '" to your library');
+-      // Re-fetch the library so the new song shows up right away, and tell the partner's device.
+-      try { if (window.MX && window.MX.data && window.MX.data.loadSongs) await window.MX.data.loadSongs(true); else if (window.MX && window.MX.emit) window.MX.emit('library'); } catch (_) {}
++      try { if (window.MX && window.MX.data && window.MX.data.loadSongs) window.MX.data.loadSongs(true); else if (window.MX && window.MX.emit) window.MX.emit('library'); } catch (_) {}
+       try { if (window.MX && window.MX.rt && window.MX.rt.ping) window.MX.rt.ping('songs'); } catch (_) {}
+-      close();
+-    } catch (e) { console.error('[music-search] add failed:', e); say('Could not add song — ' + (e.message || 'try again')); } finally { addBtn.disabled = false; addBtn.textContent = 'Add to Library'; }
++    } catch (e) { console.error('[music-search] add failed:', e); say('Could not add song — ' + (e.message || 'try again')); } finally { adding = false; addBtn.disabled = false; addBtn.textContent = 'Add to Library'; }
+   }
+ 
+   function syncViewport() {
+diff --git a/public/music/player.js b/public/music/player.js
+index 51d8d1d..e067d50 100644
+--- a/public/music/player.js
++++ b/public/music/player.js
+@@ -203,7 +203,21 @@
+   function setLevel(i, v) { if (G.ok && G.gains[i]) G.gains[i].gain.value = v; else if (canSetVolume()) decks[i].volume = v; }
+ 
+   /* ── source resolution ─────────────────────────────────── */
+-  async function resolveSrc(song) { const b = await off.blobUrl(song); return b || song.audio_url; }
++  // Songs added from search use signed Deezer preview links that expire — fetch a fresh one when needed.
++  const dzUrl = (u) => /dzcdn\.net/i.test(u || '');
++  const dzExpired = (u) => { const m = /(?:^|[?&~=])exp=(\d+)/.exec(u || ''); return m ? (+m[1] * 1000 < Date.now() + 5 * 60 * 1000) : false; };
++  async function refreshDeezer(song) {
++    try {
++      const r = await fetch(MX.API + '/api/music/deezer-refresh?title=' + encodeURIComponent(song.title || '') + '&artist=' + encodeURIComponent(song.artist || ''), { signal: AbortSignal.timeout(8000) });
++      if (!r.ok) return null; const j = await r.json(); return j.preview || null;
++    } catch (e) { return null; }
++  }
++  const dzTried = {};
++  async function resolveSrc(song) {
++    const b = await off.blobUrl(song); if (b) return b;
++    if (dzUrl(song.audio_url) && dzExpired(song.audio_url)) { const f = await refreshDeezer(song); if (f) { song.audio_url = f; return f; } }
++    return song.audio_url;
++  }
+ 
+   /* ── core playback ─────────────────────────────────────── */
+   function cancelCrossfade(finish) {
+@@ -384,6 +398,12 @@
+         retriedCors = true; corsFailed = true; decks.forEach((x) => x.removeAttribute('crossorigin'));
+         const t = d.currentTime; playCurrent({ startAt: t }); return;
+       }
++      const cs = currentSong();
++      if (remote && cs && dzUrl(d.src) && !dzTried[cs.id]) {
++        dzTried[cs.id] = 1;
++        refreshDeezer(cs).then((f) => { if (f) { cs.audio_url = f; playCurrent(); } else { emit('loading', false); emit('error', 'This song could not be loaded.'); emit('state', false); } });
++        return;
++      }
+       emit('loading', false);
+       emit('error', 'This song could not be loaded.');
+       emit('state', false);
+diff --git a/routes/music.js b/routes/music.js
+index acd1a1c..2a64a9d 100644
+--- a/routes/music.js
++++ b/routes/music.js
+@@ -28,6 +28,7 @@ const express  = require('express');
+ const supabase = require('../middleware/supabase');
+ const { pathFromPublicUrl, removeObjects } = require('../lib/storage');
+ const router   = express.Router();
++const addLocks = new Set();
+ 
+ let _sendPushToPartner;
+ try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch (_) {}
+@@ -147,6 +148,21 @@ router.get('/search', async (req, res) => {
+   }
+ });
+ 
++// Deezer preview links are signed and expire. The player calls this to get a
++// fresh one for a song that was added from search.
++router.get('/deezer-refresh', async (req, res) => {
++  const title = str(req.query.title, 200), artist = str(req.query.artist, 200);
++  if (!title) return res.status(400).json({ error: 'title required' });
++  try {
++    const q = artist && artist !== 'Unknown Artist' ? `artist:"${artist}" track:"${title}"` : title;
++    const r = await fetch(`${DEEZER}/search?q=${encodeURIComponent(q)}&limit=1`, { signal: AbortSignal.timeout(10000) });
++    if (!r.ok) throw new Error(`Deezer ${r.status}`);
++    const t = ((await r.json()).data || [])[0];
++    if (!t || !t.preview) return res.status(404).json({ error: 'No preview found' });
++    return res.json({ preview: t.preview, duration: 30 });
++  } catch (e) { return res.status(502).json({ error: e.message }); }
++});
++
+ router.get('/song/:id', async (req, res) => {
+   const { coupleId } = req.query;
+   const viewer = okRole(req.query.viewer);
+@@ -206,6 +222,22 @@ router.post('/', async (req, res) => {
+   if (coverUrl && !/^https:\/\//i.test(coverUrl)) {
+     return res.status(400).json({ error: 'coverUrl must be an https URL' });
+   }
++  // Double-tap / retry protection for songs added from search: the same person
++  // adding the same Deezer song twice returns the existing row instead of a copy.
++  let lockKey = null;
++  if (isDeezer) {
++    const artistName = str(b.artist, 200) || 'Unknown Artist';
++    lockKey = [coupleId, uploadedBy, title, artistName].join('|');
++    if (addLocks.has(lockKey)) return res.json({ ok: true, duplicate: true, pending: true });
++    addLocks.add(lockKey);
++    try {
++      const { data: dup } = await supabase.from('songs').select('*')
++        .eq('couple_id', coupleId).eq('uploaded_by', uploadedBy)
++        .eq('title', title).eq('artist', artistName).like('audio_url', '%dzcdn.net%').limit(1);
++      if (dup && dup.length) { addLocks.delete(lockKey); return res.json({ ...shapeSong(dup[0], uploadedBy, {}, false, true), duplicate: true }); }
++    } catch (_) { /* fall through and insert */ }
++  }
++
+   const visibility = VISIBILITIES.includes(b.visibility) ? b.visibility : 'both';
+   if (typeof b.lyrics === 'string' && b.lyrics.length > MAX_LYRICS) {
+     return res.status(413).json({ error: 'Lyrics are too long' });
+@@ -245,6 +277,7 @@ router.post('/', async (req, res) => {
+   };
+ 
+   const { data, error } = await supabase.from('songs').insert(row).select().single();
++  if (lockKey) setTimeout(() => addLocks.delete(lockKey), 3000);
+   if (error) return res.status(500).json({ error: error.message });
+ 
+   if (_sendPushToPartner && !PRIVATE_VIS.includes(visibility)) {

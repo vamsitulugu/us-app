@@ -28,6 +28,7 @@ const express  = require('express');
 const supabase = require('../middleware/supabase');
 const { pathFromPublicUrl, removeObjects } = require('../lib/storage');
 const router   = express.Router();
+const addLocks = new Set();
 
 let _sendPushToPartner;
 try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch (_) {}
@@ -147,6 +148,21 @@ router.get('/search', async (req, res) => {
   }
 });
 
+// Deezer preview links are signed and expire. The player calls this to get a
+// fresh one for a song that was added from search.
+router.get('/deezer-refresh', async (req, res) => {
+  const title = str(req.query.title, 200), artist = str(req.query.artist, 200);
+  if (!title) return res.status(400).json({ error: 'title required' });
+  try {
+    const q = artist && artist !== 'Unknown Artist' ? `artist:"${artist}" track:"${title}"` : title;
+    const r = await fetch(`${DEEZER}/search?q=${encodeURIComponent(q)}&limit=1`, { signal: AbortSignal.timeout(10000) });
+    if (!r.ok) throw new Error(`Deezer ${r.status}`);
+    const t = ((await r.json()).data || [])[0];
+    if (!t || !t.preview) return res.status(404).json({ error: 'No preview found' });
+    return res.json({ preview: t.preview, duration: 30 });
+  } catch (e) { return res.status(502).json({ error: e.message }); }
+});
+
 router.get('/song/:id', async (req, res) => {
   const { coupleId } = req.query;
   const viewer = okRole(req.query.viewer);
@@ -206,6 +222,22 @@ router.post('/', async (req, res) => {
   if (coverUrl && !/^https:\/\//i.test(coverUrl)) {
     return res.status(400).json({ error: 'coverUrl must be an https URL' });
   }
+  // Double-tap / retry protection for songs added from search: the same person
+  // adding the same Deezer song twice returns the existing row instead of a copy.
+  let lockKey = null;
+  if (isDeezer) {
+    const artistName = str(b.artist, 200) || 'Unknown Artist';
+    lockKey = [coupleId, uploadedBy, title, artistName].join('|');
+    if (addLocks.has(lockKey)) return res.json({ ok: true, duplicate: true, pending: true });
+    addLocks.add(lockKey);
+    try {
+      const { data: dup } = await supabase.from('songs').select('*')
+        .eq('couple_id', coupleId).eq('uploaded_by', uploadedBy)
+        .eq('title', title).eq('artist', artistName).like('audio_url', '%dzcdn.net%').limit(1);
+      if (dup && dup.length) { addLocks.delete(lockKey); return res.json({ ...shapeSong(dup[0], uploadedBy, {}, false, true), duplicate: true }); }
+    } catch (_) { /* fall through and insert */ }
+  }
+
   const visibility = VISIBILITIES.includes(b.visibility) ? b.visibility : 'both';
   if (typeof b.lyrics === 'string' && b.lyrics.length > MAX_LYRICS) {
     return res.status(413).json({ error: 'Lyrics are too long' });
@@ -245,6 +277,7 @@ router.post('/', async (req, res) => {
   };
 
   const { data, error } = await supabase.from('songs').insert(row).select().single();
+  if (lockKey) setTimeout(() => addLocks.delete(lockKey), 3000);
   if (error) return res.status(500).json({ error: error.message });
 
   if (_sendPushToPartner && !PRIVATE_VIS.includes(visibility)) {
