@@ -28,8 +28,9 @@
     const s = document.createElement('style');
     s.id = 'th-ms-styles';
     s.textContent = `
-      #th-ms-modal { --th-clear: var(--us-nav-clear, calc(104px + env(safe-area-inset-bottom, 0px))); position: fixed; inset: 0; z-index: 2147483645; display: flex; align-items: flex-start; justify-content: center; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); opacity: 0; pointer-events: none; transition: opacity .25s ease; padding: calc(12px + env(safe-area-inset-top, 0px)) 14px var(--th-clear); box-sizing: border-box; height: var(--th-vh, 100dvh); }
-      #th-ms-modal.open { opacity: 1; pointer-events: auto; }
+      #th-ms-modal { --th-clear: var(--us-nav-clear, calc(104px + env(safe-area-inset-bottom, 0px))); position: fixed; inset: 0; z-index: 1000; display: flex; align-items: flex-start; justify-content: center; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); opacity: 0; pointer-events: none; visibility: hidden; transition: opacity .25s ease, visibility 0s linear .25s; padding: calc(12px + env(safe-area-inset-top, 0px)) 14px var(--th-clear); box-sizing: border-box; height: var(--th-vh, 100dvh); }
+      #th-ms-modal.open { opacity: 1; pointer-events: auto; visibility: visible; transition: opacity .25s ease, visibility 0s; }
+      #th-ms-modal:not(.open), #th-ms-modal:not(.open) * { pointer-events: none !important; }
       #th-ms-modal .th-ms-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
       #th-ms-modal .th-ms-shell { position: relative; z-index: 2; width: 100%; max-width: 460px; max-height: 100%; display: flex; flex-direction: column; background: rgba(18,6,13,0.96); border: 1px solid rgba(255,255,255,0.12); border-radius: 20px; box-shadow: 0 24px 60px rgba(0,0,0,0.55); overflow: hidden; margin-top: 4px; }
       #th-ms-modal .th-ms-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: rgba(255,255,255,0.06); border-bottom: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; }
@@ -194,8 +195,16 @@
   }
   if (window.visualViewport) { window.visualViewport.addEventListener('resize', syncViewport); window.visualViewport.addEventListener('scroll', syncViewport); }
 
-  function open() { buildModal(); syncViewport(); document.getElementById('th-ms-modal').classList.add('open'); const input = document.getElementById('th-ms-q'); input.value = ''; input.focus(); showEmpty(); document.getElementById('th-ms-btn-add').classList.remove('ready'); selectedSongId = null; document.getElementById('th-ms-lyrics-preview').style.display = 'none'; }
-  function close() { const m = document.getElementById('th-ms-modal'); if (m) m.classList.remove('open'); }
+  function open() { buildModal(); syncViewport(); const _m = document.getElementById('th-ms-modal'); _m.removeAttribute('aria-hidden'); try { _m.inert = false; } catch (_) {} _m.classList.add('open'); const input = document.getElementById('th-ms-q'); input.value = ''; input.focus(); showEmpty(); document.getElementById('th-ms-btn-add').classList.remove('ready'); selectedSongId = null; document.getElementById('th-ms-lyrics-preview').style.display = 'none'; }
+  function close() {
+    const m = document.getElementById('th-ms-modal'); if (!m) return;
+    m.classList.remove('open');
+    m.setAttribute('aria-hidden', 'true');
+    try { m.inert = true; } catch (_) {}
+    // A focused hidden input keeps the keyboard / focus trap alive and can swallow taps on the page below.
+    try { const a = document.activeElement; if (a && m.contains(a)) a.blur(); } catch (_) {}
+    try { const q = document.getElementById('th-ms-q'); if (q) q.blur(); } catch (_) {}
+  }
 
   global.MusicSearch = { open, close, select, addSelected, search };
 })(window);

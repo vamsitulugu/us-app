@@ -157,9 +157,9 @@
     <button class="mini-btn" data-act="p-next" aria-label="Next">${icon('next')}</button></div>`;
   /* Swipe the mini player sideways to dismiss it (stops the music, like Spotify / YouTube Music). */
   (function () {
-    let x0 = null, y0 = 0, dx = 0, lock = null, t0 = 0, swiped = false;
+    let x0 = null, y0 = 0, dx = 0, lock = null, t0 = 0, swiped = false, tapEl = null, clickSeen = false;
     const reset = () => { mini.classList.remove('drag'); mini.style.transform = ''; mini.style.opacity = ''; };
-    mini.addEventListener('touchstart', (e) => { if (e.touches.length !== 1) { x0 = null; return; } x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; lock = null; t0 = Date.now(); }, { passive: true });
+    mini.addEventListener('touchstart', (e) => { if (e.touches.length !== 1) { x0 = null; tapEl = null; return; } tapEl = e.target; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; lock = null; t0 = Date.now(); }, { passive: true });
     mini.addEventListener('touchmove', (e) => {
       if (x0 == null) return;
       const mx = e.touches[0].clientX - x0, my = e.touches[0].clientY - y0;
@@ -168,8 +168,16 @@
       dx = mx; mini.classList.add('drag');
       mini.style.transform = `translateX(${dx}px)`; mini.style.opacity = String(Math.max(0.15, 1 - Math.abs(dx) / (mini.offsetWidth * 0.8)));
     }, { passive: true });
-    const end = () => {
+    /* Safety net: if a plain tap on the bar produced no click (dropped by the WebView), run the action ourselves. */
+    const tapFallback = () => {
+      const el = tapEl && tapEl.closest ? tapEl.closest('[data-act]') : null; tapEl = null;
+      if (!el || !mini.contains(el)) return;
+      clickSeen = false;
+      setTimeout(() => { if (!clickSeen && !swiped) el.click(); }, 350);
+    };
+    const end = (e) => {
       if (x0 == null) return; const was = lock; x0 = null; lock = null;
+      if (was == null && e && e.type === 'touchend') tapFallback();
       if (was !== 'x') return;
       swiped = true; setTimeout(() => { swiped = false; }, 400);   // swallow the click that follows a swipe
       const fast = Math.abs(dx) / Math.max(1, Date.now() - t0) > 0.5 && Math.abs(dx) > 50;
@@ -181,7 +189,7 @@
       dx = 0;
     };
     mini.addEventListener('touchend', end); mini.addEventListener('touchcancel', end);
-    mini.addEventListener('click', (e) => { if (swiped) { e.stopPropagation(); e.preventDefault(); } }, true);
+    mini.addEventListener('click', (e) => { clickSeen = true; if (swiped) { e.stopPropagation(); e.preventDefault(); } }, true);
   })();
   const setMiniSpace = (on) => document.documentElement.style.setProperty('--mx-mini', on ? '84px' : '0px');
 
