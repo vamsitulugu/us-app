@@ -1,85 +1,99 @@
 package com.uswithlove.app;
 
-import android.content.Context;
-import android.hardware.biometrics.BiometricPrompt;
-import android.os.CancellationSignal;
-import android.os.Handler;
-import android.os.Looper;
+import android.app.Activity;
 import androidx.annotation.NonNull;
 import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
+import androidx.fragment.app.FragmentActivity;
+import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
-import com.getcapacitor.JSObject;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-
+/**
+ * Biometric unlock using the AndroidX Biometric library (works on API 24+).
+ * Previously this mixed the platform android.hardware.biometrics.BiometricPrompt
+ * (API 28+, different constructor/callback signatures) with the AndroidX API,
+ * which is why it did not compile.
+ */
 @CapacitorPlugin(name = "BiometricAuth")
 public class BiometricAuthPlugin extends Plugin {
 
-  private final Executor executor = Executors.newSingleThreadExecutor();
+  private static final int AUTHENTICATORS = BiometricManager.Authenticators.BIOMETRIC_WEAK;
 
   @PluginMethod
   public void isAvailable(PluginCall call) {
-    BiometricManager biometricManager = BiometricManager.from(getContext());
-    int availability = biometricManager.canAuthenticate();
+    int availability = BiometricManager.from(getContext()).canAuthenticate(AUTHENTICATORS);
+    boolean available = availability == BiometricManager.BIOMETRIC_SUCCESS;
     JSObject result = new JSObject();
-    boolean available = (availability == BiometricManager.BIOMETRIC_SUCCESS);
     result.put("available", available);
-    result.put("biometricType", availability == BiometricManager.BIOMETRIC_SUCCESS ? "biometric" : "none");
+    result.put("biometricType", available ? "biometric" : "none");
     call.resolve(result);
   }
 
   @PluginMethod
-  public void authenticate(PluginCall call) {
+  public void authenticate(final PluginCall call) {
     final String title = call.getString("title", "Authenticate");
     final String subtitle = call.getString("subtitle", "Use your fingerprint or face to unlock");
     final String description = call.getString("description", "Biometric authentication required");
     final String negativeButtonText = call.getString("negativeButtonText", "Cancel");
 
-    Context context = getContext();
-    BiometricManager biometricManager = BiometricManager.from(context);
-    int availability = biometricManager.canAuthenticate();
+    int availability = BiometricManager.from(getContext()).canAuthenticate(AUTHENTICATORS);
     if (availability != BiometricManager.BIOMETRIC_SUCCESS) {
       call.reject("Biometric authentication not available on this device");
       return;
     }
 
-    final BiometricPrompt biometricPrompt = new BiometricPrompt(
-        getActivity(),
-        executor,
-        new BiometricPrompt.AuthenticationCallback() {
-          @Override
-          public void onAuthenticationError(int errorCode, @NonNull CharSequence errString) {
-            super.onAuthenticationError(errorCode, errString);
-            call.reject("Authentication error: " + errString);
-          }
+    final Activity activity = getActivity();
+    if (!(activity instanceof FragmentActivity)) {
+      call.reject("Biometric authentication needs a FragmentActivity");
+      return;
+    }
+    final FragmentActivity fragmentActivity = (FragmentActivity) activity;
 
-          @Override
-          public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
-            super.onAuthenticationSucceeded(result);
-            JSObject res = new JSObject();
-            res.put("success", true);
-            call.resolve(res);
-          }
+    // BiometricPrompt must be created and shown on the main thread.
+    activity.runOnUiThread(() -> {
+      try {
+        final BiometricPrompt prompt = new BiometricPrompt(
+            fragmentActivity,
+            ContextCompat.getMainExecutor(fragmentActivity),
+            new BiometricPrompt.AuthenticationCallback() {
+              @Override
+              public void onAuthenticationError(int errorCode, @NonNull CharSequence errString) {
+                super.onAuthenticationError(errorCode, errString);
+                call.reject("Authentication error: " + errString);
+              }
 
-          @Override
-          public void onAuthenticationFailed(@NonNull CharSequence errorString) {
-            super.onAuthenticationFailed(errorString);
-            call.reject("Authentication failed: " + errorString);
-          }
-        }
-    );
+              @Override
+              public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
+                super.onAuthenticationSucceeded(result);
+                JSObject res = new JSObject();
+                res.put("success", true);
+                call.resolve(res);
+              }
 
-    final BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
-        .setTitle(title)
-        .setSubtitle(subtitle)
-        .setDescription(description)
-        .setNegativeButtonText(negativeButtonText)
-        .build();
+              @Override
+              public void onAuthenticationFailed() {
+                // One unrecognised attempt — the system prompt stays open and lets the
+                // user retry, so don't reject the call here.
+                super.onAuthenticationFailed();
+              }
+            });
 
-    new Handler(Looper.getMainLooper()).post(() -> biometricPrompt.authenticate(promptInfo));
+        final BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
+            .setTitle(title)
+            .setSubtitle(subtitle)
+            .setDescription(description)
+            .setNegativeButtonText(negativeButtonText)
+            .setAllowedAuthenticators(AUTHENTICATORS)
+            .build();
+
+        prompt.authenticate(promptInfo);
+      } catch (Exception e) {
+        call.reject("Could not start biometric prompt: " + e.getMessage());
+      }
+    });
   }
 }
