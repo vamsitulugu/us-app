@@ -80,12 +80,12 @@
         <div class="th-ms-header"><h2 class="th-ms-title">🎵 Search Songs</h2><button class="th-ms-close" onclick="window.MusicSearch.close()">✕</button></div>
         <div class="th-ms-body">
           <div class="th-ms-searchbar"><input type="search" id="th-ms-q" placeholder="Search any song…" autocomplete="off" spellcheck="false"><button type="button" id="th-ms-search-btn">🔍</button></div>
-          <div id="th-ms-empty" class="th-ms-empty" style="display:none"><div class="ico">🔍</div><div>Search for any song to add to your library</div></div>
+          <div id="th-ms-empty" class="th-ms-empty" style="display:none"><div class="ico">🔍</div><div>Search for any song — previews (30 sec) are saved to Featured Songs</div></div>
           <div id="th-ms-loading" class="th-ms-loading" style="display:none"><div class="ico">⏳</div><div>Finding songs…</div></div>
           <div class="th-ms-list" id="th-ms-list"></div>
           <div id="th-ms-lyrics-preview" class="th-ms-lyrics-preview"><div class="th-ms-lyrics-label">Lyrics Preview</div><div id="th-ms-lyrics-text"></div></div>
         </div>
-        <div class="th-ms-footer"><button class="th-ms-cancel" onclick="window.MusicSearch.close()">Cancel</button><button class="th-ms-btn-add" id="th-ms-btn-add" onclick="window.MusicSearch.addSelected()">Add to Library</button></div>
+        <div class="th-ms-footer"><button class="th-ms-cancel" onclick="window.MusicSearch.close()">Cancel</button><button class="th-ms-btn-add" id="th-ms-btn-add" onclick="window.MusicSearch.addSelected()">Add to Featured</button></div>
       </div>
     `;
     const wrapper = document.createElement('div');
@@ -181,10 +181,10 @@
       const data = await r.json(); const songId = data.id || data.songId;
       if (window.LyricsBackgroundWorker && songId) { try { window.LyricsBackgroundWorker.enqueue({ id: songId, title: track.title, artist: track.artist, album: track.album, duration_sec: track.duration, couple_id: c.coupleId }, c.coupleId); } catch (_) {} }
       close();
-      say('Added "' + track.title + '" to your library');
+      say('Added "' + track.title + '" to Featured Songs');
       try { if (window.MX && window.MX.data && window.MX.data.loadSongs) window.MX.data.loadSongs(true); else if (window.MX && window.MX.emit) window.MX.emit('library'); } catch (_) {}
       try { if (window.MX && window.MX.rt && window.MX.rt.ping) window.MX.rt.ping('songs'); } catch (_) {}
-    } catch (e) { console.error('[music-search] add failed:', e); say('Could not add song — ' + (e.message || 'try again')); } finally { adding = false; addBtn.disabled = false; addBtn.textContent = 'Add to Library'; }
+    } catch (e) { console.error('[music-search] add failed:', e); say('Could not add song — ' + (e.message || 'try again')); } finally { adding = false; addBtn.disabled = false; addBtn.textContent = 'Add to Featured'; }
   }
 
   function syncViewport() {

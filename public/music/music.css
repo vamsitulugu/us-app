@@ -139,6 +139,20 @@ audio{display:none}
 .hero-play{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;flex:none;position:relative;z-index:1;
   background:linear-gradient(135deg,var(--mx-red),var(--mx-red-d));box-shadow:0 8px 24px var(--mx-glow)}
 .hero-play svg{width:22px;height:22px;margin-left:2px}
+.hero-slider{position:relative;margin:2px 0 14px;border-radius:22px;overflow:hidden;border:1px solid var(--mx-line2);background:linear-gradient(135deg,var(--mx-red-d),#2a061a 70%)}
+.hero-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain}
+.hero-track::-webkit-scrollbar{display:none}
+.hero-slide{position:relative;flex:0 0 100%;scroll-snap-align:start;scroll-snap-stop:always;min-height:176px;padding:20px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;cursor:pointer;overflow:hidden}
+.hero-art2{position:absolute;inset:0;background-size:cover;background-position:center;transform:scale(1.02)}
+.hero-slide::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(0deg,rgba(0,0,0,.78),rgba(0,0,0,.12) 65%),linear-gradient(110deg,rgba(0,0,0,.35),transparent)}
+.hero-txt{position:relative;z-index:2;min-width:0;flex:1}
+.hero-eyebrow{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mx-text2)}
+.hero-title{font-family:var(--ff-serif);font-size:24px;line-height:1.15;margin-top:5px}
+.hero-artist{font-size:12.5px;color:var(--mx-text2);margin-top:4px}
+.hero-dots{position:absolute;left:0;right:0;top:12px;z-index:3;display:flex;justify-content:center;gap:5px;pointer-events:none}
+.hero-dots i{width:5px;height:5px;border-radius:3px;background:rgba(255,255,255,.4);transition:width .25s,background .25s}
+.hero-dots i.on{width:16px;background:#fff}
+.hero-slide .hero-play{z-index:2}
 .hero-art{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.35;filter:saturate(1.2)}
 
 /* ── Quick tiles ─────────────────────────────────────────────── */
@@ -154,6 +168,10 @@ audio{display:none}
 .quick .tile-ico{background:rgba(255,255,255,.05)}
 .quick .tile.accent .tile-ico{background:linear-gradient(135deg,var(--mx-red),var(--mx-red-d));border-color:transparent}
 .quick .tile.accent svg{color:#fff}
+/* No outer card behind the 4 shortcut buttons and the Quick Actions — only the inner icon button remains. */
+.tiles .tile,.quick .tile,html[data-theme] .tiles .tile,html[data-theme] .quick .tile,html[data-theme] .quick .tile.accent{
+  background:none!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;padding:6px 0 4px;border-radius:0}
+.tile{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 
 /* ── Cover art ───────────────────────────────────────────────── */
 .cover{position:relative;overflow:hidden;flex:none;border-radius:12px;display:grid;place-items:center;
@@ -249,7 +267,10 @@ body.playing .trk.current .eq i{animation-play-state:running}
 #mini{position:fixed;left:10px;right:10px;bottom:calc(10px + var(--sab));z-index:60;max-width:620px;margin:0 auto;
   border-radius:18px;overflow:hidden;background:rgba(24,10,18,.94);backdrop-filter:blur(22px) saturate(160%);-webkit-backdrop-filter:blur(22px) saturate(160%);
   border:1px solid var(--mx-line2);box-shadow:0 12px 40px rgba(0,0,0,.55);
-  transform:translateY(130%);opacity:0;transition:transform .35s var(--mx-ease),opacity .25s;touch-action:pan-y}
+  transform:translateY(130%);opacity:0;transition:transform .35s var(--mx-ease),opacity .25s;touch-action:pan-y;will-change:transform;-webkit-tap-highlight-color:transparent}
+#mini.drag{transition:none}
+#mini.leaving{transition:transform .18s ease-out,opacity .18s ease-out}
+.mini-in{cursor:pointer}
 #mini.show{transform:none;opacity:1}
 .mini-bar{height:3px;background:rgba(255,255,255,.1)}
 .mini-fill{height:100%;width:0;background:linear-gradient(90deg,var(--mx-red-d),var(--mx-red))}
@@ -257,17 +278,17 @@ body.playing .trk.current .eq i{animation-play-state:running}
 .mini-info{flex:1;min-width:0;cursor:pointer}
 .mini-title{font-size:13.5px;font-weight:700}
 .mini-sub{font-size:11.5px;color:var(--mx-text3);margin-top:1px}
-.mini-btn{width:38px;height:38px;display:grid;place-items:center;border-radius:50%;color:var(--mx-text2)}
+.mini-btn{touch-action:manipulation;-webkit-tap-highlight-color:transparent;width:38px;height:38px;display:grid;place-items:center;border-radius:50%;color:var(--mx-text2)}
 .mini-btn.play{width:42px;height:42px;background:linear-gradient(135deg,var(--mx-red),var(--mx-red-d));color:#fff;box-shadow:0 4px 14px var(--mx-glow)}
 .mini-btn.play svg{width:19px;height:19px}
-.mini-btn:active{transform:scale(.9)}
+.mini-btn:active{transform:scale(.9);transition:transform .05s}
 .mini .cover.s{border-radius:11px}
 .mini.buffering .mini-sub::after,#player.buffering .pl-artist::after{content:" · loading…";color:var(--mx-text3)}
 
 /* ── Full player ─────────────────────────────────────────────── */
 #player{position:fixed;inset:0;z-index:80;display:flex;flex-direction:column;overflow:hidden;
-  background:var(--mx-bg);transform:translateY(102%);transition:transform .4s var(--mx-ease);visibility:hidden}
-#player.open{transform:none;visibility:visible}
+  background:var(--mx-bg);transform:translateY(102%);transition:transform .2s cubic-bezier(.2,.8,.2,1),visibility 0s linear .2s;visibility:hidden;will-change:transform}
+#player.open{transform:none;visibility:visible;transition:transform .2s cubic-bezier(.2,.8,.2,1),visibility 0s}
 #player.drag{transition:none}
 .pl-bg{position:absolute;inset:-20%;background-size:cover;background-position:center;filter:blur(70px) saturate(1.5) brightness(.55);opacity:.7;transition:background-image .4s;pointer-events:none}
 .pl-shade{position:absolute;inset:0;background:linear-gradient(rgba(20,3,14,.35),rgba(20,3,14,.7) 60%,var(--mx-bg));pointer-events:none}

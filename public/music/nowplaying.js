@@ -150,11 +150,39 @@
      MINI PLAYER
   ═══════════════════════════════════════════════════════ */
   const mini = $('#mini');
-  mini.innerHTML = `<div class="mini-bar"><div class="mini-fill" id="miniFill"></div></div><div class="mini-in">
-    <div id="miniCover"></div><div class="mini-info" data-act="open-player"><div class="mini-title ellip" id="miniTitle"></div><div class="mini-sub ellip" id="miniSub"></div></div>
+  mini.innerHTML = `<div class="mini-bar"><div class="mini-fill" id="miniFill"></div></div><div class="mini-in" data-act="open-player">
+    <div id="miniCover"></div><div class="mini-info"><div class="mini-title ellip" id="miniTitle"></div><div class="mini-sub ellip" id="miniSub"></div></div>
     <button class="mini-btn" data-act="p-prev" aria-label="Previous">${icon('prev')}</button>
     <button class="mini-btn play" data-act="p-toggle" id="miniPlay" aria-label="Play or pause">${icon('play')}</button>
     <button class="mini-btn" data-act="p-next" aria-label="Next">${icon('next')}</button></div>`;
+  /* Swipe the mini player sideways to dismiss it (stops the music, like Spotify / YouTube Music). */
+  (function () {
+    let x0 = null, y0 = 0, dx = 0, lock = null, t0 = 0, swiped = false;
+    const reset = () => { mini.classList.remove('drag'); mini.style.transform = ''; mini.style.opacity = ''; };
+    mini.addEventListener('touchstart', (e) => { if (e.touches.length !== 1) { x0 = null; return; } x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; lock = null; t0 = Date.now(); }, { passive: true });
+    mini.addEventListener('touchmove', (e) => {
+      if (x0 == null) return;
+      const mx = e.touches[0].clientX - x0, my = e.touches[0].clientY - y0;
+      if (!lock && (Math.abs(mx) > 8 || Math.abs(my) > 8)) lock = Math.abs(mx) > Math.abs(my) * 1.2 ? 'x' : 'y';
+      if (lock !== 'x') return;
+      dx = mx; mini.classList.add('drag');
+      mini.style.transform = `translateX(${dx}px)`; mini.style.opacity = String(Math.max(0.15, 1 - Math.abs(dx) / (mini.offsetWidth * 0.8)));
+    }, { passive: true });
+    const end = () => {
+      if (x0 == null) return; const was = lock; x0 = null; lock = null;
+      if (was !== 'x') return;
+      swiped = true; setTimeout(() => { swiped = false; }, 400);   // swallow the click that follows a swipe
+      const fast = Math.abs(dx) / Math.max(1, Date.now() - t0) > 0.5 && Math.abs(dx) > 50;
+      if (Math.abs(dx) > mini.offsetWidth * 0.3 || fast) {
+        mini.classList.remove('drag'); mini.classList.add('leaving');
+        mini.style.transform = `translateX(${dx < 0 ? '-' : ''}110%)`; mini.style.opacity = '0';
+        setTimeout(() => { A.stop(); mini.classList.add('drag'); reset(); mini.classList.remove('leaving'); requestAnimationFrame(() => mini.classList.remove('drag')); }, 180);
+      } else { mini.classList.remove('drag'); reset(); }
+      dx = 0;
+    };
+    mini.addEventListener('touchend', end); mini.addEventListener('touchcancel', end);
+    mini.addEventListener('click', (e) => { if (swiped) { e.stopPropagation(); e.preventDefault(); } }, true);
+  })();
   const setMiniSpace = (on) => document.documentElement.style.setProperty('--mx-mini', on ? '84px' : '0px');
 
   /* ═══════════════════════════════════════════════════════
@@ -226,7 +254,7 @@
     if (lyrOpen) paintLyricsTime(cur, dur, p);
   }
   let raf = 0;
-  function startRaf() { if (raf) return; const tick = () => { raf = 0; if (!A.isPlaying) return; if (P.classList.contains('open') || true) paintTime(); raf = requestAnimationFrame(tick); }; raf = requestAnimationFrame(tick); }
+  function startRaf() { if (raf) return; let last = 0; const tick = (now) => { raf = 0; if (!A.isPlaying) return; if (P.classList.contains('open') || lyrOpen || now - last > 250) { last = now; paintTime(); } raf = requestAnimationFrame(tick); }; raf = requestAnimationFrame(tick); }
 
   A.on('track', (s) => { paintSong(s); if (s && MX.settings.get('autoLyrics')) L.load(s); if (lyrOpen) openLyricsFor(s); if (!s) $('#queuePanel').classList.remove('open'); });
   A.on('meta', (s) => { if (s) paintSong(s); });
@@ -256,7 +284,7 @@
   })();
 
   /* transport actions */
-  MX.act('p-toggle', () => { MX.haptic(); A.togglePlay(); });
+  MX.act('p-toggle', () => { A.togglePlay(); paintState(A.isPlaying); MX.haptic(); });
   MX.act('p-next', () => A.next(true)); MX.act('p-prev', () => A.prev());
   MX.act('p-shuffle', () => A.setShuffle(!A.shuffle)); MX.act('p-repeat', () => A.cycleRepeat());
   MX.act('p-like', () => { const s = song(); if (s) MX.data.toggleLike(s); });

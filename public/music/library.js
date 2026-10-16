@@ -42,13 +42,14 @@
 
   /* Resolve a list key to songs (so a tap always plays "the list you were looking at"). */
   function listFor(ctx) {
-    if (!ctx) return S.songs;
+    if (!ctx) return Lib.full();
     if (ctx === 'my') return Lib.mine(); if (ctx === 'partner') return Lib.partner();
-    if (ctx === 'liked') return Lib.liked(); if (ctx === 'recent') return Lib.recent(); if (ctx === 'all') return S.songs;
+    if (ctx === 'liked') return Lib.liked(); if (ctx === 'recent') return Lib.recent(); if (ctx === 'all') return Lib.full();
+    if (ctx === 'featured') return Lib.featured();
     if (ctx.startsWith('pl:')) { const p = S.playlists.find((x) => x.id === ctx.slice(3)); return p ? Lib.playlistSongs(p) : []; }
     if (ctx.startsWith('mix:')) return mixById(ctx.slice(4)).songs;
     if (ctx.startsWith('ids:')) return ctx.slice(4).split(',').map(Lib.byId).filter(Boolean);
-    return S.songs;
+    return Lib.full();
   }
   MX.listFor = listFor;
   const orderedFor = (ctx, key) => (ctx === 'my' || ctx === 'partner' || ctx === 'liked') ? Lib.sort(listFor(ctx), key || MX.settings.get('sort')) : listFor(ctx);
@@ -74,7 +75,7 @@
   ═══════════════════════════════════════════════════════ */
   function mixes() {
     const out = []; const me = MX.names().me, pn = MX.names().partner;
-    const all = S.songs; if (!all.length) return out;
+    const all = Lib.full(); if (!all.length) return out;
     out.push({ id: 'ours', name: 'Our Mix', sub: 'Everything we love', songs: MX.shuffleArray(all), ico: 'sparkles' });
     const both = all.filter((s) => s.liked && s.partner_liked);
     if (both.length) out.push({ id: 'both', name: 'Loved by Both', sub: both.length + ' songs we both ♥', songs: both, ico: 'heart' });
@@ -101,13 +102,47 @@
   /* ═══════════════════════════════════════════════════════
      HOME — Music tab
   ═══════════════════════════════════════════════════════ */
+  /* ── Hero slider: swipeable covers of the songs on this phone (suggestions to play) ── */
+  let heroIds = [], heroKey = '', heroIdx = 0, heroTimer = 0, heroTouched = 0, heroEl = null;
+  function heroSongs(songs) {
+    const pool = songs.filter((s) => s.cover_url);
+    const key = pool.map((s) => s.id).sort().join(',');
+    if (key !== heroKey) { heroKey = key; heroIdx = 0; heroIds = MX.shuffleArray(pool).sort((a, b) => (b.liked ? 1 : 0) - (a.liked ? 1 : 0)).slice(0, 12).map((s) => s.id); }
+    return heroIds.map(Lib.byId).filter(Boolean);
+  }
+  function heroSlider(list) {
+    const slide = (s) => `<div class="hero-slide" data-act="play-song" data-id="${esc(s.id)}" data-ctx="all">
+      <div class="hero-art2" style="background-image:url('${esc(String(s.cover_url).replace(/'/g, '%27'))}')"></div>
+      <div class="hero-txt"><span class="hero-eyebrow">${s.liked ? '♥ You loved this' : 'Suggested for you'}</span>
+        <div class="hero-title ellip">${esc(s.title)}</div><div class="hero-artist ellip">${esc(s.artist || 'Unknown Artist')}</div></div>
+      <button class="hero-play" data-act="play-song" data-id="${esc(s.id)}" data-ctx="all" aria-label="Play ${esc(s.title)}">${icon('play')}</button></div>`;
+    return `<div class="hero-slider"><div class="hero-track" id="heroTrack">${list.map(slide).join('')}</div>
+      ${list.length > 1 ? `<div class="hero-dots" id="heroDots">${list.map((_, i) => `<i class="${i === heroIdx ? 'on' : ''}"></i>`).join('')}</div>` : ''}</div>`;
+  }
+  function bindHero() {
+    heroEl = document.getElementById('heroTrack'); if (!heroEl) return;
+    const t = heroEl;
+    if (heroIdx && t.clientWidth) t.scrollLeft = heroIdx * t.clientWidth;
+    t.addEventListener('scroll', () => {
+      if (!t.clientWidth) return; const i = Math.round(t.scrollLeft / t.clientWidth);
+      if (i !== heroIdx) { heroIdx = i; const d = document.getElementById('heroDots'); if (d) Array.from(d.children).forEach((x, k) => x.classList.toggle('on', k === i)); }
+    }, { passive: true });
+    ['touchstart', 'pointerdown', 'wheel'].forEach((ev) => t.addEventListener(ev, () => { heroTouched = Date.now(); }, { passive: true }));
+  }
+  function heroTick() {
+    const t = heroEl; if (!t || !t.isConnected || document.hidden || !t.offsetParent || !t.clientWidth) return;
+    if (Date.now() - heroTouched < 7000) return;
+    const n = t.children.length; if (n < 2) return;
+    t.scrollTo({ left: ((heroIdx + 1) % n) * t.clientWidth, behavior: 'smooth' });
+  }
+
   function homeMusic(el) {
     const names = MX.names();
     const render = () => {
       if (!S.loaded.songs) { el.innerHTML = `<div class="section">${skeleton(6)}</div>`; return; }
-      const songs = S.songs;
+      const songs = Lib.full();
       const banner = !MX.online() ? `<div class="banner" style="margin:0 0 12px">${icon('wifiOff')}<span>You're offline — downloaded songs still play.</span></div>` : '';
-      if (!songs.length) {
+      if (!S.songs.length) {
         el.innerHTML = `<div class="section">${banner}<div class="hero"><div><h2>Music brings us closer</h2><p>Add your first song and share it with ${esc(names.partner)}.</p></div></div>
           ${emptyBlock('music', 'Your library is empty', 'Upload songs from your phone. We\'ll read the title, artist and artwork automatically, and look up synced lyrics in the background.',
             `<button class="btn primary" data-act="add-songs">${icon('plus')} Add songs</button>`)}</div>`;
@@ -116,11 +151,11 @@
       const recent = Lib.recent(4);
       const mx = mixes().slice(0, 8);
       const lists = S.playlists.slice(-8).reverse();
-      const hero = Lib.recent(1)[0] || songs.find((s) => s.cover_url);
+      const featured = Lib.featured();
+      const slides = heroSongs(songs);
       el.innerHTML = `<div class="section">${banner}
-        <div class="hero">${hero && hero.cover_url ? `<div class="hero-art" style="background-image:url('${esc(hero.cover_url)}')"></div>` : ''}
-          <div><h2>Music brings<br>us closer</h2><p>Listen together, sing together, feel together.</p></div>
-          <button class="hero-play" data-act="play-list" data-ctx="all" data-shuffle="1" aria-label="Play">${icon('play')}</button></div>
+        ${slides.length ? heroSlider(slides) : `<div class="hero"><div><h2>Music brings<br>us closer</h2><p>Listen together, sing together, feel together.</p></div>
+          <button class="hero-play" data-act="play-list" data-ctx="all" data-shuffle="1" aria-label="Play">${icon('play')}</button></div>`}
         <div class="tiles">
           <button class="tile" data-act="open-library" data-tab="my"><span class="tile-ico">${icon('music')}</span>My Playlist<span class="n">${Lib.mine().length}</span></button>
           <button class="tile" data-act="open-library" data-tab="partner"><span class="tile-ico">${icon('heart')}</span>Partner<span class="n">${Lib.partner().length}</span></button>
@@ -128,6 +163,9 @@
           <button class="tile" data-act="sing-together"><span class="tile-ico">${icon('video')}</span>Sing Together<span class="n">&nbsp;</span></button>
         </div>
         ${recent.length ? `<div class="section-h"><h2>Recently Played</h2><button class="link" data-act="open-recent">See All ${icon('right')}</button></div><div class="list">${recent.map((s) => row(s, 'recent')).join('')}</div>` : ''}
+        <div class="section-h"><h2>Featured Songs</h2><button class="link" data-act="open-featured">See All ${icon('right')}</button></div>
+        ${featured.length ? `<div class="list">${featured.slice(0, 3).map((s) => row(s, 'featured')).join('')}</div>`
+          : `<div class="mix-sub" style="margin:0 2px 6px">30-second previews you add from Search Online are saved here.</div>`}
         <div class="section-h"><h2>Quick Actions</h2></div>
         <div class="quick">
           <button class="tile accent" data-act="play-list" data-ctx="all"><span class="tile-ico">${icon('play')}</span>Play All</button>
@@ -142,17 +180,23 @@
           : `<div class="banner">${icon('info')}<span>Playlists need a one-time database update (migrations/music_v2.sql).</span></div>`}
       </div>`;
     };
-    render();
+    render(); bindHero();
     if (window.LyricsPreFetch) window.LyricsPreFetch.warmUp(S.songs);
+    const redraw = () => { render(); bindHero(); };
+    let pend = 0; const schedule = () => { if (pend) return; pend = requestAnimationFrame(() => { pend = 0; redraw(); }); };
     const evs = ['library', 'playlists', 'downloads', 'connectivity'];
-    const offs = evs.map((e) => MX.on(e, () => render()));
-    A().on('track', () => render());
-    return { destroy() { offs.forEach((f) => f()); } };
+    const offs = evs.map((e) => MX.on(e, schedule));
+    // A track change only moves the "current" highlight — no need to rebuild the whole page (that made next/prev feel slow).
+    const markCurrent = () => { const c = A().currentSong(); const id = c ? String(c.id) : null; el.querySelectorAll('.trk[data-song]').forEach((r) => r.classList.toggle('current', r.dataset.song === id)); };
+    A().on('track', markCurrent);
+    heroTimer = setInterval(heroTick, 4500);
+    return { destroy() { offs.forEach((f) => f()); clearInterval(heroTimer); } };
   }
   MX.homeMusic = homeMusic;
 
   MX.act('open-library', (d) => MX.nav.push('library', { tab: d.tab || 'my' }));
   MX.act('open-recent', () => MX.nav.push('recent'));
+  MX.act('open-featured', () => MX.nav.push('featured'));
   MX.act('open-search', () => MX.nav.push('search'));
   MX.act('open-karaoke', () => MX.nav.push('karaoke'));
   MX.act('open-mix', (d) => MX.nav.push('mix', { id: d.id }));
@@ -237,6 +281,20 @@
     return { destroy: () => offs.forEach((f) => f()) };
   });
 
+  /* Featured Songs — the 30-second previews added from Search Online */
+  MX.nav.register('featured', (el) => {
+    el.innerHTML = MX.hdr('Featured Songs', `<button class="icon-btn accent" data-act="search-online" aria-label="Search Online">🌐</button>`, '30-second previews') + '<div class="section" id="fsb"></div>';
+    const body = el.querySelector('#fsb');
+    const render = () => {
+      const l = Lib.featured();
+      body.innerHTML = l.length ? `<div class="list-tools"><button class="btn primary" data-act="play-list" data-ctx="featured">${icon('play')} Play</button><button class="btn ghost" data-act="play-list" data-ctx="featured" data-shuffle="1">${icon('shuffle')} Shuffle</button></div>
+        <div class="mix-sub" style="margin:0 2px 6px">${l.length} preview${l.length === 1 ? '' : 's'}</div><div class="list">${l.map((s) => row(s, 'featured', { showOwner: true })).join('')}</div>`
+        : emptyBlock('music', 'No featured songs yet', 'Songs you add from Search Online are saved here as 30-second previews.', `<button class="btn primary" data-act="search-online">🌐 Search Online</button>`);
+    };
+    render(); const offs = ['library', 'downloads', 'connectivity'].map((e) => MX.on(e, render));
+    return { destroy: () => offs.forEach((f) => f()) };
+  });
+
   /* Smart mix */
   MX.nav.register('mix', (el, params) => {
     const m0 = mixById(params.id); const frozen = m0.songs.map((s) => s.id).join(',');
@@ -289,7 +347,7 @@
   MX.act('pl-add', (d) => { const p = S.playlists.find((x) => x.id === d.id); if (p) pickForPlaylist(p); });
   async function pickForPlaylist(p) {
     const inPl = new Set(p.song_ids.map(String));
-    const picks = await MX.pickSongs({ title: 'Add to ' + p.name, list: S.songs, disabled: inPl, confirm: 'Add' });
+    const picks = await MX.pickSongs({ title: 'Add to ' + p.name, list: Lib.full(), disabled: inPl, confirm: 'Add' });
     if (picks && picks.length) { const r = await MX.data.addToPlaylist(p, picks.map((s) => s.id)); if (r) MX.toast('Added ' + r.added + ' song' + (r.added === 1 ? '' : 's')); }
   }
   MX.act('new-playlist', async () => {

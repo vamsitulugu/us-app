@@ -235,6 +235,7 @@
     const s = currentSong(); if (!s) return;
     const token = ++loadToken;
     cancelCrossfade();
+    emit('track', s); emit('queue');   // update the mini player / title right away, before the (async) source lookup
     emit('loading', true);
     let url;
     try { url = await resolveSrc(s); } catch (e) { url = s.audio_url; }
@@ -254,7 +255,6 @@
     d.src = url; d.load(); d.playbackRate = rate;
     const startAt = opts.startAt != null ? opts.startAt : pendingStart; pendingStart = 0;
     if (startAt > 0) { const seek = () => { try { d.currentTime = startAt; } catch (e) {} d.removeEventListener('loadedmetadata', seek); }; d.addEventListener('loadedmetadata', seek); }
-    emit('track', s); emit('queue');
     if (opts.paused) { emit('loading', false); emit('state', false); return; }
     try {
       await d.play();

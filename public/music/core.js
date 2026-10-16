@@ -302,9 +302,13 @@
   const Lib = (MX.lib = {});
   Lib.byId = (id) => S.songs.find((s) => String(s.id) === String(id)) || null;
   Lib.isMine = (s) => s.uploaded_by === MX.role();
-  Lib.mine = () => S.songs.filter(Lib.isMine);
-  Lib.partner = () => S.songs.filter((s) => !Lib.isMine(s));
-  Lib.liked = () => S.songs.filter((s) => s.liked);
+  /* 30-second Deezer previews added from "Search Online" live on the Featured Songs page only. */
+  Lib.isPreview = (s) => /(^|\.)(dzcdn\.net|deezer\.com)(\/|$)/i.test(String(s && s.audio_url || '').replace(/^https?:\/\//i, ''));
+  Lib.full = () => S.songs.filter((s) => !Lib.isPreview(s));
+  Lib.featured = () => S.songs.filter(Lib.isPreview).sort((a, b) => MX.ts(b.created_at) - MX.ts(a.created_at));
+  Lib.mine = () => Lib.full().filter(Lib.isMine);
+  Lib.partner = () => Lib.full().filter((s) => !Lib.isMine(s));
+  Lib.liked = () => Lib.full().filter((s) => s.liked);
   Lib.recent = (n) => { const l = S.songs.filter((s) => MX.ts(s.my_last_played)).sort((a, b) => MX.ts(b.my_last_played) - MX.ts(a.my_last_played)); return n ? l.slice(0, n) : l; };
   Lib.norm = (s) => String(s || '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
   Lib.search = (q) => {
