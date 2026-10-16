@@ -223,24 +223,30 @@
 
   // ── Search TMDB and pre-fill the add form ──
   function searchTMDB() {
-    if (!window.MovieSearchUI) { toast('Movie search is still loading — try again'); return; }
-    window.MovieSearchUI.setOnAdd((m) => {
-      // Pre-fill the add form with TMDB data
-      $('mcTitle').value = m.title || '';
-      $('mcYear').value = m.year || '';
-      $('mcGenre').value = m.genre || 'Romance';
-      $('mcStatus').value = 'watchlist';
-      $('mcReview').value = m.overview || '';
-      $('mcScene').value = '';
-      $('mcOwner').value = 'my';
-      S.pendingPoster = m.poster_url || '';
-      S.pendingRating = Math.round((m.rating || 0) / 2); // TMDB is 0-10, ours is 0-5
-      paintStars(S.pendingRating);
-      paintPoster(S.pendingPoster);
-      $('mcFormTitle').textContent = 'Add Movie from TMDB';
-      $('mcFormBackdrop').hidden = false;
-    });
-    window.MovieSearchUI.open();
+    try {
+      if (!window.MovieSearchUI) { toast('Movie search module is still loading — try again in a moment'); return; }
+      window.MovieSearchUI.setOnAdd((m) => {
+        // Pre-fill the add form with TMDB data
+        try {
+          $('mcTitle').value = m.title || '';
+          $('mcYear').value = m.year || '';
+          $('mcGenre').value = m.genre || 'Romance';
+          $('mcStatus').value = 'watchlist';
+          $('mcReview').value = m.overview || '';
+          $('mcScene').value = '';
+          $('mcOwner').value = 'my';
+          S.pendingPoster = m.poster_url || '';
+          S.pendingRating = Math.round((m.rating || 0) / 2); // TMDB is 0-10, ours is 0-5
+          paintStars(S.pendingRating);
+          paintPoster(S.pendingPoster);
+          $('mcFormTitle').textContent = 'Add Movie from TMDB';
+          $('mcFormBackdrop').hidden = false;
+          toast('TMDB movie loaded — review and save 🎬');
+        } catch (e) { console.error('[tmdb] prefill failed:', e.message); toast('Could not pre-fill form'); }
+      });
+      window.MovieSearchUI.open();
+      toast('Searching TMDB…');
+    } catch (e) { console.error('[tmdb] searchTMDB failed:', e.message); toast('TMDB search unavailable — try again'); }
   }
 
   // ── Add movie entry point: choose manual or TMDB search ──
