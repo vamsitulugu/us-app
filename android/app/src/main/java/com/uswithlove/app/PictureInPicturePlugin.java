@@ -24,8 +24,13 @@ public class PictureInPicturePlugin extends Plugin {
       builder.setAspectRatio(new Rational(16, 9));
     }
     getActivity().runOnUiThread(() -> {
-      getActivity().enterPictureInPicture(builder.build());
-      call.resolve();
+      try {
+        // Activity#enterPictureInPictureMode(PictureInPictureParams) — API 26+ (guarded above).
+        getActivity().enterPictureInPictureMode(builder.build());
+        call.resolve();
+      } catch (Exception e) {
+        call.reject("Could not enter Picture-in-Picture: " + e.getMessage());
+      }
     });
   }
 

@@ -253,11 +253,17 @@ public class MainActivity extends BridgeActivity {
 
     if (uris.isEmpty()) return;
 
-    final String json = new org.json.JSONObject()
-        .put("action", action)
-        .put("type", type)
-        .put("uris", new org.json.JSONArray(uris))
-        .toString();
+    // JSONObject.put() throws a checked JSONException — it must be caught.
+    final String json;
+    try {
+      json = new org.json.JSONObject()
+          .put("action", action)
+          .put("type", type)
+          .put("uris", new org.json.JSONArray(uris))
+          .toString();
+    } catch (org.json.JSONException e) {
+      return;
+    }
 
     final android.webkit.WebView webView = getBridge() != null ? getBridge().getWebView() : null;
     if (webView != null && webView.getUrl() != null && webView.getUrl().startsWith(APP_ORIGIN)) {

@@ -1,0 +1,47 @@
+diff --git a/android/app/src/main/java/com/uswithlove/app/MainActivity.java b/android/app/src/main/java/com/uswithlove/app/MainActivity.java
+index 7d1b7db..b7e65d3 100644
+--- a/android/app/src/main/java/com/uswithlove/app/MainActivity.java
++++ b/android/app/src/main/java/com/uswithlove/app/MainActivity.java
+@@ -253,11 +253,17 @@ public class MainActivity extends BridgeActivity {
+ 
+     if (uris.isEmpty()) return;
+ 
+-    final String json = new org.json.JSONObject()
+-        .put("action", action)
+-        .put("type", type)
+-        .put("uris", new org.json.JSONArray(uris))
+-        .toString();
++    // JSONObject.put() throws a checked JSONException — it must be caught.
++    final String json;
++    try {
++      json = new org.json.JSONObject()
++          .put("action", action)
++          .put("type", type)
++          .put("uris", new org.json.JSONArray(uris))
++          .toString();
++    } catch (org.json.JSONException e) {
++      return;
++    }
+ 
+     final android.webkit.WebView webView = getBridge() != null ? getBridge().getWebView() : null;
+     if (webView != null && webView.getUrl() != null && webView.getUrl().startsWith(APP_ORIGIN)) {
+diff --git a/android/app/src/main/java/com/uswithlove/app/PictureInPicturePlugin.java b/android/app/src/main/java/com/uswithlove/app/PictureInPicturePlugin.java
+index 376d4ef..54a3161 100644
+--- a/android/app/src/main/java/com/uswithlove/app/PictureInPicturePlugin.java
++++ b/android/app/src/main/java/com/uswithlove/app/PictureInPicturePlugin.java
+@@ -24,8 +24,13 @@ public class PictureInPicturePlugin extends Plugin {
+       builder.setAspectRatio(new Rational(16, 9));
+     }
+     getActivity().runOnUiThread(() -> {
+-      getActivity().enterPictureInPicture(builder.build());
+-      call.resolve();
++      try {
++        // Activity#enterPictureInPictureMode(PictureInPictureParams) — API 26+ (guarded above).
++        getActivity().enterPictureInPictureMode(builder.build());
++        call.resolve();
++      } catch (Exception e) {
++        call.reject("Could not enter Picture-in-Picture: " + e.getMessage());
++      }
+     });
+   }
+ 
