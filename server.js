@@ -58,12 +58,15 @@ const apiLimiter = rateLimit({
 // ── CORS ──────────────────────────────────────────────
 const allowedOrigins = [
   'https://twinhearts.vercel.app',
+  'https://useverythingtogether.vercel.app',
   process.env.APP_URL || 'https://us-app-av6d.onrender.com',
   // The Android APK (Capacitor, androidScheme:'https') serves its bundled
   // web assets from this origin — without it, every fetch() call made
   // from inside the app would be blocked by CORS.
   'https://localhost',
+  'http://localhost',
   'capacitor://localhost',
+  'ionic://localhost',
   'http://localhost:3000',
   'http://127.0.0.1:3000',
   'http://localhost:3001',
@@ -71,8 +74,14 @@ const allowedOrigins = [
 ];
 app.use(cors({
   origin: function(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) callback(null, true);
-    else callback(new Error('Not allowed by CORS'));
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    try {
+      const host = new URL(origin).hostname;
+      if (host === 'localhost' || host === '127.0.0.1' || host.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
+    } catch (e) { /* ignore invalid origin */ }
+    callback(null, false);
   },
   credentials: true
 }));

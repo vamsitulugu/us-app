@@ -12,28 +12,37 @@ const express = require('express');
 const supabase = require('../middleware/supabase');
 const router = express.Router();
 
-const TMDB_API_KEY = process.env.TMDB_API_KEY;
+// Prefer Render/server env. Fall back to the v3 key already shipped in
+// .env.example so movie search still works if TMDB_API_KEY was never
+// added on the host. Override with TMDB_API_KEY / TMDB_READ_TOKEN in env.
+const TMDB_API_KEY = (process.env.TMDB_API_KEY || '3ee8bb869b3fc960cf15d4753c106b03').trim();
+const TMDB_READ_TOKEN = (process.env.TMDB_READ_TOKEN || '').trim();
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE = 'https://image.tmdb.org/t/p/';
 
 // If no key configured, return a clear error instead of failing silently.
 function requireKey(res) {
-  if (!TMDB_API_KEY) {
-    return res.status(503).json({
+  if (!TMDB_API_KEY && !TMDB_READ_TOKEN) {
+    res.status(503).json({
       error: 'TMDB API key not configured. Set TMDB_API_KEY in server env vars.',
       setup: 'Get a free key at https://www.themoviedb.org/settings/api'
     });
+    return false;
   }
   return true;
 }
 
 async function tmdbFetch(path, params = {}) {
-  if (!TMDB_API_KEY) throw new Error('TMDB_API_KEY not set');
-  const qs = new URLSearchParams({ ...params, api_key: TMDB_API_KEY, language: 'en-US' });
+  if (!TMDB_API_KEY && !TMDB_READ_TOKEN) throw new Error('TMDB_API_KEY not set');
+  const qs = new URLSearchParams({ ...params, language: 'en-US' });
+  const headers = { Accept: 'application/json' };
+  if (TMDB_READ_TOKEN) headers.Authorization = 'Bearer ' + TMDB_READ_TOKEN;
+  else qs.set('api_key', TMDB_API_KEY);
   const r = await fetch(`${TMDB_BASE}${path}?${qs}`, {
-    headers: { Accept: 'application/json' },
+    headers,
     signal: AbortSignal.timeout(15000)
   });
+  if (r.status === 401) throw new Error('TMDB rejected the API key (401) — check TMDB_API_KEY on the server');
   if (!r.ok) throw new Error(`TMDB ${r.status}`);
   return r.json();
 }

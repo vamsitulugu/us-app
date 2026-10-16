@@ -13,6 +13,7 @@
     if (window.parent && window.parent.API) API_BASE = window.parent.API;
     else if (window.API) API_BASE = window.API;
   } catch (e) { /* fallback to default */ }
+  API_BASE = String(API_BASE || '').replace(/\/$/, '') || 'https://us-app-av6d.onrender.com';
 
   let currentResults = [];
   let selectedMovie = null;
@@ -31,12 +32,13 @@
       #th-msv-modal { position: fixed; inset: 0; z-index: 2147483645; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); opacity: 0; pointer-events: none; transition: opacity .25s ease; padding: 20px; }
       #th-msv-modal.open { opacity: 1; pointer-events: auto; }
       #th-msv-modal .th-msv-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-      #th-msv-modal .th-msv-shell { position: relative; z-index: 2; width: 100%; max-width: 480px; max-height: 90vh; display: flex; flex-direction: column; background: rgba(18,6,13,0.94); border: 1px solid rgba(255,255,255,0.12); border-radius: 20px; box-shadow: 0 24px 60px rgba(0,0,0,0.55); overflow: hidden; }
+      #th-msv-modal { --th-clear: var(--us-nav-clear, calc(104px + env(safe-area-inset-bottom, 0px))); align-items: flex-start; padding: calc(12px + env(safe-area-inset-top, 0px)) 14px var(--th-clear); box-sizing: border-box; height: var(--th-vh, 100dvh); }
+      #th-msv-modal .th-msv-shell { position: relative; z-index: 2; width: 100%; max-width: 480px; max-height: 100%; display: flex; flex-direction: column; background: rgba(18,6,13,0.94); border: 1px solid rgba(255,255,255,0.12); border-radius: 20px; box-shadow: 0 24px 60px rgba(0,0,0,0.55); overflow: hidden; margin-top: 4px; }
       #th-msv-modal .th-msv-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: rgba(255,255,255,0.06); border-bottom: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; }
       #th-msv-modal .th-msv-title { color: #fff; font-size: 17px; font-weight: 600; margin: 0; font-family: 'Inter', system-ui, sans-serif; }
       #th-msv-modal .th-msv-close { background: none; border: none; color: rgba(255,255,255,0.7); font-size: 22px; cursor: pointer; padding: 4px 10px; border-radius: 8px; }
       #th-msv-modal .th-msv-close:hover { background: rgba(255,255,255,0.12); color: #fff; }
-      #th-msv-modal .th-msv-body { flex: 1; overflow-y: auto; padding: 16px 20px 0; }
+      #th-msv-modal .th-msv-body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 14px 16px 16px; }
       #th-msv-modal .th-msv-searchbar { display: flex; gap: 10px; margin-bottom: 16px; position: sticky; top: 0; background: rgba(18,6,13,0.94); z-index: 10; padding-bottom: 12px; }
       #th-msv-modal .th-msv-searchbar input { flex: 1; border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 11px 16px; background: rgba(255,255,255,0.04); color: #fff; font-size: 14px; outline: none; }
       #th-msv-modal .th-msv-searchbar input:focus { border-color: hsl(322,100%,62%); box-shadow: 0 0 0 3px hsla(322,100%,62%,0.2); }
@@ -115,12 +117,16 @@
     const addBtn = document.getElementById('th-msv-btn-add');
     emptyEl.style.display = 'none'; loadingEl.style.display = 'block'; listEl.innerHTML = ''; detailsEl.classList.add('hidden'); selectedMovie = null; addBtn.classList.remove('ready');
     try {
-      const r = await fetch(`${API_BASE}/api/movie-search/search?q=${encodeURIComponent(query)}`);
-      if (!r.ok) throw new Error('Search failed');
+      const r = await fetch(`${API_BASE}/api/movie-search/search?q=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(20000) });
+      if (!r.ok) {
+        let msg = 'Search failed (' + r.status + ')';
+        try { const j = await r.json(); if (j && j.error) msg = j.error; } catch (_) {}
+        throw new Error(msg);
+      }
       const data = await r.json();
       currentResults = data.results || [];
       renderResults();
-    } catch (e) { console.error('[movie-search-ui] search failed:', e.message); loadingEl.style.display = 'none'; emptyEl.innerHTML = '<div class="ico">⚠️</div><div>Search unavailable — try again</div>'; emptyEl.style.display = 'block'; } finally { loadingEl.style.display = 'none'; }
+    } catch (e) { console.error('[movie-search-ui] search failed:', e.message); loadingEl.style.display = 'none'; emptyEl.innerHTML = '<div class="ico">⚠️</div><div>Search unavailable — try again</div><div style="margin-top:8px;font-size:11px;opacity:.7">' + esc(e.message) + '</div>'; emptyEl.style.display = 'block'; } finally { loadingEl.style.display = 'none'; }
   }
 
   function renderResults() {
