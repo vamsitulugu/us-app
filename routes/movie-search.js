@@ -12,15 +12,26 @@ const express = require('express');
 const supabase = require('../middleware/supabase');
 const router = express.Router();
 
-// Prefer Render/server env. Fall back to the v3 key already shipped in
-// .env.example so movie search still works if TMDB_API_KEY was never
-// added on the host. Override with TMDB_API_KEY / TMDB_READ_TOKEN in env.
-const TMDB_API_KEY = (process.env.TMDB_API_KEY || '3ee8bb869b3fc960cf15d4753c106b03').trim();
-const TMDB_READ_TOKEN = (process.env.TMDB_READ_TOKEN || '').trim();
+// Render env is often mistyped as TMDB_APT_KEY. Also accept the long
+// "API Read Access Token" (JWT) via TMDB_READ_TOKEN or if the key itself
+// looks like a JWT. Fall back to the v3 key shipped in .env.example.
+function envTrim(...names) {
+  for (const n of names) {
+    const v = (process.env[n] || '').trim().replace(/^['"]|['"]$/g, '');
+    if (v) return v;
+  }
+  return '';
+}
+
+let TMDB_API_KEY = envTrim('TMDB_API_KEY', 'TMDB_APT_KEY', 'THEMOVIEDB_API_KEY') || '3ee8bb869b3fc960cf15d4753c106b03';
+let TMDB_READ_TOKEN = envTrim('TMDB_READ_TOKEN', 'TMDB_ACCESS_TOKEN');
+if (TMDB_API_KEY.startsWith('eyJ') && !TMDB_READ_TOKEN) {
+  TMDB_READ_TOKEN = TMDB_API_KEY;
+  TMDB_API_KEY = '';
+}
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE = 'https://image.tmdb.org/t/p/';
 
-// If no key configured, return a clear error instead of failing silently.
 function requireKey(res) {
   if (!TMDB_API_KEY && !TMDB_READ_TOKEN) {
     res.status(503).json({
@@ -32,19 +43,46 @@ function requireKey(res) {
   return true;
 }
 
-async function tmdbFetch(path, params = {}) {
-  if (!TMDB_API_KEY && !TMDB_READ_TOKEN) throw new Error('TMDB_API_KEY not set');
+async function tmdbRequest(path, params, { bearer, apiKey }) {
   const qs = new URLSearchParams({ ...params, language: 'en-US' });
-  const headers = { Accept: 'application/json' };
-  if (TMDB_READ_TOKEN) headers.Authorization = 'Bearer ' + TMDB_READ_TOKEN;
-  else qs.set('api_key', TMDB_API_KEY);
+  const headers = {
+    Accept: 'application/json',
+    'User-Agent': 'TwinHearts-MovieSearch/1.0'
+  };
+  if (bearer) headers.Authorization = 'Bearer ' + bearer;
+  else if (apiKey) qs.set('api_key', apiKey);
+  else throw new Error('TMDB_API_KEY not set');
   const r = await fetch(`${TMDB_BASE}${path}?${qs}`, {
     headers,
     signal: AbortSignal.timeout(15000)
   });
-  if (r.status === 401) throw new Error('TMDB rejected the API key (401) — check TMDB_API_KEY on the server');
-  if (!r.ok) throw new Error(`TMDB ${r.status}`);
-  return r.json();
+  return r;
+}
+
+async function tmdbFetch(path, params = {}) {
+  if (!TMDB_API_KEY && !TMDB_READ_TOKEN) throw new Error('TMDB_API_KEY not set');
+
+  // Prefer the v3 api_key query (what TMDB dashboard calls "API Key").
+  // If that 401s, retry with the read-access JWT as Bearer.
+  const attempts = [];
+  if (TMDB_API_KEY) attempts.push({ apiKey: TMDB_API_KEY });
+  if (TMDB_READ_TOKEN) attempts.push({ bearer: TMDB_READ_TOKEN });
+  if (TMDB_API_KEY && !TMDB_READ_TOKEN) attempts.push({ bearer: TMDB_API_KEY });
+
+  let lastStatus = 0;
+  for (let i = 0; i < attempts.length; i++) {
+    const r = await tmdbRequest(path, params, attempts[i]);
+    lastStatus = r.status;
+    if (r.ok) return r.json();
+    if (r.status !== 401 && r.status !== 403) {
+      throw new Error(`TMDB ${r.status}`);
+    }
+  }
+  throw new Error(
+    lastStatus === 401
+      ? 'TMDB rejected the API key (401). On Render the variable must be named TMDB_API_KEY (not TMDB_APT_KEY) and the value must be the short API Key from themoviedb.org/settings/api'
+      : `TMDB ${lastStatus}`
+  );
 }
 
 // ── GET /api/movie-search/search?q= ─────────────────────────────────
