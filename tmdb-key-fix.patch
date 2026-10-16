@@ -1,0 +1,98 @@
+diff --git a/.env.example b/.env.example
+index 82d75fa..4870ce2 100644
+--- a/.env.example
++++ b/.env.example
+@@ -35,4 +35,4 @@ FIREBASE_SERVICE_ACCOUNT={"type":"service_account",...}
+ # ─── Metered API (optional) ────────────────────────────
+ METERED_API_KEY=a09e9e61fe66f81ba1809f60a904405fbe29
+ 
+-TMDB_API_KEY=3ee8bb869b3fc960cf15d4753c106b03
+\ No newline at end of file
++TMDB_API_KEY=your_tmdb_v3_api_key_here
+\ No newline at end of file
+diff --git a/public/js/movie-search-ui.js b/public/js/movie-search-ui.js
+index 922acf7..ff6e5bb 100644
+--- a/public/js/movie-search-ui.js
++++ b/public/js/movie-search-ui.js
+@@ -116,11 +116,11 @@
+     emptyEl.style.display = 'none'; loadingEl.style.display = 'block'; listEl.innerHTML = ''; detailsEl.classList.add('hidden'); selectedMovie = null; addBtn.classList.remove('ready');
+     try {
+       const r = await fetch(`${API_BASE}/api/movie-search/search?q=${encodeURIComponent(query)}`);
+-      if (!r.ok) throw new Error('Search failed');
++      if (!r.ok) { let msg = 'Search failed (' + r.status + ')'; try { const j = await r.json(); if (j && j.error) msg = j.error; } catch (_) {} throw new Error(msg); }
+       const data = await r.json();
+       currentResults = data.results || [];
+       renderResults();
+-    } catch (e) { console.error('[movie-search-ui] search failed:', e.message); loadingEl.style.display = 'none'; emptyEl.innerHTML = '<div class="ico">⚠️</div><div>Search unavailable — try again</div>'; emptyEl.style.display = 'block'; } finally { loadingEl.style.display = 'none'; }
++    } catch (e) { console.error('[movie-search-ui] search failed:', e.message); loadingEl.style.display = 'none'; emptyEl.innerHTML = '<div class="ico">⚠️</div><div>Search unavailable — try again</div><div style="margin-top:8px;font-size:11px;opacity:.7">' + esc(e.message) + '</div>'; emptyEl.style.display = 'block'; } finally { loadingEl.style.display = 'none'; }
+   }
+ 
+   function renderResults() {
+@@ -129,7 +129,7 @@
+     const addBtn = document.getElementById('th-msv-btn-add');
+     if (!currentResults.length) { emptyEl.innerHTML = '<div class="ico">😕</div><div>No movies found</div>'; emptyEl.style.display = 'block'; listEl.innerHTML = ''; addBtn.classList.remove('ready'); return; }
+     emptyEl.style.display = 'none';
+-    listEl.innerHTML = currentResults.map((m, i) => `<div class="th-msv-item${i === 0 ? ' selected' : ''}" data-idx="${i}" onclick="window.MovieSearchUI.select(${i})">${m.poster_url ? '<img class="th-msv-item-art" src="' + esc(m.poster_url) + '" alt="">' : '<div class="th-msv-item-art">🎬</div>'}<div class="th-msv-item-info"><div class="th-msv-item-title">' + esc(m.title) + '</div><div class="th-msv-item-meta">' + (m.year ? esc(m.year) + ' • ' : '') + (m.rating ? '⭐ ' + esc(m.rating) + '/10' : '') + '</div></div><div class="th-msv-item-check">' + (selectedMovie === m.id ? '<i>✓</i>' : '') + '</div></div>`).join('');
++    listEl.innerHTML = currentResults.map((m, i) => `<div class="th-msv-item${i === 0 ? ' selected' : ''}" data-idx="${i}" onclick="window.MovieSearchUI.select(${i})">${m.poster_url ? `<img class="th-msv-item-art" src="${esc(m.poster_url)}" alt="">` : '<div class="th-msv-item-art">🎬</div>'}<div class="th-msv-item-info"><div class="th-msv-item-title">${esc(m.title)}</div><div class="th-msv-item-meta">${m.year ? esc(m.year) + ' • ' : ''}${m.rating ? '⭐ ' + esc(Number(m.rating).toFixed(1)) + '/10' : ''}</div></div><div class="th-msv-item-check">${i === 0 ? '<i>✓</i>' : ''}</div></div>`).join('');
+     if (selectedMovie === null && currentResults.length) select(0);
+   }
+ 
+@@ -155,7 +155,9 @@
+       ]);
+       if (d) {
+         titleEl.textContent = d.title;
+-        metaEl.textContent = (d.year ? esc(d.year) + ' • ' : '') + (d.genre ? esc(d.genre) + ' • ' : '') + (d.runtime ? esc(d.runtime) + ' min' : '') + (d.rating ? ' • ⭐ ' + esc(d.rating) + '/10' : '');
++        metaEl.textContent = (d.year ? d.year + ' • ' : '') + (d.genre ? d.genre + ' • ' : '') + (d.runtime ? d.runtime + ' min' : '') + (d.rating ? ' • ⭐ ' + Number(d.rating).toFixed(1) + '/10' : '');
++        // keep the real genre/runtime on the selected movie so the Add form can use them
++        if (selectedMovie && String(selectedMovie.tmdb_id) === String(tmdbId)) { selectedMovie.genre = d.genre || selectedMovie.genre; selectedMovie.runtime = d.runtime || selectedMovie.runtime; }
+         overviewEl.textContent = d.overview || 'No overview available.';
+         detailsEl.classList.remove('hidden');
+       }
+@@ -195,4 +197,4 @@
+   function close() { const m = document.getElementById('th-msv-modal'); if (m) m.classList.remove('open'); }
+ 
+   global.MovieSearchUI = { open, close, select, addSelected, search, setOnAdd };
+-})();
++})(window);
+diff --git a/routes/movie-search.js b/routes/movie-search.js
+index 84db27d..7fe127e 100644
+--- a/routes/movie-search.js
++++ b/routes/movie-search.js
+@@ -12,13 +12,15 @@ const express = require('express');
+ const supabase = require('../middleware/supabase');
+ const router = express.Router();
+ 
+-const TMDB_API_KEY = process.env.TMDB_API_KEY;
++const TMDB_API_KEY = (process.env.TMDB_API_KEY || '').trim();
++// Optional: the long "API Read Access Token" from TMDB also works (sent as a Bearer header).
++const TMDB_READ_TOKEN = (process.env.TMDB_READ_TOKEN || '').trim();
+ const TMDB_BASE = 'https://api.themoviedb.org/3';
+ const TMDB_IMAGE = 'https://image.tmdb.org/t/p/';
+ 
+ // If no key configured, return a clear error instead of failing silently.
+ function requireKey(res) {
+-  if (!TMDB_API_KEY) {
++  if (!TMDB_API_KEY && !TMDB_READ_TOKEN) {
+     return res.status(503).json({
+       error: 'TMDB API key not configured. Set TMDB_API_KEY in server env vars.',
+       setup: 'Get a free key at https://www.themoviedb.org/settings/api'
+@@ -28,12 +30,13 @@ function requireKey(res) {
+ }
+ 
+ async function tmdbFetch(path, params = {}) {
+-  if (!TMDB_API_KEY) throw new Error('TMDB_API_KEY not set');
+-  const qs = new URLSearchParams({ ...params, api_key: TMDB_API_KEY, language: 'en-US' });
+-  const r = await fetch(`${TMDB_BASE}${path}?${qs}`, {
+-    headers: { Accept: 'application/json' },
+-    signal: AbortSignal.timeout(15000)
+-  });
++  if (!TMDB_API_KEY && !TMDB_READ_TOKEN) throw new Error('TMDB_API_KEY not set');
++  const qs = new URLSearchParams({ ...params, language: 'en-US' });
++  const headers = { Accept: 'application/json' };
++  if (TMDB_READ_TOKEN) headers.Authorization = 'Bearer ' + TMDB_READ_TOKEN;
++  else qs.set('api_key', TMDB_API_KEY);
++  const r = await fetch(`${TMDB_BASE}${path}?${qs}`, { headers, signal: AbortSignal.timeout(15000) });
++  if (r.status === 401) throw new Error('TMDB rejected the API key (401) — check TMDB_API_KEY on the server');
+   if (!r.ok) throw new Error(`TMDB ${r.status}`);
+   return r.json();
+ }
