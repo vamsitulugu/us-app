@@ -23,17 +23,22 @@ function envTrim(...names) {
   return '';
 }
 
-let TMDB_API_KEY = envTrim('TMDB_API_KEY', 'TMDB_APT_KEY', 'THEMOVIEDB_API_KEY');
-let TMDB_READ_TOKEN = envTrim('TMDB_READ_TOKEN', 'TMDB_ACCESS_TOKEN');
-if (TMDB_API_KEY.startsWith('eyJ') && !TMDB_READ_TOKEN) {
-  TMDB_READ_TOKEN = TMDB_API_KEY;
-  TMDB_API_KEY = '';
+function getCredentials() {
+  let apiKey = envTrim('TMDB_API_KEY', 'TMDB_APT_KEY', 'THEMOVIEDB_API_KEY');
+  let readToken = envTrim('TMDB_READ_TOKEN', 'TMDB_ACCESS_TOKEN');
+  if (apiKey.startsWith('eyJ') && !readToken) {
+    readToken = apiKey;
+    apiKey = '';
+  }
+  return { apiKey, readToken };
 }
+
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE = 'https://image.tmdb.org/t/p/';
 
 function requireKey(res) {
-  if (!TMDB_API_KEY && !TMDB_READ_TOKEN) {
+  const { apiKey, readToken } = getCredentials();
+  if (!apiKey && !readToken) {
     res.status(503).json({
       error: 'TMDB API key not configured. Set TMDB_API_KEY in server env vars.',
       setup: 'Get a free key at https://www.themoviedb.org/settings/api'
@@ -60,14 +65,15 @@ async function tmdbRequest(path, params, { bearer, apiKey }) {
 }
 
 async function tmdbFetch(path, params = {}) {
-  if (!TMDB_API_KEY && !TMDB_READ_TOKEN) throw new Error('TMDB_API_KEY not set');
+  const { apiKey, readToken } = getCredentials();
+  if (!apiKey && !readToken) throw new Error('TMDB_API_KEY not set');
 
   // Prefer the v3 api_key query (what TMDB dashboard calls "API Key").
   // If that 401s, retry with the read-access JWT as Bearer.
   const attempts = [];
-  if (TMDB_API_KEY) attempts.push({ apiKey: TMDB_API_KEY });
-  if (TMDB_READ_TOKEN) attempts.push({ bearer: TMDB_READ_TOKEN });
-  if (TMDB_API_KEY && !TMDB_READ_TOKEN) attempts.push({ bearer: TMDB_API_KEY });
+  if (apiKey) attempts.push({ apiKey });
+  if (readToken) attempts.push({ bearer: readToken });
+  if (apiKey && !readToken) attempts.push({ bearer: apiKey });
 
   let lastStatus = 0;
   for (let i = 0; i < attempts.length; i++) {
