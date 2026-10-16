@@ -385,6 +385,8 @@
     // stale tab is open) may change the data — refresh when we regain focus.
     window.addEventListener('focus', () => { load(); if (!document.querySelector('.wt-modal-backdrop:not([hidden]), #mcDetail:not([hidden])')) render(); });
     document.addEventListener('visibilitychange', () => { if (!document.hidden) { load(); render(); } });
+    // Reload when a movie is added from online search (via MovieSearchUI)
+    try { window.parent.MX.on('library', () => { load(); render(); }); } catch (e) {}
   }
   window.MC = { go, closeTop, openDetail, openForm, reload: () => { load(); render(); } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

@@ -133,7 +133,8 @@
           <button class="tile accent" data-act="play-list" data-ctx="all"><span class="tile-ico">${icon('play')}</span>Play All</button>
           <button class="tile" data-act="play-list" data-ctx="all" data-shuffle="1"><span class="tile-ico">${icon('shuffle')}</span>Shuffle</button>
           <button class="tile" data-act="download-all"><span class="tile-ico">${icon('download')}</span>Download</button>
-          <button class="tile" data-act="open-search"><span class="tile-ico">${icon('search')}</span>Search</button><button class="tile accent" data-act="search-online"><span class="tile-ico">🌐</span>Search Online</button>
+          <button class="tile" data-act="open-search"><span class="tile-ico">${icon('search')}</span>Search</button>
+          <button class="tile accent" data-act="search-online"><span class="tile-ico">🌐</span>Search Online</button>
         </div>
         ${mx.length ? `<div class="section-h"><h2>Made for Us</h2></div><div class="hscroll">${mx.map(mixCard).join('')}</div>` : ''}
         <div class="section-h"><h2>Our Playlists</h2>${S.playlistsAvailable ? `<button class="link" data-act="new-playlist">New ${icon('plus')}</button>` : ''}</div>

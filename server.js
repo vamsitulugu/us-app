@@ -125,6 +125,8 @@ app.use('/api/chat', require('./routes/chat'));
 app.use('/api/call', require('./routes/call'));
 app.use('/api/music', require('./routes/music'));
 app.use('/api/pro', require('./routes/pro'));
+app.use('/api/movie-search', require('./routes/movie-search'));
+app.use('/api/movie-fav', require('./routes/movie-favorites'));
 
 // ── Admin Control Center ────────────────────────────────
 app.use('/api/recordings', require('./routes/recordings'));
