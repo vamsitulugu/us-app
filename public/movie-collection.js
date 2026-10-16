@@ -220,6 +220,35 @@
     $('mcGenre').innerHTML = Object.keys(GENRES).map((n) => `<option value="${esc(n)}">${GENRES[n].e} ${esc(n)}</option>`).join('');
     $('mcStars').innerHTML = [1, 2, 3, 4, 5].map((v) => `<button type="button" class="mc-star" data-v="${v}">☆</button>`).join('');
   }
+
+  // ── Search TMDB and pre-fill the add form ──
+  function searchTMDB() {
+    if (!window.MovieSearchUI) { toast('Movie search is still loading — try again'); return; }
+    window.MovieSearchUI.setOnAdd((m) => {
+      // Pre-fill the add form with TMDB data
+      $('mcTitle').value = m.title || '';
+      $('mcYear').value = m.year || '';
+      $('mcGenre').value = m.genre || 'Romance';
+      $('mcStatus').value = 'watchlist';
+      $('mcReview').value = m.overview || '';
+      $('mcScene').value = '';
+      $('mcOwner').value = 'my';
+      S.pendingPoster = m.poster_url || '';
+      S.pendingRating = Math.round((m.rating || 0) / 2); // TMDB is 0-10, ours is 0-5
+      paintStars(S.pendingRating);
+      paintPoster(S.pendingPoster);
+      $('mcFormTitle').textContent = 'Add Movie from TMDB';
+      $('mcFormBackdrop').hidden = false;
+    });
+    window.MovieSearchUI.open();
+  }
+
+  // ── Add movie entry point: choose manual or TMDB search ──
+  function addMovie() {
+    const choice = confirm('Add a movie:\n\nOK = Add manually\nCancel = Search online (TMDB)');
+    if (choice) openForm(); else searchTMDB();
+  }
+
   function paintStars(v) { document.querySelectorAll('#mcStars .mc-star').forEach((b) => { const on = Number(b.dataset.v) <= v; b.classList.toggle('on', on); b.textContent = on ? '★' : '☆'; }); }
   function paintPoster(src) {
     $('mcPosterPreview').innerHTML = src ? `<img src="${src}" alt="">` : '<i data-lucide="image-plus"></i><em>Upload poster</em>';
@@ -320,7 +349,7 @@
   function wire() {
     $('wtTabs').addEventListener('click', (e) => { const b = e.target.closest('.wt-tab'); if (b) go(b.dataset.tab, { reset: b.dataset.tab === 'library' }); });
     $('mcSearch').addEventListener('input', (e) => { S.q = e.target.value; renderLibrary(); icons(); });
-    $('mcAddBtn').onclick = () => openForm();
+    $('mcAddBtn').onclick = () => addMovie();
 
     document.addEventListener('click', (e) => {
       const t = e.target;
@@ -340,7 +369,7 @@
       switch (id) {
         case 'mcBannerWatch': case 'mcDWatch': watchWith(find(S.detailId) || featured()); break;
         case 'mcBannerDetails': { const f = featured(); if (f) openDetail(f.id); break; }
-        case 'mcBannerAdd': case 'mcEmptyAdd': openForm(); break;
+        case 'mcBannerAdd': case 'mcEmptyAdd': addMovie(); break;
         case 'mcBannerMore': bannerMenu(); break;
         case 'mcDBack': closeDetail(); break;
         case 'mcDFav': case 'mcDList': toggleFav(S.detailId); break;

@@ -108,6 +108,45 @@ async function loadStateMap(coupleId) {
 
 // GET one song with its full lyrics body (the list endpoint omits it).
 // Declared before '/:coupleId/...' routes so 'song' is never read as a coupleId.
+// ═════════════════════════════════════════════════════════
+//  MUSIC SEARCH — server-side Deezer proxy
+//  The browser can't call Deezer directly from the iframe/WebView
+//  (CORS + timeout), so this proxies it from the server.
+// ═════════════════════════════════════════════════════════
+const DEEZER = 'https://api.deezer.com';
+const DEEZER_LIMIT = 25;
+
+router.get('/search', async (req, res) => {
+  const { q } = req.query;
+  if (!q || !q.trim()) return res.status(400).json({ error: 'q required' });
+  try {
+    const r = await fetch(`${DEEZER}/search?q=${encodeURIComponent(q.trim())}&limit=${DEEZER_LIMIT}`, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(15000)
+    });
+    if (!r.ok) throw new Error(`Deezer ${r.status}`);
+    const data = await r.json();
+    res.json({
+      results: (data.data || []).map((t) => ({
+        id: 'deezer_' + t.id,
+        title: t.title,
+        artist: t.artist ? t.artist.name : 'Unknown Artist',
+        album: t.album ? t.album.title : '',
+        duration: t.duration || 0,
+        cover: t.album ? t.album.cover_medium : '',
+        preview: t.preview || null,
+        deezerId: t.id,
+        deezerLink: t.link || '',
+        source: 'deezer'
+      })),
+      total: data.total || 0
+    });
+  } catch (e) {
+    console.error('[music] search failed:', e.message);
+    res.status(502).json({ error: 'Music search failed — ' + e.message });
+  }
+});
+
 router.get('/song/:id', async (req, res) => {
   const { coupleId } = req.query;
   const viewer = okRole(req.query.viewer);

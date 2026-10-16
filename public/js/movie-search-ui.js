@@ -16,6 +16,11 @@
 
   let currentResults = [];
   let selectedMovie = null;
+  let onAdd = null; // callback: (movie) => void — when set, addSelected calls this instead of posting to /api/movie-fav
+
+  /** Call this before open() to handle "add" yourself (e.g. pre-fill a form).
+   *  If not set, addSelected() posts to /api/movie-fav as before. */
+  function setOnAdd(cb) { onAdd = cb; }
 
   /* ── styles ────────────────────────────────────────────────── */
   function injectStyles() {
@@ -169,6 +174,14 @@
     const addBtn = document.getElementById('th-msv-btn-add');
     addBtn.disabled = true; addBtn.textContent = 'Adding…';
     try {
+      // If a callback is set (used by the movie page's Add Movie flow),
+      // hand the selected movie data back to the caller instead of
+      // posting to /api/movie-fav.
+      if (typeof onAdd === 'function') {
+        onAdd(selectedMovie);
+        close();
+        return;
+      }
       const c = window.MX && window.MX.ctx ? window.MX.ctx() : null;
       const coupleId = c ? c.coupleId : null;
       const r = await fetch(`${API_BASE}/api/movie-fav`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ coupleId, tmdbId: selectedMovie.tmdb_id, title: selectedMovie.title, year: selectedMovie.year, genre: selectedMovie.genre, posterUrl: selectedMovie.poster_url, backdropUrl: selectedMovie.backdrop_url, overview: selectedMovie.overview, rating: selectedMovie.rating, status: 'watchlist', addedBy: c ? c.role : null }) }); if (!r.ok) throw new Error('Add failed'); await r.json();
@@ -181,5 +194,5 @@
   function open() { buildModal(); document.getElementById('th-msv-modal').classList.add('open'); const input = document.getElementById('th-msv-q'); input.value = ''; input.focus(); showEmpty(); document.getElementById('th-msv-btn-add').classList.remove('ready'); selectedMovie = null; }
   function close() { const m = document.getElementById('th-msv-modal'); if (m) m.classList.remove('open'); }
 
-  global.MovieSearchUI = { open, close, select, addSelected, search };
+  global.MovieSearchUI = { open, close, select, addSelected, search, setOnAdd };
 })();

@@ -110,10 +110,17 @@
     const addBtn = document.getElementById('th-ms-btn-add');
     emptyEl.style.display = 'none'; loadingEl.style.display = 'block'; listEl.innerHTML = ''; lyricsPrev.style.display = 'none'; selectedSongId = null; addBtn.classList.remove('ready');
     try {
-      const r = await fetch(`${DEEZER}/search?q=${encodeURIComponent(query)}&limit=${SEARCH_LIMIT}`, { signal: AbortSignal.timeout(10000) });
+      // Resolve API base URL — try multiple sources for iframe compatibility
+      let API_BASE = 'https://us-app-av6d.onrender.com';
+      try {
+        if (window.parent && window.parent.API) API_BASE = window.parent.API;
+        else if (window.API) API_BASE = window.API;
+      } catch (e) { /* fallback to default */ }
+
+      const r = await fetch(`${API_BASE}/api/music/search?q=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(15000) });
       if (!r.ok) throw new Error('Search failed');
       const data = await r.json();
-      currentResults = (data.data || []).map(track => ({ id: 'deezer_' + track.id, title: track.title, artist: track.artist ? track.artist.name : 'Unknown Artist', album: track.album ? track.album.title : '', duration: track.duration || 0, cover: track.album ? track.album.cover_medium : '', preview: track.preview || null, deezerId: track.id, deezerLink: track.link || '', source: 'deezer' }));
+      currentResults = (data.results || []).map(track => ({ id: track.id, title: track.title, artist: track.artist, album: track.album, duration: track.duration || 0, cover: track.cover, preview: track.preview, deezerId: track.deezerId, deezerLink: track.deezerLink, source: 'deezer' }));
       renderResults();
     } catch (e) { console.error('[music-search] Deezer search failed:', e.message); loadingEl.style.display = 'none'; emptyEl.innerHTML = '<div class="ico">⚠️</div><div>Search unavailable — try again</div>'; emptyEl.style.display = 'block'; } finally { loadingEl.style.display = 'none'; }
   }
