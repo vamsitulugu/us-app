@@ -2,6 +2,7 @@ package com.uswithlove.app;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.Intent;
 import android.graphics.Color;
 import android.media.AudioAttributes;
 import android.media.RingtoneManager;
