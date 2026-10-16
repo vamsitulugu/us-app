@@ -405,7 +405,16 @@
   MX.act('search-online', async () => {
     if (!MX.ctx()) { MX.toast('Connect with your partner first'); return; }
     if (!MX.online()) { MX.toast("You're offline — connect to search"); return; }
-    if (window.MusicSearch) window.MusicSearch.open();
+    try {
+      if (window.MusicSearch) {
+        window.MusicSearch.open();
+      } else {
+        MX.toast('Search module loading…', 2000);
+        setTimeout(() => { if (window.MusicSearch) window.MusicSearch.open(); else MX.toast('Search unavailable', 2000); }, 1000);
+      }
+    } catch (e) {
+      MX.toast('Search failed — ' + e.message, 3000);
+    }
   });
 
   MX.act('add-songs', async () => {
