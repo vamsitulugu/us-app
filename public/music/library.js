@@ -159,13 +159,11 @@
         <div class="tiles">
           <button class="tile" data-act="open-library" data-tab="my"><span class="tile-ico">${icon('music')}</span>My Playlist<span class="n">${Lib.mine().length}</span></button>
           <button class="tile" data-act="open-library" data-tab="partner"><span class="tile-ico">${icon('heart')}</span>Partner<span class="n">${Lib.partner().length}</span></button>
+          <button class="tile" data-act="open-featured"><span class="tile-ico">${icon('star')}</span>Featured<span class="n">${featured.length}</span></button>
           <button class="tile" data-act="open-karaoke"><span class="tile-ico">${icon('mic')}</span>Karaoke<span class="n">${songs.filter((s) => s.has_lyrics).length} ready</span></button>
           <button class="tile" data-act="sing-together"><span class="tile-ico">${icon('video')}</span>Sing Together<span class="n">&nbsp;</span></button>
         </div>
         ${recent.length ? `<div class="section-h"><h2>Recently Played</h2><button class="link" data-act="open-recent">See All ${icon('right')}</button></div><div class="list">${recent.map((s) => row(s, 'recent')).join('')}</div>` : ''}
-        <div class="section-h"><h2>Featured Songs</h2><button class="link" data-act="open-featured">See All ${icon('right')}</button></div>
-        ${featured.length ? `<div class="list">${featured.slice(0, 3).map((s) => row(s, 'featured')).join('')}</div>`
-          : `<div class="mix-sub" style="margin:0 2px 6px">30-second previews you add from Search Online are saved here.</div>`}
         <div class="section-h"><h2>Quick Actions</h2></div>
         <div class="quick">
           <button class="tile accent" data-act="play-list" data-ctx="all"><span class="tile-ico">${icon('play')}</span>Play All</button>
