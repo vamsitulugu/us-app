@@ -113,31 +113,39 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// POST add media to memory
+// POST add media to memory. Accepts either a single media object
+// (`media`) for backward compatibility, or an array of media objects
+// (`mediaList`) so a bulk photo add can insert every row in one
+// request instead of one round-trip per photo.
 router.post('/:memoryId/media', async (req, res) => {
   try {
     const { memoryId } = req.params;
-    const { coupleId, media, senderRole, myName } = req.body;
+    const { coupleId, media, mediaList, senderRole, myName } = req.body;
+
+    const rows = Array.isArray(mediaList) && mediaList.length
+      ? mediaList.map((m) => ({ ...m, memory_id: memoryId, couple_id: coupleId }))
+      : [{ ...media, memory_id: memoryId, couple_id: coupleId }];
 
     const { data, error } = await supabase
       .from('globe_memory_media')
-      .insert([{ ...media, memory_id: memoryId, couple_id: coupleId }])
-      .select()
-      .single();
+      .insert(rows)
+      .select();
 
     if (error) throw error;
 
     if (_sendPushToPartner && senderRole) {
       _sendPushToPartner(coupleId, senderRole, {
         title: '🌍 New Photo Added to Globe',
-        body: (myName || 'Your partner') + ' added a photo to a memory',
+        body: (myName || 'Your partner') + (rows.length > 1 ? ` added ${rows.length} photos to a memory` : ' added a photo to a memory'),
         icon: '/icons/icon-192.png',
         tag: 'globe-media',
         url: '/?page=globe'
       }).catch(() => {});
     }
 
-    res.json(data);
+    // Keep the single-object response shape when called the old way,
+    // so any other existing caller of this endpoint is unaffected.
+    res.json(Array.isArray(mediaList) && mediaList.length ? data : data[0]);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

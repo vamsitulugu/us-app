@@ -36,7 +36,7 @@ router.post('/', async (req, res) => {
   try {
     const {
       coupleId, tmdbId, title, year, genre, posterUrl,
-      backdropUrl, overview, rating, status = 'watchlist', addedBy
+      backdropUrl, overview, rating, status = 'watchlist', addedBy, scene
     } = req.body || {};
     if (!coupleId || !title) return res.status(400).json({ error: 'coupleId and title required' });
 
@@ -65,6 +65,8 @@ router.post('/', async (req, res) => {
         rating: rating || null,
         status,
         added_by: addedBy || null,
+        // `scene` needs the column from add-scene-column.sql; only sent when used so old databases keep working
+        ...(scene ? { scene } : {}),
         created_at: new Date().toISOString()
       })
       .select()
@@ -82,10 +84,18 @@ router.post('/', async (req, res) => {
 router.patch('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, rating } = req.body || {};
+    const { status, rating, title, year, genre, posterUrl, overview, scene, addedBy } = req.body || {};
     const patch = { updated_at: new Date().toISOString() };
     if (status) patch.status = status;
     if (rating !== undefined) patch.rating = rating;
+    // Edit Movie (Android app): any of these may be sent; an empty string clears the text fields
+    if (title) patch.title = title;
+    if (year !== undefined) patch.year = year || null;
+    if (genre !== undefined) patch.genre = genre || null;
+    if (posterUrl) patch.poster_url = posterUrl;
+    if (overview !== undefined) patch.overview = overview || null;
+    if (scene !== undefined) patch.scene = scene || null;
+    if (addedBy) patch.added_by = addedBy;
     const { data, error } = await supabase
       .from('movie_favorites')
       .update(patch)

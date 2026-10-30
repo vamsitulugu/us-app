@@ -143,6 +143,8 @@
   function broadcastReaction(emoji) {
     if (!_channel) return;
     try { _channel.send({ type: 'broadcast', event: 'wt_reaction', payload: { emoji, from: ROLE } }); } catch (e) {}
+    // Also tell the server, so a partner on the Android app sees it (it cannot join the realtime channel).
+    try { fetch(API + '/api/movie/' + COUPLE_ID + '/reaction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: ROLE, emoji }) }).catch(() => {}); } catch (e) {}
   }
 
   window.addEventListener('pagehide', teardownRealtime);

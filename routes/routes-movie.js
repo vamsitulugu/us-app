@@ -318,4 +318,37 @@ router.get('/:coupleId/history', async (req, res) => {
   return res.json(rows);
 });
 
+// ── Reactions (emoji while watching): short-lived, memory only, never saved ──
+// The Android app cannot join Supabase Realtime, so it sends and polls these two routes.
+// `relay: true` (Android) also broadcasts to the web page's realtime channel so the partner's browser shows it.
+const REACTION_TTL_MS = 10000;
+const REACTION_EMOJI = new Set(['❤️', '😂', '🥺', '😱', '😘']);
+const reactionBuf = new Map();   // coupleId -> [{ at, role, emoji }]
+const reactionChannels = new Map();
+
+router.post('/:coupleId/reaction', (req, res) => {
+  const { role, emoji, relay } = req.body || {};
+  const coupleId = req.params.coupleId;
+  if (!['user1', 'user2'].includes(role) || !REACTION_EMOJI.has(emoji)) return res.status(400).json({ error: 'Invalid reaction.' });
+  const now = Date.now();
+  const list = (reactionBuf.get(coupleId) || []).filter(x => now - x.at < REACTION_TTL_MS);
+  const last = list.length ? list[list.length - 1].at : 0;
+  list.push({ at: Math.max(now, last + 1), role, emoji });   // strictly increasing: the app never shows one twice
+  reactionBuf.set(coupleId, list.slice(-30));
+  if (relay) {
+    try {
+      let ch = reactionChannels.get(coupleId);
+      if (!ch) { ch = supabase.channel('watch_together:' + coupleId); reactionChannels.set(coupleId, ch); }
+      Promise.resolve(ch.send({ type: 'broadcast', event: 'wt_reaction', payload: { emoji, from: role } })).catch(() => {});
+    } catch (e) { /* the app still gets it by polling */ }
+  }
+  res.json({ ok: true });
+});
+
+router.get('/:coupleId/reactions', (req, res) => {
+  const after = Number(req.query.after) || 0;
+  const now = Date.now();
+  res.json((reactionBuf.get(req.params.coupleId) || []).filter(x => x.at > after && now - x.at < REACTION_TTL_MS));
+});
+
 module.exports = router;

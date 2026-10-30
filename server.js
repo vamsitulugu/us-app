@@ -52,7 +52,13 @@ const authLimiter = rateLimit({
 });
 const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 60 // 60 API calls per minute
+  // 300 per minute per IP. Chat polling, heartbeat/presence, the call listener and Live Map together
+  // used about 80/min, so the old limit of 60 blocked a normal chat after ~45 s. Two phones on the
+  // same Wi-Fi share one IP, so there must be room for both.
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please slow down and try again in a minute.' }
 });
 
 // ── CORS ──────────────────────────────────────────────
@@ -116,7 +122,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 
 // ── Rate Limiting ───────────────────────────────────────
 app.use('/api/auth', authLimiter);  // 20 attempts per 15 min per IP
-app.use('/api/',     apiLimiter);   // 60 calls per minute per IP
+app.use('/api/',     apiLimiter);   // 300 calls per minute per IP
 
 // ── API Routes ─────────────────────────────────────────
 app.use('/api/auth',  authRoutes);
