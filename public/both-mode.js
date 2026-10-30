@@ -73,16 +73,6 @@
 
   function switchMode(mode) {
     if (mode === state.mode) return;
-    // ══ Pro gate ══ "Both" AI mode is Pro-only. When not subscribed, show
-    // the Pro upgrade card and stay in the current mode.
-    if (mode === 'both' && window.ProCard) {
-      (async () => {
-        const ok = await window.ProCard.requirePro('AI Both Mode');
-        if (!ok) return; // stay in current mode, card is now open
-        doSwitch('both');
-      })();
-      return;
-    }
     doSwitch(mode);
   }
 

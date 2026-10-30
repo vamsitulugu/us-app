@@ -174,7 +174,6 @@ app.use('/api/admin/users', require('./routes/admin-users'));
 app.use('/api/admin/couples', require('./routes/admin-couples'));
 app.use('/api/admin/releases', require('./routes/admin-releases'));
 app.use('/api/admin/notifications', require('./routes/admin-notifications'));
-app.use('/api/admin/pro', require('./routes/admin-pro'));
 app.use('/api/admin/flags', require('./routes/admin-flags'));
 app.use('/api/admin/health', require('./routes/admin-health'));
 app.use('/api/admin/support', require('./routes/admin-support'));
@@ -201,23 +200,9 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 // ── Start ──────────────────────────────────────────────
-async function ensureProPaymentsBucket() {
-  try {
-    const { data: buckets } = await supabase.storage.listBuckets();
-    const has = (buckets || []).some(b => b.name === 'pro-payments');
-    if (!has) {
-      await supabase.storage.createBucket('pro-payments', { public: true });
-      console.log('[pro] created storage bucket: pro-payments');
-    }
-  } catch (e) {
-    console.warn('[pro] could not ensure pro-payments bucket:', e.message);
-  }
-}
-
 app.listen(PORT, async () => {
   console.log(`\n💕 Twin Hearts server running!`);
   console.log(`   Local:   http://localhost:${PORT}`);
   console.log(`   Health:  http://localhost:${PORT}/api/health`);
-  await ensureProPaymentsBucket();
   console.log(`   Press Ctrl+C to stop\n`);
 });

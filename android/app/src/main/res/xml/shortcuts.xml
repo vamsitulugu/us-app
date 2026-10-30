@@ -24,17 +24,6 @@
             android:targetClass="com.uswithlove.app.MainActivity" />
     </shortcut>
     <shortcut
-        android:shortcutId="pro"
-        android:enabled="true"
-        android:icon="@mipmap/ic_launcher"
-        android:shortcutShortLabel="@string/shortcut_pro"
-        android:shortcutLongLabel="@string/shortcut_pro_long">
-        <intent
-            android:action="android.intent.action.VIEW"
-            android:targetPackage="com.uswithlove.app"
-            android:targetClass="com.uswithlove.app.MainActivity" />
-    </shortcut>
-    <shortcut
         android:shortcutId="vault"
         android:enabled="true"
         android:icon="@mipmap/ic_launcher"
