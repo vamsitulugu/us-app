@@ -1,0 +1,2 @@
+# Google AdSense. Confirm this publisher id in AdSense > Account > Settings before deploying.
+google.com, pub-8220558701111236, DIRECT, f08c47fec0942fa0
