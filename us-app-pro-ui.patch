@@ -1,0 +1,346 @@
+From cca410bb30b7e44a2c14c1d4cd38cb7303c03bf7 Mon Sep 17 00:00:00 2001
+From: claude <claude@example.com>
+Date: Sat, 31 Oct 2026 06:56:07 +0000
+Subject: [PATCH] Pro UI upgrade: plan tabs + cards
+
+---
+ public/pro.html | 271 +++++++++++++++++++++++++++++++-----------------
+ 1 file changed, 173 insertions(+), 98 deletions(-)
+
+diff --git a/public/pro.html b/public/pro.html
+index 13ebc37..befbfd9 100644
+--- a/public/pro.html
++++ b/public/pro.html
+@@ -8,89 +8,117 @@
+ <meta name="robots" content="noindex, nofollow">
+ <title>Twin Hearts Pro</title>
+ <link rel="icon" href="/favicon.ico" sizes="48x48">
+-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
++<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+ <style>
+   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+-  :root { --accent:#ff3fa4; --accent-d:#e0187f; --glow:rgba(255,63,164,.35); --bg:#090206;
+-    --g1:rgba(255,255,255,.04); --g2:rgba(255,255,255,.08); --b1:rgba(255,255,255,.10); --b2:rgba(255,255,255,.18);
+-    --t1:rgba(255,255,255,.94); --t2:rgba(255,255,255,.62); --t3:rgba(255,255,255,.4);
+-    --green:#34d399; --red:#f87171; --gold:#fbbf24; --r:20px; }
++  :root { --accent:#ff3fa4; --wine:#b0235f; --wine-d:#7a0b44; --glow:rgba(255,63,164,.28); --bg:#090206;
++    --card:#120a12; --line:rgba(255,255,255,.09); --t1:rgba(255,255,255,.95); --t2:rgba(255,255,255,.62); --t3:rgba(255,255,255,.4);
++    --green:#34d399; --red:#f87171; --gold:#fbbf24; }
+   html, body { height: 100%; }
+-  body { font-family: Inter, system-ui, sans-serif; color: var(--t1); background: var(--bg); line-height: 1.5; overflow-x: hidden; }
+-  .wrap { max-width: 760px; margin: 0 auto; padding: 18px 16px calc(32px + env(safe-area-inset-bottom)); height: 100%; overflow-y: auto; }
+-  .hero { text-align: center; padding: 18px 8px 8px; }
+-  .hero .gem { font-size: 46px; line-height: 1; filter: drop-shadow(0 6px 18px var(--glow)); }
+-  .hero h1 { font-family: 'DM Serif Display', Georgia, serif; font-weight: 400; font-size: 28px; margin: 10px 0 6px; }
+-  .hero p { color: var(--t2); font-size: 14px; max-width: 460px; margin: 0 auto; }
+-  .card { background: var(--g1); border: 1px solid var(--b1); border-radius: var(--r); padding: 18px; margin-top: 16px; }
+-  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--t3); margin: 22px 4px 10px; }
+-  .status { display: flex; align-items: center; gap: 14px; }
+-  .status .dot { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; background: var(--g2); flex: none; }
+-  .status.pro { border-color: rgba(52,211,153,.4); background: linear-gradient(135deg, rgba(52,211,153,.10), rgba(52,211,153,.02)); }
+-  .status.pro .dot { background: rgba(52,211,153,.18); }
+-  .status h3 { font-size: 16px; } .status p { font-size: 13px; color: var(--t2); }
+-  .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 4px; }
+-  @media (max-width: 620px) { .plans { grid-template-columns: 1fr; } }
+-  .plan { position: relative; text-align: center; padding: 22px 14px 16px; border-radius: var(--r); border: 2px solid var(--b1); background: var(--g1); }
+-  .plan.best { border-color: var(--accent); background: linear-gradient(160deg, rgba(255,63,164,.16), rgba(255,63,164,.03)); box-shadow: 0 0 30px var(--glow); }
+-  .plan .tag { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--gold); background: #1f1305; border: 1px solid rgba(251,191,36,.45); padding: 2px 10px; border-radius: 20px; }
+-  .plan h3 { font-size: 15px; font-weight: 700; color: var(--t2); }
+-  .plan .price { font-size: 34px; font-weight: 800; margin: 6px 0 0; }
+-  .plan .per { font-size: 12px; color: var(--t3); }
+-  .plan .note { font-size: 12px; color: var(--t2); min-height: 36px; margin: 8px 0 12px; }
+-  .btn { width: 100%; padding: 12px; border: 0; border-radius: 14px; font: inherit; font-weight: 700; font-size: 14px; color: #fff; cursor: pointer; background: linear-gradient(135deg, var(--accent), var(--accent-d)); box-shadow: 0 6px 20px var(--glow); }
+-  .btn.ghost { background: var(--g2); box-shadow: none; border: 1px solid var(--b2); }
+-  .btn[disabled] { opacity: .55; cursor: default; }
+-  .feat { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+-  @media (max-width: 560px) { .feat { grid-template-columns: 1fr; } }
+-  .f { display: flex; gap: 12px; padding: 14px; border-radius: 16px; background: var(--g1); border: 1px solid var(--b1); }
+-  .f .i { font-size: 26px; flex: none; } .f h4 { font-size: 14px; } .f p { font-size: 12.5px; color: var(--t2); }
+-  .free { font-size: 13px; color: var(--t2); margin-top: 12px; text-align: center; }
+-  .err { color: var(--red); font-size: 13px; margin-top: 12px; text-align: center; min-height: 18px; }
+-  .ok { color: var(--green); }
++  body { font-family: Inter, system-ui, sans-serif; color: var(--t1); line-height: 1.45; overflow-x: hidden;
++    background: radial-gradient(120% 60% at 50% 0%, #3a0a24 0%, #1a0612 38%, var(--bg) 75%); }
++  .wrap { max-width: 560px; margin: 0 auto; padding: 14px 16px calc(32px + env(safe-area-inset-bottom)); height: 100%; overflow-y: auto; }
++
++  .hero { text-align: center; padding: 6px 8px 4px; }
++  .hero .hearts { font-size: 44px; line-height: 1; filter: drop-shadow(0 6px 20px var(--glow)); }
++  .hero h1 { font-size: 28px; font-weight: 800; margin: 8px 0 2px; letter-spacing: -.3px; }
++  .hero h1 span { color: var(--accent); }
++  .hero .tag { font-size: 15px; font-weight: 600; }
++  .hero p { color: var(--t2); font-size: 13.5px; margin-top: 4px; }
++  .hero p.dim { color: var(--t3); margin-top: 0; }
++
++  .pill { display: none; margin: 14px auto 0; width: fit-content; padding: 6px 14px; border-radius: 99px; font-size: 12.5px; font-weight: 600;
++    color: var(--green); background: rgba(52,211,153,.12); border: 1px solid rgba(52,211,153,.35); }
++  .pill.on { display: block; }
++
++  .choose { text-align: center; font-size: 17px; font-weight: 700; margin: 20px 0 14px; }
++
++  .tabs { position: relative; display: flex; background: rgba(255,255,255,.06); border-radius: 16px; padding: 4px; }
++  .tab { position: relative; flex: 1; height: 42px; border: 0; background: none; color: var(--t2); font: inherit; font-weight: 600; font-size: 14px; border-radius: 12px; cursor: pointer; transition: background .2s, color .2s; }
++  .tab.sel { color: #fff; background: linear-gradient(135deg, var(--wine), var(--wine-d)); box-shadow: 0 4px 16px var(--glow); }
++  .tab .save { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 10.5px; font-weight: 800; color: #fff;
++    background: linear-gradient(135deg, var(--accent), var(--wine)); padding: 2px 9px; border-radius: 99px; }
++
++  .plans { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
++  .plan { border-radius: 22px; padding: 18px 16px 16px; background: var(--card); border: 1px solid var(--line); transition: border-color .2s, box-shadow .2s, background .2s; scroll-margin-top: 12px; }
++  .plan.sel { border: 1.5px solid var(--accent); background: linear-gradient(160deg, rgba(176,35,95,.35), rgba(60,8,36,.55)); box-shadow: 0 0 28px var(--glow); }
++  .ph { display: flex; gap: 14px; align-items: flex-start; }
++  .ico { width: 54px; height: 54px; border-radius: 16px; flex: none; display: grid; place-items: center; background: rgba(255,255,255,.06); color: #fff; }
++  .ico svg { width: 26px; height: 26px; }
++  .plan.sel .ico { background: rgba(255,63,164,.16); color: #ffd1e8; }
++  .plan[data-id="yearly"] .ico { color: var(--gold); background: rgba(251,191,36,.12); }
++  .pm { flex: 1; min-width: 0; }
++  .pm h3 { font-size: 20px; font-weight: 700; }
++  .pm .s1 { font-size: 13px; color: var(--t2); margin-top: 1px; }
++  .plan.sel .pm .s1 { color: #ff9ccb; }
++  .pm .s2 { font-size: 12.5px; color: var(--t3); }
++  .pr { text-align: right; flex: none; }
++  .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px; margin-bottom: 8px; color: #ffb3d7; background: rgba(255,63,164,.16); border: 1px solid rgba(255,63,164,.3); }
++  .badge.gold { color: var(--gold); background: rgba(251,191,36,.12); border-color: rgba(251,191,36,.35); }
++  .price { font-size: 30px; font-weight: 800; line-height: 1.1; }
++  .per { font-size: 12.5px; color: var(--t2); }
++
++  .feats { margin: 14px 0 14px; display: flex; flex-direction: column; gap: 10px; }
++  .f { display: flex; gap: 12px; align-items: flex-start; }
++  .f svg { width: 20px; height: 20px; flex: none; margin-top: 2px; color: #f3d3e4; }
++  .f b { display: block; font-size: 14px; font-weight: 600; }
++  .f span { font-size: 12.5px; color: var(--t2); }
++
++  .cta { width: 100%; height: 50px; border: 0; border-radius: 15px; font: inherit; font-weight: 700; font-size: 15px; color: #fff; cursor: pointer;
++    display: flex; align-items: center; justify-content: center; gap: 10px; background: rgba(255,255,255,.08); border: 1px solid var(--line); transition: transform .1s, filter .2s; }
++  .cta svg { width: 20px; height: 20px; }
++  .plan.sel .cta { background: linear-gradient(135deg, var(--wine), var(--wine-d)); border-color: transparent; box-shadow: 0 8px 22px var(--glow); }
++  .cta:active { transform: scale(.985); }
++  .cta[disabled] { opacity: .55; cursor: default; }
++
++  .err { text-align: center; font-size: 13px; color: var(--red); min-height: 20px; margin-top: 12px; }
++  .err.ok { color: var(--green); }
++  .free { display: flex; gap: 12px; align-items: center; margin-top: 10px; padding: 12px 14px; border-radius: 18px; background: rgba(255,255,255,.04); border: 1px solid var(--line); }
++  .free .g { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; flex: none; background: rgba(251,191,36,.14); color: var(--gold); }
++  .free .g svg { width: 20px; height: 20px; }
++  .free p { font-size: 12.5px; color: var(--t2); } .free p b { color: var(--accent); font-weight: 600; }
++  .secure { text-align: center; font-size: 11.5px; color: var(--t3); margin-top: 14px; }
++
++  .sec { font-size: 11px; font-weight: 700; letter-spacing: 1.1px; text-transform: uppercase; color: var(--t3); margin: 24px 4px 10px; }
++  .box { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 6px 14px; }
+   .hist { width: 100%; font-size: 13px; border-collapse: collapse; }
+-  .hist td { padding: 9px 4px; border-bottom: 1px solid var(--b1); } .hist td:last-child { text-align: right; font-weight: 700; }
+-  .secure { text-align: center; font-size: 12px; color: var(--t3); margin-top: 16px; }
+-  details { margin-top: 10px; font-size: 13px; color: var(--t2); } summary { cursor: pointer; color: var(--t1); font-weight: 600; }
+-  details p { margin-top: 6px; }
+-  .skel { height: 60px; border-radius: 16px; background: linear-gradient(90deg, var(--g1), var(--g2), var(--g1)); background-size: 200% 100%; animation: sh 1.2s infinite; }
+-  @keyframes sh { to { background-position: -200% 0; } }
++  .hist td { padding: 10px 0; border-bottom: 1px solid var(--line); } .hist tr:last-child td { border: 0; } .hist td:last-child { text-align: right; font-weight: 700; }
++  details { padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--t2); } details:last-child { border: 0; }
++  summary { cursor: pointer; color: var(--t1); font-weight: 600; } details p { margin-top: 6px; }
+ </style>
+ </head>
+ <body>
+ <div class="wrap" id="wrap">
+   <div class="hero">
+-    <div class="gem">💎</div>
+-    <h1>Twin Hearts Pro</h1>
+-    <p>One payment unlocks Pro for both of you. Everything else in the app stays free.</p>
++    <div class="hearts">💞</div>
++    <h1>Twin Hearts <span>Pro</span></h1>
++    <div class="tag">Everything Together</div>
++    <p>One payment unlocks Pro for you and your partner.</p>
++    <p class="dim">Everything else stays free.</p>
+   </div>
++  <div class="pill" id="pill"></div>
+ 
+-  <div class="card status" id="statusCard"><div class="skel" style="flex:1"></div></div>
+-
+-  <div class="eyebrow">Choose your plan</div>
++  <div class="choose">Choose your plan</div>
++  <div class="tabs" id="tabs"></div>
+   <div class="plans" id="plans"></div>
+   <div class="err" id="err"></div>
+-  <div class="secure">🔒 Payments are processed securely by Razorpay — UPI, cards, netbanking &amp; wallets.<br>Monthly and Yearly are one-time payments: nothing renews automatically.</div>
+-
+-  <div class="eyebrow">What Pro unlocks</div>
+-  <div class="feat">
+-    <div class="f"><span class="i">🤖</span><div><h4>Twin AI — Both mode</h4><p>Answer separately, get one shared result from Twin AI.</p></div></div>
+-    <div class="f"><span class="i">🌍</span><div><h4>Memory Globe — Pin a memory</h4><p>Pin trips, dates and moments on your shared globe.</p></div></div>
+-    <div class="f"><span class="i">🎵</span><div><h4>Music — Add songs</h4><p>Build your own shared library and playlists.</p></div></div>
+-    <div class="f"><span class="i">🎬</span><div><h4>Watch Together — Cloud upload</h4><p>Upload a movie once and stream it in sync for both.</p></div></div>
++
++  <div class="free">
++    <div class="g" id="giftIco"></div>
++    <p>Chat, calls, Live Map, Vault, Calendar and the rest <b>stay free.</b><br>Your memories, songs and movies are never deleted if Pro ends.</p>
+   </div>
+-  <p class="free">Chat, calls, Live Map, Vault, Calendar and the rest stay free. Existing memories, songs and movies are never deleted if Pro ends.</p>
++  <div class="secure">🔒 Secured by Razorpay · UPI, cards, netbanking &amp; wallets<br>Nothing renews automatically.</div>
+ 
+   <div id="histWrap" style="display:none">
+-    <div class="eyebrow">Payment history</div>
+-    <div class="card"><table class="hist" id="hist"></table></div>
++    <div class="sec">Payment history</div>
++    <div class="box"><table class="hist" id="hist"></table></div>
+   </div>
+ 
+-  <div class="eyebrow">Questions</div>
+-  <div class="card">
+-    <details><summary>Do both of us need to pay?</summary><p>No. Pro belongs to your couple — when either of you pays, both get it.</p></details>
+-    <details><summary>What happens when Monthly or Yearly ends?</summary><p>Pro features lock again; nothing is deleted. Buy again any time — days are added on top of what's left.</p></details>
+-    <details><summary>I paid but Pro isn't showing</summary><p>It usually appears within a minute. Tap “Refresh status” above; if it still doesn't show, contact support from Settings and share your payment ID.</p></details>
++  <div class="sec">Questions</div>
++  <div class="box">
++    <details><summary>Do both of us need to pay?</summary><p>No. Pro belongs to your couple. When either of you pays, both get it.</p></details>
++    <details><summary>What happens when Monthly or Yearly ends?</summary><p>Pro features lock again and nothing is deleted. Buy again any time; days are added on top of what is left.</p></details>
++    <details><summary>I paid but Pro isn't showing</summary><p>It usually appears within a minute. Close and reopen this page to refresh. If it still doesn't show, contact support from Settings with your payment ID.</p></details>
+   </div>
+ </div>
+ 
+@@ -98,35 +126,77 @@
+ <script>
+ (function () {
+   var $ = function (id) { return document.getElementById(id); };
+-  var busy = false;
++  var I = {
++    calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
++    crown: '<path d="M2.5 19h19M4 19 2.5 7l5.5 4.5L12 4l4 7.5L21.5 7 20 19"/>',
++    infinity: '<path d="M12 12c-2-2.7-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.3 6-4Zm0 0c2 2.7 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.3-6 4Z"/>',
++    sparkles: '<path d="M11 3l1.9 5.1L18 10l-5.1 1.9L11 17l-1.9-5.1L4 10l5.1-1.9z"/><path d="M19 3v4M17 5h4M19 16v4M17 18h4"/>',
++    globe: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/>',
++    music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
++    cloud: '<path d="M17.5 19a4.5 4.5 0 1 0-1.4-8.8A6 6 0 0 0 4.5 12a3.5 3.5 0 0 0 1 7z"/>',
++    gift: '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/>',
++    arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>'
++  };
++  function svg(name) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + I[name] + '</svg>'; }
+   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+   function fmtDate(iso) { try { return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return ''; } }
+ 
+-  function renderPlans(st) {
+-    var lifetime = st && st.isPro && st.plan === 'lifetime';
++  var META = {
++    monthly:  { icon: 'calendar', s1: '30 days · one-time payment', s2: 'No auto-renew', per: 'per 30 days', badge: 'Recommended', gold: false },
++    yearly:   { icon: 'crown',    s1: '365 days · save 58% vs monthly', s2: 'Best for long-term couples', per: 'per year', badge: 'Most Popular', gold: true },
++    lifetime: { icon: 'infinity', s1: 'Pay once, keep Pro forever', s2: '', per: 'one-time payment', badge: '', gold: false }
++  };
++  var FEATS = [
++    ['sparkles', 'Twin AI · Both mode', 'Answer separately and get one shared result.'],
++    ['globe', 'Memory Globe · Pin a memory', 'Pin trips, dates and moments on your shared globe.'],
++    ['music', 'Music · Add songs', 'Build your own shared library and playlists.'],
++    ['cloud', 'Watch Together · Cloud upload', 'Upload a movie once and stream it in sync.']
++  ];
++  var LABEL = { monthly: 'Monthly', yearly: 'Yearly', lifetime: 'Lifetime' };
++
++  var sel = 'monthly', st = { isPro: false }, busy = false;
++  $('giftIco').innerHTML = svg('gift');
++
++  function renderTabs() {
++    $('tabs').innerHTML = ProCard.PLANS.map(function (p) {
++      return '<button class="tab' + (p.id === sel ? ' sel' : '') + '" data-tab="' + p.id + '">' + LABEL[p.id] +
++        (p.id === 'yearly' ? '<span class="save">Save 58%</span>' : '') + '</button>';
++    }).join('');
++  }
++
++  function ctaText(p) {
++    if (st.isPro && st.plan === 'lifetime') return 'You have Lifetime Pro';
++    if (st.isPro && p.id !== 'lifetime') return 'Extend with ' + LABEL[p.id];
++    return 'Choose ' + LABEL[p.id] + ' Plan';
++  }
++
++  function renderPlans() {
++    var lifetime = st.isPro && st.plan === 'lifetime';
+     $('plans').innerHTML = ProCard.PLANS.map(function (p) {
+-      var label = lifetime ? 'You have Lifetime' : (st && st.isPro && p.id !== 'lifetime' ? 'Extend with ' + p.label : 'Get ' + p.label);
+-      return '<div class="plan' + (p.id === 'yearly' ? ' best' : '') + '">' +
+-        (p.badge ? '<span class="tag">' + esc(p.badge) + '</span>' : '') +
+-        '<h3>' + esc(p.label) + '</h3><div class="price">₹' + p.price + '</div><div class="per">' + esc(p.per) + '</div>' +
+-        '<div class="note">' + esc(p.note) + '</div>' +
+-        '<button class="btn" data-plan="' + p.id + '"' + (lifetime ? ' disabled' : '') + '>' + esc(label) + '</button></div>';
++      var m = META[p.id];
++      return '<div class="plan' + (p.id === sel ? ' sel' : '') + '" data-id="' + p.id + '">' +
++        '<div class="ph"><div class="ico">' + svg(m.icon) + '</div>' +
++        '<div class="pm"><h3>' + LABEL[p.id] + '</h3><div class="s1">' + esc(m.s1) + '</div>' + (m.s2 ? '<div class="s2">' + esc(m.s2) + '</div>' : '') + '</div>' +
++        '<div class="pr">' + (m.badge ? '<span class="badge' + (m.gold ? ' gold' : '') + '">' + esc(m.badge) + '</span>' : '') +
++        '<div class="price">₹' + p.price + '</div><div class="per">' + esc(m.per) + '</div></div></div>' +
++        '<div class="feats">' + FEATS.map(function (f) { return '<div class="f">' + svg(f[0]) + '<div><b>' + esc(f[1]) + '</b><span>' + esc(f[2]) + '</span></div></div>'; }).join('') + '</div>' +
++        '<button class="cta" data-plan="' + p.id + '"' + (lifetime || busy ? ' disabled' : '') + '><span>' + esc(busy && p.id === sel ? 'Opening secure payment…' : ctaText(p)) + '</span>' + (lifetime ? '' : svg('arrow')) + '</button></div>';
+     }).join('');
+   }
+ 
+-  function renderStatus(st) {
+-    var c = $('statusCard');
+-    if (st && st.isPro) {
+-      c.className = 'card status pro';
+-      var line = st.plan === 'lifetime' ? 'Lifetime — never expires' : (st.plan === 'yearly' ? 'Yearly' : 'Monthly') + ' · active until ' + fmtDate(st.expiresAt);
+-      c.innerHTML = '<div class="dot">✅</div><div style="flex:1"><h3>Pro is active for you both</h3><p>' + esc(line) + '</p></div>';
+-    } else {
+-      c.className = 'card status';
+-      c.innerHTML = '<div class="dot">🔓</div><div style="flex:1"><h3>You\'re on the free plan</h3><p>Pick a plan below to unlock Pro.</p></div>' +
+-        '<button class="btn ghost" id="refresh" style="width:auto;padding:9px 14px">Refresh status</button>';
+-      var r = $('refresh'); if (r) r.onclick = function () { load(true); };
+-    }
+-    renderPlans(st);
++  function renderStatus() {
++    var pill = $('pill');
++    if (st.isPro) {
++      pill.className = 'pill on';
++      pill.textContent = st.plan === 'lifetime' ? '✓ Pro active · Lifetime' : '✓ Pro active · until ' + fmtDate(st.expiresAt);
++    } else pill.className = 'pill';
++  }
++
++  function renderAll() { renderStatus(); renderTabs(); renderPlans(); }
++
++  function select(id, scroll) {
++    sel = id; renderTabs(); renderPlans();
++    if (scroll) { var el = document.querySelector('.plan[data-id="' + id + '"]'); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+   }
+ 
+   async function loadHistory() {
+@@ -136,30 +206,35 @@
+       if (!d.payments || !d.payments.length) { $('histWrap').style.display = 'none'; return; }
+       $('histWrap').style.display = '';
+       $('hist').innerHTML = d.payments.map(function (p) {
+-        return '<tr><td>' + esc(p.plan.charAt(0).toUpperCase() + p.plan.slice(1)) + '<br><span style="font-size:11px;color:var(--t3)">' + esc(fmtDate(p.paidAt)) + ' · ' + esc(p.paymentId || '') + '</span></td><td>₹' + esc(p.amount) + '</td></tr>';
++        return '<tr><td>' + esc(LABEL[p.plan] || 'Pro') + '<br><span style="font-size:11px;color:var(--t3)">' + esc(fmtDate(p.paidAt)) + ' · ' + esc(p.paymentId || '') + '</span></td><td>₹' + esc(p.amount) + '</td></tr>';
+       }).join('');
+     } catch (e) { /* history is optional */ }
+   }
+ 
+   async function load(force) {
+     $('err').textContent = '';
+-    try { renderStatus(await ProCard.status(!!force)); }
+-    catch (e) { renderStatus({ isPro: false }); $('err').textContent = 'Could not check your Pro status. Check your internet and tap Refresh.'; }
+-    loadHistory();
++    try { st = await ProCard.status(!!force); }
++    catch (e) { st = { isPro: false }; $('err').className = 'err'; $('err').textContent = 'Could not check your Pro status. Check your internet.'; }
++    renderAll(); loadHistory();
+   }
+ 
++  $('tabs').addEventListener('click', function (e) {
++    var b = e.target.closest('[data-tab]'); if (b) select(b.getAttribute('data-tab'), true);
++  });
+   $('plans').addEventListener('click', async function (e) {
+-    var b = e.target.closest('button[data-plan]'); if (!b || busy || b.disabled) return;
+-    busy = true; $('err').textContent = ''; var old = b.textContent; b.textContent = 'Opening secure payment…'; b.disabled = true;
++    var b = e.target.closest('button[data-plan]');
++    if (!b) { var card = e.target.closest('.plan'); if (card) select(card.getAttribute('data-id'), false); return; }
++    if (busy || b.disabled) return;
++    sel = b.getAttribute('data-plan'); busy = true; $('err').textContent = ''; renderTabs(); renderPlans();
+     try {
+-      var r = await ProCard.pay(b.getAttribute('data-plan'));
+-      if (r.ok) { $('err').className = 'err ok'; $('err').textContent = '🎉 You\'re Pro! Thank you.'; renderStatus(r.status); loadHistory(); }
++      var r = await ProCard.pay(sel);
++      if (r.ok) { st = r.status; $('err').className = 'err ok'; $('err').textContent = '🎉 You\'re Pro! Thank you.'; loadHistory(); }
+     } catch (err) { $('err').className = 'err'; $('err').textContent = err.message; }
+-    busy = false; b.textContent = old; b.disabled = false;
++    busy = false; renderAll();
+   });
+ 
+-  ProCard.onChange(function (st) { renderStatus(st); loadHistory(); });
+-  renderPlans(null);
++  ProCard.onChange(function (s) { st = s; renderAll(); loadHistory(); });
++  renderAll();
+   load(true);
+ })();
+ </script>
+-- 
+2.43.0
+
