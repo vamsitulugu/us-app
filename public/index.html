@@ -707,6 +707,18 @@
       background: var(--text3)
     }
 
+    /* ════ Pro badge on couple widget ════ */
+    .sb-pro-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 42px; height: 20px; border-radius: 10px; padding: 0 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-d));
+      color: #fff; font-size: 10px; font-weight: 800;
+      letter-spacing: 0.5px; margin-left: 6px;
+      box-shadow: 0 2px 8px var(--accent-glow);
+      border: 1px solid rgba(255,255,255,0.2);
+      white-space: nowrap;
+    }
+
     @keyframes blink {
 
       0%,
@@ -5315,6 +5327,7 @@ select option { background: #270719; color: #fff; }
         <span style="font-size:13px;color:var(--text3)">♥</span>
         <div class="av av2" id="sbAv2">P</div>
         <span class="couple-names" id="coupleLabel">You & Partner</span>
+        <span id="sbProBadge" class="sb-pro-badge" style="display:none">Pro</span>
       </div>
       <div id="partnerLastSeen" style="font-size:10px;color:var(--text3);margin-top:6px;padding-left:2px;display:none"></div>
 <div id="hbSidebarPresence" style="margin-top:2px;padding-left:2px"></div>
@@ -5347,6 +5360,10 @@ select option { background: #270719; color: #fff; }
     <div class="nav-group">
       <div class="nav-label">AI & Tools</div>
       <div class="ni" data-page="ai"><span class="ico">🤖</span>Twin</div>
+    </div>
+ <div class="nav-group">
+      <div class="nav-label">Pro</div>
+      <div class="ni" data-page="pro"><span class="ico">💎</span>Twin Hearts Pro<span class="ico ni-chev">›</span></div>
     </div>
     <div class="sb-foot">
       <div class="ni" data-page="settings" style="margin:0"><span class="ico">⚙️</span>Settings</div>
@@ -5461,6 +5478,11 @@ select option { background: #270719; color: #fff; }
 <div class="page" id="page-globe">
   <div class="iframe-page-wrap">
     <iframe id="globeFrame" data-src="/globe.html" title="Memory Globe"></iframe>
+  </div>
+</div>
+<div class="page" id="page-pro">
+  <div class="iframe-page-wrap">
+    <iframe id="proFrame" data-src="/pro.html" title="Twin Hearts Pro"></iframe>
   </div>
 </div>
       <!-- ════ CHAT ════ -->
@@ -7720,6 +7742,7 @@ select option { background: #270719; color: #fff; }
 <script src="/twin-art.js?v=2"></script>
 <script src="/twin-orb.js"></script>
 <script src="/both-mode.js"></script>
+<script src="/js/pro-card.js?v=2"></script>
 <script src="/js/image-editor.js"></script>
 <script src="/js/android-features.js"></script>
 <script src="/js/music-search.js"></script>
@@ -8453,7 +8476,7 @@ function setJustPairedAt(ts) {
           music: 'Music ', surprise: 'Surprises ',chat: 'Chat ',
           level: 'Couple Level ',globe: 'Memory Globe ', games: 'Couple Games ',
           dreamgoals: 'Dream Goals ', places: 'Places Memory ', meetplanner: 'Meet Planner ',
-          dailyroutine: 'Daily Routine ',
+          dailyroutine: 'Daily Routine ', pro: 'Twin Hearts Pro',
           catUs: 'Us', catMemories: 'Memories', catPlans: 'Plans', catTogether: 'Together',
           catFuture: 'Our Future', catMyspace: 'My Space'
         };
@@ -8496,7 +8519,7 @@ function setJustPairedAt(ts) {
         const DEEP_LINK_PAGES = new Set([
           'dashboard', 'chat', 'music', 'globe', 'meetplanner', 'dailyroutine',
           'games', 'calendar', 'settings', 'profile', 'map', 'ai', 'capsule',
-          'surprise', 'level', 'dreamgoals', 'places',
+          'surprise', 'level', 'dreamgoals', 'places', 'pro',
           'lovecounter', 'fights', 'myspace', 'vault', 'bucket', 'money',
           'period', 'study', 'collection', 'movie',
           'catUs', 'catMemories', 'catPlans', 'catTogether', 'catFuture', 'catMyspace'
@@ -8659,7 +8682,7 @@ function setJustPairedAt(ts) {
               collection: 'collectionFrame', globe: 'globeFrame', music: 'musicFrame',
               lovecounter: 'lovecounterFrame', dreamgoals: 'dreamgoalsFrame',
               places: 'placesFrame', meetplanner: 'meetplannerFrame', dailyroutine: 'dailyroutineFrame',
-              games: 'gamesFrame', movie: 'movieFrame'
+              games: 'gamesFrame', movie: 'movieFrame', pro: 'proFrame'
             };
             const fid = FRAME_IDS[page];
             const fr = fid && document.getElementById(fid);
@@ -14028,6 +14051,27 @@ if (navigator.serviceWorker) {
 })();
 
 applyRebranding();
+
+// ════════════════════════════════════════════════════════════════
+//  Pro badge on the couple widget — refreshes on load and whenever
+//  Pro changes (a payment finished in this page or in any iframe).
+// ════════════════════════════════════════════════════════════════
+async function refreshProBadge(force) {
+  try {
+    if (!window.ProCard) return;
+    const st = await ProCard.status(!!force);
+    const badge = document.getElementById('sbProBadge');
+    if (!badge) return;
+    if (st && st.isPro) {
+      badge.style.display = 'inline-flex';
+      badge.textContent = st.plan === 'lifetime' ? 'Pro · Lifetime' : 'Pro';
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch (e) { /* non-fatal — badge simply stays hidden */ }
+}
+refreshProBadge();
+if (window.ProCard) ProCard.onChange(function () { refreshProBadge(); });
 
 init();
         // Register PWA service worker (single registration — this used to be

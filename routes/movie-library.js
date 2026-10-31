@@ -15,6 +15,7 @@
 //    app.use('/api/movie-library', require('./routes/movie-library'));
 // ═══════════════════════════════════════════════════════
 const express  = require('express');
+const { requirePro } = require('../middleware/pro');
 const crypto   = require('crypto');
 const supabase = require('../middleware/supabase');
 const router   = express.Router();
@@ -131,7 +132,7 @@ router.get('/:coupleId', requireCoupleMember, async (req, res) => {
 
 // POST /api/movie-library/:coupleId/uploads — start a multipart upload
 // body: { title, size, mime, durationSec }
-router.post('/:coupleId/uploads', requireCoupleMember, async (req, res) => {
+router.post('/:coupleId/uploads', requireCoupleMember, requirePro(r => r.params.coupleId), async (req, res) => {
   const { coupleId } = req.params;
   const title = String(req.body.title || '').trim().slice(0, 200);
   const size = Number(req.body.size);

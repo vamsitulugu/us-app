@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v47'; // bumped: instant iframe pages (no blank flash)
+const CACHE = 'uwl-v48'; // bumped: Pro (Razorpay) section
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',

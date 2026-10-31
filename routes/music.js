@@ -25,6 +25,7 @@
 //  playlists report available:false) instead of failing.
 // ═══════════════════════════════════════════════════════
 const express  = require('express');
+const { requirePro } = require('../middleware/pro');
 const supabase = require('../middleware/supabase');
 const { pathFromPublicUrl, removeObjects } = require('../lib/storage');
 const router   = express.Router();
@@ -190,7 +191,7 @@ router.get('/:coupleId', async (req, res) => {
 });
 
 // POST create song metadata (call AFTER audio+cover are uploaded to storage)
-router.post('/', async (req, res) => {
+router.post('/', requirePro(r => r.body && r.body.coupleId), async (req, res) => {
   const b = req.body || {};
   const coupleId   = b.coupleId;
   const uploadedBy = okRole(b.uploadedBy || b.viewer);

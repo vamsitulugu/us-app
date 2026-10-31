@@ -92,6 +92,10 @@ app.use(cors({
   credentials: true
 }));
 
+// Razorpay webhook needs the RAW body to check its signature, so it is mounted
+// BEFORE express.json() (which would parse and discard the raw bytes).
+app.post('/api/pro/webhook', express.raw({ type: '*/*', limit: '1mb' }), require('./routes/pro').webhook);
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 

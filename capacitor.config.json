@@ -9,7 +9,10 @@
     "allowNavigation": [
       "useverythingtogether.vercel.app",
       "us-app-av6d.onrender.com",
-      "*.supabase.co"
+      "*.supabase.co",
+      "checkout.razorpay.com",
+      "api.razorpay.com",
+      "*.razorpay.com"
     ]
   },
   "android": {

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en" data-theme-lock="dark">
+<head>
+<script src="/theme.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#14030e">
+<meta name="robots" content="noindex, nofollow">
+<title>Twin Hearts Pro</title>
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root { --accent:#ff3fa4; --accent-d:#e0187f; --glow:rgba(255,63,164,.35); --bg:#090206;
+    --g1:rgba(255,255,255,.04); --g2:rgba(255,255,255,.08); --b1:rgba(255,255,255,.10); --b2:rgba(255,255,255,.18);
+    --t1:rgba(255,255,255,.94); --t2:rgba(255,255,255,.62); --t3:rgba(255,255,255,.4);
+    --green:#34d399; --red:#f87171; --gold:#fbbf24; --r:20px; }
+  html, body { height: 100%; }
+  body { font-family: Inter, system-ui, sans-serif; color: var(--t1); background: var(--bg); line-height: 1.5; overflow-x: hidden; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 18px 16px calc(32px + env(safe-area-inset-bottom)); height: 100%; overflow-y: auto; }
+  .hero { text-align: center; padding: 18px 8px 8px; }
+  .hero .gem { font-size: 46px; line-height: 1; filter: drop-shadow(0 6px 18px var(--glow)); }
+  .hero h1 { font-family: 'DM Serif Display', Georgia, serif; font-weight: 400; font-size: 28px; margin: 10px 0 6px; }
+  .hero p { color: var(--t2); font-size: 14px; max-width: 460px; margin: 0 auto; }
+  .card { background: var(--g1); border: 1px solid var(--b1); border-radius: var(--r); padding: 18px; margin-top: 16px; }
+  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--t3); margin: 22px 4px 10px; }
+  .status { display: flex; align-items: center; gap: 14px; }
+  .status .dot { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; background: var(--g2); flex: none; }
+  .status.pro { border-color: rgba(52,211,153,.4); background: linear-gradient(135deg, rgba(52,211,153,.10), rgba(52,211,153,.02)); }
+  .status.pro .dot { background: rgba(52,211,153,.18); }
+  .status h3 { font-size: 16px; } .status p { font-size: 13px; color: var(--t2); }
+  .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 4px; }
+  @media (max-width: 620px) { .plans { grid-template-columns: 1fr; } }
+  .plan { position: relative; text-align: center; padding: 22px 14px 16px; border-radius: var(--r); border: 2px solid var(--b1); background: var(--g1); }
+  .plan.best { border-color: var(--accent); background: linear-gradient(160deg, rgba(255,63,164,.16), rgba(255,63,164,.03)); box-shadow: 0 0 30px var(--glow); }
+  .plan .tag { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--gold); background: #1f1305; border: 1px solid rgba(251,191,36,.45); padding: 2px 10px; border-radius: 20px; }
+  .plan h3 { font-size: 15px; font-weight: 700; color: var(--t2); }
+  .plan .price { font-size: 34px; font-weight: 800; margin: 6px 0 0; }
+  .plan .per { font-size: 12px; color: var(--t3); }
+  .plan .note { font-size: 12px; color: var(--t2); min-height: 36px; margin: 8px 0 12px; }
+  .btn { width: 100%; padding: 12px; border: 0; border-radius: 14px; font: inherit; font-weight: 700; font-size: 14px; color: #fff; cursor: pointer; background: linear-gradient(135deg, var(--accent), var(--accent-d)); box-shadow: 0 6px 20px var(--glow); }
+  .btn.ghost { background: var(--g2); box-shadow: none; border: 1px solid var(--b2); }
+  .btn[disabled] { opacity: .55; cursor: default; }
+  .feat { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 560px) { .feat { grid-template-columns: 1fr; } }
+  .f { display: flex; gap: 12px; padding: 14px; border-radius: 16px; background: var(--g1); border: 1px solid var(--b1); }
+  .f .i { font-size: 26px; flex: none; } .f h4 { font-size: 14px; } .f p { font-size: 12.5px; color: var(--t2); }
+  .free { font-size: 13px; color: var(--t2); margin-top: 12px; text-align: center; }
+  .err { color: var(--red); font-size: 13px; margin-top: 12px; text-align: center; min-height: 18px; }
+  .ok { color: var(--green); }
+  .hist { width: 100%; font-size: 13px; border-collapse: collapse; }
+  .hist td { padding: 9px 4px; border-bottom: 1px solid var(--b1); } .hist td:last-child { text-align: right; font-weight: 700; }
+  .secure { text-align: center; font-size: 12px; color: var(--t3); margin-top: 16px; }
+  details { margin-top: 10px; font-size: 13px; color: var(--t2); } summary { cursor: pointer; color: var(--t1); font-weight: 600; }
+  details p { margin-top: 6px; }
+  .skel { height: 60px; border-radius: 16px; background: linear-gradient(90deg, var(--g1), var(--g2), var(--g1)); background-size: 200% 100%; animation: sh 1.2s infinite; }
+  @keyframes sh { to { background-position: -200% 0; } }
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <div class="hero">
+    <div class="gem">💎</div>
+    <h1>Twin Hearts Pro</h1>
+    <p>One payment unlocks Pro for both of you. Everything else in the app stays free.</p>
+  </div>
+
+  <div class="card status" id="statusCard"><div class="skel" style="flex:1"></div></div>
+
+  <div class="eyebrow">Choose your plan</div>
+  <div class="plans" id="plans"></div>
+  <div class="err" id="err"></div>
+  <div class="secure">🔒 Payments are processed securely by Razorpay — UPI, cards, netbanking &amp; wallets.<br>Monthly and Yearly are one-time payments: nothing renews automatically.</div>
+
+  <div class="eyebrow">What Pro unlocks</div>
+  <div class="feat">
+    <div class="f"><span class="i">🤖</span><div><h4>Twin AI — Both mode</h4><p>Answer separately, get one shared result from Twin AI.</p></div></div>
+    <div class="f"><span class="i">🌍</span><div><h4>Memory Globe — Pin a memory</h4><p>Pin trips, dates and moments on your shared globe.</p></div></div>
+    <div class="f"><span class="i">🎵</span><div><h4>Music — Add songs</h4><p>Build your own shared library and playlists.</p></div></div>
+    <div class="f"><span class="i">🎬</span><div><h4>Watch Together — Cloud upload</h4><p>Upload a movie once and stream it in sync for both.</p></div></div>
+  </div>
+  <p class="free">Chat, calls, Live Map, Vault, Calendar and the rest stay free. Existing memories, songs and movies are never deleted if Pro ends.</p>
+
+  <div id="histWrap" style="display:none">
+    <div class="eyebrow">Payment history</div>
+    <div class="card"><table class="hist" id="hist"></table></div>
+  </div>
+
+  <div class="eyebrow">Questions</div>
+  <div class="card">
+    <details><summary>Do both of us need to pay?</summary><p>No. Pro belongs to your couple — when either of you pays, both get it.</p></details>
+    <details><summary>What happens when Monthly or Yearly ends?</summary><p>Pro features lock again; nothing is deleted. Buy again any time — days are added on top of what's left.</p></details>
+    <details><summary>I paid but Pro isn't showing</summary><p>It usually appears within a minute. Tap “Refresh status” above; if it still doesn't show, contact support from Settings and share your payment ID.</p></details>
+  </div>
+</div>
+
+<script src="/js/pro-card.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var busy = false;
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function fmtDate(iso) { try { return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return ''; } }
+
+  function renderPlans(st) {
+    var lifetime = st && st.isPro && st.plan === 'lifetime';
+    $('plans').innerHTML = ProCard.PLANS.map(function (p) {
+      var label = lifetime ? 'You have Lifetime' : (st && st.isPro && p.id !== 'lifetime' ? 'Extend with ' + p.label : 'Get ' + p.label);
+      return '<div class="plan' + (p.id === 'yearly' ? ' best' : '') + '">' +
+        (p.badge ? '<span class="tag">' + esc(p.badge) + '</span>' : '') +
+        '<h3>' + esc(p.label) + '</h3><div class="price">₹' + p.price + '</div><div class="per">' + esc(p.per) + '</div>' +
+        '<div class="note">' + esc(p.note) + '</div>' +
+        '<button class="btn" data-plan="' + p.id + '"' + (lifetime ? ' disabled' : '') + '>' + esc(label) + '</button></div>';
+    }).join('');
+  }
+
+  function renderStatus(st) {
+    var c = $('statusCard');
+    if (st && st.isPro) {
+      c.className = 'card status pro';
+      var line = st.plan === 'lifetime' ? 'Lifetime — never expires' : (st.plan === 'yearly' ? 'Yearly' : 'Monthly') + ' · active until ' + fmtDate(st.expiresAt);
+      c.innerHTML = '<div class="dot">✅</div><div style="flex:1"><h3>Pro is active for you both</h3><p>' + esc(line) + '</p></div>';
+    } else {
+      c.className = 'card status';
+      c.innerHTML = '<div class="dot">🔓</div><div style="flex:1"><h3>You\'re on the free plan</h3><p>Pick a plan below to unlock Pro.</p></div>' +
+        '<button class="btn ghost" id="refresh" style="width:auto;padding:9px 14px">Refresh status</button>';
+      var r = $('refresh'); if (r) r.onclick = function () { load(true); };
+    }
+    renderPlans(st);
+  }
+
+  async function loadHistory() {
+    try {
+      var s = ProCard.session(); if (!s) return;
+      var d = await ProCard.call('GET', '/api/pro/history?coupleId=' + encodeURIComponent(s.coupleId));
+      if (!d.payments || !d.payments.length) { $('histWrap').style.display = 'none'; return; }
+      $('histWrap').style.display = '';
+      $('hist').innerHTML = d.payments.map(function (p) {
+        return '<tr><td>' + esc(p.plan.charAt(0).toUpperCase() + p.plan.slice(1)) + '<br><span style="font-size:11px;color:var(--t3)">' + esc(fmtDate(p.paidAt)) + ' · ' + esc(p.paymentId || '') + '</span></td><td>₹' + esc(p.amount) + '</td></tr>';
+      }).join('');
+    } catch (e) { /* history is optional */ }
+  }
+
+  async function load(force) {
+    $('err').textContent = '';
+    try { renderStatus(await ProCard.status(!!force)); }
+    catch (e) { renderStatus({ isPro: false }); $('err').textContent = 'Could not check your Pro status. Check your internet and tap Refresh.'; }
+    loadHistory();
+  }
+
+  $('plans').addEventListener('click', async function (e) {
+    var b = e.target.closest('button[data-plan]'); if (!b || busy || b.disabled) return;
+    busy = true; $('err').textContent = ''; var old = b.textContent; b.textContent = 'Opening secure payment…'; b.disabled = true;
+    try {
+      var r = await ProCard.pay(b.getAttribute('data-plan'));
+      if (r.ok) { $('err').className = 'err ok'; $('err').textContent = '🎉 You\'re Pro! Thank you.'; renderStatus(r.status); loadHistory(); }
+    } catch (err) { $('err').className = 'err'; $('err').textContent = err.message; }
+    busy = false; b.textContent = old; b.disabled = false;
+  });
+
+  ProCard.onChange(function (st) { renderStatus(st); loadHistory(); });
+  renderPlans(null);
+  load(true);
+})();
+</script>
+</body>
+</html>

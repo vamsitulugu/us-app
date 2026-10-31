@@ -1,5 +1,6 @@
 // routes/globe.js
 const express = require('express');
+const { requirePro } = require('../middleware/pro');
 const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
 
@@ -32,7 +33,7 @@ router.get('/:coupleId', async (req, res) => {
 });
 
 // POST create memory
-router.post('/', async (req, res) => {
+router.post('/', requirePro(r => r.body && r.body.coupleId), async (req, res) => {
   try {
     const { coupleId, memory, senderRole, myName } = req.body;
     if (!coupleId || !memory) return res.status(400).json({ error: 'Missing data' });

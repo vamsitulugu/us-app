@@ -476,6 +476,11 @@
   MX.act('add-songs', async () => {
     if (!MX.ctx()) { MX.toast('Connect with your partner first'); return; }
     if (!MX.online()) { MX.toast("You're offline — connect to add songs"); return; }
+    // Pro gate: adding songs is a Pro feature
+    if (window.ProCard) {
+      const ok = await window.ProCard.requirePro('Music: add songs');
+      if (!ok) return; // upgrade sheet is open
+    }
     const inp = document.getElementById('fileIn'); if (inp) { inp.value = ''; inp.click(); }
   });
   document.addEventListener('change', (e) => {

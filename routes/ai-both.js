@@ -7,6 +7,7 @@
 //  fully separate route/table set, per the master prompt.
 // ═══════════════════════════════════════════════════════
 const express = require('express');
+const { requirePro } = require('../middleware/pro');
 const supabase = require('../middleware/supabase');
 const { broadcastEvent, sendPushToPartner } = require('./auth');
 const router = express.Router();
@@ -97,7 +98,7 @@ router.get('/status', (req, res) => {
 
 // ─── Sessions ──────────────────────────────────────────────
 // POST { coupleId, role, title? } -> creates session + round 1
-router.post('/sessions', async (req, res) => {
+router.post('/sessions', requirePro(r => r.body && r.body.coupleId), async (req, res) => {
   const { coupleId, role, title } = req.body;
   if (!coupleId || !role) return res.status(400).json({ error: 'Missing coupleId/role' });
 

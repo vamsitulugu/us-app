@@ -73,6 +73,14 @@
 
   function switchMode(mode) {
     if (mode === state.mode) return;
+    // Pro gate: "Both" AI mode needs Pro. Free couples see the upgrade sheet
+    // and stay in the current mode.
+    if (mode === 'both' && window.ProCard) {
+      window.ProCard.requirePro('Twin AI Both mode').then(function (ok) {
+        if (ok) doSwitch('both');
+      });
+      return;
+    }
     doSwitch(mode);
   }
 
