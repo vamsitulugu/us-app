@@ -178,7 +178,7 @@
 
 | Table | Purpose |
 |-------|---------|
-| `pro_upgrade_requests` | Payment requests (couple_id, plan, status, paid_by, partner, txn_id, proof_url) |
+| `pro_payments` | Razorpay orders/payments (couple_id, plan, amount_paise, status, razorpay_order_id, razorpay_payment_id) |
 | `movie_favorites` | Couple watchlist (tmdb_id, title, year, genre, poster, status, added_by) |
 
 ---
@@ -230,24 +230,15 @@
 - AI: BOTH mode (Pro-gated)
 - Memory Globe: Pin memories (Pro-gated)
 
-### Payment Flow (Manual/UPI)
-1. User picks plan → Pay via UPI QR → "I've Paid"
-2. Fill paid person + partner details + upload payment screenshot
-3. Admin reviews in Admin → Pro Upgrades
-4. Admin clicks Approve (Monthly ₹99 or Lifetime ₹499)
-5. Pro activates for **both partners** automatically
-6. Pro badge shows on couple widget
+### Payment Flow (Razorpay — same on web and Android)
+1. User picks a plan (Monthly ₹99 · Yearly ₹499 · Lifetime ₹999)
+2. App asks the server to create a Razorpay order (`POST /api/pro/create-order`) — the server sets the price
+3. Razorpay's secure checkout opens (UPI, cards, netbanking, wallets)
+4. After payment the server checks Razorpay's signature (`POST /api/pro/verify`) and activates Pro
+5. Razorpay's webhook (`/api/pro/webhook`) activates Pro too if the app closes mid-payment
+6. Pro activates for **both partners** automatically — no screenshots, no QR, no admin approval
 
-### QR Code
-- Generates UPI QR via qrserver API
-- UPI ID: `7077745442@upi` (Name: Tulugu Vamsi)
-- **QR Scanner** built-in — scan any UPI QR, auto-fills transaction details
-
-### Admin Approval Flow
-- Admin → Pro Upgrades page
-- Table shows all requests: couple names, plan, paid-by, partner, txn ID, status, proof link
-- Approve button → activates Pro (monthly=30 days, lifetime=forever)
-- Reject button → with optional reason
+See `RAZORPAY_SETUP.md` for keys and webhook setup. Admin → Payments shows revenue and can re-check a payment.
 
 ---
 
@@ -294,8 +285,8 @@
 1. **Set `TMDB_API_KEY`** in `.env` — get free key at themoviedb.org
 2. **Set real `ADMIN_PASSWORD_HASH`** — generate with `bcryptjs.hashSync('your-password', 10)`
 3. **Run `migrations/movie_favorites.sql`** in Supabase SQL Editor
-4. **Run `migrations/pro_subscription.sql`** in Supabase SQL Editor (for Pro feature)
-5. **Set real UPI ID** in `public/js/pro-card.js` (currently `7077745442@upi`)
+4. **Run `migrations/pro_subscription.sql`, then `migrations/pro_razorpay.sql`** in Supabase SQL Editor (for Pro feature)
+5. **Set Razorpay keys** (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`) — see `RAZORPAY_SETUP.md`
 6. **Build APK:** `cd android && ./gradlew assembleRelease`
 
 ---
