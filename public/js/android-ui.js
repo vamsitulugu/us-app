@@ -1,9 +1,10 @@
 /* Twin Hearts — "Android look" switch.
-   The classic web UI is the default and is never edited. When this is ON the page gets
+   The Android look is now the DEFAULT. The classic web UI is still available as an opt-out and is never
+   edited. When this is ON the page gets
    <html data-ui="android"> and /android-ui.css is added; every rule in that file is scoped
    to data-ui="android", so turning it OFF returns the exact old UI.
-   Turn on:  Settings → Appearance → Interface, or open any page with ?ui=android
-   Turn off: Settings → Appearance → Interface → Classic, or ?ui=classic
+   Turn off: Settings → Appearance → Interface → Classic, or open any page with ?ui=classic
+   Turn on:  Settings → Appearance → Interface → Android look, or ?ui=android
    Same-origin iframes load this file too and follow through the 'storage' event. */
 (function () {
   'use strict';
@@ -15,8 +16,8 @@
     var u = fromUrl();
     try {
       if (u) localStorage.setItem(KEY, u);
-      return localStorage.getItem(KEY) === 'android' ? 'android' : 'classic';
-    } catch (e) { return u || 'classic'; }
+      return localStorage.getItem(KEY) === 'classic' ? 'classic' : 'android';
+    } catch (e) { return u || 'android'; }
   }
   function apply() {
     var on = pref() === 'android', de = document.documentElement;
@@ -24,7 +25,7 @@
     var link = document.getElementById(LINK_ID);
     if (on && !link) {
       link = document.createElement('link');
-      link.id = LINK_ID; link.rel = 'stylesheet'; link.href = '/android-ui.css?v=2';
+      link.id = LINK_ID; link.rel = 'stylesheet'; link.href = '/android-ui.css?v=3';
       (document.head || de).appendChild(link);
     } else if (!on && link) link.remove();
     try { window.dispatchEvent(new CustomEvent('uichange', { detail: { ui: on ? 'android' : 'classic' } })); } catch (e) {}

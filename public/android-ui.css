@@ -191,3 +191,53 @@ html[data-ui="android"][data-theme="dark"] .plan.sel { border-color:var(--an-acc
 @media (min-width:1600px) { html[data-ui="android"][data-theme="dark"] .content > .page { max-width:1320px; } }
 
 @media (prefers-reduced-motion:reduce) { html[data-ui="android"][data-theme="dark"] *, html[data-ui="android"][data-theme="dark"] *::before, html[data-ui="android"][data-theme="dark"] *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
+
+
+/* ═════════════ HOME — matches HomeScreen / HomeCardStyle in the Android app ═════════════ */
+/* Hero: flat web burgundy (#6B093A), no gradient; sheet: solid near-black with a 30px top edge. */
+html[data-ui="android"][data-theme="dark"] .dh-bg { background:#6B093A !important; }
+html[data-ui="android"][data-theme="dark"] .dh-sheet {
+  background:#0A0A0C !important; -webkit-backdrop-filter:none !important; backdrop-filter:none !important;
+  border-top:1px solid rgba(255,255,255,.13) !important; box-shadow:none !important; border-radius:30px 30px 0 0;
+}
+html[data-ui="android"][data-theme="dark"] .dh-sheet-title { font-family:var(--ff-sans); font-weight:600; color:var(--an-ink); }
+html[data-ui="android"][data-theme="dark"] .dh-greet { color:var(--an-ink-muted); }
+html[data-ui="android"][data-theme="dark"] .dh-quote { font-family:var(--ff-serif,'DM Serif Display',serif); font-weight:400; letter-spacing:0; line-height:1.18; color:var(--an-ink); }
+html[data-ui="android"][data-theme="dark"] .dh-quote em { color:#FFD0EA; }
+html[data-ui="android"][data-theme="dark"] .dh-profile { border:2px solid rgba(255,208,234,.75); }
+
+/* Search pill + menu button: neutral white glass, 48px, no blur */
+html[data-ui="android"][data-theme="dark"] :is(.dh-search,.dh-menu) {
+  height:48px; border-radius:999px; background:rgba(255,255,255,.15) !important; border:1px solid rgba(255,255,255,.28) !important;
+  -webkit-backdrop-filter:none; backdrop-filter:none;
+}
+html[data-ui="android"][data-theme="dark"] .dh-menu { width:48px; }
+html[data-ui="android"][data-theme="dark"] .dh-search, html[data-ui="android"][data-theme="dark"] .dh-search span { color:rgba(255,255,255,.75); }
+
+/* Shortcut tiles: five equal neutral-glass tiles; the first one is no longer a white button */
+html[data-ui="android"][data-theme="dark"] .dh-chip, html[data-ui="android"][data-theme="dark"] .dh-chip.is-primary {
+  background:rgba(255,255,255,.13) !important; border:1px solid rgba(255,255,255,.24) !important; color:#fff !important;
+  border-radius:16px; -webkit-backdrop-filter:none; backdrop-filter:none;
+}
+
+/* Picture card: 24px radius, no drop shadow, Hug / Touch / Miss You buttons */
+html[data-ui="android"][data-theme="dark"] .dh-card { border-radius:24px; box-shadow:none !important; border:1px solid rgba(255,255,255,.14); background:#270719; }
+html[data-ui="android"][data-theme="dark"] .dh-act { border-radius:16px; -webkit-backdrop-filter:none; backdrop-filter:none; }
+/* the button that matches the newest signal is dark glass (not white) */
+html[data-ui="android"][data-theme="dark"] .dh-act.is-active {
+  background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.02)),rgba(0,0,0,.52) !important;
+  border-color:rgba(255,255,255,.42) !important; color:#fff !important;
+}
+
+/* Coming up + Mood: gray glass (white sheen over black), today's event gets a brighter edge */
+html[data-ui="android"][data-theme="dark"] :is(.dw-ev,.dw-mood) {
+  background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.07)) !important; background-color:transparent !important;
+  border:1px solid rgba(255,255,255,.18) !important; box-shadow:none !important; color:var(--an-ink) !important;
+}
+html[data-ui="android"][data-theme="dark"] .dw-ev.is-today { border-color:rgba(255,255,255,.36) !important; color:var(--an-ink) !important; }
+html[data-ui="android"][data-theme="dark"] .dw-ev .dw-ev-ico, html[data-ui="android"][data-theme="dark"] .dw-ev.is-today .dw-ev-ico { background:rgba(255,255,255,.08); }
+html[data-ui="android"][data-theme="dark"] .dw-ev .dw-ev-tx i, html[data-ui="android"][data-theme="dark"] .dw-ev.is-today .dw-ev-tx i { color:rgba(255,255,255,.58) !important; }
+html[data-ui="android"][data-theme="dark"] .dw-ev .dw-ev-d, html[data-ui="android"][data-theme="dark"] .dw-ev.is-today .dw-ev-d { color:#FFD0EA !important; }
+html[data-ui="android"][data-theme="dark"] .dw-link { color:var(--an-accent); }
+html[data-ui="android"][data-theme="dark"] .dw-mood-streak { color:#FFD0EA; }
+html[data-ui="android"][data-theme="dark"] .dw-quote p { color:rgba(255,255,255,.72); }

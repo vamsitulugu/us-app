@@ -3,7 +3,7 @@
 
 <head>
 <script src="/theme.js?v=2"></script>
-<script src="/js/android-ui.js?v=1"></script>
+<script src="/js/android-ui.js?v=2"></script>
 <script src="/js/app-telemetry.js"></script>
   <meta charset="UTF-8">
   <script>
@@ -7205,7 +7205,7 @@ select option { background: #270719; color: #fff; }
                 <button type="button" class="th-opt" data-v="android" role="radio" onclick="AndroidUI.set('android')"><span class="th-sw"></span>Android look</button>
               </div>
             </div>
-            <p class="set-s" style="margin:8px 4px 0">“Android look” matches the Twin Hearts Android app (dark theme). Classic keeps the original web design.</p>
+            <p class="set-s" style="margin:8px 4px 0">“Android look” (default) matches the Twin Hearts Android app: same cards, colours and dark theme. Classic keeps the original web design.</p>
           </section>
           <section class="set-sec">
             <div class="set-list">
@@ -8028,7 +8028,7 @@ function saveLocal() {
         // ─── INTERFACE PICKER (Settings → Appearance) ───
         (function () {
           function mark() {
-            var p = (window.AndroidUI && AndroidUI.get()) || 'classic';
+            var p = (window.AndroidUI && AndroidUI.get()) || 'android';
             document.querySelectorAll('#uiPick .th-opt').forEach(function (b) {
               var on = b.dataset.v === p; b.classList.toggle('on', on); b.setAttribute('aria-checked', on);
             });

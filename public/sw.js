@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v53'; // bumped: Android look v2 (android-ui.css)
+const CACHE = 'uwl-v54'; // bumped: Android look is now the default (android-ui.css v3)
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
