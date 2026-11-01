@@ -504,3 +504,17 @@ tbody tr:hover { background: rgba(255,255,255,.04); }
   .kpi-card .value { font-size: 30px; }
   .modal { border-radius: 22px; }
 }
+
+/* ── Fixed sidebar, scrolling content ─────────────────────────────
+   The app shell is exactly one screen tall; only .main scrolls. */
+#appShell.active { height: 100vh; height: 100dvh; overflow: hidden; }
+.sidebar { height: 100%; overflow: hidden; }
+.sidebar .nav { overflow-y: auto; min-height: 0; }
+.sidebar-footer { flex-shrink: 0; }
+.main { height: 100%; min-width: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scroll-behavior: smooth; }
+.main { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.18) transparent; }
+.main::-webkit-scrollbar { width: 8px; }
+.main::-webkit-scrollbar-thumb { background: rgba(255,255,255,.16); border-radius: 8px; }
+@media (max-width: 860px) {
+  .sidebar { height: 100vh; height: 100dvh; }
+}
