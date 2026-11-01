@@ -6,36 +6,18 @@
   var BAR = { dark: '#14030e', light: '#FDEBFD' };
   function pref() { try { return localStorage.getItem(KEY) || 'dark'; } catch (e) { return 'dark'; } }
   function resolve(p) { if (document.documentElement.getAttribute('data-theme-lock') === 'dark') return 'dark'; return p === 'system' ? (mq && !mq.matches ? 'light' : 'dark') : (p === 'light' ? 'light' : 'dark'); }
-  // DARK = white icons (for dark bars); LIGHT = black icons (for the pale light theme).
-  // Home (dashboard) has a blue hero at the very top, so it keeps white icons.
-  // Light theme: Home has a magenta hero at the very top, so the bar must be magenta there (not pale pink).
+  // Home (dashboard) has a hero at the very top, so the browser theme-color follows it there.
   function barColor(t) {
     var d = document.getElementById('page-dashboard');
     if (d && d.classList.contains('active')) return '#6B093A';   // home hero colour, both themes
     return t === 'dark' ? BAR.dark : BAR.light;
   }
-  function statusStyle(t) {
-    if (t === 'dark') return 'DARK';
-    var d = document.getElementById('page-dashboard');
-    return (d && d.classList.contains('active')) ? 'DARK' : 'LIGHT';
-  }
-  // Android 15+: @capacitor/status-bar can't colour the bars any more, so also
-  // paint them natively via the BarColors plugin (top = status bar, bottom = nav bar).
-  // On Home both bars use the Home hero colour (status bar on top, navigation bar at the bottom).
   function homeActive() { var d = document.getElementById('page-dashboard'); return !!(d && d.classList.contains('active')); }
-  function bottomColor(t) { return homeActive() ? '#6B093A' : (BAR[t] || BAR.dark); }
   function markHome() { try { if (document.body) document.body.classList.toggle('on-home', homeActive()); } catch (e) {} }
-  function pushBarColors(t) {
-    markHome();
-    try {
-      var b = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.BarColors;
-      if (b) b.set({ top: barColor(t), bottom: bottomColor(t) });
-    } catch (e) {}
-  }
   window.refreshStatusBar = function () {
-    try { var s = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.StatusBar; if (s) { var _t = resolve(pref()); s.setStyle({ style: statusStyle(_t) }); s.setBackgroundColor({ color: barColor(_t) }); } var _m = document.getElementById('themeColorMeta'); if (_m) _m.setAttribute('content', barColor(resolve(pref()))); } catch (e) {}
-    // Native bar colours go LAST so nothing the status-bar plugin does can override them.
-    try { pushBarColors(resolve(pref())); } catch (e) {}
+    markHome();
+    var m = document.getElementById('themeColorMeta') || document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute('content', barColor(resolve(pref())));
   };
   document.addEventListener('DOMContentLoaded', function () {
     var host = document.getElementById('page-dashboard');
@@ -47,11 +29,7 @@
     var m = document.getElementById('themeColorMeta') || document.querySelector('meta[name="theme-color"]');
     if (m) m.setAttribute('content', barColor(t));
     try { window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: t, pref: pref() } })); } catch (e) {}
-    try {
-      var s = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.StatusBar;
-      if (s) { s.setBackgroundColor({ color: barColor(t) }); s.setStyle({ style: statusStyle(t) }); }
-    } catch (e) {}
-    pushBarColors(t);
+    markHome();
   }
   window.Theme = {
     get: pref, resolved: function () { return resolve(pref()); }, bar: function () { return barColor(resolve(pref())); },

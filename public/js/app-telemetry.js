@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   app-telemetry.js — talks to the admin dashboard (web + Android WebView app)
+   app-telemetry.js — talks to the admin dashboard (web)
    1. Adds X-App-Platform / X-App-Version to every call to OUR API
    2. Pings /api/telemetry/ping (daily-active counts)
    3. Reports crashes to /api/telemetry/error (server scrubs personal text)
@@ -15,10 +15,8 @@
   var API_HOST = 'us-app-av6d.onrender.com';
   var WEB_VERSION = '1.0.0';   // bump when you deploy a web release you want to track
   var isTop = (function () { try { return window.top === window; } catch (e) { return false; } })();
-  var cap = window.Capacitor;
-  var isNative = !!(cap && ((cap.isNativePlatform && cap.isNativePlatform()) || (cap.getPlatform && cap.getPlatform() !== 'web')));
-  var KIND = isNative ? 'android_capacitor' : 'web';
-  var version = (isNative ? (window.__APP_VERSION__ || null) : WEB_VERSION);
+  var KIND = 'web';
+  var version = WEB_VERSION;
 
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
@@ -30,17 +28,6 @@
       (location.origin && u.indexOf(location.origin + '/api/') === 0));
   }
   function apiBase() { return (window.API || ('https://' + API_HOST)).replace(/\/$/, ''); }
-
-  // Native app: ask the Capacitor App plugin for the real versionName.
-  function loadNativeVersion() {
-    try {
-      var App = cap && cap.Plugins && cap.Plugins.App;
-      if (isNative && App && App.getInfo) {
-        return App.getInfo().then(function (i) { if (i && i.version) version = i.version; }).catch(function () {});
-      }
-    } catch (e) { /* ignore */ }
-    return Promise.resolve();
-  }
 
   // 1 ── header injection (only for our own API; never touches Supabase/OSM/etc.)
   var origFetch = window.fetch;
@@ -131,10 +118,9 @@
     title.textContent = rel.title || (forced ? 'Update required' : 'Update available');
     msg.style.cssText = 'opacity:.8;font-size:13px;margin-top:4px';
     msg.textContent = rel.message || ('Version ' + rel.version + ' is ready.');
-    btn.textContent = isNative ? 'Update' : 'Reload';
+    btn.textContent = 'Reload';
     btn.style.cssText = 'background:#B0127A;color:#fff;border:0;border-radius:10px;padding:10px 18px;font-weight:600;margin-top:' + (forced ? '18px' : '0') + ';flex-shrink:0';
     btn.onclick = function () {
-      if (isNative && rel.updateUrl) { window.open(rel.updateUrl, '_system'); return; }
       try { if (window.caches) caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }).finally(function () { location.reload(); }); else location.reload(); }
       catch (e) { location.reload(); }
     };
@@ -151,7 +137,7 @@
   }
   function checkRelease() {
     if (!version) return;
-    origFetch.call(window, apiBase() + '/api/releases/check?version=' + encodeURIComponent(version) + '&platform=' + (isNative ? 'android' : 'web'), { headers: { 'X-App-Platform': KIND } })
+    origFetch.call(window, apiBase() + '/api/releases/check?version=' + encodeURIComponent(version) + '&platform=web', { headers: { 'X-App-Platform': KIND } })
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (d && d.updateAvailable && d.release && cmp(version, d.release.version) < 0) showUpdate(d.updateType, d.release);
@@ -159,7 +145,7 @@
   }
 
   function start() {
-    loadNativeVersion().then(function () { ping(); loadFlags(); checkRelease(); });
+    ping(); loadFlags(); checkRelease();
     document.addEventListener('visibilitychange', function () { if (!document.hidden) ping(); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();

@@ -10,11 +10,9 @@
      <script src="/js/livetrack-bridge.js"></script>
 
    It does three additive things, none of which alter existing UI:
-     1. On the native app (Capacitor), starts the real background
-        Foreground Service via BackgroundLocationPlugin instead of
-        relying solely on navigator.geolocation.watchPosition (which
-        livemap.js keeps using as-is for the in-page live view AND as
-        the automatic web/PWA fallback when the plugin isn't present).
+     1. Tells web users that always-on background tracking needs the
+        Android app (livemap.js keeps using navigator.geolocation
+        watchPosition for the in-page live view).
      2. Renders a small "Background Tracking" toggle + status chip
         into the Live Map page using the app's existing CSS variables
         (--accent, --g1, --border, etc.) so it matches the current
@@ -26,7 +24,6 @@
    ══════════════════════════════════════════════════════════════ */
 (function () {
   const API = (window.S && window.S.apiBase) || window.__US_API_BASE__ || '';
-  const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 
   function getIdentity() {
     // Reuses the exact same identity source livemap.js and games.html
@@ -47,13 +44,6 @@
 
     async init() {
       this.mountUI();
-      if (isNative) {
-        try {
-          const { BackgroundLocation } = window.Capacitor.Plugins;
-          const st = await BackgroundLocation.status();
-          this.enabled = !!st.enabled;
-        } catch (e) { /* plugin not present in this build yet — UI still renders, toggle will just report the error */ }
-      }
       this.renderToggle();
       this.loadGeofenceFeed();
     },
@@ -62,31 +52,7 @@
       const id = getIdentity();
       if (!id) { this.toast('Pair with your partner first'); return; }
 
-      if (!isNative) {
-        this.toast('Background tracking (screen-off/app-closed) requires the Android app — the web version still tracks live while this page is open.');
-        return;
-      }
-
-      const { BackgroundLocation } = window.Capacitor.Plugins || {};
-      if (!BackgroundLocation) { this.toast('Update the app to enable background tracking'); return; }
-
-      try {
-        if (this.enabled) {
-          await BackgroundLocation.stop();
-          this.enabled = false;
-          this.toast('Background tracking turned off');
-        } else {
-          const res = await BackgroundLocation.start({ coupleId: id.coupleId, role: id.role, apiBase: API });
-          this.enabled = true;
-          this.toast(res.backgroundGranted
-            ? 'Background tracking is on — location keeps sharing even when the app is closed'
-            : 'Tracking is on while the app is open/minimized. For tracking while fully closed, allow "Location: Allow all the time" in Android Settings > Apps > Twin Hearts > Permissions.');
-        }
-      } catch (e) {
-        this.lastError = e && e.message;
-        this.toast('Could not change background tracking: ' + (this.lastError || 'unknown error'));
-      }
-      this.renderToggle();
+      this.toast('Background tracking (screen-off/app-closed) requires the Android app — the web version still tracks live while this page is open.');
     },
 
     toast(msg) {
@@ -125,9 +91,7 @@
       if (!btn || !line) return;
       btn.textContent = this.enabled ? 'ON' : 'Turn On';
       btn.style.background = this.enabled ? 'linear-gradient(135deg,#34d399,#0d8f60)' : 'var(--accent,#B0127A)';
-      line.textContent = !isNative
-        ? 'Live while this page is open (install the Android app for always-on tracking)'
-        : (this.enabled ? 'Tracking continues when the app is closed or your screen is off' : 'Currently off — location only updates while this page is open');
+      line.textContent = 'Live while this page is open (install the Android app for always-on tracking)';
     },
 
     async loadGeofenceFeed() {

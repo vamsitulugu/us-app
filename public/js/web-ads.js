@@ -19,8 +19,7 @@
   if (!CFG.client) return;
 
   try {
-    // Never in the Android wrapper or an installed PWA.
-    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) return;
+    // Never in an installed PWA.
     if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return;
     // Never for anyone signed in.
     var s = JSON.parse(localStorage.getItem('uwl_v5') || '{}');

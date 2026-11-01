@@ -21,9 +21,7 @@ const Call = (function () {
   // Default false (earpiece) — matches how a real phone call starts.
   // setSinkId() below is kept for browsers where it works, but on Android
   // WebView it's a documented no-op for OS-level routing; the actual
-  // routing there goes through the native CallAudio plugin (see
-  // nativeCallAudio() below), which is the only thing that can reach
-  // AudioManager.setSpeakerphoneOn().
+  // routing there is not possible from the web.
   let isMuted = false, isCamOff = false, isSpeakerOn = false;
 
   // ─── Watch Together VOICE remote-audio sink ──────────────────────────
@@ -60,73 +58,14 @@ const Call = (function () {
     watchRemoteAudioEl.srcObject = null;
   }
 
-  // ─── Native audio routing bridge (Capacitor CallAudio plugin) ───
-  // No-ops harmlessly when not running inside the native app (e.g. plain
-  // browser testing), since window.Capacitor won't exist there.
-  function nativeCallAudio() {
-    return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CallAudio;
-  }
-  // ─── Native vibration bridge (Capacitor Haptics plugin) ───
-  // navigator.vibrate() on the web is blocked by the browser until the
-  // user has tapped the page/frame at least once — which an incoming call
-  // alert, by definition, fires before any tap has happened. That's a
-  // browser policy, not a bug, and it can't be "fixed" from the web API
-  // side. Haptics.vibrate() is native code and isn't subject to that
-  // restriction, so we use it when running inside the app and only fall
-  // back to navigator.vibrate() (which may or may not be blocked) on web.
-  function nativeVibrate(durationMs) {
-    const h = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics;
-    if (h && h.vibrate) { h.vibrate({ duration: durationMs }).catch(() => {}); return true; }
-    return false;
-  }
-  let _ringVibrateTimeouts = [];
   function ringVibrate() {
-    // Reproduces the buzz/pause/buzz/pause/buzz pattern natively when
-    // possible; on native, Haptics.vibrate() takes one duration per call,
-    // so the pattern is replayed as timed calls instead of a single array.
     const pattern = [300, 150, 300, 150, 500]; // vibrate, pause, vibrate, pause, vibrate
-    if (nativeVibrate(pattern[0])) {
-      let t = pattern[0];
-      for (let i = 1; i < pattern.length; i += 2) {
-        t += pattern[i];
-        const dur = pattern[i + 1];
-        if (dur == null) break;
-        _ringVibrateTimeouts.push(setTimeout(() => nativeVibrate(dur), t));
-        t += dur;
-      }
-    } else if (navigator.vibrate) {
-      navigator.vibrate(pattern);
-    }
+    if (navigator.vibrate) navigator.vibrate(pattern);
   }
   function stopRingVibrate() {
-    _ringVibrateTimeouts.forEach(clearTimeout);
-    _ringVibrateTimeouts = [];
-  }
-  function setRingingAudio() {
-    nativeCallAudio()?.setRinging().catch(() => {});
-  }
-  function setConnectedAudio() {
-    nativeCallAudio()?.setConnected({ speakerOn: isSpeakerOn }).catch(() => {});
-  }
-  function setSpeakerAudio() {
-    nativeCallAudio()?.setSpeaker({ speakerOn: isSpeakerOn }).catch(() => {});
-  }
-  function releaseCallAudio() {
-    nativeCallAudio()?.release().catch(() => {});
+    if (navigator.vibrate) navigator.vibrate(0);
   }
 
-  // ─── Centralized incoming-call notification cleanup ─────────────────
-  // Single choke point for cancelling the Android "incoming-call" system
-  // notification (see NotificationActionReceiver.java / TwinHeartsMessagingService
-  // showIncomingCall(), tag="incoming-call"). Called from cleanup() below,
-  // which already runs on every path that ends a call's "ringing/incoming"
-  // state — app Answer, app Decline, notification Answer (once acceptCall()
-  // completes), caller-cancel, timeout, and call end — so this one call
-  // site covers the whole notification lifecycle instead of scattering
-  // cancel calls across every one of those individual handlers.
-  function cancelIncomingCallNotification() {
-    nativeCallAudio()?.cancelIncomingCall?.().catch(() => {});
-  }
   let isMinimized = false, pipEl = null, pipDrag = null;
   let signalInterval = null;
   let videoUpgradePending = false;
@@ -139,7 +78,7 @@ const Call = (function () {
   // so it always works even with no assets in the repo.
   const RINGTONE_FILE = '/sounds/ringtone.mp3';   // incoming call
   const RINGBACK_FILE = '/sounds/ringback.mp3';   // outgoing call ("Calling...")
-  let ringFileEl = null, vibrateTimer = null, usingNativeRingtone = false;
+  let ringFileEl = null, vibrateTimer = null;
   let ringAudioCtx = null, ringGain = null, ringLoopTimer = null;
   function ensureRingCtx() {
     if (!ringAudioCtx) {
@@ -186,17 +125,6 @@ const Call = (function () {
   }
   function startRingtone(kind) {
     stopRingtone();
-    // Incoming calls: prefer the native ringtone when running inside the
-    // app — it plays through Android's own audio layer, outside the
-    // WebView, so it isn't blocked by autoplay policy even on a cold app
-    // open with zero prior taps. Falls through to the web audio path
-    // below too, harmlessly, in case the native call fails for any reason.
-    if (kind === 'incoming' && nativeCallAudio()?.playRingtone) {
-      nativeCallAudio().playRingtone().catch(() => {});
-      usingNativeRingtone = true;
-    } else {
-      usingNativeRingtone = false;
-    }
     const file = kind === 'incoming' ? RINGTONE_FILE : RINGBACK_FILE;
     ringFileEl = new Audio(file);
     ringFileEl.loop = true;
@@ -219,7 +147,6 @@ const Call = (function () {
     }
   }
   function stopRingtone() {
-    if (usingNativeRingtone) { nativeCallAudio()?.stopRingtone().catch(() => {}); usingNativeRingtone = false; }
     if (ringFileEl) { try { ringFileEl.pause(); ringFileEl.currentTime = 0; } catch (e) {} ringFileEl = null; }
     if (ringLoopTimer) { clearInterval(ringLoopTimer); ringLoopTimer = null; }
     if (vibrateTimer) { clearInterval(vibrateTimer); vibrateTimer = null; }
@@ -408,7 +335,6 @@ async function initSignalCursor() {
       // FIX (issue 2): leave the loud ringback route right away (earpiece
       // unless the user already tapped Speaker) instead of waiting for
       // connectionState === 'connected'.
-      setConnectedAudio();
       onConnecting();
       for (const cand of iceQueue) { try { await pc.addIceCandidate(cand); } catch (e) {} }
       iceQueue = [];
@@ -563,7 +489,6 @@ async function initSignalCursor() {
 
   function renderRinging(type, incoming) {
     startRingtone(incoming ? 'incoming' : 'outgoing');
-    setRingingAudio();
     const el = ensureOverlay();
     el.classList.remove('call-active-video');
     const name = window.S.partnerName || 'Partner';
@@ -658,7 +583,6 @@ async function initSignalCursor() {
       // FIX (issue 2): some OEM audio stacks re-route to the loudspeaker
       // when the first WebRTC stream starts playing — re-apply the user's
       // chosen route (earpiece by default) just after playback begins.
-      [250, 900, 2000].forEach(d => setTimeout(() => { if (pc && !isSpeakerOn) setConnectedAudio(); }, d));
     }
     startTimer();
     startSignalMonitor();
@@ -739,7 +663,6 @@ async function initSignalCursor() {
     if (audioEl && audioEl.setSinkId) {
       audioEl.setSinkId(isSpeakerOn ? 'default' : 'communications').catch(() => {});
     }
-    setSpeakerAudio();
   }
 
   async function flipCamera() {
@@ -1089,7 +1012,6 @@ async function initSignalCursor() {
     // person touching the Speaker button. Stop the ringtone and move to the
     // earpiece (communication mode) the moment the call is picked up.
     stopRingtone();
-    setConnectedAudio();
     const offer = pendingOffer;
     const myToken = ++callToken;
     try {
@@ -1113,7 +1035,6 @@ async function initSignalCursor() {
       await pc.setLocalDescription(answer);
       if (myToken !== callToken) return; // torn down mid-negotiation — don't answer for a dead attempt
       await pushSignal({ type: 'answer', sdp: answer });
-      cancelIncomingCallNotification();
       onConnecting();
     } catch (e) {
       console.error('acceptCall failed:', e);
@@ -1177,7 +1098,6 @@ async function initSignalCursor() {
           (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') &&
           !document.getElementById('callTimer') && !(callType === 'video' && document.getElementById('callRemoteVideo'))) {
         clearRingTimeout();
-        setConnectedAudio();
         renderActive();
         window.playAppSound?.(callType === 'video' ? 'call.video.connected' : 'call.connected');
       }
@@ -1199,7 +1119,6 @@ async function initSignalCursor() {
         // MODE_IN_COMMUNICATION at all — the OS stayed in normal media
         // mode, which is a second, independent reason two-way audio
         // never worked even once a sink existed for it.
-        setConnectedAudio();
         if (callContext === 'watch_together') {
           // No fullscreen overlay, no PiP, no chat "Connected" screen —
           // just record the ONE authoritative timestamp movie.js's mini
@@ -1269,8 +1188,6 @@ async function initSignalCursor() {
     callToken++; // invalidate any startCall()/acceptCall() still mid-setup
     clearRingTimeout();
     stopRingtone();
-    releaseCallAudio();
-    cancelIncomingCallNotification();
     stopAutoHide();
     if (pc) { pc.close(); pc = null; }
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
@@ -1475,7 +1392,7 @@ async function initSignalCursor() {
     callType = type; isCaller = true; callLogged = true; // suppress Chat call_log rows for watch calls
     // Watch Together default = loudspeaker (movie audio + partner audio both
     // need to be comfortably audible at once) — unlike a normal chat call,
-    // which defaults to the earpiece. See setConnectedAudio()/CallAudio plugin.
+    // which defaults to the earpiece.
     isMuted = false; isCamOff = false; isSpeakerOn = true;
     watchMediaSessionId = watchSessionId + ':' + Date.now() + ':' + Math.random().toString(36).slice(2, 7);
     watchMediaStartedAt = null;
@@ -1606,7 +1523,6 @@ async function initSignalCursor() {
     watchMediaStartedAt = null;
     callContext = 'chat';
     detachWatchRemoteAudio();
-    releaseCallAudio();
     window.dispatchEvent(new CustomEvent('uwl:call-stream-changed'));
   }
   function endWatchCall() {

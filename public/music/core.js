@@ -40,7 +40,6 @@
   MX.shuffleArray = (arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   MX.online = () => navigator.onLine !== false;
   MX.haptic = () => {
-    try { const h = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics; if (h && h.impact) { h.impact({ style: 'LIGHT' }); return; } } catch (e) {}
     try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) {}
   };
   MX.share = async (text, url) => {

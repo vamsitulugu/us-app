@@ -8,16 +8,15 @@
    start screen instead. Runs before first paint so there is no flash. */
 (function(){
   try{
-    var native=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
     var ua=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||'');
     var narrow=window.matchMedia&&window.matchMedia('(max-width: 820px)').matches;
     var s=JSON.parse(localStorage.getItem('uwl_v5')||'{}');
     var signedIn=!!(s&&s.setupDone&&s.coupleId);
     var forced=/[?&]desktop=1/.test(location.search);
-    if((native||ua||narrow)&&!signedIn&&!forced) document.documentElement.classList.add('ms-on');
+    if((ua||narrow)&&!signedIn&&!forced) document.documentElement.classList.add('ms-on');
     // Signed-in phone users never need this page: go straight to the app
     // (replace, so landing is not left in the Back history).
-    if((native||ua||narrow)&&signedIn&&!forced&&!/[?&]newAccount=1/.test(location.search)){
+    if((ua||narrow)&&signedIn&&!forced&&!/[?&]newAccount=1/.test(location.search)){
       try{ if(!sessionStorage.getItem('uwl_ls_bounce')){ sessionStorage.setItem('uwl_ls_bounce','1'); location.replace('/'); return; } }catch(e){}
     }
   }catch(e){}
@@ -315,7 +314,7 @@ body.native-auth-only > *:not(#authModal){display:none!important}
 body.native-auth-only #authModal{position:fixed;background:var(--bg,#14030e)}
 body.native-auth-only #authModal .modal-close{display:none}
 
-/* ── Mobile start screen (phones: web + APK, logged-out) ─────────── */
+/* ── Mobile start screen (phones, logged-out) ─────────── */
 #mobileStart{display:none}
 html.ms-on body > *:not(#mobileStart):not(#msChoose):not(#authModal):not(#prepOverlay):not(#apkGuideModal){display:none!important}
 html.ms-on #mobileStart{display:flex}
@@ -966,10 +965,7 @@ function isStandalone(){
   return window.matchMedia('(display-mode: standalone)').matches ||
          window.navigator.standalone === true; // iOS Safari
 }
-function isInsideNativeApp(){
-  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-}
-// Mobile start screen (phones: mobile web + installed APK, logged out).
+// Mobile start screen (phones, logged out).
 // The head script adds html.ms-on before paint; these helpers drive the
 // two steps: Get Started -> Sign In / Sign Up cards -> auth form.
 // Slide-to-start: drag the arrow knob (or press Enter/Right-arrow) to the end
@@ -1008,7 +1004,7 @@ function isInsideNativeApp(){
 // After the swipe: inside the installed app (or an installed PWA) go straight
 // to Sign In; in a normal browser show the Download / Continue-in-browser step.
 function msNext(){
-  if(isInsideNativeApp()||isStandalone()){ msOpen('login'); return; }
+  if(isStandalone()){ msOpen('login'); return; }
   renderChooseMeta();
   document.documentElement.classList.add('ms-choose');
 }
@@ -1048,7 +1044,7 @@ async function isApkInstalled(){
   try{
     if(!('getInstalledRelatedApps' in navigator)) return false;
     const apps = await navigator.getInstalledRelatedApps();
-    return apps.some(a => a.id === 'com.uswithlove.app');
+    return apps.some(a => a.id === 'com.twinhearts.app');
   }catch(e){ return false; }
 }
 function alreadySignedIn(){
@@ -1093,7 +1089,7 @@ async function renderInstallCard(){
   const platform = detectPlatform();
   const meta = platformMeta[platform];
   const card = document.getElementById('installCard');
-  const installed = isInsideNativeApp() || isStandalone() || alreadySignedIn() || await isApkInstalled();
+  const installed = isStandalone() || alreadySignedIn() || await isApkInstalled();
 
   if (installed){
     card.innerHTML = `
@@ -1101,7 +1097,7 @@ async function renderInstallCard(){
       <div class="install-info">
         <div class="install-eyebrow">You're all set</div>
         <div class="install-title">Twin Hearts is ready to open</div>
-        <div class="install-meta"><span>${isInsideNativeApp() ? 'Running in the app' : isStandalone() ? 'Running as an installed app' : 'Already installed on this device'}</span></div>
+        <div class="install-meta"><span>${isStandalone() ? 'Running as an installed app' : 'Already installed on this device'}</span></div>
         <div class="install-actions">
           <button class="btn-primary ripple-surface" onclick="goToApp()">💕 Open App</button>
         </div>

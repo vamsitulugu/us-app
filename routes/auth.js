@@ -516,7 +516,7 @@ router.post('/unregister-fcm-token', async (req, res) => {
   res.json({ ok: true });
 });
 
-// Must match MainActivity.TOUCH_CHANNEL_ID (android/app/src/main/java/com/uswithlove/app/MainActivity.java).
+// Must match MainActivity.TOUCH_CHANNEL_ID (MainActivity in the twin-hearts-android repo).
 // That channel is created natively with a locked-in 10-second vibration
 // pattern — Android ignores per-message vibration once a channel exists,
 // so the channel is what actually makes the phone buzz while the app

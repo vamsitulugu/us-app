@@ -4,10 +4,12 @@
   ────────────────────────────────────────────────────────────────
   Run this ONE command every time you build a new release APK:
 
-      node scripts/publish-apk.js /path/to/app-release.apk
+      node scripts/publish-apk.js /path/to/app-release.apk <versionName> <versionCode>
+      e.g. node scripts/publish-apk.js ./app-release.apk 1.0 1
 
   It will:
-    1. Read the real versionName/versionCode from android/app/build.gradle
+    1. Take versionName/versionCode from the command line (use the same
+       values as in twin-hearts-android's app/build.gradle)
     2. Upload your APK to Vercel Blob Storage under a stable filename
        (twin-hearts.apk), overwriting the previous upload
     3. Write public/downloads/app-meta.json with the REAL size/date/version
@@ -22,7 +24,7 @@ const path = require('path');
 async function main() {
   const apkArg = process.argv[2];
   if (!apkArg) {
-    console.error('Usage: node scripts/publish-apk.js <path-to-release.apk>');
+    console.error('Usage: node scripts/publish-apk.js <path-to-release.apk> <versionName> <versionCode>');
     process.exit(1);
   }
   const srcApk = path.resolve(apkArg);
@@ -47,12 +49,11 @@ async function main() {
     process.exit(1);
   }
 
-  const gradlePath = path.join(__dirname, '..', 'android', 'app', 'build.gradle');
-  const gradle = fs.readFileSync(gradlePath, 'utf8');
-  const versionName = (gradle.match(/versionName\s+"([^"]+)"/) || [])[1];
-  const versionCode = (gradle.match(/versionCode\s+(\d+)/) || [])[1];
-  if (!versionName || !versionCode) {
-    console.error('Could not find versionName/versionCode in ' + gradlePath);
+  const versionName = process.argv[3];
+  const versionCode = process.argv[4];
+  if (!versionName || !/^\d+$/.test(versionCode || '')) {
+    console.error('Usage: node scripts/publish-apk.js <path-to-release.apk> <versionName> <versionCode>');
+    console.error('Example: node scripts/publish-apk.js ./app-release.apk 1.0 1');
     process.exit(1);
   }
 
@@ -129,7 +130,7 @@ async function main() {
   console.log('✅ Published:');
   console.log('   ' + JSON.stringify(meta, null, 2));
   console.log('\nDownload URL: ' + cacheBustedUrl);
-  console.log('\nDon\'t forget to bump versionCode/versionName in android/app/build.gradle before your NEXT build,');
+  console.log('\nBump versionCode/versionName in twin-hearts-android (app/build.gradle) before your NEXT build,');
   console.log('and to commit the updated public/downloads/app-meta.json (the APK itself is NOT committed).');
 }
 

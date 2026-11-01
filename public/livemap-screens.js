@@ -2,7 +2,7 @@
    LMScreens — screen-stack controller for the Live Map page.
    Screens: map (root) · track · partner · places · more · alerts ·
             privacy · search.   Every screen has a back button; the
-   hardware/gesture Back (Capacitor) walks the same stack, and when the
+   hardware/gesture Back walks the same stack, and when the
    stack is empty it falls through to the app's own goBack().
 
    Load AFTER /livemap.js (it needs window.LiveMap) and after the page
