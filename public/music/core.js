@@ -341,6 +341,8 @@
   }
   D.loadSongs = async function (quiet) {
     const c = MX.ctx(); if (!c) return false;
+    // Cache-first: show the last saved songs at once, then refresh from the server.
+    if (!S.loaded.songs) { const saved = MX.cache.get('songs', null); if (saved && saved.length) { applySongs(saved); S.loaded.songs = true; } }
     try {
       const rows = await MX.api('GET', '/api/music/' + encodeURIComponent(c.coupleId) + '?viewer=' + c.role);
       S.loaded.songs = true; applySongs(rows);
@@ -355,6 +357,7 @@
   };
   D.loadPlaylists = async function () {
     const c = MX.ctx(); if (!c) return;
+    if (!S.loaded.playlists) { const saved = MX.cache.get('playlists', null); if (saved) { S.playlists = saved; S.loaded.playlists = true; MX.emit('playlists'); } }
     try {
       const r = await MX.api('GET', '/api/music/' + encodeURIComponent(c.coupleId) + '/playlists');
       S.playlistsAvailable = r.available !== false; S.playlists = r.playlists || [];
@@ -364,6 +367,7 @@
   };
   D.loadRecordings = async function () {
     const c = MX.ctx(); if (!c) return;
+    if (!S.loaded.recordings) { const saved = MX.cache.get('recs', null); if (saved) { S.recordings = saved; S.loaded.recordings = true; MX.emit('recordings'); } }
     try { S.recordings = (await MX.api('GET', '/api/recordings/' + encodeURIComponent(c.coupleId))) || []; MX.cache.set('recs', S.recordings); }
     catch (e) { if (!S.loaded.recordings) S.recordings = MX.cache.get('recs', []); }
     S.loaded.recordings = true; MX.emit('recordings');

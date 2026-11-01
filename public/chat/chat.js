@@ -144,11 +144,25 @@ const Chat = (function () {
   }
 
   // ─── LOAD / POLL MESSAGES ───────────────────────────
+ const CHAT_CACHE_KEY = () => 'th_chat_cache_' + coupleId();
  async function loadMessages() {
   if (!coupleId()) return;
+  // Cache-first: draw the last saved chat immediately, then replace it with the fresh copy.
+  if (!msgs.length) {
+    try {
+      const saved = JSON.parse(localStorage.getItem(CHAT_CACHE_KEY()) || 'null');
+      if (Array.isArray(saved) && saved.length) {
+        msgs = saved;
+        lastMsgTs = msgs[msgs.length - 1].created_at;
+        render();
+        scrollToBottom(false);
+      }
+    } catch (e) {}
+  }
   try {
     const rows = await api('GET', '/api/chat/' + coupleId() + '?limit=200');
     msgs = rows || [];
+    try { localStorage.setItem(CHAT_CACHE_KEY(), JSON.stringify(msgs.slice(-200))); } catch (e) {} // quota full: skip
     lastMsgTs = msgs.length ? msgs[msgs.length - 1].created_at : null;
     render();
     scrollToBottom(false);

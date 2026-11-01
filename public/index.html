@@ -12835,6 +12835,8 @@ if (window.Capacitor?.Plugins?.SplashScreen) {
         console.log('[startup] init() begin');
 
         AppLoader.ready('theme');
+        // Wake the (free-tier) server right away so it is awake by the time the first data call goes out.
+        try { fetch(API + '/api/health', { mode: 'no-cors', cache: 'no-store', keepalive: true }).catch(() => {}); } catch (e) {}
         syncAuthOverlay();
         loadLocal(); // offline/cache fallback AND the source for the cache-first paint in restoreAccount()
         console.log('[startup] loadLocal done — cached coupleId:', S.coupleId || '(none)');
