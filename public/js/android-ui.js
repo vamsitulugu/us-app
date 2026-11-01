@@ -24,7 +24,7 @@
     var link = document.getElementById(LINK_ID);
     if (on && !link) {
       link = document.createElement('link');
-      link.id = LINK_ID; link.rel = 'stylesheet'; link.href = '/android-ui.css?v=4';
+      link.id = LINK_ID; link.rel = 'stylesheet'; link.href = '/android-ui.css?v=5';
       (document.head || de).appendChild(link);
     } else if (!on && link) link.remove();
     try { window.dispatchEvent(new CustomEvent('uichange', { detail: { ui: on ? 'android' : 'classic' } })); } catch (e) {}

@@ -331,3 +331,27 @@ html[data-ui="android"][data-theme="dark"]:not(#_) .mc-empty { background:linear
 
 /* Music tab track must stay inside the page gutter */
 html[data-ui="android"][data-theme="dark"]:not(#_) #homeTabs.tabs { box-sizing:border-box; width:calc(100% - 32px); margin-inline:auto; }
+
+
+/* ═════════════ ROUND 4 — laptop chat width + Lucide page icons ═════════════ */
+/* Chat / AI / Home use the whole content area on laptop (the old 1180px centring made Chat shrink to ~530px) */
+html[data-ui="android"][data-theme="dark"]:not(#_) #page-chat.active, html[data-ui="android"][data-theme="dark"]:not(#_) #page-ai.active, html[data-ui="android"][data-theme="dark"]:not(#_) #page-dashboard.active { width:100% !important; max-width:none !important; margin-inline:0 !important; }
+@media (min-width:1024px) {
+  /* header, messages and composer span the screen; the text column itself stays readable */
+  html[data-ui="android"][data-theme="dark"]:not(#_) .chat-header { padding-inline:max(20px, calc((100% - 1100px) / 2)); }
+  html[data-ui="android"][data-theme="dark"]:not(#_) #chatMsgs { padding-inline:max(20px, calc((100% - 1100px) / 2)) !important; }
+  html[data-ui="android"][data-theme="dark"]:not(#_) .uc-composer { padding-inline:max(20px, calc((100% - 1100px) / 2)); }
+  html[data-ui="android"][data-theme="dark"]:not(#_) .chat-bubble { max-width:min(640px, 70%); }
+}
+
+/* Lucide icons on Home page groups: lucide copies class "e" onto the <svg>, so size the svg as a 52px
+   circle and pad the glyph to 24px with a light 1.75 stroke (same as the app's icon circles). */
+html[data-ui="android"][data-theme="dark"]:not(#_) .dw-page .e {
+  box-sizing:border-box; display:block; flex:none; width:52px !important; height:52px !important; padding:14px;
+  border-radius:50%; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18);
+  color:#fff !important; stroke-width:1.75 !important; overflow:visible;
+}
+html[data-ui="android"][data-theme="dark"]:not(#_) .dw-page:hover .e { background:rgba(255,255,255,.14); border-color:rgba(255,255,255,.3); }
+/* every Lucide icon in the app: consistent light stroke */
+html[data-ui="android"][data-theme="dark"]:not(#_) svg.lucide { stroke-width:1.75; }
+html[data-ui="android"][data-theme="dark"]:not(#_) .dh-chip svg { stroke-width:1.75; }
