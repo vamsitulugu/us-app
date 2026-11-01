@@ -134,7 +134,7 @@ router.post('/', async (req, res) => {
     const { data: presenceRow } = await supabase.from('chat_presence')
       .select('status,last_seen').eq('couple_id', coupleId).eq('role', receiverRoleForDelivery).maybeSingle();
     if (presenceRow && presenceRow.status === 'online' &&
-        (Date.now() - new Date(presenceRow.last_seen).getTime()) < 35000) {
+        (Date.now() - new Date(presenceRow.last_seen).getTime()) < 60000) {
       delivered = true;
       deliveredAt = new Date().toISOString();
     }

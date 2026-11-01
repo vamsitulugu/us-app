@@ -8275,6 +8275,7 @@ async function saveToCloud() {
   }
 }
         let _loadInFlight = false;
+        let _loveSentAt = 0; // when I last tapped Hug / Touch / Miss You (see pollLoveSignals)
         const _unsavedPhotoIds = new Set(); // photo ids added locally, not yet confirmed saved to cloud
         function scheduleSave() { clearTimeout(autoSaveTimer); autoSaveTimer = setTimeout(saveToCloud, 600); }
         window.addEventListener('beforeunload', () => {
@@ -8423,7 +8424,7 @@ function setJustPairedAt(ts) {
           S.touch = { from: S.role, ts: Date.now() };
           lastTouchSeen = S.touch.ts;
           localStorage.setItem('uwl_lastTouchSeen', String(lastTouchSeen));
-          scheduleSave();
+          _loveSentAt = Date.now(); clearTimeout(autoSaveTimer); saveToCloud();
           const btn = document.getElementById('touchHeartBtn');
           if (btn) { btn.classList.add('touch-sent'); setTimeout(() => btn.classList.remove('touch-sent'), 700); }
           toast('Sent a touch to ' + (S.partnerName || 'them') + ' 💓');
@@ -8433,7 +8434,7 @@ function setJustPairedAt(ts) {
     
         function checkIncomingTouch() {
           if (!S.touch || S.touch.from === S.role) return;
-          if (S.touch.ts <= lastTouchSeen) return;
+          if (S.touch.ts === lastTouchSeen) return; // different = new (phone clocks differ, so never compare sizes)
           lastTouchSeen = S.touch.ts;
           localStorage.setItem('uwl_lastTouchSeen', String(lastTouchSeen));
           // Guarded above by the lastTouchSeen watermark, so this fires
@@ -9259,7 +9260,7 @@ const p = await Notification.requestPermission();
           S.missCounts[S.role] = (S.missCounts[S.role] || 0) + 1;
           lastMissSeen = ts;
           localStorage.setItem('uwl_lastMissSeen', String(ts));
-          scheduleSave();
+          _loveSentAt = Date.now(); clearTimeout(autoSaveTimer); saveToCloud();
           renderMissYouStats();
           const btn = document.getElementById('missYouBtn');
           if (btn) { btn.classList.add('missyou-sent'); setTimeout(() => btn.classList.remove('missyou-sent'), 650); }
@@ -9289,7 +9290,7 @@ const p = await Notification.requestPermission();
           if (!S.missYou) return;
           // Case 1: a fresh "misses you" ping — shown only to the recipient,
           // and only once (gated by the id watermark).
-          if (S.missYou.status === 'sent' && S.missYou.from !== S.role && S.missYou.id > lastMissSeen) {
+          if (S.missYou.status === 'sent' && S.missYou.from !== S.role && S.missYou.id !== lastMissSeen) {
             lastMissSeen = S.missYou.id;
             localStorage.setItem('uwl_lastMissSeen', String(lastMissSeen));
             if (navigator.vibrate) navigator.vibrate([150, 80, 150, 80, 300]);
@@ -9342,7 +9343,7 @@ const p = await Notification.requestPermission();
           S.hug = { id, from: S.role, ts: id, status: 'pending' };
           lastHugSeen = id;
           localStorage.setItem('uwl_lastHugSeen', String(id));
-          scheduleSave();
+          _loveSentAt = Date.now(); clearTimeout(autoSaveTimer); saveToCloud();
           const btn = document.getElementById('hugBtn');
           if (btn) { btn.classList.add('hug-sent'); setTimeout(() => btn.classList.remove('hug-sent'), 650); }
           toast('🤗 Hug sent — waiting for ' + (S.partnerName || 'them') + ' to accept');
@@ -9352,7 +9353,7 @@ const p = await Notification.requestPermission();
 
         function checkIncomingHug() {
           if (!S.hug) return;
-          if (S.hug.status === 'pending' && S.hug.from !== S.role && S.hug.id > lastHugSeen) {
+          if (S.hug.status === 'pending' && S.hug.from !== S.role && S.hug.id !== lastHugSeen) {
             lastHugSeen = S.hug.id;
             localStorage.setItem('uwl_lastHugSeen', String(lastHugSeen));
             if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 100, 50, 250]);
@@ -12699,6 +12700,28 @@ function logOut() {
 
         let _syncLoopStarted = false;
         let _syncTickCount = 0;
+// Fast, light check for my partner's Hug / Touch / Miss You. The full state is big and is only
+// re-read every few seconds, so a signal could take a while to show. This asks the server for
+// just those three small keys every 3 seconds while the app is open and visible.
+async function pollLoveSignals() {
+  if (!S.coupleId || !S.paired || document.hidden) return;
+  if (Date.now() - _loveSentAt < 5000) return; // my own tap is still being saved: don't overwrite it
+  try {
+    const r = await fetch(API + '/api/data/love-signals/' + S.coupleId, { cache: 'no-store' });
+    if (!r.ok) return;
+    const d = await r.json();
+    if (!d) return;
+    ['touch', 'missYou', 'hug'].forEach(k => {
+      const v = d[k];
+      if (!v) return;
+      if (JSON.stringify(S[k] || null) !== JSON.stringify(v)) S[k] = v;
+    });
+    checkIncomingTouch();
+    checkIncomingMissYou();
+    checkIncomingHug();
+  } catch (e) { /* the normal sync loop is still there as a back-up */ }
+}
+
 function startSyncLoop() {
   if (_syncLoopStarted) return;
   _syncLoopStarted = true;
@@ -12731,6 +12754,7 @@ function startSyncLoop() {
       if (window.Chat && typeof Chat.markRead === 'function') Chat.markRead();
     }
   }, 5000);
+  setInterval(pollLoveSignals, 3000);
 }
         let leafletMap = null, myMarker = null, ptMarker = null;
         function haversine(a, b) {

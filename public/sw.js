@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v57'; // bumped: Capacitor/APK-wrapper code removed
+const CACHE = 'uwl-v58'; // bumped: faster love signals + presence fix
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',

@@ -53,7 +53,7 @@ const Chat = (function () {
       // Backgrounded tab: skip entirely, no network call.
       if (document.hidden) return;
       sendPresence('online');
-    }, 20000);
+    }, 15000);
 
     if (_presenceListenersAttached) return; // listeners already wired once — never attach a second copy
     _presenceListenersAttached = true;
@@ -110,7 +110,7 @@ const Chat = (function () {
     if (!p) return { label: 'Offline', dot: '⚫', online: false };
     const last = new Date(p.last_seen).getTime();
     const ageMs = Date.now() - last;
-    if (p.status === 'online' && ageMs < 35000) return { label: 'Online', dot: '🟢', online: true };
+    if (p.status === 'online' && ageMs < 60000) return { label: 'Online', dot: '🟢', online: true };
     if (ageMs < 120000) return { label: 'Away', dot: '🟡', online: false, away: true };
     return { label: 'Last seen ' + fmtAgo(last), dot: '⚫', online: false };
   }
@@ -3014,6 +3014,8 @@ function menuItemsHtml(m, id, includeSelect) {
     startPolling();
     startRealtime();
     fetchPresence();
+    // Keep the partner's Online / Away label fresh on every page, not only inside chat.
+    setInterval(() => { if (!document.hidden) fetchPresence(); }, 10000);
     initSwipeToReply();
     setStaticScreenHeight();
     initViewportKeyboardFix();

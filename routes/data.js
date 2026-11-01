@@ -166,7 +166,36 @@ function diffAndNotify(coupleId, senderRole, prevState, nextState, myName) {
   }
 }
 
-router.post('/state', async (req, res) => {
+// One save at a time per couple. The handler below reads the saved state, merges
+// the incoming keys and writes it back. Two saves of the same couple that overlap
+// (a hug/touch/miss-you tap plus the other phone's normal background save) both read the
+// same old copy, and whichever writes last silently erases the other's keys, so a
+// signal could get lost. Running them one after another in this process fixes that.
+const _coupleSaveQueues = new Map();
+function withCoupleLock(coupleId, task) {
+  const key = String(coupleId || '_');
+  const prev = _coupleSaveQueues.get(key) || Promise.resolve();
+  const run = prev.catch(() => {}).then(task);
+  const tail = run.catch(() => {});
+  _coupleSaveQueues.set(key, tail);
+  tail.then(() => { if (_coupleSaveQueues.get(key) === tail) _coupleSaveQueues.delete(key); });
+  return run;
+}
+
+// Tiny read of only the Hug / Touch / Miss You signals. The apps poll this every few
+// seconds, so it must never download the whole state (photos, music lists, etc.).
+router.get('/love-signals/:coupleId', async (req, res) => {
+  const { data, error } = await supabase
+    .from('app_state')
+    .select('touch:state->touch, missYou:state->missYou, hug:state->hug, missCounts:state->missCounts')
+    .eq('couple_id', req.params.coupleId)
+    .maybeSingle();
+  if (error && error.code !== 'PGRST116') return res.status(500).json({ error: error.message });
+  res.set('Cache-Control', 'no-store');
+  return res.json(data || {});
+});
+
+async function saveStateHandler(req, res) {
   const { coupleId, state, senderRole, myName } = req.body;
   if (!coupleId || !state) return res.status(400).json({ error: 'Missing data' });
 
@@ -233,6 +262,14 @@ router.post('/state', async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message });
   return res.json({ ok: true, savedAt: new Date().toISOString() });
+}
+
+router.post('/state', (req, res) => {
+  const coupleId = req.body && req.body.coupleId;
+  withCoupleLock(coupleId, () => saveStateHandler(req, res)).catch(err => {
+    console.error('[data/state] save failed:', err && err.message);
+    if (!res.headersSent) res.status(500).json({ error: 'Save failed' });
+  });
 });
 
 
