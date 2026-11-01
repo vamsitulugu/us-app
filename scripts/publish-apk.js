@@ -83,6 +83,8 @@ async function main() {
       // build, or failing outright if the previous upload was ever
       // interrupted. 60 is the minimum allowed TTL.
       cacheControlMaxAge: 60,
+      multipart: true,
+      onUploadProgress: (p) => process.stdout.write('\r   ' + p.percentage.toFixed(0) + '%   '),
       token,
     });
   } catch (err) {
