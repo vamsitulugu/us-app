@@ -8230,6 +8230,17 @@ function saveLocal() {
         }
 
         // ─── CLOUD SYNC ──────────────────────────────────────────
+        // Last known cloud copy of each top-level key (as JSON), used to send only changes.
+        var _syncSnap = {};
+        function _changedState() {
+          const st = {};
+          Object.keys(S).forEach(k => {
+            if (k === 'coupleId') return;
+            let j; try { j = JSON.stringify(S[k]); } catch (_) { return; }
+            if (_syncSnap[k] !== j) st[k] = S[k];
+          });
+          return st;
+        }
  async function loadFromCloud() {
   if (!S.coupleId) return;
   if (_loadInFlight) return;
@@ -8246,6 +8257,7 @@ function saveLocal() {
       // the cloud copy doesn't have them, so a plain Object.assign would wipe
       // them from S.photos (this is what made bulk uploads "disappear").
       const pendingPhotos = (S.photos || []).filter(p => _unsavedPhotoIds.has(p.id));
+      Object.keys(state).forEach(k => { try { _syncSnap[k] = JSON.stringify(state[k]); } catch (_) {} });
       Object.assign(S, state);
       Object.assign(S, saved);
       if (pendingPhotos.length) {
@@ -8269,14 +8281,21 @@ async function saveToCloud() {
   if (_isSaving) { _saveQueued = true; return; }
   _isSaving = true;
   try {
-    const st = { ...S }; delete st.coupleId;
+    // Send ONLY the top-level keys that changed since the last cloud load/save.
+    // The server replaces whole keys, so sending everything would overwrite
+    // what the partner (e.g. the Android app) saved while this copy was stale.
+    const st = _changedState();
+    if (!Object.keys(st).length) { saveLocal(); updateSyncStatus(true); return; }
+    const sentJson = {};
+    Object.keys(st).forEach(k => { try { sentJson[k] = JSON.stringify(st[k]); } catch (_) {} });
     const coveredPhotoIds = (S.photos || []).map(p => p.id);
     await api('POST', '/api/data/state', {
       coupleId: S.coupleId,
       state: st,
-      senderRole: S.role,      // ADD THIS
-      myName: S.myName         // ADD THIS
+      senderRole: S.role,
+      myName: S.myName
     });
+    Object.keys(sentJson).forEach(k => { _syncSnap[k] = sentJson[k]; });
     coveredPhotoIds.forEach(id => _unsavedPhotoIds.delete(id));
     saveLocal(); updateSyncStatus(true);
   } catch (e) { saveLocal(); console.warn('Cloud save:', e.message); }
@@ -8292,9 +8311,10 @@ async function saveToCloud() {
   clearTimeout(autoSaveTimer);
   saveLocal();
   if (S.coupleId) {
-    navigator.sendBeacon(
+    var _chg = _changedState();
+    if (Object.keys(_chg).length) navigator.sendBeacon(
       API + '/api/data/state',
-      new Blob([JSON.stringify({ coupleId: S.coupleId, state: { ...S, coupleId: undefined } })], { type: 'application/json' })
+      new Blob([JSON.stringify({ coupleId: S.coupleId, state: _chg, senderRole: S.role, myName: S.myName })], { type: 'application/json' })
     );
   }
 });
@@ -13240,7 +13260,7 @@ function renderSurprises() {
         <button class="del-btn" onclick="delSurprise(${s.id})"><i data-lucide="trash-2"></i></button>
       </div>
       <div style="font-size:13px;font-weight:600;color:var(--white);margin:7px 0 3px">${esc(s.type)} ${esc(s.title)}</div>
-      ${!locked ? `${s.msg ? `<div style="font-size:12px;color:var(--text2);margin-bottom:6px">${esc(s.msg)}</div>` : ''}${s.mediaUrl ? (s.mediaUrl.startsWith('data:video') ? `<video src="${s.mediaUrl}" controls style="width:100%;border-radius:10px"></video>` : s.mediaUrl.startsWith('data:audio') ? `<audio src="${s.mediaUrl}" controls style="width:100%"></audio>` : `<img src="${s.mediaUrl}" style="width:100%;border-radius:10px" loading="lazy" decoding="async" onclick="openImgViewer('${s.mediaUrl}')">`) : ''}` : `<div style="font-size:11px;color:var(--text3)">Opens ${fmtDate(s.unlock)}</div>`}
+      ${!locked ? `${s.msg ? `<div style="font-size:12px;color:var(--text2);margin-bottom:6px">${esc(s.msg)}</div>` : ''}${s.mediaUrl ? ((s.mediaKind === 'video' || s.mediaUrl.startsWith('data:video')) ? `<video src="${s.mediaUrl}" controls style="width:100%;border-radius:10px"></video>` : (s.mediaKind === 'audio' || s.mediaUrl.startsWith('data:audio')) ? `<audio src="${s.mediaUrl}" controls style="width:100%"></audio>` : `<img src="${s.mediaUrl}" style="width:100%;border-radius:10px" loading="lazy" decoding="async" onclick="openImgViewer('${s.mediaUrl}')">`) : ''}` : `<div style="font-size:11px;color:var(--text3)">Opens ${fmtDate(s.unlock)}</div>`}
     </div>`;
   }).join('');
  if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }}

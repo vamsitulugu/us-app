@@ -1672,7 +1672,9 @@ async function uploadGlobeMedia(fileOrBlob, filename) {
   const form = new FormData();
   form.append('file', fileOrBlob, filename || 'upload');
   form.append('coupleId', coupleId);
-  const r = await fetch(`${API}/api/media/upload`, { method: 'POST', body: form });
+  // Voice notes are audio: /upload only accepts images/videos, so audio goes to /upload-voice.
+  const isAudio = ((fileOrBlob && fileOrBlob.type) || '').toLowerCase().startsWith('audio');
+  const r = await fetch(`${API}/api/media/${isAudio ? 'upload-voice' : 'upload'}`, { method: 'POST', body: form });
   const data = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(data.error || 'Upload failed');
   return data.url;
