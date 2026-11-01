@@ -1,10 +1,9 @@
 /* Twin Hearts — "Android look" switch.
-   The Android look is now the DEFAULT. The classic web UI is still available as an opt-out and is never
-   edited. When this is ON the page gets
+   The Android look is now the DEFAULT; the classic web UI is an opt-out and is never edited. When this is ON the page gets
    <html data-ui="android"> and /android-ui.css is added; every rule in that file is scoped
    to data-ui="android", so turning it OFF returns the exact old UI.
-   Turn off: Settings → Appearance → Interface → Classic, or open any page with ?ui=classic
-   Turn on:  Settings → Appearance → Interface → Android look, or ?ui=android
+   Turn on:  Settings → Appearance → Interface, or open any page with ?ui=android
+   Turn off: Settings → Appearance → Interface → Classic, or ?ui=classic
    Same-origin iframes load this file too and follow through the 'storage' event. */
 (function () {
   'use strict';
@@ -25,7 +24,7 @@
     var link = document.getElementById(LINK_ID);
     if (on && !link) {
       link = document.createElement('link');
-      link.id = LINK_ID; link.rel = 'stylesheet'; link.href = '/android-ui.css?v=3';
+      link.id = LINK_ID; link.rel = 'stylesheet'; link.href = '/android-ui.css?v=4';
       (document.head || de).appendChild(link);
     } else if (!on && link) link.remove();
     try { window.dispatchEvent(new CustomEvent('uichange', { detail: { ui: on ? 'android' : 'classic' } })); } catch (e) {}
