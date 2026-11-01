@@ -40,7 +40,10 @@ app.disable('etag');
 // ── Security headers ───────────────────────────────────
 app.use(helmet({
   contentSecurityPolicy: false, // disabled because inline scripts in index.html
-  crossOriginEmbedderPolicy: false
+  crossOriginEmbedderPolicy: false,
+  // Helmet's default ("same-origin") cuts the link between a page and the popup it opens,
+  // which breaks the Google sign-in popup. This keeps popups working.
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }
 }));
 
 // ── Gzip compression (faster loading) ─────────────────

@@ -428,8 +428,11 @@ html.ms-on.ms-auth #mobileStart{display:none}
 .auth-divider{text-align:center;font-size:11px;color:var(--text3);margin:15px 0}
 .auth-btn-alt{width:100%;padding:12px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;background:var(--g2);color:var(--white);border:1px solid var(--border2);font-family:var(--ff-sans);transition:all .2s}
 .auth-btn-alt:hover{background:var(--g3)}
-#loginView,#registerView,#setupView,#pairView,#forgotView,#changePasswordView{display:none}
-#loginView.active,#registerView.active,#setupView.active,#pairView.active,#forgotView.active,#changePasswordView.active{display:block;animation:fadeSlide .25s ease}
+#loginView,#registerView,#setupView,#pairView,#forgotView,#changePasswordView,#googleProfileView{display:none}
+#loginView.active,#registerView.active,#setupView.active,#pairView.active,#forgotView.active,#changePasswordView.active,#googleProfileView.active{display:block;animation:fadeSlide .25s ease}
+.google-wrap{display:flex;justify-content:center;min-height:44px;margin:0 0 12px;color-scheme:light}
+.g-block{display:none}
+.g-chip{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--rs);background:var(--g2);border:1px solid var(--border2);font-size:12.5px;color:var(--text2);margin-bottom:14px;word-break:break-all}
 @keyframes fadeSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
@@ -664,6 +667,7 @@ html.ms-on.ms-auth #mobileStart{display:none}
       </div>
       <button class="auth-btn" id="loginBtn" onclick="doEmailLogin()">Sign In 💕</button>
       <div class="auth-divider">— or —</div>
+      <div class="g-block"><div class="google-wrap" id="gBtnLogin"></div></div>
       <button class="auth-btn-alt" onclick="authTab('register')">Create new account →</button>
       <div style="text-align:center;margin-top:16px;font-size:11.5px;color:var(--text3);line-height:1.5">By continuing, you agree to our <a href="privacy-policy.html" style="color:var(--text2);text-decoration:underline">Privacy Policy</a>.</div>
     </div>
@@ -694,6 +698,25 @@ html.ms-on.ms-auth #mobileStart{display:none}
       </div>
     </div>
 
+    <!-- ═══ Continue with Google — extra details for NEW accounts only ═══ -->
+    <div id="googleProfileView">
+      <div class="modal-headline">Almost there ✨</div>
+      <p style="font-size:12.5px;color:var(--text2);line-height:1.6;margin:-6px 0 14px">Finish setting up your account. Your Google email is already filled in.</p>
+      <div id="googleProfileErr" class="auth-err"></div>
+      <div class="g-chip"><span>✅</span><span id="gpEmail"></span></div>
+      <div class="field"><label>Your Name</label><input type="text" id="gpName" placeholder="Your name" autocomplete="off"></div>
+      <div class="field"><label>I am</label><div class="gender-pick" id="gpGender"><button type="button" data-g="female" onclick="pickGoogleGender('female')">👩 Girl</button><button type="button" data-g="male" onclick="pickGoogleGender('male')">👨 Boy</button></div></div>
+      <div class="field"><label>Phone Number</label><input type="tel" id="gpPhone" placeholder="e.g. 1234567890" autocomplete="tel"></div>
+      <div style="font-size:11.5px;color:var(--text3);margin:-6px 0 14px;line-height:1.5">This number is only used so your partner can find you. It is never used for login.</div>
+      <div class="field"><label>Password (min 6 chars)</label><input type="password" id="gpPassword" placeholder="Create a password" autocomplete="new-password"></div>
+      <div class="field"><label>Secret Vault PIN (4 digits)</label><input type="password" id="gpVaultPin" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Choose a 4-digit PIN" autocomplete="off"></div>
+      <div class="field"><label>Confirm Vault PIN</label><input type="password" id="gpVaultPin2" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Re-enter your PIN" autocomplete="off"></div>
+      <div style="font-size:11.5px;color:var(--text3);margin:-6px 0 14px;line-height:1.5">This locks your Secret Vault. You set it once, here. If you ever forget it, you can reset it with your account password.</div>
+      <button class="auth-btn" id="gpBtn" onclick="doGoogleComplete()">Create Account ✨</button>
+      <div class="auth-divider">Wrong Google account?</div>
+      <button class="auth-btn-alt" onclick="cancelGoogleSignup()">← Back</button>
+    </div>
+
     <div id="registerView">
       <div class="auth-tabs">
         <button class="auth-tab" onclick="authTab('login')">Sign In</button>
@@ -701,6 +724,7 @@ html.ms-on.ms-auth #mobileStart{display:none}
       </div>
       <div class="modal-headline">Create your account ✨</div>
       <div id="registerErr" class="auth-err"></div>
+      <div class="g-block"><div class="google-wrap" id="gBtnRegister"></div><div class="auth-divider" style="margin-bottom:14px">or sign up with email</div></div>
       <div class="field"><label>Email</label><input type="email" id="regEmail" placeholder="your@email.com" autocomplete="email"></div>
       <div class="field"><label>Password (min 6 chars)</label><input type="password" id="regPassword" placeholder="Create a password"></div>
       <div class="field"><label>Your Name</label><input type="text" id="regMyName" placeholder="Your name" autocomplete="off"></div>
@@ -793,13 +817,14 @@ function openAuth(view){
 }
 function closeAuth(){ document.getElementById('authModal').classList.remove('open'); }
 function authTab(tab){
-  ['login','register','forgot','changePassword'].forEach(v=>{
+  ['login','register','forgot','changePassword','googleProfile'].forEach(v=>{
     const el=document.getElementById(v+'View');
     if(el) el.classList.toggle('active', v===tab);
   });
   document.querySelectorAll('#loginView .auth-tab,#registerView .auth-tab').forEach(b=>{
     b.classList.toggle('active', (tab==='login'&&b.textContent.trim()==='Sign In')||(tab==='register'&&b.textContent.trim()==='Sign Up'));
   });
+  if(typeof renderGoogleButtons==='function') setTimeout(renderGoogleButtons,0);
 }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 
@@ -924,6 +949,107 @@ async function doEmailRegister(){
   }catch(e){ err.textContent=e.message; err.style.display='block'; }
   finally{ btn.textContent='Create Account ✨'; btn.disabled=false; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Continue with Google
+   - Existing account  → signed in straight away (like the normal Sign In)
+   - New account       → "Almost there" step asks for name, boy/girl, phone,
+                         password and vault PIN, then the account is created
+   The server decides which one (POST /api/auth/google). The client id comes
+   from the server (GET /api/auth/google-config), so nothing is hard-coded here.
+   ═══════════════════════════════════════════════════════════════ */
+let _googleCfg=null, _googleInited=false, _googleSignupToken=null, gpGenderValue='';
+
+async function initGoogleSignIn(){
+  try{
+    const r=await fetch(API+'/api/auth/google-config');
+    const c=await r.json();
+    if(!c.enabled||!c.clientId) return;   // not set up on the server → buttons stay hidden
+    _googleCfg=c;
+  }catch(e){ return; }
+  const s=document.createElement('script');
+  s.src='https://accounts.google.com/gsi/client'; s.async=true; s.defer=true;
+  s.onload=setupGoogleButtons;
+  document.head.appendChild(s);
+}
+function setupGoogleButtons(){
+  if(!(window.google&&google.accounts&&google.accounts.id)) return;
+  google.accounts.id.initialize({ client_id:_googleCfg.clientId, callback:handleGoogleCredential, ux_mode:'popup', auto_select:false });
+  _googleInited=true;
+  document.querySelectorAll('.g-block').forEach(el=>{ el.style.display='block'; });
+  renderGoogleButtons();
+}
+function renderGoogleButtons(){
+  if(!_googleInited) return;
+  ['gBtnLogin','gBtnRegister'].forEach(id=>{
+    const box=document.getElementById(id);
+    if(!box||!box.offsetParent) return;            // that tab is not on screen right now
+    const w=Math.round(Math.min(400,Math.max(200,box.offsetWidth||300)));
+    if(box.dataset.w===String(w)) return;
+    box.dataset.w=String(w); box.innerHTML='';
+    google.accounts.id.renderButton(box,{ type:'standard', theme:'filled_black', size:'large', shape:'pill', text:'continue_with', logo_alignment:'left', width:w });
+  });
+}
+function googleErrBox(){
+  const onLogin=document.getElementById('loginView').classList.contains('active');
+  return document.getElementById(onLogin?'loginErr':'registerErr');
+}
+async function handleGoogleCredential(resp){
+  const err=googleErrBox(); err.style.display='none';
+  try{
+    const r=await fetch(API+'/api/auth/google',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:resp.credential})});
+    const data=await r.json();
+    if(!r.ok) throw new Error(data.error||'Google sign-in failed');
+    if(data.needsProfile){
+      _googleSignupToken=data.signupToken;
+      document.getElementById('gpEmail').textContent=data.email;
+      document.getElementById('gpName').value=data.name||'';
+      ['gpPhone','gpPassword','gpVaultPin','gpVaultPin2'].forEach(id=>{ document.getElementById(id).value=''; });
+      gpGenderValue=''; document.querySelectorAll('#gpGender button').forEach(b=>b.classList.remove('on'));
+      document.getElementById('googleProfileErr').style.display='none';
+      authTab('googleProfile');
+      return;
+    }
+    saveAndGo(data);   // existing account: straight in, no extra questions
+  }catch(e){ err.textContent=e.message; err.style.display='block'; }
+}
+function pickGoogleGender(g){
+  gpGenderValue=g;
+  document.querySelectorAll('#gpGender button').forEach(b=>b.classList.toggle('on',b.dataset.g===g));
+}
+function cancelGoogleSignup(){
+  _googleSignupToken=null;
+  if(window.google&&google.accounts&&google.accounts.id) google.accounts.id.disableAutoSelect();
+  authTab('register');
+}
+async function doGoogleComplete(){
+  const err=document.getElementById('googleProfileErr');
+  const name=document.getElementById('gpName').value.trim();
+  const phone=document.getElementById('gpPhone').value.trim();
+  const pass=document.getElementById('gpPassword').value;
+  const pin=document.getElementById('gpVaultPin').value.trim();
+  const pin2=document.getElementById('gpVaultPin2').value.trim();
+  const fail=m=>{ err.textContent=m; err.style.display='block'; };
+  if(!name||!phone||!pass){ return fail('Fill in all fields'); }
+  if(pass.length<6){ return fail('Password must be at least 6 characters'); }
+  if(!gpGenderValue){ return fail('Please choose Girl or Boy'); }
+  const pinProblem=checkVaultPin(pin);
+  if(pinProblem){ return fail(pinProblem); }
+  if(pin!==pin2){ return fail('The two vault PINs do not match'); }
+  if(!_googleSignupToken){ return fail('Your Google sign-in expired. Please go back and try again.'); }
+  err.style.display='none';
+  const btn=document.getElementById('gpBtn'); btn.textContent='Creating...'; btn.disabled=true;
+  try{
+    const r=await fetch(API+'/api/auth/google/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({signupToken:_googleSignupToken,myName:name,phoneNumber:phone,password:pass,vaultPin:pin})});
+    const data=await r.json();
+    if(!r.ok) throw new Error(data.error||'Registration failed');
+    _googleSignupToken=null;
+    saveAndGo({...data,gender:gpGenderValue});
+  }catch(e){ fail(e.message); }
+  finally{ btn.textContent='Create Account ✨'; btn.disabled=false; }
+}
+initGoogleSignIn();
+
 function saveAndGo(data){
   const freshState={
     userId:data.userId, coupleId:data.coupleId, myName:data.myName, phoneNumber:data.phoneNumber||'',

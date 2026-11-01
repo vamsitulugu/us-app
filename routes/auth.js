@@ -795,40 +795,26 @@ module.exports.broadcastEvent = broadcastEvent;
 
 module.exports.normalizePhone = normalizePhone;
 
-// ── POST /api/auth/register ────────────────────────────
-router.post('/register', async (req, res) => {
-  const { email, password, myName, phoneNumber, vaultPin } = req.body;
-  if (!email || !password || !myName || !phoneNumber) {
-    return res.status(400).json({ error: 'Name, email, password and phone number are required' });
-  }
-  if (password.length < 6) {
-    return res.status(400).json({ error: 'Password must be at least 6 characters' });
-  }
-
-  // The vault PIN is chosen once, here. (A sign-up from an older cached copy of
-  // the page may not send one — that account simply has to pick its PIN the
-  // first time it opens the vault; see "unset" above. The old shared default
-  // can never unlock the vault either way.)
-  if (vaultPin !== undefined && vaultPin !== null && vaultPin !== '') {
-    const pinErr = validateVaultPin(vaultPin);
-    if (pinErr) return res.status(400).json({ error: pinErr });
-  }
-
+// ── Shared account creation ────────────────────────────
+// Used by BOTH /register (email + password form) and /google/complete (Google sign-up
+// after the extra details step), so a Google account is created exactly like a normal one.
+// Returns { error: { status, message } } or { data: <session json> }.
+async function createAccount({ email, password, myName, phoneNumber, vaultPin, platform, googleSub }) {
   const normalizedEmail = email.toLowerCase().trim();
   const normalizedPhone = normalizePhone(phoneNumber);
   if (normalizedPhone.length < 7) {
-    return res.status(400).json({ error: 'Enter a valid phone number' });
+    return { error: { status: 400, message: 'Enter a valid phone number' } };
   }
 
   // Check if email already used
   const { data: existingEmail } = await supabase
     .from('users').select('id').eq('email', normalizedEmail).maybeSingle();
-  if (existingEmail) return res.status(409).json({ error: 'An account with this email already exists. Please sign in.' });
+  if (existingEmail) return { error: { status: 409, message: 'An account with this email already exists. Please sign in.' } };
 
   // Check if phone already used
   const { data: existingPhone } = await supabase
     .from('users').select('id').eq('phone_number', normalizedPhone).maybeSingle();
-  if (existingPhone) return res.status(409).json({ error: 'An account with this phone number already exists.' });
+  if (existingPhone) return { error: { status: 409, message: 'An account with this phone number already exists.' } };
 
   const hashedPassword = await bcrypt.hash(password, 10);
   const hasChosenPin = vaultPin !== undefined && vaultPin !== null && vaultPin !== '';
@@ -849,41 +835,112 @@ router.post('/register', async (req, res) => {
   });
   if (coupleError) {
     console.error('Register error (couple):', coupleError);
-    return res.status(500).json({ error: 'Failed to create account: ' + coupleError.message });
+    return { error: { status: 500, message: 'Failed to create account: ' + coupleError.message } };
   }
 
-  const { error: userError } = await supabase.from('users').insert({
-    id: userId,
-    name: myName,
-    email: normalizedEmail,
-    password_hash: hashedPassword,
-    phone_number: normalizedPhone,
-    couple_id: coupleId,
-    role: 'user1',
-    signup_platform: req.client ? req.client.platform : null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  });
+  const now = new Date().toISOString();
+  const baseRow = {
+    id: userId, name: myName, email: normalizedEmail, password_hash: hashedPassword,
+    phone_number: normalizedPhone, couple_id: coupleId, role: 'user1',
+    created_at: now, updated_at: now
+  };
+  let row = { ...baseRow, signup_platform: platform || null };
+  if (googleSub) row.google_sub = googleSub;
+  let { error: userError } = await supabase.from('users').insert(row);
+  // Optional columns (admin_telemetry.sql / google_auth.sql) may not be migrated yet —
+  // retry without whichever one the database does not know about.
   if (userError && /signup_platform/.test(userError.message || '')) {
-    // admin_telemetry.sql not run yet — retry without the new column.
-    ({ error: userError } = await supabase.from('users').insert({
-      id: userId, name: myName, email: normalizedEmail, password_hash: hashedPassword,
-      phone_number: normalizedPhone, couple_id: coupleId, role: 'user1',
-      created_at: new Date().toISOString(), updated_at: new Date().toISOString()
-    }));
+    delete row.signup_platform;
+    ({ error: userError } = await supabase.from('users').insert(row));
+  }
+  if (userError && /google_sub/.test(userError.message || '')) {
+    delete row.google_sub;
+    ({ error: userError } = await supabase.from('users').insert(row));
   }
   if (userError) {
     console.error('Register error (user):', userError);
     await supabase.from('couples').delete().eq('id', coupleId); // roll back the orphaned couple row
-    return res.status(500).json({ error: 'Failed to create account: ' + userError.message });
+    return { error: { status: 500, message: 'Failed to create account: ' + userError.message } };
   }
 
-  recordActivity(userId, req.client);
-  return res.json({
-    userId, coupleId, myName, phoneNumber: normalizedPhone,
-    partnerName: 'Partner', role: 'user1', paired: false
+  return {
+    data: {
+      userId, coupleId, myName, email: normalizedEmail, phoneNumber: normalizedPhone,
+      partnerName: 'Partner', role: 'user1', paired: false
+    }
+  };
+}
+
+// Same checks the register form has always done, shared with the Google "complete" step.
+function validateSignupFields({ password, myName, phoneNumber, vaultPin }) {
+  if (!password || !myName || !phoneNumber) {
+    return 'Name, password and phone number are required';
+  }
+  if (password.length < 6) return 'Password must be at least 6 characters';
+  // The vault PIN is chosen once, here. (A sign-up from an older cached copy of
+  // the page may not send one — that account simply has to pick its PIN the
+  // first time it opens the vault; see "unset" above. The old shared default
+  // can never unlock the vault either way.)
+  if (vaultPin !== undefined && vaultPin !== null && vaultPin !== '') {
+    const pinErr = validateVaultPin(vaultPin);
+    if (pinErr) return pinErr;
+  }
+  return null;
+}
+
+// ── POST /api/auth/register ────────────────────────────
+router.post('/register', async (req, res) => {
+  const { email, password, myName, phoneNumber, vaultPin } = req.body;
+  if (!email || !password || !myName || !phoneNumber) {
+    return res.status(400).json({ error: 'Name, email, password and phone number are required' });
+  }
+  const problem = validateSignupFields({ password, myName, phoneNumber, vaultPin });
+  if (problem) return res.status(400).json({ error: problem });
+
+  const result = await createAccount({
+    email, password, myName, phoneNumber, vaultPin,
+    platform: req.client ? req.client.platform : null
   });
+  if (result.error) return res.status(result.error.status).json({ error: result.error.message });
+
+  recordActivity(result.data.userId, req.client);
+  return res.json(result.data);
 });
+
+// Builds the same JSON the password login returns — shared with Google sign-in.
+async function buildLoginResponse(user) {
+  let partnerName = 'Partner', anniversary = '', paired = false;
+  if (user.couple_id) {
+    const { data: couple } = await supabase
+      .from('couples').select('user1_name, user2_name, anniversary, paired')
+      .eq('id', user.couple_id).maybeSingle();
+    if (couple) {
+      partnerName = user.role === 'user1' ? couple.user2_name : couple.user1_name;
+      anniversary = couple.anniversary || '';
+      paired = couple.paired || false;
+    }
+  }
+  return {
+    userId: user.id,
+    coupleId: user.couple_id,
+    myName: user.name,
+    email: user.email,
+    phoneNumber: user.phone_number,
+    partnerName: partnerName || 'Partner',
+    anniversary,
+    paired,
+    role: user.role || 'user1'
+  };
+}
+
+// Admin-suspended / disabled accounts fail cleanly at the one place a session begins.
+function accountBlockedMessage(user) {
+  if (user.account_status === 'suspended') {
+    return 'This account has been suspended. Contact support if you believe this is a mistake.';
+  }
+  if (user.account_status === 'disabled') return 'This account has been disabled.';
+  return null;
+}
 
 // ── POST /api/auth/login ───────────────────────────────
 router.post('/login', async (req, res) => {
@@ -901,40 +958,137 @@ router.post('/login', async (req, res) => {
   const match = await bcrypt.compare(password, user.password_hash);
   if (!match) return res.status(401).json({ error: 'Incorrect password.' });
 
-  // Blocked here (not at signup or anywhere else) so an admin-suspended
-  // account fails cleanly at the one place a session actually begins,
-  // with a message that doesn't imply the account was deleted.
-  if (user.account_status === 'suspended') {
-    return res.status(403).json({ error: 'This account has been suspended. Contact support if you believe this is a mistake.' });
-  }
-  if (user.account_status === 'disabled') {
-    return res.status(403).json({ error: 'This account has been disabled.' });
-  }
-
-  let partnerName = 'Partner', anniversary = '', paired = false;
-  if (user.couple_id) {
-    const { data: couple } = await supabase
-      .from('couples').select('user1_name, user2_name, anniversary, paired')
-      .eq('id', user.couple_id).maybeSingle();
-    if (couple) {
-      partnerName = user.role === 'user1' ? couple.user2_name : couple.user1_name;
-      anniversary = couple.anniversary || '';
-      paired = couple.paired || false;
-    }
-  }
+  const blocked = accountBlockedMessage(user);
+  if (blocked) return res.status(403).json({ error: blocked });
 
   recordActivity(user.id, req.client);
+  return res.json(await buildLoginResponse(user));
+});
+
+// ═══════════════════════════════════════════════════════
+//  CONTINUE WITH GOOGLE
+//  Web and the Android app both send a Google ID token to POST /google.
+//    • email already has an account  → signed in straight away (same JSON as /login)
+//    • brand-new email               → { needsProfile: true, signupToken, email, name }
+//      The app then asks for the rest of the sign-up details (name, boy/girl, phone,
+//      password, vault PIN) and calls POST /google/complete with that signupToken.
+//  Setup: set GOOGLE_CLIENT_ID (the *Web* OAuth client id) in the server env.
+//  The Android app uses that same web client id as its serverClientId, so one
+//  value is enough for both. Several ids can be given, comma separated.
+// ═══════════════════════════════════════════════════════
+const googleClientIds = () =>
+  String(process.env.GOOGLE_CLIENT_ID || '').split(',').map(s => s.trim()).filter(Boolean);
+
+let _googleClient = null;
+function getGoogleClient() {
+  if (!_googleClient) {
+    const { OAuth2Client } = require('google-auth-library');
+    _googleClient = new OAuth2Client();
+  }
+  return _googleClient;
+}
+
+// Signup token: stateless, signed, short-lived. It only proves "Google verified this email a
+// moment ago" so /google/complete never has to trust an email sent by the browser.
+const SIGNUP_TOKEN_TTL_MS = 20 * 60 * 1000;
+const signupSecret = () =>
+  process.env.GOOGLE_SIGNUP_SECRET || process.env.SUPABASE_SERVICE_KEY || '';
+
+function signSignupToken(payload) {
+  const body = Buffer.from(JSON.stringify({ ...payload, exp: Date.now() + SIGNUP_TOKEN_TTL_MS })).toString('base64url');
+  const sig = crypto.createHmac('sha256', signupSecret()).update(body).digest('base64url');
+  return body + '.' + sig;
+}
+
+function readSignupToken(token) {
+  if (!token || typeof token !== 'string' || !signupSecret()) return null;
+  const [body, sig] = token.split('.');
+  if (!body || !sig) return null;
+  const expected = crypto.createHmac('sha256', signupSecret()).update(body).digest('base64url');
+  const a = Buffer.from(sig), b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  try {
+    const data = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+    return data && data.exp > Date.now() ? data : null;
+  } catch (e) { return null; }
+}
+
+// ── GET /api/auth/google-config ────────────────────────
+// Lets the web page know whether to show the Google button, without hard-coding the id in HTML.
+router.get('/google-config', (req, res) => {
+  const ids = googleClientIds();
+  res.json({ enabled: ids.length > 0, clientId: ids[0] || null });
+});
+
+// ── POST /api/auth/google ──────────────────────────────
+router.post('/google', async (req, res) => {
+  const ids = googleClientIds();
+  if (!ids.length) return res.status(503).json({ error: 'Google sign-in is not set up yet.' });
+  const { idToken } = req.body || {};
+  if (!idToken || typeof idToken !== 'string') return res.status(400).json({ error: 'Google sign-in failed. Please try again.' });
+
+  let payload;
+  try {
+    const ticket = await getGoogleClient().verifyIdToken({ idToken, audience: ids });
+    payload = ticket.getPayload();
+  } catch (e) {
+    console.warn('[google-auth] token rejected:', e.message);
+    return res.status(401).json({ error: 'Google sign-in failed. Please try again.' });
+  }
+  if (!payload || !payload.email || payload.email_verified !== true) {
+    return res.status(401).json({ error: 'Your Google email is not verified.' });
+  }
+
+  const email = payload.email.toLowerCase().trim();
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('id, name, email, phone_number, couple_id, role, account_status')
+    .eq('email', email)
+    .maybeSingle();
+  if (error) {
+    console.error('[google-auth] lookup error:', error.message);
+    return res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+
+  // Existing account → straight in, same as the normal Sign In.
+  if (user) {
+    const blocked = accountBlockedMessage(user);
+    if (blocked) return res.status(403).json({ error: blocked });
+    // Remember the Google id on the row (best effort — column may not exist yet).
+    supabase.from('users').update({ google_sub: payload.sub }).eq('id', user.id).then(() => {}, () => {});
+    recordActivity(user.id, req.client);
+    return res.json({ ...(await buildLoginResponse(user)), needsProfile: false });
+  }
+
+  // New email → the app must collect the remaining sign-up details first.
   return res.json({
-    userId: user.id,
-    coupleId: user.couple_id,
-    myName: user.name,
-    email: user.email,
-    phoneNumber: user.phone_number,
-    partnerName: partnerName || 'Partner',
-    anniversary,
-    paired,
-    role: user.role || 'user1'
+    needsProfile: true,
+    email,
+    name: payload.name || '',
+    signupToken: signSignupToken({ email, sub: payload.sub, name: payload.name || '' })
   });
+});
+
+// ── POST /api/auth/google/complete ─────────────────────
+// Body: { signupToken, myName, phoneNumber, password, vaultPin }
+router.post('/google/complete', async (req, res) => {
+  const { signupToken, myName, phoneNumber, password, vaultPin } = req.body || {};
+  const claims = readSignupToken(signupToken);
+  if (!claims) {
+    return res.status(401).json({ error: 'Your Google sign-in expired. Please tap Continue with Google again.' });
+  }
+  const problem = validateSignupFields({ password, myName, phoneNumber, vaultPin });
+  if (problem) return res.status(400).json({ error: problem });
+
+  const result = await createAccount({
+    email: claims.email, password, myName, phoneNumber, vaultPin,
+    platform: req.client ? req.client.platform : null,
+    googleSub: claims.sub
+  });
+  if (result.error) return res.status(result.error.status).json({ error: result.error.message });
+
+  recordActivity(result.data.userId, req.client);
+  return res.json(result.data);
 });
 
 // ═══════════════════════════════════════════════════════
