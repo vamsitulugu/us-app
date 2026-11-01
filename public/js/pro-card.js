@@ -191,8 +191,23 @@
 
   function priceText(p) { return '₹' + p.price; }
 
+  // Like the Android app: a locked feature opens the full Pro screen (plan cards),
+  // not a small popup. Works from the main app and from any page inside its iframes.
+  function openProPage(feature) {
+    try {
+      var top = window.parent && window.parent !== window ? window.parent : window;
+      if (typeof top.goto === 'function' && top.document.getElementById('page-pro')) {
+        try { sessionStorage.setItem('th_pro_feature', feature || ''); } catch (e) {}
+        top.goto('pro');
+        return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
   function openPlans(feature, opts) {
     opts = opts || {};
+    if (!opts.sheet && openProPage(feature)) return Promise.resolve(false);
     injectStyles();
     var el = document.getElementById(MODAL_ID);
     if (el) el.remove();
@@ -265,6 +280,6 @@
 
   window.ProCard = {
     PLANS: PLANS, status: status, isPro: isPro, pay: pay, openPlans: openPlans,
-    requirePro: requirePro, onChange: onChange, call: call, session: session
+    requirePro: requirePro, openProPage: openProPage, onChange: onChange, call: call, session: session
   };
 })();

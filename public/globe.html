@@ -492,7 +492,7 @@
       <div class="stat-chip" onclick="openStats()"><span>📸</span><span class="val" id="statMemories">0</span><span>memories</span></div>
       <div class="stat-chip" onclick="openStats()"><span>💰</span><span class="val" id="statCost">₹0</span><span>spent</span></div>
     </div>
-    <button class="add-memory-btn" onclick="ProCard.requirePro('Pin a Memory').then(function(ok){if(ok)openAddMemory();})"><span>📍</span> Pin a Memory</button>
+    <button class="add-memory-btn" onclick="openAddMemory()"><span>📍</span> Pin a Memory</button>
   </div>
 
   <div id="cityTooltip">
@@ -1488,19 +1488,26 @@ function closeAllPanels() { closeCityPanel(); closeDetailPanel(); closeAddPanel(
 // ═══════════════════════════════════════════
 // ADD / EDIT MEMORY PANEL — unchanged
 // ═══════════════════════════════════════════
-function openAddMemory() {
+function _openAddMemory() {
   editingMemoryId = null; newMediaFiles = []; newVoiceData = null;
   addFormChips = { restaurants: [], hotels: [], gifts: [] };
   renderAddForm({});
   document.getElementById('addPanelTitle').textContent = '📍 Pin a Memory';
   document.getElementById('addPanel').classList.add('open');
 }
-function openAddMemoryForCity(city, country) {
+function _openAddMemoryForCity(city, country) {
   editingMemoryId = null; newMediaFiles = []; newVoiceData = null;
   addFormChips = { restaurants: [], hotels: [], gifts: [] };
   renderAddForm({ city, country, locName: city + ', ' + country });
   document.getElementById('addPanelTitle').textContent = '📍 ' + city;
   document.getElementById('addPanel').classList.add('open');
+}
+// Pro gate (same as Android): every way of pinning a NEW memory goes through here.
+function openAddMemory() {
+  ProCard.requirePro('Pin a Memory').then(function (ok) { if (ok) _openAddMemory(); });
+}
+function openAddMemoryForCity(city, country) {
+  ProCard.requirePro('Pin a Memory').then(function (ok) { if (ok) _openAddMemoryForCity(city, country); });
 }
 function editMemory(id) {
   const m = memories.find(x => x.id === id);
@@ -2284,7 +2291,7 @@ document.addEventListener('click', e => {
   })();
 </script>
 <script src="/ui-icons.js"></script>
-<script src="/js/pro-card.js?v=2"></script>
+<script src="/js/pro-card.js?v=3"></script>
 
 </body>
 </html>

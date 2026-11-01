@@ -432,7 +432,12 @@
     if (text) $('cloudProgressText').textContent = text;
   }
 
-  $('btnCloudUpload').onclick = () => $('cloudFileInput').click();
+  // Pro gate (same as Android): uploading to the shared cloud library needs Pro.
+  $('btnCloudUpload').onclick = () => {
+    const open = () => $('cloudFileInput').click();
+    if (!window.ProCard) { open(); return; }   // the server still answers 402 for free couples
+    window.ProCard.requirePro('Watch Together cloud upload').then(ok => { if (ok) open(); });
+  };
   $('btnCloudCancel').onclick = () => {
     cloud.cancel = true;
     cloud.xhrs.forEach(x => { try { x.abort(); } catch (e) {} });

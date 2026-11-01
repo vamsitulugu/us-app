@@ -116,7 +116,7 @@
   </div>
 </div>
 
-<script src="/js/pro-card.js"></script>
+<script src="/js/pro-card.js?v=3"></script>
 <script>
 (function () {
   var $ = function (id) { return document.getElementById(id); };
@@ -217,9 +217,16 @@
     busy = false; renderAll();
   });
 
+  // Opened because a locked feature was tapped (same hint the Android Pro screen shows).
+  function showFeatureHint() {
+    var f = ''; try { f = sessionStorage.getItem('th_pro_feature') || ''; sessionStorage.removeItem('th_pro_feature'); } catch (e) {}
+    if (f && !st.isPro) { $('err').className = 'err'; $('err').textContent = '🔒 ' + f + ' is a Pro feature. Pick a plan to unlock it.'; }
+  }
+  window.addEventListener('focus', function () { load(true).then(showFeatureHint); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) load(true).then(showFeatureHint); });
   ProCard.onChange(function (s) { st = s; renderAll(); });
   renderAll();
-  load(true);
+  load(true).then(showFeatureHint);
 })();
 </script>
 </body>

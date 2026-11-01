@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v50'; // bumped: web ads loader + privacy policy
+const CACHE = 'uwl-v51'; // bumped: Pro paywall opens the full Pro page
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
