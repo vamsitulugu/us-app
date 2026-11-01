@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v51'; // bumped: Pro paywall opens the full Pro page
+const CACHE = 'uwl-v53'; // bumped: Android look v2 (android-ui.css)
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',

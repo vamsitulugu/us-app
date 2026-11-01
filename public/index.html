@@ -3,6 +3,7 @@
 
 <head>
 <script src="/theme.js?v=2"></script>
+<script src="/js/android-ui.js?v=1"></script>
 <script src="/js/app-telemetry.js"></script>
   <meta charset="UTF-8">
   <script>
@@ -7197,6 +7198,16 @@ select option { background: #270719; color: #fff; }
             </div>
           </section>
           <section class="set-sec">
+            <h3 class="set-sec-t">Interface</h3>
+            <div class="set-list">
+              <div class="th-pick" id="uiPick" role="radiogroup" aria-label="Interface">
+                <button type="button" class="th-opt" data-v="classic" role="radio" onclick="AndroidUI.set('classic')"><span class="th-sw"></span>Classic</button>
+                <button type="button" class="th-opt" data-v="android" role="radio" onclick="AndroidUI.set('android')"><span class="th-sw"></span>Android look</button>
+              </div>
+            </div>
+            <p class="set-s" style="margin:8px 4px 0">“Android look” matches the Twin Hearts Android app (dark theme). Classic keeps the original web design.</p>
+          </section>
+          <section class="set-sec">
             <div class="set-list">
               <div class="set-row" onclick="toggleSetting('reducedMotion','reducedMotionToggle')">
                 <span class="set-ico" style="--c:168,85,247"><svg class="si"><use href="#si-wand" /></svg></span>
@@ -8010,6 +8021,19 @@ function saveLocal() {
             if (v) v.textContent = p.charAt(0).toUpperCase() + p.slice(1);
           }
           window.addEventListener('themechange', mark);
+          document.addEventListener('DOMContentLoaded', mark);
+          mark();
+        })();
+
+        // ─── INTERFACE PICKER (Settings → Appearance) ───
+        (function () {
+          function mark() {
+            var p = (window.AndroidUI && AndroidUI.get()) || 'classic';
+            document.querySelectorAll('#uiPick .th-opt').forEach(function (b) {
+              var on = b.dataset.v === p; b.classList.toggle('on', on); b.setAttribute('aria-checked', on);
+            });
+          }
+          window.addEventListener('uichange', mark);
           document.addEventListener('DOMContentLoaded', mark);
           mark();
         })();

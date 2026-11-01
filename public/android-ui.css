@@ -1,0 +1,193 @@
+/* ════════════════════════════════════════════════════════════════════
+   ANDROID LOOK v2 — Twin Hearts Android app UI for the web (laptop + mobile).
+   Loaded ONLY when <html data-ui="android"> (see /js/android-ui.js).
+   Every rule is scoped to  html[data-ui="android"][data-theme="dark"]  so the
+   classic UI and the light theme are untouched. Remove the data-ui attribute
+   (Settings → Appearance → Interface → Classic) and the old UI is back.
+   Tokens come from the app: TwinLook / TwinColors / TwinShapes / TwinSpacing /
+   TwinTypography (core/design).
+   ════════════════════════════════════════════════════════════════════ */
+
+html[data-ui="android"][data-theme="dark"] {
+  /* colour (TwinLook) */
+  --an-base:#0A0A0C; --an-glow:#2A0617; --an-accent:#C2185B; --an-ink:#FEF4FA;
+  --an-ink-muted:rgba(245,200,226,.78); --an-ink-faint:rgba(255,255,255,.52);
+  --an-glass:linear-gradient(180deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,.04) 100%);
+  --an-glass-flat:rgba(255,255,255,.07);
+  --an-edge:rgba(255,255,255,.16); --an-edge-hi:rgba(255,255,255,.30);
+  --an-wine:linear-gradient(135deg,#9A1156 0%,#4F0629 100%); --an-wine-edge:rgba(255,255,255,.38);
+  --an-sheet:rgba(24,22,26,.97);
+  /* shapes (TwinShapes) */
+  --an-r-card:20px; --an-r-field:16px; --an-r-small:12px; --an-r-sheet:28px;
+  /* spacing (TwinSpacing) */
+  --an-xs:4px; --an-s:8px; --an-m:12px; --an-l:16px; --an-xl:24px; --an-xxl:32px; --an-edge-pad:20px;
+  /* sizes */
+  --an-btn-h:52px; --an-field-h:54px; --an-touch:48px;
+  /* hand the look to the variables the classic CSS already reads */
+  --accent:var(--an-accent) !important; --accent-d:#9A1156 !important; --accent-l:#E0558F !important;
+  --accent-glow:rgba(194,24,91,.35) !important;
+  --pm-red:var(--an-accent) !important; --pm-red-deep:#9A1156 !important; --pm-red-bright:#E0558F !important;
+  --mx-red:var(--an-accent) !important; --mp-red:var(--an-accent) !important;
+  --text:var(--an-ink) !important; --text2:var(--an-ink-muted) !important; --text3:var(--an-ink-faint) !important;
+  --border:var(--an-edge) !important; --border2:rgba(194,26,139,.30) !important;
+}
+
+/* ───────── Page: near-black with the soft wine glow at the top ───────── */
+html[data-ui="android"][data-theme="dark"], html[data-ui="android"][data-theme="dark"] body {
+  background-color:var(--an-base) !important;
+  background-image:linear-gradient(180deg,rgba(42,6,23,.92) 0%,rgba(10,10,12,.55) 30%,transparent 62%) !important;
+  background-attachment:fixed !important; background-repeat:no-repeat !important;
+}
+html[data-ui="android"][data-theme="dark"] #bg::before { background:none !important; }
+html[data-ui="android"][data-theme="dark"] .fheart { opacity:.12; }
+html[data-ui="android"][data-theme="dark"] ::selection { background:rgba(194,24,91,.45); color:#fff; }
+html[data-ui="android"][data-theme="dark"] :focus-visible { outline:2px solid var(--an-accent); outline-offset:2px; }
+html[data-ui="android"][data-theme="dark"] * { scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.18) transparent; }
+
+/* ───────── Type (TwinTypography: serif titles, Inter body) ───────── */
+html[data-ui="android"][data-theme="dark"] :is(.tb-title,.cat-page-title,.modal-title,.lms-title,.set-bar-t,.cat-headline,.love-card-title) {
+  font-family:var(--ff-serif,'DM Serif Display',serif); font-weight:400; color:var(--an-ink); letter-spacing:0;
+}
+html[data-ui="android"][data-theme="dark"] .tb-title { font-size:22px; line-height:28px; }
+html[data-ui="android"][data-theme="dark"] :is(.cat-page-title,.modal-title) { font-size:26px; line-height:32px; }
+html[data-ui="android"][data-theme="dark"] :is(.card-title,.set-t,.lms-row-t,.cat-row-title) { font-weight:600; color:var(--an-ink); }
+html[data-ui="android"][data-theme="dark"] :is(.set-s,.lms-row-s,.cat-subtext,.metric-l,.pstat-l) { color:var(--an-ink-muted); }
+html[data-ui="android"][data-theme="dark"] .set-sec-t, html[data-ui="android"][data-theme="dark"] .sidebar .nav-label {
+  font-size:10.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.45);
+}
+
+/* ───────── Sidebar (sidebarTop → sidebarBottom) ───────── */
+html[data-ui="android"][data-theme="dark"] .sidebar { background:linear-gradient(180deg,#220515 0%,#14030E 100%) !important; border-right:1px solid rgba(255,255,255,.08) !important; }
+html[data-ui="android"][data-theme="dark"] .ni { border-radius:16px; }
+html[data-ui="android"][data-theme="dark"] .ni:hover { background:rgba(255,255,255,.06); }
+html[data-ui="android"][data-theme="dark"] .ni.active { background:rgba(255,255,255,.11) !important; color:#fff; border:1px solid rgba(255,255,255,.12); }
+html[data-ui="android"][data-theme="dark"] .ni.active::before { background:var(--an-accent) !important; }
+html[data-ui="android"][data-theme="dark"] .couple-widget { border-radius:var(--an-r-card); background:var(--an-glass) !important; border:1px solid var(--an-edge) !important; }
+
+/* ───────── Top bar (no bar, serif title, round glass icon buttons) ───────── */
+html[data-ui="android"][data-theme="dark"] .topbar { background:transparent !important; border-bottom:0 !important; -webkit-backdrop-filter:none; backdrop-filter:none; }
+html[data-ui="android"][data-theme="dark"] .tb-row { padding-inline:var(--an-edge-pad); gap:var(--an-s); }
+html[data-ui="android"][data-theme="dark"] :is(.tb-back,.hamburger,.ic-btn) {
+  width:40px; height:40px; min-height:0; padding:0; border-radius:50%; flex:none;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:var(--an-glass); border:1px solid var(--an-edge); color:var(--an-ink);
+}
+html[data-ui="android"][data-theme="dark"] .tb-actions { display:flex; align-items:center; gap:var(--an-s); }
+html[data-ui="android"][data-theme="dark"] .tb-actions .btn { min-height:36px; padding:0 14px; font-size:13px; white-space:nowrap; flex:none; }
+
+/* ───────── Cards (GlassCard: 20 radius, glass fill, 1px edge) ───────── */
+html[data-ui="android"][data-theme="dark"] :is(.card,.metric,.m-card,.pstat,.period-hero,.storage-hero,.col-stat,.dg-stat,.pm-stat,.lc-time-card,.lc-card,.lc-bday-card,.mc-stat,.pf-stat,.lv-card,.pf-list,.pf-ms,.pf-act,.set-list,.gcard,.rank-card,.cat-list,.dw-ev,.dw-mood,.dw-q1,.dw-sec,.fight-card,.love-card,.lms-card,.lms-panel,.fl-tile,.study-progress) {
+  border-radius:var(--an-r-card) !important;
+  background:var(--an-glass) !important; background-color:transparent !important;
+  border:1px solid var(--an-edge) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10) !important;
+  -webkit-backdrop-filter:none !important; backdrop-filter:none !important;
+}
+html[data-ui="android"][data-theme="dark"] .card { padding:var(--an-l); }
+html[data-ui="android"][data-theme="dark"] .card-title { margin-bottom:var(--an-m); }
+
+/* ───────── List rows (settings / category / Live-Map rows) ───────── */
+html[data-ui="android"][data-theme="dark"] :is(.set-row,.cat-row,.lms-row) { min-height:var(--an-touch); padding-block:var(--an-m); }
+html[data-ui="android"][data-theme="dark"] :is(.set-row,.cat-row,.lms-row) + :is(.set-row,.cat-row,.lms-row) { border-top:1px solid rgba(255,255,255,.08) !important; }
+html[data-ui="android"][data-theme="dark"] :is(.set-ico,.cat-row-ico,.lms-row-ico) { border-radius:var(--an-r-small); }
+html[data-ui="android"][data-theme="dark"] :is(.set-chev,.cat-row-chev,.lms-chev) { opacity:.55; }
+
+/* ───────── Buttons (Primary = wine pill, Secondary = glass pill) ───────── */
+html[data-ui="android"][data-theme="dark"] :is(.btn,.btn-accent,.btn-glass,.btn-ghost,.btn-success,.btn-danger) {
+  border-radius:999px; min-height:44px; padding-inline:22px; font-weight:600; justify-content:center;
+}
+html[data-ui="android"][data-theme="dark"] :is(.btn-sm,.btn-xs) { min-height:34px; padding-inline:16px; }
+html[data-ui="android"][data-theme="dark"] .btn-accent { background:var(--an-wine) !important; color:#fff !important; border:1px solid var(--an-wine-edge) !important; box-shadow:0 8px 22px rgba(79,6,41,.45) !important; }
+html[data-ui="android"][data-theme="dark"] :is(.btn-glass,.btn:not(.btn-accent):not(.btn-danger):not(.btn-success)) { background:var(--an-glass) !important; color:var(--an-ink) !important; border:1px solid var(--an-edge) !important; }
+html[data-ui="android"][data-theme="dark"] .btn-ghost { background:transparent !important; color:var(--an-ink) !important; border:1px solid rgba(194,26,139,.28) !important; }
+html[data-ui="android"][data-theme="dark"] .btn:active { transform:scale(.98); }
+
+/* ───────── Inputs (16 radius, glass fill) — wrapper owns the box, inner input is bare ───────── */
+html[data-ui="android"][data-theme="dark"] :is(input[type=text],input[type=password],input[type=email],input[type=number],input[type=date],input[type=time],input[type=tel],input[type=search],input[type=url],textarea,select) {
+  border-radius:var(--an-r-field) !important; background:var(--an-glass-flat) !important;
+  border:1px solid var(--an-edge) !important; color:var(--an-ink) !important;
+}
+html[data-ui="android"][data-theme="dark"] :is(input[type=text],input[type=password],input[type=email],input[type=number],input[type=tel],input[type=search],input[type=url],select) { min-height:50px; padding-inline:var(--an-l); }
+html[data-ui="android"][data-theme="dark"] :is(input,textarea,select):focus { border-color:var(--an-accent) !important; outline:none; box-shadow:0 0 0 3px rgba(194,24,91,.22) !important; }
+html[data-ui="android"][data-theme="dark"] :is(.set-search,.mc-search,.uc-input-wrap,.search-wrap,.chat-search-bar) {
+  border-radius:var(--an-r-field) !important; background:var(--an-glass-flat) !important;
+  border:1px solid var(--an-edge) !important; min-height:var(--an-field-h);
+}
+html[data-ui="android"][data-theme="dark"] :is(.set-search,.mc-search,.uc-input-wrap,.search-wrap,.chat-search-bar) :is(input,textarea) {
+  background:transparent !important; border:0 !important; border-radius:0 !important; box-shadow:none !important; min-height:0; padding-inline:var(--an-s);
+}
+html[data-ui="android"][data-theme="dark"] :is(.set-search,.mc-search,.uc-input-wrap):focus-within { border-color:var(--an-accent) !important; box-shadow:0 0 0 3px rgba(194,24,91,.22) !important; }
+html[data-ui="android"][data-theme="dark"] .field label { font-size:12px; font-weight:500; letter-spacing:0; text-transform:none; color:var(--an-ink-muted); }
+html[data-ui="android"][data-theme="dark"] input::placeholder, html[data-ui="android"][data-theme="dark"] textarea::placeholder { color:var(--an-ink-faint) !important; }
+
+/* ───────── Tabs, chips, pickers (glass track, wine active) ───────── */
+html[data-ui="android"][data-theme="dark"] :is(.th-pick,.stab,.lms-seg) { border-radius:999px; background:var(--an-glass); border:1px solid var(--an-edge); padding:4px; }
+html[data-ui="android"][data-theme="dark"] :is(.th-opt,.stab > *,.lms-tab) { border-radius:999px; }
+html[data-ui="android"][data-theme="dark"] .th-opt.on, html[data-ui="android"][data-theme="dark"] :is(.stab,.lms-seg) .on, html[data-ui="android"][data-theme="dark"] .lms-tab.on { background:var(--an-wine) !important; border:1px solid var(--an-wine-edge) !important; color:#fff !important; box-shadow:none !important; }
+html[data-ui="android"][data-theme="dark"] :is(.lms-chip,.dh-chip,.symptom-tag,.pk) { border-radius:999px; background:var(--an-glass); border:1px solid var(--an-edge); }
+html[data-ui="android"][data-theme="dark"] .toggle.on { background:var(--an-accent) !important; border-color:var(--an-accent) !important; }
+
+/* ───────── Dialogs & sheets (dark glass sheet, 28 radius) ───────── */
+html[data-ui="android"][data-theme="dark"] .modal-bg { background:rgba(6,4,8,.72) !important; -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
+html[data-ui="android"][data-theme="dark"] .modal {
+  background:var(--an-sheet) !important; border:1px solid var(--an-edge) !important; border-top-color:var(--an-edge-hi) !important;
+  border-radius:var(--an-r-sheet) !important; box-shadow:0 24px 60px rgba(0,0,0,.55) !important; padding:var(--an-xl);
+}
+html[data-ui="android"][data-theme="dark"] .modal-close { width:36px; height:36px; border-radius:50%; background:var(--an-glass); border:1px solid var(--an-edge); }
+
+/* ───────── Bottom bar (dark glass pill, bright rim, 30 radius) ───────── */
+html[data-ui="android"][data-theme="dark"] #botNav .gn-glass {
+  background:linear-gradient(180deg,rgba(255,255,255,.26) 0%,rgba(255,255,255,.09) 35%,rgba(255,255,255,.03) 70%,rgba(255,255,255,.10) 100%),rgba(18,8,14,.92) !important;
+  border:1px solid rgba(255,255,255,.22) !important; border-top-color:rgba(255,255,255,.45) !important; border-radius:30px !important;
+}
+html[data-ui="android"][data-theme="dark"] #botNav .bot-ni.active { color:#fff; }
+html[data-ui="android"][data-theme="dark"] #botNav .bot-ni.active .gn-ico { filter:drop-shadow(0 0 6px rgba(255,255,255,.35)); }
+
+/* ───────── Category pages (Us / Memories / Plans …) ───────── */
+html[data-ui="android"][data-theme="dark"] .cat-page { background:transparent !important; }
+html[data-ui="android"][data-theme="dark"] .cat-back-btn { width:40px; height:40px; border-radius:50%; background:var(--an-glass) !important; border:1px solid var(--an-edge) !important; color:var(--an-ink); display:inline-flex; align-items:center; justify-content:center; }
+html[data-ui="android"][data-theme="dark"] .cat-list { overflow:hidden; }
+html[data-ui="android"][data-theme="dark"] .cat-headline { font-size:26px; line-height:32px; }
+
+/* ───────── Pro page ───────── */
+html[data-ui="android"][data-theme="dark"] .tab.sel, html[data-ui="android"][data-theme="dark"] .plan.sel .cta { background:var(--an-wine) !important; border-color:var(--an-wine-edge) !important; }
+html[data-ui="android"][data-theme="dark"] .plan { border-radius:var(--an-r-card); }
+html[data-ui="android"][data-theme="dark"] .plan.sel { border-color:var(--an-accent); box-shadow:0 0 28px rgba(194,24,91,.28); }
+
+/* ═════════════ MOBILE (phones) ═════════════ */
+@media (max-width:700px) {
+  html[data-ui="android"][data-theme="dark"] .content { padding-inline:var(--an-edge-pad); }
+  html[data-ui="android"][data-theme="dark"] .cat-page, html[data-ui="android"][data-theme="dark"] .set-home, html[data-ui="android"][data-theme="dark"] #setSections { padding-inline:0; }
+  html[data-ui="android"][data-theme="dark"] .set-sec { margin-bottom:var(--an-xl); }
+  html[data-ui="android"][data-theme="dark"] .set-sec-t { margin:0 var(--an-xs) var(--an-s); }
+  html[data-ui="android"][data-theme="dark"] .modal { border-radius:var(--an-r-sheet) var(--an-r-sheet) 0 0 !important; padding:var(--an-l) var(--an-edge-pad) var(--an-xl); }
+  html[data-ui="android"][data-theme="dark"] .btn { min-height:var(--an-touch); }
+  html[data-ui="android"][data-theme="dark"] :is(.btn-sm,.btn-xs) { min-height:36px; }
+  /* top bar: back · title · actions, like TwinTopBar (logo lives on Home) */
+  html[data-ui="android"][data-theme="dark"] .tb-logo-mobile { display:none !important; }
+  html[data-ui="android"][data-theme="dark"] .tb-row { padding-inline:var(--an-l); }
+  html[data-ui="android"][data-theme="dark"] .tb-left { min-width:0; flex:1; gap:var(--an-s); }
+  html[data-ui="android"][data-theme="dark"] .tb-title { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  html[data-ui="android"][data-theme="dark"] .tb-actions .btn { padding:0 12px; }
+}
+
+/* ═════════════ TABLET + LAPTOP ═════════════ */
+@media (min-width:701px) {
+  html[data-ui="android"][data-theme="dark"] .content { padding-inline:var(--an-xl); }
+  html[data-ui="android"][data-theme="dark"] .modal { max-width:520px; }
+}
+@media (min-width:1024px) {
+  /* content column keeps a comfortable measure on wide screens */
+  html[data-ui="android"][data-theme="dark"] .content > .page { max-width:1180px; margin-inline:auto; }
+  html[data-ui="android"][data-theme="dark"] .content { padding-inline:var(--an-xxl); }
+  html[data-ui="android"][data-theme="dark"] .tb-row { padding-inline:var(--an-xxl); }
+  html[data-ui="android"][data-theme="dark"] .ni { padding-block:11px; }
+  html[data-ui="android"][data-theme="dark"] :is(.card,.set-list,.cat-list):hover { border-color:var(--an-edge-hi) !important; }
+  html[data-ui="android"][data-theme="dark"] :is(.set-row,.cat-row,.lms-row):hover { background:rgba(255,255,255,.05); }
+}
+@media (min-width:1024px) {
+  html[data-ui="android"][data-theme="dark"] .cat-page > :is(.cat-list,.cat-headline,.cat-subtext,.cat-page-header) { max-width:760px; margin-inline:auto; }
+}
+@media (min-width:1600px) { html[data-ui="android"][data-theme="dark"] .content > .page { max-width:1320px; } }
+
+@media (prefers-reduced-motion:reduce) { html[data-ui="android"][data-theme="dark"] *, html[data-ui="android"][data-theme="dark"] *::before, html[data-ui="android"][data-theme="dark"] *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
