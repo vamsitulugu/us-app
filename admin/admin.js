@@ -121,11 +121,11 @@ function dauChart(rows) {
     const x = pad + i * bw + bw * 0.15, w = bw * 0.7;
     const ha = (r.android / max) * (H - 40), hw = (r.web / max) * (H - 40);
     const lbl = new Date(r.day).getDate();
-    return `<rect x="${x}" y="${H - 20 - ha}" width="${w}" height="${ha}" fill="#34d399"><title>${r.day}: Android ${r.android}</title></rect>
-      <rect x="${x}" y="${H - 20 - ha - hw}" width="${w}" height="${hw}" fill="#60a5fa"><title>${r.day}: Web ${r.web}</title></rect>
+    return `<rect x="${x}" y="${H - 20 - ha}" width="${w}" height="${ha}" fill="#34D399"><title>${r.day}: Android ${r.android}</title></rect>
+      <rect x="${x}" y="${H - 20 - ha - hw}" width="${w}" height="${hw}" fill="#D9A8FF"><title>${r.day}: Web ${r.web}</title></rect>
       <text x="${x + w / 2}" y="${H - 6}" text-anchor="middle">${lbl}</text>`;
   }).join('');
-  return `<div class="chart-legend"><span><i style="background:#34d399"></i>Android</span><span><i style="background:#60a5fa"></i>Web</span><span>max ${max}/day</span></div>
+  return `<div class="chart-legend"><span><i style="background:#34D399"></i>Android</span><span><i style="background:#D9A8FF"></i>Web</span><span>max ${max}/day</span></div>
     <svg class="dau-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Daily active users, last 14 days">${bars}</svg>`;
 }
 function fmtDate(d) { if (!d) return '—'; try { return new Date(d).toLocaleString(); } catch (e) { return d; } }
@@ -1006,14 +1006,14 @@ async function loadSupportTickets(silent = false) {
     container.innerHTML = tickets.map(t => {
       const isSelected = t.id === supportActiveTicketId;
       const statusBadge = t.status === 'waiting_admin' 
-        ? `<span class="badge" style="background:#5c1d0c;color:#fb923c">⚠️ Waiting</span>`
+        ? `<span class="badge" style="background:rgba(251,191,36,.14);color:#FBBF24">⚠️ Waiting</span>`
         : t.status === 'resolved'
-        ? `<span class="badge" style="background:#1e293b;color:#94a3b8">Resolved</span>`
-        : `<span class="badge" style="background:#134e4a;color:#2dd4bf">Open</span>`;
+        ? `<span class="badge" style="background:rgba(255,255,255,.08);color:rgba(255,255,255,.6)">Resolved</span>`
+        : `<span class="badge" style="background:rgba(52,211,153,.14);color:#34D399">Open</span>`;
 
       const modeBadge = t.mode === 'human'
-        ? `<span class="badge" style="background:#701a75;color:#f472b6">👤 Human</span>`
-        : `<span class="badge" style="background:#1e3a8a;color:#60a5fa">🤖 AI</span>`;
+        ? `<span class="badge" style="background:rgba(255,182,230,.14);color:#FFB6E6">👤 Human</span>`
+        : `<span class="badge" style="background:#1e3a8a;color:#D9A8FF">🤖 AI</span>`;
 
       const unreadHtml = t.unread_admin > 0
         ? `<span style="background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px">${t.unread_admin} new</span>`
@@ -1143,7 +1143,7 @@ function renderSupportMessages(messages) {
     const avatarChar = isUser ? '👤' : isAdmin ? '🛡️' : '🤖';
     const tagHtml = isAi ? '<span class="badge info" style="font-size:9px;padding:1px 5px">AI Generated</span>'
       : isAdmin ? '<span class="badge" style="font-size:9px;padding:1px 5px;background:var(--accent);color:#fff">Admin</span>'
-      : '<span class="badge" style="font-size:9px;padding:1px 5px;background:#380725;color:#f5c8e2">Customer</span>';
+      : '<span class="badge" style="font-size:9px;padding:1px 5px;background:rgba(255,255,255,.08);color:#FFB6E6">Customer</span>';
 
     return `
       <div class="adm-msg-row ${m.sender}">
