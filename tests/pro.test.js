@@ -128,9 +128,8 @@ const express = require('express');
   assert.strictEqual((await call('GET', '/status?coupleId=c1')).json.plan, 'lifetime');
   assert.strictEqual((await call('POST', '/create-order', { coupleId: 'c1', plan: 'monthly', userId: 'u1' })).status, 409, 'lifetime cannot buy again');
 
-  // history
-  const h = await call('GET', '/history?coupleId=c1&userId=u1');
-  assert.strictEqual(h.json.payments.length, 2);
+  // the old receipt/history endpoint is gone
+  assert.notStrictEqual((await call('GET', '/history?coupleId=c1&userId=u1')).status, 200);
 
   srv.close();
   console.log('pro tests passed');

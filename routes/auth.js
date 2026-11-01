@@ -11,6 +11,7 @@ const crypto   = require('crypto');
 const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = require('express-rate-limit');
 const { v4: uuid } = require('uuid');
+const { recordActivity } = require('../lib/telemetry');
 const supabase = require('../middleware/supabase');
 
 const router = express.Router();
@@ -245,6 +246,7 @@ router.get('/session/:userId', async (req, res) => {
     }
   }
 
+  recordActivity(user.id, req.client);
   return res.json({
     userId: user.id,
     coupleId: user.couple_id,
@@ -858,15 +860,25 @@ router.post('/register', async (req, res) => {
     phone_number: normalizedPhone,
     couple_id: coupleId,
     role: 'user1',
+    signup_platform: req.client ? req.client.platform : null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   });
+  if (userError && /signup_platform/.test(userError.message || '')) {
+    // admin_telemetry.sql not run yet — retry without the new column.
+    ({ error: userError } = await supabase.from('users').insert({
+      id: userId, name: myName, email: normalizedEmail, password_hash: hashedPassword,
+      phone_number: normalizedPhone, couple_id: coupleId, role: 'user1',
+      created_at: new Date().toISOString(), updated_at: new Date().toISOString()
+    }));
+  }
   if (userError) {
     console.error('Register error (user):', userError);
     await supabase.from('couples').delete().eq('id', coupleId); // roll back the orphaned couple row
     return res.status(500).json({ error: 'Failed to create account: ' + userError.message });
   }
 
+  recordActivity(userId, req.client);
   return res.json({
     userId, coupleId, myName, phoneNumber: normalizedPhone,
     partnerName: 'Partner', role: 'user1', paired: false
@@ -911,6 +923,7 @@ router.post('/login', async (req, res) => {
     }
   }
 
+  recordActivity(user.id, req.client);
   return res.json({
     userId: user.id,
     coupleId: user.couple_id,

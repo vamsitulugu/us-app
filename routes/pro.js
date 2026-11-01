@@ -4,7 +4,6 @@
 //    GET  /api/pro/status?coupleId=    { isPro, plan, expiresAt }
 //    POST /api/pro/create-order        start a payment (server sets the price)
 //    POST /api/pro/verify              check the payment signature, grant Pro
-//    GET  /api/pro/history?coupleId=   this couple's paid receipts
 //    POST /api/pro/webhook             Razorpay → us (backup if the app closed)
 //
 //  Pro belongs to the COUPLE: when either partner pays, both get it.
@@ -16,6 +15,7 @@ const supabase = require('../middleware/supabase');
 const { getProStatus, loadMember } = require('../middleware/pro');
 const { PLANS, isValidPlan, applyPurchase } = require('../lib/pro-plans');
 const rzp = require('../lib/razorpay');
+const { logAppError } = require('../lib/errorLog');
 
 const router = express.Router();
 
@@ -85,6 +85,7 @@ router.post('/create-order', async (req, res) => {
     });
   } catch (e) {
     console.error('[pro] create-order failed:', e.message);
+    logAppError('pro:create-order', e.message, 'critical', { platform: req.client && req.client.platform, appVersion: req.client && req.client.version });
     res.status(500).json({ error: 'Could not start the payment. Please try again.' });
   }
 });
@@ -146,34 +147,14 @@ router.post('/verify', async (req, res) => {
     res.json({ ok: true, ...(await getProStatus(coupleId)) });
   } catch (e) {
     console.error('[pro] verify failed:', e.message);
+    logAppError('pro:verify', 'Payment received but activating Pro failed: ' + e.message, 'critical', { platform: req.client && req.client.platform, appVersion: req.client && req.client.version });
     res.status(500).json({ error: 'Payment received, but activating Pro failed. It will activate shortly — or tap Restore.' });
-  }
-});
-
-// ── GET /history?coupleId=  (member only) ─────────────────────────
-router.get('/history', async (req, res) => {
-  try {
-    const { coupleId } = req.query;
-    const user = await loadMember(req, coupleId);
-    if (!user) return res.status(403).json({ error: 'Please sign in again.' });
-    const { data, error } = await supabase
-      .from('pro_payments')
-      .select('plan, amount_paise, razorpay_payment_id, paid_at')
-      .eq('couple_id', String(coupleId)).eq('status', 'paid')
-      .order('paid_at', { ascending: false }).limit(20);
-    if (error) throw error;
-    res.json({ payments: (data || []).map(p => ({
-      plan: p.plan, amount: p.amount_paise / 100, paymentId: p.razorpay_payment_id, paidAt: p.paid_at
-    })) });
-  } catch (e) {
-    console.error('[pro] history failed:', e.message);
-    res.status(500).json({ error: 'Failed to load payment history' });
   }
 });
 
 // ── POST /webhook (mounted in server.js with a RAW body parser) ───
 // Razorpay dashboard → Webhooks → URL: https://<your-server>/api/pro/webhook
-// Events: payment.captured, order.paid.  Secret = RAZORPAY_WEBHOOK_SECRET.
+// Events: payment.captured, order.paid, payment.failed.  Secret = RAZORPAY_WEBHOOK_SECRET.
 async function webhook(req, res) {
   try {
     const raw = req.body; // Buffer (express.raw)
@@ -181,6 +162,14 @@ async function webhook(req, res) {
       return res.status(400).json({ error: 'Bad signature' });
     }
     const event = JSON.parse(raw.toString('utf8'));
+    if (event.event === 'payment.failed') {
+      const f = event.payload && event.payload.payment && event.payload.payment.entity;
+      if (f && f.order_id) {
+        await supabase.from('pro_payments').update({ status: 'failed', razorpay_payment_id: f.id, source: 'webhook' })
+          .eq('razorpay_order_id', f.order_id).eq('status', 'created');
+        logAppError('pro:payment-failed', `Razorpay payment failed (${f.error_code || 'unknown'}: ${f.error_reason || f.error_description || ''})`, 'warning');
+      }
+    }
     if (event.event === 'payment.captured' || event.event === 'order.paid') {
       const pay = event.payload && event.payload.payment && event.payload.payment.entity;
       const orderId = pay && pay.order_id;
@@ -189,6 +178,7 @@ async function webhook(req, res) {
     res.json({ ok: true });
   } catch (e) {
     console.error('[pro] webhook failed:', e.message);
+    logAppError('pro:webhook', e.message, 'critical');
     res.status(500).json({ error: 'retry' }); // Razorpay retries on non-2xx
   }
 }

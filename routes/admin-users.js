@@ -26,12 +26,13 @@ router.get('/', async (req, res) => {
     const pageSize = Math.min(PAGE_SIZE_MAX, Math.max(1, parseInt(req.query.pageSize, 10) || PAGE_SIZE_DEFAULT));
     const search = (req.query.search || '').trim();
     const status = (req.query.status || '').trim(); // '', 'active', 'suspended', 'disabled'
-    const sortBy = ['created_at', 'name', 'email'].includes(req.query.sortBy) ? req.query.sortBy : 'created_at';
+    const platform = (req.query.platform || '').trim(); // '', 'android', 'web'
+    const sortBy = ['created_at', 'name', 'email', 'last_seen_at'].includes(req.query.sortBy) ? req.query.sortBy : 'created_at';
     const sortDir = req.query.sortDir === 'asc' ? true : false;
 
     let query = supabase
       .from('users')
-      .select('id, name, email, phone_number, couple_id, role, account_status, created_at, updated_at', { count: 'exact' });
+      .select('id, name, email, phone_number, couple_id, role, account_status, created_at, updated_at, signup_platform, last_platform, last_app_version, last_seen_at', { count: 'exact' });
 
     if (search) {
       // Search name/email/phone — ilike is fine at this data volume;
@@ -41,6 +42,8 @@ router.get('/', async (req, res) => {
     if (status && ['active', 'suspended', 'disabled'].includes(status)) {
       query = query.eq('account_status', status);
     }
+
+    if (platform === 'android' || platform === 'web') query = query.eq('last_platform', platform);
 
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
@@ -85,7 +88,7 @@ router.get('/:id', async (req, res) => {
     const { id } = req.params;
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, name, email, phone_number, couple_id, role, account_status, created_at, updated_at')
+      .select('id, name, email, phone_number, couple_id, role, account_status, created_at, updated_at, signup_platform, last_platform, last_app_version, last_seen_at')
       .eq('id', id)
       .maybeSingle();
     if (error) throw error;

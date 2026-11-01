@@ -14,6 +14,7 @@ const ICONS = {
   releases: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M12 8v8"/>',
   notifications: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
   flags: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22V15"/>',
+  payments: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
   health: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
   support: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="10" r="1"/><circle cx="15" cy="10" r="1"/><path d="M9.5 13a3.5 3.5 0 0 0 5 0"/>',
   audit: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6M9 11h2"/>'
@@ -26,6 +27,7 @@ const NAV = [
   { id: 'releases', label: 'Releases', icon: 'releases' },
   { id: 'notifications', label: 'Notifications', icon: 'notifications' },
   { id: 'flags', label: 'Feature Flags', icon: 'flags' },
+  { id: 'payments', label: 'Payments', icon: 'payments' },
   { id: 'health', label: 'App Health', icon: 'health' },
   { id: 'support', label: 'Support & Care', icon: 'support' },
   { id: 'audit', label: 'Audit Logs', icon: 'audit' }
@@ -110,6 +112,22 @@ function closeDrawer() {
 document.getElementById('drawerOverlay').addEventListener('click', closeDrawer);
 
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function platBadge(p) { return p ? `<span class="badge ${esc(p)}">${p === 'android' ? 'Android' : p === 'web' ? 'Web' : esc(p)}</span>` : '<span class="text-muted">—</span>'; }
+function inr(n) { return '₹' + Number(n || 0).toLocaleString('en-IN'); }
+function dauChart(rows) {
+  if (!rows.length) return '<div class="empty-state">No activity recorded yet. Numbers appear once people open the apps.</div>';
+  const W = 700, H = 170, pad = 22, max = Math.max(1, ...rows.map(r => r.android + r.web));
+  const bw = (W - pad * 2) / rows.length, bars = rows.map((r, i) => {
+    const x = pad + i * bw + bw * 0.15, w = bw * 0.7;
+    const ha = (r.android / max) * (H - 40), hw = (r.web / max) * (H - 40);
+    const lbl = new Date(r.day).getDate();
+    return `<rect x="${x}" y="${H - 20 - ha}" width="${w}" height="${ha}" fill="#34d399"><title>${r.day}: Android ${r.android}</title></rect>
+      <rect x="${x}" y="${H - 20 - ha - hw}" width="${w}" height="${hw}" fill="#60a5fa"><title>${r.day}: Web ${r.web}</title></rect>
+      <text x="${x + w / 2}" y="${H - 6}" text-anchor="middle">${lbl}</text>`;
+  }).join('');
+  return `<div class="chart-legend"><span><i style="background:#34d399"></i>Android</span><span><i style="background:#60a5fa"></i>Web</span><span>max ${max}/day</span></div>
+    <svg class="dau-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Daily active users, last 14 days">${bars}</svg>`;
+}
 function fmtDate(d) { if (!d) return '—'; try { return new Date(d).toLocaleString(); } catch (e) { return d; } }
 
 /* ── Auth ─────────────────────────────────────────────────────── */
@@ -182,6 +200,13 @@ function buildNav() {
   });
 }
 
+function setMobileMenu(open) {
+  document.getElementById('sidebar').classList.toggle('mobile-open', open);
+  document.getElementById('sidebarBackdrop').classList.toggle('show', open);
+}
+document.getElementById('menuBtn').addEventListener('click', () => setMobileMenu(true));
+document.getElementById('sidebarBackdrop').addEventListener('click', () => setMobileMenu(false));
+
 document.getElementById('collapseBtn').addEventListener('click', () => {
   document.getElementById('sidebar').classList.toggle('collapsed');
 });
@@ -190,6 +215,7 @@ const renderers = {}; // page id -> async function() rendering into its containe
 
 function navigate(pageId) {
   state.currentPage = pageId;
+  setMobileMenu(false);
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.page === pageId));
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
   const container = document.getElementById('page' + pageId.charAt(0).toUpperCase() + pageId.slice(1));
@@ -201,26 +227,45 @@ function navigate(pageId) {
    OVERVIEW
    ═══════════════════════════════════════════════════════════════ */
 renderers.overview = async (el) => {
-  el.innerHTML = `<div class="page-header"><div><h2>Dashboard</h2><p>Twin Hearts operations at a glance</p></div></div>
-    <div class="kpi-grid" id="ovKpis"><div class="loading-state">Loading…</div></div>
+  el.innerHTML = `<div class="page-header"><div><h2>Dashboard</h2><p>Twin Hearts operations at a glance — Android and Web shown separately</p></div></div>
+    <div id="ovActive"><div class="loading-state">Loading…</div></div>
+    <div class="kpi-grid" id="ovKpis"></div>
+    <div class="card"><h3>Daily active users · last 14 days</h3><div id="ovTrend"></div></div>
+    <div class="card"><h3>App versions in use (last 30 days)</h3><div id="ovVersions"></div></div>
     <div class="card"><h3>Recent admin activity</h3><div id="ovActivity"><div class="loading-state">Loading…</div></div></div>`;
   try {
     const data = await api('/overview');
-    const k = data.kpis;
+    const k = data.kpis, a = data.active;
+    document.getElementById('ovActive').innerHTML = a ? `<div class="split-row">
+      ${[['Android', a.android, 'android'], ['Web', a.web, 'web'], ['Both', a.all, '']].map(([name, v, cls]) => `
+        <div class="kpi-card"><div class="label">${cls ? platBadge(cls) : '<span class="badge info">All platforms</span>'}</div>
+          <div class="value">${v.dau}</div><div class="sub">active today · ${v.wau} this week · ${v.mau} this month</div></div>`).join('')}
+    </div>` : `<div class="card"><div class="empty-state">Activity tracking is not set up yet. Run <span class="mono">migrations/admin_telemetry.sql</span> in Supabase.</div></div>`;
+
+    const up = data.usersByPlatform || {};
     const cards = [
       ['Total users', k.totalUsers],
       ['New today', k.newUsersToday],
       ['New this week', k.newUsersThisWeek],
       ['New this month', k.newUsersThisMonth],
+      ['Last used Android', up.android || 0],
+      ['Last used Web', up.web || 0],
+      ['Active Pro couples', k.activeProCouples],
+      ['Revenue (30 days)', inr(k.revenue30d)],
+      ['Revenue (all time)', inr(k.revenueTotal)],
+      ['Open support tickets', k.openSupportTickets == null ? '—' : k.openSupportTickets],
       ['Suspended accounts', k.suspendedAccounts],
-      ['Total couples', k.totalCouples],
-      ['Paired couples', k.pairedCouples],
-      ['Unpaired couples', k.unpairedCouples],
+      ['Paired couples', `${k.pairedCouples} / ${k.totalCouples}`],
       ['Production version', k.currentReleaseVersion || 'None published']
     ];
     document.getElementById('ovKpis').innerHTML = cards.map(([label, value]) => `
-      <div class="kpi-card"><div class="label">${esc(label)}</div><div class="value${typeof value === 'string' && isNaN(value) ? ' muted' : ''}">${esc(value)}</div></div>`).join('')
-      + `<div class="kpi-card"><div class="label">Not yet tracked</div><div class="value muted">DAU · AI usage · Storage</div></div>`;
+      <div class="kpi-card"><div class="label">${esc(label)}</div><div class="value${typeof value === 'string' && isNaN(value) && !/^[₹\d]/.test(value) ? ' muted' : ''}">${esc(value)}</div></div>`).join('');
+
+    document.getElementById('ovTrend').innerHTML = dauChart(data.dauTrend || []);
+    const v = data.versions || [];
+    document.getElementById('ovVersions').innerHTML = v.length ? `<div class="table-wrap"><table><thead><tr><th>Platform</th><th>Version</th><th>Users</th></tr></thead><tbody>
+      ${v.map(r => `<tr><td>${platBadge(r.platform)}</td><td class="mono">${esc(r.version)}</td><td>${r.users}</td></tr>`).join('')}</tbody></table></div>`
+      : `<div class="empty-state">Versions appear once apps start reporting. Older app builds show as “unknown”.</div>`;
 
     const act = data.recentActivity || [];
     document.getElementById('ovActivity').innerHTML = act.length ? `
@@ -228,14 +273,14 @@ renderers.overview = async (el) => {
         ${act.map(a => `<tr><td>${esc(a.action)}</td><td>${esc(a.target_type || '—')}${a.target_id ? ' · ' + esc(String(a.target_id).slice(0, 8)) : ''}</td><td>${esc(a.admin_email)}</td><td>${fmtDate(a.created_at)}</td></tr>`).join('')}
       </tbody></table></div>` : `<div class="empty-state">No admin activity yet.</div>`;
   } catch (e) {
-    document.getElementById('ovKpis').innerHTML = `<div class="error-state">${esc(e.message)}</div>`;
+    document.getElementById('ovActive').innerHTML = `<div class="error-state">${esc(e.message)}</div>`;
   }
 };
 
 /* ═══════════════════════════════════════════════════════════════
    USERS
    ═══════════════════════════════════════════════════════════════ */
-let usersState = { page: 1, search: '', status: '' };
+let usersState = { page: 1, search: '', status: '', platform: '' };
 
 renderers.users = async (el) => {
   el.innerHTML = `
@@ -248,12 +293,23 @@ renderers.users = async (el) => {
         <option value="suspended">Suspended</option>
         <option value="disabled">Disabled</option>
       </select>
+      <select id="usersPlatform">
+        <option value="">Android + Web</option>
+        <option value="android">Android only</option>
+        <option value="web">Web only</option>
+      </select>
       <div class="spacer"></div>
     </div>
     <div class="card"><div class="table-wrap" id="usersTable"><div class="loading-state">Loading…</div></div>
       <div class="pagination" id="usersPagination"></div></div>`;
 
   document.getElementById('usersStatus').value = usersState.status;
+  document.getElementById('usersPlatform').value = usersState.platform;
+  document.getElementById('usersPlatform').addEventListener('change', () => {
+    usersState.platform = document.getElementById('usersPlatform').value;
+    usersState.page = 1;
+    loadUsers();
+  });
   document.getElementById('usersSearch').addEventListener('input', debounce(() => {
     usersState.search = document.getElementById('usersSearch').value;
     usersState.page = 1;
@@ -269,20 +325,22 @@ renderers.users = async (el) => {
 
 async function loadUsers() {
   const tableEl = document.getElementById('usersTable');
-  tableEl.innerHTML = skeletonRows(5, 5);
+  tableEl.innerHTML = skeletonRows(5, 7);
   try {
-    const q = new URLSearchParams({ page: usersState.page, search: usersState.search, status: usersState.status });
+    const q = new URLSearchParams({ page: usersState.page, search: usersState.search, status: usersState.status, platform: usersState.platform });
     const data = await api('/users?' + q.toString());
     if (!data.users.length) {
       tableEl.innerHTML = `<div class="empty-state">No users match this filter.</div>`;
       document.getElementById('usersPagination').innerHTML = '';
       return;
     }
-    tableEl.innerHTML = `<table><thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Paired</th><th>Joined</th><th></th></tr></thead><tbody>
+    tableEl.innerHTML = `<table><thead><tr><th>Name</th><th>Email</th><th>Status</th><th>App</th><th>Last seen</th><th>Paired</th><th>Joined</th><th></th></tr></thead><tbody>
       ${data.users.map(u => `<tr>
         <td>${esc(u.name)}</td>
         <td>${esc(u.email)}</td>
         <td><span class="badge ${u.account_status}">${esc(u.account_status)}</span></td>
+        <td>${platBadge(u.last_platform || u.signup_platform)}${u.last_app_version ? ' <span class="mono">v' + esc(u.last_app_version) + '</span>' : ''}</td>
+        <td>${fmtDate(u.last_seen_at)}</td>
         <td>${u.paired ? 'Yes' : 'No'}</td>
         <td>${fmtDate(u.created_at)}</td>
         <td><button class="btn secondary small" data-user="${u.id}">View</button></td>
@@ -568,7 +626,7 @@ function openNotifComposer() {
       </select>
     </div>
     <div class="field"><label>Audience</label>
-      <select id="notifAudience"><option value="all">Everyone</option><option value="user1">User 1 role</option><option value="user2">User 2 role</option></select>
+      <select id="notifAudience"><option value="all">Everyone</option><option value="user1">User 1 role</option><option value="user2">User 2 role</option><option value="android">Android app users</option><option value="web">Web app users</option></select>
     </div>
     <div id="notifPreview" class="hint"></div>
     <div class="modal-actions">
@@ -702,6 +760,48 @@ function openFlagForm(existing) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   PAYMENTS (Razorpay)
+   ═══════════════════════════════════════════════════════════════ */
+renderers.payments = async (el) => {
+  el.innerHTML = `
+    <div class="page-header"><div><h2>Payments</h2><p>Razorpay orders. A customer who paid but has no Pro can be re-checked here.</p></div></div>
+    <div class="kpi-grid" id="payKpis"><div class="loading-state">Loading…</div></div>
+    <div class="card"><div class="toolbar">
+      <select id="payStatus"><option value="">All</option><option value="paid">Paid</option><option value="created">Not completed</option><option value="failed">Failed</option></select>
+    </div><div id="payList"></div></div>`;
+  document.getElementById('payStatus').addEventListener('change', loadPayments);
+  loadPayments();
+};
+
+async function loadPayments() {
+  const list = document.getElementById('payList');
+  list.innerHTML = skeletonRows(4, 7);
+  try {
+    const d = await api('/payments?' + new URLSearchParams({ status: document.getElementById('payStatus').value }));
+    const s = d.summary, sp = s.platformSplit;
+    document.getElementById('payKpis').innerHTML = [
+      ['Revenue (all time)', inr(s.revenueTotal)], ['Revenue (30 days)', inr(s.revenue30d)],
+      ['Active Pro couples', s.activeProCouples], ['Paid orders', s.paidCount],
+      ['Failed', s.failedCount], ['Abandoned checkouts', s.pendingCount],
+      ['Paid via Android', sp.android], ['Paid via Web', sp.web]
+    ].map(([l, v]) => `<div class="kpi-card"><div class="label">${esc(l)}</div><div class="value">${esc(v)}</div></div>`).join('');
+    if (!d.payments.length) { list.innerHTML = `<div class="empty-state">No payments yet.</div>`; return; }
+    list.innerHTML = `<div class="table-wrap"><table><thead><tr><th>When</th><th>Plan</th><th>Amount</th><th>Status</th><th>App</th><th>Order</th><th></th></tr></thead><tbody>
+      ${d.payments.map(p => `<tr>
+        <td>${fmtDate(p.paidAt || p.createdAt)}</td><td>${esc(p.plan)}</td><td>${inr(p.amount)}</td>
+        <td><span class="badge ${p.status}">${p.status === 'created' ? 'not completed' : esc(p.status)}</span></td>
+        <td>${platBadge(p.platform)}</td><td class="mono">${esc(String(p.orderId).slice(-10))}</td>
+        <td>${p.status !== 'paid' ? `<button class="btn secondary small" data-order="${esc(p.orderId)}">Re-check with Razorpay</button>` : ''}</td>
+      </tr>`).join('')}</tbody></table></div>`;
+    list.querySelectorAll('[data-order]').forEach(btn => btn.addEventListener('click', async () => {
+      btn.disabled = true; btn.textContent = 'Checking…';
+      try { const r = await api(`/payments/${encodeURIComponent(btn.dataset.order)}/recheck`, { method: 'POST' }); toast(r.message, r.granted ? 'success' : 'info'); loadPayments(); }
+      catch (e) { toast(e.message, 'error'); btn.disabled = false; btn.textContent = 'Re-check with Razorpay'; }
+    }));
+  } catch (e) { list.innerHTML = `<div class="error-state">${esc(e.message)}</div>`; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
    APP HEALTH
    ═══════════════════════════════════════════════════════════════ */
 renderers.health = async (el) => {
@@ -710,8 +810,17 @@ renderers.health = async (el) => {
     <div class="kpi-grid" id="healthCounts"></div>
     <div class="card"><div class="toolbar">
         <select id="healthSeverity"><option value="">All severities</option><option value="critical">Critical</option><option value="warning">Warning</option><option value="info">Info</option></select>
+        <select id="healthPlatform"><option value="">All sources</option><option value="android">Android app</option><option value="web">Web app</option><option value="server">Server</option></select>
+        <div class="spacer"></div>
+        <button class="btn secondary small" id="healthClear">Clear older than 30 days</button>
       </div><div id="healthList"><div class="loading-state">Loading…</div></div></div>`;
   document.getElementById('healthSeverity').addEventListener('change', loadHealth);
+  document.getElementById('healthPlatform').addEventListener('change', loadHealth);
+  document.getElementById('healthClear').addEventListener('click', async () => {
+    if (!await confirmDialog({ title: 'Clear old errors?', body: 'Deletes error log entries older than 30 days. This cannot be undone.', confirmLabel: 'Clear' })) return;
+    try { const r = await api('/health/errors?olderThanDays=30', { method: 'DELETE' }); toast(`Cleared ${r.deleted} entries`); loadHealth(); }
+    catch (e) { toast(e.message, 'error'); }
+  });
   loadHealth();
 };
 
@@ -720,14 +829,14 @@ async function loadHealth() {
   el.innerHTML = skeletonRows(4, 4);
   try {
     const sev = document.getElementById('healthSeverity').value;
-    const data = await api('/health/errors?' + new URLSearchParams({ severity: sev }).toString());
+    const data = await api('/health/errors?' + new URLSearchParams({ severity: sev, platform: document.getElementById('healthPlatform').value }).toString());
     document.getElementById('healthCounts').innerHTML = `
       <div class="kpi-card"><div class="label">Critical</div><div class="value">${data.counts.critical}</div></div>
       <div class="kpi-card"><div class="label">Warning</div><div class="value">${data.counts.warning}</div></div>
       <div class="kpi-card"><div class="label">Info</div><div class="value">${data.counts.info}</div></div>`;
     if (!data.errors.length) { el.innerHTML = `<div class="empty-state">No errors logged. ✓</div>`; return; }
-    el.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Severity</th><th>Source</th><th>Message</th><th>When</th></tr></thead><tbody>
-      ${data.errors.map(e => `<tr><td><span class="badge ${e.severity}">${esc(e.severity)}</span></td><td class="mono">${esc(e.source)}</td><td>${esc(e.message)}</td><td>${fmtDate(e.created_at)}</td></tr>`).join('')}
+    el.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Severity</th><th>From</th><th>Source</th><th>Message</th><th>When</th></tr></thead><tbody>
+      ${data.errors.map(e => `<tr><td><span class="badge ${e.severity}">${esc(e.severity)}</span></td><td>${platBadge(e.platform || 'server')}${e.app_version ? ' <span class="mono">v' + esc(e.app_version) + '</span>' : ''}</td><td class="mono">${esc(e.source)}</td><td>${esc(e.message)}</td><td>${fmtDate(e.created_at)}</td></tr>`).join('')}
     </tbody></table></div>`;
   } catch (e) { el.innerHTML = `<div class="error-state">${esc(e.message)}</div>`; }
 }

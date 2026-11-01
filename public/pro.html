@@ -2,6 +2,7 @@
 <html lang="en" data-theme-lock="dark">
 <head>
 <script src="/theme.js"></script>
+<script src="/js/app-telemetry.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#14030e">
@@ -81,8 +82,6 @@
 
   .sec { font-size: 11px; font-weight: 700; letter-spacing: 1.1px; text-transform: uppercase; color: var(--t3); margin: 24px 4px 10px; }
   .box { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 6px 14px; }
-  .hist { width: 100%; font-size: 13px; border-collapse: collapse; }
-  .hist td { padding: 10px 0; border-bottom: 1px solid var(--line); } .hist tr:last-child td { border: 0; } .hist td:last-child { text-align: right; font-weight: 700; }
   details { padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--t2); } details:last-child { border: 0; }
   summary { cursor: pointer; color: var(--t1); font-weight: 600; } details p { margin-top: 6px; }
 </style>
@@ -108,11 +107,6 @@
     <p>Chat, calls, Live Map, Vault, Calendar and the rest <b>stay free.</b><br>Your memories, songs and movies are never deleted if Pro ends.</p>
   </div>
   <div class="secure">🔒 Secured by Razorpay · UPI, cards, netbanking &amp; wallets<br>Nothing renews automatically.</div>
-
-  <div id="histWrap" style="display:none">
-    <div class="sec">Payment history</div>
-    <div class="box"><table class="hist" id="hist"></table></div>
-  </div>
 
   <div class="sec">Questions</div>
   <div class="box">
@@ -201,23 +195,11 @@
     if (scroll) { var el = document.querySelector('.plan[data-id="' + id + '"]'); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   }
 
-  async function loadHistory() {
-    try {
-      var s = ProCard.session(); if (!s) return;
-      var d = await ProCard.call('GET', '/api/pro/history?coupleId=' + encodeURIComponent(s.coupleId));
-      if (!d.payments || !d.payments.length) { $('histWrap').style.display = 'none'; return; }
-      $('histWrap').style.display = '';
-      $('hist').innerHTML = d.payments.map(function (p) {
-        return '<tr><td>' + esc(LABEL[p.plan] || 'Pro') + '<br><span style="font-size:11px;color:var(--t3)">' + esc(fmtDate(p.paidAt)) + ' · ' + esc(p.paymentId || '') + '</span></td><td>₹' + esc(p.amount) + '</td></tr>';
-      }).join('');
-    } catch (e) { /* history is optional */ }
-  }
-
   async function load(force) {
     $('err').textContent = '';
     try { st = await ProCard.status(!!force); }
     catch (e) { st = { isPro: false }; $('err').className = 'err'; $('err').textContent = 'Could not check your Pro status. Check your internet.'; }
-    renderAll(); loadHistory();
+    renderAll();
   }
 
   $('tabs').addEventListener('click', function (e) {
@@ -230,12 +212,12 @@
     sel = b.getAttribute('data-plan'); busy = true; $('err').textContent = ''; renderTabs(); renderPlans();
     try {
       var r = await ProCard.pay(sel);
-      if (r.ok) { st = r.status; $('err').className = 'err ok'; $('err').textContent = '🎉 You\'re Pro! Thank you.'; loadHistory(); }
+      if (r.ok) { st = r.status; $('err').className = 'err ok'; $('err').textContent = '🎉 You\'re Pro! Thank you.'; }
     } catch (err) { $('err').className = 'err'; $('err').textContent = err.message; }
     busy = false; renderAll();
   });
 
-  ProCard.onChange(function (s) { st = s; renderAll(); loadHistory(); });
+  ProCard.onChange(function (s) { st = s; renderAll(); });
   renderAll();
   load(true);
 })();

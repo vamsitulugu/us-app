@@ -11,6 +11,8 @@ const globeRoutes = require('./routes/globe');
 const helmet      = require('helmet');
 const rateLimit   = require('express-rate-limit');
 const compression = require('compression');
+const platformMiddleware = require('./middleware/platform');
+const { logAppError } = require('./lib/errorLog');
 
 
 const app  = express();
@@ -128,6 +130,20 @@ app.use(express.static(path.join(__dirname, 'public'), {
 app.use('/api/auth', authLimiter);  // 20 attempts per 15 min per IP
 app.use('/api/',     apiLimiter);   // 300 calls per minute per IP
 
+// ── Which app is calling (Android native / Android WebView / web) ──
+// Sets req.client; also records server 5xx responses on the Health page.
+app.use('/api/', platformMiddleware);
+app.use('/api/', (req, res, next) => {
+  res.on('finish', () => {
+    if (res.statusCode >= 500 && !req.path.startsWith('/telemetry') && !req.path.startsWith('/admin')) {
+      logAppError(`server:${req.method} ${req.baseUrl}${req.path}`.slice(0, 120), `HTTP ${res.statusCode}`,
+        res.statusCode === 503 ? 'warning' : 'critical',
+        { platform: req.client.platform, appVersion: req.client.version, kind: req.client.kind });
+    }
+  });
+  next();
+});
+
 // ── API Routes ─────────────────────────────────────────
 app.use('/api/auth',  authRoutes);
 app.use('/api/data',  dataRoutes);
@@ -157,6 +173,7 @@ app.use('/api/movie-library', require('./routes/movie-library'));
 app.use('/api/meetplanner', require('./routes/meetplanner'));
 app.use('/api/daily-routine', require('./routes/daily-routine'));
 app.use('/api/support', require('./routes/support'));
+app.use('/api/telemetry', require('./routes/telemetry'));
 
 // ── Public release/flag endpoints (no auth — called by the app itself) ─
 app.use('/api/releases', require('./routes/releases'));
@@ -181,6 +198,7 @@ app.use('/api/admin/notifications', require('./routes/admin-notifications'));
 app.use('/api/admin/flags', require('./routes/admin-flags'));
 app.use('/api/admin/health', require('./routes/admin-health'));
 app.use('/api/admin/support', require('./routes/admin-support'));
+app.use('/api/admin/payments', require('./routes/admin-payments'));
 app.use('/admin', express.static(path.join(__dirname, 'admin'), {
   etag: true,
   lastModified: true,
@@ -201,6 +219,8 @@ app.get('*', (req, res) => {
 // ── Global error handler ───────────────────────────────
 app.use((err, req, res, next) => {
   console.error('Error:', err.message);
+  logAppError('server:unhandled', err.message, 'critical',
+    { platform: req.client && req.client.platform, appVersion: req.client && req.client.version });
   res.status(500).json({ error: 'Internal server error' });
 });
 // ── Start ──────────────────────────────────────────────

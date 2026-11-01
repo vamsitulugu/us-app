@@ -22,7 +22,7 @@ const router = express.Router();
 router.use(requireAdmin);
 
 const TYPES = ['announcement', 'new_release', 'maintenance', 'info'];
-const AUDIENCES = ['all', 'user1', 'user2'];
+const AUDIENCES = ['all', 'user1', 'user2', 'android', 'web'];  // android / web = the app each person last used
 
 function validateBody(body) {
   const errors = [];
@@ -47,6 +47,7 @@ function validateBody(body) {
 async function resolveAudience(audience) {
   let query = supabase.from('users').select('id, role, account_status').eq('account_status', 'active');
   if (audience === 'user1' || audience === 'user2') query = query.eq('role', audience);
+  if (audience === 'android' || audience === 'web') query = query.eq('last_platform', audience);
   const { data, error } = await query;
   if (error) throw error;
   return data || [];

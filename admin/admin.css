@@ -335,3 +335,37 @@ tbody tr:hover { background: var(--panel2); cursor: default; }
 }
 .support-composer-actions { display: flex; justify-content: space-between; align-items: center; }
 
+
+/* ── Platform badges, charts, mobile menu (Android / Web split) ───── */
+.badge.android { background: rgba(52,211,153,.15); color: var(--green); }
+.badge.web { background: rgba(96,165,250,.15); color: #60a5fa; }
+.badge.server { background: rgba(165,119,154,.2); color: var(--text3); }
+.badge.paid { background: rgba(52,211,153,.15); color: var(--green); }
+.badge.created { background: rgba(251,191,36,.15); color: var(--amber); }
+.kpi-card .sub { color: var(--text3); font-size: 11px; margin-top: 6px; }
+.split-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-bottom: 28px; }
+.chart-legend { display: flex; gap: 16px; font-size: 12px; color: var(--text3); margin: 4px 0 10px; }
+.chart-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.dau-chart { width: 100%; height: 170px; display: block; }
+.dau-chart text { fill: var(--text3); font-size: 10px; }
+.toolbar select, .toolbar input { max-width: 100%; }
+.mobile-topbar { display: none; }
+.sidebar-backdrop { display: none; }
+@media (max-width: 860px) {
+  .mobile-topbar {
+    display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 400;
+    margin: -20px -16px 16px; padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px;
+    background: var(--panel); border-bottom: 1px solid var(--border); font-weight: 700;
+  }
+  .mobile-topbar button { background: none; border: 0; color: var(--text); padding: 4px; cursor: pointer; }
+  .sidebar { width: 260px; transition: transform .2s ease; }
+  .sidebar.collapsed { width: 260px; }
+  .sidebar.collapsed .brand, .sidebar.collapsed .nav-item span, .sidebar.collapsed .admin-email { display: initial; }
+  .collapse-btn { display: none; }
+  .sidebar-backdrop.show { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 450; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .toolbar { flex-wrap: wrap; }
+  .toolbar select, .toolbar input[type=search] { flex: 1 1 140px; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .page-header h2 { font-size: 18px; }
+}

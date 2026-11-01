@@ -8,7 +8,7 @@
 // ═══════════════════════════════════════════════════════════════
 const express = require('express');
 const supabase = require('../middleware/supabase');
-const { requireAdmin } = require('../middleware/adminAuth');
+const { requireAdmin, logAudit } = require('../middleware/adminAuth');
 
 const router = express.Router();
 router.use(requireAdmin);
@@ -17,12 +17,19 @@ router.use(requireAdmin);
 router.get('/errors', async (req, res) => {
   try {
     const severity = (req.query.severity || '').trim();
+    const platform = (req.query.platform || '').trim(); // '', 'android', 'web', 'server'
     const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 50));
 
     let query = supabase.from('app_error_log').select('*').order('created_at', { ascending: false }).limit(limit);
     if (['info', 'warning', 'critical'].includes(severity)) query = query.eq('severity', severity);
 
-    const { data, error } = await query;
+    if (['android', 'web', 'server'].includes(platform)) query = query.eq('platform', platform);
+
+    let { data, error } = await query;
+    if (error && /platform/.test(error.message || '')) {
+      // admin_telemetry.sql not run yet: fall back to the unfiltered list.
+      ({ data, error } = await supabase.from('app_error_log').select('*').order('created_at', { ascending: false }).limit(limit));
+    }
     if (error) throw error;
 
     const counts = { info: 0, warning: 0, critical: 0 };
@@ -32,6 +39,23 @@ router.get('/errors', async (req, res) => {
   } catch (e) {
     console.error('[admin-health] errors failed:', e.message);
     res.status(500).json({ error: 'Failed to load error log' });
+  }
+});
+
+// ── DELETE /api/admin/health/errors?olderThanDays=30 ────────────
+// Clears old noise. olderThanDays is required so one click can never wipe everything by accident.
+router.delete('/errors', async (req, res) => {
+  try {
+    const days = parseInt(req.query.olderThanDays, 10);
+    if (!Number.isFinite(days) || days < 1) return res.status(400).json({ error: 'olderThanDays (1 or more) is required' });
+    const cutoff = new Date(Date.now() - days * 86400000).toISOString();
+    const { error, count } = await supabase.from('app_error_log').delete({ count: 'exact' }).lt('created_at', cutoff);
+    if (error) throw error;
+    await logAudit(req.adminEmail, 'health.clear', 'error_log', null, { olderThanDays: days, deleted: count || 0 });
+    res.json({ ok: true, deleted: count || 0 });
+  } catch (e) {
+    console.error('[admin-health] clear failed:', e.message);
+    res.status(500).json({ error: 'Failed to clear error log' });
   }
 });
 

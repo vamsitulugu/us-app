@@ -3,7 +3,7 @@
 **App:** Twin Hearts (com.uswithlove.app)  
 **Repo:** `C:\Users\vamsi\Downloads\US`  
 **Live URL:** https://twinhearts.vercel.app  
-**Test Login:** vamsitulugu71@gmail.com / Va2500031437@  
+**Test Login:** (removed — credentials must never be kept in the repo)  
 **Date:** Oct 16, 2026
 
 ---
@@ -304,8 +304,8 @@
 
 | Field | Value |
 |-------|-------|
-| Email | vamsitulugu71@gmail.com |
-| Password | Va2500031437@ |
+| Email | (removed) |
+| Password | (removed) |
 
 **Note:** These are the app user credentials. Admin credentials are separate — set via `ADMIN_EMAIL` and `ADMIN_PASSWORD_HASH` env vars.
 
