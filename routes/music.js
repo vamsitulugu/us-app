@@ -32,7 +32,7 @@ const router   = express.Router();
 const addLocks = new Set();
 
 let _sendPushToPartner;
-try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch (_) {}
+try { _sendPushToPartner = require('./auth').sendBothToPartner; } catch (_) {}
 
 const ROLES        = ['user1', 'user2'];
 const PRIVATE_VIS  = ['my', 'self', 'private'];

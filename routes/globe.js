@@ -10,7 +10,7 @@ const supabase = createClient(
 );
 
 let _sendPushToPartner;
-try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch (_) {}
+try { _sendPushToPartner = require('./auth').sendBothToPartner; } catch (_) {}
 
 // GET all memories for a couple
 router.get('/:coupleId', async (req, res) => {

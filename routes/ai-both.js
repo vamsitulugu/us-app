@@ -9,7 +9,7 @@
 const express = require('express');
 const { requirePro } = require('../middleware/pro');
 const supabase = require('../middleware/supabase');
-const { broadcastEvent, sendPushToPartner } = require('./auth');
+const { broadcastEvent, sendBothToPartner: sendPushToPartner } = require('./auth');
 const router = express.Router();
 
 function otherRole(role) { return role === 'user1' ? 'user2' : 'user1'; }

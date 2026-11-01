@@ -14,7 +14,7 @@ const supabase = require('../middleware/supabase');
 const router   = express.Router();
 
 let _sendPushToPartner;
-try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch (_) {}
+try { _sendPushToPartner = require('./auth').sendBothToPartner; } catch (_) {}
 
 // ─── LIST plans for a couple ───────────────────────────
 router.get('/:coupleId', async (req, res) => {

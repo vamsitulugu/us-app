@@ -505,6 +505,15 @@ router.post('/register-fcm-token', async (req, res) => {
   return res.json({ ok: true });
 });
 
+// Forget this phone's token (called by the native Android app on log out)
+router.post('/unregister-fcm-token', async (req, res) => {
+  const { userId, token } = req.body;
+  if (!userId || !token) return res.status(400).json({ error: 'Missing fields' });
+  const { error } = await supabase.from('fcm_tokens').delete().eq('user_id', userId).eq('token', token);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
 // Must match MainActivity.TOUCH_CHANNEL_ID (android/app/src/main/java/com/uswithlove/app/MainActivity.java).
 // That channel is created natively with a locked-in 10-second vibration
 // pattern — Android ignores per-message vibration once a channel exists,
@@ -667,6 +676,13 @@ async function sendFCMToPartner(coupleId, senderRole, payload) {
 }
 
 module.exports.sendFCMToPartner = sendFCMToPartner;
+
+// Web push (browser) + FCM (Android apps) in one call. Never rejects.
+module.exports.sendBothToPartner = (coupleId, senderRole, payload) =>
+  Promise.allSettled([
+    sendPushToPartner(coupleId, senderRole, payload),
+    sendFCMToPartner(coupleId, senderRole, payload),
+  ]);
 
 // ── Helper: send push/FCM to a user directly by user_id ──────────
 // Used for partner-invitation notifications, which must reach someone

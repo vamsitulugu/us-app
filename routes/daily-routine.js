@@ -13,7 +13,7 @@ const supabase = require('../middleware/supabase');
 const router   = express.Router();
 
 let _sendPushToPartner;
-try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch (_) {}
+try { _sendPushToPartner = require('./auth').sendBothToPartner; } catch (_) {}
 
 const TYPES      = ['routine','habit','task','event','meal','workout','couple','focus','break','sleep'];
 const REPEATS     = ['none','daily','weekdays','weekends','custom'];

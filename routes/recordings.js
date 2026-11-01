@@ -76,7 +76,7 @@ router.post('/', async (req, res) => {
 
   // Best-effort push to partner — reuse the same helper songs use.
   try {
-    const { sendPushToPartner } = require('./auth');
+    const { sendBothToPartner: sendPushToPartner } = require('./auth');
     if (sendPushToPartner) {
       sendPushToPartner(coupleId, userId, {
         title: mediaType === 'video' ? '🎥 New Recording' : '🎙 New Recording',
