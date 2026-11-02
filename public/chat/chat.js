@@ -224,11 +224,13 @@ function reanchorAfterImages() {
     const q = lastMsgTs ? '?after=' + encodeURIComponent(lastMsgTs) : '';
     const rows = await api('GET', '/api/chat/' + coupleId() + q);
     if (rows && rows.length) {
+      let newEffect = null;   // Twin Rewards: a partner's gift (or any send effect) that just arrived by polling
       rows.forEach(r => {
         const idx = msgs.findIndex(m => m.id === r.id || (r.client_id && m.client_id === r.client_id));
-        if (idx > -1) msgs[idx] = r; else msgs.push(r);
+        if (idx > -1) msgs[idx] = r; else { msgs.push(r); if (!isMine(r) && r.effect) newEffect = r.effect; }
       });
       lastMsgTs = rows[rows.length - 1].created_at;
+      if (newEffect) playSendEffect(newEffect);
       render();
       const box = document.getElementById('chatMsgs');
       const nearBottom = box && (box.scrollHeight - box.scrollTop - box.clientHeight < 150);
@@ -759,7 +761,7 @@ function reanchorAfterImages() {
         </div>
       </div>`;
     }
-    else if (m.type === 'gift') body = `<div class="msg-gift"><div class="msg-gift-emoji">${esc(m.media_meta?.emoji || '🎁')}</div><div class="msg-gift-name">${esc(m.media_meta?.name || 'Gift')}</div></div>`;
+    else if (m.type === 'gift') body = renderGiftBubble(m);
     else if (m.type === 'sticker') body = `<div class="msg-sticker" title="${esc(m.media_meta?.name || '')}">${esc(m.media_meta?.emoji || '🙂')}</div>`;
     else if (m.type === 'contact') body = `<div class="msg-contact" onclick="event.stopPropagation();Chat.openContactCard('${esc(m.media_meta?.name || '')}')"><div class="msg-contact-av">${esc((m.media_meta?.name || '?')[0])}</div><div><div class="msg-contact-name">${esc(m.media_meta?.name || 'Contact')}</div><div class="msg-contact-sub">Contact card · tap to view</div></div></div>`;
     else if (m.type === 'poll') {
@@ -799,7 +801,7 @@ function reanchorAfterImages() {
       preview = src.type === 'image' ? '📷 Photo' : src.type === 'image_group' ? `📷 ${groupItemsOf(src).length || ''} Photos`.trim() : src.type === 'gif' ? 'GIF' : src.type === 'voice' ? '🎤 Voice message'
         : src.type === 'audio' ? '🎵 Audio' : src.type === 'sticker' ? (src.media_meta?.emoji || '🙂') + ' Sticker'
         : src.type === 'video' ? '🎬 Video' : src.type === 'file' ? '📎 ' + ((src.media_meta && src.media_meta.name) || 'Document')
-        : src.type === 'gift' ? '🎁 Gift' : src.type === 'contact' ? '👤 Contact' : src.type === 'location' ? '📍 Location'
+        : src.type === 'gift' ? '🎁 ' + (src.media_meta?.name || 'Gift') : src.type === 'contact' ? '👤 Contact' : src.type === 'location' ? '📍 Location'
         : src.type === 'poll' ? '📊 Poll' : 'Message';
     }
     return `<div class="chat-quote" onclick="event.stopPropagation();Chat.scrollToMsg(${src.id})">
@@ -1693,31 +1695,118 @@ function reanchorAfterImages() {
     );
   }
 
-  const GIFTS = [
-    { emoji: '🌹', name: 'Rose' }, { emoji: '💐', name: 'Bouquet' }, { emoji: '🍫', name: 'Chocolate' },
-    { emoji: '🧸', name: 'Teddy' }, { emoji: '💍', name: 'Ring' }, { emoji: '🎂', name: 'Cake' },
-    { emoji: '🎈', name: 'Balloon' }, { emoji: '🍰', name: 'Slice' }, { emoji: '🎁', name: 'Gift' }
-  ];
+  // ─── GIFT SHOP (Twin Rewards, step 2) ─────────────────
+  // Coins buy a gift; the SERVER charges them and posts the gift in the chat (POST /api/rewards/gift).
+  // This code only shows the shop and asks. It never sends a price.
+  let gsData = null, gsSel = null, gsBusy = false, gsTap = null, gsFail = false;
+  const GS_TIERS = { sweet: 'Sweet', special: 'Special', premium: 'Premium' };
+  const gsPartner = () => (window.S && window.S.partnerName) || 'your partner';
+
+  function renderGiftBubble(m) {
+    const mt = m.media_meta || {};
+    const emoji = esc(mt.emoji || '🎁'), name = esc(mt.name || 'Gift');
+    if (!mt.paid) return `<div class="msg-gift"><div class="msg-gift-emoji">${emoji}</div><div class="msg-gift-name">${name}</div></div>`;
+    const tier = GS_TIERS[mt.tier] ? mt.tier : 'special';
+    const mine = isMine(m);
+    return `<div class="msg-gift gs-bubble gs-tier-${tier}"><div class="msg-gift-emoji">${emoji}</div><div class="msg-gift-name">${name}</div>
+      <div class="gs-bubble-sub">${mine ? 'You sent a gift 💝' : 'A gift for you 💝'}</div>
+      ${mine ? '' : '<button type="button" class="gs-back" onclick="event.stopPropagation();Chat.openGiftPanel()">Send one back 🎁</button>'}</div>`;
+  }
+
   function openGiftPanel() {
     closeSheet();
     let panel = document.getElementById('chatGiftPanel');
-    if (panel) { panel.classList.add('open'); return; }
-    panel = document.createElement('div');
-    panel.id = 'chatGiftPanel';
-    panel.className = 'chat-bottom-sheet-overlay open';
-    panel.innerHTML = `<div class="chat-bottom-sheet">
-      <div class="chat-sheet-handle"></div>
-      <div class="chat-sheet-grid">
-        ${GIFTS.map(g => `<div class="chat-sheet-opt" onclick="Chat.sendGift('${g.emoji}','${g.name}')"><span>${g.emoji}</span>${g.name}</div>`).join('')}
-      </div>
-    </div>`;
-    panel.onclick = e => { if (e.target === panel) panel.classList.remove('open'); };
-    document.body.appendChild(panel);
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'chatGiftPanel';
+      panel.className = 'chat-bottom-sheet-overlay';
+      panel.innerHTML = '<div class="chat-bottom-sheet gs-sheet" id="gsSheet"></div>';
+      panel.onclick = e => { if (e.target === panel) giftClose(); };
+      document.body.appendChild(panel);
+    }
+    gsSel = null; gsFail = false; gsData = gsData || null;
+    panel.classList.add('open');
+    renderGiftShop();
+    giftReload();
   }
-  function sendGift(emoji, name) {
-    document.getElementById('chatGiftPanel')?.classList.remove('open');
-    sendMessage({ type: 'gift', mediaMeta: { emoji, name } });
+  function giftClose() { document.getElementById('chatGiftPanel')?.classList.remove('open'); gsSel = null; }
+  async function giftReload() {
+    try { gsData = await window.Rewards.loadGifts(); gsFail = false; }
+    catch (e) { if (!gsData) gsFail = true; }
+    renderGiftShop();
   }
+  function giftPick(id) { if (gsBusy) return; gsSel = gsSel === id ? null : id; renderGiftShop(); }
+  function giftEarn() { giftClose(); if (typeof window.goto === 'function') window.goto('rewards'); }
+
+  function renderGiftShop() {
+    const host = document.getElementById('gsSheet'); if (!host) return;
+    const coin = '🪙';
+    const bal = gsData ? gsData.balance : null;
+    let body;
+    if (!gsData) {
+      body = gsFail
+        ? '<div class="gs-empty">Could not open the Gift Shop.<br><button type="button" class="gs-btn" onclick="Chat.giftRetry()">Try again</button></div>'
+        : '<div class="gs-grid">' + '<div class="gs-item gs-skel"></div>'.repeat(8) + '</div>';
+    } else {
+      body = '<div class="gs-grid">' + gsData.gifts.map(g => {
+        const locked = g.price > gsData.balance;
+        return `<button type="button" class="gs-item gs-tier-${GS_TIERS[g.tier] ? g.tier : 'special'}${gsSel === g.id ? ' is-sel' : ''}${locked ? ' is-locked' : ''}" onclick="Chat.giftPick('${esc(g.id)}')" aria-pressed="${gsSel === g.id}">
+          <span class="gs-emoji">${esc(g.emoji)}</span><span class="gs-name">${esc(g.name)}</span><span class="gs-price">${coin} ${g.price}</span></button>`;
+      }).join('') + '</div>';
+    }
+    let bar = '';
+    const sel = gsData && gsSel ? gsData.gifts.find(g => g.id === gsSel) : null;
+    if (sel) {
+      const can = sel.price <= gsData.balance;
+      bar = `<div class="gs-confirm"><div class="gs-confirm-t"><span class="gs-confirm-e">${esc(sel.emoji)}</span><div><b>${esc(sel.name)}</b><small>${esc(sel.blurb || '')}</small></div><em>${coin} ${sel.price}</em></div>` +
+        (can
+          ? `<button type="button" class="gs-btn gs-send" ${gsBusy ? 'disabled' : ''} onclick="Chat.giftSend()">${gsBusy ? 'Sending…' : 'Send to ' + esc(gsPartner())}</button>`
+          : `<div class="gs-need">You need ${sel.price - gsData.balance} more coins</div><button type="button" class="gs-btn gs-ghost" onclick="Chat.giftEarn()">Earn coins</button>`) + '</div>';
+    }
+    host.innerHTML = `<div class="chat-sheet-handle"></div>
+      <div class="gs-head"><div><h3>Gift Shop</h3><p>Send something sweet to ${esc(gsPartner())}</p></div>
+        <button type="button" class="gs-bal" onclick="Chat.giftEarn()" aria-label="Your Gold Coins — tap to earn more">${coin} <b>${bal == null ? '—' : bal}</b><span>+ Earn</span></button></div>
+      ${body}${bar}`;
+  }
+
+  async function giftSend() {
+    if (gsBusy || !gsSel || !gsData) return;
+    const g = gsData.gifts.find(x => x.id === gsSel); if (!g) return;
+    if (!coupleId()) { toast('Not connected'); return; }
+    // One id per selection: a retry after a lost answer is recognised by the server and never charges twice.
+    if (!gsTap) gsTap = 'gift_' + genClientId();
+    gsBusy = true; renderGiftShop();
+    try {
+      const r = await window.Rewards.sendGift(g.id, gsTap);
+      gsBusy = false; gsTap = null;
+      gsData.balance = r.balance;
+      giftClose();
+      const row = r.message;
+      if (row) {
+        const idx = msgs.findIndex(m => m.client_id === row.client_id || m.id === row.id);
+        if (idx > -1) msgs[idx] = row; else msgs.push(row);
+        msgs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        if (row.id) lastMsgId = Math.max(lastMsgId, row.id);
+        if (row.created_at && (!lastMsgTs || row.created_at > lastMsgTs)) lastMsgTs = row.created_at;
+        render(); scrollToBottom(true);
+      }
+      playSendEffect(g.effect);
+      if (window.playAppSound) window.playAppSound('chat.sticker.sent');
+      toast(g.emoji + ' ' + g.name + ' sent to ' + gsPartner() + ' · −' + g.price + ' 🪙');
+    } catch (e) {
+      gsBusy = false;
+      if (e && e.status === 402) {
+        gsTap = null; if (e.data && typeof e.data.balance === 'number') gsData.balance = e.data.balance;
+        toast('Not enough Gold Coins yet');
+      } else if (e && e.status >= 400 && e.status < 500) {
+        gsTap = null; toast(e.message);
+      } else {
+        toast('Could not send — check your connection and tap Send again');   // same gsTap → safe to retry
+      }
+      renderGiftShop();
+    }
+  }
+  function giftRetry() { gsFail = false; renderGiftShop(); giftReload(); }
   function sendEmoji(emoji) {
     const inp = document.getElementById('chatIn');
     inp.value += emoji;
@@ -1988,7 +2077,7 @@ function menuItemsHtml(m, id, includeSelect) {
       previewText = m.type === 'image' ? '📷 Photo' : m.type === 'image_group' ? `📷 ${groupItemsOf(m).length || ''} Photos`.trim() : m.type === 'gif' ? '🎞️ GIF' : m.type === 'voice' ? '🎤 Voice message'
         : m.type === 'audio' ? '🎵 Audio' : m.type === 'sticker' ? (m.media_meta?.emoji || '🙂') + ' Sticker'
         : m.type === 'video' ? '🎬 Video' : m.type === 'file' ? '📎 ' + ((m.media_meta && m.media_meta.name) || 'Document')
-        : m.type === 'gift' ? '🎁 Gift' : m.type === 'contact' ? '👤 Contact' : m.type === 'location' ? '📍 Location'
+        : m.type === 'gift' ? '🎁 ' + (m.media_meta?.name || 'Gift') : m.type === 'contact' ? '👤 Contact' : m.type === 'location' ? '📍 Location'
         : m.type === 'poll' ? '📊 Poll' : 'Message';
     }
     banner.innerHTML = `
@@ -4223,7 +4312,7 @@ function menuItemsHtml(m, id, includeSelect) {
     openSearch, closeSearch, runSearch, scrollToMsg, sendGif, sendEmoji, sendEmojiTap,
     openEmojiPanel, switchEmojiTab, filterEmoji, openGifPanel, searchGifs, markRead, init, openSheet, closeSheet,
     forwardMsg, copyMsg, editMsg, cancelEdit, infoMsg, cancelRecording, startLongPress, endLongPress, moveLongPress,
-    onAudioPick, sendLocation, openGiftPanel, sendGift, toggleVoicePlay,
+    onAudioPick, sendLocation, openGiftPanel, giftPick, giftSend, giftEarn, giftRetry, toggleVoicePlay,
     openStickerPanel, sendSticker, sendContactCard, openContactCard, openMemories, openPollComposer, submitPoll, votePoll,
     destroyPanels,
     toggleHeaderMenu, openWallpaperModal, closeWallpaperModal, onDimSlider, setDefaultWallpaper, removeWallpaper,

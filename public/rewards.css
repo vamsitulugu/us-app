@@ -84,3 +84,58 @@
   .rw-page { grid-template-columns: 1.2fr 1fr; align-items: start; gap: 18px; max-width: 1100px; margin: 0 auto; }
   .rw-head, .rw-hero { grid-column: 1 / -1; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   STEP 2 — GIFT SHOP (sheet inside chat) + paid gift bubbles
+   .gs-*  — same look as the Android Gift Shop sheet.
+   Phones: 3 columns · wider screens: 4–5 columns.
+   ══════════════════════════════════════════════════════════════ */
+.gs-sheet { --gs-gold: #F5B83D; --gs-gold-d: #D9941A; max-height: 86vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
+@media (min-width: 700px) { .gs-sheet { max-width: 560px; border-radius: 24px 24px 0 0; } }
+.gs-head { display: flex; align-items: center; gap: 12px; margin: 0 0 14px; }
+.gs-head h3 { margin: 0; font-size: 20px; font-weight: 800; color: var(--white, #fff); }
+.gs-head p { margin: 2px 0 0; font-size: 12.5px; color: var(--text2); }
+.gs-bal { margin-left: auto; appearance: none; cursor: pointer; font: inherit; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(245,184,61,.2), rgba(245,184,61,.08)); color: var(--white, #fff);
+  border: 1px solid rgba(245,184,61,.45); border-radius: 999px; padding: 7px 12px; min-height: 38px; }
+.gs-bal b { font-size: 16px; font-weight: 800; }
+.gs-bal span { font-size: 11px; font-weight: 700; color: var(--gs-gold); }
+.gs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (min-width: 520px) { .gs-grid { grid-template-columns: repeat(4, 1fr); } }
+.gs-item { appearance: none; font: inherit; cursor: pointer; position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 12px 6px 10px; min-height: 108px; border-radius: 18px; color: var(--text);
+  background: var(--g2, rgba(255,255,255,.08)); border: 1.5px solid var(--border, rgba(255,255,255,.12)); transition: transform .15s, border-color .15s, background .15s; }
+.gs-item:active { transform: scale(.96); }
+.gs-emoji { font-size: 34px; line-height: 1; }
+.gs-name { font-size: 12px; font-weight: 700; color: var(--white, #fff); text-align: center; line-height: 1.2; }
+.gs-price { margin-top: auto; font-size: 12px; font-weight: 800; color: var(--gs-gold); background: rgba(245,184,61,.14); border-radius: 999px; padding: 3px 9px; }
+.gs-item.gs-tier-premium { border-color: rgba(245,184,61,.5); background: linear-gradient(160deg, rgba(245,184,61,.16), var(--g2, rgba(255,255,255,.08))); }
+.gs-item.is-locked { opacity: .55; }
+.gs-item.is-sel { opacity: 1; border-color: var(--gs-gold); background: rgba(245,184,61,.2); box-shadow: 0 0 0 3px rgba(245,184,61,.25); }
+.gs-skel { min-height: 108px; border: 0; animation: gsPulse 1.2s ease-in-out infinite; }
+@keyframes gsPulse { 50% { opacity: .45; } }
+.gs-confirm { margin-top: 14px; padding: 14px; border-radius: 18px; background: var(--g3, rgba(255,255,255,.1)); border: 1px solid var(--border2, rgba(255,255,255,.18)); display: grid; gap: 10px; }
+.gs-confirm-t { display: flex; align-items: center; gap: 12px; }
+.gs-confirm-e { font-size: 38px; line-height: 1; }
+.gs-confirm-t b { display: block; font-size: 15px; color: var(--white, #fff); }
+.gs-confirm-t small { display: block; font-size: 12px; color: var(--text2); margin-top: 2px; }
+.gs-confirm-t em { margin-left: auto; font-style: normal; font-weight: 800; color: var(--gs-gold); white-space: nowrap; }
+.gs-btn { appearance: none; border: 0; cursor: pointer; font: inherit; font-weight: 800; font-size: 15px; color: #3a2400; min-height: 46px; border-radius: 999px; padding: 11px 18px;
+  background: linear-gradient(180deg, var(--gs-gold), var(--gs-gold-d)); width: 100%; }
+.gs-btn:disabled { opacity: .6; cursor: default; }
+.gs-btn.gs-ghost { background: var(--g3, rgba(255,255,255,.12)); color: var(--white, #fff); border: 1px solid var(--border2, rgba(255,255,255,.2)); }
+.gs-need { text-align: center; font-size: 13px; color: var(--text2); }
+.gs-empty { text-align: center; padding: 28px 12px; color: var(--text2); font-size: 14px; display: grid; gap: 12px; justify-items: center; }
+.gs-empty .gs-btn { width: auto; }
+
+/* Paid gift bubble in the chat */
+.msg-gift.gs-bubble { position: relative; padding: 14px 22px 12px; border-radius: 18px; gap: 4px; min-width: 140px;
+  background: radial-gradient(circle at 50% 30%, rgba(245,184,61,.22), transparent 70%); }
+.msg-gift.gs-bubble .msg-gift-emoji { font-size: 58px; filter: drop-shadow(0 4px 10px rgba(245,184,61,.45)); }
+.msg-gift.gs-tier-premium .msg-gift-emoji { font-size: 66px; }
+.msg-gift.gs-bubble .msg-gift-name { font-size: 12px; letter-spacing: .3px; }
+.gs-bubble-sub { font-size: 11px; opacity: .8; }
+.gs-back { appearance: none; cursor: pointer; font: inherit; font-size: 12px; font-weight: 800; margin-top: 6px; color: #3a2400; border: 0; border-radius: 999px; padding: 7px 14px; min-height: 32px;
+  background: linear-gradient(180deg, #F5B83D, #D9941A); }
+@media (prefers-reduced-motion: reduce) { .gs-skel, .gs-item { animation: none; transition: none; } }

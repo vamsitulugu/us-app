@@ -78,6 +78,15 @@ router.post('/', async (req, res) => {
   if (!coupleId || !senderRole || !clientId) return res.status(400).json({ error: 'Missing data' });
   if (!text && !mediaUrl && !mediaMeta) return res.status(400).json({ error: 'Empty message' });
 
+  // Twin Rewards Step 2: gifts are bought in the Gift Shop (POST /api/rewards/gift), which charges the coins.
+  // A plain chat send can no longer create a gift. A FORWARDED gift is allowed, but only as a plain
+  // emoji card: it keeps no price/animation, so it can never pass for a paid gift.
+  const isGift = type === 'gift';
+  if (isGift && !forwarded) return res.status(403).json({ error: 'Gifts are sent from the Gift Shop now. Update your app and open the 🎁 Gift Shop.' });
+  const safeMeta = isGift
+    ? { emoji: String((mediaMeta && mediaMeta.emoji) || '🎁').slice(0, 16), name: String((mediaMeta && mediaMeta.name) || 'Gift').slice(0, 40) }
+    : (mediaMeta || null);
+
   // View-once only makes sense for media messages — silently ignore the
   // flag on text-only sends rather than erroring, since the client may
   // just be reusing one send path for both.
@@ -99,13 +108,13 @@ router.post('/', async (req, res) => {
     type:        type || 'text',
     text:        text || null,
     media_url:   mediaUrl || null,
-    media_meta:  mediaMeta || null,
+    media_meta:  safeMeta,
     reply_to:    replyTo || null,
     forwarded:   !!forwarded,
     delivered:   false,
     read:        false,
     view_once:   isMedia && !!viewOnce,
-    effect:      effect || null,
+    effect:      isGift ? null : (effect || null),
     expires_at:  expiresAt,
   };
 

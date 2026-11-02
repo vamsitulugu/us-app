@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════
-   TWIN REWARDS — Step 1 (web)  ·  wallet, daily check-in, streaks
+   TWIN REWARDS — Steps 1–2 (web)  ·  wallet, daily check-in, streaks, Gift Shop API
    Home strip (#rwStrip, inserted above "Stay Connected") and the
    Rewards page (#page-rewards → #rewardsPageContent).
 
@@ -13,7 +13,7 @@ const Rewards = (() => {
   const COIN = '<svg class="rw-coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#F5B83D"/><circle cx="12" cy="12" r="7.2" fill="none" stroke="#B87A0A" stroke-width="1.4"/><path d="M12 7.6v8.8M9.6 10c.5-.9 1.4-1.3 2.4-1.3 1.3 0 2.4.6 2.4 1.7 0 2.3-4.8 1.2-4.8 3.6 0 1.1 1.1 1.8 2.4 1.8 1 0 1.9-.4 2.4-1.2" fill="none" stroke="#B87A0A" stroke-width="1.3" stroke-linecap="round"/></svg>';
   const FLAME = '<svg class="rw-flame" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c.6 3.2-1.2 4.6-2.6 6.3C8 10 7 11.6 7 14a5 5 0 0 0 10 0c0-1.6-.7-2.9-1.5-4 0 1.3-.7 2.2-1.6 2.2-1.3 0-1.7-1.3-1.2-3C13.4 7.2 13 4.6 12 2z"/></svg>';
   const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-  const KIND = { checkin: 'Daily check-in' };
+  const KIND = { checkin: 'Daily check-in', gift: 'Gift sent', gift_refund: 'Gift refunded' };
 
   let sum = null, hist = null, loading = false, busy = false, failed = false;
   const $ = id => document.getElementById(id);
@@ -32,7 +32,7 @@ const Rewards = (() => {
         body: method === 'GET' ? undefined : JSON.stringify({ ...body, coupleId: id.coupleId, userId: id.userId }),
       });
       let data = {}; try { data = await r.json(); } catch (_) {}
-      if (!r.ok) throw new Error(data.error || 'Something went wrong');
+      if (!r.ok) { const er = new Error(data.error || 'Something went wrong'); er.status = r.status; er.data = data; throw er; }
       return data;
     } finally { clearTimeout(t); }
   }
@@ -64,6 +64,20 @@ const Rewards = (() => {
     }
   }
 
+  /* ── Step 2: Gift Shop (the chat draws the sheet; this file talks to the server) ── */
+  async function loadGifts() {                       // → { balance, gifts:[{id,name,emoji,price,tier,effect,blurb}] }
+    const g = await call('GET', '/api/rewards/gifts');
+    if (sum) { sum.balance = g.balance; renderStrip(); }
+    return g;
+  }
+  async function sendGift(giftId, clientId) {         // the server charges the coins and posts the gift in the chat
+    const r = await call('POST', '/api/rewards/gift', { giftId, clientId });
+    if (sum) sum.balance = r.balance;
+    hist = null; render();
+    if (isPageOpen()) load(true);
+    return r;
+  }
+
   function countUp(from, to) {
     const els = document.querySelectorAll('[data-rw-bal]');
     els.forEach(el => el.classList.add('rw-pop'));
@@ -76,6 +90,7 @@ const Rewards = (() => {
     })(t0);
   }
 
+  const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const isPageOpen = () => { const p = $('page-rewards'); return !!(p && p.classList.contains('active')); };
 
   /* ── Home strip ── */
@@ -134,7 +149,7 @@ const Rewards = (() => {
     else if (!hist.length) history = '<div class="rw-empty">No coins yet. Claim your first daily reward above.</div>';
     else history = '<ul class="rw-hist">' + hist.map(h => {
       const d = new Date(h.created_at), pos = h.amount >= 0;
-      return '<li><div>' + (KIND[h.kind] || 'Reward') + '<small>' + d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + '</small></div><em class="' + (pos ? 'pos' : 'neg') + '">' + (pos ? '+' : '') + h.amount + '</em></li>';
+      return '<li><div>' + esc(h.kind === 'gift' && h.meta && h.meta.name ? 'Gift: ' + h.meta.name : (KIND[h.kind] || 'Reward')) + '<small>' + d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + '</small></div><em class="' + (pos ? 'pos' : 'neg') + '">' + (pos ? '+' : '') + h.amount + '</em></li>';
     }).join('') + '</ul>';
 
     host.innerHTML = '<div class="rw rw-page">' +
@@ -183,5 +198,6 @@ const Rewards = (() => {
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
-  return { load, claim, render };
+  return { load, claim, render, loadGifts, sendGift };
 })();
+window.Rewards = Rewards;

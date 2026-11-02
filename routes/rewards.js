@@ -161,5 +161,179 @@ router.get('/history', async (req, res) => {
   }
 });
 
+// ════════════════════════════════════════════════════════════════
+//  STEP 2 — GIFT SHOP
+//  Coins buy a gift. The gift lands in the partner's chat as a normal
+//  chat message (type 'gift'), with a full-screen effect and a push.
+//  The price always comes from this server catalog, never from the app.
+// ════════════════════════════════════════════════════════════════
+
+// Default catalog. A reward_config row (key 'gift_catalog', a JSON array of the same shape) overrides it,
+// so prices can be changed — or gifts switched off with "enabled": false — without releasing an app.
+// effect must be one of the chat effects both apps already play: confetti | hearts | balloons.
+const DEFAULT_GIFTS = [
+  { id: 'kiss',      name: 'Sweet Kiss',    emoji: '😘', price: 5,   effect: 'hearts',   tier: 'sweet',   blurb: 'A little kiss' },
+  { id: 'chocolate', name: 'Chocolate',     emoji: '🍫', price: 10,  effect: 'hearts',   tier: 'sweet',   blurb: 'Something sweet' },
+  { id: 'rose',      name: 'Rose',          emoji: '🌹', price: 20,  effect: 'hearts',   tier: 'special', blurb: 'Classic and romantic' },
+  { id: 'balloons',  name: 'Balloons',      emoji: '🎈', price: 25,  effect: 'balloons', tier: 'special', blurb: 'Make them smile' },
+  { id: 'teddy',     name: 'Teddy Bear',    emoji: '🧸', price: 30,  effect: 'hearts',   tier: 'special', blurb: 'A cuddly hug' },
+  { id: 'bouquet',   name: 'Rose Bouquet',  emoji: '💐', price: 40,  effect: 'hearts',   tier: 'special', blurb: 'A whole bunch of love' },
+  { id: 'cake',      name: 'Birthday Cake', emoji: '🎂', price: 40,  effect: 'confetti', tier: 'special', blurb: 'Let\u2019s celebrate' },
+  { id: 'magicheart',name: 'Magic Heart',   emoji: '💝', price: 50,  effect: 'hearts',   tier: 'premium', blurb: 'A special heart animation' },
+  { id: 'surprise',  name: 'Surprise Box',  emoji: '🎁', price: 60,  effect: 'confetti', tier: 'premium', blurb: 'Open it together' },
+  { id: 'ring',      name: 'Diamond Ring',  emoji: '💍', price: 100, effect: 'confetti', tier: 'premium', blurb: 'For a big moment' },
+];
+const GIFT_EFFECTS = new Set(['confetti', 'hearts', 'balloons']);
+const GIFT_TIERS = new Set(['sweet', 'special', 'premium']);
+
+function cleanGift(g) {
+  if (!g || typeof g !== 'object') return null;
+  const id = typeof g.id === 'string' && /^[a-z0-9_-]{1,32}$/.test(g.id) ? g.id : null;
+  const name = typeof g.name === 'string' ? g.name.trim().slice(0, 40) : '';
+  const emoji = typeof g.emoji === 'string' ? g.emoji.trim().slice(0, 16) : '';
+  const price = Number.isInteger(g.price) ? g.price : -1;
+  if (!id || !name || !emoji || price < 1 || price > 5000) return null;
+  if (g.enabled === false) return null;
+  return {
+    id, name, emoji, price,
+    effect: GIFT_EFFECTS.has(g.effect) ? g.effect : 'hearts',
+    tier: GIFT_TIERS.has(g.tier) ? g.tier : 'special',
+    blurb: typeof g.blurb === 'string' ? g.blurb.slice(0, 60) : '',
+  };
+}
+
+async function getGifts() {
+  try {
+    const { data } = await supabase.from('reward_config').select('value').eq('key', 'gift_catalog').maybeSingle();
+    if (data && Array.isArray(data.value)) {
+      const list = data.value.map(cleanGift).filter(Boolean);
+      if (list.length) return list;
+    }
+  } catch (_) {}
+  return DEFAULT_GIFTS.map(cleanGift).filter(Boolean);
+}
+
+async function walletBalance(userId) {
+  const { data } = await supabase.from('reward_wallets').select('balance').eq('user_id', userId).maybeSingle();
+  return (data && data.balance) || 0;
+}
+
+// ── GET /gifts ─────────────────────────────────────────────────────
+router.get('/gifts', async (req, res) => {
+  try {
+    const coupleId = req.query.coupleId;
+    const user = await member(req, res, coupleId); if (!user) return;
+    const [gifts, balance] = await Promise.all([getGifts(), walletBalance(user.id)]);
+    res.json({ balance, gifts });
+  } catch (e) {
+    console.error('[rewards] gifts failed:', e.message);
+    res.status(500).json({ error: 'Could not load the Gift Shop. Please try again.' });
+  }
+});
+
+// ── POST /gift ─────────────────────────────────────────────────────
+router.post('/gift', async (req, res) => {
+  const body = req.body || {};
+  try {
+    const coupleId = body.coupleId;
+    const user = await member(req, res, coupleId); if (!user) return;
+
+    const giftId = typeof body.giftId === 'string' ? body.giftId : '';
+    const clientId = typeof body.clientId === 'string' ? body.clientId.trim() : '';
+    if (!giftId || !/^[A-Za-z0-9_.:-]{6,80}$/.test(clientId)) return res.status(400).json({ error: 'Missing data' });
+
+    const gift = (await getGifts()).find(g => g.id === giftId);
+    if (!gift) return res.status(404).json({ error: 'That gift is not available right now.' });
+
+    // Who am I, and is my partner paired? (a gift needs somebody to receive it)
+    const [{ data: me }, { data: couple }] = await Promise.all([
+      supabase.from('users').select('role, name').eq('id', user.id).maybeSingle(),
+      supabase.from('couples').select('paired, user1_name, user2_name, user1_avatar, user2_avatar').eq('id', coupleId).maybeSingle(),
+    ]);
+    const role = me && me.role === 'user2' ? 'user2' : 'user1';
+    if (!couple || couple.paired === false) return res.status(409).json({ error: 'Pair with your partner first, then you can send gifts.' });
+    const partnerName = (role === 'user1' ? couple.user2_name : couple.user1_name) || 'your partner';
+    const myName = (role === 'user1' ? couple.user1_name : couple.user2_name) || (me && me.name) || 'Your partner';
+
+    // 1) Spend the coins. The key is per gift tap, so a retry / double tap can never charge twice.
+    const idem = 'gift:' + clientId;
+    const { data: spent, error: sErr } = await supabase.rpc('reward_credit', {
+      p_user: user.id, p_couple: String(coupleId), p_amount: -gift.price,
+      p_kind: 'gift', p_idem: idem, p_meta: { giftId: gift.id, name: gift.name, emoji: gift.emoji },
+    });
+    if (sErr) throw sErr;
+    const row = Array.isArray(spent) ? spent[0] : spent;
+    let alreadyPaid = false;
+    if (!(row && row.applied)) {
+      // Either the wallet is too small, or this same tap was already paid (a retry after a lost answer).
+      const { data: prior } = await supabase.from('coin_transactions').select('id').eq('user_id', user.id).eq('idem_key', idem).maybeSingle();
+      if (!prior) {
+        const balance = row ? row.balance : await walletBalance(user.id);
+        return res.status(402).json({ error: 'Not enough Gold Coins for this gift.', code: 'insufficient', balance, need: gift.price });
+      }
+      alreadyPaid = true;
+    }
+
+    // 2) Put the gift in the chat. Same client_id → the same row (a retry never sends it twice).
+    const msg = {
+      couple_id: String(coupleId), client_id: clientId, sender_role: role, type: 'gift',
+      text: null, media_url: null,
+      media_meta: { emoji: gift.emoji, name: gift.name, giftId: gift.id, tier: gift.tier, price: gift.price, paid: true },
+      reply_to: null, forwarded: false, delivered: false, read: false, view_once: false, effect: gift.effect,
+    };
+    const { data: saved, error: mErr } = await supabase.from('chat_messages')
+      .upsert(msg, { onConflict: 'couple_id,client_id' }).select().single();
+    if (mErr || !saved) {
+      // The gift never reached the chat → give the coins back (once).
+      if (!alreadyPaid) {
+        try {
+          await supabase.rpc('reward_credit', {
+            p_user: user.id, p_couple: String(coupleId), p_amount: gift.price,
+            p_kind: 'gift_refund', p_idem: 'gift-refund:' + clientId, p_meta: { giftId: gift.id },
+          });
+        } catch (rErr) { console.error('[rewards] gift refund failed:', rErr.message); }
+      }
+      throw mErr || new Error('chat insert failed');
+    }
+
+    // 3) Log it (stats / abuse checks). Never blocks the gift.
+    supabase.from('gifts_sent').upsert({
+      couple_id: String(coupleId), sender_id: user.id, sender_role: role, gift_id: gift.id,
+      price: gift.price, message_id: saved.id, client_id: clientId,
+    }, { onConflict: 'sender_id,client_id', ignoreDuplicates: true })
+      .then(({ error }) => { if (error) console.error('[rewards] gifts_sent log failed:', error.message); });
+
+    // 4) Tell the partner: live message + push (the push is skipped if they are already looking at the chat).
+    if (!alreadyPaid) notifyGift({ coupleId, role, myName, gift, avatar: role === 'user1' ? couple.user1_avatar : couple.user2_avatar });
+
+    const balance = await walletBalance(user.id);
+    res.json({ ok: true, duplicate: alreadyPaid, message: saved, gift, balance, partnerName });
+  } catch (e) {
+    console.error('[rewards] gift failed:', e.message);
+    res.status(500).json({ error: 'Could not send the gift. Your coins were not charged. Please try again.' });
+  }
+});
+
+function notifyGift({ coupleId, role, myName, gift, avatar }) {
+  try {
+    const receiverRole = role === 'user1' ? 'user2' : 'user1';
+    let viewing = false;
+    try { viewing = require('./presence').isViewingChat(coupleId, receiverRole); } catch (_) {}
+    if (viewing) return;
+    const auth = require('./auth');
+    const payload = {
+      title: '🎁 ' + myName,
+      body: gift.emoji + ' ' + myName + ' sent you ' + gift.name,
+      icon: '/icons/icon-192.png',
+      tag: 'chat-msg',          // same channel / tap target as a chat message
+      url: '/?page=chat',
+      senderName: myName || undefined,
+      senderAvatar: avatar || undefined,
+    };
+    if (auth.sendPushToPartner) auth.sendPushToPartner(coupleId, role, payload).catch(err => console.error('[rewards] web push failed:', err.message));
+    if (auth.sendFCMToPartner) auth.sendFCMToPartner(coupleId, role, payload).catch(err => console.error('[rewards] fcm failed:', err.message));
+  } catch (e) { console.error('[rewards] gift notify failed:', e.message); }
+}
+
 module.exports = router;
-module.exports._test = { streakFromDays, istDay, prevDay, DEFAULT_CYCLE };
+module.exports._test = { streakFromDays, istDay, prevDay, DEFAULT_CYCLE, DEFAULT_GIFTS, cleanGift };
