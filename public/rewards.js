@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════════════════════
-   TWIN REWARDS — Steps 1–3 (web)  ·  wallet, daily check-in, streaks,
-   Gift Shop API, Spin & Win wheel, and Lucky Scratch card.
+   TWIN REWARDS — Steps 1–4 (web)  ·  wallet, daily check-in, streaks,
+   Gift Shop API, Spin & Win wheel, Lucky Scratch card, and Twin Store.
    Home strip (#rwStrip, inserted above "Stay Connected") and the
    Rewards page (#page-rewards → #rewardsPageContent).
 
@@ -15,10 +15,11 @@ const Rewards = (() => {
   const FLAME = '<svg class="rw-flame" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c.6 3.2-1.2 4.6-2.6 6.3C8 10 7 11.6 7 14a5 5 0 0 0 10 0c0-1.6-.7-2.9-1.5-4 0 1.3-.7 2.2-1.6 2.2-1.3 0-1.7-1.3-1.2-3C13.4 7.2 13 4.6 12 2z"/></svg>';
   const WHEEL_ICO = '<svg class="rw-wheel-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07l14.14-14.14"/></svg>';
   const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-  const KIND = { checkin: 'Daily check-in', gift: 'Gift sent', gift_refund: 'Gift refunded', spin: 'Spin & Win', scratch: 'Lucky Scratch' };
+  const KIND = { checkin: 'Daily check-in', gift: 'Gift sent', gift_refund: 'Gift refunded', spin: 'Spin & Win', scratch: 'Lucky Scratch', store_purchase: 'Store purchase' };
 
   let sum = null, hist = null, loading = false, busy = false, failed = false;
   let wheelAngle = 0, isSpinning = false, scratchResult = null, isScratching = false;
+  let storeItems = [], storeFilter = 'all', unlockedIds = new Set(), equippedItems = {};
 
   const $ = id => document.getElementById(id);
   const reduce = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -48,7 +49,16 @@ const Rewards = (() => {
     loading = true;
     try {
       sum = await call('GET', '/api/rewards/summary'); failed = false;
-      if (withHistory) hist = (await call('GET', '/api/rewards/history?limit=20')).items;
+      if (withHistory) {
+        const [h, st] = await Promise.all([
+          call('GET', '/api/rewards/history?limit=20'),
+          call('GET', '/api/rewards/store'),
+        ]);
+        hist = h.items;
+        storeItems = st.items || [];
+        unlockedIds = new Set(st.unlockedItemIds || []);
+        equippedItems = st.equipped || {};
+      }
     } catch (e) { if (e.message !== 'not-ready') failed = true; }
     loading = false; render();
   }
@@ -96,7 +106,6 @@ const Rewards = (() => {
       const coinsWon = res.coins || 0;
       const newBal = res.balance;
 
-      // Animate wheel to the target slice
       animateWheel(targetIndex, () => {
         isSpinning = false;
         if (sum) {
@@ -124,12 +133,9 @@ const Rewards = (() => {
     const num = slices.length || 8;
     const sliceRad = (2 * Math.PI) / num;
 
-    // Pointer is at top (-PI/2). To put targetIndex under pointer:
-    // angle + (targetIndex + 0.5) * sliceRad = -PI/2  (mod 2PI)
     const targetSliceCenter = (targetIndex + 0.5) * sliceRad;
     let finalAngle = -Math.PI / 2 - targetSliceCenter;
     while (finalAngle < wheelAngle) finalAngle += 2 * Math.PI;
-    // Add 5 full rotations for drama
     finalAngle += 5 * 2 * Math.PI;
 
     if (reduce()) {
@@ -147,7 +153,6 @@ const Rewards = (() => {
     function frame(now) {
       const elapsed = now - startTime;
       const p = Math.min(1, elapsed / duration);
-      // Ease out cubic
       const ease = 1 - Math.pow(1 - p, 3);
       wheelAngle = startAngle + totalDelta * ease;
       drawWheel(canvas, slices, wheelAngle);
@@ -174,7 +179,6 @@ const Rewards = (() => {
 
     ctx.clearRect(0, 0, size, size);
 
-    // Outer ring shadow and border
     ctx.save();
     ctx.beginPath();
     ctx.arc(center, center, radius + 5, 0, 2 * Math.PI);
@@ -186,7 +190,6 @@ const Rewards = (() => {
     ctx.fillStyle = '#1A1423';
     ctx.fill();
 
-    // Draw Slices
     for (let i = 0; i < num; i++) {
       const s = slices[i];
       const startAngle = angle + i * sliceRad;
@@ -203,7 +206,6 @@ const Rewards = (() => {
       ctx.strokeStyle = 'rgba(255,255,255,0.35)';
       ctx.stroke();
 
-      // Label & Icon
       ctx.save();
       ctx.translate(center, center);
       ctx.rotate(startAngle + sliceRad / 2);
@@ -216,7 +218,6 @@ const Rewards = (() => {
       ctx.restore();
     }
 
-    // Outer dots decoration
     const dotCount = 16;
     for (let d = 0; d < dotCount; d++) {
       const dotAngle = d * (2 * Math.PI / dotCount);
@@ -228,7 +229,6 @@ const Rewards = (() => {
       ctx.fill();
     }
 
-    // Center Hub
     ctx.beginPath();
     ctx.arc(center, center, 24, 0, 2 * Math.PI);
     ctx.fillStyle = '#FFFFFF';
@@ -260,7 +260,6 @@ const Rewards = (() => {
       scratchResult = res;
       isScratching = false;
 
-      // Update card content behind canvas
       const prizeEl = $('rwScratchPrize');
       if (prizeEl) {
         prizeEl.innerHTML = '<div class="rw-sc-emoji">' + esc(res.emoji || '💖') + '</div>' +
@@ -287,7 +286,6 @@ const Rewards = (() => {
     const ctx = canvas.getContext('2d');
     const w = canvas.width, h = canvas.height;
 
-    // Fill with metallic gold/silver gradient
     const g = ctx.createLinearGradient(0, 0, w, h);
     g.addColorStop(0, '#D9941A');
     g.addColorStop(0.3, '#F5B83D');
@@ -296,7 +294,6 @@ const Rewards = (() => {
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
 
-    // Decorative pattern
     ctx.fillStyle = 'rgba(255,255,255,0.15)';
     for (let x = 10; x < w; x += 24) {
       for (let y = 10; y < h; y += 24) {
@@ -306,7 +303,6 @@ const Rewards = (() => {
       }
     }
 
-    // Text prompt
     ctx.fillStyle = '#3A2400';
     ctx.font = 'bold 15px sans-serif';
     ctx.textAlign = 'center';
@@ -316,7 +312,6 @@ const Rewards = (() => {
 
     let drawing = false;
     let scratchedPixels = 0;
-    const totalPixels = w * h;
 
     function eraseAt(clientX, clientY) {
       const rect = canvas.getBoundingClientRect();
@@ -328,7 +323,6 @@ const Rewards = (() => {
       ctx.arc(x, y, 22, 0, 2 * Math.PI);
       ctx.fill();
 
-      // First scratch stroke triggers the server claim if not done yet
       if (!scratchResult && !sum?.scratchedToday && !isScratching) {
         scratch();
       }
@@ -374,6 +368,65 @@ const Rewards = (() => {
         }
       }, 500);
     }
+  }
+
+  /* ── Step 4: Twin Store ── */
+  async function buyItem(itemId) {
+    if (!sum || busy) return;
+    const item = (storeItems || []).find(i => i.id === itemId);
+    if (!item) return;
+
+    if (unlockedIds.has(itemId)) {
+      equipItem(item.category, itemId);
+      return;
+    }
+
+    if (sum.balance < item.price) {
+      if (typeof toast === 'function') toast('You need ' + (item.price - sum.balance) + ' more Gold Coins 🪙 to unlock ' + item.name + '!');
+      return;
+    }
+
+    busy = true; render();
+    try {
+      const res = await call('POST', '/api/rewards/buy', { itemId, clientId: 'buy_' + genClientId() });
+      busy = false;
+      if (sum) sum.balance = res.balance;
+      unlockedIds = new Set(res.unlockedItemIds || []);
+      hist = null;
+      render();
+      if (typeof toast === 'function') toast('🎉 ' + item.name + ' unlocked for your couple!');
+      if (window.playAppSound) try { window.playAppSound('chat.sticker.sent'); } catch (_) {}
+      equipItem(item.category, itemId);
+    } catch (e) {
+      busy = false; render();
+      if (typeof toast === 'function') toast(e.message || 'Purchase failed.');
+    }
+  }
+
+  async function equipItem(category, itemId) {
+    try {
+      const res = await call('POST', '/api/rewards/store/equip', { category, itemId });
+      equippedItems[category] = res.itemId;
+      render();
+      if (typeof toast === 'function') toast('✓ ' + (itemId ? 'Equipped!' : 'Unequipped!'));
+      applyTheme(res.itemId);
+    } catch (e) {
+      if (typeof toast === 'function') toast(e.message || 'Could not equip item.');
+    }
+  }
+
+  function setStoreFilter(f) {
+    storeFilter = f;
+    renderPage();
+  }
+
+  function applyTheme(themeId) {
+    if (!themeId) return;
+    try {
+      localStorage.setItem('twin_theme_equipped', themeId);
+      const chatRoot = document.getElementById('chatMessages') || document.getElementById('chatMsgs');
+      if (chatRoot) chatRoot.setAttribute('data-twin-theme', themeId);
+    } catch (_) {}
   }
 
   function countUp(from, to) {
@@ -455,12 +508,57 @@ const Rewards = (() => {
     const scratchCoverStyle = sum.scratchedToday ? 'display:none;' : '';
     const scratchRevealBtn = sum.scratchedToday ? '' : '<button type="button" class="rw-btn rw-sc-btn" id="rwScratchRevealBtn" onclick="Rewards.revealScratch()">Reveal Prize ✨</button>';
 
+    // Step 4: Store Cards
+    const filterTabs = [
+      { id: 'all', label: 'All' },
+      { id: 'theme', label: 'Themes 🎨' },
+      { id: 'frame', label: 'Frames 🖼️' },
+      { id: 'decor', label: 'Decor 🏡' },
+      { id: 'game', label: 'Games 🎮' },
+    ];
+    const tabsHtml = filterTabs.map(t =>
+      '<button type="button" class="rw-store-tab' + (storeFilter === t.id ? ' is-active' : '') + '" onclick="Rewards.setStoreFilter(\'' + t.id + '\')">' + t.label + '</button>'
+    ).join('');
+
+    const filteredItems = (storeItems || []).filter(item => storeFilter === 'all' || item.category === storeFilter);
+    const storeCardsHtml = filteredItems.map(item => {
+      const isUnlocked = unlockedIds.has(item.id);
+      const isEquipped = equippedItems[item.category] === item.id;
+      const canAfford = sum.balance >= item.price;
+
+      let btnHtml;
+      if (isEquipped) {
+        btnHtml = '<button type="button" class="rw-store-btn is-equipped" disabled>Active ✓</button>';
+      } else if (isUnlocked) {
+        btnHtml = '<button type="button" class="rw-store-btn is-equip" onclick="Rewards.equipItem(\'' + item.category + '\', \'' + item.id + '\')">Equip</button>';
+      } else if (canAfford) {
+        btnHtml = '<button type="button" class="rw-store-btn is-buy is-pulse" onclick="Rewards.buyItem(\'' + item.id + '\')">Unlock 🪙 ' + item.price + '</button>';
+      } else {
+        btnHtml = '<button type="button" class="rw-store-btn is-locked" onclick="Rewards.buyItem(\'' + item.id + '\')">🪙 ' + item.price + '</button>';
+      }
+
+      return '<div class="rw-store-item' + (isUnlocked ? ' is-unlocked' : '') + '">' +
+        '<div class="rw-store-preview" style="background:' + (item.previewColor || 'var(--g2)') + '">' +
+          '<span class="rw-store-emoji">' + esc(item.emoji) + '</span>' +
+          (isUnlocked ? '<span class="rw-store-badge">Unlocked</span>' : '') +
+        '</div>' +
+        '<div class="rw-store-info">' +
+          '<h4>' + esc(item.name) + '</h4>' +
+          '<p>' + esc(item.description) + '</p>' +
+          '<div class="rw-store-bottom">' + btnHtml + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
     let history;
     if (hist == null) history = '<div class="rw-empty">Loading…</div>';
     else if (!hist.length) history = '<div class="rw-empty">No coins yet. Claim your first daily reward above.</div>';
     else history = '<ul class="rw-hist">' + hist.map(h => {
       const d = new Date(h.created_at), pos = h.amount >= 0;
-      return '<li><div>' + esc(h.kind === 'gift' && h.meta && h.meta.name ? 'Gift: ' + h.meta.name : (KIND[h.kind] || 'Reward')) + '<small>' + d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + '</small></div><em class="' + (pos ? 'pos' : 'neg') + '">' + (pos ? '+' : '') + h.amount + '</em></li>';
+      let label = KIND[h.kind] || 'Reward';
+      if (h.kind === 'gift' && h.meta?.name) label = 'Gift: ' + h.meta.name;
+      if (h.kind === 'store_purchase' && h.meta?.name) label = 'Unlocked: ' + h.meta.name;
+      return '<li><div>' + esc(label) + '<small>' + d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + '</small></div><em class="' + (pos ? 'pos' : 'neg') + '">' + (pos ? '+' : '') + h.amount + '</em></li>';
     }).join('') + '</ul>';
 
     host.innerHTML = '<div class="rw rw-page">' +
@@ -501,17 +599,25 @@ const Rewards = (() => {
         '</div>' +
       '</div>' +
 
-      // 4. Couple Streak
+      // 4. Twin Store
+      '<div class="rw-card rw-store-card">' +
+        '<div class="rw-store-head">' +
+          '<div><h3>🛍️ Twin Store <small>Spend Coins</small></h3><p>Unlock themes, profile frames, decor & games for two</p></div>' +
+        '</div>' +
+        '<div class="rw-store-tabs">' + tabsHtml + '</div>' +
+        '<div class="rw-store-grid">' + storeCardsHtml + '</div>' +
+      '</div>' +
+
+      // 5. Couple Streak
       '<div class="rw-card"><h3>Couple streak</h3><div class="rw-couple">' + FLAME +
         '<div><div class="rw-couple-n">' + sum.coupleStreak + '</div><div class="rw-couple-l">days you both checked in</div></div>' +
         '<div class="rw-pills"><span class="rw-pill' + (sum.checkedInToday ? ' is-on' : '') + '">You ' + (sum.checkedInToday ? '✓' : '·') + '</span>' +
         '<span class="rw-pill' + (sum.partnerCheckedInToday ? ' is-on' : '') + '">' + partner + ' ' + (sum.partnerCheckedInToday ? '✓' : '·') + '</span></div></div>' +
         '<div class="rw-note" style="margin-top:10px">' + coupleMsg + '</div></div>' +
 
-      // 5. Coin History
+      // 6. Coin History
       '<div class="rw-card"><h3>Coin history</h3>' + history + '</div></div>';
 
-    // Initialize the canvas elements after DOM render
     requestAnimationFrame(() => {
       const wCanvas = $('rwWheelCanvas');
       if (wCanvas && sum?.wheelSlices) drawWheel(wCanvas, sum.wheelSlices, wheelAngle);
@@ -529,7 +635,6 @@ const Rewards = (() => {
       if (e.target.closest('#rewardsPageContent [data-rw-claim]')) claim();
       else if (e.target.closest('#rewardsPageContent [data-rw-retry]')) { failed = false; renderPage(); load(true); }
     });
-    // After the app's goto(): refresh when Home or Rewards opens.
     const orig = window.goto;
     if (typeof orig === 'function' && !orig.__rw) {
       const wrapped = function (page) {
@@ -540,7 +645,6 @@ const Rewards = (() => {
       };
       wrapped.__rw = true; window.goto = wrapped;
     }
-    // Coming back to the tab: refresh once (no timers, no polling).
     document.addEventListener('visibilitychange', () => { if (!document.hidden && ids()) load(isPageOpen()); });
   }
 
@@ -553,6 +657,6 @@ const Rewards = (() => {
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
-  return { load, claim, render, loadGifts, sendGift, spin, scratch, revealScratch };
+  return { load, claim, render, loadGifts, sendGift, spin, scratch, revealScratch, buyItem, equipItem, setStoreFilter };
 })();
 window.Rewards = Rewards;

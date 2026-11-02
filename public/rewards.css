@@ -168,3 +168,36 @@
 .rw-scratch-canvas:active { cursor: grabbing; }
 .rw-scratch-actions { display: grid; gap: 8px; justify-items: center; }
 .rw-sc-btn { padding: 9px 18px; font-size: 13px; min-height: 38px; }
+
+/* ══════════════════════════════════════════════════════════════
+   STEP 4 — TWIN STORE & SPEND SINKS
+   ══════════════════════════════════════════════════════════════ */
+.rw-store-card { display: grid; gap: 14px; }
+.rw-store-head h3 { margin: 0; font-size: 18px; font-weight: 800; color: var(--white, #fff); }
+.rw-store-head p { margin: 2px 0 0; font-size: 12.5px; color: var(--text2); }
+
+.rw-store-tabs { display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+.rw-store-tab { appearance: none; border: 1px solid var(--border, rgba(255,255,255,.12)); background: var(--g1, rgba(255,255,255,.06));
+  color: var(--text2); font: inherit; font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 999px; cursor: pointer; white-space: nowrap; transition: all .15s; }
+.rw-store-tab.is-active { background: rgba(245,184,61,.2); border-color: var(--rw-gold); color: var(--white, #fff); font-weight: 700; }
+
+.rw-store-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.rw-store-item { background: var(--g1, rgba(255,255,255,.05)); border: 1px solid var(--border, rgba(255,255,255,.12));
+  border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; transition: transform .15s, border-color .15s; }
+.rw-store-item.is-unlocked { border-color: rgba(245,184,61,.35); }
+.rw-store-preview { height: 72px; display: flex; align-items: center; justify-content: center; position: relative; }
+.rw-store-emoji { font-size: 32px; filter: drop-shadow(0 2px 6px rgba(0,0,0,.4)); }
+.rw-store-badge { position: absolute; top: 6px; right: 8px; font-size: 10px; font-weight: 800; color: #3a2400; background: var(--rw-gold);
+  border-radius: 999px; padding: 2px 8px; text-transform: uppercase; letter-spacing: .4px; }
+
+.rw-store-info { padding: 12px; display: flex; flex-direction: column; flex: 1; }
+.rw-store-info h4 { margin: 0; font-size: 14px; font-weight: 700; color: var(--white, #fff); }
+.rw-store-info p { margin: 4px 0 10px; font-size: 11.5px; color: var(--text2); line-height: 1.3; flex: 1; }
+.rw-store-bottom { margin-top: auto; }
+
+.rw-store-btn { width: 100%; border: 0; appearance: none; font: inherit; cursor: pointer; border-radius: 999px; padding: 8px 12px;
+  font-size: 13px; font-weight: 800; min-height: 36px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.rw-store-btn.is-equipped { background: var(--g3, rgba(255,255,255,.14)); color: var(--rw-ok); border: 1px solid var(--rw-ok); cursor: default; }
+.rw-store-btn.is-equip { background: rgba(245,184,61,.18); color: var(--rw-gold); border: 1px solid rgba(245,184,61,.45); }
+.rw-store-btn.is-buy { background: linear-gradient(180deg, var(--rw-gold), var(--rw-gold-d)); color: #3a2400; }
+.rw-store-btn.is-locked { background: var(--g2, rgba(255,255,255,.08)); color: var(--text2); border: 1px solid var(--border, rgba(255,255,255,.12)); }

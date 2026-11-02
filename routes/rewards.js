@@ -106,9 +106,163 @@ async function getScratchPrizes() {
   return DEFAULT_SCRATCH_PRIZES;
 }
 
+// Defaults for Step 4: Twin Store catalog
+const DEFAULT_STORE_ITEMS = [
+  // ── Chat Themes ── (100 coins)
+  {
+    id: 'theme_sunset',
+    name: 'Sunset Romance',
+    category: 'theme',
+    price: 100,
+    emoji: '🌅',
+    description: 'Warm golden sunset gradient for your couple chat',
+    previewColor: 'linear-gradient(135deg, #f97316, #ec4899)',
+  },
+  {
+    id: 'theme_midnight',
+    name: 'Midnight Galaxy',
+    category: 'theme',
+    price: 100,
+    emoji: '🌌',
+    description: 'Deep starlight navy with glowing violet accents',
+    previewColor: 'linear-gradient(135deg, #1e1b4b, #6366f1)',
+  },
+  {
+    id: 'theme_rose',
+    name: 'Rose Garden',
+    category: 'theme',
+    price: 100,
+    emoji: '🌹',
+    description: 'Soft pastel crimson & rose petal elegance',
+    previewColor: 'linear-gradient(135deg, #be123c, #fb7185)',
+  },
+  {
+    id: 'theme_emerald',
+    name: 'Emerald Aurora',
+    category: 'theme',
+    price: 100,
+    emoji: '🌲',
+    description: 'Enchanting mystic green & aurora borealis glow',
+    previewColor: 'linear-gradient(135deg, #064e3b, #10b981)',
+  },
+
+  // ── Profile Frames ── (80–120 coins)
+  {
+    id: 'frame_gold_heart',
+    name: 'Golden Hearts',
+    category: 'frame',
+    price: 80,
+    emoji: '💛',
+    description: 'Glowing twin golden hearts circling your avatar',
+    previewColor: '#F5B83D',
+  },
+  {
+    id: 'frame_neon_pulse',
+    name: 'Neon Glow Pulse',
+    category: 'frame',
+    price: 80,
+    emoji: '⚡',
+    description: 'Vibrant animated neon border that pulses with love',
+    previewColor: '#A855F7',
+  },
+  {
+    id: 'frame_royal_crown',
+    name: 'Royal Couple Crown',
+    category: 'frame',
+    price: 120,
+    emoji: '👑',
+    description: 'Sparkling royal crown framing your profile picture',
+    previewColor: '#EAB308',
+  },
+  {
+    id: 'frame_sparkle_ring',
+    name: 'Diamond Halo',
+    category: 'frame',
+    price: 120,
+    emoji: '✨',
+    description: 'Glistening diamond sparkles surrounding your photo',
+    previewColor: '#38BDF8',
+  },
+
+  // ── Virtual Home Decor ── (120–150 coins)
+  {
+    id: 'decor_fairy_lights',
+    name: 'Fairy String Lights',
+    category: 'decor',
+    price: 150,
+    emoji: '💡',
+    description: 'Cozy warm fairy lights strung across your Virtual Home',
+    previewColor: '#FEF08A',
+  },
+  {
+    id: 'decor_fireplace',
+    name: 'Cozy Fireplace',
+    category: 'decor',
+    price: 150,
+    emoji: '🔥',
+    description: 'A crackling rustic fireplace for warm evenings together',
+    previewColor: '#EA580C',
+  },
+  {
+    id: 'decor_love_plant',
+    name: 'Eternal Love Plant',
+    category: 'decor',
+    price: 120,
+    emoji: '🪴',
+    description: 'Heart-leafed monstera plant that blooms every milestone',
+    previewColor: '#16A34A',
+  },
+  {
+    id: 'decor_teddy_corner',
+    name: 'Giant Teddy Corner',
+    category: 'decor',
+    price: 140,
+    emoji: '🧸',
+    description: 'An adorable jumbo cuddle teddy for your virtual room',
+    previewColor: '#B45309',
+  },
+
+  // ── Game Packs ── (80–90 coins)
+  {
+    id: 'pack_deep_love',
+    name: 'Deep Intimacy Deck',
+    category: 'game',
+    price: 80,
+    emoji: '🔮',
+    description: '50 soul-connecting questions for late night talks',
+    previewColor: '#8B5CF6',
+  },
+  {
+    id: 'pack_spicy_dares',
+    name: 'Spicy Couple Dares',
+    category: 'game',
+    price: 90,
+    emoji: '🌶️',
+    description: 'Fun & thrilling dares designed exclusively for two',
+    previewColor: '#EF4444',
+  },
+  {
+    id: 'pack_future_dreams',
+    name: 'Future & Dreams Deck',
+    category: 'game',
+    price: 80,
+    emoji: '✈️',
+    description: 'Bucket list adventures and shared life goals',
+    previewColor: '#0EA5E9',
+  },
+];
+
+async function getStoreItems() {
+  try {
+    const { data } = await supabase.from('reward_config').select('value').eq('key', 'store_catalog').maybeSingle();
+    if (data && Array.isArray(data.value) && data.value.length > 0) return data.value;
+  } catch (_) {}
+  return DEFAULT_STORE_ITEMS;
+}
+
 async function buildSummary(user, coupleId, today = istDay(0)) {
   const since = new Date(Date.parse(today + 'T00:00:00Z') - 70 * 86400000).toISOString().slice(0, 10);
-  const [wallet, mine, couple, cycle, spinsToday, scratchesToday, slices] = await Promise.all([
+  const [wallet, mine, couple, cycle, spinsToday, scratchesToday, slices, purchases, equipped] = await Promise.all([
     supabase.from('reward_wallets').select('balance, lifetime_earned').eq('user_id', user.id).maybeSingle(),
     supabase.from('reward_checkins').select('day, streak').eq('user_id', user.id).gte('day', since).order('day', { ascending: false }),
     supabase.from('reward_checkins').select('user_id, day').eq('couple_id', String(coupleId)).gte('day', since).order('day', { ascending: false }),
@@ -116,6 +270,8 @@ async function buildSummary(user, coupleId, today = istDay(0)) {
     supabase.from('reward_spins').select('slice_index, coins').eq('user_id', user.id).eq('day', today),
     supabase.from('reward_scratches').select('prize_id, coins').eq('user_id', user.id).eq('day', today),
     getSlices(),
+    supabase.from('reward_purchases').select('item_id').eq('couple_id', String(coupleId)),
+    supabase.from('reward_equipped').select('category, item_id, user_id').eq('couple_id', String(coupleId)),
   ]);
   if (mine.error) throw mine.error;
   if (couple.error) throw couple.error;
@@ -137,6 +293,12 @@ async function buildSummary(user, coupleId, today = istDay(0)) {
   const spunToday = !!(spinsToday.data && spinsToday.data.length > 0);
   const scratchedToday = !!(scratchesToday.data && scratchesToday.data.length > 0);
 
+  const unlockedItemIds = (purchases.data || []).map(p => p.item_id);
+  const equippedMap = {};
+  for (const eq of (equipped.data || [])) {
+    if (!eq.user_id || eq.user_id === user.id) equippedMap[eq.category] = eq.item_id;
+  }
+
   return {
     balance: (wallet.data && wallet.data.balance) || 0,
     lifetimeEarned: (wallet.data && wallet.data.lifetime_earned) || 0,
@@ -153,6 +315,8 @@ async function buildSummary(user, coupleId, today = istDay(0)) {
     scratchesAvailable: scratchedToday ? 0 : 1,
     scratchedToday,
     wheelSlices: slices,
+    unlockedItemIds,
+    equipped: equippedMap,
     today,
   };
 }
@@ -537,8 +701,128 @@ router.post('/scratch', async (req, res) => {
   }
 });
 
+// ════════════════════════════════════════════════════════════════
+//  STEP 4 — TWIN STORE & SPEND SINKS
+//  Coins unlock Chat Themes, Profile Frames, Virtual Decor, Game Packs.
+//  Server enforces pricing and unlocks are saved per couple.
+// ════════════════════════════════════════════════════════════════
+
+// ── GET /store ─────────────────────────────────────────────────────
+router.get('/store', async (req, res) => {
+  try {
+    const coupleId = req.query.coupleId;
+    const user = await member(req, res, coupleId); if (!user) return;
+    const [items, purchases, equipped, balance] = await Promise.all([
+      getStoreItems(),
+      supabase.from('reward_purchases').select('item_id').eq('couple_id', String(coupleId)),
+      supabase.from('reward_equipped').select('category, item_id, user_id').eq('couple_id', String(coupleId)),
+      walletBalance(user.id),
+    ]);
+    const unlockedItemIds = (purchases.data || []).map(p => p.item_id);
+    const equippedMap = {};
+    for (const eq of (equipped.data || [])) {
+      if (!eq.user_id || eq.user_id === user.id) equippedMap[eq.category] = eq.item_id;
+    }
+    res.json({ balance, items, unlockedItemIds, equipped: equippedMap });
+  } catch (e) {
+    console.error('[rewards] store failed:', e.message);
+    res.status(500).json({ error: 'Could not load Twin Store. Please try again.' });
+  }
+});
+
+// ── POST /buy ──────────────────────────────────────────────────────
+router.post('/buy', async (req, res) => {
+  const body = req.body || {};
+  try {
+    const coupleId = body.coupleId;
+    const user = await member(req, res, coupleId); if (!user) return;
+    const itemId = typeof body.itemId === 'string' ? body.itemId.trim() : '';
+    const clientId = typeof body.clientId === 'string' ? body.clientId.trim() : '';
+    if (!itemId || !/^[A-Za-z0-9_.:-]{6,80}$/.test(clientId)) return res.status(400).json({ error: 'Missing or invalid data' });
+
+    const items = await getStoreItems();
+    const item = items.find(i => i.id === itemId);
+    if (!item) return res.status(404).json({ error: 'Store item not found.' });
+
+    // Check if already unlocked for this couple
+    const { data: prior } = await supabase.from('reward_purchases')
+      .select('item_id')
+      .eq('couple_id', String(coupleId))
+      .eq('item_id', itemId)
+      .maybeSingle();
+    if (prior) {
+      const balance = await walletBalance(user.id);
+      const { data: allP } = await supabase.from('reward_purchases').select('item_id').eq('couple_id', String(coupleId));
+      return res.json({ ok: true, duplicate: true, itemId: item.id, item, balance, unlockedItemIds: (allP || []).map(p => p.item_id) });
+    }
+
+    // Spend coins
+    const idem = 'buy:' + clientId;
+    const { data: credit, error: cErr } = await supabase.rpc('reward_credit', {
+      p_user: user.id, p_couple: String(coupleId), p_amount: -item.price,
+      p_kind: 'store_purchase', p_idem: idem,
+      p_meta: { itemId: item.id, name: item.name, category: item.category, emoji: item.emoji },
+    });
+    if (cErr) throw cErr;
+    const row = Array.isArray(credit) ? credit[0] : credit;
+    if (!(row && row.applied)) {
+      const { data: paidBefore } = await supabase.from('coin_transactions').select('id').eq('user_id', user.id).eq('idem_key', idem).maybeSingle();
+      if (!paidBefore) {
+        const balance = row ? row.balance : await walletBalance(user.id);
+        return res.status(402).json({ error: 'Not enough Gold Coins for this item.', code: 'insufficient', balance, need: item.price });
+      }
+    }
+
+    // Record purchase
+    const { error: pErr } = await supabase.from('reward_purchases').upsert({
+      couple_id: String(coupleId), user_id: user.id, item_id: item.id,
+      category: item.category, price: item.price, client_id: clientId,
+    }, { onConflict: 'couple_id,item_id' });
+    if (pErr) console.error('[rewards] purchase insert error:', pErr.message);
+
+    const balance = await walletBalance(user.id);
+    const { data: allP } = await supabase.from('reward_purchases').select('item_id').eq('couple_id', String(coupleId));
+    const unlockedItemIds = (allP || []).map(p => p.item_id);
+
+    res.json({ ok: true, duplicate: false, itemId: item.id, category: item.category, item, balance, unlockedItemIds });
+  } catch (e) {
+    console.error('[rewards] buy failed:', e.message);
+    res.status(500).json({ error: 'Purchase failed. Your coins were not charged. Please try again.' });
+  }
+});
+
+// ── POST /store/equip ──────────────────────────────────────────────
+router.post('/store/equip', async (req, res) => {
+  const body = req.body || {};
+  try {
+    const coupleId = body.coupleId;
+    const user = await member(req, res, coupleId); if (!user) return;
+    const category = typeof body.category === 'string' ? body.category.trim() : '';
+    const itemId = typeof body.itemId === 'string' ? body.itemId.trim() : '';
+    if (!['theme', 'frame', 'decor', 'game'].includes(category)) return res.status(400).json({ error: 'Invalid category' });
+
+    // If equipping an item (not unequipping), verify couple has unlocked it
+    if (itemId) {
+      const { data: owned } = await supabase.from('reward_purchases')
+        .select('id').eq('couple_id', String(coupleId)).eq('item_id', itemId).maybeSingle();
+      if (!owned) return res.status(403).json({ error: 'You need to unlock this item from the Twin Store first.' });
+    }
+
+    const uid = category === 'frame' ? user.id : '';
+    await supabase.from('reward_equipped').upsert({
+      couple_id: String(coupleId), category, user_id: uid, item_id: itemId, updated_at: new Date().toISOString(),
+    }, { onConflict: 'couple_id,category,user_id' });
+
+    res.json({ ok: true, category, itemId });
+  } catch (e) {
+    console.error('[rewards] equip failed:', e.message);
+    res.status(500).json({ error: 'Could not equip item. Please try again.' });
+  }
+});
+
 module.exports = router;
 module.exports._test = {
   streakFromDays, istDay, prevDay, DEFAULT_CYCLE, DEFAULT_GIFTS, cleanGift,
   DEFAULT_SLICES, DEFAULT_SCRATCH_PRIZES, pickWeighted,
+  DEFAULT_STORE_ITEMS,
 };
