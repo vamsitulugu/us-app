@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v61'; // bumped: profile Highlights (highlights.js/css)
+const CACHE = 'uwl-v62'; // bumped: Twin Rewards (rewards.js/css)
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',

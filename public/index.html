@@ -4876,6 +4876,7 @@ select option { background: #270719; color: #fff; }
   <link rel="stylesheet" href="/profile.css">
   <link rel="stylesheet" href="/highlights.css">
   <link rel="stylesheet" href="/level.css">
+  <link rel="stylesheet" href="/rewards.css">
   <link rel="stylesheet" href="/twin-page.css">
 <link rel="stylesheet" href="/theme-tokens.css?v=5">
 <link rel="stylesheet" href="/theme-light-v2.css?v=4">
@@ -5697,6 +5698,10 @@ select option { background: #270719; color: #fff; }
       </div>
       <div class="page" id="page-level">
         <div id="levelPageContent"></div>
+      </div>
+      <!-- ════ TWIN REWARDS ════ -->
+      <div class="page" id="page-rewards">
+        <div id="rewardsPageContent"></div>
       </div>
       <!-- ════ PERIOD TRACKER ════ -->
       <div class="page" id="page-period">
@@ -7351,6 +7356,7 @@ select option { background: #270719; color: #fff; }
           <div class="cat-row" onclick="goto('profile')"><span class="cat-row-ico">💑</span><span class="cat-row-title">Our Profile</span><span class="cat-row-chev">›</span></div>
           <div class="cat-row" onclick="goto('lovecounter')"><span class="cat-row-ico">⏱️</span><span class="cat-row-title">Love Counter</span><span class="cat-row-chev">›</span></div>
           <div class="cat-row" onclick="goto('level')"><span class="cat-row-ico">🏆</span><span class="cat-row-title">Couple Level</span><span class="cat-row-chev">›</span></div>
+          <div class="cat-row" onclick="goto('rewards')"><span class="cat-row-ico">🪙</span><span class="cat-row-title">Twin Rewards</span><span class="cat-row-chev">›</span></div>
           <div class="cat-row" onclick="goto('fights')"><span class="cat-row-ico">⚡</span><span class="cat-row-title">Fight Log</span><span class="cat-row-chev">›</span></div>
         </div>
       </div>
@@ -8459,7 +8465,7 @@ function setJustPairedAt(ts) {
           collection: 'Collection ', settings: 'Settings', period: 'Period Tracker',
           fights: 'Fight Log', study: 'Study Together', map: 'Live Map ',
           music: 'Music ', surprise: 'Surprises ',chat: 'Chat ',
-          level: 'Couple Level ',globe: 'Memory Globe ', games: 'Couple Games ',
+          level: 'Couple Level ', rewards: 'Twin Rewards', globe: 'Memory Globe ', games: 'Couple Games ',
           dreamgoals: 'Dream Goals ', places: 'Places Memory ', meetplanner: 'Meet Planner ',
           dailyroutine: 'Daily Routine ', pro: 'Twin Hearts Pro',
           catUs: 'Us', catMemories: 'Memories', catPlans: 'Plans', catTogether: 'Together',
@@ -8469,7 +8475,7 @@ function setJustPairedAt(ts) {
         // these pages no longer have their own sidebar row (see NEW SIDEBAR
         // STRUCTURE), so goto() highlights the owning category item instead.
         const CATEGORY_OWNER = {
-          profile: 'catUs', lovecounter: 'catUs', level: 'catUs', fights: 'catUs',
+          profile: 'catUs', lovecounter: 'catUs', level: 'catUs', rewards: 'catUs', fights: 'catUs',
           camera: 'catMemories', globe: 'catMemories', places: 'catMemories', collection: 'catMemories',
           calendar: 'catPlans', bucket: 'catPlans', meetplanner: 'catPlans', surprise: 'catPlans', money: 'catPlans',
           dailyroutine: 'catPlans',
@@ -13875,6 +13881,7 @@ init();
 <script src="/dashboard.js"></script>
 <script src="/gender-access.js"></script>
 <script src="/dashboard-widgets.js?v=3"></script>
+<script src="/rewards.js"></script>
 <script src="/app-polish.js"></script>
 
 <!-- Live Map redesign layer (additive UI only — see livemap-redesign.css) -->
