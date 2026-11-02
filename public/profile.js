@@ -177,6 +177,7 @@
             '<div class="pf-person"><div class="pf-av-wrap"><button type="button" class="pf-av av2" id="profAv2" data-act="viewAvatar" aria-label="View partner photo"></button></div>' +
               '<div class="pf-name" id="profPtName">Partner</div><div class="pf-presence" id="pfPresence"></div></div>' +
           '</div><div class="pf-span" id="pfSpan"></div></div>' +
+          '<div id="pfHl"></div>' +   /* Highlights row (logic: /highlights.js) */
           '<div class="pf-actions">' +
             '<button class="pf-act" data-act="editMe">' + ico('user') + 'Edit Profile</button>' +
             '<button class="pf-act" data-act="open:partner">' + ico('users') + 'Partner Details</button>' +
@@ -260,6 +261,7 @@
 
   function renderMain() {
     applyNames(); // names + avatar images for profAv1 / profAv2
+    if (window.Highlights) Highlights.render(); // circles under the couple card
     $('profAnnivText').textContent = S.anniversary ? fmtDate(S.anniversary) : 'Set date';
     $('pfSpan').textContent = togetherSpan(S.anniversary);
     $('pfStPhotos').textContent = (S.photos || []).length;

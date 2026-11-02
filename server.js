@@ -162,6 +162,7 @@ app.use('/api/movie-fav', require('./routes/movie-favorites'));
 
 // ── Admin Control Center ────────────────────────────────
 app.use('/api/recordings', require('./routes/recordings'));
+app.use('/api/highlights', require('./routes/highlights'));
 app.use('/api/lyrics', require('./routes/lyrics'));
 app.use('/api/search', require('./routes/search'));
 app.use('/api/presence', require('./routes/presence'));
