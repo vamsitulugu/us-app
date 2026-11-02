@@ -297,3 +297,17 @@
 @media (prefers-reduced-motion: reduce) {
   .dh-img, .dh-chip, .dh-act { transition: none; }
 }
+
+/* ── Profile button: white ring that spins around the avatar (same as the Android app) ──
+   Comet-style conic gradient (transparent tail -> bright head), masked down to a thin ring. */
+.dh-profile { border-color: rgba(255, 255, 255, .18) !important; }
+.dh-profile::after {
+  content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  border-radius: 50%; padding: 2.5px;
+  background: conic-gradient(from 0deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.10) 55%, rgba(252,191,225,.75) 85%, #fff 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: dhProfileRing 2.6s linear infinite;
+}
+@keyframes dhProfileRing { to { transform: rotate(360deg); } }
