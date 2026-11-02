@@ -33,7 +33,8 @@
 
   let groups = null;          // null = not loaded yet
   let phase = 'idle';         // idle | loading | error
-  let filter = 'all';
+  const filters = { mine: 'all', partner: 'all' };   // category chip selected in each row
+  const MOUNTS = [['pfHl', 'mine'], ['pfHlPartner', 'partner']];   // where the rows live: my row on Our Profile, my partner's row on their profile screen
   let loadSeq = 0;
 
   const mineRole = () => S.role || 'user1';
@@ -70,16 +71,19 @@
       : '<img src="' + esc(it.media_url) + '" alt="" loading="lazy" decoding="async">';
   }
 
-  function visible() {
-    const list = (groups || []).filter(g => (g.items || []).length && (filter === 'all' || g.category === filter));
-    return list.filter(isMine).concat(list.filter(g => !isMine(g)));   // mine first, then my partner's
-  }
+  // Highlights shown in one row: only mine, or only my partner's.
+  const ownedBy = who => (groups || []).filter(g => (g.items || []).length && isMine(g) === (who === 'mine'));
+  const visible = who => ownedBy(who).filter(g => filters[who] === 'all' || g.category === filters[who]);
 
-  function paint() {
-    const root = $('pfHl'); if (!root) return;
-    root.classList.add('pfh');
-    const used = [...new Set((groups || []).filter(g => (g.items || []).length).map(g => g.category))];
-    if (filter !== 'all' && !used.includes(filter)) filter = 'all';
+  function paint() { MOUNTS.forEach(([id, who]) => paintRow($(id), who)); }
+
+  function paintRow(root, who) {
+    if (!root) return;
+    root.classList.add('pfh'); root.dataset.who = who;
+    const own = who === 'mine';
+    const used = [...new Set(ownedBy(who).map(g => g.category))];
+    if (filters[who] !== 'all' && !used.includes(filters[who])) filters[who] = 'all';
+    const filter = filters[who];
 
     const chips = used.length >= 2
       ? '<div class="pfh-chips" role="tablist" aria-label="Highlight categories">' +
@@ -89,21 +93,24 @@
         '</div>'
       : '';
 
-    const add = '<button type="button" class="pfh-it pfh-new" data-hl="new" aria-label="New highlight"><span class="pfh-ring"><span class="pfh-in">' + ico('plus') + '</span></span><span class="pfh-lab">New</span></button>';
+    // Only my own row has the "+" circle; my partner's highlights are watch-only.
+    const add = own ? '<button type="button" class="pfh-it pfh-new" data-hl="new" aria-label="New highlight"><span class="pfh-ring"><span class="pfh-in">' + ico('plus') + '</span></span><span class="pfh-lab">New</span></button>' : '';
     let body;
     if (phase === 'loading') {
       body = [1, 2, 3].map(() => '<div class="pfh-it pfh-skel" aria-hidden="true"><span class="pfh-ring"></span><span class="pfh-lab"></span></div>').join('');
     } else {
-      body = visible().map(g =>
+      body = visible(who).map(g =>
         '<button type="button" class="pfh-it' + (isMine(g) ? '' : ' is-partner') + '" data-hl="open:' + esc(g.id) + '" data-own="' + (isMine(g) ? '1' : '0') + '" aria-label="' + esc(g.title) + ' highlight">' +
         '<span class="pfh-ring"><span class="pfh-in">' + coverHtml(g) + '</span><span class="pfh-badge">' + catOf(g.category)[2] + '</span></span>' +
         '<span class="pfh-lab">' + esc(g.title) + '</span></button>').join('');
     }
+    const empty = phase === 'idle' && groups && !ownedBy(who).length;
     const note = phase === 'error'
       ? '<p class="pfh-msg">Couldn’t load highlights. <button type="button" data-hl="retry">Try again</button></p>'
-      : (phase === 'idle' && groups && !groups.some(g => (g.items || []).length)
-        ? '<p class="pfh-msg">Keep your favourite moments here — tap + to add a video or photo.</p>' : '');
-    root.innerHTML = chips + '<div class="pfh-row">' + add + body + '</div>' + note;
+      : (empty ? '<p class="pfh-msg">' + (own
+        ? 'Keep your favourite moments here — tap + to add a video or photo.'
+        : esc(S.partnerName || 'Your partner') + ' hasn’t added any highlights yet.') + '</p>' : '');
+    root.innerHTML = chips + (add || body ? '<div class="pfh-row">' + add + body + '</div>' : '') + note;
   }
 
   /* ── Sheets ── */
@@ -478,8 +485,8 @@
 
   /* ── Row interactions (tap, long-press to edit your own) ── */
   let pressT = 0, pressed = false;
-  function wireRow() {
-    const root = $('pfHl'); if (!root || root.dataset.wired) return;
+  function wireRow(root) {
+    if (!root || root.dataset.wired) return;
     root.dataset.wired = '1';
     root.addEventListener('pointerdown', e => {
       const it = e.target.closest('[data-own="1"]'); if (!it) return;
@@ -494,11 +501,11 @@
       const s = el.dataset.hl, i = s.indexOf(':'), act = i < 0 ? s : s.slice(0, i), arg = i < 0 ? '' : s.slice(i + 1);
       if (act === 'new') openSource(null);
       else if (act === 'open') openViewer(arg);
-      else if (act === 'filter') { filter = arg; paint(); }
+      else if (act === 'filter') { filters[root.dataset.who || 'mine'] = arg; paint(); }
       else if (act === 'retry') load();
     });
   }
 
-  function render() { wireRow(); paint(); load(); }
+  function render() { MOUNTS.forEach(([id]) => wireRow($(id))); paint(); load(); }
   window.Highlights = { render, refresh: load };
 })();

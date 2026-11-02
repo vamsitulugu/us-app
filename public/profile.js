@@ -143,7 +143,7 @@
   }
 
   /* ── Views ── */
-  const VIEWS = ['main', 'partner', 'settings', 'milestones', 'love', 'story'];
+  const VIEWS = ['main', 'partner', 'ptprofile', 'settings', 'milestones', 'love', 'story'];
   let stack = ['main'];
   let built = false;
 
@@ -174,7 +174,7 @@
             '<div class="pf-mid"><div class="pf-heart-link">' + ico('heart') + '</div>' +
               '<span class="pf-since-l">Together since</span>' +
               '<button class="pf-since-d" data-act="editMe"><span id="profAnnivText">—</span>' + ico('pencil') + '</button></div>' +
-            '<div class="pf-person"><div class="pf-av-wrap"><button type="button" class="pf-av av2" id="profAv2" data-act="viewAvatar" aria-label="View partner photo"></button></div>' +
+            '<div class="pf-person"><div class="pf-av-wrap pf-ring"><button type="button" class="pf-av av2" id="profAv2" data-act="open:ptprofile" aria-label="Open partner profile"></button></div>' +
               '<div class="pf-name" id="profPtName">Partner</div><div class="pf-presence" id="pfPresence"></div></div>' +
           '</div><div class="pf-span" id="pfSpan"></div></div>' +
           '<div id="pfHl"></div>' +   /* Highlights row (logic: /highlights.js) */
@@ -193,6 +193,15 @@
           '<div class="pf-card pf-story" data-act="open:story">' + chip('book') +
             '<div class="pf-story-t"><b>Our Story<span class="pf-link-btn">Edit' + ico('chev') + '</span></b><p id="pfStoryPrev"></p></div></div>' +
         '</div>' +
+      '</section>' +
+
+      /* partner profile: their photo on top, their highlights below (logic: /highlights.js) */
+      '<section class="pf-view" data-view="ptprofile" hidden>' + bar('Profile') +
+        '<div class="pf-body"><div class="pf-card pf-ptpro">' +
+          '<div class="pf-av-wrap pf-ring"><button type="button" class="pf-av av2" id="profAv4" data-act="viewAvatar" aria-label="View partner photo"></button></div>' +
+          '<h2 class="pf-pname" id="pfPtProName">Partner</h2>' +
+        '</div>' +
+        '<div class="pf-group-t">Highlights</div><div id="pfHlPartner"></div></div>' +
       '</section>' +
 
       /* partner */
@@ -256,7 +265,7 @@
 
   /* ── Renderers ── */
   function renderView(v) {
-    ({ main: renderMain, partner: renderPartner, milestones: renderMilestones, love: renderLove, story: renderStory })[v]?.();
+    ({ main: renderMain, partner: renderPartner, ptprofile: renderPtProfile, milestones: renderMilestones, love: renderLove, story: renderStory })[v]?.();
   }
 
   function renderMain() {
@@ -285,6 +294,13 @@
       : '<p class="pf-empty">No upcoming dates yet — tap Add Date to create one.</p>';
 
     $('pfStoryPrev').textContent = S.myBio || 'Write a few lines about the two of you.';
+  }
+
+  function renderPtProfile() {
+    applyNames();
+    setAvImg('profAv4', S.partnerAvatar);
+    $('pfPtProName').textContent = partnerName();
+    if (window.Highlights) Highlights.render();
   }
 
   function renderPartner() {

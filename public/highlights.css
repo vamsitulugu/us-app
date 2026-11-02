@@ -106,3 +106,21 @@
   .pf-view[data-view="main"] .pf-body > .pfh { grid-column: 1 / -1; }
   .pfh-it { width: 88px; } .pfh-ring { width: 84px; height: 84px; } .pfh-lab { max-width: 90px; font-size: 13px; }
 }
+
+/* ── Partner's animated ring (pink · blue · purple) around their photo ── */
+.pf-ring::before {
+  content: ''; position: absolute; inset: -7px; border-radius: 50%; pointer-events: none;
+  background: conic-gradient(from 0deg, #ff4fa3, #7c5cff, #3da5ff, #c13bff, #ff4fa3);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  animation: pfhRing 4s linear infinite;
+  filter: drop-shadow(0 0 6px rgba(124, 92, 255, .55));
+}
+.pf-ring > .pf-av { border-color: transparent; }
+@keyframes pfhRing { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .pf-ring::before { animation: none; } }
+
+/* ── Partner profile screen ── */
+.pf-ptpro { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 26px 16px 20px; }
+.pf-ptpro .pf-av-wrap { width: 112px; height: 112px; }
+.pf-ptpro .pf-pname { margin: 0; text-align: center; }

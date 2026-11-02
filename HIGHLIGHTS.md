@@ -21,3 +21,7 @@ Categories: `travel love dates friends family food events fun other`. Title max 
 ## Not included (yet)
 - Choosing a custom cover (cover = first clip).
 - Push notification to the partner when a highlight is added.
+
+## Update: partner highlights live on the partner's profile
+- **Our Profile** shows only **your** highlights (unchanged otherwise).
+- Your partner's picture in the hero card has a slowly turning pink · blue · purple ring. Tap it to open the **partner profile** (`data-view="ptprofile"`): their photo on top, their highlights below (watch-only, no "+"). Tap their photo there to see it large.
