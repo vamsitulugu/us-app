@@ -1,7 +1,7 @@
 /* ══════════════════════════════════════════════════════════════
    TWIN REWARDS — Steps 1–4 (web)  ·  wallet, daily check-in, streaks,
    Gift Shop API, Spin & Win wheel, Lucky Scratch card, and Twin Store.
-   Home strip (#rwStrip, inserted above "Stay Connected") and the
+   Home strip (#rwStrip, inserted above the love card) and the
    Rewards page (#page-rewards → #rewardsPageContent).
 
    All numbers come from the server (/api/rewards/*). This file only
@@ -19,6 +19,7 @@ const Rewards = (() => {
 
   let sum = null, hist = null, loading = false, busy = false, failed = false;
   let wheelAngle = 0, isSpinning = false, scratchResult = null, isScratching = false;
+  let view = 'wallet';
   let storeItems = [], storeFilter = 'all', unlockedIds = new Set(), equippedItems = {};
 
   const $ = id => document.getElementById(id);
@@ -50,11 +51,7 @@ const Rewards = (() => {
     try {
       sum = await call('GET', '/api/rewards/summary'); failed = false;
       if (withHistory) {
-        const [h, st] = await Promise.all([
-          call('GET', '/api/rewards/history?limit=20'),
-          call('GET', '/api/rewards/store'),
-        ]);
-        hist = h.items;
+        const st = await call('GET', '/api/rewards/store');
         storeItems = st.items || [];
         unlockedIds = new Set(st.unlockedItemIds || []);
         equippedItems = st.equipped || {};
@@ -445,10 +442,12 @@ const Rewards = (() => {
   const isPageOpen = () => { const p = $('page-rewards'); return !!(p && p.classList.contains('active')); };
 
   /* ── Home strip ── */
+  // Heading only shows on wide screens (CSS), where it lines up with the "Coming up" heading beside it.
+  const STRIP_HEAD = '<div class="dw-head rw-strip-head"><h2 class="dw-title">Rewards</h2><span class="dw-link">Open ›</span></div>';
   function ensureStrip() {
     let el = $('rwStrip');
     if (el) return el;
-    const anchor = document.querySelector('#page-dashboard .dh-sheet-title');
+    const anchor = document.querySelector('#page-dashboard .dh-card');
     if (!anchor) return null;
     el = document.createElement('div'); el.id = 'rwStrip'; el.className = 'rw';
     anchor.parentNode.insertBefore(el, anchor);
@@ -462,7 +461,7 @@ const Rewards = (() => {
   function renderStrip() {
     const el = ensureStrip(); if (!el) return;
     if (!sum) {
-      el.innerHTML = '<div class="rw-card rw-strip is-loading">' + '<div class="rw-strip-stat">' + COIN + '<div><b>—</b><span>Gold Coins</span></div></div></div>';
+      el.innerHTML = STRIP_HEAD + '<div class="rw-card rw-strip is-loading">' + '<div class="rw-strip-stat">' + COIN + '<div><b>—</b><span>Gold Coins</span></div></div></div>';
       return;
     }
     const btn = sum.checkedInToday
@@ -470,7 +469,7 @@ const Rewards = (() => {
       : '<button class="rw-btn is-pulse" type="button" data-rw-claim ' + (busy ? 'disabled' : '') + '>' + (busy ? '…' : 'Claim +' + sum.todayCoins) + '</button>';
 
     const spinText = sum.spinsAvailable > 0 ? '1 Spin' : 'Spun';
-    el.innerHTML = '<div class="rw-card rw-strip" role="button" tabindex="0" aria-label="Open Rewards">' +
+    el.innerHTML = STRIP_HEAD + '<div class="rw-card rw-strip" role="button" tabindex="0" aria-label="Open Rewards">' +
       '<div class="rw-strip-stat">' + COIN + '<div><b data-rw-bal>' + sum.balance + '</b><span>Gold Coins</span></div></div>' +
       '<div class="rw-strip-sep"></div>' +
       '<div class="rw-strip-stat">' + FLAME + '<div><b>' + sum.streak + '</b><span>Day streak</span></div></div>' +
@@ -550,73 +549,63 @@ const Rewards = (() => {
       '</div>';
     }).join('');
 
-    let history;
-    if (hist == null) history = '<div class="rw-empty">Loading…</div>';
-    else if (!hist.length) history = '<div class="rw-empty">No coins yet. Claim your first daily reward above.</div>';
-    else history = '<ul class="rw-hist">' + hist.map(h => {
-      const d = new Date(h.created_at), pos = h.amount >= 0;
-      let label = KIND[h.kind] || 'Reward';
-      if (h.kind === 'gift' && h.meta?.name) label = 'Gift: ' + h.meta.name;
-      if (h.kind === 'store_purchase' && h.meta?.name) label = 'Unlocked: ' + h.meta.name;
-      return '<li><div>' + esc(label) + '<small>' + d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + '</small></div><em class="' + (pos ? 'pos' : 'neg') + '">' + (pos ? '+' : '') + h.amount + '</em></li>';
-    }).join('') + '</ul>';
+    const spinState = sum.spunToday ? 'Free spin used' : '1 Free spin available';
+    const spinNote = sum.spunToday ? 'Come back tomorrow for your next free spin.' : 'Spin the wheel to win up to 100 Gold Coins!';
 
-    host.innerHTML = '<div class="rw rw-page">' +
-      '<div class="rw-head"><div><h2>Twin Rewards</h2><p>Play together. Earn together. Celebrate together.</p></div></div>' +
-      '<div class="rw-card rw-hero">' + COIN + '<div><div class="rw-bal" data-rw-bal>' + sum.balance + '</div><div class="rw-bal-l">Gold Coins</div></div>' +
-        '<div class="rw-hero-right"><b>' + sum.lifetimeEarned + '</b>earned in total</div></div>' +
+    const heroCard = '<div class="rw-card rw-hero">' + COIN + '<div><div class="rw-bal" data-rw-bal>' + sum.balance + '</div><div class="rw-bal-l">Gold Coins</div></div>' +
+      '<div class="rw-hero-right"><b>' + sum.lifetimeEarned + '</b>earned in total</div></div>';
 
-      // 1. Daily Check-in
-      '<div class="rw-card"><h3>Daily check-in <small>Day ' + sum.cyclePosition + ' of 7</small></h3><div class="rw-days">' + days + '</div>' +
-        '<div class="rw-claim-row">' + claimBtn + '<div class="rw-note">' + note + '</div></div></div>' +
+    const checkInCard = '<div class="rw-card"><h3>Daily check-in <small>Day ' + sum.cyclePosition + ' of 7</small></h3><div class="rw-days">' + days + '</div>' +
+      '<div class="rw-claim-row">' + claimBtn + '<div class="rw-note">' + note + '</div></div></div>';
 
-      // 2. Spin & Win Wheel
-      '<div class="rw-card rw-interactive-card"><h3>🎡 Spin & Win <small>' + (sum.spunToday ? 'Free spin used' : '1 Free spin available') + '</small></h3>' +
-        '<div class="rw-wheel-box">' +
-          '<div class="rw-wheel-pointer">▼</div>' +
-          '<canvas id="rwWheelCanvas" width="280" height="280" class="rw-wheel-canvas"></canvas>' +
+    const scratchCard = '<div class="rw-card rw-interactive-card"><h3>🎫 Lucky Couple Scratch <small>' + (sum.scratchedToday ? 'Scratched today' : '1 Card ready') + '</small></h3>' +
+      '<div class="rw-scratch-box">' +
+        '<div class="rw-scratch-under" id="rwScratchPrize">' +
+          '<div class="rw-sc-emoji">💖</div>' +
+          '<div class="rw-sc-title">' + (sum.scratchedToday ? 'Daily Fortune Claimed' : 'Romantic Surprise') + '</div>' +
+          '<div class="rw-sc-coins">+' + (scratchResult?.coins || '15–100') + ' Gold Coins 🪙</div>' +
+          '<div class="rw-sc-msg">' + (scratchResult?.message || 'Scratch the card to reveal your lucky prize!') + '</div>' +
         '</div>' +
+        '<canvas id="rwScratchCanvas" width="280" height="150" class="rw-scratch-canvas" style="' + scratchCoverStyle + '"></canvas>' +
+      '</div>' +
+      '<div class="rw-scratch-actions">' + scratchRevealBtn +
+        '<div class="rw-note">' + (sum.scratchedToday ? 'You claimed your daily card. Next card tomorrow!' : 'Scratch the gold card above or tap Reveal Prize.') + '</div>' +
+      '</div></div>';
+
+    const streakCard = '<div class="rw-card"><h3>Couple streak</h3><div class="rw-couple">' + FLAME +
+      '<div><div class="rw-couple-n">' + sum.coupleStreak + '</div><div class="rw-couple-l">days you both checked in</div></div>' +
+      '<div class="rw-pills"><span class="rw-pill' + (sum.checkedInToday ? ' is-on' : '') + '">You ' + (sum.checkedInToday ? '✓' : '·') + '</span>' +
+      '<span class="rw-pill' + (sum.partnerCheckedInToday ? ' is-on' : '') + '">' + esc(partner) + ' ' + (sum.partnerCheckedInToday ? '✓' : '·') + '</span></div></div>' +
+      '<div class="rw-note" style="margin-top:10px">' + coupleMsg + '</div></div>';
+
+    // Same as the Android app: the Wallet tab only has a button that opens the Spin & Win page.
+    const spinEntry = '<button type="button" class="rw-btn rw-spin-entry' + (sum.spunToday ? '' : ' is-pulse') + '" onclick="Rewards.setView(\'spin\')">🎡 Spin & Win</button>' +
+      '<div class="rw-note rw-spin-entry-note">' + spinNote + '</div>';
+
+    const storeCard = '<div class="rw-card rw-store-card">' +
+      '<div class="rw-store-head"><div><h3>🛍️ Twin Store <small>Spend Coins</small></h3><p>Unlock themes, profile frames, decor & games for two</p></div></div>' +
+      '<div class="rw-store-tabs">' + tabsHtml + '</div>' +
+      '<div class="rw-store-grid">' + (storeCardsHtml || '<div class="rw-empty">Nothing here yet.</div>') + '</div></div>';
+
+    const spinPage = '<div class="rw-sub"><button type="button" class="rw-back" onclick="Rewards.setView(\'wallet\')" aria-label="Back to Rewards">‹</button><h2>🎡 Spin & Win</h2></div>' +
+      heroCard +
+      '<div class="rw-card rw-interactive-card"><h3>🎡 Spin & Win <small>' + spinState + '</small></h3>' +
+        '<div class="rw-wheel-box"><div class="rw-wheel-pointer">▼</div>' +
+          '<canvas id="rwWheelCanvas" width="320" height="320" class="rw-wheel-canvas"></canvas></div>' +
         '<div class="rw-spin-actions">' +
           '<button type="button" class="rw-btn ' + (sum.spunToday ? 'is-done' : 'is-pulse') + '" id="rwSpinBtn" ' + spinDisabled + ' onclick="Rewards.spin()">' + spinBtnLabel + '</button>' +
-          '<div class="rw-note">' + (sum.spunToday ? 'Come back tomorrow for your next free spin.' : 'Spin the wheel to win up to 100 Gold Coins!') + '</div>' +
-        '</div>' +
-      '</div>' +
+          '<div class="rw-note">' + spinNote + '</div></div></div>';
 
-      // 3. Lucky Scratch Card
-      '<div class="rw-card rw-interactive-card"><h3>🎫 Lucky Couple Scratch <small>' + (sum.scratchedToday ? 'Scratched today' : '1 Card ready') + '</small></h3>' +
-        '<div class="rw-scratch-box">' +
-          '<div class="rw-scratch-under" id="rwScratchPrize">' +
-            '<div class="rw-sc-emoji">💖</div>' +
-            '<div class="rw-sc-title">' + (sum.scratchedToday ? 'Daily Fortune Claimed' : 'Romantic Surprise') + '</div>' +
-            '<div class="rw-sc-coins">+' + (scratchResult?.coins || '15–100') + ' Gold Coins 🪙</div>' +
-            '<div class="rw-sc-msg">' + (scratchResult?.message || 'Scratch the card to reveal your lucky prize!') + '</div>' +
-          '</div>' +
-          '<canvas id="rwScratchCanvas" width="280" height="150" class="rw-scratch-canvas" style="' + scratchCoverStyle + '"></canvas>' +
-        '</div>' +
-        '<div class="rw-scratch-actions">' +
-          scratchRevealBtn +
-          '<div class="rw-note">' + (sum.scratchedToday ? 'You claimed your daily card. Next card tomorrow!' : 'Scratch the gold card above or tap Reveal Prize.') + '</div>' +
-        '</div>' +
-      '</div>' +
+    const tabs = '<div class="rw-seg" role="tablist">' +
+      '<button type="button" role="tab" class="' + (view === 'wallet' ? 'is-active' : '') + '" onclick="Rewards.setView(\'wallet\')">Wallet</button>' +
+      '<button type="button" role="tab" class="' + (view === 'store' ? 'is-active' : '') + '" onclick="Rewards.setView(\'store\')">Twin Store</button></div>';
 
-      // 4. Twin Store
-      '<div class="rw-card rw-store-card">' +
-        '<div class="rw-store-head">' +
-          '<div><h3>🛍️ Twin Store <small>Spend Coins</small></h3><p>Unlock themes, profile frames, decor & games for two</p></div>' +
-        '</div>' +
-        '<div class="rw-store-tabs">' + tabsHtml + '</div>' +
-        '<div class="rw-store-grid">' + storeCardsHtml + '</div>' +
-      '</div>' +
+    let inner;
+    if (view === 'spin') inner = spinPage;
+    else if (view === 'store') inner = tabs + heroCard + storeCard;
+    else inner = tabs + heroCard + checkInCard + scratchCard + streakCard + spinEntry;
 
-      // 5. Couple Streak
-      '<div class="rw-card"><h3>Couple streak</h3><div class="rw-couple">' + FLAME +
-        '<div><div class="rw-couple-n">' + sum.coupleStreak + '</div><div class="rw-couple-l">days you both checked in</div></div>' +
-        '<div class="rw-pills"><span class="rw-pill' + (sum.checkedInToday ? ' is-on' : '') + '">You ' + (sum.checkedInToday ? '✓' : '·') + '</span>' +
-        '<span class="rw-pill' + (sum.partnerCheckedInToday ? ' is-on' : '') + '">' + partner + ' ' + (sum.partnerCheckedInToday ? '✓' : '·') + '</span></div></div>' +
-        '<div class="rw-note" style="margin-top:10px">' + coupleMsg + '</div></div>' +
-
-      // 6. Coin History
-      '<div class="rw-card"><h3>Coin history</h3>' + history + '</div></div>';
+    host.innerHTML = '<div class="rw rw-page"><div class="rw-head"><div><h2>Twin Rewards</h2><p>Play together. Earn together. Celebrate together.</p></div></div>' + inner + '</div>';
 
     requestAnimationFrame(() => {
       const wCanvas = $('rwWheelCanvas');
@@ -625,6 +614,14 @@ const Rewards = (() => {
       const sCanvas = $('rwScratchCanvas');
       if (sCanvas && !sum?.scratchedToday) initScratchCanvas(sCanvas);
     });
+  }
+
+  function setView(v) {
+    view = (v === 'store' || v === 'spin') ? v : 'wallet';
+    if (isSpinning) return;
+    renderPage();
+    const pg = $('page-rewards'); if (pg && pg.scrollTo) pg.scrollTo(0, 0);
+    if (window.scrollTo) window.scrollTo(0, 0);
   }
 
   function render() { renderStrip(); renderPage(); }
@@ -639,7 +636,7 @@ const Rewards = (() => {
     if (typeof orig === 'function' && !orig.__rw) {
       const wrapped = function (page) {
         const r = orig.apply(this, arguments);
-        if (page === 'rewards') { renderPage(); load(true); }
+        if (page === 'rewards') { view = 'wallet'; renderPage(); load(true); }
         else if (page === 'dashboard') { ensureStrip(); load(false); }
         return r;
       };
@@ -657,6 +654,6 @@ const Rewards = (() => {
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
-  return { load, claim, render, loadGifts, sendGift, spin, scratch, revealScratch, buyItem, equipItem, setStoreFilter };
+  return { load, claim, render, loadGifts, sendGift, spin, scratch, revealScratch, buyItem, equipItem, setStoreFilter, setView };
 })();
 window.Rewards = Rewards;

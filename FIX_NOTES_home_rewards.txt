@@ -1,0 +1,16 @@
+TWIN HEARTS WEB - HOME + REWARDS (overlay zip)
+Unzip over the repo root (replace). Files: public/index.html, rewards.js, rewards.css, desktop-layout.css.
+
+HOME
+- "Stay Connected" title removed.
+- Rewards card now sits above the Stay-connected card.
+- Laptop (>=1280px): row 1 = Rewards | Coming up (same height, matching headings), row 2 = Stay-connected card | Mood (same height).
+- Phone/tablet: one column - Rewards, card, Coming up, Mood.
+
+REWARDS PAGE (same structure as the Android app)
+- One centred column (max 720px).
+- Tabs: Wallet | Twin Store.
+- Wallet: coins, daily check-in, lucky scratch, couple streak, and a "Spin & Win" button.
+- Spin & Win is its own sub-page (back button, coin balance above the wheel).
+- Twin Store is its own tab.
+- Coin history removed (as on Android).

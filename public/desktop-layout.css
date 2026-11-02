@@ -122,3 +122,33 @@
 @media (min-width: 1024px) and (max-width: 1279px) {
   .dw-events { grid-auto-columns: calc((100% - 20px) / 3); }
 }
+
+
+/* ══════════════════════════════════════════════════════════════
+   HOME (laptop ≥1280px): two equal columns, two aligned rows
+     row 1:  Rewards card        | Coming up
+     row 2:  Stay-connected card | Mood
+   Phones / tablets keep one column in the same order (Rewards, card, Coming up, Mood).
+   ══════════════════════════════════════════════════════════════ */
+@media (min-width: 1280px) {
+  #page-dashboard .dh-sheet {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    column-gap: 32px !important; row-gap: 26px !important;
+    align-items: stretch !important;
+  }
+  #page-dashboard #rwStrip { grid-column: 1; grid-row: 1; margin: 0 !important; display: flex; flex-direction: column; }
+  #page-dashboard .dh-card { grid-column: 1 !important; grid-row: 2 !important; aspect-ratio: auto !important; height: auto; min-height: clamp(300px, 24vw, 430px); }
+  #page-dashboard .dh-side { display: contents !important; }
+  #page-dashboard .dh-side > .dw-block { margin: 0 !important; min-width: 0; }
+  #page-dashboard .dh-side > .dw-block:nth-child(1) { grid-column: 2; grid-row: 1; display: flex; flex-direction: column; }
+  #page-dashboard .dh-side > .dw-block:nth-child(2) { grid-column: 2; grid-row: 2; display: flex; }
+  #page-dashboard .dh-side > .dw-block:nth-child(2) .dw-mood { flex: 1; display: flex; flex-direction: column; }
+  #page-dashboard .dh-side > .dw-block:nth-child(2) .dw-graph { flex: 1 1 auto; height: auto !important; min-height: 72px; }
+
+  /* matching headings + same card height in row 1 */
+  #page-dashboard .rw-strip-head { display: flex; }
+  #page-dashboard #rwStrip .rw-strip { flex: 1; min-height: 62px; }
+  #page-dashboard .dw-events { padding: 0 !important; flex: 1; align-items: stretch; }
+  #page-dashboard .dw-ev { height: auto !important; min-height: 62px; }
+  #page-dashboard .dh-sheet > .dw-allpages, #page-dashboard .dh-sheet > .dw-quote { grid-column: 1 / -1; }
+}

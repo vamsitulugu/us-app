@@ -80,10 +80,24 @@
 @media (prefers-reduced-motion: reduce) { .rw-btn.is-pulse, .rw-skel, .rw-pop { animation: none; } }
 
 @media (min-width: 700px) { .rw-bal { font-size: 46px; } .rw-day { padding: 14px 0 12px; font-size: 12px; } .rw-day b { font-size: 17px; } }
-@media (min-width: 1024px) {
-  .rw-page { grid-template-columns: 1.2fr 1fr; align-items: start; gap: 18px; max-width: 1100px; margin: 0 auto; }
-  .rw-head, .rw-hero { grid-column: 1 / -1; }
-}
+/* Same as the Android app: ONE centred column (max 720px), Wallet / Twin Store tabs and a separate Spin & Win page. */
+.rw-page { max-width: 720px; margin: 0 auto; }
+.rw-strip-head { display: none; }
+
+/* Wallet / Twin Store tabs */
+.rw-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 999px;
+  background: var(--g1, rgba(255,255,255,.06)); border: 1px solid var(--border, rgba(255,255,255,.12)); }
+.rw-seg button { appearance: none; border: 0; cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; min-height: 40px;
+  border-radius: 999px; background: transparent; color: var(--text2); transition: background .15s, color .15s; }
+.rw-seg button.is-active { background: linear-gradient(180deg, var(--rw-gold), var(--rw-gold-d)); color: #3a2400; }
+
+/* Spin & Win sub-page header */
+.rw-sub { display: flex; align-items: center; gap: 10px; }
+.rw-sub h2 { margin: 0; font-size: 22px; font-weight: 800; color: var(--white, #fff); }
+.rw-back { appearance: none; cursor: pointer; width: 40px; height: 40px; border-radius: 50%; font-size: 26px; line-height: 1; padding: 0 0 3px;
+  color: var(--white, #fff); background: var(--g2, rgba(255,255,255,.08)); border: 1px solid var(--border2, rgba(255,255,255,.18)); }
+.rw-spin-entry { width: 100%; min-height: 48px; font-size: 15px; font-weight: 800; }
+.rw-spin-entry-note { margin-top: -6px; }
 
 /* ══════════════════════════════════════════════════════════════
    STEP 2 — GIFT SHOP (sheet inside chat) + paid gift bubbles
@@ -149,9 +163,9 @@
 .rw-interactive-card { text-align: center; }
 
 /* Spin Wheel */
-.rw-wheel-box { position: relative; width: 280px; height: 280px; margin: 10px auto 14px; }
+.rw-wheel-box { position: relative; width: min(320px, 100%); aspect-ratio: 1; margin: 14px auto 16px; }
 .rw-wheel-pointer { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); font-size: 24px; color: #FFF; z-index: 10; text-shadow: 0 2px 6px rgba(0,0,0,.7); }
-.rw-wheel-canvas { width: 280px; height: 280px; border-radius: 50%; display: block; filter: drop-shadow(0 6px 16px rgba(245,184,61,.3)); }
+.rw-wheel-canvas { width: 100%; height: 100%; border-radius: 50%; display: block; filter: drop-shadow(0 6px 16px rgba(245,184,61,.3)); }
 .rw-spin-actions { display: grid; gap: 8px; justify-items: center; }
 .rw-spin-actions .rw-btn { min-width: 180px; }
 
