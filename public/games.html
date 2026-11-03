@@ -1168,7 +1168,16 @@ const Hub = {
 };
 
 /* theme sync from parent shell */
-window.addEventListener('message', e=>{ if(e.data?.type==='theme'){ const r=document.documentElement; Object.entries(e.data.vars||{}).forEach(([k,v])=>{ if(v) r.style.setProperty(k,v); }); } });
+window.addEventListener('message', e=>{
+  if(e.data?.type==='twinPack'){
+    const p=e.data.pack;
+    for(let i=TOD_CATS.length-1;i>=0;i--){ if(TOD_CATS[i][0]==='twinpack') TOD_CATS.splice(i,1); }
+    delete TOD_DATA.twinpack; try{ if(TOD.category==='twinpack') TOD.category='romantic'; }catch(_){}
+    if(p&&Array.isArray(p.truths)&&Array.isArray(p.dares)){ TOD_DATA.twinpack={truths:p.truths,dares:p.dares}; TOD_CATS.push(['twinpack',(p.emoji||'🎴')+' '+p.name]); }
+    try{ if(TOD.state && document.querySelector('.tod-cat-row')) TOD.render && TOD.render(); }catch(_){}
+    return;
+  }
+  if(e.data?.type==='theme'){ const r=document.documentElement; Object.entries(e.data.vars||{}).forEach(([k,v])=>{ if(v) r.style.setProperty(k,v); }); } });
 
 /* ═══════════════════════════════════════════════════════
    GAME 1 — TIC TAC TOE

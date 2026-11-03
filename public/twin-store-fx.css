@@ -1,0 +1,56 @@
+/* TWIN STORE EFFECTS - themes (chat), frames, cozy corner decor */
+
+/* ── CHAT THEME: scoped to the chat page so the rest of the app keeps its colours ── */
+html[data-twin-theme] #page-chat{
+  --accent:var(--tw-me1); --accent-d:var(--tw-me2); --accent-l:var(--tw-accent);
+  --accent-glow:color-mix(in srgb,var(--tw-me1) 38%,transparent);
+  --white:var(--tw-text); --text:var(--tw-text); --text2:var(--tw-text2); --text3:var(--tw-text3);
+  --g1:var(--tw-g1); --g2:var(--tw-partner); --border:var(--tw-border);
+  color:var(--tw-text);
+}
+/* background (a wallpaper the user picked still wins: it is set inline) */
+html[data-twin-theme] #page-chat .chat-wallpaper-layer{ background-image:linear-gradient(160deg,var(--tw-bg1),var(--tw-bg2)); }
+html[data-twin-theme] #page-chat .msg-row.me .bubble{ background:linear-gradient(135deg,var(--tw-me1),var(--tw-me2)); color:#fff; }
+html[data-twin-theme] #page-chat .msg-row.them .bubble{ background:var(--tw-partner); color:var(--tw-text); border-color:var(--tw-border); backdrop-filter:none; }
+html[data-twin-theme] #page-chat #chatSendBtn{ background:linear-gradient(135deg,var(--tw-me1),var(--tw-me2)); color:#fff; }
+html[data-twin-theme] #page-chat .reaction-pill.mine{ border-color:var(--tw-accent); }
+
+/* ── PROFILE FRAMES (rings around .avatar-component and the home avatar) ── */
+[data-twin-frame]{ --twf:#F5B83D; }
+[data-twin-frame="frame_gold_heart"]{ box-shadow:0 0 0 2px #fff3c4,0 0 0 4px #F5B83D,0 0 14px 3px rgba(245,184,61,.65) !important; }
+[data-twin-frame="frame_neon_pulse"]{ box-shadow:0 0 0 2px #A855F7,0 0 10px 2px #A855F7,0 0 22px 4px rgba(168,85,247,.55) !important; animation:twNeon 1.8s ease-in-out infinite; }
+[data-twin-frame="frame_royal_crown"]{ box-shadow:0 0 0 2px #EAB308,0 0 0 4px #7c3aed,0 0 16px 3px rgba(234,179,8,.6) !important; }
+[data-twin-frame="frame_sparkle_ring"]{ box-shadow:0 0 0 2px #E0F2FE,0 0 0 4px #38BDF8,0 0 16px 3px rgba(56,189,248,.65) !important; animation:twSpark 2.4s ease-in-out infinite; }
+[data-twin-frame="frame_gold_heart"]::after{ content:"💛"; }
+[data-twin-frame="frame_neon_pulse"]::after{ content:"⚡"; }
+[data-twin-frame="frame_royal_crown"]::after{ content:"👑"; }
+[data-twin-frame="frame_sparkle_ring"]::after{ content:"✨"; }
+[data-twin-frame]::after{ position:absolute; left:50%; bottom:-1px; transform:translateX(-50%); font-size:max(10px,34%); line-height:1; pointer-events:none; filter:drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
+@keyframes twNeon{ 0%,100%{ filter:brightness(1) } 50%{ filter:brightness(1.35) } }
+@keyframes twSpark{ 0%,100%{ filter:saturate(1) } 50%{ filter:saturate(1.5) brightness(1.15) } }
+
+/* ── COZY CORNER (virtual home decor) ── */
+.tw-cozy{ position:relative; display:flex; align-items:center; gap:14px; margin:12px 16px; padding:14px 16px; border-radius:18px; overflow:hidden;
+  background:linear-gradient(135deg,rgba(38,5,25,.92),rgba(107,9,58,.55)); border:1px solid rgba(255,255,255,.12); color:#fff; }
+.tw-cozy-scene{ position:relative; flex:0 0 96px; height:64px; display:flex; align-items:flex-end; justify-content:center; }
+.tw-cozy-txt{ display:flex; flex-direction:column; gap:2px; min-width:0 }
+.tw-cozy-txt b{ font-size:14px } .tw-cozy-txt span{ font-size:12px; opacity:.75; line-height:1.35 }
+/* fairy lights */
+.tw-lights{ position:absolute; inset:0; }
+.tw-lights i{ position:absolute; top:calc(8px + (var(--i) % 2) * 10px); left:calc(var(--i) * 7%); width:6px; height:6px; border-radius:50%; background:#FEF08A; box-shadow:0 0 8px 2px rgba(254,240,138,.8); animation:twTwinkle 1.6s ease-in-out infinite; animation-delay:calc(var(--i) * .17s); }
+.tw-lights::before{ content:""; position:absolute; left:0; right:0; top:10px; height:14px; border-bottom:1.5px solid rgba(254,240,138,.45); border-radius:0 0 50% 50%; }
+@keyframes twTwinkle{ 0%,100%{ opacity:.35; transform:scale(.8) } 50%{ opacity:1; transform:scale(1.15) } }
+/* fireplace */
+.tw-fire{ position:relative; width:64px; height:56px; border-radius:8px 8px 4px 4px; background:#2a1209; border:2px solid #6b3a1e; display:flex; align-items:flex-end; justify-content:center; }
+.tw-fl{ position:absolute; bottom:8px; width:16px; height:26px; border-radius:50% 50% 50% 50%/70% 70% 30% 30%; background:linear-gradient(#FDE047,#EA580C); transform-origin:50% 100%; animation:twFlame .9s ease-in-out infinite; filter:drop-shadow(0 0 6px #EA580C); }
+.tw-fl.f1{ left:12px; animation-delay:.1s } .tw-fl.f2{ left:24px; height:34px; animation-delay:.3s } .tw-fl.f3{ left:36px; animation-delay:.5s }
+.tw-logs{ position:absolute; bottom:0; left:8px; right:8px; height:7px; border-radius:4px; background:#5b3418; }
+@keyframes twFlame{ 0%,100%{ transform:scale(1,1) rotate(-2deg) } 50%{ transform:scale(.9,1.15) rotate(3deg) } }
+/* plant */
+.tw-plant{ position:relative; font-size:46px; line-height:1 } .tw-plant b{ position:absolute; font-size:13px; opacity:0; animation:twBloom 3s ease-in-out infinite }
+.tw-plant .h1{ left:-6px; top:2px } .tw-plant .h2{ right:-8px; top:14px; animation-delay:1s } .tw-plant .h3{ left:12px; top:-8px; animation-delay:2s }
+@keyframes twBloom{ 0%{ opacity:0; transform:translateY(6px) scale(.5) } 40%{ opacity:1; transform:none } 100%{ opacity:0; transform:translateY(-8px) scale(1.1) } }
+/* teddy */
+.tw-teddy{ font-size:52px; line-height:1; animation:twTeddy 3s ease-in-out infinite; transform-origin:50% 100% }
+@keyframes twTeddy{ 0%,100%{ transform:rotate(-3deg) } 50%{ transform:rotate(3deg) translateY(-2px) } }
+@media (prefers-reduced-motion:reduce){ .tw-cozy *, [data-twin-frame]{ animation:none !important } }

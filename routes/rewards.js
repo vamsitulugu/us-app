@@ -146,6 +146,24 @@ const DEFAULT_STORE_ITEMS = [
     description: 'Enchanting mystic green & aurora borealis glow',
     previewColor: 'linear-gradient(135deg, #064e3b, #10b981)',
   },
+  {
+    id: 'theme_lavender',
+    name: 'Lavender Dream',
+    category: 'theme',
+    price: 100,
+    emoji: '💜',
+    description: 'Calm light lavender with soft violet bubbles',
+    previewColor: 'linear-gradient(135deg, #8E6CF0, #B07CF5)',
+  },
+  {
+    id: 'theme_cotton',
+    name: 'Cotton Candy',
+    category: 'theme',
+    price: 100,
+    emoji: '🍬',
+    description: 'Playful pastel pink, peach and sky blue',
+    previewColor: 'linear-gradient(135deg, #FF8FA8, #FFB38A)',
+  },
 
   // ── Profile Frames ── (80–120 coins)
   {
@@ -444,6 +462,7 @@ async function buildSummary(user, coupleId, today = istDay(0)) {
     wheelSlices: slices,
     unlockedItemIds,
     equipped: equippedMap,
+    partnerFrame: ((equipped.data || []).find(eq => eq.category === 'frame' && eq.user_id && eq.user_id !== user.id) || {}).item_id || '',
     today,
   };
 }
@@ -902,7 +921,8 @@ router.get('/store', async (req, res) => {
     for (const eq of (equipped.data || [])) {
       if (!eq.user_id || eq.user_id === user.id) equippedMap[eq.category] = eq.item_id;
     }
-    res.json({ balance, items, unlockedItemIds, equipped: equippedMap });
+    const partnerFrame = ((equipped.data || []).find(eq => eq.category === 'frame' && eq.user_id && eq.user_id !== user.id) || {}).item_id || '';
+    res.json({ balance, items, unlockedItemIds, equipped: equippedMap, partnerFrame });
   } catch (e) {
     console.error('[rewards] store failed:', e.message);
     res.status(500).json({ error: 'Could not load Twin Store. Please try again.' });

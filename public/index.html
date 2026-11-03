@@ -4877,6 +4877,7 @@ select option { background: #270719; color: #fff; }
   <link rel="stylesheet" href="/highlights.css">
   <link rel="stylesheet" href="/level.css">
   <link rel="stylesheet" href="/rewards.css?v=3">
+  <link rel="stylesheet" href="/twin-store-fx.css?v=1">
   <link rel="stylesheet" href="/twin-page.css">
 <link rel="stylesheet" href="/theme-tokens.css?v=5">
 <link rel="stylesheet" href="/theme-light-v2.css?v=4">
@@ -13532,7 +13533,9 @@ document.addEventListener('keydown', e => {
                '--accent2','--accent2-d','--accent2-glow'].forEach(v => {
                 vars[v] = root.getPropertyValue(v).trim();
               });
-              frame.contentWindow.postMessage({ type: 'theme', vars }, '*');
+              // Twin Store: an equipped chat/music theme overrides the accent for the music page
+              const tw = (frameId === 'musicFrame' && window.TwinStoreFx) ? TwinStoreFx.frameVars() : null;
+              frame.contentWindow.postMessage(tw ? { type: 'theme', vars: tw } : { type: 'theme', vars }, '*');
             } catch(e) {}
           };
           if (frame.contentDocument && frame.contentDocument.readyState === 'complete') doIt();
@@ -13880,7 +13883,8 @@ init();
 <script src="/dashboard.js?v=2"></script>
 <script src="/gender-access.js"></script>
 <script src="/dashboard-widgets.js?v=4"></script>
-<script src="/rewards.js?v=4"></script>
+<script src="/twin-store-fx.js?v=1"></script>
+<script src="/rewards.js?v=5"></script>
 <script src="/app-polish.js"></script>
 
 <!-- Live Map redesign layer (additive UI only — see livemap-redesign.css) -->

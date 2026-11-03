@@ -60,6 +60,7 @@ const Rewards = (() => {
         storeItems = st.items || [];
         unlockedIds = new Set(st.unlockedItemIds || []);
         equippedItems = st.equipped || {};
+        if (window.TwinStoreFx) TwinStoreFx.update(equippedItems, st.partnerFrame);
       }
     } catch (e) { if (e.message !== 'not-ready') failed = true; }
     loading = false; render();
@@ -435,6 +436,7 @@ const Rewards = (() => {
       render();
       if (typeof toast === 'function') toast('✓ ' + (itemId ? 'Equipped!' : 'Unequipped!'));
       applyTheme(res.itemId);
+      if (window.TwinStoreFx) TwinStoreFx.update(Object.assign({}, equippedItems), (sum && sum.partnerFrame) || '');
     } catch (e) {
       if (typeof toast === 'function') toast(e.message || 'Could not equip item.');
     }

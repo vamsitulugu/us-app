@@ -181,6 +181,7 @@
     const profile = ProfileStore.get(owner);
     const size = opts.size || 40;
     el.classList.add('avatar-component');
+    try { const f = window.TwinStoreFx ? TwinStoreFx.frameFor(owner) : ''; if (f) el.setAttribute('data-twin-frame', f); else el.removeAttribute('data-twin-frame'); } catch (_) {}
     el.style.width = el.style.height = size + 'px';
     el.style.borderRadius = '50%';
     el.style.position = 'relative';

@@ -47,6 +47,7 @@
     if (e.source !== window.parent) return;
     const d = e.data; if (!d || d.type !== 'theme' || !d.vars) return;
     const r = document.documentElement;
+    (d.reset || []).forEach(k => { if (/^--[a-z0-9-]+$/i.test(k)) r.style.removeProperty(k); });
     Object.entries(d.vars).forEach(([k, v]) => { if (/^--[a-z0-9-]+$/i.test(k) && typeof v === 'string' && v.length < 120) r.style.setProperty(k, v); });
   });
 
