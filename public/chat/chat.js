@@ -41,8 +41,21 @@ const Chat = (function () {
 
   function coupleId() { return window.S && window.S.coupleId; }
   function myRole() { return window.S && window.S.role; }
+  function partnerRole() { return myRole() === 'user1' ? 'user2' : 'user1'; }
+  // how many reactions my partner has put on one message (to hear only *their* new reactions)
+  function partnerReactionCount(rx) { return Object.values(rx || {}).filter(roles => (roles || []).includes(partnerRole())).length; }
   function otherRole() { return myRole() === 'user1' ? 'user2' : 'user1'; }
   function isMine(m) { return m.sender_role === myRole(); }
+  // Sound cue by name (see public/twin-sounds.js). Never throws, silent when sounds are off.
+  function snd(name) { try { if (window.playAppSound) window.playAppSound(name); } catch (e) {} }
+  const HEART_EMOJI = ['🤗','🫂','😘','😙','😚','💋','😍','🥰','❤️','💕','💖','💗','💝','💞'];
+  // The sound for one incoming message from my partner (gift/hug/kiss = heart chime, everything else = bloop).
+  function incomingSound(r) {
+    const em = r && r.media_meta && r.media_meta.emoji;
+    if (r && r.type === 'gift') return 'chat.gift.received';
+    if (r && r.type === 'sticker' && HEART_EMOJI.includes(em)) return 'chat.heart';
+    return 'chat.message.received';
+  }
 
   // ─── PRESENCE ───────────────────────────────────────
   let _presenceListenersAttached = false; // guards against duplicate listeners if startPresence() is ever called more than once
@@ -225,10 +238,12 @@ function reanchorAfterImages() {
     const rows = await api('GET', '/api/chat/' + coupleId() + q);
     if (rows && rows.length) {
       let newEffect = null;   // Twin Rewards: a partner's gift (or any send effect) that just arrived by polling
+      let newInSound = null;  // sound for the newest brand-new message from my partner
       rows.forEach(r => {
         const idx = msgs.findIndex(m => m.id === r.id || (r.client_id && m.client_id === r.client_id));
-        if (idx > -1) msgs[idx] = r; else { msgs.push(r); if (!isMine(r) && r.effect) newEffect = r.effect; }
+        if (idx > -1) msgs[idx] = r; else { msgs.push(r); if (!isMine(r)) { newInSound = incomingSound(r); if (r.effect) newEffect = r.effect; } }
       });
+      if (newInSound && !isMuted() && !isDndActive()) snd(newInSound);
       lastMsgTs = rows[rows.length - 1].created_at;
       if (newEffect) playSendEffect(newEffect);
       render();
@@ -1031,8 +1046,10 @@ function reanchorAfterImages() {
     if (effectToPlay) playSendEffect(effectToPlay);
     if (window.playAppSound) {
       const soundByType = { gif: 'chat.gif.sent', image: 'chat.image.sent', file: 'chat.file.sent',
-        sticker: 'chat.sticker.sent', voice: 'chat.voice.sent' };
-      window.playAppSound(soundByType[payload.type] || 'chat.message.sent');
+        video: 'chat.image.sent', sticker: 'chat.sticker.sent', voice: 'chat.voice.sent' };
+      const em = payload.mediaMeta && payload.mediaMeta.emoji;
+      window.playAppSound(payload.type === 'sticker' && HEART_EMOJI.includes(em) ? 'chat.heart'
+        : (soundByType[payload.type] || 'chat.message.sent'));
     }
     try {
       const saved = await api('POST', '/api/chat', { coupleId: coupleId(), clientId, senderRole: myRole(), ...payload });
@@ -1074,6 +1091,7 @@ function reanchorAfterImages() {
       } else {
         if (idx > -1) msgs[idx]._failed = true;
         render();
+        snd('chat.failed');
         toast('Send failed — tap to retry');
       }
     }
@@ -1791,7 +1809,7 @@ function reanchorAfterImages() {
         render(); scrollToBottom(true);
       }
       playSendEffect(g.effect);
-      if (window.playAppSound) window.playAppSound('chat.sticker.sent');
+      snd('chat.gift.sent');
       toast(g.emoji + ' ' + g.name + ' sent to ' + gsPartner() + ' · −' + g.price + ' 🪙');
     } catch (e) {
       gsBusy = false;
@@ -1867,6 +1885,7 @@ function reanchorAfterImages() {
       }
     };
     mediaRecorder.start();
+    snd('chat.voice.start');
     recording = true; recStart = Date.now();
     document.getElementById('chatRecTimer').style.display = 'inline';
     document.getElementById('chatStopRecBtn').style.display = 'flex';
@@ -1887,10 +1906,12 @@ function reanchorAfterImages() {
     document.getElementById('chatMoreBtn').style.display = 'flex';
     document.getElementById('chatSendBtn').style.display = 'flex';
     if (mediaRecorder) mediaRecorder.stop();
+    if (!recCancelled) snd('chat.voice.stop'); // played after the recorder stopped, so it never lands in the voice note
   }
   function cancelRecording() {
     recCancelled = true;
     stopRecording();
+    snd('chat.voice.cancel');
     toast('Recording discarded');
   }
   // Dedicated voice-message upload — separate from uploadChatMedia()
@@ -2058,6 +2079,7 @@ function menuItemsHtml(m, id, includeSelect) {
       const data = await api('POST', '/api/chat/' + id + '/react', { coupleId: coupleId(), role: myRole(), emoji });
       const idx = msgs.findIndex(m => m.id === id); if (idx > -1) msgs[idx] = data;
       render();
+      if (((data && data.reactions && data.reactions[emoji]) || []).includes(myRole())) snd('chat.reaction'); // only when added, not removed
     } catch (e) {}
   }
   function replyTo(id) {
@@ -2117,6 +2139,7 @@ function menuItemsHtml(m, id, includeSelect) {
       const data = await api('POST', '/api/chat/' + id + '/pin', { coupleId: coupleId(), pinned: !m.pinned });
       const idx = msgs.findIndex(x => x.id === id); if (idx > -1) msgs[idx] = data;
       render();
+      if (!silent && data && data.pinned) snd('chat.pin');
     } catch (e) {}
   }
   async function toggleStar(id, silent) {
@@ -2125,6 +2148,7 @@ function menuItemsHtml(m, id, includeSelect) {
       const data = await api('POST', '/api/chat/' + id + '/star', { coupleId: coupleId(), role: myRole() });
       const idx = msgs.findIndex(x => x.id === id); if (idx > -1) msgs[idx] = data;
       render();
+      if (!silent && data && (data.starred_by || []).includes(myRole())) snd('chat.star');
       if (!silent) toast('Updated ⭐');
     } catch (e) {}
   }
@@ -2185,6 +2209,7 @@ function menuItemsHtml(m, id, includeSelect) {
       if (mode === 'everyone') { const idx = msgs.findIndex(x => x.id == id); if (idx > -1) { msgs[idx].deleted = true; } }
       else { const idx = msgs.findIndex(x => x.id == id); if (idx > -1) { msgs[idx].deleted_for = (msgs[idx].deleted_for || '') + ',' + myRole(); } }
       render();
+      snd('chat.delete');
     } finally { deletingIds.delete(id); }
   }
   // Menu-driven single delete — shows the shared confirm sheet first, wording
@@ -3005,7 +3030,12 @@ function menuItemsHtml(m, id, includeSelect) {
           if (!r) return;
           const idx = msgs.findIndex(m => m.id === r.id || (r.client_id && m.client_id === r.client_id));
           const isNewIncoming = idx === -1 && !isMine(r);
+          const rxBefore = idx > -1 ? partnerReactionCount(msgs[idx].reactions) : null;
           if (idx > -1) msgs[idx] = r; else msgs.push(r);
+          if (!isMuted() && !isDndActive()) {
+            if (isNewIncoming) snd(incomingSound(r));
+            else if (rxBefore !== null && partnerReactionCount(r.reactions) > rxBefore) snd('chat.reaction');
+          }
           if (isNewIncoming && r.effect) playSendEffect(r.effect);
           // A late/out-of-order push can insert an older row after a newer
           // one — keep the working array sorted so render(), lastMsgTs, and

@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v65'; // bumped: Twin Rewards step 4 (Twin Store: themes, frames, decor, games)
+const CACHE = 'uwl-v66'; // bumped: chat + call sound effects (twin-sounds.js v2, chat.js)
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',

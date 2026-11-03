@@ -21,6 +21,27 @@
      TwinSound.unlock()        a pass / item unlocked
      TwinSound.purchase()      "ka-ching"
      TwinSound.error()         gentle "not now" thud
+
+   CHAT + CALL SOUNDS (v2) — one short, soft cue per action:
+     TwinSound.msgSent()       message sent            soft rising "pop"
+     TwinSound.msgReceived()   message received        two-note "bloop"
+     TwinSound.mediaSent()     photo / video / file    "swish" + pop
+     TwinSound.funSent()       sticker / GIF           playful two-note "boing"
+     TwinSound.voiceStart()    recording starts        rising blip
+     TwinSound.voiceStop()     recording stops/sent    falling blip
+     TwinSound.voiceCancel()   recording discarded     falling "bloop"
+     TwinSound.react()         reaction added          bright sparkle
+     TwinSound.heart()         gift / hug / kiss       warm heart chime
+     TwinSound.star()          message starred         two-note ding
+     TwinSound.pin()           message pinned          soft "tock"
+     TwinSound.deleted()       message deleted         downward whoosh
+     TwinSound.callConnected() call connected          3 rising notes
+     TwinSound.callEnded()     call ended              3 falling notes
+     TwinSound.switchOn() / switchOff()  mute, camera, speaker toggles
+     TwinSound.blip()          network reconnecting    tiny double blip
+
+   TwinSound.play('chat.message.sent')  → same thing by name, used by chat.js and call.js
+   (also available as window.playAppSound). Unknown names are ignored.
    ══════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -163,7 +184,57 @@
     tone('sine', 4186, 4186, 0.4, 0.06, 0.15, 0.003);
   }
 
+  /* ── chat ── */
+  function msgSent() { tone('sine', 520, 760, 0.09, 0.2, 0, 0.004); }
+  function msgReceived() { tone('sine', 880, 880, 0.12, 0.18, 0, 0.004); tone('sine', 1175, 1175, 0.2, 0.16, 0.09, 0.004); }
+  function mediaSent() { burst(0.12, 0.13, 'bandpass', 900, 3200, 0.9); tone('sine', 520, 760, 0.09, 0.18, 0.07, 0.004); }
+  function funSent() { tone('sine', 600, 900, 0.09, 0.2, 0, 0.004); tone('sine', 900, 1300, 0.11, 0.18, 0.08, 0.004); }
+  function voiceStart() { tone('sine', 440, 660, 0.1, 0.2, 0, 0.004); }
+  function voiceStop() { tone('sine', 660, 440, 0.1, 0.2, 0, 0.004); }
+  function voiceCancel() { tone('sine', 400, 180, 0.16, 0.2, 0, 0.004); }
+  function react() { tone('triangle', 1568, 2093, 0.12, 0.18, 0, 0.004); tone('sine', 3136, 3136, 0.12, 0.05, 0.03, 0.004); }
+  function heart() { // gifts, hugs, kisses: warm, rounded, a little "lub-dub"
+    [523, 659, 784].forEach(function (f, i) { tone('sine', f, f, 0.5, 0.2, i * 0.11, 0.01); });
+    tone('sine', 1047, 1047, 0.55, 0.07, 0.24, 0.01);
+  }
+  function star() { tone('triangle', 1175, 1175, 0.14, 0.2, 0, 0.004); tone('triangle', 1568, 1568, 0.24, 0.2, 0.07, 0.004); }
+  function pin() { tone('sine', 700, 500, 0.06, 0.22, 0, 0.002); tone('sine', 500, 350, 0.09, 0.18, 0.05, 0.002); }
+  function deleted() { burst(0.14, 0.14, 'bandpass', 2400, 500, 0.9); }
+
+  /* ── calls ── */
+  function callConnected() { [659, 880, 1109].forEach(function (f, i) { tone('sine', f, f, 0.16, 0.18, i * 0.09, 0.006); }); }
+  function callEnded() { [880, 659, 440].forEach(function (f, i) { tone('sine', f, f, 0.18, 0.18, i * 0.1, 0.006); }); }
+  function switchOn() { tone('sine', 600, 850, 0.07, 0.18, 0, 0.004); }
+  function switchOff() { tone('sine', 850, 600, 0.07, 0.18, 0, 0.004); }
+  function blip() { tone('sine', 700, 700, 0.06, 0.14, 0, 0.004); tone('sine', 700, 700, 0.06, 0.14, 0.12, 0.004); }
+
+  // one name → one sound. chat.js / call.js call this by name; unknown names do nothing.
+  const SOUNDS = {
+    'chat.message.sent': msgSent, 'chat.message.received': msgReceived,
+    'chat.image.sent': mediaSent, 'chat.file.sent': mediaSent,
+    'chat.gif.sent': funSent, 'chat.sticker.sent': funSent,
+    'chat.voice.sent': msgSent, 'chat.voice.start': voiceStart, 'chat.voice.stop': voiceStop, 'chat.voice.cancel': voiceCancel,
+    'chat.reaction': react, 'chat.heart': heart, 'chat.gift.sent': heart, 'chat.gift.received': heart,
+    'chat.star': star, 'chat.pin': pin, 'chat.delete': deleted, 'chat.failed': error,
+    'call.outgoing': tap, 'call.connected': callConnected, 'call.video.connected': callConnected,
+    'call.ended': callEnded, 'call.failed': error, 'call.network.reconnect': blip,
+    'call.muted': switchOff, 'call.unmuted': switchOn, 'call.camera.off': switchOff, 'call.camera.on': switchOn,
+    'call.speaker.off': switchOff, 'call.speaker.on': switchOn
+  };
+  const lastPlayed = {};
+  function play(name) { // the same cue never fires twice within 120ms (bulk delete, double events)
+    const f = SOUNDS[name]; if (!f) return;
+    const now = performance.now(); if (lastPlayed[name] && now - lastPlayed[name] < 120) return; lastPlayed[name] = now;
+    try { f(); } catch (e) {}
+  }
+  // call.js / chat.js already use window.playAppSound — until now nothing defined it, so they were silent
+  if (!window.playAppSound) window.playAppSound = play;
+
   window.TwinSound = { enabled: enabled, setEnabled: setEnabled, toggle: toggle,
     coin: coin, coins: coins, tap: tap, error: error, spinStart: spinStart, tick: tick, spinEnd: spinEnd,
-    scratch: scratch, reveal: reveal, win: win, ad: ad, unlock: unlock, purchase: purchase };
+    scratch: scratch, reveal: reveal, win: win, ad: ad, unlock: unlock, purchase: purchase,
+    msgSent: msgSent, msgReceived: msgReceived, mediaSent: mediaSent, funSent: funSent,
+    voiceStart: voiceStart, voiceStop: voiceStop, voiceCancel: voiceCancel, react: react, heart: heart,
+    star: star, pin: pin, deleted: deleted, callConnected: callConnected, callEnded: callEnded,
+    switchOn: switchOn, switchOff: switchOff, blip: blip, play: play };
 })();
