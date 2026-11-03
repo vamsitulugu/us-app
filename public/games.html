@@ -538,6 +538,17 @@ button{font-family:inherit;cursor:pointer}
 .mr-hist-item .hi-q{color:#fff;font-weight:600;font-size:11.5px;margin-bottom:3px}
 .mr-hist-item .hi-a{display:flex;gap:10px;flex-wrap:wrap}
 .mr-fav-star{color:var(--gold);cursor:pointer}
+
+/* ═══ GAME INVITE / CHALLENGE ═══ */
+.greq-card{margin:12px 0;border-radius:20px;padding:16px;background:var(--g1);border:1px solid var(--border2);backdrop-filter:var(--blur)}
+.greq-title{font-size:13px;font-weight:800;color:#fff;margin-bottom:10px}
+.greq-game{color:var(--accent-l)}
+.greq-actions{display:flex;gap:10px}
+.greq-actions button{flex:1;padding:11px;border-radius:14px;font-weight:800;font-size:13px;border:none;cursor:pointer}
+.greq-accept{background:linear-gradient(135deg,var(--accent2),var(--accent2-d));color:#fff;box-shadow:0 6px 20px var(--accent2-glow)}
+.greq-decline{border:1px solid var(--border2);background:rgba(255,255,255,.08);color:#fff}
+.gchallenge{position:absolute;bottom:9px;right:9px;padding:7px 12px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--gold),#e08a00);color:#3a2600;font-weight:800;font-size:11.5px;cursor:pointer;box-shadow:0 4px 12px var(--gold-glow)}
+.gchallenge:active{transform:scale(.95)}
 </style>
   <link rel="stylesheet" href="/responsive-fix.css">
   <script src="/js/scroll-reset.js"></script>
@@ -776,23 +787,42 @@ class GameChannel {
     try{ const raw=localStorage.getItem('gm_local_'+this.chanName); if(raw) return JSON.parse(raw); }catch(e){}
     return null;
   }
-  async persist(state){
+    async persist(state){
+    // stamp OUR move so the other phone knows it's newer
+    if(state && typeof state==='object'){
+      if(state.rev===undefined) state.rev = 0;
+      state.rev = (state.rev||0)+1;
+      state.by  = ID.role;
+    }
     try{ localStorage.setItem('gm_local_'+this.chanName, JSON.stringify(state)); }catch(e){}
     if(sb){
       try{ await sb.from('games_shared').upsert({couple_id:ID.coupleId,game:this.gameKey,data:state,updated_at:new Date().toISOString()},{onConflict:'couple_id,game'}); }
-      catch(e){ /* table may not exist — silently keep local-only */ }
+      catch(e){ /* table may not exist — keep local-only */ }
     }
   }
   listen(onMsg){
     this._onMsg=onMsg;
     if(sb){
       this.channel = sb.channel(this.chanName, {config:{broadcast:{self:false}}});
-      this.channel.on('broadcast',{event:'ev'},(p)=>onMsg(p.payload));
+      this.channel.on('broadcast',{event:'ev'},(p)=>{ this._adopt(p.payload); });
       this.channel.subscribe();
     }
-    this._lsHandler = (e)=>{ if(e.key==='gm_bc_'+this.chanName && e.newValue){ try{ onMsg(JSON.parse(e.newValue).payload); }catch(er){} } };
+    this._lsHandler = (e)=>{ if(e.key==='gm_bc_'+this.chanName && e.newValue){ try{ this._adopt(JSON.parse(e.newValue).payload); }catch(er){} } };
     window.addEventListener('storage', this._lsHandler);
   }
+  _adopt(payload){
+    // Only take the remote state when it is a strictly newer move, or the same
+    // revision coming from the other side (their move that raced ours). This
+    // stops both phones from clobbering each other and both showing "your turn".
+    if(!payload || payload.type!=='sync' || !payload.state){ if(this._onMsg) this._onMsg(payload); return; }
+    const r = payload.state;
+    (async ()=>{
+      const l = await this.load();
+      const take = !l || (r.rev||0) > (l.rev||0) || ((r.rev||0)===(l.rev||0) && r.by!==l.by);
+      if(take){ this.state = r; if(this._onMsg) this._onMsg({type:'sync',state:r}); }
+    })();
+  }
+  close(){ if(this.channel && sb) sb.removeChannel(this.channel); if(this._lsHandler) window.removeEventListener('storage',this._lsHandler); }
   send(payload){
     if(this.channel){ try{ this.channel.send({type:'broadcast',event:'ev',payload}); }catch(e){} }
     try{ localStorage.setItem('gm_bc_'+this.chanName, JSON.stringify({t:Date.now(),payload})); }catch(e){}
@@ -816,6 +846,26 @@ function initPresence(){
 }
 function setPresenceGame(gid){ if(presenceChan) presenceChan.track({game:gid,ts:Date.now()}).catch(()=>{}); }
 
+/* Pending game invitation (Challenge → Accept). Stored in games_shared under the
+   reserved game key "_req", written by the inviter under their own role so both
+   phones read the same single invite. */
+function reqDoc(role){ return {from:role, game:null, ts:0}; }
+async function sendGameRequest(gid){
+  if(!sb) return;
+  const doc = {from:ID.role, game:gid, ts:Date.now()};
+  try{ await sb.from('games_shared').upsert({couple_id:ID.coupleId,game:'_req',data:doc,updated_at:new Date().toISOString()},{onConflict:'couple_id,game'}); }catch(e){}
+}
+async function clearGameRequest(){
+  if(!sb) return;
+  try{ await sb.from('games_shared').upsert({couple_id:ID.coupleId,game:'_req',data:null,updated_at:new Date().toISOString()},{onConflict:'couple_id,game'}); }catch(e){}
+}
+async function loadGameRequest(){
+  if(!sb) return null;
+  try{
+    const {data} = await sb.from('games_shared').select('data').eq('couple_id',ID.coupleId).eq('game','_req').maybeSingle();
+    return (data && data.data) ? data.data : null;
+  }catch(e){ return null; }
+}
 /* ═══════════════════════════════════════════════════════
    FACE-TO-FACE VIDEO — reuses existing /api/call/turn-creds
    and /api/call/signal endpoints (same tables/infra as chat
@@ -1096,6 +1146,13 @@ const Hub = {
         <div class="hub-sub">Play together, face to face, in real time 💕</div>
       </div>
       <div class="rank-row" id="rankRow"></div>
+            ${this.pendingRequest?`<div class="greq-card">
+        <div class="greq-title">${esc(ID.partnerName)} wants to play <span class="greq-game">#</span></div>
+        <div class="greq-actions">
+          <button class="greq-accept" onclick="Hub.acceptRequest()">Accept</button>
+          <button class="greq-decline" onclick="Hub.declineRequest()">Decline</button>
+        </div>
+      </div>`:''}
       <div class="hub-sec-title"><span>🎮 Games</span><div class="line"></div></div>
       <div class="games-grid" id="gamesGrid"></div>
     `;
@@ -1105,15 +1162,17 @@ const Hub = {
     const grid=document.getElementById('gamesGrid'); if(!grid) return;
     const favs=GameCore.me().favorites;
     grid.innerHTML = GAMES.map(g=>{
-      const hist=GameCore.me().history[g.id];
+            const hist=GameCore.me().history[g.id];
       const isFav = favs.includes(g.id);
       const live = partnerPresence.online && partnerPresence.game===g.id;
+      const challenged = (this.pendingRequest && this.pendingRequest.from!==ID.role && this.pendingRequest.game===g.id);
       return `<div class="gcard" onclick="Hub.openGame('${g.id}')">
         <div class="gcard-art has-img" style="background:${g.grad}">
           <img class="gcard-img" src="/images/games/${g.id}.webp" alt="${g.title}" loading="lazy" draggable="false" onerror="this.remove();this.parentNode&&this.parentNode.classList.remove('has-img')">
           <div class="gcard-badges">${g.badge==='new'?'<span class="gbadge new">New</span>':''}${g.badge==='trend'?'<span class="gbadge trend">🔥 Trending</span>':''}</div>
           <div class="gfav ${isFav?'on':''}" onclick="event.stopPropagation();Hub.toggleFav('${g.id}',this)">${isFav?'❤️':'🤍'}</div>
           ${live?`<div class="gcard-live"><span class="dot" style="width:5px;height:5px;border-radius:50%;background:#7cffcf;animation:blk 1.2s infinite"></span>${esc(ID.partnerName)} is playing</div>`:''}
+          ${partnerPresence.online && !challenged?`<button class="gchallenge" onclick="event.stopPropagation();Hub.challengeGame('${g.id}')">⬝ Challenge</button>`:''}
         </div>
         <div class="gcard-body">
           <div class="gcard-title">${g.title}</div>
@@ -1202,6 +1261,28 @@ const Hub = {
     ({tod:TOD, mindreader:MindReader, ludo:Ludo, ttt:TTT, draw:Draw, memory:Memory, bomb:Bomb, puzzle:Puzzle})[gid].open(body);
     GameVideo.startWatch(gid);
   },
+  pendingRequest:null,
+  async challengeGame(gid){
+    const g=GAMES.find(x=>x.id===gid); if(!g) return;
+    await sendGameRequest(gid);
+    this.pendingRequest = {from:ID.role, game:gid, ts:Date.now()};
+    this.render();
+    toast('Invitation sent to '+esc(ID.partnerName));
+  },
+  async acceptRequest(){
+    if(!this.pendingRequest) return;
+    const gid = this.pendingRequest.game;
+    await clearGameRequest();
+    this.pendingRequest = null;
+    this.render();
+    this.openGame(gid);
+  },
+  async declineRequest(){
+    await clearGameRequest();
+    this.pendingRequest = null;
+    this.render();
+    toast('Invitation declined');
+  },
   exitGame(){
     const gid=this.activeGameId;
     GameVideo.stop(true);
@@ -1211,7 +1292,9 @@ const Hub = {
     this.activeGameId=null;
     setPresenceGame(null);
     this.renderGameCards();
+    if(this.pendingRequest){ const g=GAMES.find(x=>x.id===this.pendingRequest.game); const el=document.querySelector('.greq-game'); if(el&&g) el.textContent=g.title; }
   }
+    
 };
 
 /* theme sync from parent shell */
@@ -3411,6 +3494,7 @@ window.closeTopOverlayIfOpen = closeTopOverlayIfOpen;
 
 
 Hub.init();
+
 </script>
 <script src="/twin-sounds.js?v=3"></script>
 <script src="/access-gate.js?v=1"></script>
@@ -3424,6 +3508,7 @@ Hub.init();
     else { _initLucideIcons(); }
     window.__refreshLucideIcons = _initLucideIcons;
   })();
+  
 </script>
 <script src="/ui-icons.js"></script>
 
