@@ -141,7 +141,10 @@ const Rewards = (() => {
         }
         hist = null;
         render();
-        countUp(newBal - coinsWon, newBal);
+        // The number stays where it was until the coins have flown into it.
+        document.querySelectorAll('[data-rw-bal]').forEach(el => { el.textContent = newBal - coinsWon; });
+        if (coinsWon > 0) coinBurst($('rwWheelCanvas'), Math.ceil(coinsWon / 6) + 6, () => countUp(newBal - coinsWon, newBal));
+        else countUp(newBal - coinsWon, newBal);
         if (typeof toast === 'function') toast(paid ? ('🎉 You won ' + coinsWon + ' Gold Coins (spin cost ' + price + ')') : ('🎉 You won ' + coinsWon + ' Gold Coins from Spin & Win!'));
         if (window.playAppSound) try { window.playAppSound('chat.sticker.sent'); } catch (_) {}
       });
@@ -388,9 +391,13 @@ const Rewards = (() => {
         canvas.style.display = 'none';
         const btn = $('rwScratchRevealBtn');
         if (btn) btn.style.display = 'none';
+        const box = canvas.closest('.rw-scratch-box');
+        if (box) box.classList.add('is-revealed');
         if (scratchResult && typeof toast === 'function') {
           toast('💖 ' + scratchResult.title + ' · +' + scratchResult.coins + ' Gold Coins 🪙');
-          countUp(sum.balance - scratchResult.coins, sum.balance);
+          const was = sum.balance - scratchResult.coins;
+          document.querySelectorAll('[data-rw-bal]').forEach(el => { el.textContent = was; });
+          coinBurst(box || canvas, Math.ceil(scratchResult.coins / 6) + 6, () => countUp(was, sum.balance));
         }
       }, 500);
     }
@@ -466,6 +473,35 @@ const Rewards = (() => {
       document.querySelectorAll('[data-rw-bal]').forEach(el => { el.textContent = v; });
       if (p < 1) requestAnimationFrame(tick);
     })(t0);
+  }
+
+  /* ── Coin burst: gold coins pop out of [src], spread a little, then fly into the balance number.
+     [onLand] runs when the first coin arrives (that is when the balance counts up). With reduced motion nothing flies
+     and [onLand] runs at once. ── */
+  function coinBurst(src, n, onLand) {
+    let landed = false;
+    const land = () => { if (!landed) { landed = true; if (onLand) onLand(); } };
+    const target = document.querySelector('[data-rw-bal]');
+    if (reduce() || !src || !target || typeof document.body.animate !== 'function') { land(); return; }
+    const s = src.getBoundingClientRect(), t = target.getBoundingClientRect();
+    if (!s.width || !t.width) { land(); return; }
+    const sx = s.left + s.width / 2, sy = s.top + s.height / 2;
+    const tx = t.left + t.width / 2, ty = t.top + t.height / 2;
+    const count = Math.max(8, Math.min(18, n || 10));
+    for (let i = 0; i < count; i++) {
+      const el = document.createElement('div');
+      el.className = 'rw-fly-coin'; el.innerHTML = COIN; el.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(el);
+      const ang = Math.random() * Math.PI * 2, dist = 40 + Math.random() * 80;
+      const bx = sx + Math.cos(ang) * dist, by = sy + Math.sin(ang) * dist - 30;
+      const at = (x, y, sc, rot) => 'translate(' + Math.round(x - 11) + 'px,' + Math.round(y - 11) + 'px) scale(' + sc + ') rotateY(' + rot + 'deg)';
+      const anim = el.animate([
+        { transform: at(sx, sy, 0.2, 0), opacity: 0 },
+        { transform: at(bx, by, 1.15, 360), opacity: 1, offset: 0.35 },
+        { transform: at(tx, ty, 0.55, 720), opacity: 0.9 },
+      ], { duration: 1100, delay: i * 45, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'both' });
+      anim.onfinish = () => { el.remove(); land(); };
+    }
   }
 
   const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -587,8 +623,7 @@ const Rewards = (() => {
       : paidReady ? (canAfford ? ('Extra spins cost ' + spinPrice + ' coins each. Win up to 100 back!') : ('You need ' + spinPrice + ' coins to spin again. Earn more on the Wallet tab.'))
       : 'Come back tomorrow for your next free spin.';
 
-    const heroCard = '<div class="rw-card rw-hero">' + COIN + '<div><div class="rw-bal" data-rw-bal>' + sum.balance + '</div><div class="rw-bal-l">Gold Coins</div></div>' +
-      '<div class="rw-hero-right"><b>' + sum.lifetimeEarned + '</b>earned in total</div></div>';
+    const heroCard = '<div class="rw-card rw-hero">' + COIN + '<div><div class="rw-bal" data-rw-bal>' + sum.balance + '</div><div class="rw-bal-l">Gold Coins</div></div></div>';
 
     const checkInCard = '<div class="rw-card"><h3>Daily check-in <small>Day ' + sum.cyclePosition + ' of 7</small></h3><div class="rw-days">' + days + '</div>' +
       '<div class="rw-claim-row">' + claimBtn + '<div class="rw-note">' + note + '</div></div></div>';
@@ -599,7 +634,7 @@ const Rewards = (() => {
     const earnCard = earnRows ? '<div class="rw-card"><h3>Earn more coins <small>Resets every day</small></h3><ul class="rw-earn">' + earnRows + '</ul></div>' : '';
 
     const scratchCard = '<div class="rw-card rw-interactive-card"><h3>🎫 Lucky Couple Scratch <small>' + (sum.scratchedToday ? 'Scratched today' : '1 Card ready') + '</small></h3>' +
-      '<div class="rw-scratch-box">' +
+      '<div class="rw-scratch-box' + (sum.scratchedToday ? ' is-revealed is-static' : ' is-live') + '">' +
         '<div class="rw-scratch-under" id="rwScratchPrize">' +
           '<div class="rw-sc-emoji">💖</div>' +
           '<div class="rw-sc-title">' + (sum.scratchedToday ? 'Daily Fortune Claimed' : 'Romantic Surprise') + '</div>' +

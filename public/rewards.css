@@ -227,3 +227,35 @@
 .rw-earn em { font-style: normal; font-weight: 800; font-size: 14px; color: var(--rw-gold); white-space: nowrap; }
 .rw-earn li.is-done { opacity: .55; }
 .rw-earn li.is-done em { color: var(--rw-ok); }
+
+/* ══════════════════════════════════════════════════════════════
+   Animated coins and scratch card
+   ══════════════════════════════════════════════════════════════ */
+/* A coin flying from the wheel / scratch card into the balance (rewards.js coinBurst). */
+.rw-fly-coin { position: fixed; left: 0; top: 0; width: 22px; height: 22px; z-index: 99999; pointer-events: none; will-change: transform, opacity;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.35)); }
+.rw-fly-coin .rw-coin { width: 22px; height: 22px; display: block; }
+
+/* The scratch card gently floats and its foil glints until it is scratched. */
+.rw-scratch-box.is-live { animation: rwCardFloat 3.2s ease-in-out infinite; }
+.rw-scratch-box.is-live::after { content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 45%; z-index: 6; pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.45), transparent); transform: skewX(-18deg); animation: rwFoilGlint 2.4s ease-in-out infinite; }
+@keyframes rwCardFloat { 0%,100% { transform: translateY(0) rotate(-.4deg); } 50% { transform: translateY(-4px) rotate(.4deg); } }
+@keyframes rwFoilGlint { 0% { left: -60%; } 60%,100% { left: 130%; } }
+
+/* The prize pops out when the foil is gone. */
+.rw-scratch-box.is-revealed:not(.is-static) .rw-scratch-under > * { animation: rwPrizePop .6s cubic-bezier(.2,1.5,.4,1) both; }
+.rw-scratch-box.is-revealed:not(.is-static) .rw-scratch-under > *:nth-child(2) { animation-delay: .08s; }
+.rw-scratch-box.is-revealed:not(.is-static) .rw-scratch-under > *:nth-child(3) { animation-delay: .16s; }
+.rw-scratch-box.is-revealed:not(.is-static) .rw-scratch-under > *:nth-child(4) { animation-delay: .24s; }
+@keyframes rwPrizePop { 0% { transform: scale(.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+/* The coin icon in the balance card bounces when coins land. */
+.rw-hero .rw-coin { transition: transform .2s; }
+.rw-hero:has(.rw-pop) .rw-coin { animation: rwCoinBounce .6s cubic-bezier(.2,1.6,.4,1); }
+@keyframes rwCoinBounce { 0% { transform: scale(1); } 40% { transform: scale(1.35) rotate(-8deg); } 100% { transform: scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .rw-fly-coin { display: none; }
+  .rw-scratch-box.is-live, .rw-scratch-box.is-live::after, .rw-scratch-box.is-revealed .rw-scratch-under > *, .rw-hero:has(.rw-pop) .rw-coin { animation: none; }
+}
