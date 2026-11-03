@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v66'; // bumped: chat + call sound effects (twin-sounds.js v2, chat.js)
+const CACHE = 'uwl-v67'; // bumped: game sound effects (twin-sounds.js v3, games.html)
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
