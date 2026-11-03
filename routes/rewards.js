@@ -309,12 +309,19 @@ async function refundCoins(user, coupleId, price, kind, idem, meta) {
 // HARDENING TODO: AdMob "server-side verification" (Google signs a callback to the server) would prove the ad
 // really finished. Until it is switched on, the daily caps below are what limit abuse.
 const crypto = require('crypto');
-const DEFAULT_AD_RULES = { coins: 10, daily: 5, spinDaily: 3, minSeconds: 5 };
+const UNLIMITED_LEFT = 999; // what apps show/compare as "ads left" when there is no daily cap
+// unlimited: coin ads have NO daily cap (the product decision); a short cooldown between ads is the only brake.
+// Set reward_config 'ad_rules' {"unlimited":false,"daily":5} to bring the daily cap back without a deploy.
+const DEFAULT_AD_RULES = { coins: 10, daily: 5, spinDaily: 3, minSeconds: 5, unlimited: true, cooldownSeconds: 20 };
 
 function cleanAdRules(v) {
   const o = (v && typeof v === 'object') ? v : {};
   const pick = (k, lo, hi) => (Number.isInteger(o[k]) && o[k] >= lo && o[k] <= hi ? o[k] : DEFAULT_AD_RULES[k]);
-  return { coins: pick('coins', 1, 100), daily: pick('daily', 0, 20), spinDaily: pick('spinDaily', 0, 10), minSeconds: pick('minSeconds', 0, 60) };
+  return {
+    coins: pick('coins', 1, 100), daily: pick('daily', 0, 20), spinDaily: pick('spinDaily', 0, 10), minSeconds: pick('minSeconds', 0, 60),
+    unlimited: o.unlimited === false ? false : true,
+    cooldownSeconds: pick('cooldownSeconds', 0, 600),
+  };
 }
 async function getAdRules() {
   try {
@@ -350,12 +357,19 @@ function checkAdToken(token, user, purpose, today, rules, nowMs = Date.now()) {
   return { ok: true, n: t.n };
 }
 /** How many ad rewards were already cashed in today: markers are transactions of kind 'ad' (coins) / 'ad_spin'. */
+function left(rules, n) { return rules.unlimited ? UNLIMITED_LEFT : Math.max(0, rules.daily - n); }
 async function adCountsToday(userId, today) {
-  const { data } = await supabase.from('coin_transactions').select('kind')
+  const { data } = await supabase.from('coin_transactions').select('kind, created_at')
     .eq('user_id', userId).gte('created_at', today + 'T00:00:00+05:30');
-  let coins = 0, spins = 0;
-  for (const r of data || []) { if (r.kind === 'ad') coins++; else if (r.kind === 'ad_spin') spins++; }
-  return { coins, spins };
+  let coins = 0, spins = 0, lastCoinAt = 0;
+  for (const r of data || []) {
+    if (r.kind === 'ad') {
+      coins++;
+      const t = Date.parse(r.created_at);
+      if (Number.isFinite(t) && t > lastCoinAt) lastCoinAt = t;
+    } else if (r.kind === 'ad_spin') spins++;
+  }
+  return { coins, spins, lastCoinAt };
 }
 
 async function buildSummary(user, coupleId, today = istDay(0)) {
@@ -423,7 +437,9 @@ async function buildSummary(user, coupleId, today = istDay(0)) {
     paidScratchPrice: spendRules.scratch.price,
     paidScratchesLeft: scratchedToday ? Math.max(0, spendRules.scratch.daily - paidScratches) : 0,
     adCoinsReward: adRules.coins,
-    adCoinsLeft: Math.max(0, adRules.daily - adCounts.coins),
+    adCoinsLeft: adRules.unlimited ? UNLIMITED_LEFT : Math.max(0, adRules.daily - adCounts.coins),
+    adCoinsUnlimited: !!adRules.unlimited,
+    adCooldownSeconds: adRules.cooldownSeconds,
     adSpinsLeft: spunToday ? Math.max(0, adRules.spinDaily - adCounts.spins) : 0,
     wheelSlices: slices,
     unlockedItemIds,
@@ -1093,7 +1109,12 @@ router.post('/ad/start', async (req, res) => {
     const [rules, counts] = await Promise.all([getAdRules(), adCountsToday(user.id, today)]);
     const used = purpose === 'coins' ? counts.coins : counts.spins;
     const cap = purpose === 'coins' ? rules.daily : rules.spinDaily;
-    if (used >= cap) return res.status(400).json({ error: 'No more ad rewards today. Come back tomorrow!', code: 'ad_limit_reached' });
+    const capped = purpose === 'coins' ? !rules.unlimited : true; // only coin ads can be uncapped; free spins keep their cap
+    if (capped && used >= cap) return res.status(400).json({ error: 'No more ad rewards today. Come back tomorrow!', code: 'ad_limit_reached' });
+    if (purpose === 'coins' && counts.lastCoinAt && Date.now() - counts.lastCoinAt < rules.cooldownSeconds * 1000) {
+      const wait = Math.ceil((rules.cooldownSeconds * 1000 - (Date.now() - counts.lastCoinAt)) / 1000);
+      return res.status(429).json({ error: 'Next ad reward in ' + wait + 's.', code: 'ad_cooldown', retryAfterSeconds: wait });
+    }
     const token = signAdToken({ u: user.id, c: String(coupleId), p: purpose, d: today, n: used + 1, t: Date.now() });
     res.json({ ok: true, token, minSeconds: rules.minSeconds, coins: rules.coins });
   } catch (e) {
@@ -1110,7 +1131,7 @@ router.post('/ad/claim', async (req, res) => {
     const rules = await getAdRules();
     const chk = checkAdToken((req.body || {}).token, user, 'coins', today, rules);
     if (!chk.ok) return res.status(400).json({ error: 'The ad reward could not be confirmed. Please try again.', code: chk.code });
-    if (chk.n > rules.daily) return res.status(400).json({ error: 'No more ad rewards today. Come back tomorrow!', code: 'ad_limit_reached' });
+    if (!rules.unlimited && chk.n > rules.daily) return res.status(400).json({ error: 'No more ad rewards today. Come back tomorrow!', code: 'ad_limit_reached' });
     const { data, error } = await supabase.rpc('reward_credit', {
       p_user: user.id, p_couple: String(coupleId), p_amount: rules.coins, p_kind: 'ad',
       p_idem: 'ad:' + today + ':' + chk.n, p_meta: { n: chk.n },
@@ -1118,8 +1139,8 @@ router.post('/ad/claim', async (req, res) => {
     if (error) throw error;
     const row = Array.isArray(data) ? data[0] : data;
     const balance = row ? row.balance : await walletBalance(user.id);
-    if (row && !row.applied) return res.json({ ok: true, earned: 0, duplicate: true, balance, remaining: Math.max(0, rules.daily - chk.n) });
-    res.json({ ok: true, earned: rules.coins, duplicate: false, balance, remaining: Math.max(0, rules.daily - chk.n) });
+    if (row && !row.applied) return res.json({ ok: true, earned: 0, duplicate: true, balance, remaining: left(rules, chk.n) });
+    res.json({ ok: true, earned: rules.coins, duplicate: false, balance, remaining: left(rules, chk.n) });
   } catch (e) {
     console.error('[rewards] ad claim failed:', e.message);
     res.status(500).json({ error: 'Could not add the ad reward. Please try again.' });

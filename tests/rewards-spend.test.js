@@ -188,12 +188,35 @@ function call(server, method, url, body, uid) {
   assert.strictEqual(r.json.code, 'bad_ad_ticket');
   console.log('ok  ad: forged, someone else\'s, or wrong-purpose tickets are refused');
 
+  // The daily cap is still available as a setting: reward_config 'ad_rules' {"unlimited":false}.
+  db.reward_config.push({ key: 'ad_rules', value: { unlimited: false, cooldownSeconds: 0 } });
   for (let n = 2; n <= 5; n++) { r = await P('ad/claim', { token: aged('coins', n) }); assert.strictEqual(r.json.earned, 10); }
   r = await P('ad/start', { purpose: 'coins' });
   assert.strictEqual(r.status, 400); assert.strictEqual(r.json.code, 'ad_limit_reached');
   r = await call(server, 'GET', '/api/rewards/summary?coupleId=c1&userId=u1', null, 'u1');
   assert.strictEqual(r.json.adCoinsLeft, 0); assert.strictEqual(r.json.adCoinsReward, 10);
-  console.log('ok  ad: 5 coin ads a day, then ad_limit_reached');
+  console.log('ok  ad: with unlimited switched off, 5 coin ads a day, then ad_limit_reached');
+
+  // Default: unlimited coin ads. Past the old cap the ticket and the claim still work.
+  db.reward_config = db.reward_config.filter(x => x.key !== 'ad_rules');
+  db.reward_config.push({ key: 'ad_rules', value: { cooldownSeconds: 0 } });
+  r = await P('ad/start', { purpose: 'coins' });
+  assert.strictEqual(r.status, 200); assert.ok(r.json.token);
+  const bu = bal();
+  for (let n = 6; n <= 9; n++) { r = await P('ad/claim', { token: aged('coins', n) }); assert.strictEqual(r.json.earned, 10); assert.strictEqual(r.json.remaining, 999); }
+  assert.strictEqual(bal(), bu + 40);
+  r = await call(server, 'GET', '/api/rewards/summary?coupleId=c1&userId=u1', null, 'u1');
+  assert.strictEqual(r.json.adCoinsLeft, 999); assert.strictEqual(r.json.adCoinsUnlimited, true);
+  console.log('ok  ad: unlimited coin ads (no daily cap)');
+
+  // Cooldown between coin ads is the only brake. The newest ad was just now.
+  db.coin_transactions.filter(t => t.kind === 'ad').forEach(t => { t.created_at = new Date().toISOString(); });
+  db.reward_config = db.reward_config.filter(x => x.key !== 'ad_rules');
+  db.reward_config.push({ key: 'ad_rules', value: { cooldownSeconds: 600 } });
+  r = await P('ad/start', { purpose: 'coins' });
+  assert.strictEqual(r.status, 429); assert.strictEqual(r.json.code, 'ad_cooldown'); assert.ok(r.json.retryAfterSeconds > 0);
+  db.reward_config = db.reward_config.filter(x => x.key !== 'ad_rules');
+  console.log('ok  ad: cooldown between coin ads');
 
   // ad spin: no coins charged, single use
   r = await call(server, 'GET', '/api/rewards/summary?coupleId=c1&userId=u1', null, 'u1');
@@ -210,7 +233,8 @@ function call(server, method, url, body, uid) {
   assert.strictEqual(r.json.adSpinsLeft, 2); assert.strictEqual(r.json.spunToday, true);
   console.log('ok  ad spin: free extra spin, nothing charged, ticket is single use, free-spin flag untouched');
 
-  assert.deepStrictEqual(T.cleanAdRules({ coins: 0, daily: 999, spinDaily: 'x' }), T.DEFAULT_AD_RULES);
+  assert.deepStrictEqual(T.cleanAdRules({ coins: 0, daily: 999, spinDaily: 'x', cooldownSeconds: -1 }), T.DEFAULT_AD_RULES);
+  assert.strictEqual(T.cleanAdRules({ unlimited: false }).unlimited, false);
   assert.strictEqual(T.cleanAdRules({ coins: 20 }).coins, 20);
   console.log('ok  ad_rules overrides are validated');
 

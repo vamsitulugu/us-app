@@ -351,4 +351,51 @@ router.get('/:coupleId/reactions', (req, res) => {
   res.json((reactionBuf.get(req.params.coupleId) || []).filter(x => x.at > after && now - x.at < REACTION_TTL_MS));
 });
 
+
+// ═══════════════════════════════════════════════════════
+//  Shared ad break ("intermission") while a movie plays.
+//  Every AD_BREAK_GAP_MS of watching, BOTH phones show one ad at the same moment, and close it by themselves.
+//   POST /:coupleId/ad-break       { role }   asks for a break (the server refuses if the last one was < AD_BREAK_GAP_MS ago)
+//   GET  /:coupleId/ad-break                  the current break (or null) + server time, polled by both phones
+//   POST /:coupleId/ad-break/done  { role, id } this phone's ad has finished / was closed
+//  Held in memory like reactions: a break lasts a minute or two, so a server restart simply skips one.
+// ═══════════════════════════════════════════════════════
+const AD_BREAK_GAP_MS = 15 * 60 * 1000;
+const AD_BREAK_LEAD_MS = 2500;        // both phones start together: the break begins this far in the future
+const AD_BREAK_MAX_MS = 3 * 60 * 1000; // a stuck break is dropped after this, so the movie can always resume
+const adBreaks = new Map();           // coupleId -> { id, startAt, lastAt, done: Set(role), startedBy }
+
+function adBreakView(b, now) {
+  if (!b || now - b.startAt > AD_BREAK_MAX_MS) return null;
+  return { id: b.id, startAt: b.startAt, startedBy: b.startedBy, done: [...b.done], allDone: b.done.size >= 2 };
+}
+
+router.post('/:coupleId/ad-break', (req, res) => {
+  const { role } = req.body || {};
+  if (!['user1', 'user2'].includes(role)) return res.status(400).json({ error: 'Invalid role.' });
+  const coupleId = req.params.coupleId, now = Date.now();
+  const cur = adBreaks.get(coupleId);
+  if (cur && now - cur.lastAt < AD_BREAK_GAP_MS) {
+    return res.json({ ok: true, created: false, serverNow: now, break: adBreakView(cur, now) });
+  }
+  const b = { id: now, startAt: now + AD_BREAK_LEAD_MS, lastAt: now, done: new Set(), startedBy: role };
+  adBreaks.set(coupleId, b);
+  res.json({ ok: true, created: true, serverNow: now, break: adBreakView(b, now) });
+});
+
+router.get('/:coupleId/ad-break', (req, res) => {
+  const now = Date.now();
+  res.json({ serverNow: now, break: adBreakView(adBreaks.get(req.params.coupleId), now) });
+});
+
+router.post('/:coupleId/ad-break/done', (req, res) => {
+  const { role, id } = req.body || {};
+  if (!['user1', 'user2'].includes(role)) return res.status(400).json({ error: 'Invalid role.' });
+  const b = adBreaks.get(req.params.coupleId);
+  if (b && Number(id) === b.id) b.done.add(role);
+  const now = Date.now();
+  res.json({ ok: true, serverNow: now, break: adBreakView(b, now) });
+});
+
 module.exports = router;
+module.exports._test = { AD_BREAK_GAP_MS };
