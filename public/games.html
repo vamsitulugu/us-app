@@ -628,7 +628,11 @@ const otherRole = ID.role === 'user1' ? 'user2' : 'user1';
 const Snd = (function(){
   let ctx = null;
   function ac(){ if(!ctx){ try{ ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return ctx; }
+  // the newer game cues live in twin-sounds.js, so everything obeys the app's one mute switch
+  function muted(){ try{ return !!(window.TwinSound && !TwinSound.enabled()); }catch(e){ return false; } }
+  function ext(name, arg){ try{ if(window.TwinSound && TwinSound[name]) TwinSound[name](arg); }catch(e){} }
   function beep(freq, start, dur, type, vol){
+    if(muted()) return;
     const c = ac(); if(!c) return;
     const o = c.createOscillator(), g = c.createGain();
     o.type = type||'sine'; o.frequency.value = freq;
@@ -646,8 +650,16 @@ const Snd = (function(){
     coin(){ beep(988,0,.08,'square',.14); beep(1318,.06,.1,'square',.14); },
     levelup(){ [523,659,784,1046,1318].forEach((f,i)=>beep(f,i*.08,.16,'sine',.2)); },
     place(){ beep(400,0,.08,'triangle',.2); beep(600,.05,.08,'triangle',.16); },
-    dice(){ beep(300,0,.1,'square',.12); },
+    dice(){ ext('dice'); },
+    flip(){ ext('flip'); },
+    match(){ ext('match'); },
+    snap(){ ext('snap'); },
+    boom(){ ext('boom'); },
+    tick(){ ext('tick', .6); },
+    spinEnd(){ ext('spinEnd'); },
+    brush(){ ext('scratch', .2); },
     spinwhir(dur){
+      if(muted()) return;
       const c=ac(); if(!c) return;
       const o=c.createOscillator(), g=c.createGain();
       o.type='sawtooth'; o.frequency.setValueAtTime(220,c.currentTime); o.frequency.exponentialRampToValueAtTime(35,c.currentTime+dur);
@@ -1223,7 +1235,7 @@ const TTT = {
       this.state.winner='draw'; Snd.tap(); TwinCards.done('ttt');
     } else {
       this.state.turn = this.state.turn==='user1'?'user2':'user1';
-      Snd.tap();
+      Snd.place();
     }
     this.sync(); this.render();
   },
@@ -1544,7 +1556,7 @@ const TOD = {
     clearTimeout(this._spinTimer);
     this._spinTimer = setTimeout(()=>{
       this._displayAngle = ((target%360)+360)%360;
-      Snd.tap();
+      Snd.spinEnd();
       this.state.phase='choose'; this.sync(); this.render();
     }, duration*1000 + 60);
   },
@@ -1865,6 +1877,7 @@ const Draw = {
         return;
       }
       this.drawing=true; this.lastPt=getPt(e); this.strokeId=uid(); this.redoStack=[];
+      Snd.brush();
     };
     const move=(e)=>{
       if(!this.isDrawer()||!this.drawing||this.mode==='fill') return; e.preventDefault();
@@ -2097,7 +2110,7 @@ const Memory = {
     const s=this.state;
     if(s.winner || s.turn!==ID.role || this.busy) return;
     if(s.cards[i].matched || s.flipped.includes(i)) return;
-    s.flipped.push(i); Snd.tap();
+    s.flipped.push(i); Snd.flip();
     this.sync(); this.render();
     if(s.flipped.length===2){
       this.busy=true;
@@ -2106,7 +2119,7 @@ const Memory = {
         if(s.cards[a].emoji===s.cards[b].emoji){
           s.cards[a].matched=true; s.cards[b].matched=true;
           s.scores[ID.role]=(s.scores[ID.role]||0)+1;
-          GameCore.addXP(6); GameCore.addCoins(3); Snd.success();
+          GameCore.addXP(6); GameCore.addCoins(3); Snd.match();
           s.flipped=[];
           if(s.cards.every(c=>c.matched)){
             s.winner = s.scores.user1>=s.scores.user2 ? 'user1':'user2';
@@ -2212,10 +2225,12 @@ const Bomb = {
   },
   armCountdown(){
     clearInterval(this.timerTick);
+    this._cdLast=null;
     this.timerTick = setInterval(()=>{
       if(!this.state || this.state.phase!=='countdown') return;
       const left = Math.ceil((this.state.countdownAt-Date.now())/1000);
       const el=document.getElementById('bmCdNum'); if(el) el.textContent = left>0?left:'GO!';
+      if(left!==this._cdLast){ this._cdLast=left; if(left>0) Snd.tick(); } // 3 · 2 · 1
       if(left<=0){
         clearInterval(this.timerTick);
         if(this.isMover()){ this.state.phase='playing'; this.state.startedAt=Date.now(); this.sync(); }
@@ -2227,6 +2242,7 @@ const Bomb = {
   /* ── PLAYING ── */
   armPlayTimer(){
     clearInterval(this.timerTick);
+    this._lastSec=null;
     this.timerTick = setInterval(()=>{
       if(!this.state || this.state.phase!=='playing') { clearInterval(this.timerTick); return; }
       const elapsed=(Date.now()-this.state.startedAt)/1000;
@@ -2234,6 +2250,8 @@ const Bomb = {
       const fill=document.getElementById('bmTimerFill');
       if(fill){ fill.style.width=(remain/this.state.timeLimit*100)+'%'; fill.classList.toggle('low', remain<15); }
       const chip=document.getElementById('bmTimeChip'); if(chip) chip.textContent='⏱ '+Math.ceil(remain)+'s';
+      const sec=Math.ceil(remain); // last 5 seconds: one soft tick each
+      if(sec>0 && sec<=5 && sec!==this._lastSec){ this._lastSec=sec; Snd.tick(); }
       if(remain<=0 && this.isMover()){
         this.state.phase='result'; this.state.result='timeout'; this.sync(); this.render();
       }
@@ -2290,7 +2308,7 @@ const Bomb = {
   boom(){
     const board=document.getElementById('bmBoard'); if(board) board.classList.add('shake');
     if(navigator.vibrate) navigator.vibrate([90,40,120]);
-    Snd.fail();
+    Snd.boom();
     const wrap=document.createElement('div'); wrap.className='bm-particles'; document.body.appendChild(wrap);
     const cell=document.querySelector('.bm-cell.exploded');
     const r = cell ? cell.getBoundingClientRect() : {left:innerWidth/2,top:innerHeight/2,width:0,height:0};
@@ -2342,8 +2360,10 @@ const Bomb = {
     if(this.state.result==='won'){
       const mine = this.isMover() ? cfg.xp : Math.round(cfg.xp*.65);
       const coins = this.isMover() ? cfg.coins : Math.round(cfg.coins*.65);
-      GameCore.addXP(mine); GameCore.addCoins(coins); GameCore.addWin(); TwinCards.done('bomb');
+      GameCore.addXP(mine); GameCore.addCoins(coins); GameCore.addWin(); Snd.success(); TwinCards.done('bomb');
       setTimeout(()=>showReward('💚','You made it across!',['+'+mine+' XP','+'+coins+' 🪙','🔥 '+this.state.teamStreak+' streak']),300);
+    } else if(this.state.result==='exploded'){
+      if(!this.isMover()) Snd.boom(); // the player who stepped on it already heard it in boom()
     } else {
       Snd.fail();
     }
@@ -2583,7 +2603,7 @@ const Puzzle = {
     const slotTaken = this.state.pieces.some(x=>x.placed && x.row===targetRow && x.col===targetCol);
     this.state.moves++;
     if(!slotTaken && piece.row===targetRow && piece.col===targetCol && piece.rot===0){
-      piece.placed=true; Snd.success();
+      piece.placed=true; Snd.snap();
       this.held=null;
       this.sync(); this.render();
       const cell=document.querySelector(`.pz-slot[data-r="${targetRow}"][data-c="${targetCol}"]`);
@@ -3140,7 +3160,7 @@ const MindReader = {
     setTimeout(()=>{
       this.revealed=true; this.render();
       const mt=this.state.matchType;
-      if(mt==='exact'){ Snd.success(); this.heartExplosion(); GameCore.addXP(12); GameCore.addCoins(6); }
+      if(mt==='exact'){ Snd.match(); this.heartExplosion(); GameCore.addXP(12); GameCore.addCoins(6); }
       else if(mt==='near'){ Snd.success(); GameCore.addXP(8); GameCore.addCoins(4); }
       else if(mt==='funny'){ Snd.tap(); GameCore.addXP(6); GameCore.addCoins(3); }
       else { Snd.fail(); GameCore.addXP(3); GameCore.addCoins(1); }
@@ -3371,7 +3391,7 @@ window.closeTopOverlayIfOpen = closeTopOverlayIfOpen;
 
 Hub.init();
 </script>
-<script src="/twin-sounds.js?v=2"></script>
+<script src="/twin-sounds.js?v=3"></script>
 <script src="/access-gate.js?v=1"></script>
 <script src="/premium-motion.js"></script>
 <script src="/premium-states.js"></script>

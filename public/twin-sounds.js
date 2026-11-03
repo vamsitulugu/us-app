@@ -40,6 +40,13 @@
      TwinSound.switchOn() / switchOff()  mute, camera, speaker toggles
      TwinSound.blip()          network reconnecting    tiny double blip
 
+   GAME SOUNDS (v3) — five new cues, used by games.html (the bomb countdown reuses tick):
+     TwinSound.flip()          memory card turned      tiny rising "tick"
+     TwinSound.match()         pair found / mind match two-note chime
+     TwinSound.snap()          puzzle piece locks in   short "tock" + click
+     TwinSound.boom()          bomb goes off           low thump + rumble
+     TwinSound.dice()          dice roll               quick rattle + soft thud
+
    TwinSound.play('chat.message.sent')  → same thing by name, used by chat.js and call.js
    (also available as window.playAppSound). Unknown names are ignored.
    ══════════════════════════════════════════════════════════════ */
@@ -184,6 +191,16 @@
     tone('sine', 4186, 4186, 0.4, 0.06, 0.15, 0.003);
   }
 
+  /* ── games (v3): five tiny cues, same soft style. Bomb countdown reuses tick(). ── */
+  function flip() { tone('triangle', 620, 900, 0.05, 0.15, 0, 0.003); } // memory card turned over
+  function match() { tone('triangle', 988, 988, 0.12, 0.18, 0, 0.004); tone('triangle', 1319, 1319, 0.2, 0.18, 0.09, 0.004); } // pair found / mind match
+  function snap() { tone('sine', 880, 560, 0.05, 0.2, 0, 0.002); burst(0.03, 0.08, 'highpass', 3000, 3000, 0.7); } // puzzle piece locks in
+  function boom() { tone('sine', 150, 45, 0.45, 0.3, 0, 0.004); burst(0.3, 0.2, 'bandpass', 900, 150, 0.8); } // bomb goes off
+  function dice() { // quick rattle, then a soft thud
+    [0, 0.06, 0.12, 0.19].forEach(function (d, i) { tone('square', 1400 + i * 160, 1400 + i * 160, 0.03, 0.07, d, 0.001); });
+    tone('sine', 220, 150, 0.09, 0.18, 0.26, 0.004);
+  }
+
   /* ── chat ── */
   function msgSent() { tone('sine', 520, 760, 0.09, 0.2, 0, 0.004); }
   function msgReceived() { tone('sine', 880, 880, 0.12, 0.18, 0, 0.004); tone('sine', 1175, 1175, 0.2, 0.16, 0.09, 0.004); }
@@ -219,7 +236,8 @@
     'call.outgoing': tap, 'call.connected': callConnected, 'call.video.connected': callConnected,
     'call.ended': callEnded, 'call.failed': error, 'call.network.reconnect': blip,
     'call.muted': switchOff, 'call.unmuted': switchOn, 'call.camera.off': switchOff, 'call.camera.on': switchOn,
-    'call.speaker.off': switchOff, 'call.speaker.on': switchOn
+    'call.speaker.off': switchOff, 'call.speaker.on': switchOn,
+    'game.flip': flip, 'game.match': match, 'game.snap': snap, 'game.boom': boom, 'game.dice': dice, 'game.tick': tick
   };
   const lastPlayed = {};
   function play(name) { // the same cue never fires twice within 120ms (bulk delete, double events)
@@ -236,5 +254,6 @@
     msgSent: msgSent, msgReceived: msgReceived, mediaSent: mediaSent, funSent: funSent,
     voiceStart: voiceStart, voiceStop: voiceStop, voiceCancel: voiceCancel, react: react, heart: heart,
     star: star, pin: pin, deleted: deleted, callConnected: callConnected, callEnded: callEnded,
-    switchOn: switchOn, switchOff: switchOff, blip: blip, play: play };
+    switchOn: switchOn, switchOff: switchOff, blip: blip,
+    flip: flip, match: match, snap: snap, boom: boom, dice: dice, play: play };
 })();
