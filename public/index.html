@@ -4876,7 +4876,7 @@ select option { background: #270719; color: #fff; }
   <link rel="stylesheet" href="/profile.css">
   <link rel="stylesheet" href="/highlights.css">
   <link rel="stylesheet" href="/level.css">
-  <link rel="stylesheet" href="/rewards.css?v=2">
+  <link rel="stylesheet" href="/rewards.css?v=3">
   <link rel="stylesheet" href="/twin-page.css">
 <link rel="stylesheet" href="/theme-tokens.css?v=5">
 <link rel="stylesheet" href="/theme-light-v2.css?v=4">
@@ -9550,7 +9550,7 @@ const p = await Notification.requestPermission();
             savePhoto(media.url, file.name, 'video', media.path);
           } catch (e) { toast('Upload failed for ' + file.name); }
         }
-        function savePhoto(url, name, type, path) { const id = Date.now() + '_' + Math.random().toString(36).slice(2, 7); _unsavedPhotoIds.add(id); S.photos.push({ id, url, name, type: type || 'image', date: todayStr(), path: path || null }); renderPhotos(); scheduleSave(); }
+        function savePhoto(url, name, type, path) { const id = Date.now() + '_' + Math.random().toString(36).slice(2, 7); _unsavedPhotoIds.add(id); S.photos.push({ id, url, name, type: type || 'image', date: todayStr(), path: path || null }); renderPhotos(); scheduleSave(); if (window.Rewards && Rewards.earn) Rewards.earn('memory'); }
         function renderPhotos() {
           const grid = document.getElementById('photoGrid');
           document.getElementById('photoCountTag').textContent = S.photos.length;
@@ -13877,10 +13877,10 @@ init();
 <script src="/profile.js"></script>
 <script src="/highlights.js"></script>
 <script src="/chat/call.js"></script>
-<script src="/dashboard.js"></script>
+<script src="/dashboard.js?v=2"></script>
 <script src="/gender-access.js"></script>
-<script src="/dashboard-widgets.js?v=3"></script>
-<script src="/rewards.js?v=2"></script>
+<script src="/dashboard-widgets.js?v=4"></script>
+<script src="/rewards.js?v=4"></script>
 <script src="/app-polish.js"></script>
 
 <!-- Live Map redesign layer (additive UI only — see livemap-redesign.css) -->

@@ -1,0 +1,11 @@
+PHASE 3 - REWARDED ADS (server part; includes Phases 1-2; no database migration)
+New routes: POST /api/rewards/ad/start {purpose:'coins'|'spin'} -> signed one-time ticket
+            POST /api/rewards/ad/claim {token}                  -> +coins (default 10, 5 a day)
+            POST /api/rewards/spin {adToken}                    -> a free extra spin (default 3 a day), nothing charged
+Ticket = signed by the server, tied to person + day + slot number, single use, must be at least minSeconds old (the ad had time to play).
+Tune without a release: reward_config row key 'ad_rules', e.g. {"coins":10,"daily":5,"spinDaily":3,"minSeconds":5}.
+SET ON THE SERVER (Vercel env): REWARD_AD_SECRET = any long random text. (If missing it falls back to your Supabase key, which also works.)
+Summary now returns adCoinsReward, adCoinsLeft, adSpinsLeft.
+Web: no change - AdSense does not allow rewarding ad views, so this is Android only.
+HARDENING LATER: AdMob server-side verification (Google calls your server to prove the ad finished).
+Tests: node tests/rewards-spend.test.js

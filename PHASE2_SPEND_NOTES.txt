@@ -1,0 +1,6 @@
+PHASE 2 - SPEND COINS (web + server)  [includes Phase 1; no database migration]
+Extra spins: after the free daily spin, "Spin again - 20 coins", up to 3 extra a day. Server charges first (same tap never twice) and refunds if the prize can't be paid.
+Extra scratch cards: server ready (15 coins, 2 a day, POST /scratch {paid:true}); no button yet on web/Android.
+Tune without a release: reward_config row key 'spend_rules', e.g. {"spin":{"price":25,"daily":2},"scratch":{"price":15,"daily":2}}.
+Summary now also returns paidSpinPrice, paidSpinsLeft, paidScratchPrice, paidScratchesLeft.
+Tests: node tests/rewards-spend.test.js (earn + paid spin/scratch); old reward tests still pass.

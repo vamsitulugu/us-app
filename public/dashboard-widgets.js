@@ -176,7 +176,10 @@ const DashWidgets = (() => {
     }
     save();
   }
-  function setMood(dateKey, mk) { writeMine(dateKey, mk, true); renderMood(); renderCal(); }
+  function setMood(dateKey, mk) {
+    writeMine(dateKey, mk, true); renderMood(); renderCal();
+    if (mk && window.Rewards && Rewards.earn) Rewards.earn('mood');   // server pays once a day
+  }
 
   // Other parts of the app set today's mood too (sidebar quick mood, Wellness save) — mirror those into my set.
   function hookLegacy() {

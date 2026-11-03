@@ -3,6 +3,7 @@
 //    GET  /api/rewards/summary?coupleId=&userId=   balance, streaks, 7-day cycle
 //    POST /api/rewards/checkin  { coupleId, userId }   claim today's coins (once a day)
 //    GET  /api/rewards/history?coupleId=&userId=&limit=   coin history
+//    GET/POST /api/rewards/earn...  Phase 1: small daily-capped coins for everyday actions
 //
 //  Mount in server.js:  app.use('/api/rewards', require('./routes/rewards'));
 //
@@ -260,18 +261,118 @@ async function getStoreItems() {
   return DEFAULT_STORE_ITEMS;
 }
 
+// ── PHASE 2: spend coins on extras ─────────────────────────────────
+// After the free daily spin / scratch is used, coins can buy a few more. The price and the daily cap come
+// from here (reward_config key 'spend_rules' overrides: {"spin":{"price":20,"daily":3},"scratch":{...}}).
+const DEFAULT_SPEND_RULES = { spin: { price: 20, daily: 3 }, scratch: { price: 15, daily: 2 } };
+
+function cleanSpendRules(v) {
+  const out = {};
+  for (const k of Object.keys(DEFAULT_SPEND_RULES)) {
+    const d = DEFAULT_SPEND_RULES[k];
+    const o = (v && typeof v === 'object' && v[k] && typeof v[k] === 'object') ? v[k] : {};
+    const price = Number.isInteger(o.price) && o.price >= 1 && o.price <= 1000 ? o.price : d.price;
+    const daily = Number.isInteger(o.daily) && o.daily >= 0 && o.daily <= 10 ? o.daily : d.daily;
+    out[k] = { price, daily };
+  }
+  return out;
+}
+
+async function getSpendRules() {
+  try {
+    const { data } = await supabase.from('reward_config').select('value').eq('key', 'spend_rules').maybeSingle();
+    return cleanSpendRules(data && data.value);
+  } catch (_) {}
+  return cleanSpendRules(null);
+}
+
+/** Take coins. { applied, balance }: applied=false + balance < price means "not enough coins". */
+async function chargeCoins(user, coupleId, price, kind, idem, meta) {
+  const { data, error } = await supabase.rpc('reward_credit', {
+    p_user: user.id, p_couple: String(coupleId), p_amount: -price, p_kind: kind, p_idem: idem, p_meta: meta || {},
+  });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+async function refundCoins(user, coupleId, price, kind, idem, meta) {
+  try {
+    await supabase.rpc('reward_credit', { p_user: user.id, p_couple: String(coupleId), p_amount: price, p_kind: kind, p_idem: idem, p_meta: meta || {} });
+  } catch (e) { console.error('[rewards] refund failed:', e.message); }
+}
+
+// ── PHASE 3: rewarded ads (Android) ────────────────────────────────
+// "Watch an ad" -> +coins, or a free extra spin. Flow: /ad/start gives a signed one-time ticket; the app shows the
+// ad; /ad/claim (or /spin with adToken) cashes the ticket in. The ticket is signed by the server, tied to this
+// person + day + slot number, and is single use (the slot number is part of the idempotency key).
+// Limits come from reward_config key 'ad_rules': {"coins":10,"daily":5,"spinDaily":3,"minSeconds":5}.
+// HARDENING TODO: AdMob "server-side verification" (Google signs a callback to the server) would prove the ad
+// really finished. Until it is switched on, the daily caps below are what limit abuse.
+const crypto = require('crypto');
+const DEFAULT_AD_RULES = { coins: 10, daily: 5, spinDaily: 3, minSeconds: 5 };
+
+function cleanAdRules(v) {
+  const o = (v && typeof v === 'object') ? v : {};
+  const pick = (k, lo, hi) => (Number.isInteger(o[k]) && o[k] >= lo && o[k] <= hi ? o[k] : DEFAULT_AD_RULES[k]);
+  return { coins: pick('coins', 1, 100), daily: pick('daily', 0, 20), spinDaily: pick('spinDaily', 0, 10), minSeconds: pick('minSeconds', 0, 60) };
+}
+async function getAdRules() {
+  try {
+    const { data } = await supabase.from('reward_config').select('value').eq('key', 'ad_rules').maybeSingle();
+    return cleanAdRules(data && data.value);
+  } catch (_) {}
+  return cleanAdRules(null);
+}
+
+function adSecret() {
+  return process.env.REWARD_AD_SECRET || process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || 'dev-only-ad-secret';
+}
+function signAdToken(payload) {
+  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  return body + '.' + crypto.createHmac('sha256', adSecret()).update(body).digest('base64url');
+}
+function readAdToken(token) {
+  if (typeof token !== 'string' || token.length > 600) return null;
+  const [body, sig] = token.split('.');
+  if (!body || !sig) return null;
+  const want = crypto.createHmac('sha256', adSecret()).update(body).digest('base64url');
+  const a = Buffer.from(sig), b = Buffer.from(want);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  try { return JSON.parse(Buffer.from(body, 'base64url').toString()); } catch (_) { return null; }
+}
+/** Checks a ticket belongs to this person, today, this purpose and is old enough (the ad had time to play). */
+function checkAdToken(token, user, purpose, today, rules, nowMs = Date.now()) {
+  const t = readAdToken(token);
+  if (!t || t.u !== user.id || t.p !== purpose || t.d !== today || !Number.isInteger(t.n) || t.n < 1) return { ok: false, code: 'bad_ad_ticket' };
+  const age = nowMs - t.t;
+  if (age < rules.minSeconds * 1000) return { ok: false, code: 'ad_too_fast' };
+  if (age > 15 * 60 * 1000) return { ok: false, code: 'ad_ticket_expired' };
+  return { ok: true, n: t.n };
+}
+/** How many ad rewards were already cashed in today: markers are transactions of kind 'ad' (coins) / 'ad_spin'. */
+async function adCountsToday(userId, today) {
+  const { data } = await supabase.from('coin_transactions').select('kind')
+    .eq('user_id', userId).gte('created_at', today + 'T00:00:00+05:30');
+  let coins = 0, spins = 0;
+  for (const r of data || []) { if (r.kind === 'ad') coins++; else if (r.kind === 'ad_spin') spins++; }
+  return { coins, spins };
+}
+
 async function buildSummary(user, coupleId, today = istDay(0)) {
   const since = new Date(Date.parse(today + 'T00:00:00Z') - 70 * 86400000).toISOString().slice(0, 10);
-  const [wallet, mine, couple, cycle, spinsToday, scratchesToday, slices, purchases, equipped] = await Promise.all([
+  const [wallet, mine, couple, cycle, spinsToday, scratchesToday, slices, purchases, equipped, spendRules, adRules, adCounts] = await Promise.all([
     supabase.from('reward_wallets').select('balance, lifetime_earned').eq('user_id', user.id).maybeSingle(),
     supabase.from('reward_checkins').select('day, streak').eq('user_id', user.id).gte('day', since).order('day', { ascending: false }),
     supabase.from('reward_checkins').select('user_id, day').eq('couple_id', String(coupleId)).gte('day', since).order('day', { ascending: false }),
     getCycle(),
-    supabase.from('reward_spins').select('slice_index, coins').eq('user_id', user.id).eq('day', today),
-    supabase.from('reward_scratches').select('prize_id, coins').eq('user_id', user.id).eq('day', today),
+    supabase.from('reward_spins').select('slice_index, coins, source').eq('user_id', user.id).eq('day', today),
+    supabase.from('reward_scratches').select('prize_id, coins, source').eq('user_id', user.id).eq('day', today),
     getSlices(),
     supabase.from('reward_purchases').select('item_id').eq('couple_id', String(coupleId)),
     supabase.from('reward_equipped').select('category, item_id, user_id').eq('couple_id', String(coupleId)),
+    getSpendRules(),
+    getAdRules(),
+    adCountsToday(user.id, today),
   ]);
   if (mine.error) throw mine.error;
   if (couple.error) throw couple.error;
@@ -290,8 +391,11 @@ async function buildSummary(user, coupleId, today = istDay(0)) {
   const pos = ((nextStreak - 1) % 7) + 1;           // 1..7
   const doneInCycle = claimedToday ? pos : pos - 1; // boxes already ticked
 
-  const spunToday = !!(spinsToday.data && spinsToday.data.length > 0);
-  const scratchedToday = !!(scratchesToday.data && scratchesToday.data.length > 0);
+  const isFree = r => r.source === 'daily';
+  const spunToday = (spinsToday.data || []).some(isFree);
+  const scratchedToday = (scratchesToday.data || []).some(isFree);
+  const paidSpins = (spinsToday.data || []).filter(r => r.source === 'paid').length;
+  const paidScratches = (scratchesToday.data || []).filter(r => r.source === 'paid').length;
 
   const unlockedItemIds = (purchases.data || []).map(p => p.item_id);
   const equippedMap = {};
@@ -314,6 +418,13 @@ async function buildSummary(user, coupleId, today = istDay(0)) {
     spunToday,
     scratchesAvailable: scratchedToday ? 0 : 1,
     scratchedToday,
+    paidSpinPrice: spendRules.spin.price,
+    paidSpinsLeft: spunToday ? Math.max(0, spendRules.spin.daily - paidSpins) : 0,
+    paidScratchPrice: spendRules.scratch.price,
+    paidScratchesLeft: scratchedToday ? Math.max(0, spendRules.scratch.daily - paidScratches) : 0,
+    adCoinsReward: adRules.coins,
+    adCoinsLeft: Math.max(0, adRules.daily - adCounts.coins),
+    adSpinsLeft: spunToday ? Math.max(0, adRules.spinDaily - adCounts.spins) : 0,
     wheelSlices: slices,
     unlockedItemIds,
     equipped: equippedMap,
@@ -589,15 +700,48 @@ router.post('/spin', async (req, res) => {
       });
     }
 
-    // 2) Daily limit check: max 1 free spin per day
+    // 2) Daily limits: 1 free spin a day; after that, optional paid spins (price + cap from spend rules)
+    const adToken = typeof body.adToken === 'string' ? body.adToken : '';
+    const paid = body.paid === true && !adToken;
     const { data: todaySpins } = await supabase.from('reward_spins')
-      .select('id')
-      .eq('user_id', user.id).eq('day', today);
-    if (todaySpins && todaySpins.length > 0) {
+      .select('source').eq('user_id', user.id).eq('day', today);
+    const freeUsed = (todaySpins || []).some(r => r.source === 'daily');
+    const paidUsed = (todaySpins || []).filter(r => r.source === 'paid').length;
+    const spend = (await getSpendRules()).spin;
+    if (!paid && !adToken && freeUsed) {
       return res.status(400).json({
         error: "You've already used your free spin today. Come back tomorrow!",
         code: 'spin_limit_reached',
       });
+    }
+    if (paid && !freeUsed) {
+      return res.status(400).json({ error: 'Use your free spin first.', code: 'free_spin_first' });
+    }
+    if (paid && paidUsed >= spend.daily) {
+      return res.status(400).json({ error: "You've used all extra spins for today. Come back tomorrow!", code: 'spin_limit_reached' });
+    }
+
+    // 2a) Spin earned by watching an ad: the ticket replaces the coins (one use only)
+    if (adToken) {
+      if (!freeUsed) return res.status(400).json({ error: 'Use your free spin first.', code: 'free_spin_first' });
+      const adRules = await getAdRules();
+      const chk = checkAdToken(adToken, user, 'spin', today, adRules);
+      if (!chk.ok) return res.status(400).json({ error: 'The ad reward could not be confirmed. Please try again.', code: chk.code });
+      if (chk.n > adRules.spinDaily) return res.status(400).json({ error: 'No more ad spins today. Come back tomorrow!', code: 'ad_limit_reached' });
+      const mark = await supabase.rpc('reward_credit', {
+        p_user: user.id, p_couple: String(coupleId), p_amount: 0, p_kind: 'ad_spin', p_idem: 'adspin:' + today + ':' + chk.n, p_meta: { n: chk.n },
+      });
+      if (mark.error) throw mark.error;
+      const mrow = Array.isArray(mark.data) ? mark.data[0] : mark.data;
+      if (mrow && !mrow.applied) return res.status(400).json({ error: 'That ad reward was already used.', code: 'ad_ticket_used' });
+    }
+
+    // 2b) Paid spin: take the coins first (same tap id can never be charged twice)
+    if (paid) {
+      const row = await chargeCoins(user, coupleId, spend.price, 'spin_buy', 'spin-buy:' + clientId, { price: spend.price });
+      if (row && !row.applied && row.balance < spend.price) {
+        return res.status(400).json({ error: 'Not enough coins for another spin.', code: 'not_enough_coins', balance: row.balance, price: spend.price });
+      }
     }
 
     // 3) Server decides outcome
@@ -606,18 +750,21 @@ router.post('/spin', async (req, res) => {
 
     // 4) Credit coins atomically with idem_key
     const idem = 'spin:' + clientId;
-    const { data: credit, error: cErr } = await supabase.rpc('reward_credit', {
+    const { error: cErr } = await supabase.rpc('reward_credit', {
       p_user: user.id, p_couple: String(coupleId), p_amount: slice.coins,
       p_kind: 'spin', p_idem: idem,
-      p_meta: { sliceIndex: slice.index, coins: slice.coins, label: slice.label },
+      p_meta: { sliceIndex: slice.index, coins: slice.coins, label: slice.label, paid, ad: !!adToken },
     });
-    if (cErr) throw cErr;
+    if (cErr) {
+      if (paid) await refundCoins(user, coupleId, spend.price, 'spin_refund', 'spin-refund:' + clientId, {});
+      throw cErr;
+    }
 
     // 5) Log the spin
     const { error: sErr } = await supabase.from('reward_spins').insert({
       user_id: user.id, couple_id: String(coupleId), day: today,
       slice_index: slice.index, coins: slice.coins, label: slice.label,
-      source: 'daily', client_id: clientId,
+      source: adToken ? 'ad' : (paid ? 'paid' : 'daily'), client_id: clientId,
     });
     if (sErr) console.error('[rewards] reward_spins log error:', sErr.message);
 
@@ -657,15 +804,28 @@ router.post('/scratch', async (req, res) => {
       });
     }
 
-    // 2) Daily limit check: max 1 free scratch per day
+    // 2) Daily limits: 1 free card a day; after that, optional paid cards (price + cap from spend rules)
+    const paid = body.paid === true;
     const { data: todayScratches } = await supabase.from('reward_scratches')
-      .select('id')
-      .eq('user_id', user.id).eq('day', today);
-    if (todayScratches && todayScratches.length > 0) {
+      .select('source').eq('user_id', user.id).eq('day', today);
+    const freeUsed = (todayScratches || []).some(r => r.source === 'daily');
+    const paidUsed = (todayScratches || []).filter(r => r.source === 'paid').length;
+    const spend = (await getSpendRules()).scratch;
+    if (!paid && freeUsed) {
       return res.status(400).json({
         error: "You've already scratched your card today. Come back tomorrow!",
         code: 'scratch_limit_reached',
       });
+    }
+    if (paid && !freeUsed) return res.status(400).json({ error: 'Scratch your free card first.', code: 'free_scratch_first' });
+    if (paid && paidUsed >= spend.daily) {
+      return res.status(400).json({ error: "You've used all extra cards for today. Come back tomorrow!", code: 'scratch_limit_reached' });
+    }
+    if (paid) {
+      const row = await chargeCoins(user, coupleId, spend.price, 'scratch_buy', 'scratch-buy:' + clientId, { price: spend.price });
+      if (row && !row.applied && row.balance < spend.price) {
+        return res.status(400).json({ error: 'Not enough coins for another card.', code: 'not_enough_coins', balance: row.balance, price: spend.price });
+      }
     }
 
     // 3) Server decides outcome
@@ -674,18 +834,21 @@ router.post('/scratch', async (req, res) => {
 
     // 4) Credit coins atomically with idem_key
     const idem = 'scratch:' + clientId;
-    const { data: credit, error: cErr } = await supabase.rpc('reward_credit', {
+    const { error: cErr } = await supabase.rpc('reward_credit', {
       p_user: user.id, p_couple: String(coupleId), p_amount: prize.coins,
       p_kind: 'scratch', p_idem: idem,
-      p_meta: { prizeId: prize.id, coins: prize.coins, title: prize.title },
+      p_meta: { prizeId: prize.id, coins: prize.coins, title: prize.title, paid },
     });
-    if (cErr) throw cErr;
+    if (cErr) {
+      if (paid) await refundCoins(user, coupleId, spend.price, 'scratch_refund', 'scratch-refund:' + clientId, {});
+      throw cErr;
+    }
 
     // 5) Log the scratch
     const { error: scErr } = await supabase.from('reward_scratches').insert({
       user_id: user.id, couple_id: String(coupleId), day: today,
       prize_id: prize.id, coins: prize.coins, title: prize.title, message: prize.message,
-      source: 'daily', client_id: clientId,
+      source: paid ? 'paid' : 'daily', client_id: clientId,
     });
     if (scErr) console.error('[rewards] reward_scratches log error:', scErr.message);
 
@@ -820,9 +983,153 @@ router.post('/store/equip', async (req, res) => {
   }
 });
 
+// ════════════════════════════════════════════════════════════════
+//  PHASE 1 — EARN COINS ACROSS THE APP
+//    GET  /api/rewards/earn/status?coupleId=&userId=     what can be earned today and what is left
+//    POST /api/rewards/earn { coupleId, userId, action } small daily-capped coins for everyday actions
+//
+//  The apps send only the ACTION NAME, never an amount. The server owns the amount and the daily cap
+//  (per person, India day). A reward_config row (key 'earn_rules') overrides these defaults, so values
+//  can be tuned or an action switched off ("enabled": false) without releasing an app.
+//  The cap is atomic: every payout uses the idem key  earn:<action>:<day>:<n>  (n = 1..cap), so two
+//  fast taps can never pay the same slot twice and no new table is needed.
+// ════════════════════════════════════════════════════════════════
+const DEFAULT_EARN_RULES = {
+  mood:    { coins: 2, daily: 1, label: 'Log your mood',            emoji: '😊' },
+  love:    { coins: 2, daily: 3, label: 'Send a Hug / Touch / Miss You', emoji: '🤗' },
+  memory:  { coins: 5, daily: 3, label: 'Add a memory',             emoji: '📸' },
+  routine: { coins: 3, daily: 1, label: 'Complete your daily routine', emoji: '🌞' },
+  game:    { coins: 5, daily: 3, label: 'Win a couple game',        emoji: '🎮' },
+};
+
+function cleanEarnRules(v) {
+  const out = {};
+  for (const k of Object.keys(DEFAULT_EARN_RULES)) {
+    const d = DEFAULT_EARN_RULES[k];
+    const o = (v && typeof v === 'object' && v[k] && typeof v[k] === 'object') ? v[k] : {};
+    const coins = Number.isInteger(o.coins) && o.coins >= 0 && o.coins <= 100 ? o.coins : d.coins;
+    const daily = Number.isInteger(o.daily) && o.daily >= 0 && o.daily <= 20 ? o.daily : d.daily;
+    out[k] = { coins, daily, label: d.label, emoji: d.emoji, enabled: o.enabled !== false && coins > 0 && daily > 0 };
+  }
+  return out;
+}
+
+async function getEarnRules() {
+  try {
+    const { data } = await supabase.from('reward_config').select('value').eq('key', 'earn_rules').maybeSingle();
+    return cleanEarnRules(data && data.value);
+  } catch (_) {}
+  return cleanEarnRules(null);
+}
+
+async function earnedTodayCounts(userId, today) {
+  const counts = {};
+  const { data } = await supabase.from('coin_transactions').select('idem_key')
+    .eq('user_id', userId).like('idem_key', 'earn:%:' + today + ':%');
+  for (const r of data || []) {
+    const a = String(r.idem_key).split(':')[1];
+    counts[a] = (counts[a] || 0) + 1;
+  }
+  return counts;
+}
+
+router.get('/earn/status', async (req, res) => {
+  try {
+    const coupleId = req.query.coupleId;
+    const user = await member(req, res, coupleId); if (!user) return;
+    const today = istDay(0);
+    const [rules, counts] = await Promise.all([getEarnRules(), earnedTodayCounts(user.id, today)]);
+    const items = Object.keys(rules).filter(k => rules[k].enabled).map(k => ({
+      action: k, label: rules[k].label, emoji: rules[k].emoji, coins: rules[k].coins, daily: rules[k].daily,
+      remaining: Math.max(0, rules[k].daily - (counts[k] || 0)),
+    }));
+    res.json({ items });
+  } catch (e) {
+    console.error('[rewards] earn status failed:', e.message);
+    res.status(500).json({ error: 'Could not load earning options.' });
+  }
+});
+
+router.post('/earn', async (req, res) => {
+  const body = req.body || {};
+  try {
+    const coupleId = body.coupleId;
+    const user = await member(req, res, coupleId); if (!user) return;
+    const action = typeof body.action === 'string' ? body.action.trim() : '';
+    const rules = await getEarnRules();
+    const rule = rules[action];
+    if (!rule || !rule.enabled) return res.status(400).json({ error: 'Unknown action', code: 'unknown_action' });
+
+    const today = istDay(0);
+    const counts = await earnedTodayCounts(user.id, today);
+    for (let n = (counts[action] || 0) + 1; n <= rule.daily; n++) {
+      const { data: credit, error } = await supabase.rpc('reward_credit', {
+        p_user: user.id, p_couple: String(coupleId), p_amount: rule.coins,
+        p_kind: 'earn', p_idem: 'earn:' + action + ':' + today + ':' + n,
+        p_meta: { action, label: rule.label, n },
+      });
+      if (error) throw error;
+      const row = Array.isArray(credit) ? credit[0] : credit;
+      if (row && row.applied) {
+        return res.json({ ok: true, earned: rule.coins, capped: false, remaining: rule.daily - n, balance: row.balance, action });
+      }
+      // slot already taken (a parallel tap) -> try the next one
+    }
+    const balance = await walletBalance(user.id);
+    res.json({ ok: true, earned: 0, capped: true, remaining: 0, balance, action });
+  } catch (e) {
+    console.error('[rewards] earn failed:', e.message);
+    res.status(500).json({ error: 'Could not add coins. Please try again.' });
+  }
+});
+
+router.post('/ad/start', async (req, res) => {
+  try {
+    const coupleId = (req.body || {}).coupleId;
+    const user = await member(req, res, coupleId); if (!user) return;
+    const purpose = (req.body || {}).purpose;
+    if (purpose !== 'coins' && purpose !== 'spin') return res.status(400).json({ error: 'Unknown purpose', code: 'unknown_purpose' });
+    const today = istDay(0);
+    const [rules, counts] = await Promise.all([getAdRules(), adCountsToday(user.id, today)]);
+    const used = purpose === 'coins' ? counts.coins : counts.spins;
+    const cap = purpose === 'coins' ? rules.daily : rules.spinDaily;
+    if (used >= cap) return res.status(400).json({ error: 'No more ad rewards today. Come back tomorrow!', code: 'ad_limit_reached' });
+    const token = signAdToken({ u: user.id, c: String(coupleId), p: purpose, d: today, n: used + 1, t: Date.now() });
+    res.json({ ok: true, token, minSeconds: rules.minSeconds, coins: rules.coins });
+  } catch (e) {
+    console.error('[rewards] ad start failed:', e.message);
+    res.status(500).json({ error: 'Could not start the ad reward.' });
+  }
+});
+
+router.post('/ad/claim', async (req, res) => {
+  try {
+    const coupleId = (req.body || {}).coupleId;
+    const user = await member(req, res, coupleId); if (!user) return;
+    const today = istDay(0);
+    const rules = await getAdRules();
+    const chk = checkAdToken((req.body || {}).token, user, 'coins', today, rules);
+    if (!chk.ok) return res.status(400).json({ error: 'The ad reward could not be confirmed. Please try again.', code: chk.code });
+    if (chk.n > rules.daily) return res.status(400).json({ error: 'No more ad rewards today. Come back tomorrow!', code: 'ad_limit_reached' });
+    const { data, error } = await supabase.rpc('reward_credit', {
+      p_user: user.id, p_couple: String(coupleId), p_amount: rules.coins, p_kind: 'ad',
+      p_idem: 'ad:' + today + ':' + chk.n, p_meta: { n: chk.n },
+    });
+    if (error) throw error;
+    const row = Array.isArray(data) ? data[0] : data;
+    const balance = row ? row.balance : await walletBalance(user.id);
+    if (row && !row.applied) return res.json({ ok: true, earned: 0, duplicate: true, balance, remaining: Math.max(0, rules.daily - chk.n) });
+    res.json({ ok: true, earned: rules.coins, duplicate: false, balance, remaining: Math.max(0, rules.daily - chk.n) });
+  } catch (e) {
+    console.error('[rewards] ad claim failed:', e.message);
+    res.status(500).json({ error: 'Could not add the ad reward. Please try again.' });
+  }
+});
+
 module.exports = router;
 module.exports._test = {
   streakFromDays, istDay, prevDay, DEFAULT_CYCLE, DEFAULT_GIFTS, cleanGift,
   DEFAULT_SLICES, DEFAULT_SCRATCH_PRIZES, pickWeighted,
-  DEFAULT_STORE_ITEMS,
+  DEFAULT_STORE_ITEMS, DEFAULT_EARN_RULES, cleanEarnRules, DEFAULT_SPEND_RULES, cleanSpendRules,
+  DEFAULT_AD_RULES, cleanAdRules, signAdToken, readAdToken, checkAdToken,
 };

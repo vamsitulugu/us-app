@@ -20,6 +20,7 @@ const Rewards = (() => {
   let sum = null, hist = null, loading = false, busy = false, failed = false;
   let wheelAngle = 0, isSpinning = false, scratchResult = null, isScratching = false;
   let view = 'wallet';
+  let earnItems = [];
   let storeItems = [], storeFilter = 'all', unlockedIds = new Set(), equippedItems = {};
 
   const $ = id => document.getElementById(id);
@@ -51,7 +52,11 @@ const Rewards = (() => {
     try {
       sum = await call('GET', '/api/rewards/summary'); failed = false;
       if (withHistory) {
-        const st = await call('GET', '/api/rewards/store');
+        const [st, er] = await Promise.all([
+          call('GET', '/api/rewards/store'),
+          call('GET', '/api/rewards/earn/status').catch(() => ({ items: [] })),
+        ]);
+        earnItems = er.items || [];
         storeItems = st.items || [];
         unlockedIds = new Set(st.unlockedItemIds || []);
         equippedItems = st.equipped || {};
@@ -76,6 +81,24 @@ const Rewards = (() => {
     }
   }
 
+  /* ── Phase 1: earn coins from everyday actions ──
+     Other pages call Rewards.earn('mood' | 'love' | 'memory' | 'routine' | 'game').
+     Only the action name is sent; the server decides the amount and the daily cap. */
+  async function earn(action) {
+    if (!ids()) return null;
+    try {
+      const r = await call('POST', '/api/rewards/earn', { action });
+      if (r && r.earned > 0) {
+        if (sum) { sum.balance = r.balance; sum.lifetimeEarned = (sum.lifetimeEarned || 0) + r.earned; }
+        const it = earnItems.find(i => i.action === action); if (it) it.remaining = r.remaining;
+        renderStrip();
+        if (isPageOpen()) renderPage();
+        if (typeof toast === 'function') setTimeout(() => toast('+' + r.earned + ' Gold Coins 🪙'), 700);
+      }
+      return r;
+    } catch (_) { return null; }
+  }
+
   /* ── Step 2: Gift Shop ── */
   async function loadGifts() {
     const g = await call('GET', '/api/rewards/gifts');
@@ -92,13 +115,17 @@ const Rewards = (() => {
 
   /* ── Step 3: Spin & Win ── */
   async function spin() {
-    if (isSpinning || !sum || sum.spunToday) return;
+    if (isSpinning || !sum) return;
+    // Phase 2: after the free daily spin, extra spins cost coins (price + daily cap are set by the server).
+    const paid = !!sum.spunToday;
+    const price = sum.paidSpinPrice || 20;
+    if (paid && (!(sum.paidSpinsLeft > 0) || sum.balance < price)) return;
     isSpinning = true;
     const btn = $('rwSpinBtn');
     if (btn) { btn.disabled = true; btn.textContent = 'Spinning…'; }
 
     try {
-      const res = await call('POST', '/api/rewards/spin', { clientId: 'spin_' + genClientId() });
+      const res = await call('POST', '/api/rewards/spin', { clientId: 'spin_' + genClientId(), paid });
       const targetIndex = res.sliceIndex != null ? res.sliceIndex : 0;
       const coinsWon = res.coins || 0;
       const newBal = res.balance;
@@ -109,16 +136,17 @@ const Rewards = (() => {
           sum.balance = newBal;
           sum.spunToday = true;
           sum.spinsAvailable = 0;
+          if (paid) sum.paidSpinsLeft = Math.max(0, (sum.paidSpinsLeft || 0) - 1);
         }
         hist = null;
         render();
         countUp(newBal - coinsWon, newBal);
-        if (typeof toast === 'function') toast('🎉 You won ' + coinsWon + ' Gold Coins from Spin & Win!');
+        if (typeof toast === 'function') toast(paid ? ('🎉 You won ' + coinsWon + ' Gold Coins (spin cost ' + price + ')') : ('🎉 You won ' + coinsWon + ' Gold Coins from Spin & Win!'));
         if (window.playAppSound) try { window.playAppSound('chat.sticker.sent'); } catch (_) {}
       });
     } catch (e) {
       isSpinning = false;
-      if (btn) { btn.disabled = false; btn.textContent = 'Spin Wheel 🎡'; }
+      if (btn) { btn.disabled = false; btn.textContent = paid ? ('Spin again · ' + price + ' 🪙') : 'Spin Wheel 🎡'; }
       if (typeof toast === 'function') toast(e.message || 'Spin failed. Please try again.');
     }
   }
@@ -501,8 +529,11 @@ const Rewards = (() => {
         : (sum.partnerCheckedInToday ? partner + ' already checked in — your turn 💌' : 'Check in — and ask ' + partner + ' to do the same'));
 
     // Step 3: Spin & Scratch states
-    const spinBtnLabel = sum.spunToday ? 'Spun Today ✓' : 'Spin Wheel 🎡';
-    const spinDisabled = sum.spunToday || isSpinning ? 'disabled' : '';
+    const spinPrice = sum.paidSpinPrice || 20;
+    const paidReady = !!sum.spunToday && sum.paidSpinsLeft > 0;
+    const canAfford = sum.balance >= spinPrice;
+    const spinBtnLabel = !sum.spunToday ? 'Spin Wheel 🎡' : paidReady ? ('Spin again · ' + spinPrice + ' 🪙') : 'Spun Today ✓';
+    const spinDisabled = (isSpinning || (sum.spunToday && (!paidReady || !canAfford))) ? 'disabled' : '';
 
     const scratchCoverStyle = sum.scratchedToday ? 'display:none;' : '';
     const scratchRevealBtn = sum.scratchedToday ? '' : '<button type="button" class="rw-btn rw-sc-btn" id="rwScratchRevealBtn" onclick="Rewards.revealScratch()">Reveal Prize ✨</button>';
@@ -549,14 +580,21 @@ const Rewards = (() => {
       '</div>';
     }).join('');
 
-    const spinState = sum.spunToday ? 'Free spin used' : '1 Free spin available';
-    const spinNote = sum.spunToday ? 'Come back tomorrow for your next free spin.' : 'Spin the wheel to win up to 100 Gold Coins!';
+    const spinState = !sum.spunToday ? '1 Free spin available' : paidReady ? (sum.paidSpinsLeft + ' extra spin' + (sum.paidSpinsLeft > 1 ? 's' : '') + ' left') : 'Free spin used';
+    const spinNote = !sum.spunToday ? 'Spin the wheel to win up to 100 Gold Coins!'
+      : paidReady ? (canAfford ? ('Extra spins cost ' + spinPrice + ' coins each. Win up to 100 back!') : ('You need ' + spinPrice + ' coins to spin again. Earn more on the Wallet tab.'))
+      : 'Come back tomorrow for your next free spin.';
 
     const heroCard = '<div class="rw-card rw-hero">' + COIN + '<div><div class="rw-bal" data-rw-bal>' + sum.balance + '</div><div class="rw-bal-l">Gold Coins</div></div>' +
       '<div class="rw-hero-right"><b>' + sum.lifetimeEarned + '</b>earned in total</div></div>';
 
     const checkInCard = '<div class="rw-card"><h3>Daily check-in <small>Day ' + sum.cyclePosition + ' of 7</small></h3><div class="rw-days">' + days + '</div>' +
       '<div class="rw-claim-row">' + claimBtn + '<div class="rw-note">' + note + '</div></div></div>';
+
+    const earnRows = (earnItems || []).map(i => '<li class="' + (i.remaining > 0 ? '' : 'is-done') + '"><span class="rw-earn-e">' + i.emoji + '</span>' +
+      '<div class="rw-earn-t"><b>' + esc(i.label) + '</b><small>' + (i.remaining > 0 ? (i.remaining + ' of ' + i.daily + ' left today') : 'Done for today ✓') + '</small></div>' +
+      '<em>+' + i.coins + ' 🪙</em></li>').join('');
+    const earnCard = earnRows ? '<div class="rw-card"><h3>Earn more coins <small>Resets every day</small></h3><ul class="rw-earn">' + earnRows + '</ul></div>' : '';
 
     const scratchCard = '<div class="rw-card rw-interactive-card"><h3>🎫 Lucky Couple Scratch <small>' + (sum.scratchedToday ? 'Scratched today' : '1 Card ready') + '</small></h3>' +
       '<div class="rw-scratch-box">' +
@@ -593,7 +631,7 @@ const Rewards = (() => {
         '<div class="rw-wheel-box"><div class="rw-wheel-pointer">▼</div>' +
           '<canvas id="rwWheelCanvas" width="320" height="320" class="rw-wheel-canvas"></canvas></div>' +
         '<div class="rw-spin-actions">' +
-          '<button type="button" class="rw-btn ' + (sum.spunToday ? 'is-done' : 'is-pulse') + '" id="rwSpinBtn" ' + spinDisabled + ' onclick="Rewards.spin()">' + spinBtnLabel + '</button>' +
+          '<button type="button" class="rw-btn ' + (sum.spunToday && !paidReady ? 'is-done' : 'is-pulse') + '" id="rwSpinBtn" ' + spinDisabled + ' onclick="Rewards.spin()">' + spinBtnLabel + '</button>' +
           '<div class="rw-note">' + spinNote + '</div></div></div>';
 
     const tabs = '<div class="rw-seg" role="tablist">' +
@@ -603,7 +641,7 @@ const Rewards = (() => {
     let inner;
     if (view === 'spin') inner = spinPage;
     else if (view === 'store') inner = tabs + heroCard + storeCard;
-    else inner = tabs + heroCard + checkInCard + scratchCard + streakCard + spinEntry;
+    else inner = tabs + heroCard + checkInCard + earnCard + scratchCard + streakCard + spinEntry;
 
     host.innerHTML = '<div class="rw rw-page"><div class="rw-head"><div><h2>Twin Rewards</h2><p>Play together. Earn together. Celebrate together.</p></div></div>' + inner + '</div>';
 
@@ -654,6 +692,6 @@ const Rewards = (() => {
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
-  return { load, claim, render, loadGifts, sendGift, spin, scratch, revealScratch, buyItem, equipItem, setStoreFilter, setView };
+  return { load, claim, render, loadGifts, sendGift, spin, scratch, revealScratch, buyItem, equipItem, setStoreFilter, setView, earn };
 })();
 window.Rewards = Rewards;

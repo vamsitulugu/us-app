@@ -85,6 +85,7 @@ const ConnCard = (() => {
     const fn = originals[kind] || (typeof window[k.fn] === 'function' && !window[k.fn]._ccWrapped ? window[k.fn] : null);
     if (!fn || !window.S) return;                        // app not ready yet
     fn();
+    if (window.Rewards && Rewards.earn) Rewards.earn('love');   // small daily-capped coins (server decides)
     S.lastInteraction = { type: kind, from: S.role, ts: Date.now() };
     const btn = document.getElementById(k.btn);
     if (btn) {

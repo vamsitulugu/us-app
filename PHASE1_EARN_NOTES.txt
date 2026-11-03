@@ -1,0 +1,7 @@
+PHASE 1 - EARN COINS ACROSS THE APP (web + server)
+No database migration needed. Deploy the server (routes/rewards.js) and the public/ files.
+New:  GET /api/rewards/earn/status   POST /api/rewards/earn {action}
+Actions & defaults (per person, per India day): mood 2x1, love (hug/touch/miss) 2x3, memory 5x3, routine 3x1, game 5x3 -> max 41 coins/day.
+Tune without a release: reward_config row key 'earn_rules', e.g. {"mood":{"coins":3,"daily":1},"game":{"enabled":false}}.
+Web wired now: mood, love (Hug/Touch/Miss You), memory (photo upload). routine + game: server rule ready, page hook still to add.
+Test: node tests/rewards-earn.test.js
