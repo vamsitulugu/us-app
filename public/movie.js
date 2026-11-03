@@ -686,6 +686,15 @@
   // the shared countdown for BOTH clients.
   // ═══════════════════════════════════════════════════════
   $('btnStart').onclick = async () => {
+    // Free movie each day, then ONE small coin pass. A start in the last 10 minutes (e.g. after a cancel) is the same movie.
+    if (window.AccessGate && !(state.gateOk && Date.now() - state.gateOk < 600000)) {
+      const btn = $('btnStart'); btn.disabled = true;
+      let ok = true;
+      try { ok = await window.AccessGate.check('movie'); } catch (_) { ok = true; }
+      btn.disabled = false;
+      if (!ok) return;
+      state.gateOk = Date.now();
+    }
     try {
       state.room = await api('POST', `/${COUPLE_ID}/request-start`, { role: ROLE });
       broadcastRoom(state.room);

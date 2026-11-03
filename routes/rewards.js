@@ -1167,10 +1167,160 @@ router.post('/ad/claim', async (req, res) => {
   }
 });
 
+// ── ACCESS PASSES: free daily uses, then ONE small coin pass ──────────────────
+// Movies, Sing Together songs, Globe pins and Couple Games get a few FREE uses every day.
+// When they are gone, ONE pass (coins) unlocks that feature for a few hours for BOTH partners,
+// so nobody is asked again for every song, pin or game. Pro couples are never asked.
+//   POST /access/use    { coupleId, userId, feature }   -> use one free try / ride a pass / ask for coins
+//   POST /access/pass   { coupleId, userId, feature, clientId } -> buy a pass (coins taken once, safe to retry)
+//   GET  /access/status ?coupleId=&userId=              -> what is free / unlocked right now
+// Numbers live in reward_config key 'access_rules' (change them without a release):
+//   {"movie":{"free":1,"price":20,"hours":12}, "songs":{...}, "pins":{...}, "games":{...}}
+const { getProStatus } = require('../middleware/pro');
+const ACCESS_FEATURES = {
+  movie: { label: 'Movie night pass',   emoji: '🎬', perk: 'Unlimited movies for both of you' },
+  songs: { label: 'Sing Together pass', emoji: '🎤', perk: 'Unlimited songs for both of you' },
+  pins:  { label: 'Globe pins pass',    emoji: '🌍', perk: 'Unlimited pins for both of you' },
+  games: { label: 'Game night pass',    emoji: '🎮', perk: 'Unlimited games for both of you' },
+};
+const DEFAULT_ACCESS_RULES = {
+  movie: { free: 1, price: 20, hours: 12 },
+  songs: { free: 5, price: 10, hours: 12 },
+  pins:  { free: 3, price: 10, hours: 24 },
+  games: { free: 3, price: 10, hours: 12 },
+};
+function cleanAccessRules(v) {
+  const out = {};
+  for (const k of Object.keys(DEFAULT_ACCESS_RULES)) {
+    const d = DEFAULT_ACCESS_RULES[k];
+    const o = (v && typeof v === 'object' && v[k] && typeof v[k] === 'object') ? v[k] : {};
+    out[k] = {
+      free: Number.isInteger(o.free) && o.free >= 0 && o.free <= 50 ? o.free : d.free,
+      price: Number.isInteger(o.price) && o.price >= 1 && o.price <= 500 ? o.price : d.price,
+      hours: Number.isInteger(o.hours) && o.hours >= 1 && o.hours <= 72 ? o.hours : d.hours,
+    };
+  }
+  return out;
+}
+async function getAccessRules() {
+  try {
+    const { data } = await supabase.from('reward_config').select('value').eq('key', 'access_rules').maybeSingle();
+    return cleanAccessRules(data && data.value);
+  } catch (_) {}
+  return cleanAccessRules(null);
+}
+/** A running pass for this couple + feature (shared by both partners), or null. */
+async function activePass(coupleId, feature, nowMs = Date.now()) {
+  const { data, error } = await supabase.from('reward_access').select('expires_at')
+    .eq('couple_id', String(coupleId)).eq('feature', feature).eq('kind', 'pass');
+  if (error) throw error;
+  let best = 0;
+  for (const r of data || []) { const t = Date.parse(r.expires_at); if (Number.isFinite(t) && t > nowMs && t > best) best = t; }
+  return best ? new Date(best).toISOString() : null;
+}
+async function freeUsedToday(userId, feature, today) {
+  const { data, error } = await supabase.from('reward_access').select('id')
+    .eq('user_id', userId).eq('feature', feature).eq('kind', 'use').eq('day', today);
+  if (error) throw error;
+  return (data || []).length;
+}
+function readFeature(req, res) {
+  const f = typeof (req.body || {}).feature === 'string' ? req.body.feature : (req.query || {}).feature;
+  if (!ACCESS_FEATURES[f]) { res.status(400).json({ error: 'Unknown feature' }); return null; }
+  return f;
+}
+
+router.post('/access/use', async (req, res) => {
+  try {
+    const coupleId = (req.body || {}).coupleId;
+    const user = await member(req, res, coupleId); if (!user) return;
+    const feature = readFeature(req, res); if (!feature) return;
+    if ((await getProStatus(coupleId)).isPro) return res.json({ allowed: true, via: 'pro' });
+    const pass = await activePass(coupleId, feature);
+    if (pass) return res.json({ allowed: true, via: 'pass', expiresAt: pass });
+    const rules = (await getAccessRules())[feature];
+    const today = istDay(0);
+    const used = await freeUsedToday(user.id, feature, today);
+    if (used < rules.free) {
+      const { error } = await supabase.from('reward_access').insert({
+        couple_id: String(coupleId), user_id: user.id, feature, kind: 'use', day: today,
+      });
+      if (error) throw error;
+      return res.json({ allowed: true, via: 'free', freeLeft: rules.free - used - 1, freeTotal: rules.free });
+    }
+    const balance = await walletBalance(user.id);
+    const meta = ACCESS_FEATURES[feature];
+    res.json({
+      allowed: false, needsCoins: true, feature, price: rules.price, hours: rules.hours,
+      freeTotal: rules.free, balance, label: meta.label, emoji: meta.emoji, perk: meta.perk + ' · ' + rules.hours + ' hours',
+    });
+  } catch (e) {
+    console.error('[rewards] access use failed:', e.message);
+    res.status(500).json({ error: 'Could not check access.' });
+  }
+});
+
+router.post('/access/pass', async (req, res) => {
+  const body = req.body || {};
+  try {
+    const coupleId = body.coupleId;
+    const user = await member(req, res, coupleId); if (!user) return;
+    const feature = readFeature(req, res); if (!feature) return;
+    const clientId = typeof body.clientId === 'string' ? body.clientId.trim() : '';
+    if (!/^[A-Za-z0-9_.:-]{6,80}$/.test(clientId)) return res.status(400).json({ error: 'Missing or invalid data' });
+    if ((await getProStatus(coupleId)).isPro) return res.json({ ok: true, via: 'pro', expiresAt: new Date(Date.now() + 86400000).toISOString() });
+    const running = await activePass(coupleId, feature);
+    if (running) return res.json({ ok: true, duplicate: true, expiresAt: running, balance: await walletBalance(user.id) });
+
+    const rules = (await getAccessRules())[feature];
+    const idem = 'access:' + clientId;
+    const row = await chargeCoins(user, coupleId, rules.price, 'access_pass', idem, { feature, hours: rules.hours });
+    if (!(row && row.applied)) {
+      const { data: paidBefore } = await supabase.from('coin_transactions').select('id').eq('user_id', user.id).eq('idem_key', idem).maybeSingle();
+      if (!paidBefore) {
+        const balance = row ? row.balance : await walletBalance(user.id);
+        return res.status(402).json({ error: 'Not enough Gold Coins for this pass.', code: 'not_enough_coins', balance, need: rules.price });
+      }
+    }
+    const expiresAt = new Date(Date.now() + rules.hours * 3600000).toISOString();
+    const { error } = await supabase.from('reward_access').insert({
+      couple_id: String(coupleId), user_id: user.id, feature, kind: 'pass', day: istDay(0), expires_at: expiresAt, client_id: clientId,
+    });
+    if (error) {
+      await refundCoins(user, coupleId, rules.price, 'access_refund', 'access_refund:' + clientId, { feature });
+      throw error;
+    }
+    res.json({ ok: true, duplicate: false, expiresAt, balance: await walletBalance(user.id) });
+  } catch (e) {
+    console.error('[rewards] access pass failed:', e.message);
+    res.status(500).json({ error: 'Could not unlock. You were not charged.' });
+  }
+});
+
+router.get('/access/status', async (req, res) => {
+  try {
+    const coupleId = req.query.coupleId;
+    const user = await member(req, res, coupleId); if (!user) return;
+    const isPro = (await getProStatus(coupleId)).isPro;
+    const rules = await getAccessRules();
+    const today = istDay(0);
+    const features = {};
+    for (const f of Object.keys(ACCESS_FEATURES)) {
+      const [used, pass] = await Promise.all([freeUsedToday(user.id, f, today), activePass(coupleId, f)]);
+      features[f] = { free: rules[f].free, freeLeft: Math.max(0, rules[f].free - used), price: rules[f].price, hours: rules[f].hours, passUntil: pass };
+    }
+    res.json({ isPro, balance: await walletBalance(user.id), features });
+  } catch (e) {
+    console.error('[rewards] access status failed:', e.message);
+    res.status(500).json({ error: 'Could not load access.' });
+  }
+});
+
 module.exports = router;
 module.exports._test = {
   streakFromDays, istDay, prevDay, DEFAULT_CYCLE, DEFAULT_GIFTS, cleanGift,
   DEFAULT_SLICES, DEFAULT_SCRATCH_PRIZES, pickWeighted,
   DEFAULT_STORE_ITEMS, DEFAULT_EARN_RULES, cleanEarnRules, DEFAULT_SPEND_RULES, cleanSpendRules,
   DEFAULT_AD_RULES, cleanAdRules, signAdToken, readAdToken, checkAdToken,
+  DEFAULT_ACCESS_RULES, cleanAccessRules,
 };

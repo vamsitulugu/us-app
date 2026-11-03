@@ -27,6 +27,8 @@ const Rewards = (() => {
   const reduce = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const ids = () => (window.S && S.userId && S.coupleId) ? { userId: S.userId, coupleId: S.coupleId } : null;
   const base = () => (typeof API !== 'undefined' ? API : '');
+  const snd = (name, a) => { try { if (window.TwinSound) window.TwinSound[name](a); } catch (_) {} };
+  const sndOn = () => { try { return !window.TwinSound || window.TwinSound.enabled(); } catch (_) { return true; } };
   const genClientId = () => 'cl_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 9);
 
   async function call(method, path, body) {
@@ -74,6 +76,7 @@ const Rewards = (() => {
       sum = await call('POST', '/api/rewards/checkin', {});
       busy = false; failed = false; hist = null;
       render(); countUp(before, sum.balance);
+      if (sum.claimed) snd('coins', 5);
       if (sum.claimed && typeof toast === 'function') toast('+' + sum.earned + ' Gold Coins 🪙  ·  ' + sum.streak + '-day streak 🔥');
       if (isPageOpen()) load(true);
     } catch (e) {
@@ -93,6 +96,7 @@ const Rewards = (() => {
         if (sum) { sum.balance = r.balance; sum.lifetimeEarned = (sum.lifetimeEarned || 0) + r.earned; }
         const it = earnItems.find(i => i.action === action); if (it) it.remaining = r.remaining;
         renderStrip();
+        snd('coins', Math.min(4, Math.ceil(r.earned / 2)));
         if (isPageOpen()) renderPage();
         if (typeof toast === 'function') setTimeout(() => toast('+' + r.earned + ' Gold Coins 🪙'), 700);
       }
@@ -130,9 +134,12 @@ const Rewards = (() => {
       const targetIndex = res.sliceIndex != null ? res.sliceIndex : 0;
       const coinsWon = res.coins || 0;
       const newBal = res.balance;
+      snd('spinStart');
 
       animateWheel(targetIndex, () => {
         isSpinning = false;
+        snd('spinEnd');
+        if (coinsWon > 0) setTimeout(() => snd('win', coinsWon >= 50), 260);
         if (sum) {
           sum.balance = newBal;
           sum.spunToday = true;
@@ -149,7 +156,7 @@ const Rewards = (() => {
         if (window.playAppSound) try { window.playAppSound('chat.sticker.sent'); } catch (_) {}
       });
     } catch (e) {
-      isSpinning = false;
+      isSpinning = false; snd('error');
       if (btn) { btn.disabled = false; btn.textContent = paid ? ('Spin again · ' + price + ' 🪙') : 'Spin Wheel 🎡'; }
       if (typeof toast === 'function') toast(e.message || 'Spin failed. Please try again.');
     }
@@ -178,6 +185,9 @@ const Rewards = (() => {
     const totalDelta = finalAngle - startAngle;
     const startTime = performance.now();
     const duration = 3600;
+    // one soft click each time a peg passes the pointer (top of the wheel); slower wheel = softer click
+    const sliceAt = a => Math.floor((((-Math.PI / 2 - a) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI) / sliceRad);
+    let lastSlice = sliceAt(startAngle);
 
     function frame(now) {
       const elapsed = now - startTime;
@@ -185,6 +195,8 @@ const Rewards = (() => {
       const ease = 1 - Math.pow(1 - p, 3);
       wheelAngle = startAngle + totalDelta * ease;
       drawWheel(canvas, slices, wheelAngle);
+      const sl = sliceAt(wheelAngle);
+      if (sl !== lastSlice) { lastSlice = sl; snd('tick', Math.pow(1 - p, 2)); }
 
       if (p < 1) {
         requestAnimationFrame(frame);
@@ -305,7 +317,7 @@ const Rewards = (() => {
       hist = null;
       renderStrip();
     } catch (e) {
-      isScratching = false;
+      isScratching = false; snd('error');
       if (typeof toast === 'function') toast(e.message || 'Could not claim scratch card.');
     }
   }
@@ -351,6 +363,7 @@ const Rewards = (() => {
       ctx.beginPath();
       ctx.arc(x, y, 22, 0, 2 * Math.PI);
       ctx.fill();
+      snd('scratch', 0.6); // throttles itself
 
       if (!scratchResult && !sum?.scratchedToday && !isScratching) {
         scratch();
@@ -394,6 +407,7 @@ const Rewards = (() => {
         const box = canvas.closest('.rw-scratch-box');
         if (box) box.classList.add('is-revealed');
         if (scratchResult && typeof toast === 'function') {
+          snd('reveal');
           toast('💖 ' + scratchResult.title + ' · +' + scratchResult.coins + ' Gold Coins 🪙');
           const was = sum.balance - scratchResult.coins;
           document.querySelectorAll('[data-rw-bal]').forEach(el => { el.textContent = was; });
@@ -415,6 +429,7 @@ const Rewards = (() => {
     }
 
     if (sum.balance < item.price) {
+      snd('error');
       if (typeof toast === 'function') toast('You need ' + (item.price - sum.balance) + ' more Gold Coins 🪙 to unlock ' + item.name + '!');
       return;
     }
@@ -427,11 +442,12 @@ const Rewards = (() => {
       unlockedIds = new Set(res.unlockedItemIds || []);
       hist = null;
       render();
+      snd('purchase');
       if (typeof toast === 'function') toast('🎉 ' + item.name + ' unlocked for your couple!');
       if (window.playAppSound) try { window.playAppSound('chat.sticker.sent'); } catch (_) {}
       equipItem(item.category, itemId);
     } catch (e) {
-      busy = false; render();
+      busy = false; render(); snd('error');
       if (typeof toast === 'function') toast(e.message || 'Purchase failed.');
     }
   }
@@ -680,7 +696,7 @@ const Rewards = (() => {
     else if (view === 'store') inner = tabs + heroCard + storeCard;
     else inner = tabs + heroCard + checkInCard + earnCard + scratchCard + streakCard + spinEntry;
 
-    host.innerHTML = '<div class="rw rw-page"><div class="rw-head"><div><h2>Twin Rewards</h2><p>Play together. Earn together. Celebrate together.</p></div></div>' + inner + '</div>';
+    host.innerHTML = '<div class="rw rw-page"><div class="rw-head"><div><h2>Twin Rewards</h2><p>Play together. Earn together. Celebrate together.</p></div><button type="button" id="rwSoundBtn" class="rw-sound" onclick="Rewards.toggleSound()" aria-label="Sound effects" aria-pressed="' + (sndOn() ? 'true' : 'false') + '" style="appearance:none;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:inherit;border-radius:999px;min-width:44px;min-height:44px;font-size:18px;cursor:pointer">' + (sndOn() ? '🔊' : '🔇') + '</button></div>' + inner + '</div>';
 
     requestAnimationFrame(() => {
       const wCanvas = $('rwWheelCanvas');
@@ -729,6 +745,12 @@ const Rewards = (() => {
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
-  return { load, claim, render, loadGifts, sendGift, spin, scratch, revealScratch, buyItem, equipItem, setStoreFilter, setView, earn };
+  return { load, claim, render, loadGifts, sendGift, spin, scratch, revealScratch, buyItem, equipItem, setStoreFilter, setView, earn,
+    toggleSound() {
+      const on = window.TwinSound ? window.TwinSound.toggle() : false;
+      const b = $('rwSoundBtn');
+      if (b) { b.textContent = on ? '🔊' : '🔇'; b.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+      if (typeof toast === 'function') toast(on ? 'Sounds on 🔊' : 'Sounds off 🔇');
+    } };
 })();
 window.Rewards = Rewards;

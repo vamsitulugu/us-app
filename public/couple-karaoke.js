@@ -329,8 +329,15 @@
   function openWaitingOverlay() { document.getElementById('ckWaitingOverlay').classList.add('open'); }
   function closeWaitingOverlay() { document.getElementById('ckWaitingOverlay').classList.remove('open'); }
 
-  function sendInvite(song) {
+  async function sendInvite(song) {
     if (!Channel.init()) { window.MusicPlayer.toast('Not connected yet'); return; }
+    // Free songs each day, then ONE small coin pass. Re-inviting within 10 minutes is not counted again.
+    if (window.AccessGate && !(Room._gateOk && Date.now() - Room._gateOk < 600000)) {
+      let ok = true;
+      try { ok = await window.AccessGate.check('songs'); } catch (_) { ok = true; }
+      if (!ok) return;
+      Room._gateOk = Date.now();
+    }
     if (inviteHandler) { Channel.off(inviteHandler); inviteHandler = null; }
     Channel.startPolling(true);
     Channel.send({ type: 'invite', songId: song.id, songTitle: song.title });

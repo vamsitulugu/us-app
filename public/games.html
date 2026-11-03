@@ -1139,8 +1139,20 @@ const Hub = {
         <div class="ghp-meta"><div class="ghp-name">${esc(ID.partnerName)}</div><div class="ghp-lvl">Lv ${ptLv}</div></div>
       </div>`;
   },
-  openGame(gid){
+  async openGame(gid){
     const g = GAMES.find(x=>x.id===gid); if(!g) return;
+    // Free daily games, then ONE small coin pass (never asked again while the pass runs).
+    if(this._gating) return;
+    // re-opening the game you are already in, or one you opened in the last 10 minutes, is not a new use
+    const recent = this._gateOk && (Date.now()-this._gateOk) < 600000;
+    if(!recent && window.AccessGate){
+      this._gating = true;
+      let ok = true;
+      try { ok = await window.AccessGate.check('games'); } catch(_) { ok = true; }
+      this._gating = false;
+      if(!ok) return;
+      this._gateOk = Date.now();
+    }
     this.activeGameId = gid;
     setPresenceGame(gid);
     GameCore.setLastGame(gid);
@@ -3354,6 +3366,8 @@ window.closeTopOverlayIfOpen = closeTopOverlayIfOpen;
 
 Hub.init();
 </script>
+<script src="/twin-sounds.js?v=1"></script>
+<script src="/access-gate.js?v=1"></script>
 <script src="/premium-motion.js"></script>
 <script src="/premium-states.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
