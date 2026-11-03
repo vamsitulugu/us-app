@@ -616,6 +616,8 @@ const ID = (function(){
   if (!sid) { sid = 'solo_'+Math.random().toString(36).slice(2,10); localStorage.setItem('us_games_solo_id', sid); }
   return { coupleId: sid, role:'user1', myName:'You', partnerName:'Partner', myAvatar:'', partnerAvatar:'' };
 })();
+/* Scratch cards: tell the Rewards page (parent) that a game finished. The server gives BOTH partners a card. */
+const TwinCards = { done(game){ try{ if(window.parent && window.parent!==window) window.parent.postMessage({type:'twin-game-complete', game:game, sessionId:game+'_'+uid()}, location.origin); }catch(e){} } };
 const myKey = ID.role === 'user1' ? 'u1' : 'u2';
 const ptKey = ID.role === 'user1' ? 'u2' : 'u1';
 const otherRole = ID.role === 'user1' ? 'user2' : 'user1';
@@ -1215,10 +1217,10 @@ const TTT = {
     if(win){
       this.state.winner=ID.role; this.state.line=win;
       this.state.scores[ID.role]=(this.state.scores[ID.role]||0)+1;
-      GameCore.addXP(8); GameCore.addCoins(5); GameCore.addWin(); Snd.success();
+      GameCore.addXP(8); GameCore.addCoins(5); GameCore.addWin(); Snd.success(); TwinCards.done('ttt');
       setTimeout(()=>showReward('🏆','You won this round!',['+8 XP','+5 🪙']),300);
     } else if(this.state.board.every(c=>c)){
-      this.state.winner='draw'; Snd.tap();
+      this.state.winner='draw'; Snd.tap(); TwinCards.done('ttt');
     } else {
       this.state.turn = this.state.turn==='user1'?'user2':'user1';
       Snd.tap();
@@ -1401,7 +1403,7 @@ const Ludo = {
     const allHome = tokens.every(t=>t===57);
     if(allHome){
       this.state.winner=role;
-      GameCore.addXP(15); GameCore.addCoins(10); GameCore.addWin(); Snd.success();
+      GameCore.addXP(15); GameCore.addCoins(10); GameCore.addWin(); Snd.success(); TwinCards.done('ludo');
       setTimeout(()=>showReward('👑','Ludo Champion!',['+15 XP','+10 🪙']),300);
     } else {
       this.state.turn = d===6 ? role : (role==='user1'?'user2':'user1');
@@ -1635,7 +1637,7 @@ const TOD = {
     if(this.state.history.length>10) this.state.history.length=10;
     this.state.streak++; this.state.current=null; this.state.phase='idle';
     this.state.turn = this.state.turn==='user1'?'user2':'user1';
-    GameCore.addXP(10); GameCore.addCoins(4);
+    GameCore.addXP(10); GameCore.addCoins(4); TwinCards.done('tod');
     this.sync(); this.render();
   },
   skipCurrent(){
@@ -1993,7 +1995,7 @@ const Draw = {
     const log=(this.state.guessLog||[]).concat([{name:ID.myName,text:raw,correct}]);
     this.state.guessLog=log; this.chan.send({type:'guesslog', log});
     if(correct){
-      GameCore.addXP(20); GameCore.addCoins(8); Snd.success();
+      GameCore.addXP(20); GameCore.addCoins(8); Snd.success(); TwinCards.done('draw');
       this.state.scores[ID.role]=(this.state.scores[ID.role]||0)+1;
       showReward('🎉','Correct guess!',['The word was “'+this.state.word+'”','+20 XP']);
       this.nextRound(true);
@@ -2110,6 +2112,7 @@ const Memory = {
             s.winner = s.scores.user1>=s.scores.user2 ? 'user1':'user2';
             if(s.scores.user1===s.scores.user2) s.winner='draw';
             if(s.winner===ID.role) GameCore.addWin();
+            TwinCards.done('memory');
             setTimeout(()=>showReward('🧠','All pairs matched!',['Final: '+s.scores.user1+' - '+s.scores.user2]),300);
           }
         } else {
@@ -2339,7 +2342,7 @@ const Bomb = {
     if(this.state.result==='won'){
       const mine = this.isMover() ? cfg.xp : Math.round(cfg.xp*.65);
       const coins = this.isMover() ? cfg.coins : Math.round(cfg.coins*.65);
-      GameCore.addXP(mine); GameCore.addCoins(coins); GameCore.addWin();
+      GameCore.addXP(mine); GameCore.addCoins(coins); GameCore.addWin(); TwinCards.done('bomb');
       setTimeout(()=>showReward('💚','You made it across!',['+'+mine+' XP','+'+coins+' 🪙','🔥 '+this.state.teamStreak+' streak']),300);
     } else {
       Snd.fail();
@@ -2711,7 +2714,7 @@ const Puzzle = {
     this._rewardedRound=this.state.round; this._carryStreak=this.state.teamStreak;
     const owned = this.state.pieces.filter(p=>p.owner===ID.role).length;
     const xp = 15+owned*2, coins=6+Math.round(owned*0.8);
-    GameCore.addXP(xp); GameCore.addCoins(coins); GameCore.addWin();
+    GameCore.addXP(xp); GameCore.addCoins(coins); GameCore.addWin(); TwinCards.done('puzzle');
     setTimeout(()=>{ showReward('🧩','Puzzle Complete!',['+'+xp+' XP','+'+coins+' 🪙','🔥 '+this.state.teamStreak+' streak']); this.celebrate(); },300);
   },
 
@@ -3141,6 +3144,7 @@ const MindReader = {
       else if(mt==='near'){ Snd.success(); GameCore.addXP(8); GameCore.addCoins(4); }
       else if(mt==='funny'){ Snd.tap(); GameCore.addXP(6); GameCore.addCoins(3); }
       else { Snd.fail(); GameCore.addXP(3); GameCore.addCoins(1); }
+      TwinCards.done('mindreader');
     },700);
   },
   heartExplosion(){
@@ -3338,6 +3342,7 @@ window.GameCore = GameCore;
 window.GameChannel = GameChannel;
 window.GameVideo = GameVideo;
 window.GAMES = GAMES;
+window.TwinCards = TwinCards;
 window.Snd = Snd; window.Hub = Hub; window.ID = ID;
 window.toast = toast; window.showReward = showReward; window.closeReward = closeReward;
 window.esc = esc; window.rand = rand; window.uid = uid; window.todayStr = todayStr;

@@ -406,6 +406,11 @@ async function buildSummary(user, coupleId, today = istDay(0)) {
     getAdRules(),
     adCountsToday(user.id, today),
   ]);
+  let cardsWaiting = 0;
+  try {
+    const { count } = await supabase.from('reward_cards').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'new');
+    cardsWaiting = count || 0;
+  } catch (_) {}
   if (mine.error) throw mine.error;
   if (couple.error) throw couple.error;
 
@@ -459,6 +464,7 @@ async function buildSummary(user, coupleId, today = istDay(0)) {
     adCoinsUnlimited: !!adRules.unlimited,
     adCooldownSeconds: adRules.cooldownSeconds,
     adSpinsLeft: spunToday ? Math.max(0, adRules.spinDaily - adCounts.spins) : 0,
+    cardsWaiting,
     wheelSlices: slices,
     unlockedItemIds,
     equipped: equippedMap,
@@ -1319,7 +1325,7 @@ router.get('/access/status', async (req, res) => {
 module.exports = router;
 module.exports._test = {
   streakFromDays, istDay, prevDay, DEFAULT_CYCLE, DEFAULT_GIFTS, cleanGift,
-  DEFAULT_SLICES, DEFAULT_SCRATCH_PRIZES, pickWeighted,
+  DEFAULT_SLICES, DEFAULT_SCRATCH_PRIZES, pickWeighted, getScratchPrizes,
   DEFAULT_STORE_ITEMS, DEFAULT_EARN_RULES, cleanEarnRules, DEFAULT_SPEND_RULES, cleanSpendRules,
   DEFAULT_AD_RULES, cleanAdRules, signAdToken, readAdToken, checkAdToken,
   DEFAULT_ACCESS_RULES, cleanAccessRules,

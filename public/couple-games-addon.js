@@ -554,6 +554,7 @@ const SpaceDate = {
     if(!destroyed && this.state.hp>=100) window.GameCore.unlock('space_meteorwave');
     window.GameCore.addXP(Math.min(50, 15+Math.floor(this.roundScore/20)));
     window.GameCore.addCoins(Math.floor(this.roundScore/10));
+    if(!destroyed && window.TwinCards) window.TwinCards.done('space');
     this.sync();
     window.Snd.success();
     window.showReward(destroyed?'💥':'🌠', destroyed?'Ship Damaged!':'Mission Complete!', ['✨ '+this.roundScore+' stars this run','🪙 '+Math.floor(this.roundScore/10)+' coins']);

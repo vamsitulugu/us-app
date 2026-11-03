@@ -20,6 +20,10 @@ const Rewards = (() => {
   let sum = null, hist = null, loading = false, busy = false, failed = false;
   let wheelAngle = 0, isSpinning = false, scratchResult = null, isScratching = false;
   let view = 'wallet';
+  // Scratch cards won from couple games
+  const GAME_NAMES = { ttt: ['❌⭕', 'Tic Tac Toe'], ludo: ['🎲', 'Real Ludo'], tod: ['🔥', 'Truth or Dare'], draw: ['🎨', 'Draw & Guess'], memory: ['🧠', 'Memory Match'],
+    bomb: ['💣', 'Bomb Game'], puzzle: ['🧩', 'Picture Puzzle'], mindreader: ['🔮', 'Mind Reader'], space: ['🚀', 'Space Date'], atw: ['🌍', 'Around The World'], other: ['🎮', 'Couple Game'] };
+  let cardsData = null, cardsLoading = false, cardOpenId = null, cardResult = null, cardOpening = false, cardRevealed = false, cardOpenGame = 'other';
   let earnItems = [];
   let storeItems = [], storeFilter = 'all', unlockedIds = new Set(), equippedItems = {};
 
@@ -417,6 +421,181 @@ const Rewards = (() => {
     }
   }
 
+  /* ── Scratch cards won from couple games (sub-page of Rewards) ── */
+  const gameName = g => (GAME_NAMES[g] || GAME_NAMES.other);
+
+  async function loadCards() {
+    if (cardsLoading || !ids()) return;
+    cardsLoading = true;
+    try {
+      cardsData = await call('GET', '/api/rewards/cards');
+      if (sum) sum.cardsWaiting = cardsData.count || 0;
+    } catch (_) { if (!cardsData) cardsData = { cards: [], count: 0, recent: [], failed: true }; }
+    cardsLoading = false;
+    if (isPageOpen() && view === 'cards' && !cardOpening) renderPage();
+  }
+
+  // A couple game finished (games.html tells us) -> the server puts a card in BOTH phones' card page.
+  async function grantCard(game, sessionId) {
+    if (!ids()) return;
+    try {
+      const r = await call('POST', '/api/rewards/cards/grant', { game, sessionId });
+      if (r && r.granted) {
+        if (sum) sum.cardsWaiting = r.count || ((sum.cardsWaiting || 0) + 1);
+        snd('reveal');
+        if (typeof toast === 'function') toast('🎫 You both won a scratch card! Open it in Rewards → My Scratch Cards');
+        if (isPageOpen() && view === 'cards') loadCards();
+      }
+    } catch (_) {}
+  }
+
+  function openCardTile(id) {
+    if (cardOpening) return;
+    cardOpenId = Number(id); cardResult = null; cardRevealed = false;
+    const t = ((cardsData && cardsData.cards) || []).find(c => c.id === cardOpenId); cardOpenGame = t ? t.game : 'other';
+    renderPage();
+    const pg = $('page-rewards'); if (pg && pg.scrollTo) pg.scrollTo(0, 0);
+  }
+
+  function closeCard() {
+    if (cardOpening) return;
+    cardOpenId = null; cardResult = null; cardRevealed = false;
+    renderPage();
+  }
+
+  function nextCard() {
+    if (cardOpening) return;
+    const left = ((cardsData && cardsData.cards) || []).filter(c => c.id !== cardOpenId);
+    if (!left.length) return closeCard();
+    cardOpenId = left[0].id; cardResult = null; cardRevealed = false; cardOpenGame = left[0].game;
+    renderPage();
+  }
+
+  // The prize is picked by the server when the card is opened (first scratch or Skip).
+  async function openCard(skip) {
+    if (cardOpening || cardResult || cardOpenId == null) return !!cardResult;
+    cardOpening = true;
+    try {
+      const r = await call('POST', '/api/rewards/cards/open', { cardId: cardOpenId, skip: !!skip });
+      cardResult = r;
+      if (cardsData) cardsData.cards = (cardsData.cards || []).filter(c => c.id !== r.cardId);
+      if (cardsData) cardsData.count = cardsData.cards.length;
+      if (sum) sum.cardsWaiting = (cardsData && cardsData.count) || 0;
+      cardOpening = false;
+      const prize = $('rwCardPrize');
+      if (prize) {
+        prize.innerHTML = '<div class="rw-sc-emoji">' + esc(r.emoji || '💖') + '</div><div class="rw-sc-title">' + esc(r.title || '') + '</div>' +
+          '<div class="rw-sc-coins">+' + r.coins + ' Gold Coins 🪙</div><div class="rw-sc-msg">' + esc(r.message || '') + '</div>';
+      }
+      return true;
+    } catch (e) {
+      cardOpening = false; snd('error');
+      if (typeof toast === 'function') toast(e.message || 'Could not open this card.');
+      return false;
+    }
+  }
+
+  async function skipCard() {
+    if (cardRevealed) return;
+    const ok = await openCard(true);
+    if (ok) revealCard(true);
+  }
+
+  function revealCard(instant) {
+    if (cardRevealed || !cardResult) return;
+    cardRevealed = true;
+    const canvas = $('rwCardCanvas'), box = canvas && canvas.closest('.rw-scratch-box');
+    const done = () => {
+      if (canvas) canvas.style.display = 'none';
+      if (box) box.classList.add('is-revealed');
+      const skipBtn = $('rwCardSkipBtn'); if (skipBtn) skipBtn.style.display = 'none';
+      const nx = $('rwCardNextRow'); if (nx) nx.style.display = '';
+      snd('reveal');
+      if (typeof toast === 'function') toast('💖 ' + cardResult.title + ' · +' + cardResult.coins + ' Gold Coins 🪙');
+      if (sum && typeof cardResult.balance === 'number') {
+        const was = cardResult.duplicate ? cardResult.balance : cardResult.balance - cardResult.coins;
+        sum.balance = cardResult.balance;
+        if (!cardResult.duplicate) {
+          document.querySelectorAll('[data-rw-bal]').forEach(el => { el.textContent = was; });
+          coinBurst(box || canvas, Math.ceil(cardResult.coins / 6) + 6, () => countUp(was, sum.balance));
+        } else { document.querySelectorAll('[data-rw-bal]').forEach(el => { el.textContent = sum.balance; }); }
+      }
+    };
+    if (canvas && !instant) { canvas.style.transition = 'opacity 0.5s ease-out'; canvas.style.opacity = '0'; setTimeout(done, 500); }
+    else done();
+  }
+
+  function initCardCanvas(canvas) {
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const g = ctx.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, '#D9941A'); g.addColorStop(0.3, '#F5B83D'); g.addColorStop(0.7, '#FCD34D'); g.addColorStop(1, '#B87A0A');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    for (let x = 10; x < w; x += 24) for (let y = 10; y < h; y += 24) { ctx.beginPath(); ctx.arc(x, y, 3, 0, 2 * Math.PI); ctx.fill(); }
+    ctx.fillStyle = '#3A2400'; ctx.textAlign = 'center';
+    ctx.font = 'bold 15px sans-serif'; ctx.fillText('🎫 Scratch to Reveal Prize ✨', w / 2, h / 2 - 4);
+    ctx.font = '12px sans-serif'; ctx.fillText('Drag your finger, or tap Skip', w / 2, h / 2 + 18);
+    let drawing = false, strokes = 0;
+    function eraseAt(cx, cy) {
+      const rect = canvas.getBoundingClientRect();
+      const x = (cx - rect.left) * (canvas.width / rect.width), y = (cy - rect.top) * (canvas.height / rect.height);
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath(); ctx.arc(x, y, 22, 0, 2 * Math.PI); ctx.fill();
+      snd('scratch', 0.6);
+      if (!cardResult && !cardOpening) openCard(false);
+      strokes += 1;
+      if (strokes > 24 && cardResult) revealCard(false);
+    }
+    canvas.onmousedown = e => { drawing = true; eraseAt(e.clientX, e.clientY); };
+    window.addEventListener('mouseup', () => { drawing = false; });
+    canvas.onmousemove = e => { if (drawing) eraseAt(e.clientX, e.clientY); };
+    canvas.ontouchstart = e => { drawing = true; if (e.touches && e.touches[0]) eraseAt(e.touches[0].clientX, e.touches[0].clientY); };
+    canvas.ontouchend = () => { drawing = false; };
+    canvas.ontouchmove = e => { if (drawing && e.touches && e.touches[0]) { e.preventDefault(); eraseAt(e.touches[0].clientX, e.touches[0].clientY); } };
+  }
+
+  function cardsPageHtml(heroCard) {
+    const head = '<div class="rw-sub"><button type="button" class="rw-back" onclick="Rewards.setView(\'wallet\')" aria-label="Back to Rewards">‹</button><h2>🎫 My Scratch Cards</h2></div>';
+    if (!cardsData) return head + heroCard + '<div class="rw-skel"></div>';
+    const list = cardsData.cards || [];
+
+    // One card open: scratch it, or tap Skip
+    if (cardOpenId != null && (list.some(c => c.id === cardOpenId) || cardResult)) {
+      const gn = gameName(cardOpenGame);
+      const r = cardResult;
+      const under = r
+        ? '<div class="rw-sc-emoji">' + esc(r.emoji || '💖') + '</div><div class="rw-sc-title">' + esc(r.title || '') + '</div><div class="rw-sc-coins">+' + r.coins + ' Gold Coins 🪙</div><div class="rw-sc-msg">' + esc(r.message || '') + '</div>'
+        : '<div class="rw-sc-emoji">' + gn[0] + '</div><div class="rw-sc-title">' + esc(gn[1]) + ' card</div><div class="rw-sc-coins">+15–100 Gold Coins 🪙</div><div class="rw-sc-msg">Scratch the gold card to reveal your prize!</div>';
+      const more = list.filter(x => x.id !== cardOpenId).length;
+      return head + heroCard +
+        '<div class="rw-card rw-interactive-card"><h3>' + gn[0] + ' ' + esc(gn[1]) + ' <small>' + (cardRevealed ? 'Opened' : 'Unscratched') + '</small></h3>' +
+        '<div class="rw-scratch-box ' + (cardRevealed ? 'is-revealed is-static' : 'is-live') + '"><div class="rw-scratch-under" id="rwCardPrize">' + under + '</div>' +
+        '<canvas id="rwCardCanvas" width="280" height="150" class="rw-scratch-canvas" style="' + (cardRevealed ? 'display:none;' : '') + '"></canvas></div>' +
+        '<div class="rw-scratch-actions">' +
+          '<button type="button" class="rw-btn rw-sc-btn" id="rwCardSkipBtn" style="' + (cardRevealed ? 'display:none;' : '') + '" onclick="Rewards.skipCard()">Skip ⏭ <small>reveal now</small></button>' +
+          '<div id="rwCardNextRow" class="rw-card-next" style="' + (cardRevealed ? '' : 'display:none;') + '">' +
+            (more > 0 ? '<button type="button" class="rw-btn is-pulse" onclick="Rewards.nextCard()">Next card (' + more + ' left) ›</button>' : '') +
+            '<button type="button" class="rw-btn rw-btn-ghost" onclick="Rewards.closeCard()">All cards</button></div>' +
+          (cardRevealed ? '' : '<div class="rw-note">Scratch it yourself, or tap Skip to see the prize right away.</div><button type="button" class="rw-btn rw-btn-ghost" onclick="Rewards.closeCard()">‹ Back to cards</button>') +
+        '</div></div>';
+    }
+
+    // List of unscratched cards
+    const tiles = list.map(c => {
+      const gn = gameName(c.game);
+      return '<button type="button" class="rw-cardtile" onclick="Rewards.openCardTile(' + c.id + ')" aria-label="Scratch ' + esc(gn[1]) + ' card"><span class="rw-ct-ico">' + gn[0] + '</span><b>' + esc(gn[1]) + '</b><small>Tap to scratch</small></button>';
+    }).join('');
+    const empty = '<div class="rw-card rw-empty-cards"><div style="font-size:38px">🎫</div><b>No scratch cards yet</b><p>Finish a game together with your partner and you both get a scratch card here.</p>' +
+      '<button type="button" class="rw-btn" onclick="typeof goto===\'function\'&&goto(\'games\')">Play a game 🎮</button></div>';
+    const recent = (cardsData.recent || []).length
+      ? '<div class="rw-card"><h3>Recently scratched</h3>' + cardsData.recent.map(x => '<div class="rw-cardrow"><span>' + gameName(x.game)[0] + '</span><div><b>' + esc(x.title || '') + '</b><small>' + esc(gameName(x.game)[1]) + '</small></div><em>+' + x.coins + ' 🪙</em></div>').join('') + '</div>'
+      : '';
+    return head + heroCard +
+      (list.length ? '<div class="rw-card"><h3>Unscratched <small>' + list.length + ' card' + (list.length === 1 ? '' : 's') + '</small></h3><div class="rw-cardgrid">' + tiles + '</div></div>' : empty) + recent;
+  }
+
   /* ── Step 4: Twin Store ── */
   async function buyItem(itemId) {
     if (!sum || busy) return;
@@ -673,6 +852,10 @@ const Rewards = (() => {
     const spinEntry = '<button type="button" class="rw-btn rw-spin-entry' + (sum.spunToday ? '' : ' is-pulse') + '" onclick="Rewards.setView(\'spin\')">🎡 Spin & Win</button>' +
       '<div class="rw-note rw-spin-entry-note">' + spinNote + '</div>';
 
+    const cw = sum.cardsWaiting || 0;
+    const cardsEntry = '<button type="button" class="rw-btn rw-spin-entry' + (cw ? ' is-pulse' : '') + '" onclick="Rewards.setView(\'cards\')">🎫 My Scratch Cards' + (cw ? ' <span class="rw-badge">' + cw + '</span>' : '') + '</button>' +
+      '<div class="rw-note rw-spin-entry-note">' + (cw ? 'You have ' + cw + ' unscratched card' + (cw === 1 ? '' : 's') + ' from your games 🎉' : 'Finish a game together — you both win a scratch card.') + '</div>';
+
     const storeCard = '<div class="rw-card rw-store-card">' +
       '<div class="rw-store-head"><div><h3>🛍️ Twin Store <small>Spend Coins</small></h3><p>Unlock themes, profile frames, decor & games for two</p></div></div>' +
       '<div class="rw-store-tabs">' + tabsHtml + '</div>' +
@@ -693,8 +876,9 @@ const Rewards = (() => {
 
     let inner;
     if (view === 'spin') inner = spinPage;
+    else if (view === 'cards') inner = cardsPageHtml(heroCard);
     else if (view === 'store') inner = tabs + heroCard + storeCard;
-    else inner = tabs + heroCard + checkInCard + earnCard + scratchCard + streakCard + spinEntry;
+    else inner = tabs + heroCard + checkInCard + earnCard + scratchCard + streakCard + spinEntry + cardsEntry;
 
     host.innerHTML = '<div class="rw rw-page"><div class="rw-head"><div><h2>Twin Rewards</h2><p>Play together. Earn together. Celebrate together.</p></div><button type="button" id="rwSoundBtn" class="rw-sound" onclick="Rewards.toggleSound()" aria-label="Sound effects" aria-pressed="' + (sndOn() ? 'true' : 'false') + '" style="appearance:none;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:inherit;border-radius:999px;min-width:44px;min-height:44px;font-size:18px;cursor:pointer">' + (sndOn() ? '🔊' : '🔇') + '</button></div>' + inner + '</div>';
 
@@ -704,12 +888,16 @@ const Rewards = (() => {
 
       const sCanvas = $('rwScratchCanvas');
       if (sCanvas && !sum?.scratchedToday) initScratchCanvas(sCanvas);
+
+      const cCanvas = $('rwCardCanvas');
+      if (cCanvas && !cardRevealed) initCardCanvas(cCanvas);
     });
   }
 
   function setView(v) {
-    view = (v === 'store' || v === 'spin') ? v : 'wallet';
-    if (isSpinning) return;
+    view = (v === 'store' || v === 'spin' || v === 'cards') ? v : 'wallet';
+    if (isSpinning || cardOpening) return;
+    if (view === 'cards') { cardOpenId = null; cardResult = null; cardRevealed = false; loadCards(); }
     renderPage();
     const pg = $('page-rewards'); if (pg && pg.scrollTo) pg.scrollTo(0, 0);
     if (window.scrollTo) window.scrollTo(0, 0);
@@ -733,6 +921,12 @@ const Rewards = (() => {
       };
       wrapped.__rw = true; window.goto = wrapped;
     }
+    // couple games (games.html iframe) tell us when a game is finished
+    window.addEventListener('message', e => {
+      if (e.origin !== location.origin) return;
+      const d = e.data;
+      if (d && d.type === 'twin-game-complete' && typeof d.sessionId === 'string') grantCard(String(d.game || 'other'), d.sessionId);
+    });
     document.addEventListener('visibilitychange', () => { if (!document.hidden && ids()) load(isPageOpen()); });
   }
 
@@ -745,7 +939,7 @@ const Rewards = (() => {
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
-  return { load, claim, render, loadGifts, sendGift, spin, scratch, revealScratch, buyItem, equipItem, setStoreFilter, setView, earn,
+  return { load, claim, render, loadGifts, sendGift, spin, scratch, revealScratch, loadCards, openCardTile, closeCard, nextCard, skipCard, buyItem, equipItem, setStoreFilter, setView, earn,
     toggleSound() {
       const on = window.TwinSound ? window.TwinSound.toggle() : false;
       const b = $('rwSoundBtn');
