@@ -216,7 +216,7 @@ router.get('/status/:userId', async (req, res) => {
       .from('couples').select('user1_name, user2_name, paired, updated_at').eq('id', user.couple_id).maybeSingle();
     if (couple && couple.paired) {
       const partnerName = user.role === 'user1' ? couple.user2_name : couple.user1_name;
-      return res.json({ status: 'connected', partnerName, connectedSince: couple.updated_at });
+      return res.json({ status: 'connected', partnerName, connectedSince: couple.updated_at, coupleId: user.couple_id, role: user.role || 'user1' });
     }
   }
 

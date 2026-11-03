@@ -25,6 +25,7 @@ router.get('/state/:coupleId', async (req, res) => {
   if (error && error.code !== 'PGRST116') {
     return res.status(500).json({ error: error.message });
   }
+  res.set('Cache-Control', 'no-store');
   return res.json(data?.state || null);
 });
 

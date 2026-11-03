@@ -604,6 +604,27 @@ function todayStr(){ return new Date().toISOString().slice(0,10); }
 function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
 
+/* Identity self-heal: the phone that SENT the partner request can keep a stale role/couple after pairing,
+   which makes both phones think they are player 1 (both see "your turn"). Ask the server who I really am. */
+(function(){
+  try{
+    const raw = localStorage.getItem('uwl_v5'); if(!raw) return;
+    const s = JSON.parse(raw); if(!s.userId || !s.coupleId) return;
+    if(sessionStorage.getItem('gm_idcheck')===s.userId) return;
+    fetch(API+'/api/partner/status/'+encodeURIComponent(s.userId),{cache:'no-store'})
+      .then(r=>r.ok?r.json():null).then(d=>{
+        if(!d || d.status!=='connected') return;
+        const role=(d.role==='user1'||d.role==='user2')?d.role:null;
+        if(!role || !d.coupleId) return;
+        sessionStorage.setItem('gm_idcheck', s.userId);
+        if(role===s.role && d.coupleId===s.coupleId) return;
+        s.role=role; s.coupleId=d.coupleId;
+        localStorage.setItem('uwl_v5', JSON.stringify(s));
+        try{ if(window.parent && window.parent!==window && window.parent.S){ window.parent.S.role=role; window.parent.S.coupleId=d.coupleId; } }catch(e){}
+        location.reload();
+      }).catch(()=>{});
+  }catch(e){}
+})();
 const ID = (function(){
   try {
     const raw = localStorage.getItem('uwl_v5');
