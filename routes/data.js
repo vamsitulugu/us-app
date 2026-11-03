@@ -196,6 +196,25 @@ router.get('/love-signals/:coupleId', async (req, res) => {
   return res.json(data || {});
 });
 
+// Games read ONLY their own `gm_*` keys (a game's saved position, the two players' progress,
+// presence and invitations). Both the web and the Android app poll this while a game is open,
+// so it must stay tiny: only the requested keys are pulled out of the saved state.
+router.get('/games/:coupleId', async (req, res) => {
+  const keys = String(req.query.keys || '')
+    .split(',').map(k => k.trim())
+    .filter(k => /^gm_[a-z0-9_]{1,40}$/.test(k))
+    .slice(0, 12);
+  if (!keys.length) return res.json({});
+  const { data, error } = await supabase
+    .from('app_state')
+    .select(keys.map(k => `${k}:state->${k}`).join(','))
+    .eq('couple_id', req.params.coupleId)
+    .maybeSingle();
+  if (error && error.code !== 'PGRST116') return res.status(500).json({ error: error.message });
+  res.set('Cache-Control', 'no-store');
+  return res.json(data || {});
+});
+
 async function saveStateHandler(req, res) {
   const { coupleId, state, senderRole, myName } = req.body;
   if (!coupleId || !state) return res.status(400).json({ error: 'Missing data' });

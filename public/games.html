@@ -723,20 +723,24 @@ const GameCore = {
   loadLocal(){ try{ const raw=localStorage.getItem(LOCAL_KEY+'_'+ID.coupleId); if(raw) Object.assign(this.profiles, JSON.parse(raw)); }catch(e){} },
   saveLocal(){ try{ localStorage.setItem(LOCAL_KEY+'_'+ID.coupleId, JSON.stringify(this.profiles)); }catch(e){} },
   async loadCloud(){
-    if(!sb) return;
+    if(IS_SOLO) return;
     try{
-      const {data,error} = await sb.from('games_profiles').select('*').eq('couple_id',ID.coupleId).maybeSingle();
-      if(!error && data){ if(data.u1) this.profiles.u1={...defaultProfile(),...data.u1}; if(data.u2) this.profiles.u2={...defaultProfile(),...data.u2}; }
-    }catch(e){ console.warn('games_profiles load failed:', e.message); }
+      const r = await GamesStore.read(['gm_profile_u1','gm_profile_u2']);
+      ['u1','u2'].forEach(k=>{ const p=r['gm_profile_'+k]; if(p && typeof p==='object') this.profiles[k]={...defaultProfile(),...p}; });
+    }catch(e){ console.warn('games profile load failed:', e.message); }
   },
   saveTimer:null,
   saveCloud(){
     clearTimeout(this.saveTimer);
     this.saveTimer = setTimeout(async ()=>{
       this.saveLocal();
-      if(!sb) return;
-      try{ await sb.from('games_profiles').upsert({couple_id:ID.coupleId,u1:this.profiles.u1,u2:this.profiles.u2,updated_at:new Date().toISOString()},{onConflict:'couple_id'}); }
-      catch(e){ console.warn('games_profiles save failed:', e.message); }
+      if(IS_SOLO) return;
+      // only MY profile is ever written by this phone (same rule as Android)
+      const me={...this.me()}; const h={};
+      Object.keys(me.history||{}).forEach(g=>{ const v=me.history[g]; h[g]=(v && typeof v==='object') ? (v.ts||0) : (v||0); });
+      me.history=h;
+      try{ await GamesStore.write({['gm_profile_'+myKey]:me}); }
+      catch(e){ console.warn('games profile save failed:', e.message); }
     },500);
   },
   me(){ return this.profiles[myKey]; },
@@ -830,42 +834,140 @@ class GameChannel {
   close(){ if(this.channel && sb) sb.removeChannel(this.channel); if(this._lsHandler) window.removeEventListener('storage',this._lsHandler); }
 }
 
-/* presence — who's playing what right now */
-let presenceChan=null, partnerPresence={game:null,online:false};
-function initPresence(){
-  if(!sb) return;
-  presenceChan = sb.channel('presence_'+ID.coupleId, {config:{presence:{key:ID.role}}});
-  presenceChan.on('presence',{event:'sync'},()=>{
-    const st = presenceChan.presenceState();
-    let found=null;
-    Object.keys(st).forEach(k=>{ if(k!==ID.role && st[k] && st[k][0]) found=st[k][0]; });
-    partnerPresence = found ? {game:found.game||null,online:true} : {game:null,online:false};
-    Hub.refreshRankCards();
-  });
-  presenceChan.subscribe(async (status)=>{ if(status==='SUBSCRIBED'){ await presenceChan.track({game:null,ts:Date.now()}); } });
-}
-function setPresenceGame(gid){ if(presenceChan) presenceChan.track({game:gid,ts:Date.now()}).catch(()=>{}); }
+/* ═══════════════════════════════════════════════════════
+   SHARED STORE — the SAME place the Android app uses (backend /api/data, keys "gm_*")
+   Before: the web saved Ludo into a Supabase table while Android saved into the backend,
+   so the two apps never saw each other's moves and each thought it was the other's turn.
+═══════════════════════════════════════════════════════ */
+const IS_SOLO = String(ID.coupleId).indexOf('solo_')===0;
+const GamesStore = {
+  async read(keys){
+    const r = await fetch(API+'/api/data/games/'+encodeURIComponent(ID.coupleId)+'?keys='+keys.join(','), {cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return (await r.json()) || {};
+  },
+  async write(patch){
+    const r = await fetch(API+'/api/data/state', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({coupleId:ID.coupleId, state:patch, senderRole:ID.role, myName:ID.myName})});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  }
+};
 
-/* Pending game invitation (Challenge → Accept). Stored in games_shared under the
-   reserved game key "_req", written by the inviter under their own role so both
-   phones read the same single invite. */
-function reqDoc(role){ return {from:role, game:null, ts:0}; }
-async function sendGameRequest(gid){
-  if(!sb) return;
-  const doc = {from:ID.role, game:gid, ts:Date.now()};
-  try{ await sb.from('games_shared').upsert({couple_id:ID.coupleId,game:'_req',data:doc,updated_at:new Date().toISOString()},{onConflict:'couple_id,game'}); }catch(e){}
+/* Ludo: web shape <-> the shape the Android app saves in "gm_ludo" */
+const LudoWire = {
+  movable(tokens,d){ const out=[]; tokens.forEach((pos,i)=>{ if(pos===57) return; if(pos===-1){ if(d===6) out.push(i); return; } if(pos+d<=57) out.push(i); }); return out; },
+  to(s){
+    const dice = s.dice==null ? 0 : s.dice;
+    const mine = s.tokens[s.turn]||[];
+    return {
+      one: s.tokens.user1.slice(), two: s.tokens.user2.slice(), turn: s.turn, dice: dice,
+      noMove: dice>0 && this.movable(mine,dice).length===0,
+      outcome: s.winner==='user1'?'One' : s.winner==='user2'?'Two' : s.winner==='draw'?'Draw' : 'None',
+      history: []
+    };
+  },
+  from(w, prev){
+    return {
+      tokens:{ user1:(w.one||[-1,-1,-1,-1]).slice(), user2:(w.two||[-1,-1,-1,-1]).slice() },
+      turn: w.turn==='user2' ? 'user2' : 'user1',
+      dice: w.dice ? w.dice : null,
+      winner: w.outcome==='One'?'user1' : w.outcome==='Two'?'user2' : w.outcome==='Draw'?'draw' : null,
+      moveHistory: (prev && prev.moveHistory) ? prev.moveHistory : [],
+      turnStartedAt: Date.now()   // the 30s clock restarts whenever a new position arrives (same as Android)
+    };
+  }
+};
+
+/* One saved document per game: {rev, by, data}. Same envelope Android uses, so either phone can take over. */
+class SharedGameChannel {
+  constructor(gameKey, codec){
+    this.gameKey=gameKey; this.codec=codec; this.wireKey='gm_'+gameKey;
+    this.rev=0; this.sig=''; this.state=null; this.pending=0; this._chain=Promise.resolve();
+    this._onMsg=null; this._timer=null; this._polling=false;
+  }
+  async load(){
+    if(IS_SOLO) return null;
+    try{
+      const r = await GamesStore.read([this.wireKey]);
+      const env = r[this.wireKey];
+      if(env && env.data){ this.rev=env.rev||0; this.sig=JSON.stringify(env.data); this.state=this.codec.from(env.data,null); return this.state; }
+      return null;           // the server answered: nothing saved yet, start a new game
+    }catch(e){ console.warn('game load failed:', e.message); return null; }
+  }
+  persist(state){
+    if(IS_SOLO) return Promise.resolve();
+    const data = this.codec.to(state);
+    this.rev += 1;
+    const env = {rev:this.rev, by:ID.role, data:data};
+    this.sig = JSON.stringify(data);
+    this.pending++;
+    this._chain = this._chain
+      .then(()=>GamesStore.write({[this.wireKey]:env}))
+      .catch(e=>{ console.warn('game save failed:', e.message); toast('⚠️ Could not sync — check your connection'); })
+      .then(()=>{ this.pending--; });
+    return this._chain;
+  }
+  send(){ /* state travels through persist() + polling; nothing else to broadcast for Ludo */ }
+  listen(onMsg){
+    this._onMsg=onMsg; clearInterval(this._timer);
+    this._timer=setInterval(()=>this.poll(),1500);
+  }
+  async poll(){
+    if(IS_SOLO || this._polling || this.pending>0 || !this._onMsg) return;
+    this._polling=true;
+    try{
+      const r = await GamesStore.read([this.wireKey]);
+      const env = r[this.wireKey];
+      if(this.pending>0 || !env || !env.data) return;     // my own move is still on its way: never overwrite it
+      const rev = env.rev||0, sig = JSON.stringify(env.data);
+      // the server copy is the truth: take anything newer, or a different copy at the same revision (a race)
+      if(rev>this.rev || (rev===this.rev && sig!==this.sig)){
+        this.rev=rev; this.sig=sig;
+        this.state=this.codec.from(env.data,this.state);
+        this._onMsg({type:'sync',state:this.state});
+      }
+    }catch(e){ /* offline: try again on the next tick */ }
+    finally{ this._polling=false; }
+  }
+  close(){ clearInterval(this._timer); this._timer=null; this._onMsg=null; }
 }
-async function clearGameRequest(){
-  if(!sb) return;
-  try{ await sb.from('games_shared').upsert({couple_id:ID.coupleId,game:'_req',data:null,updated_at:new Date().toISOString()},{onConflict:'couple_id,game'}); }catch(e){}
+
+/* presence + invitations — stored under the same keys Android uses:
+   gm_presence_u1/u2, gm_request_u1/u2 (an invite is written by the inviter under THEIR key). */
+let partnerPresence={game:null,online:false}, myPresenceGame=null, presenceTimer=null, hubTimer=null;
+const REQUEST_TTL_MS = 120000;
+function initPresence(){
+  if(IS_SOLO) return;
+  clearInterval(presenceTimer); clearInterval(hubTimer);
+  const beat=()=>{ GamesStore.write({['gm_presence_'+myKey]:{game:myPresenceGame,ts:Date.now()}}).catch(()=>{}); };
+  beat(); presenceTimer=setInterval(beat,10000);
+  hubPoll(); hubTimer=setInterval(hubPoll,3000);
+  window._presenceBeat=beat;
 }
-async function loadGameRequest(){
-  if(!sb) return null;
+function setPresenceGame(gid){ myPresenceGame=gid; if(window._presenceBeat) window._presenceBeat(); }
+async function hubPoll(){
   try{
-    const {data} = await sb.from('games_shared').select('data').eq('couple_id',ID.coupleId).eq('game','_req').maybeSingle();
-    return (data && data.data) ? data.data : null;
-  }catch(e){ return null; }
+    const r = await GamesStore.read(['gm_presence_'+ptKey,'gm_request_'+ptKey,'gm_request_'+myKey,'gm_profile_'+ptKey]);
+    const pr=r['gm_presence_'+ptKey];
+    const online = !!(pr && pr.ts && Math.abs(Date.now()-pr.ts)<25000);
+    const wasOnline = partnerPresence.online, wasGame = partnerPresence.game;
+    partnerPresence = {game: online ? (pr.game||null) : null, online:online};
+    if(r['gm_profile_'+ptKey] && typeof r['gm_profile_'+ptKey]==='object'){
+      GameCore.profiles[ptKey] = {...defaultProfile(), ...r['gm_profile_'+ptKey]};
+    }
+    const inc = r['gm_request_'+ptKey];
+    const incoming = (inc && inc.game && inc.ts && Math.abs(Date.now()-inc.ts)<REQUEST_TTL_MS) ? inc : null;
+    Hub.onRequestsChanged(incoming, r['gm_request_'+myKey]);
+    if(wasOnline!==online || wasGame!==partnerPresence.game){ Hub.refreshRankCards(); if(Hub.activeGameId==='ludo' && Ludo.state && !Ludo.rolling) Ludo.render(); }
+  }catch(e){}
 }
+async function sendGameRequest(gid){
+  await GamesStore.write({['gm_request_'+myKey]:{from:ID.role, game:gid, ts:Date.now()}});
+}
+/* the invitation I received sits under my PARTNER's key, so that is the one to clear */
+async function clearIncomingRequest(){ await GamesStore.write({['gm_request_'+ptKey]:null}); }
+async function clearMyRequest(){ await GamesStore.write({['gm_request_'+myKey]:null}); }
 /* ═══════════════════════════════════════════════════════
    FACE-TO-FACE VIDEO — reuses existing /api/call/turn-creds
    and /api/call/signal endpoints (same tables/infra as chat
@@ -1147,7 +1249,7 @@ const Hub = {
       </div>
       <div class="rank-row" id="rankRow"></div>
             ${this.pendingRequest?`<div class="greq-card">
-        <div class="greq-title">${esc(ID.partnerName)} wants to play <span class="greq-game">#</span></div>
+        <div class="greq-title">${esc(ID.partnerName)} wants to play <span class="greq-game">${esc(((GAMES.find(x=>x.id===this.pendingRequest.game))||{}).title||'a game')}</span></div>
         <div class="greq-actions">
           <button class="greq-accept" onclick="Hub.acceptRequest()">Accept</button>
           <button class="greq-decline" onclick="Hub.declineRequest()">Decline</button>
@@ -1165,7 +1267,7 @@ const Hub = {
             const hist=GameCore.me().history[g.id];
       const isFav = favs.includes(g.id);
       const live = partnerPresence.online && partnerPresence.game===g.id;
-      const challenged = (this.pendingRequest && this.pendingRequest.from!==ID.role && this.pendingRequest.game===g.id);
+      const challenged = !!(this.pendingRequest && this.pendingRequest.game===g.id);
       return `<div class="gcard" onclick="Hub.openGame('${g.id}')">
         <div class="gcard-art has-img" style="background:${g.grad}">
           <img class="gcard-img" src="/images/games/${g.id}.webp" alt="${g.title}" loading="lazy" draggable="false" onerror="this.remove();this.parentNode&&this.parentNode.classList.remove('has-img')">
@@ -1261,27 +1363,67 @@ const Hub = {
     ({tod:TOD, mindreader:MindReader, ludo:Ludo, ttt:TTT, draw:Draw, memory:Memory, bomb:Bomb, puzzle:Puzzle})[gid].open(body);
     GameVideo.startWatch(gid);
   },
-  pendingRequest:null,
+  pendingRequest:null,   // an invitation my partner sent ME
+  sentRequest:null,      // an invitation I sent my partner
+  _inviteTs:0,
   async challengeGame(gid){
     const g=GAMES.find(x=>x.id===gid); if(!g) return;
-    await sendGameRequest(gid);
-    this.pendingRequest = {from:ID.role, game:gid, ts:Date.now()};
-    this.render();
-    toast('Invitation sent to '+esc(ID.partnerName));
+    try{
+      await sendGameRequest(gid);
+      this.sentRequest = {game:gid, ts:Date.now()};
+      toast('Invitation sent to '+ID.partnerName+' 💌');
+      if(this.activeGameId===gid && gid==='ludo' && Ludo.state) Ludo.render(); else this.renderGameCards();
+    }catch(e){ toast('Could not send the invitation — check your connection'); }
+  },
+  /* called every few seconds by hubPoll() with what the partner sent me and what is left of what I sent */
+  onRequestsChanged(incoming, mine){
+    const prevTs = this.pendingRequest ? this.pendingRequest.ts : 0;
+    this.pendingRequest = incoming;
+    if((incoming?incoming.ts:0)!==prevTs){
+      this.showInviteCard();
+      if(!this.activeGameId){ const hub=document.getElementById('hub'); if(hub && hub.innerHTML) this.render(); }
+    }
+    // my own invitation: it disappears when my partner accepts or declines (they clear it)
+    const sent=this.sentRequest;
+    if(sent){
+      const stillThere = mine && mine.ts===sent.ts;
+      if(!stillThere && Date.now()-sent.ts>2500){
+        this.sentRequest=null;
+        const joined = partnerPresence.online && partnerPresence.game===sent.game;
+        if(joined){ toast('🎉 '+ID.partnerName+' accepted!'); if(this.activeGameId!==sent.game) this.openGame(sent.game); }
+        else toast(ID.partnerName+' declined the invitation');
+        if(this.activeGameId==='ludo' && Ludo.state) Ludo.render();
+      } else if(Date.now()-sent.ts>REQUEST_TTL_MS){ this.sentRequest=null; clearMyRequest().catch(()=>{}); if(this.activeGameId==='ludo' && Ludo.state) Ludo.render(); }
+    }
+  },
+  /* the floating invitation card — visible on the hub AND inside a game */
+  showInviteCard(){
+    let el=document.getElementById('gInvite');
+    const req=this.pendingRequest;
+    if(!req){ if(el) el.remove(); return; }
+    if(!el){ el=document.createElement('div'); el.id='gInvite'; document.body.appendChild(el); }
+    const g=GAMES.find(x=>x.id===req.game)||{title:'a game',emoji:'🎮'};
+    el.style.cssText='position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:9999;width:min(92vw,380px);padding:14px 16px;border-radius:18px;background:linear-gradient(155deg,#3a0426,#1a0212);border:1px solid rgba(255,255,255,.18);box-shadow:0 14px 40px rgba(0,0,0,.6);color:#fff;font-family:inherit';
+    el.innerHTML=`<div style="font-weight:800;font-size:14px;margin-bottom:4px">${g.emoji||'🎮'} ${esc(ID.partnerName)} invited you</div>
+      <div style="font-size:12.5px;opacity:.85;margin-bottom:10px">Play <b>${esc(g.title)}</b> together?</div>
+      <div style="display:flex;gap:8px">
+        <button class="greq-accept" onclick="Hub.acceptRequest()" style="flex:1">Accept</button>
+        <button class="greq-decline" onclick="Hub.declineRequest()" style="flex:1">Decline</button>
+      </div>`;
   },
   async acceptRequest(){
-    if(!this.pendingRequest) return;
-    const gid = this.pendingRequest.game;
-    await clearGameRequest();
-    this.pendingRequest = null;
-    this.render();
-    this.openGame(gid);
+    const req=this.pendingRequest; if(!req) return;
+    this.pendingRequest=null; this.showInviteCard();
+    try{ await clearIncomingRequest(); }catch(e){}
+    if(this.activeGameId!==req.game){ if(this.activeGameId) this.exitGame(); this.openGame(req.game); }
+    else if(req.game==='ludo' && Ludo.state) Ludo.render();
+    if(!this.activeGameId) this.render();
   },
   async declineRequest(){
-    await clearGameRequest();
-    this.pendingRequest = null;
-    this.render();
+    this.pendingRequest=null; this.showInviteCard();
+    try{ await clearIncomingRequest(); }catch(e){}
     toast('Invitation declined');
+    if(!this.activeGameId) this.render();
   },
   exitGame(){
     const gid=this.activeGameId;
@@ -1292,7 +1434,6 @@ const Hub = {
     this.activeGameId=null;
     setPresenceGame(null);
     this.renderGameCards();
-    if(this.pendingRequest){ const g=GAMES.find(x=>x.id===this.pendingRequest.game); const el=document.querySelector('.greq-game'); if(el&&g) el.textContent=g.title; }
   }
     
 };
@@ -1409,7 +1550,7 @@ const LUDO_POCKETS = [[1,1],[1,4],[4,1],[4,4]];
 const Ludo = {
   chan:null, state:null, rolling:false, lastCapture:null, lastHome:null, timerTick:null, timerLeft:LUDO_TURN_SECONDS,
   async open(body){
-    this.chan = new GameChannel('ludo');
+    this.chan = new SharedGameChannel('ludo', LudoWire);
     let st = await this.chan.load();
     if(!st) st = this.fresh();
     if(!st.moveHistory) st.moveHistory=[];
@@ -1423,6 +1564,13 @@ const Ludo = {
   sync(){ this.chan.send({type:'sync',state:this.state}); this.chan.persist(this.state); },
   fresh(){ return { tokens:{user1:[-1,-1,-1,-1],user2:[-1,-1,-1,-1]}, turn:'user1', dice:null, winner:null, moveHistory:[], turnStartedAt:Date.now() }; },
   restart(){ this.state=this.fresh(); this.sync(); this.render(); },
+  /* "Invite" button: asks my partner to join (they get an Accept / Decline card) */
+  inviteHtml(){
+    const here = partnerPresence.online && partnerPresence.game==='ludo';
+    if(here) return `<span style="font-size:11px;color:var(--text2);align-self:center">🟢 ${esc(ID.partnerName)} is in this game</span>`;
+    if(Hub.sentRequest && Hub.sentRequest.game==='ludo') return `<span style="font-size:11px;color:var(--text2);align-self:center">💌 Invite sent — waiting for ${esc(ID.partnerName)}…</span>`;
+    return `<button class="btn btn-accent" onclick="Hub.challengeGame('ludo')">💌 Invite ${esc(ID.partnerName)}</button>`;
+  },
   leave(){ Hub.exitGame(); },
   startTimer(){
     clearInterval(this.timerTick);
@@ -1594,6 +1742,7 @@ const Ludo = {
         ${historyHtml?`<div class="ludo-history">${historyHtml}</div>`:''}
         <div style="display:flex;gap:10px">
           ${s.winner?'<button class="btn btn-accent" onclick="Ludo.restart()">🔄 Rematch</button>':''}
+          ${this.inviteHtml()}
           <button class="ludo-leave" onclick="Ludo.leave()">Leave game</button>
         </div>
       </div>
