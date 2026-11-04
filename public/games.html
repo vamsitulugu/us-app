@@ -580,6 +580,7 @@ button{font-family:inherit;cursor:pointer}
       <div class="gohead-title" id="goTitle"><span id="goEmoji">🎮</span><span id="goText">Game</span></div>
       <div class="gohead-chip" id="goXpChip">✨ 0 XP</div>
       <button class="gohead-vidbtn" id="goVidBtn" onclick="GameVideo.toggle()" title="Face to face video">📹</button>
+      <button class="gohead-vidbtn" id="goEndBtn" onclick="Hub.endGame()" title="End this game for both of you" style="width:auto;padding:0 12px;border-radius:16px;border-color:rgba(255,80,110,.45);font-size:12px;font-weight:800;background:rgba(255,80,110,.18);color:#ff9bb0">⏹ End</button>
     </div>
     <div class="gohead-players" id="goPlayers"></div>
     <div class="gosplit">
@@ -1014,7 +1015,7 @@ function initPresence(){
 function setPresenceGame(gid){ myPresenceGame=gid; if(window._presenceBeat) window._presenceBeat(); }
 async function hubPoll(){
   try{
-    const r = await GamesStore.read(['gm_presence_'+ptKey,'gm_request_'+ptKey,'gm_request_'+myKey,'gm_profile_'+ptKey]);
+    const r = await GamesStore.read(['gm_presence_'+ptKey,'gm_request_'+ptKey,'gm_request_'+myKey,'gm_profile_'+ptKey,'gm_end']);
     const pr=r['gm_presence_'+ptKey];
     const online = !!(pr && pr.ts && Math.abs(Date.now()-pr.ts)<25000);
     const wasOnline = partnerPresence.online, wasGame = partnerPresence.game;
@@ -1025,6 +1026,7 @@ async function hubPoll(){
     const inc = r['gm_request_'+ptKey];
     const incoming = (inc && inc.game && inc.ts && Math.abs(Date.now()-inc.ts)<REQUEST_TTL_MS) ? inc : null;
     Hub.onRequestsChanged(incoming, r['gm_request_'+myKey]);
+    Hub.onEndSignal(r.gm_end && r.gm_end.ts ? r.gm_end : null);
     if(wasOnline!==online || wasGame!==partnerPresence.game){ Hub.refreshRankCards(); if(Hub.activeGameId==='ludo' && Ludo.state && !Ludo.rolling) Ludo.render(); }
   }catch(e){}
 }
@@ -1492,6 +1494,34 @@ const Hub = {
     try{ await clearIncomingRequest(); }catch(e){}
     toast('Invitation declined');
     if(!this.activeGameId) this.render();
+  },
+  _endBase:undefined,
+  /* "End game": clears the saved game for BOTH of us and tells the partner's screen to leave */
+  async endGame(){
+    const gid=this.activeGameId; if(!gid) return;
+    if(!confirm('End this game for both of you? The board will be cleared.')) return;
+    const obj=({tod:TOD,mindreader:MindReader,ludo:Ludo,ttt:TTT,draw:Draw,memory:Memory,bomb:Bomb,puzzle:Puzzle})[gid];
+    const ch=obj && obj.chan;
+    if(ch){ clearTimeout(ch._saveT); ch._latest=null; try{ await ch._chain; }catch(e){} }   // nothing may re-save the old position
+    const now=Date.now(); this._endBase=now;
+    try{
+      await GamesStore.write({['gm_'+gid]:null, ['gm_web_'+gid]:null, gm_end:{by:ID.role, game:gid, ts:now}});
+    }catch(e){ toast('Could not reach the server — try again'); return; }
+    this.sentRequest=null;
+    this.exitGame();
+    toast('Game ended 🏁');
+  },
+  /* called from hubPoll: did my partner end the game I am in? (compares the signal's value, never clocks) */
+  onEndSignal(en){
+    if(this._endBase===undefined){ this._endBase = en ? en.ts : 0; return; }
+    if(!en || en.ts===this._endBase) return;
+    this._endBase=en.ts;
+    if(en.by!==ID.role && this.activeGameId && en.game===this.activeGameId){
+      const obj=({tod:TOD,mindreader:MindReader,ludo:Ludo,ttt:TTT,draw:Draw,memory:Memory,bomb:Bomb,puzzle:Puzzle})[en.game];
+      if(obj && obj.chan){ clearTimeout(obj.chan._saveT); obj.chan._latest=null; }   // never re-save the board that was just cleared
+      toast('🏁 '+ID.partnerName+' ended the game');
+      this.exitGame();
+    }
   },
   exitGame(){
     const gid=this.activeGameId;
