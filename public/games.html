@@ -579,6 +579,8 @@ button{font-family:inherit;cursor:pointer}
       <button class="gohead-btn" onclick="Hub.exitGame()">←</button>
       <div class="gohead-title" id="goTitle"><span id="goEmoji">🎮</span><span id="goText">Game</span></div>
       <div class="gohead-chip" id="goXpChip">✨ 0 XP</div>
+      <button class="gohead-vidbtn" id="goVoiceBtn" onclick="GameVoice.toggle()" title="Voice call">📞</button>
+      <button class="gohead-vidbtn" id="goChatBtn" onclick="GameChat.toggle()" title="Chat">💬<span class="gc-badge" id="goChatBadge"></span></button>
       <button class="gohead-vidbtn" id="goVidBtn" onclick="GameVideo.toggle()" title="Face to face video">📹</button>
       <button class="gohead-vidbtn" id="goEndBtn" onclick="Hub.endGame()" title="End this game for both of you" style="width:auto;padding:0 12px;border-radius:16px;border-color:rgba(255,80,110,.45);font-size:12px;font-weight:800;background:rgba(255,80,110,.18);color:#ff9bb0">⏹ End</button>
     </div>
@@ -1584,6 +1586,7 @@ const Hub = {
     Snd.click();
     ({tod:TOD, mindreader:MindReader, ludo:Ludo, ttt:TTT, draw:Draw, memory:Memory, bomb:Bomb, puzzle:Puzzle})[gid].open(body);
     GameVideo.startWatch(gid);
+    if(window.GameComms) GameComms.onOpen(gid);
   },
   pendingRequest:null,   // an invitation my partner sent ME
   sentRequest:null,      // an invitation I sent my partner
@@ -1679,6 +1682,7 @@ const Hub = {
     const gid=this.activeGameId;
     GameVideo.stop(true);
     GameVideo.stopWatch();
+    if(window.GameComms) GameComms.onExit();
     ({tod:TOD, mindreader:MindReader, ludo:Ludo, ttt:TTT, draw:Draw, memory:Memory, bomb:Bomb, puzzle:Puzzle})[gid]?.close?.();
     document.getElementById('goverlay').classList.remove('open');
     this.activeGameId=null;
@@ -3946,6 +3950,8 @@ function closeTopOverlayIfOpen() {
   if (document.getElementById('rewardPop')?.classList.contains('show')) { closeReward(); return true; }
   // 2) An active face-to-face video call closes before the game itself.
   if (document.getElementById('goVideo')?.classList.contains('on')) { GameVideo.stop(); return true; }
+  // 2b) The in-game chat sheet closes before the game itself.
+  if (window.GameChat && GameChat.isOpen) { GameChat.hide(); return true; }
   // 3) The active game overlay — back to the games list.
   if (document.getElementById('goverlay')?.classList.contains('open')) { Hub.exitGame(); return true; }
   return false;
@@ -3957,6 +3963,7 @@ Hub.init();
 
 </script>
 <script src="/twin-sounds.js?v=3"></script>
+<script src="/game-comms.js?v=1"></script>
 <script src="/access-gate.js?v=1"></script>
 <script src="/premium-motion.js"></script>
 <script src="/premium-states.js"></script>
