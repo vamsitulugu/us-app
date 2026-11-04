@@ -839,12 +839,35 @@ class GameChannel {
    Before: the web saved Ludo into a Supabase table while Android saved into the backend,
    so the two apps never saw each other's moves and each thought it was the other's turn.
 ═══════════════════════════════════════════════════════ */
+const GamesDiag = {
+  ok:null, msg:'', rev:0,
+  set(ok,msg){ this.ok=ok; this.msg=msg; this.paint(); },
+  paint(){
+    const el=document.getElementById('syncDiag'); if(!el) return;
+    const me = ID.myName+' ('+ID.role+')';
+    el.textContent = this.ok===false ? ('🔴 Cannot reach game server — '+this.msg)
+      : this.ok ? ('🟢 Game sync OK · you are '+me+(partnerPresence.online?' · '+ID.partnerName+' is online':' · '+ID.partnerName+' is offline'))
+      : '⏳ Connecting…';
+  }
+};
 const IS_SOLO = String(ID.coupleId).indexOf('solo_')===0;
 const GamesStore = {
+  _small:true,
   async read(keys){
-    const r = await fetch(API+'/api/data/games/'+encodeURIComponent(ID.coupleId)+'?keys='+keys.join(','), {cache:'no-store'});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    return (await r.json()) || {};
+    if(this._small){
+      try{
+        const r = await fetch(API+'/api/data/games/'+encodeURIComponent(ID.coupleId)+'?keys='+keys.join(','), {cache:'no-store'});
+        if(r.ok){ GamesDiag.set(true,'ok'); return (await r.json()) || {}; }
+        if(r.status===404) this._small=false;          // backend not redeployed yet: use the old route instead
+        else throw new Error('HTTP '+r.status);
+      }catch(e){ if(this._small){ GamesDiag.set(false,e.message); throw e; } }
+    }
+    const r2 = await fetch(API+'/api/data/state/'+encodeURIComponent(ID.coupleId), {cache:'no-store'});
+    if(!r2.ok){ GamesDiag.set(false,'HTTP '+r2.status); throw new Error('HTTP '+r2.status); }
+    const all = (await r2.json()) || {}; const out={};
+    keys.forEach(k=>{ if(all[k]!==undefined && all[k]!==null) out[k]=all[k]; });
+    GamesDiag.set(true,'ok (old route)');
+    return out;
   },
   async write(patch){
     const r = await fetch(API+'/api/data/state', {method:'POST', headers:{'Content-Type':'application/json'},
@@ -856,6 +879,7 @@ const GamesStore = {
 
 /* Ludo: web shape <-> the shape the Android app saves in "gm_ludo" */
 const LudoWire = {
+  native:true,
   movable(tokens,d){ const out=[]; tokens.forEach((pos,i)=>{ if(pos===57) return; if(pos===-1){ if(d===6) out.push(i); return; } if(pos+d<=57) out.push(i); }); return out; },
   to(s){
     const dice = s.dice==null ? 0 : s.dice;
@@ -879,12 +903,32 @@ const LudoWire = {
   }
 };
 
-/* One saved document per game: {rev, by, data}. Same envelope Android uses, so either phone can take over. */
+/* Tic Tac Toe: web shape <-> Android "gm_ttt" */
+const TttWire = {
+  native:true,
+  to(s){
+    return { board:s.board.map(c=>c||''), turn:s.turn,
+      outcome: s.winner==='user1'?'One' : s.winner==='user2'?'Two' : s.winner==='draw'?'Draw' : 'None',
+      winningLine: s.line||[], scoreOne:(s.scores&&s.scores.user1)||0, scoreTwo:(s.scores&&s.scores.user2)||0 };
+  },
+  from(w){
+    return { board:(w.board||[]).map(c=>c||null), turn:w.turn==='user2'?'user2':'user1',
+      winner: w.outcome==='One'?'user1' : w.outcome==='Two'?'user2' : w.outcome==='Draw'?'draw' : null,
+      line:(w.winningLine&&w.winningLine.length)?w.winningLine:null,
+      scores:{user1:w.scoreOne||0, user2:w.scoreTwo||0} };
+  }
+};
+
+/* One saved document per game: {rev, by, data}. Same envelope Android uses, so either phone can take over.
+   Games that have an Android twin (codec.native) save under "gm_<game>"; the others under "gm_web_<game>". */
+const PlainWire = { native:false, to(s){ return JSON.parse(JSON.stringify(s)); }, from(w){ return w; } };
 class SharedGameChannel {
   constructor(gameKey, codec){
-    this.gameKey=gameKey; this.codec=codec; this.wireKey='gm_'+gameKey;
+    this.gameKey=gameKey; this.codec=codec||PlainWire;
+    this.wireKey = (this.codec.native ? 'gm_' : 'gm_web_') + gameKey;
+    this.chanName='gm_'+ID.coupleId+'_'+gameKey;
     this.rev=0; this.sig=''; this.state=null; this.pending=0; this._chain=Promise.resolve();
-    this._onMsg=null; this._timer=null; this._polling=false;
+    this._onMsg=null; this._timer=null; this._polling=false; this.channel=null; this._saveT=null; this._latest=null;
   }
   async load(){
     if(IS_SOLO) return null;
@@ -897,6 +941,13 @@ class SharedGameChannel {
   }
   persist(state){
     if(IS_SOLO) return Promise.resolve();
+    if(this.codec.native) return this._write(state);
+    // web-only games can save very often (drawing, chat): bundle quick changes into one save
+    this._latest=state; clearTimeout(this._saveT);
+    this._saveT=setTimeout(()=>{ if(this._latest) this._write(this._latest); this._latest=null; },450);
+    return Promise.resolve();
+  }
+  _write(state){
     const data = this.codec.to(state);
     this.rev += 1;
     const env = {rev:this.rev, by:ID.role, data:data};
@@ -904,24 +955,34 @@ class SharedGameChannel {
     this.pending++;
     this._chain = this._chain
       .then(()=>GamesStore.write({[this.wireKey]:env}))
-      .catch(e=>{ console.warn('game save failed:', e.message); toast('⚠️ Could not sync — check your connection'); })
+      .catch(e=>{ console.warn('game save failed:', e.message); GamesDiag.set(false,e.message); toast('⚠️ Could not sync — check your connection'); })
       .then(()=>{ this.pending--; });
     return this._chain;
   }
-  send(){ /* state travels through persist() + polling; nothing else to broadcast for Ludo */ }
+  /* "sync" travels through persist() + polling; quick one-off events (strokes, reactions, chat pings) use realtime broadcast */
+  send(payload){
+    if(!payload || payload.type==='sync') return;
+    if(this.channel){ try{ this.channel.send({type:'broadcast',event:'ev',payload}); }catch(e){} }
+  }
   listen(onMsg){
     this._onMsg=onMsg; clearInterval(this._timer);
+    if(sb && !this.channel){
+      try{
+        this.channel = sb.channel(this.chanName, {config:{broadcast:{self:false}}});
+        this.channel.on('broadcast',{event:'ev'},(p)=>{ if(p.payload && p.payload.type!=='sync' && this._onMsg) this._onMsg(p.payload); });
+        this.channel.subscribe();
+      }catch(e){}
+    }
     this._timer=setInterval(()=>this.poll(),1500);
   }
   async poll(){
-    if(IS_SOLO || this._polling || this.pending>0 || !this._onMsg) return;
+    if(IS_SOLO || this._polling || this.pending>0 || this._saveT && this._latest || !this._onMsg) return;
     this._polling=true;
     try{
       const r = await GamesStore.read([this.wireKey]);
       const env = r[this.wireKey];
-      if(this.pending>0 || !env || !env.data) return;     // my own move is still on its way: never overwrite it
+      if(this.pending>0 || this._latest || !env || !env.data) return;   // my own move is still on its way: never overwrite it
       const rev = env.rev||0, sig = JSON.stringify(env.data);
-      // the server copy is the truth: take anything newer, or a different copy at the same revision (a race)
       if(rev>this.rev || (rev===this.rev && sig!==this.sig)){
         this.rev=rev; this.sig=sig;
         this.state=this.codec.from(env.data,this.state);
@@ -930,7 +991,12 @@ class SharedGameChannel {
     }catch(e){ /* offline: try again on the next tick */ }
     finally{ this._polling=false; }
   }
-  close(){ clearInterval(this._timer); this._timer=null; this._onMsg=null; }
+  close(){
+    clearInterval(this._timer); this._timer=null;
+    if(this._latest){ this._write(this._latest); this._latest=null; }
+    if(this.channel && sb){ try{ sb.removeChannel(this.channel); }catch(e){} this.channel=null; }
+    this._onMsg=null;
+  }
 }
 
 /* presence + invitations — stored under the same keys Android uses:
@@ -1248,6 +1314,7 @@ const Hub = {
         <div class="hub-sub">Play together, face to face, in real time 💕</div>
       </div>
       <div class="rank-row" id="rankRow"></div>
+      <div id="syncDiag" style="text-align:center;font-size:11px;opacity:.7;margin:-4px 0 8px"></div>
             ${this.pendingRequest?`<div class="greq-card">
         <div class="greq-title">${esc(ID.partnerName)} wants to play <span class="greq-game">${esc(((GAMES.find(x=>x.id===this.pendingRequest.game))||{}).title||'a game')}</span></div>
         <div class="greq-actions">
@@ -1259,6 +1326,7 @@ const Hub = {
       <div class="games-grid" id="gamesGrid"></div>
     `;
     this.renderGameCards();
+    GamesDiag.paint();
   },
   renderGameCards(){
     const grid=document.getElementById('gamesGrid'); if(!grid) return;
@@ -1274,7 +1342,7 @@ const Hub = {
           <div class="gcard-badges">${g.badge==='new'?'<span class="gbadge new">New</span>':''}${g.badge==='trend'?'<span class="gbadge trend">🔥 Trending</span>':''}</div>
           <div class="gfav ${isFav?'on':''}" onclick="event.stopPropagation();Hub.toggleFav('${g.id}',this)">${isFav?'❤️':'🤍'}</div>
           ${live?`<div class="gcard-live"><span class="dot" style="width:5px;height:5px;border-radius:50%;background:#7cffcf;animation:blk 1.2s infinite"></span>${esc(ID.partnerName)} is playing</div>`:''}
-          ${partnerPresence.online && !challenged?`<button class="gchallenge" onclick="event.stopPropagation();Hub.challengeGame('${g.id}')">⬝ Challenge</button>`:''}
+          ${!challenged?`<button class="gchallenge" onclick="event.stopPropagation();Hub.challengeGame('${g.id}')">💌 Invite</button>`:''}
         </div>
         <div class="gcard-body">
           <div class="gcard-title">${g.title}</div>
@@ -1457,7 +1525,7 @@ const TTT_LINES=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]
 const TTT = {
   chan:null, state:null,
   async open(body){
-    this.chan = new GameChannel('ttt');
+    this.chan = new SharedGameChannel('ttt', TttWire);
     let st = await this.chan.load();
     if(!st) st = {board:Array(9).fill(null), turn:'user1', winner:null, line:null, scores:{user1:0,user2:0}};
     this.state = st;
@@ -1766,7 +1834,7 @@ const TOD_CATS=[['romantic','💕 Romantic'],['cute','🥰 Cute'],['funny','😂
 const TOD = {
   chan:null, state:null, category:'romantic', timerInt:null, _displayAngle:0, _bottleWired:false, _lastPhase:null, showHistory:false,
   async open(body){
-    this.chan = new GameChannel('tod');
+    this.chan = new SharedGameChannel('tod');
     let st = await this.chan.load();
     if(!st) st = {turn:'user1', streak:0, phase:'idle', category:'romantic', current:null, history:[]};
     if(!st.history) st.history=[];
@@ -2068,7 +2136,7 @@ const Draw = {
   color:'#6B093A', size:6, mode:'pen', lastPt:null, strokeId:null, redoStack:[],
   timerTick:null, timerLeft:DW_ROUND_SECONDS, typingHideT:null, partnerTyping:false,
   async open(body){
-    this.chan = new GameChannel('draw');
+    this.chan = new SharedGameChannel('draw');
     let st = await this.chan.load();
     if(!st) st = this.fresh();
     if(!st.guessLog) st.guessLog=[];
@@ -2344,7 +2412,7 @@ const MM_EMOJIS=['❤️','🌟','🎈','🍕','🌙','🐶','🎵','🌈'];
 const Memory = {
   chan:null, state:null, busy:false,
   async open(body){
-    this.chan = new GameChannel('memory');
+    this.chan = new SharedGameChannel('memory');
     let st = await this.chan.load();
     if(!st) st = this.fresh();
     this.state = st;
@@ -2427,7 +2495,7 @@ const Bomb = {
   _rewardedRound:0, _lastPing:null,
 
   async open(body){
-    this.chan = new GameChannel('bomb');
+    this.chan = new SharedGameChannel('bomb');
     let st = await this.chan.load();
     if(!st || !st.phase) st = this.fresh();
     this.state = st;
@@ -2761,7 +2829,7 @@ const Puzzle = {
   held:null, dragGhost:null, _rewardedRound:0, timerTick:null,
 
   async open(body){
-    this.chan = new GameChannel('puzzle');
+    this.chan = new SharedGameChannel('puzzle');
     let st = await this.chan.load();
     if(!st || !st.phase) st = this.fresh();
     this.state = st;
@@ -3226,7 +3294,7 @@ const MindReader = {
   countdownTick:null, answerTimer:null, revealed:false, _bgTimer:null,
 
   async open(body){
-    this.chan = new GameChannel('mindreader');
+    this.chan = new SharedGameChannel('mindreader');
     let st = await this.chan.load();
     if(!st || !st.phase) st = this.fresh();
     this.state = st;
