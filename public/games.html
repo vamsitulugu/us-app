@@ -913,7 +913,8 @@ const TttWire = {
       winningLine: s.line||[], scoreOne:(s.scores&&s.scores.user1)||0, scoreTwo:(s.scores&&s.scores.user2)||0 };
   },
   from(w){
-    return { board:(w.board||[]).map(c=>c||null), turn:w.turn==='user2'?'user2':'user1',
+    const b = (w.board && w.board.length===9) ? w.board : Array(9).fill('');
+    return { board:b.map(c=>c||null), turn:w.turn==='user2'?'user2':'user1',
       winner: w.outcome==='One'?'user1' : w.outcome==='Two'?'user2' : w.outcome==='Draw'?'draw' : null,
       line:(w.winningLine&&w.winningLine.length)?w.winningLine:null,
       scores:{user1:w.scoreOne||0, user2:w.scoreTwo||0} };
@@ -923,6 +924,157 @@ const TttWire = {
 /* One saved document per game: {rev, by, data}. Same envelope Android uses, so either phone can take over.
    Games that have an Android twin (codec.native) save under "gm_<game>"; the others under "gm_web_<game>". */
 const PlainWire = { native:false, to(s){ return JSON.parse(JSON.stringify(s)); }, from(w){ return w; } };
+
+/* ═══ Wire formats: the SAME JSON the Android app saves under "gm_<game>" (Kotlin data classes in feature/games/domain/engine).
+   Android leaves out fields that hold their default value, so every from() fills the defaults in. ═══ */
+const _cap = v => (v==null||v==='') ? v : String(v).charAt(0).toUpperCase()+String(v).slice(1);
+const _low = v => (v==null||v==='') ? v : String(v).charAt(0).toLowerCase()+String(v).slice(1);
+const _side = v => v==='user2' ? 'user2' : 'user1';
+const _otherRole = r => r==='user1' ? 'user2' : 'user1';
+const _qIdx = t => MR_QUESTIONS.findIndex(q=>q.q===t);
+
+const TodWire = {
+  native:true,
+  to(s){
+    const c = s.current;
+    return { turn:_side(s.turn), streak:s.streak||0, phase:_cap(s.phase||'idle'), category:s.category||'romantic',
+      pendingType: s.pendingType==='dare'?'dare':'truth',
+      current: c ? { type:c.type==='dare'?'dare':'truth', text:String(c.text||''), askedBy:_side(c.askedBy), answer:(c.answer==null?null:String(c.answer)) } : null,
+      history:(s.history||[]).map(h=>({type:h.type==='dare'?'dare':'truth', text:String(h.text||''), answer:String(h.answer||'')})),
+      reaction: s.reaction ? { emoji:String(s.reaction.emoji), by:_side(s.reaction.by), nonce:s.reaction.nonce||0 } : null };
+  },
+  from(w){
+    const c = w.current;
+    return { turn:_side(w.turn), streak:w.streak||0, phase:_low(w.phase)||'idle', category:w.category||'romantic',
+      pendingType: w.pendingType==='dare'?'dare':'truth',
+      current: c ? { type:c.type==='dare'?'dare':'truth', text:c.text||'', askedBy:_side(c.askedBy), answer:(c.answer==null?null:c.answer) } : null,
+      history:(w.history||[]).map(h=>({type:h.type,text:h.text,answer:h.answer})),
+      reaction: w.reaction||null };
+  }
+};
+
+const MemWire = {
+  native:true,
+  to(s){
+    return { cards:s.cards.map(c=>({emoji:c.emoji, matched:!!c.matched})), flipped:(s.flipped||[]).slice(), turn:_side(s.turn),
+      scoreOne:(s.scores&&s.scores.user1)||0, scoreTwo:(s.scores&&s.scores.user2)||0,
+      outcome: s.winner==='user1'?'One' : s.winner==='user2'?'Two' : s.winner==='draw'?'Draw' : 'None' };
+  },
+  from(w){
+    return { cards:(w.cards||[]).map((c,i)=>({id:i, emoji:c.emoji, matched:!!c.matched})), flipped:(w.flipped||[]).slice(), turn:_side(w.turn),
+      scores:{user1:w.scoreOne||0, user2:w.scoreTwo||0},
+      winner: w.outcome==='One'?'user1' : w.outcome==='Two'?'user2' : w.outcome==='Draw'?'draw' : null };
+  }
+};
+
+const MrWire = {
+  native:true,
+  to(s){
+    const a = s.answers||{}, l = s.locked||{};
+    const stats = {}; Object.keys(s.catStats||{}).forEach(k=>{ stats[k]={total:s.catStats[k].total||0, matched:s.catStats[k].matched||0}; });
+    return { phase:s.phase||'lobby', mode:s.mode||'random', category:s.category||'random', roundIndex:s.roundIndex||0,
+      targetRounds:s.targetRounds||0, question: s.question ? _qIdx(s.question.q) : -1, questionCat: s.question ? s.question.cat : '',
+      used:(s.usedQIds||[]).map(_qIdx).filter(i=>i>=0), countdownAt:s.countdownAt||0,
+      answerOne:a.user1==null?null:String(a.user1), answerTwo:a.user2==null?null:String(a.user2),
+      lockedOne:!!l.user1, lockedTwo:!!l.user2, roundStartedAt:s.roundStartedAt||0, match:s.matchType||null,
+      compatPct:s.compatPct||0, totalPts:s.totalPts||0, maxPts:s.maxPts||0, totalRounds:s.totalRounds||0,
+      bestStreak:s.bestStreak||0, curStreak:s.curStreak||0, catStats:stats, funnyMatches:s.funnyMatches||0,
+      achievements:(s.achievementsUnlocked||[]).slice(),
+      history:(s.history||[]).map(h=>({ q:Math.max(0,_qIdx(h.q)), cat:h.cat||'random', answerOne:String(h.a1==null?'':h.a1), answerTwo:String(h.a2==null?'':h.a2), match:h.mt||'diff', fav:!!h.fav })) };
+  },
+  from(w, prev){
+    const stats = {}; Object.keys(w.catStats||{}).forEach(k=>{ stats[k]={total:w.catStats[k].total||0, matched:w.catStats[k].matched||0}; });
+    const qi = (w.question==null ? -1 : w.question);
+    return { phase:w.phase||'lobby', mode:w.mode||'random', category:w.category||'random', roundIndex:w.roundIndex||0,
+      targetRounds:w.targetRounds||null, question:(qi>=0 && MR_QUESTIONS[qi]) ? MR_QUESTIONS[qi] : null,
+      usedQIds:(w.used||[]).map(i=>MR_QUESTIONS[i]&&MR_QUESTIONS[i].q).filter(Boolean), countdownAt:w.countdownAt||0,
+      answers:{user1:w.answerOne==null?null:w.answerOne, user2:w.answerTwo==null?null:w.answerTwo},
+      locked:{user1:!!w.lockedOne, user2:!!w.lockedTwo}, roundStartedAt:w.roundStartedAt||0,
+      matchType:w.match||null, revealedAt:(prev&&prev.revealedAt)||0,
+      compatPct:w.compatPct||0, totalPts:w.totalPts||0, maxPts:w.maxPts||0, totalRounds:w.totalRounds||0,
+      bestStreak:w.bestStreak||0, curStreak:w.curStreak||0, catStats:stats, funnyMatches:w.funnyMatches||0,
+      achievementsUnlocked:(w.achievements||[]).slice(),
+      history:(w.history||[]).map(h=>({ q:(MR_QUESTIONS[h.q]&&MR_QUESTIONS[h.q].q)||'', cat:h.cat, a1:h.answerOne, a2:h.answerTwo, mt:h.match, ts:0, fav:!!h.fav })),
+      favorites:[] };
+  }
+};
+
+const _chatTo = log => (log||[]).map(m=>({who:_side(m.who), text:String(m.text), ts:m.ts||0}));
+const _chatFrom = log => (log||[]).map(m=>({who:_side(m.who), text:m.text, ts:m.ts||0}));
+const _chatAdd = (s, msg) => { s.chatLog=s.chatLog||[]; if(!s.chatLog.some(m=>m.ts===msg.ts && m.who===msg.who)) s.chatLog.push(msg); if(s.chatLog.length>20) s.chatLog=s.chatLog.slice(-20); };
+
+const BombWire = {
+  native:true,
+  to(s){
+    return { phase:_cap(s.phase||'lobby'), difficulty:_cap(s.difficulty||'easy'), hintMode:!!s.hintMode, fogMode:!!s.fogMode,
+      size:s.size||8, bombs:(s.bombs||[]).slice(), start:s.start||0, goal:(s.goal==null?(s.size||8)*(s.size||8)-1:s.goal), pos:s.pos||0, moves:s.moves||0,
+      guide:_side(s.guiderRole), round:s.round||1, countdownAt:s.countdownAt||0, startedAt:s.startedAt||0, timeLimit:s.timeLimit||90,
+      result: s.result ? _cap(s.result) : null, explodedAt:(s.explodedAt==null?-1:s.explodedAt), finishMs:s.finishMs||0,
+      teamStreak:s.teamStreak||0, bestTimeMs:s.bestTimeMs||0, chat:_chatTo(s.chatLog),
+      ping: s.ping ? {idx:s.ping.idx, nonce:s.ping.nonce||0} : null };
+  },
+  from(w){
+    const size = w.size||8;
+    return { phase:_low(w.phase)||'lobby', difficulty:_low(w.difficulty)||'easy', hintMode:!!w.hintMode, fogMode:!!w.fogMode,
+      size:size, bombs:(w.bombs||[]).slice(), start:w.start||0, goal:(w.goal==null?size*size-1:w.goal), pos:w.pos||0, moves:w.moves||0,
+      guiderRole:_side(w.guide), round:w.round||1, countdownAt:w.countdownAt||0, startedAt:w.startedAt||0, timeLimit:w.timeLimit||90,
+      result: w.result ? _low(w.result) : null, explodedAt:(w.explodedAt==null||w.explodedAt<0)?null:w.explodedAt, finishMs:w.finishMs||0,
+      teamStreak:w.teamStreak||0, bestTimeMs:w.bestTimeMs||null, chatLog:_chatFrom(w.chat), ping:w.ping||null };
+  }
+};
+
+const PuzzleWire = {
+  native:true,
+  to(s){
+    return { phase:_cap(s.phase||'setup'), gridN:s.gridN||3, imageUrl:s.imageUrl||'',
+      pieces:(s.pieces||[]).map(p=>({id:p.id,row:p.row,col:p.col,rot:p.rot||0,owner:_side(p.owner),placed:!!p.placed})),
+      round:s.round||1, countdownAt:s.countdownAt||0, startedAt:s.startedAt||0, moves:s.moves||0, teamStreak:s.teamStreak||0,
+      bestMs:s.bestMs||0, finishMs:s.finishMs||0, chat:_chatTo(s.chatLog) };
+  },
+  from(w){
+    return { phase:_low(w.phase)||'setup', gridN:w.gridN||3, imageUrl:w.imageUrl||null,
+      pieces:(w.pieces||[]).map(p=>({id:p.id,row:p.row,col:p.col,rot:p.rot||0,owner:_side(p.owner),placed:!!p.placed})),
+      round:w.round||1, countdownAt:w.countdownAt||0, startedAt:w.startedAt||0, moves:w.moves||0, teamStreak:w.teamStreak||0,
+      bestMs:w.bestMs||null, finishMs:w.finishMs||0, chatLog:_chatFrom(w.chat) };
+  }
+};
+
+/* Draw & Guess: the web draws small line segments, Android keeps whole strokes (flat 0..1 point lists + ARGB colour). */
+const _hashId = sid => { const t=String(sid==null?'':sid); const m=/^n(\d+)$/.exec(t); if(m) return parseInt(m[1],10); let h=7; for(let i=0;i<t.length;i++) h=(h*31+t.charCodeAt(i))|0; return Math.abs(h)+1; };
+const _hexToArgb = hex => { const h=String(hex||'#000000').replace('#',''); return (0xFF000000 | parseInt(h.length===3?h.split('').map(c=>c+c).join(''):h.padEnd(6,'0').slice(0,6),16)) | 0; };
+const _argbToHex = n => '#'+((n>>>0)&0xFFFFFF).toString(16).padStart(6,'0');
+const DrawWire = {
+  native:true, debounce:true,
+  to(s){
+    const out=[]; let cur=null;
+    (s.strokes||[]).forEach(g=>{
+      if(g.mode==='fill'){ cur=null; out.push({id:_hashId(g.sid), tool:'fill', color:_hexToArgb(g.color), size:6, pts:[g.x,g.y]}); return; }
+      if(cur && cur.sid===g.sid && cur.tool===(g.mode||'pen')){ cur.pts.push(g.x1,g.y1); return; }
+      cur = {sid:g.sid, id:_hashId(g.sid), tool:g.mode||'pen', color:_hexToArgb(g.color), size:g.size||6, pts:[g.x0,g.y0,g.x1,g.y1]};
+      out.push(cur);
+    });
+    return { drawer:_side(s.drawer), word:s.word||'', wordSet:!!s.wordSet,
+      strokes:out.map(g=>({id:g.id, tool:g.tool, color:g.color, size:g.size, pts:g.pts})),
+      guesses:(s.guessLog||[]).map(g=>({by:_side(g.by||(g.name===ID.myName?ID.role:_otherRole(ID.role))), text:String(g.text), correct:!!g.correct, ts:g.ts||0})),
+      scoreOne:(s.scores&&s.scores.user1)||0, scoreTwo:(s.scores&&s.scores.user2)||0, round:s.round||1, roundStartedAt:s.roundStartedAt||0,
+      result: s.result ? {word:String(s.result.word), by:_side(s.result.by), round:s.result.round||1} : null,
+      reaction: s.reaction||null };
+  },
+  from(w){
+    const segs=[];
+    (w.strokes||[]).forEach(g=>{
+      const sid='n'+g.id, col=_argbToHex(g.color), pts=g.pts||[];
+      if(g.tool==='fill'){ segs.push({x:pts[0],y:pts[1],color:col,mode:'fill',sid}); return; }
+      if(pts.length===2){ segs.push({x0:pts[0],y0:pts[1],x1:pts[0],y1:pts[1],color:col,size:g.size||6,mode:g.tool||'pen',sid}); return; }
+      for(let i=0;i+3<pts.length;i+=2) segs.push({x0:pts[i],y0:pts[i+1],x1:pts[i+2],y1:pts[i+3],color:col,size:g.size||6,mode:g.tool||'pen',sid});
+    });
+    return { drawer:_side(w.drawer), word:w.word||'', wordSet:!!w.wordSet, strokes:segs,
+      guessLog:(w.guesses||[]).map(g=>({by:_side(g.by), name:(_side(g.by)===ID.role?ID.myName:ID.partnerName), text:g.text, correct:!!g.correct, ts:g.ts||0})),
+      scores:{user1:w.scoreOne||0, user2:w.scoreTwo||0}, round:w.round||1, roundStartedAt:w.roundStartedAt||0,
+      result:w.result||null, reaction:w.reaction||null };
+  }
+};
+
 class SharedGameChannel {
   constructor(gameKey, codec){
     this.gameKey=gameKey; this.codec=codec||PlainWire;
@@ -942,7 +1094,7 @@ class SharedGameChannel {
   }
   persist(state){
     if(IS_SOLO) return Promise.resolve();
-    if(this.codec.native) return this._write(state);
+    if(this.codec.native && !this.codec.debounce) return this._write(state);
     // web-only games can save very often (drawing, chat): bundle quick changes into one save
     this._latest=state; clearTimeout(this._saveT);
     this._saveT=setTimeout(()=>{ if(this._latest) this._write(this._latest); this._latest=null; },450);
@@ -1864,7 +2016,7 @@ const TOD_CATS=[['romantic','💕 Romantic'],['cute','🥰 Cute'],['funny','😂
 const TOD = {
   chan:null, state:null, category:'romantic', timerInt:null, _displayAngle:0, _bottleWired:false, _lastPhase:null, showHistory:false,
   async open(body){
-    this.chan = new SharedGameChannel('tod');
+    this.chan = new SharedGameChannel('tod', TodWire);
     let st = await this.chan.load();
     if(!st) st = {turn:'user1', streak:0, phase:'idle', category:'romantic', current:null, history:[]};
     if(!st.history) st.history=[];
@@ -1872,8 +2024,19 @@ const TOD = {
     if(!st.phase) st.phase = st.current ? 'reveal' : 'idle';
     if(st.phase==='reveal' && st.current && !st.current.askedBy){ st.phase='idle'; st.current=null; }
     this.state = st; this.category=st.category||'romantic'; this._bottleWired=false;
-    this.chan.listen(p=>{ if(p.type==='sync'){ this.state=p.state; this.category=this.state.category; this.render(); } });
-    this.render();
+    this._lastNonce = (st.reaction && st.reaction.nonce) || 0; this._timerKey = null;
+    this.chan.listen(p=>{ if(p.type==='sync'){ this.state=p.state; this.category=this.state.category; this.render(); this._onRemote(); } });
+    this.render(); this._onRemote();
+  },
+  /* things to do whenever the partner's phone saved a newer game: float their emoji, start my answer clock */
+  _onRemote(){
+    const s=this.state, r=s.reaction;
+    if(r && r.by!==ID.role && r.nonce!==this._lastNonce){ this._lastNonce=r.nonce; this.floatEmoji(r.emoji); }
+    const c=s.current;
+    if(s.phase==='reveal' && c && !c.answer && this.isAnswerer()){
+      const key=c.text+'|'+c.askedBy;
+      if(this._timerKey!==key){ this._timerKey=key; this.startAnswerTimer(); }
+    } else if(!c){ this._timerKey=null; clearInterval(this.timerInt); }
   },
   close(){ clearInterval(this.timerInt); if(this.chan) this.chan.close(); },
   sync(){ this.chan.send({type:'sync',state:this.state}); this.chan.persist(this.state); },
@@ -1986,7 +2149,7 @@ const TOD = {
     const u=new SpeechSynthesisUtterance(this.state.current.text); u.rate=0.95;
     speechSynthesis.cancel(); speechSynthesis.speak(u);
   },
-  react(emoji){ this.chan.send({type:'react',emoji}); this.floatEmoji(emoji); },
+  react(emoji){ const n=Date.now(); this._lastNonce=n; this.state.reaction={emoji,by:ID.role,nonce:n}; this.floatEmoji(emoji); this.chan.persist(this.state); },
   toggleHistory(){ this.showHistory=!this.showHistory; this.render(); },
   floatEmoji(emoji){
     const el=document.createElement('div'); el.className='tod-float-emoji'; el.textContent=emoji;
@@ -2115,7 +2278,7 @@ const TOD = {
    "man"/"boy" for a drawn "human" still counts as correct.
 ═══════════════════════════════════════════════════════ */
 const DRAW_WORDS=['cat','pizza','rainbow','guitar','heart','tree','sun','umbrella','robot','castle','fish','flower','moon','car','house','butterfly','ice cream','star','crown','balloon','shoe','clock','book','key','cloud','boat','apple','kite','snowman','rocket'];
-const DW_COLORS=['#6B093A','#f59e0b','#22c55e','#6B093A','#6B093A','#ffffff','#000000'];
+const DW_COLORS=['#6B093A','#C21A8B','#f59e0b','#22c55e','#3B82F6','#ffffff','#000000'];
 const DW_SIZES=[3,6,11];
 const DW_ROUND_SECONDS=75;
 
@@ -2166,15 +2329,21 @@ const Draw = {
   color:'#6B093A', size:6, mode:'pen', lastPt:null, strokeId:null, redoStack:[],
   timerTick:null, timerLeft:DW_ROUND_SECONDS, typingHideT:null, partnerTyping:false,
   async open(body){
-    this.chan = new SharedGameChannel('draw');
+    this.chan = new SharedGameChannel('draw', DrawWire);
     let st = await this.chan.load();
     if(!st) st = this.fresh();
     if(!st.guessLog) st.guessLog=[];
     if(!st.roundStartedAt) st.roundStartedAt=Date.now();
     if(st.wordSet===undefined) st.wordSet = !!st.word; // backward-compat with older saved games
-    this.state = st; this.redoStack=[];
+    this.state = st; this.redoStack=[]; this._lastResultRound = st.result ? st.result.round : 0;
     this.chan.listen(p=>{
-      if(p.type==='sync'){ this.state=p.state; this.redoStack=[]; this.render(); this.redrawAll(); }
+      if(p.type==='sync'){
+        const prev=this.state, keep=(this.isDrawer() && this.drawing) ? prev.strokes : null;   // never wipe a stroke I am still drawing
+        this.state=p.state; this.redoStack=[];
+        if(keep) this.state.strokes=keep;
+        if(this.state.result && this.state.result.round!==this._lastResultRound){ this._lastResultRound=this.state.result.round; if(this.state.result.by!==ID.role) showReward('🎉',esc(ID.partnerName)+' guessed it!',['The word was “'+this.state.result.word+'”']); }
+        this.render(); this.redrawAll();
+      }
       else if(p.type==='stroke'){ this.state.strokes.push(p.stroke); if(p.stroke.mode==='fill') this.floodFillAt(p.stroke.x,p.stroke.y,p.stroke.color); else this.drawSeg(p.stroke); }
       else if(p.type==='clear'){ this.state.strokes=[]; this.clearCanvas(); }
       else if(p.type==='undo'){ this.state.strokes=p.strokes; this.redrawAll(); }
@@ -2326,7 +2495,7 @@ const Draw = {
     if(!this.isDrawer()) return;
     const inp=document.getElementById('dwWordIn'); const val=(inp?.value||'').trim();
     if(!val){ toast('Type what you\'ll draw first ✍️'); return; }
-    this.state.word=val; this.state.wordSet=true; this.state.roundStartedAt=Date.now(); this.state.strokes=[];
+    this.state.word=val; this.state.wordSet=true; this.state.roundStartedAt=Date.now(); this.state.strokes=[]; this.state.guessLog=[]; this.state.result=null;
     Snd.tap(); this.sync(); this.clearCanvas(); this.render();
   },
   newWord(){ if(!this.isDrawer()) return; this.state.word=''; this.state.wordSet=false; this.state.strokes=[]; this.sync(); this.clearCanvas(); this.render(); },
@@ -2356,14 +2525,15 @@ const Draw = {
     try{ correct = await dwCheckMatch(raw, this.state.word); }catch(e){ correct = dwNormalize(raw)===dwNormalize(this.state.word); }
     this.checking=false;
     if(btn){ btn.disabled=false; btn.textContent='Guess'; }
-    const log=(this.state.guessLog||[]).concat([{name:ID.myName,text:raw,correct}]);
+    const log=(this.state.guessLog||[]).concat([{by:ID.role,name:ID.myName,text:raw,correct,ts:Date.now()}]).slice(-30);
     this.state.guessLog=log; this.chan.send({type:'guesslog', log});
     if(correct){
       GameCore.addXP(20); GameCore.addCoins(8); Snd.success(); TwinCards.done('draw');
       this.state.scores[ID.role]=(this.state.scores[ID.role]||0)+1;
+      this.state.result={word:this.state.word, by:ID.role, round:this.state.round}; this._lastResultRound=this.state.round;
       showReward('🎉','Correct guess!',['The word was “'+this.state.word+'”','+20 XP']);
       this.nextRound(true);
-    } else { toast('❌ Not quite — try again!'); Snd.fail(); this.renderGuessLog(); }
+    } else { toast('❌ Not quite — try again!'); Snd.fail(); this.renderGuessLog(); this.chan.persist(this.state); }
   },
   render(){
     const body=document.getElementById('goBody'); if(!body) return;
@@ -2442,14 +2612,29 @@ const MM_EMOJIS=['❤️','🌟','🎈','🍕','🌙','🐶','🎵','🌈'];
 const Memory = {
   chan:null, state:null, busy:false,
   async open(body){
-    this.chan = new SharedGameChannel('memory');
+    this.chan = new SharedGameChannel('memory', MemWire);
     let st = await this.chan.load();
     if(!st) st = this.fresh();
     this.state = st;
-    this.chan.listen(p=>{ if(p.type==='sync'){ this.state=p.state; this.render(); } });
-    this.render();
+    this.chan.listen(p=>{ if(p.type==='sync'){ this.state=p.state; this.render(); this._resolveIfNeeded(); } });
+    this.render(); this._resolveIfNeeded();
   },
-  close(){ if(this.chan) this.chan.close(); },
+  /* the partner flipped two cards but their phone went away: the player whose turn it is settles the pair */
+  _resolveIfNeeded(){
+    const s=this.state; clearTimeout(this._pairT);
+    if(!s || s.winner || s.turn===ID.role || !s.flipped || s.flipped.length!==2) return;
+    this._pairT=setTimeout(()=>{
+      const t=this.state;
+      if(!t || t.winner || t.turn===ID.role || !t.flipped || t.flipped.length!==2) return;
+      const [a,b]=t.flipped;
+      if(t.cards[a].emoji===t.cards[b].emoji){
+        t.cards[a].matched=true; t.cards[b].matched=true; const o=_otherRole(ID.role); t.scores[o]=(t.scores[o]||0)+1; t.flipped=[];
+        if(t.cards.every(c=>c.matched)){ t.winner = t.scores.user1===t.scores.user2 ? 'draw' : (t.scores.user1>t.scores.user2?'user1':'user2'); }
+      } else { t.flipped=[]; t.turn=ID.role; }
+      this.sync(); this.render();
+    }, 4500);
+  },
+  close(){ clearTimeout(this._pairT); if(this.chan) this.chan.close(); },
   sync(){ this.chan.send({type:'sync',state:this.state}); this.chan.persist(this.state); },
   fresh(){
     let deck=[...MM_EMOJIS,...MM_EMOJIS].map((e,i)=>({id:i,emoji:e,matched:false}));
@@ -2460,13 +2645,15 @@ const Memory = {
   flip(i){
     const s=this.state;
     if(s.winner || s.turn!==ID.role || this.busy) return;
-    if(s.cards[i].matched || s.flipped.includes(i)) return;
+    if(s.cards[i].matched || s.flipped.includes(i) || s.flipped.length>=2) return;
     s.flipped.push(i); Snd.flip();
     this.sync(); this.render();
     if(s.flipped.length===2){
       this.busy=true;
       const [a,b]=s.flipped;
       setTimeout(()=>{
+        const s=this.state;                       // always the newest saved game, never a stale copy
+        if(!s.flipped || s.flipped.length!==2){ this.busy=false; return; }
         if(s.cards[a].emoji===s.cards[b].emoji){
           s.cards[a].matched=true; s.cards[b].matched=true;
           s.scores[ID.role]=(s.scores[ID.role]||0)+1;
@@ -2525,16 +2712,21 @@ const Bomb = {
   _rewardedRound:0, _lastPing:null,
 
   async open(body){
-    this.chan = new SharedGameChannel('bomb');
+    this.chan = new SharedGameChannel('bomb', BombWire);
     let st = await this.chan.load();
     if(!st || !st.phase) st = this.fresh();
-    this.state = st;
+    this.state = st; this._lastPing = (st.ping && st.ping.nonce) || null;
     this.chan.listen(p=>{
-      if(p.type==='sync'){ this.state=p.state; this.render(); }
-      else if(p.type==='ping'){ this.showPing(p.idx); }
-      else if(p.type==='chat'){ this.state.chatLog=this.state.chatLog||[]; this.state.chatLog.push(p.msg); this.renderChatLog(); Snd.tap(); }
+      if(p.type==='sync'){ this.state=p.state; this.render(); this._onRemote(); }
+      else if(p.type==='ping'){ if(p.nonce && p.nonce===this._lastPing) return; this._lastPing=p.nonce||null; this.showPing(p.idx); }
+      else if(p.type==='chat'){ _chatAdd(this.state, p.msg); this.renderChatLog(); Snd.tap(); }
     });
     this.render();
+  },
+  /* the other phone saved a newer game: show the 📍 the guide just dropped */
+  _onRemote(){
+    const pg=this.state.ping;
+    if(pg && pg.nonce!==this._lastPing){ this._lastPing=pg.nonce; setTimeout(()=>this.showPing(pg.idx),60); }
   },
   close(){ if(this.chan) this.chan.close(); clearInterval(this.timerTick); clearInterval(this.movingTick); },
   sync(){ this.chan.send({type:'sync',state:this.state}); this.chan.persist(this.state); },
@@ -2582,9 +2774,10 @@ const Bomb = {
       const left = Math.ceil((this.state.countdownAt-Date.now())/1000);
       const el=document.getElementById('bmCdNum'); if(el) el.textContent = left>0?left:'GO!';
       if(left!==this._cdLast){ this._cdLast=left; if(left>0) Snd.tick(); } // 3 · 2 · 1
-      if(left<=0){
+      const grace = this.isMover() ? 0 : 4000;          // the guide's phone only steps in if the mover's did not
+      if(left<=0 && Date.now() >= this.state.countdownAt + grace){
         clearInterval(this.timerTick);
-        if(this.isMover()){ this.state.phase='playing'; this.state.startedAt=Date.now(); this.sync(); }
+        if(this.state.phase==='countdown'){ this.state.phase='playing'; this.state.startedAt=Date.now(); this.sync(); }
         setTimeout(()=>{ this.render(); this.armPlayTimer(); if(BM_DIFF[this.state.difficulty].moving) this.armMovingBombs(); },250);
       }
     },120);
@@ -2603,7 +2796,7 @@ const Bomb = {
       const chip=document.getElementById('bmTimeChip'); if(chip) chip.textContent='⏱ '+Math.ceil(remain)+'s';
       const sec=Math.ceil(remain); // last 5 seconds: one soft tick each
       if(sec>0 && sec<=5 && sec!==this._lastSec){ this._lastSec=sec; Snd.tick(); }
-      if(remain<=0 && this.isMover()){
+      if((remain<=0 && this.isMover()) || (remain<=-4 && this.isGuide())){
         this.state.phase='result'; this.state.result='timeout'; this.sync(); this.render();
       }
     },250);
@@ -2646,7 +2839,9 @@ const Bomb = {
   },
   guidePing(idx){
     if(this.state.phase!=='playing' || !this.isGuide()) return;
-    this.chan.send({type:'ping', idx, ts:Date.now()});
+    const nonce=Date.now(); this._lastPing=nonce;
+    this.state.ping={idx,nonce};
+    this.chan.send({type:'ping', idx, nonce}); this.chan.persist(this.state);
     this.showPing(idx);
     Snd.tap();
   },
@@ -2680,8 +2875,7 @@ const Bomb = {
     const text=input.value.trim(); if(!text) return;
     const msg={who:ID.role,text,ts:Date.now()};
     input.value='';
-    this.state.chatLog=this.state.chatLog||[]; this.state.chatLog.push(msg);
-    if(this.state.chatLog.length>20) this.state.chatLog=this.state.chatLog.slice(-20);
+    _chatAdd(this.state,msg);
     this.chan.send({type:'chat',msg}); this.chan.persist(this.state);
     this.renderChatLog();
   },
@@ -2859,7 +3053,7 @@ const Puzzle = {
   held:null, dragGhost:null, _rewardedRound:0, timerTick:null,
 
   async open(body){
-    this.chan = new SharedGameChannel('puzzle');
+    this.chan = new SharedGameChannel('puzzle', PuzzleWire);
     let st = await this.chan.load();
     if(!st || !st.phase) st = this.fresh();
     this.state = st;
@@ -2867,7 +3061,7 @@ const Puzzle = {
       if(p.type==='sync'){ this.state=p.state; this.render(); }
       else if(p.type==='drag'){ this.showGhost(p); }
       else if(p.type==='dragend'){ this.clearGhost(); }
-      else if(p.type==='chat'){ this.state.chatLog=this.state.chatLog||[]; this.state.chatLog.push(p.msg); this.renderChatLog(); Snd.tap(); }
+      else if(p.type==='chat'){ _chatAdd(this.state, p.msg); this.renderChatLog(); Snd.tap(); }
     });
     this.render();
   },
@@ -2920,9 +3114,10 @@ const Puzzle = {
       if(!this.state || this.state.phase!=='countdown') return;
       const left = Math.ceil((this.state.countdownAt-Date.now())/1000);
       const el=document.getElementById('pzCdNum'); if(el) el.textContent = left>0?left:'GO!';
-      if(left<=0){
+      const grace = ID.role==='user1' ? 0 : 3000;       // player 2 only steps in if player 1's phone did not
+      if(left<=0 && Date.now() >= this.state.countdownAt + grace){
         clearInterval(this.timerTick);
-        if(ID.role==='user1'){ this.state.phase='playing'; this.state.startedAt=Date.now(); this.sync(); }
+        if(this.state.phase==='countdown'){ this.state.phase='playing'; this.state.startedAt=Date.now(); this.sync(); }
         setTimeout(()=>{ this.render(); this.armPlayTimer(); },250);
       }
     },120);
@@ -3324,16 +3519,32 @@ const MindReader = {
   countdownTick:null, answerTimer:null, revealed:false, _bgTimer:null,
 
   async open(body){
-    this.chan = new SharedGameChannel('mindreader');
+    this.chan = new SharedGameChannel('mindreader', MrWire);
     let st = await this.chan.load();
     if(!st || !st.phase) st = this.fresh();
-    this.state = st;
+    this.state = st; this._myLock = null;
+    if(st.phase==='reveal') this.revealed=true;
     this.chan.listen(p=>{
-      if(p.type==='sync'){ this.state=p.state; this.render(); }
+      if(p.type==='sync'){ const prev=this.state; this.state=p.state; this.render(); this._onRemote(prev); }
       else if(p.type==='typing'){ this.showPartnerTyping(); }
     });
     this.spawnFloatingHearts();
     this.render();
+  },
+  /* the partner's phone saved a newer game */
+  _onRemote(prev){
+    const s=this.state;
+    // the round was just flipped by the other phone: play the flip + pay my XP here too
+    if(s.phase==='reveal' && (!prev || prev.phase!=='reveal' || prev.roundIndex!==s.roundIndex)){
+      this.revealed=false; this.render(); setTimeout(()=>this.runFlipAnimation(),150);
+    }
+    // my lock was overwritten by a save that crossed mine: lock again
+    const L=this._myLock;
+    if(L){
+      if(s.phase==='answering' && s.roundIndex===L.round && !s.locked[ID.role]) this.lockAnswer(L.answer);
+      else if(s.roundIndex!==L.round || s.locked[ID.role]) this._myLock=null;
+    }
+    if(s.phase==='answering' && s.locked.user1 && s.locked.user2) this.maybeReveal();
   },
   close(){
     if(this.chan) this.chan.close();
@@ -3414,9 +3625,10 @@ const MindReader = {
       if(!this.state || this.state.phase!=='countdown') return;
       const left=Math.ceil((this.state.countdownAt-Date.now())/1000);
       const el=document.getElementById('mrCdNum'); if(el) el.textContent = left>0?left:'GO!';
-      if(left<=0){
+      const grace = ID.role==='user1' ? 0 : 3000;     // player 2 only steps in if player 1's phone did not
+      if(left<=0 && Date.now() >= this.state.countdownAt + grace){
         clearInterval(this.countdownTick);
-        if(ID.role==='user1'){ this.state.phase='answering'; this.state.roundStartedAt=Date.now(); this.sync(); }
+        if(this.state.phase==='countdown'){ this.state.phase='answering'; this.state.roundStartedAt=Date.now(); this.sync(); }
         setTimeout(()=>{ this.render(); this.armAnswerTimer(); },250);
       }
     },120);
@@ -3466,6 +3678,7 @@ const MindReader = {
     }
     this.state.answers[roleKey]=val;
     this.state.locked[roleKey]=true;
+    this._myLock = {round:this.state.roundIndex, answer:val};
     Snd.tap();
     this.sync(); this.render();
     this.maybeReveal();
@@ -3473,8 +3686,8 @@ const MindReader = {
   maybeReveal(){
     if(this.state.locked.user1 && this.state.locked.user2 && this.state.phase==='answering'){
       this.state.phase='reveal'; this.state.revealedAt=Date.now();
-      // scoring authority: user1 computes to avoid double-counting races
-      if(ID.role==='user1'){
+      // whichever phone locks LAST scores the round (same rule as the Android app)
+      {
         const isMC = this.state.question.type==='mc';
         const mt = mrClassifyMatch(this.state.answers.user1, this.state.answers.user2, isMC);
         this.state.matchType = mt;
