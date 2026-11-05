@@ -1304,3 +1304,16 @@
   user-select:none;-webkit-user-select:none;
 }
 .chat-text::after{content:"";display:block;clear:both}
+
+/* ── EXACT WhatsApp bubble style: 8px corners, tight padding, and a small
+   tail on the first message of each run (top corner on the sender's side). ── */
+.chat-bubble.mine{--tail:var(--accent-d,#6B093A)}
+.chat-bubble.theirs{--tail:#1e1c1d}
+#page-chat[data-theme="light"] .chat-bubble.theirs{--tail:#fff}
+
+ .chat-bubble{border-radius:8px !important;padding:6px 9px 6px !important;}
+ .chat-row:not([data-group="mid"]):not([data-group="last"]) .chat-bubble.mine{border-top-right-radius:0 !important;}
+ .chat-row:not([data-group="mid"]):not([data-group="last"]) .chat-bubble.theirs{border-top-left-radius:0 !important;}
+ .chat-row:not([data-group="mid"]):not([data-group="last"]) .chat-bubble.mine::before, .chat-row:not([data-group="mid"]):not([data-group="last"]) .chat-bubble.theirs::before{content:"";position:absolute;top:0;width:8px;height:13px;background:var(--tail);}
+ .chat-row:not([data-group="mid"]):not([data-group="last"]) .chat-bubble.mine::before{right:-8px;clip-path:polygon(0 0,0 100%,100% 0);}
+ .chat-row:not([data-group="mid"]):not([data-group="last"]) .chat-bubble.theirs::before{left:-8px;clip-path:polygon(100% 0,100% 100%,0 0);}

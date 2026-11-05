@@ -269,8 +269,8 @@ html[data-ui="android"][data-theme="dark"]:not(#_) .topbar { background:transpar
 /* ───────── Chat (own bubbles wine, theirs gray, burgundy send button) ───────── */
 html[data-ui="android"][data-theme="dark"]:not(#_) .chat-header { background:#1A1A1C !important; border-bottom:1px solid rgba(255,255,255,.10) !important; -webkit-backdrop-filter:none; backdrop-filter:none; }
 html[data-ui="android"][data-theme="dark"]:not(#_) .chat-header-actions button, html[data-ui="android"][data-theme="dark"]:not(#_) .chat-header-actions .ic-btn { border-radius:50%; background:rgba(255,255,255,.08) !important; border:1px solid rgba(255,255,255,.22) !important; }
-html[data-ui="android"][data-theme="dark"]:not(#_) .chat-bubble.mine { background:linear-gradient(135deg,#7A0B45 0%,#5E0836 100%) !important; border-radius:20px !important; box-shadow:none; font-weight:500; font-size:15px; }
-html[data-ui="android"][data-theme="dark"]:not(#_) .chat-bubble.theirs { background:#3A3A3E !important; border:1px solid rgba(255,255,255,.10) !important; border-radius:20px !important; box-shadow:none; font-weight:500; font-size:15px; }
+html[data-ui="android"][data-theme="dark"]:not(#_) .chat-bubble.mine { --tail:#7A0B45; background:linear-gradient(135deg,#7A0B45 0%,#5E0836 100%) !important; border-radius:8px !important; box-shadow:none; font-weight:500; font-size:15px; }
+html[data-ui="android"][data-theme="dark"]:not(#_) .chat-bubble.theirs { --tail:#3A3A3E; background:#3A3A3E !important; border:1px solid rgba(255,255,255,.10) !important; border-radius:8px !important; box-shadow:none; font-weight:500; font-size:15px; }
 html[data-ui="android"][data-theme="dark"]:not(#_) .uc-composer { background:#0A0A0C !important; border-top:1px solid rgba(255,255,255,.08); -webkit-backdrop-filter:none; backdrop-filter:none; }
 html[data-ui="android"][data-theme="dark"]:not(#_) .uc-input-wrap { border-radius:999px !important; background:#2A2A2D !important; }
 html[data-ui="android"][data-theme="dark"]:not(#_) .uc-btn--send, html[data-ui="android"][data-theme="dark"]:not(#_) .uc-btn--mic-send { background:#6B093A !important; border:0 !important; color:#fff !important; box-shadow:none !important; }
@@ -355,3 +355,11 @@ html[data-ui="android"][data-theme="dark"]:not(#_) .dw-page:hover .e { backgroun
 /* every Lucide icon in the app: consistent light stroke */
 html[data-ui="android"][data-theme="dark"]:not(#_) svg.lucide { stroke-width:1.75; }
 html[data-ui="android"][data-theme="dark"]:not(#_) .dh-chip svg { stroke-width:1.75; }
+
+/* WhatsApp bubble shape (web android-ui layer) */
+html[data-ui="android"][data-theme="dark"]:not(#_) .chat-bubble{border-radius:8px !important;padding:6px 9px 6px !important;}
+html[data-ui="android"][data-theme="dark"]:not(#_) .chat-row:not([data-group="mid"]):not([data-group="last"]) .chat-bubble.mine{border-top-right-radius:0 !important;}
+html[data-ui="android"][data-theme="dark"]:not(#_) .chat-row:not([data-group="mid"]):not([data-group="last"]) .chat-bubble.theirs{border-top-left-radius:0 !important;}
+html[data-ui="android"][data-theme="dark"]:not(#_) .chat-row:not([data-group="mid"]):not([data-group="last"]) .chat-bubble.mine::before,html[data-ui="android"][data-theme="dark"]:not(#_) .chat-row:not([data-group="mid"]):not([data-group="last"]) .chat-bubble.theirs::before{content:"";position:absolute;top:0;width:8px;height:13px;background:var(--tail);}
+html[data-ui="android"][data-theme="dark"]:not(#_) .chat-row:not([data-group="mid"]):not([data-group="last"]) .chat-bubble.mine::before{right:-8px;clip-path:polygon(0 0,0 100%,100% 0);}
+html[data-ui="android"][data-theme="dark"]:not(#_) .chat-row:not([data-group="mid"]):not([data-group="last"]) .chat-bubble.theirs::before{left:-8px;clip-path:polygon(100% 0,100% 100%,0 0);}
