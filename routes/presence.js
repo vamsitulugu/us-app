@@ -43,5 +43,27 @@ function isViewingChat(coupleId, role) {
   return entry.page === 'chat';
 }
 
+// ── Chat-presence cache (written by POST /api/chat/:coupleId/presence) ──
+// Lets POST /api/chat decide single vs double tick WITHOUT a DB round-trip.
+const chatPresence = new Map(); // `${coupleId}:${role}` -> { status, at }
+const ONLINE_FRESH_MS = 45000;  // web beats every 15s, Android every 15s
+
+function noteChatPresence(coupleId, role, status) {
+  chatPresence.set(coupleId + ':' + role, { status: status || 'online', at: Date.now() });
+}
+
+// true / false when we have a fresh answer, null when we know nothing
+// (server just restarted) so the caller can fall back to the DB row.
+function isOnline(coupleId, role) {
+  const key = coupleId + ':' + role;
+  const v = activeView.get(key);
+  if (v && v.page && Date.now() - v.updatedAt < ONLINE_FRESH_MS) return true;
+  const c = chatPresence.get(key);
+  if (c) return c.status === 'online' && Date.now() - c.at < ONLINE_FRESH_MS;
+  return null;
+}
+
 module.exports = router;
 module.exports.isViewingChat = isViewingChat;
+module.exports.noteChatPresence = noteChatPresence;
+module.exports.isOnline = isOnline;

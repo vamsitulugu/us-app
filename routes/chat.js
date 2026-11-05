@@ -27,7 +27,7 @@ try {
 } catch (e) {
   console.error('[chat] FAILED to load broadcastEvent from ./auth:', e.message);
 }
-const { isViewingChat } = require('./presence');
+const { isViewingChat, noteChatPresence, isOnline } = require('./presence');
 
 function otherRole(role) { return role === 'user1' ? 'user2' : 'user1'; }
 
@@ -57,6 +57,7 @@ router.get('/:coupleId', async (req, res) => {
       .from('chat_messages').select('*').eq('couple_id', coupleId)
       .gt('created_at', afterTs)
       .order('created_at', { ascending: true })
+      .order('id', { ascending: true })
       .limit(limit);
     if (error) return res.status(500).json({ error: error.message });
     return res.json(stripUnopenedViewOnce(data));
@@ -66,6 +67,7 @@ router.get('/:coupleId', async (req, res) => {
   const { data, error } = await supabase
     .from('chat_messages').select('*').eq('couple_id', coupleId)
     .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
     .limit(limit);
   if (error) return res.status(500).json({ error: error.message });
   return res.json(stripUnopenedViewOnce((data || []).reverse()));
@@ -139,44 +141,35 @@ router.post('/', async (req, res) => {
   // delivered once they actually reconnect, so nothing here fakes it.
   const receiverRoleForDelivery = senderRole === 'user1' ? 'user2' : 'user1';
   let delivered = false, deliveredAt = null;
-  try {
-    const { data: presenceRow } = await supabase.from('chat_presence')
-      .select('status,last_seen').eq('couple_id', coupleId).eq('role', receiverRoleForDelivery).maybeSingle();
-    if (presenceRow && presenceRow.status === 'online' &&
-        (Date.now() - new Date(presenceRow.last_seen).getTime()) < 60000) {
-      delivered = true;
-      deliveredAt = new Date().toISOString();
-    }
-  } catch (e) { console.error('presence lookup for delivery failed:', e.message); }
-
-  if (delivered) {
-    // Fire-and-forget: the client only needs to know the message SAVED,
-    // not that this follow-up flag write finished too. Awaiting it here
-    // would force every send through two sequential DB round-trips.
+  // Fast path: in-memory presence (no DB round-trip). Falls back to the
+  // chat_presence row only when the server has no fresh info (e.g. just restarted).
+  let online = isOnline(coupleId, receiverRoleForDelivery);
+  if (online === null) {
+    try {
+      const { data: presenceRow } = await supabase.from('chat_presence')
+        .select('status,last_seen').eq('couple_id', coupleId).eq('role', receiverRoleForDelivery).maybeSingle();
+      online = !!(presenceRow && presenceRow.status === 'online' &&
+        (Date.now() - new Date(presenceRow.last_seen).getTime()) < 45000);
+    } catch (e) { console.error('presence lookup for delivery failed:', e.message); online = false; }
+  }
+  if (online) {
+    delivered = true;
+    deliveredAt = new Date().toISOString();
+    // Only the DB flag write is fire-and-forget; the client already gets delivered:true in this response.
     supabase.from('chat_messages')
       .update({ delivered: true, delivered_at: deliveredAt })
       .eq('id', data.id)
       .then(({ error: dErr }) => { if (dErr) console.error('mark-delivered failed:', dErr.message); });
     data.delivered = true;
     data.delivered_at = deliveredAt;
-
-    // Push the delivered flag over Realtime Broadcast (not just relying on
-    // the chat_messages postgres_changes/replication stream). Broadcast-
-    // over-HTTP always fires regardless of whether the table's Realtime
-    // replication publication has UPDATE events enabled in the Supabase
-    // dashboard — that setting lives outside this repo and isn't something
-    // the app can verify or configure itself, so this makes delivered/read
-    // ticks work correctly even if that dashboard setting is off.
-    // Topic MUST match the client's channel name exactly: 'chat-' + coupleId
-    // (see startRealtime() in public/chat/chat.js).
-    if (_broadcastEvent) {
-      _broadcastEvent(`chat-${coupleId}`, 'message_status', { id: data.id, delivered: true, delivered_at: deliveredAt });
-    }
   }
-  // else: row stays delivered:false (single ✓ in the UI). See the
-  // presence POST handler below — the moment the partner's client sends
-  // its next "online" heartbeat, any of their pending undelivered
-  // messages get flipped to delivered and broadcast from there.
+
+  // INSTANT push of the whole row (with its final delivered flag) to the
+  // partner over Realtime Broadcast. Works on web AND native Android and does
+  // not depend on the table's replication settings. Clients de-dupe by client_id.
+  if (_broadcastEvent) {
+    _broadcastEvent(`chat-${coupleId}`, 'new_message', { message: stripUnopenedViewOnce([data])[0] });
+  }
 
   // Push notify partner — but only if they're NOT currently looking at
   // this same conversation. Real-time (Supabase Realtime, already wired
@@ -293,7 +286,7 @@ router.post('/:coupleId/read', async (req, res) => {
 
   const readAt = new Date().toISOString();
   const { data: updated, error } = await supabase.from('chat_messages')
-    .update({ read: true, read_at: readAt })
+    .update({ read: true, read_at: readAt, delivered: true, delivered_at: readAt })
     .eq('couple_id', coupleId)
     .eq('sender_role', otherRole(role))
     .eq('read', false)
@@ -312,6 +305,28 @@ router.post('/:coupleId/read', async (req, res) => {
   }
 
   return res.json({ ok: true });
+});
+
+// ─── POST delivered ack (receiver's device got the message) ─────
+// Called by the RECEIVING client the instant a message reaches it (web realtime,
+// native realtime, or the Android FCM service even when the app is closed).
+// That is the real "double tick" moment. body: { role }
+router.post('/:coupleId/delivered', async (req, res) => {
+  const { coupleId } = req.params;
+  const { role } = req.body;
+  if (!role) return res.status(400).json({ error: 'Missing role' });
+  const at = new Date().toISOString();
+  const { data: flipped, error } = await supabase.from('chat_messages')
+    .update({ delivered: true, delivered_at: at })
+    .eq('couple_id', coupleId)
+    .eq('sender_role', otherRole(role))
+    .eq('delivered', false)
+    .select('id');
+  if (error) return res.status(500).json({ error: error.message });
+  if (_broadcastEvent && flipped && flipped.length) {
+    _broadcastEvent(`chat-${coupleId}`, 'message_status', { ids: flipped.map(m => m.id), delivered: true, delivered_at: at });
+  }
+  return res.json({ ok: true, count: (flipped || []).length });
 });
 
 // ─── POST toggle reaction ──────────────────────────────
@@ -566,6 +581,7 @@ router.get('/:coupleId/presence', async (req, res) => {
 router.post('/:coupleId/presence', async (req, res) => {
   const { role, status } = req.body;
   if (!role) return res.status(400).json({ error: 'Missing role' });
+  noteChatPresence(req.params.coupleId, role, status || 'online');
   const { error } = await supabase.from('chat_presence').upsert({
     couple_id: req.params.coupleId, role,
     status: status || 'online', last_seen: new Date().toISOString()

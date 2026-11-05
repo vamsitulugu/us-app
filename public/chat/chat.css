@@ -640,7 +640,10 @@
    WhatsApp blue only once the partner has actually read the message. */
 .chat-ticks{display:inline-flex;align-items:center;line-height:0;color:#fff;transition:color .25s ease}
 .chat-ticks.sending{color:rgba(255,255,255,.65)}
-.chat-ticks.read{color:#6B093A}
+.chat-ticks.sent{color:rgba(255,255,255,.78)}
+.chat-ticks.delivered{color:#fff}
+.chat-ticks.read{color:#34B7F1}
+.chat-ticks.read svg{filter:drop-shadow(0 0 2px rgba(0,0,0,.45))}
 .chat-ticks svg{filter:drop-shadow(0 0 1px rgba(0,0,0,.4))}
 .chat-reactions{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px}
 .chat-reaction-pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.1);border-radius:11px;padding:1px 7px 2px;font-size:11.5px;line-height:1.5;backdrop-filter:blur(4px);cursor:pointer}

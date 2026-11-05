@@ -243,6 +243,8 @@ function reanchorAfterImages() {
         const idx = msgs.findIndex(m => m.id === r.id || (r.client_id && m.client_id === r.client_id));
         if (idx > -1) msgs[idx] = r; else { msgs.push(r); if (!isMine(r)) { newInSound = incomingSound(r); if (r.effect) newEffect = r.effect; } }
       });
+      sortMsgs();
+      if (rows.some(r => !isMine(r) && !r.delivered)) ackDelivered();
       if (newInSound && !isMuted() && !isDndActive()) snd(newInSound);
       lastMsgTs = rows[rows.length - 1].created_at;
       if (newEffect) playSendEffect(newEffect);
@@ -279,8 +281,9 @@ function reanchorAfterImages() {
       (rows || []).forEach(r => {
         const idx = msgs.findIndex(m => m.id === r.id || (r.client_id && m.client_id === r.client_id));
         if (idx > -1 && _msgSig(msgs[idx]) !== _msgSig(r)) { msgs[idx] = r; changed = true; }
+        else if (idx === -1) { msgs.push(r); changed = true; if (!isMine(r)) ackDelivered(); }   // missed by realtime + cursor: heal
       });
-      if (changed) render();
+      if (changed) { sortMsgs(); render(); }
     } catch (e) {}
   }
 
@@ -1025,6 +1028,39 @@ function reanchorAfterImages() {
   }
 
   // ─── SEND ────────────────────────────────────────────
+  // ─── ORDERING (server is the single source of truth) ───
+  // Microsecond-exact: Postgres returns 6 fractional digits but Date() keeps 3,
+  // so two messages in the same millisecond used to tie and sort differently on
+  // each phone. Pending (not yet confirmed) bubbles always sit at the very bottom,
+  // so a skewed device clock can never put my unsent bubble above a partner's
+  // message the server already ordered.
+  function tsMicro(s) {
+    if (!s) return 0;
+    const ms = Date.parse(s);
+    const m = /\.\d{3}(\d{1,3})/.exec(s);
+    return ms * 1000 + (m ? parseInt((m[1] + '00').slice(0, 3), 10) : 0);
+  }
+  function isPendingMsg(m) { return typeof m.id === 'string' && m.id.indexOf('temp_') === 0; }
+  function cmpMsgs(a, b) {
+    const pa = isPendingMsg(a), pb = isPendingMsg(b);
+    if (pa !== pb) return pa ? 1 : -1;
+    if (pa) return Date.parse(a.created_at) - Date.parse(b.created_at);
+    const d = tsMicro(a.created_at) - tsMicro(b.created_at);
+    if (d) return d;
+    return (Number(a.id) || 0) - (Number(b.id) || 0);
+  }
+  function sortMsgs() { msgs.sort(cmpMsgs); }
+
+  // ─── DELIVERED ACK (receiver tells the server the message reached this device) ───
+  let _ackTimer = null;
+  function ackDelivered() {
+    if (!coupleId()) return;
+    clearTimeout(_ackTimer);
+    _ackTimer = setTimeout(() => {
+      api('POST', '/api/chat/' + coupleId() + '/delivered', { role: myRole() }).catch(() => {});
+    }, 60);
+  }
+
   function genClientId() { return 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8); }
 
   async function sendMessage(payload) {
@@ -1055,6 +1091,7 @@ function reanchorAfterImages() {
       const saved = await api('POST', '/api/chat', { coupleId: coupleId(), clientId, senderRole: myRole(), ...payload });
       const idx = msgs.findIndex(m => m.client_id === clientId);
       if (idx > -1) msgs[idx] = saved;
+      sortMsgs();
       lastMsgId = Math.max(lastMsgId, saved.id);
       render();
       // Insurance for delivered/read ticks: the normal path for a tick to
@@ -1086,6 +1123,7 @@ function reanchorAfterImages() {
       const idx = msgs.findIndex(m => m.client_id === clientId);
       if (confirmed) {
         if (idx > -1) msgs[idx] = confirmed;
+        sortMsgs();
         lastMsgId = Math.max(lastMsgId, confirmed.id);
         render();
       } else {
@@ -1556,6 +1594,7 @@ function reanchorAfterImages() {
       const idx2 = msgs.findIndex(x => x.client_id === clientId);
       let oldItems = [];
       if (idx2 > -1) { oldItems = msgs[idx2]._items || []; msgs[idx2] = saved; }
+      sortMsgs();
       lastMsgId = Math.max(lastMsgId, saved.id);
       render();
       // Release local blob: previews only after the swap has painted.
@@ -1803,7 +1842,7 @@ function reanchorAfterImages() {
       if (row) {
         const idx = msgs.findIndex(m => m.client_id === row.client_id || m.id === row.id);
         if (idx > -1) msgs[idx] = row; else msgs.push(row);
-        msgs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        sortMsgs();
         if (row.id) lastMsgId = Math.max(lastMsgId, row.id);
         if (row.created_at && (!lastMsgTs || row.created_at > lastMsgTs)) lastMsgTs = row.created_at;
         render(); scrollToBottom(true);
@@ -3015,23 +3054,21 @@ function menuItemsHtml(m, id, includeSelect) {
     catch (e) { console.warn('Chat Supabase init failed', e); }
     return _chatSb;
   }
-  function startRealtime() {
-    if (realtimeChannel) return; // already subscribed
-    if (!coupleId()) return;
-    const sb = _getChatSupabase();
-    if (!sb) return; // SDK not loaded / no client creds exposed — poll-only
-    try {
-      realtimeChannel = sb.channel('chat-' + coupleId())
-        .on('postgres_changes', {
-          event: '*', schema: 'public', table: 'chat_messages',
-          filter: 'couple_id=eq.' + coupleId()
-        }, (payload) => {
+  function onChatRow(payload) {
           const r = payload.new;
           if (!r) return;
           const idx = msgs.findIndex(m => m.id === r.id || (r.client_id && m.client_id === r.client_id));
           const isNewIncoming = idx === -1 && !isMine(r);
           const rxBefore = idx > -1 ? partnerReactionCount(msgs[idx].reactions) : null;
-          if (idx > -1) msgs[idx] = r; else msgs.push(r);
+          if (idx > -1) {
+            // Ticks only ever move forward: a late INSERT echo (delivered:false) must not undo
+            // a delivered/read flip that already arrived over Broadcast.
+            const o = msgs[idx];
+            if ((o.delivered || o.read) && !r.delivered) { r.delivered = true; r.delivered_at = r.delivered_at || o.delivered_at; }
+            if (o.read && !r.read) { r.read = true; r.read_at = r.read_at || o.read_at; }
+            msgs[idx] = r;
+          } else msgs.push(r);
+          if (isNewIncoming && !r.delivered) ackDelivered();
           if (!isMuted() && !isDndActive()) {
             if (isNewIncoming) snd(incomingSound(r));
             else if (rxBefore !== null && partnerReactionCount(r.reactions) > rxBefore) snd('chat.reaction');
@@ -3040,7 +3077,7 @@ function menuItemsHtml(m, id, includeSelect) {
           // A late/out-of-order push can insert an older row after a newer
           // one — keep the working array sorted so render(), lastMsgTs, and
           // "last received message" all agree on what's actually newest.
-          msgs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+          sortMsgs();
           if (r.created_at && (!lastMsgTs || r.created_at > lastMsgTs)) lastMsgTs = r.created_at;
           render();
           const box = document.getElementById('chatMsgs');
@@ -3051,6 +3088,22 @@ function menuItemsHtml(m, id, includeSelect) {
           } else if (!isMine(r)) {
             syncAppBadge(msgs.filter(m => !isMine(m) && !m.read).length);
           }
+  }
+  function startRealtime() {
+    if (realtimeChannel) return; // already subscribed
+    if (!coupleId()) return;
+    const sb = _getChatSupabase();
+    if (!sb) return; // SDK not loaded / no client creds exposed — poll-only
+    try {
+      realtimeChannel = sb.channel('chat-' + coupleId())
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'chat_messages',
+          filter: 'couple_id=eq.' + coupleId()
+        }, onChatRow)
+        .on('broadcast', { event: 'new_message' }, (msg) => {
+          // Instant path: the server pushes the full row the moment it is saved.
+          const row = msg.payload && msg.payload.message;
+          if (row) onChatRow({ new: row });
         })
         .on('broadcast', { event: 'typing' }, (msg) => handleTypingBroadcast(msg.payload))
         .on('broadcast', { event: 'message_status' }, (msg) => {
@@ -3089,7 +3142,7 @@ function menuItemsHtml(m, id, includeSelect) {
           if (!r) return;
           const idx = msgs.findIndex(m => m.id === r.id || (r.client_id && m.client_id === r.client_id));
           if (idx > -1) msgs[idx] = r; else msgs.push(r);
-          msgs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+          sortMsgs();
           render(); scrollToBottom(true);
         })
         .on('postgres_changes', {
@@ -3113,6 +3166,7 @@ function menuItemsHtml(m, id, includeSelect) {
             // Without this, reconnecting silently loses any message sent
             // during the gap until the next slow background poll catches up.
             pollNew();
+            ackDelivered();
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
             // Drop the dead channel and let the next trigger (poll tick,
             // visibility change, or manual retry) re-establish it — retrying
