@@ -248,12 +248,11 @@ function reanchorAfterImages() {
       if (newInSound && !isMuted() && !isDndActive()) snd(newInSound);
       lastMsgTs = rows[rows.length - 1].created_at;
       if (newEffect) playSendEffect(newEffect);
+      const nearBottom = wasAtBottom();   // measure BEFORE the new rows are drawn
       render();
-      const box = document.getElementById('chatMsgs');
-      const nearBottom = box && (box.scrollHeight - box.scrollTop - box.clientHeight < 150);
       if (nearBottom || rows.some(isMine)) { scrollToBottom(true); reanchorAfterImages(); }
       else if (!isMuted() && !isDndActive()) updateJumpBadge(rows.filter(r => !isMine(r)).length);
-      if (rows.some(r => !isMine(r)) && chatBottomInView()) {
+      if (rows.some(r => !isMine(r)) && (chatBottomInView() || (nearBottom && chatActiveAndVisible()))) {
         markRead();
       } else if (rows.some(r => !isMine(r))) {
         // Not actively viewing the chat right now — reflect the new
@@ -366,6 +365,22 @@ function reanchorAfterImages() {
   // from "the person is actually touching/dragging the list", so it only
   // cancels the animation for genuine manual scrolls.
   let _programmaticScroll = false;
+
+  // True if the reader is (or was just being auto-scrolled) at the bottom.
+  // MUST be called BEFORE render() adds new rows: once several messages are
+  // rendered at once, scrollHeight jumps by more than the threshold and the
+  // reader would wrongly look "scrolled up", so the list never followed.
+  // An in-flight auto-scroll also counts, so a burst of messages keeps pinning.
+  function wasAtBottom() {
+    const box = document.getElementById('chatMsgs');
+    if (!box) return false;
+    if (_scrollAnim) return true;
+    return box.scrollHeight - box.scrollTop - box.clientHeight < 200;
+  }
+  function chatActiveAndVisible() {
+    return document.visibilityState === 'visible' &&
+      !!document.getElementById('page-chat')?.classList.contains('active');
+  }
 
   function scrollToBottom(smooth) {
     const box = document.getElementById('chatMsgs');
@@ -3079,11 +3094,10 @@ function menuItemsHtml(m, id, includeSelect) {
           // "last received message" all agree on what's actually newest.
           sortMsgs();
           if (r.created_at && (!lastMsgTs || r.created_at > lastMsgTs)) lastMsgTs = r.created_at;
+          const nearBottom = wasAtBottom();   // measure BEFORE the new row is drawn
           render();
-          const box = document.getElementById('chatMsgs');
-          const nearBottom = box && (box.scrollHeight - box.scrollTop - box.clientHeight < 150);
           if (nearBottom || isMine(r)) { scrollToBottom(true); reanchorAfterImages(); }
-          if (!isMine(r) && chatBottomInView()) {
+          if (!isMine(r) && (chatBottomInView() || (nearBottom && chatActiveAndVisible()))) {
             markRead();
           } else if (!isMine(r)) {
             syncAppBadge(msgs.filter(m => !isMine(m) && !m.read).length);

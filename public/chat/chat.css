@@ -1250,3 +1250,19 @@
   font-size:22px; letter-spacing:8px; text-align:center; width:160px; padding:8px;
   border-radius:10px; border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.06); color:#fff;
 }
+
+/* ── MOBILE: no dead space under the typing bar ──
+   The composer used to float ~50px above the keyboard / screen edge because
+   three paddings stacked: .content bottom padding + the composer's own
+   18px bottom padding + a fixed nav reserve. On the chat page the bottom nav
+   is hidden, so reclaim all of it and let the composer sit flush (still
+   respecting the real safe-area inset on gesture-bar phones). */
+@media (max-width: 700px) {
+  body .content:has(#page-chat.active) { padding-bottom: 0 !important; }
+  #page-chat .chat-page-wrap { height: 100% !important; }
+  #page-chat .uc-composer {
+    padding-top: 6px !important;
+    padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
+  }
+  #page-chat .chat-msgs { padding-bottom: 6px; }
+}

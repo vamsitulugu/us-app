@@ -267,3 +267,22 @@
 .dw-col .wd { font: 500 10px var(--ff-sans); color: rgba(255, 255, 255, .5); margin-top: 2px; }
 .dw-col .dn { font: 600 11px var(--ff-sans); color: rgba(255, 255, 255, .75); }
 .dw-col.is-today .wd, .dw-col.is-today .dn { color: #fff; font-weight: 700; }
+
+
+/* Mood card legend: just the two names with their little line sample —
+   never a boxed/filled block (was rendering a big tall box around the
+   partner's name on mobile). Applies at every screen size. */
+.dw-mood .dw-legend {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px;
+  height: auto !important; min-height: 0 !important;
+  background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 !important;
+}
+.dw-mood .dw-legend span {
+  display: inline-flex !important; align-items: center; gap: 6px;
+  flex: 0 0 auto !important; width: auto !important; height: auto !important;
+  min-width: 0 !important; min-height: 0 !important; aspect-ratio: auto !important;
+  padding: 0 !important; margin: 0 !important;
+  background: none !important; border: 0 !important; border-radius: 0 !important;
+  box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+.dw-mood .dw-legend span::before { flex: 0 0 16px; }
