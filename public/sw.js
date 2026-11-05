@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v73'; // bumped: games keep sidebar on wide screens
+const CACHE = 'uwl-v74'; // bumped: topbar-clean.css
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',

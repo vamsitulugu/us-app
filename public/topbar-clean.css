@@ -1,0 +1,10 @@
+/* topbar-clean.css — the web top bar matches the Android one: back arrow + page name only.
+   (The page's own search and 3-dots stay, because they live inside each page.)
+   Removed from the shell top bar on EVERY page: the "Synced ✓ time" label, the global 🔍 button,
+   the ☁️ Sync button, and (on wide screens, where the sidebar is always visible) the ≡ menu button.
+   Linked LAST in index.html. To undo: remove that <link> line. */
+.topbar .tb-actions{display:none !important}
+.topbar #lastSaved{display:none !important}
+@media (min-width:701px){
+  .topbar #hamburger{display:none !important}
+}
