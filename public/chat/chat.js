@@ -805,12 +805,17 @@ function reanchorAfterImages() {
       </div>`;
     }
     else if (m.type === 'call_log') return `<div class="chat-call-log chat-system-event${isNew ? ' msg-pop-in' : ''}"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><path d="M3.6 1.4c.5-.2 1.1 0 1.3.5l1 2.2c.2.4.1.9-.2 1.2l-1 1c.6 1.5 1.8 2.7 3.3 3.3l1-1c.3-.3.8-.4 1.2-.2l2.2 1c.5.2.7.8.5 1.3l-.6 1.5c-.2.5-.7.8-1.2.7-4.6-.6-8.3-4.3-8.9-8.9-.1-.5.2-1 .7-1.2z"/></svg><span>${esc(m.text)}</span><span class="chat-call-time">${time}</span></div>`;
-    else body = `<div class="chat-text">${linkify(applyWaFormatting(esc(m.text || '')))}</div>${renderLinkPreview(m.text)}`;
+    else body = `<div class="chat-text">${linkify(applyWaFormatting(esc(m.text || '')))}<!--META--></div>${renderLinkPreview(m.text)}`;
 
     const reactions = m.reactions && Object.keys(m.reactions).length
       ? `<div class="chat-reactions">${Object.entries(m.reactions).map(([e, roles]) => `<span class="chat-reaction-pill${roles.includes(myRole()) ? ' mine' : ''}" title="${esc(roles.map(r => r === myRole() ? (window.S.myName || 'You') : (window.S.partnerName || 'Partner')).join(', '))}" onclick="event.stopPropagation();Chat.reactTo('${m.id}','${e}')">${e} ${roles.length}</span>`).join('')}</div>` : '';
 
     const status = mine ? renderTicks(m) : '';
+    // WhatsApp-style: for plain text messages the time/ticks sit inline at the
+    // right end of the last text line (wraps below only if the line is full).
+    const metaHtml = `<span class="chat-meta"><span>${time}${m.edited ? ' · edited' : ''}</span>${mine ? status : ''}</span>`;
+    const inlineMeta = body.includes('<!--META-->');
+    if (inlineMeta) body = body.replace('<!--META-->', metaHtml);
 
     const quoted = m.reply_to ? renderQuote(m.reply_to) : '';
 
@@ -820,7 +825,7 @@ function reanchorAfterImages() {
         ${quoted}
         ${body}
         ${reactions}
-        <div class="chat-meta"><span>${time}${m.edited ? ' · edited' : ''}</span>${mine ? status : ''}</div>
+        ${inlineMeta ? '' : `<div class="chat-meta"><span>${time}${m.edited ? ' · edited' : ''}</span>${mine ? status : ''}</div>`}
       </div>
     </div>`;
   }

@@ -1292,3 +1292,15 @@
   }
   #page-chat .chat-msgs { padding-bottom: 6px; }
 }
+
+/* ── WhatsApp-style inline time: time + ticks sit at the right end of the
+   last line of a text message instead of on their own row below it. ── */
+.chat-text > .chat-meta{
+  float:right;
+  display:inline-flex;
+  margin:7px 0 -3px 10px;
+  line-height:1;
+  white-space:nowrap;
+  user-select:none;-webkit-user-select:none;
+}
+.chat-text::after{content:"";display:block;clear:both}
