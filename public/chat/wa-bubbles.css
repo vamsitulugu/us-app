@@ -83,3 +83,9 @@ html:not(#_) #page-chat .chat-row:not([data-group="mid"]):not([data-group="last"
 
 /* deleted-message bubble keeps the plain pill, no tail */
 html:not(#_) #page-chat .chat-bubble.deleted-bubble::before { display: none !important; }
+
+/* ── laptop: messages reach the left / right edges of the chat panel ──
+   android-ui.css pads #chatMsgs to centre a 1100px column on wide screens,
+   which left a big empty gap on both sides. Keep only a small gutter. */
+html:not(#_) #page-chat #chatMsgs { padding-inline: 12px !important; }
+html:not(#_) #page-chat .chat-bubble { max-width: min(640px, 80%) !important; }
