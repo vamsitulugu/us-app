@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v70'; // bumped: removed ui-scale (back to original size)
+const CACHE = 'uwl-v72'; // bumped: full-screen games, emoji bottle, ttt colours
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',

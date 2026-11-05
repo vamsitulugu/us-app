@@ -558,6 +558,7 @@ button{font-family:inherit;cursor:pointer}
 <link rel="stylesheet" href="/theme-dark-v2.css?v=1">
 <link rel="stylesheet" href="/theme-dark-glass.css?v=5">
 <link rel="stylesheet" href="/no-scrollbar.css?v=1">
+<link rel="stylesheet" href="/games-android.css?v=2">
 </head>
 <body>
 
@@ -1453,6 +1454,25 @@ const GAMES = [
 /* ═══════════════════════════════════════════════════════
    HUB
 ═══════════════════════════════════════════════════════ */
+/* Full-screen games (like Android): while a game is open the app's sidebar, top bar and bottom nav are hidden.
+   Everything is switched on/off with one flag on the parent page: body[data-game-fs="1"]. */
+function twGameFs(on){
+  try{
+    const pd = window.parent && window.parent !== window ? window.parent.document : null;
+    if(!pd) return;
+    if(on && !pd.getElementById('twGameFsStyle')){
+      const st = pd.createElement('style'); st.id = 'twGameFsStyle';
+      st.textContent = 'body[data-game-fs="1"] .sidebar,body[data-game-fs="1"] .topbar,body[data-game-fs="1"] #botNav,body[data-game-fs="1"] #twinDockOrbWrap{display:none !important}'
+        + 'body[data-game-fs="1"] .main{margin-left:0 !important;padding-left:0 !important}'
+        + 'body[data-game-fs="1"] #page-games .iframe-page-wrap{position:fixed !important;top:0 !important;left:0 !important;right:0 !important;bottom:0 !important;width:100vw !important;height:100vh !important;height:100dvh !important;margin:0 !important;padding:0 !important;z-index:2147483000 !important;border-radius:0 !important}'
+        + 'body[data-game-fs="1"] #gamesFrame{width:100% !important;height:100% !important;border-radius:0 !important}';
+      pd.head.appendChild(st);
+    }
+    if(on) pd.body.setAttribute('data-game-fs','1'); else pd.body.removeAttribute('data-game-fs');
+  }catch(_){}
+}
+window.addEventListener('pagehide', ()=>twGameFs(false));
+
 const Hub = {
   activeGameId:null,
   async init(){
@@ -1581,6 +1601,7 @@ const Hub = {
     document.getElementById('goXpChip').textContent = '✨ '+GameCore.me().xp+' XP';
     this.renderGoPlayers();
     document.getElementById('goverlay').classList.add('open');
+    twGameFs(true);
     const body = document.getElementById('goBody');
     body.className='gobody'; body.innerHTML='';
     Snd.click();
@@ -1685,6 +1706,7 @@ const Hub = {
     if(window.GameComms) GameComms.onExit();
     ({tod:TOD, mindreader:MindReader, ludo:Ludo, ttt:TTT, draw:Draw, memory:Memory, bomb:Bomb, puzzle:Puzzle})[gid]?.close?.();
     document.getElementById('goverlay').classList.remove('open');
+    twGameFs(false);
     this.activeGameId=null;
     setPresenceGame(null);
     this.renderGameCards();
@@ -1752,7 +1774,7 @@ const TTT = {
         <div class="score-pill ${ID.role==='user1'?'mine':''}"><div class="sp-name">${esc(ID.myName)} (${mySym})</div><div class="sp-val">${s.scores.user1||0}</div></div>
         <div class="score-pill ${ID.role==='user2'?'mine':''}"><div class="sp-name">${esc(ID.partnerName)} (${ID.role==='user1'?'O':'X'})</div><div class="sp-val">${s.scores.user2||0}</div></div>
       </div>
-      <div class="turn-bar ${myTurn?'mine':''}">${s.winner ? (s.winner==='draw'?'🤝 It is a draw!' : (s.winner===ID.role?'🎉 You won!':esc(ID.partnerName)+' won this round')) : (myTurn?'✨ Your turn':esc(ID.partnerName)+' is turn…')}</div>
+      <div class="turn-bar ${myTurn?'mine':''}">${s.winner ? (s.winner==='draw'?'🤝 It is a draw!' : (s.winner===ID.role?'🎉 You won!':esc(ID.partnerName)+' won this round')) : (myTurn?'✨ Your turn':esc(ID.partnerName)+'’s turn…')}</div>
       <div class="ttt-board">
         ${s.board.map((c,i)=>`<div class="ttt-cell ${c?c.toLowerCase():''} ${!c&&myTurn?'playable':''} ${s.line&&s.line.includes(i)?'win':''}" onclick="TTT.play(${i})">${c||''}</div>`).join('')}
       </div>
@@ -2200,20 +2222,7 @@ const TOD = {
       main = `
       <div class="tod-wheel-wrap">
         <div class="tod-bottle-stage">
-          <svg id="todBottle" class="tod-bottle-svg ${s.phase==='spinning'?'spinning':''}" viewBox="0 0 100 220">
-            <defs>
-              <linearGradient id="todBottleGlass" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" style="stop-color:var(--accent2-d)"/>
-                <stop offset="45%" style="stop-color:var(--accent2)"/>
-                <stop offset="55%" style="stop-color:var(--accent2-l,var(--accent2))"/>
-                <stop offset="100%" style="stop-color:var(--accent2-d)"/>
-              </linearGradient>
-            </defs>
-            <path d="M42 6 h16 v26 c14 10 20 24 20 40 v128 a10 10 0 0 1 -10 10 h-36 a10 10 0 0 1 -10 -10 v-128 c0 -16 6 -30 20 -40 z" fill="url(#todBottleGlass)" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/>
-            <rect x="42" y="6" width="16" height="22" rx="3" fill="rgba(255,255,255,.25)"/>
-            <ellipse cx="40" cy="120" rx="4" ry="46" fill="rgba(255,255,255,.28)"/>
-            <ellipse cx="50" cy="210" rx="24" ry="7" fill="rgba(0,0,0,.18)"/>
-          </svg>
+          <div id="todBottle" class="tod-bottle-svg tod-bottle-emoji ${s.phase==='spinning'?'spinning':''}">🍾</div>
         </div>
         <button class="tod-spin-btn" ${!myTurn||s.phase==='spinning'?'disabled':''} onclick="TOD.spin()">${s.phase==='spinning'?'SPINNING…':'SPIN THE BOTTLE 🌀'}</button>
         <div class="tod-bottle-hint">${myTurn?'Flick, drag, or tap Spin':'Waiting for '+esc(ID.partnerName)+'…'}</div>

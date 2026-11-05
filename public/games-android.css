@@ -1,0 +1,152 @@
+/* games-android.css — makes the WEB games look like the ANDROID games.
+   Colours/sizes copied from the Android app (TwinNeutralPage, TwinGlass, GameParts, TurnBar, ScoreCard).
+   Only looks change here. Game logic, data and sync are untouched.
+   Linked LAST in games.html. To undo everything: remove the <link> to this file. */
+
+.goverlay{
+  --a-base:#0A0A0C; --a-glow:#2A0617; --a-card:#1E1E20;
+  --a-glass:rgba(255,255,255,.08); --a-line:rgba(255,255,255,.12); --a-line2:rgba(255,255,255,.22);
+  --a-ink:#FEF4FA; --a-muted:rgba(245,200,226,.78); --a-faint:rgba(255,255,255,.52);
+  --a-sel:#E6E6EA; --a-wine:linear-gradient(135deg,#7A0B44,#5C0834);
+  --a-wine-btn:linear-gradient(135deg,#9A1156,#4F0629); --a-ok:#34D399; --a-err:#FF8FAE;
+  background:linear-gradient(180deg,rgba(42,6,23,.92) 0,rgba(10,10,12,.55) 30%,rgba(10,10,12,0) 62%),#0A0A0C !important;
+  backdrop-filter:none !important; -webkit-backdrop-filter:none !important;
+  color:var(--a-ink);
+}
+
+/* ── Top bar: back arrow, serif title, plain white icons ── */
+.goverlay .gohead{border-bottom:none !important;background:transparent !important;padding:14px 16px 6px;gap:10px}
+.goverlay .gohead-title{font-size:22px;color:var(--a-ink)}
+.goverlay .gohead-btn{width:36px;height:36px;border:none !important;background:transparent !important;color:var(--a-ink) !important;font-size:22px;box-shadow:none}
+.goverlay .gohead-vidbtn{width:36px;height:36px;border:none !important;background:transparent !important;color:#fff !important;box-shadow:none !important;font-size:19px;filter:grayscale(1) brightness(8)}
+.goverlay .gohead-vidbtn.on{background:var(--a-wine) !important;filter:none;border-radius:50%}
+.goverlay .gohead .gohead-chip{background:var(--a-glass);border:1px solid var(--a-line);color:var(--a-muted)}
+.goverlay .gohead #goEndBtn{width:auto !important;height:34px;padding:0 14px !important;border-radius:999px !important;border:1px solid var(--a-line2) !important;background:var(--a-glass) !important;color:var(--a-ink) !important;font-size:13px !important;font-weight:700 !important;filter:none}
+
+/* ── Players strip: two glass pills with a heart between ── */
+.goverlay .gohead-players{border-bottom:none !important;background:transparent !important;padding:8px 16px;gap:8px}
+.goverlay .ghp-card{flex:1;background:var(--a-glass);border:1px solid var(--a-line);border-radius:999px;padding:4px 14px 4px 6px;gap:8px}
+.goverlay .ghp-card.pt{flex-direction:row;text-align:left}
+.goverlay .ghp-card.pt .ghp-online{left:auto;right:-1px}
+.goverlay .ghp-av{width:34px;height:34px;font-size:14px;background:#6B093A !important;border:2px solid rgba(194,24,91,.55)}
+.goverlay .ghp-online{width:10px;height:10px;border:1px solid #0A0A0C}
+.goverlay .ghp-name{font-size:14px;font-weight:700;color:var(--a-ink)}
+.goverlay .ghp-lvl{font-size:12px;color:var(--a-muted)}
+.goverlay .gohead-vs{font-size:14px;color:#ff3b5c}
+.goverlay .gobody{padding:12px 16px}
+
+/* ── Buttons: pill, wine for primary, frosted grey glass for the rest ── */
+.goverlay .btn{border-radius:999px;font-weight:700;padding:12px 22px;box-shadow:none !important}
+.goverlay .btn-accent,.goverlay .btn-pink{background:var(--a-wine-btn) !important;border:1px solid rgba(255,255,255,.30)}
+.goverlay .btn-glass,.goverlay .btn-gold{background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.04)) !important;border:1px solid rgba(255,255,255,.22) !important;color:var(--a-ink) !important}
+.goverlay .bm-startbtn,.goverlay .pz-startbtn,.goverlay .mr-startbtn,.goverlay .tod-spin-btn{
+  width:100%;min-height:52px;border-radius:999px;background:var(--a-wine-btn) !important;border:1px solid rgba(255,255,255,.30) !important;
+  color:var(--a-ink) !important;font-size:16px;font-weight:700;box-shadow:none !important;margin-top:8px}
+.goverlay .tod-spin-btn{width:100%;max-width:none}
+.goverlay .pz-startbtn:disabled,.goverlay .tod-spin-btn:disabled{opacity:.5}
+
+/* ── Turn banner + score cards ── */
+.goverlay .turn-bar{border-radius:999px;padding:14px 16px;background:var(--a-glass);border:1px solid var(--a-line);color:var(--a-ink);font-size:15px;font-weight:700}
+.goverlay .turn-bar.mine{background:var(--a-wine);border-color:var(--a-sel);color:var(--a-ink)}
+.goverlay .score-pill{border-radius:20px;padding:12px;background:var(--a-glass);border:1px solid var(--a-line)}
+.goverlay .score-pill.mine{background:var(--a-glass);border-color:var(--a-sel)}
+.goverlay .score-pill .sp-name{font-size:13px;font-weight:600;text-transform:none;color:var(--a-muted)}
+.goverlay .score-pill .sp-val{font-size:26px;color:var(--a-ink)}
+
+/* ── Option / stat cards (difficulty, mode, grid size, stats) ── */
+.goverlay .bm-diffcard,.goverlay .pz-sizecard,.goverlay .mr-modecard,.goverlay .bm-stat,.goverlay .mr-stat,.goverlay .pz-photo-btn{
+  border-radius:20px;background:var(--a-glass);border:1px solid var(--a-line);color:var(--a-ink);box-shadow:none}
+.goverlay .bm-diffcard.sel,.goverlay .pz-sizecard.sel,.goverlay .mr-modecard.sel{background:var(--a-wine);border-color:var(--a-sel);box-shadow:none}
+.goverlay .bm-diffcard .bdc-name,.goverlay .pz-sizecard,.goverlay .mr-modecard .mmc-name{font-size:16px;font-weight:700;color:var(--a-ink)}
+.goverlay .bm-diffcard .bdc-meta,.goverlay .pz-sizecard .pzc-sub,.goverlay .mr-modecard .mmc-sub{font-size:13px;font-weight:600;color:var(--a-muted)}
+.goverlay .bm-stat .bs-val,.goverlay .mr-stat .ms-val{font-size:24px;color:var(--a-ink)}
+.goverlay .bm-stat .bs-lbl,.goverlay .mr-stat .ms-lbl{font-size:13px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--a-muted)}
+.goverlay .bm-hero-title,.goverlay .pz-hero-title,.goverlay .mr-hero-title{color:var(--a-ink)}
+.goverlay .bm-hero-sub,.goverlay .pz-hero-sub,.goverlay .mr-hero-sub{font-size:14px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--a-muted)}
+.goverlay .bm-toggle{border-radius:20px;background:var(--a-glass);border:1px solid var(--a-line);color:var(--a-ink);font-weight:700}
+.goverlay .bm-toggle.on{background:var(--a-wine);border-color:var(--a-sel)}
+.goverlay .mr-compat-ring-bg{stroke:rgba(255,255,255,.14)}
+
+/* ── Chips (categories, HUD, round) ── */
+.goverlay .tod-cat,.goverlay .mr-catchip,.goverlay .bm-hud-chip,.goverlay .pz-hud-chip,.goverlay .mr-roundchip,.goverlay .tod-suggest-chip{
+  border-radius:999px;background:var(--a-glass);border:1px solid var(--a-line);color:var(--a-ink);font-size:14px;font-weight:600}
+.goverlay .tod-cat.sel,.goverlay .mr-catchip.sel{background:var(--a-wine);border-color:var(--a-sel);color:var(--a-ink)}
+
+/* ── Text fields + emoji buttons ── */
+.goverlay .tod-compose-box,.goverlay .dw-guess-in,.goverlay .mr-answer-box,.goverlay .bm-chatinput,.goverlay .pz-custom-row input{
+  border-radius:16px;background:var(--a-glass);border:1px solid var(--a-line);color:var(--a-ink)}
+.goverlay .bm-emoji-btn,.goverlay .dw-react-btn2,.goverlay .tod-react-btn,.goverlay .dw-tool-btn,.goverlay .dw-size-btn{
+  border-radius:12px;background:var(--a-glass);border:1px solid var(--a-line);color:var(--a-ink)}
+.goverlay .dw-tool-btn.sel,.goverlay .dw-size-btn.sel{background:var(--a-wine);border-color:var(--a-sel)}
+
+/* ── Timers / progress ── */
+.goverlay .pz-progress,.goverlay .mr-progress,.goverlay .ludo-timerbar,.goverlay .bm-timerbar,.goverlay .mr-timerbar,.goverlay .dw-timerbar{height:6px;border-radius:999px;background:var(--a-line)}
+.goverlay .pz-progress-fill,.goverlay .mr-progress-fill,.goverlay .ludo-timerbar-fill,.goverlay .bm-timerfill,.goverlay .mr-timerfill,.goverlay .dw-timerbar-fill{background:var(--a-sel) !important;border-radius:999px}
+.goverlay .bm-timerfill.low,.goverlay .mr-timerfill.low{background:var(--a-err) !important}
+
+/* ── Truth or Dare ── */
+.goverlay .tod-bottle-stage{background:var(--a-card);border:1px solid var(--a-line)}
+.goverlay .tod-bottle-stage::after{display:none}
+.goverlay .tod-bottle-hint{color:var(--a-muted)}
+.goverlay .tod-card,.goverlay .mr-qcard{border-radius:20px;background:var(--a-glass);border:1px solid var(--a-line)}
+
+/* ── Tic Tac Toe ── */
+.goverlay .ttt-cell{border-radius:20px;background:var(--a-glass);border:1px solid var(--a-line)}
+.goverlay .ttt-cell.playable:hover{background:var(--a-glass);border-color:var(--a-line2)}
+.goverlay .ttt-cell.x{color:#6B093A}
+.goverlay .ttt-cell.o{color:var(--a-sel)}
+.goverlay .ttt-cell.win{background:rgba(122,11,68,.45);border-color:var(--a-sel)}
+
+/* ── Memory Match ── */
+.goverlay .mm-card{border-radius:16px;background:rgba(122,11,68,.55);border:1px solid var(--a-line)}
+.goverlay .mm-card.flipped{background:var(--a-glass);border:1px solid var(--a-line)}
+.goverlay .mm-card.matched{background:rgba(52,211,153,.30);border:1px solid var(--a-ok);opacity:1}
+
+/* ── Picture Puzzle ── */
+.goverlay .pz-slot{border-radius:16px;background:var(--a-glass);border:1px solid var(--a-line)}
+.goverlay .pz-slot-coord{color:var(--a-faint)}
+.goverlay .pz-piece{border-radius:12px;border:1px solid var(--a-line)}
+.goverlay .pz-piece.sel{border-color:var(--a-sel)}
+.goverlay .pz-tray-label{color:var(--a-muted)}
+
+/* ── Real Ludo: flat dark board, grey dots for safe squares, pink + green sides ── */
+.goverlay .ludo-board{background:var(--a-card) !important;border:none !important;border-radius:20px;box-shadow:none}
+.goverlay .ludo-sq,.goverlay .ludo-sq.arm-a{background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.10)}
+.goverlay .ludo-sq.safe{background:rgba(255,255,255,.07)}
+.goverlay .ludo-sq.safe .star{font-size:0;color:transparent;text-shadow:none}
+.goverlay .ludo-sq.safe .star::after{content:"";width:34%;height:34%;border-radius:50%;background:rgba(230,230,234,.7)}
+.goverlay .ludo-sq.lane-user1{background:rgba(255,143,174,.55)}
+.goverlay .ludo-sq.lane-user2{background:rgba(52,211,153,.55)}
+.goverlay .ludo-sq.lane-dim1,.goverlay .ludo-sq.lane-dim2{background:rgba(255,255,255,.07)}
+.goverlay .ludo-corner{box-shadow:none;border-radius:16px}
+.goverlay .ludo-corner.user1{background:rgba(255,143,174,.28)}
+.goverlay .ludo-corner.user2{background:rgba(52,211,153,.28)}
+.goverlay .ludo-corner.dim-yellow,.goverlay .ludo-corner.dim-blue{background:rgba(138,138,146,.25)}
+.goverlay .ludo-corner-inner{background:transparent;box-shadow:none}
+.goverlay .ludo-home-hub{background:rgba(230,230,234,.6);box-shadow:none;font-size:0}
+.goverlay .ludo-dice{width:72px;height:72px;border-radius:20px;background:var(--a-card);color:#fff;border:3px solid var(--a-sel);box-shadow:none}
+.goverlay .ludo-base{border-radius:20px;background:var(--a-glass);border:1px solid var(--a-line)}
+.goverlay .ludo-hist-row{border-radius:12px;background:var(--a-glass);border:1px solid var(--a-line);color:var(--a-muted)}
+.goverlay .ludo-leave{color:var(--a-faint)}
+
+
+/* ═══ v2 ═══ */
+/* The game panel had its own purple glass behind my page colour: remove it so the Android page shows */
+.goverlay .goverlay-inner{background:transparent !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important;animation:none}
+/* Full-screen phone-style column (like Android), centred on wide screens */
+@media (min-width:700px){
+  .goverlay .goverlay-inner{max-width:560px;width:100%;margin:0 auto}
+}
+
+/* Truth or Dare bottle: the same 🍾 emoji in a glass circle as Android */
+.goverlay .tod-bottle-stage{width:220px;height:220px;background:var(--a-glass) !important;border:1px solid var(--a-line) !important;box-shadow:none}
+.goverlay .tod-bottle-emoji{width:auto;height:auto;display:flex;align-items:center;justify-content:center;font-size:110px;line-height:1;filter:none;-webkit-user-select:none;user-select:none}
+
+/* Tic Tac Toe: Android colours and sizes (full-width board, 20px cells, X burgundy, O light grey) */
+.goverlay .ttt-board{max-width:420px;gap:12px}
+.goverlay .ttt-cell{border-radius:20px !important;background:rgba(255,255,255,.08) !important;border:1px solid rgba(255,255,255,.12) !important;font-size:56px;box-shadow:none !important}
+.goverlay .ttt-cell.playable:hover{background:rgba(255,255,255,.08) !important;border-color:rgba(255,255,255,.22) !important}
+.goverlay .ttt-cell.x{color:#6B093A !important}
+.goverlay .ttt-cell.o{color:#E6E6EA !important}
+.goverlay .ttt-cell.win{background:rgba(122,11,68,.45) !important;border-color:#E6E6EA !important}
+.goverlay .score-bar{gap:12px}
