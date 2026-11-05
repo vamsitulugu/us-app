@@ -1258,8 +1258,34 @@
    is hidden, so reclaim all of it and let the composer sit flush (still
    respecting the real safe-area inset on gesture-bar phones). */
 @media (max-width: 700px) {
-  body .content:has(#page-chat.active) { padding-bottom: 0 !important; }
-  #page-chat .chat-page-wrap { height: 100% !important; }
+  /* FIX: composer (typing bar) was pushed off-screen on mobile.
+     height:100% on .chat-page-wrap resolved to "auto" because #page-chat
+     had no definite height here (the flex-fill rules in app-polish.css
+     only exist for >=701px). The wrap then grew to fit every message,
+     and .content{overflow:hidden} silently clipped the composer.
+     Make .content -> #page-chat -> .chat-page-wrap a flex chain so the
+     wrap gets exactly the space left, #chatMsgs scrolls inside it, and
+     the composer stays pinned at the bottom (works with the keyboard
+     too, since the viewport uses interactive-widget=resizes-content). */
+  body .content:has(#page-chat.active) {
+    padding-bottom: 0 !important;
+    display: flex !important;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden !important;
+  }
+  body #page-chat.active {
+    display: flex !important;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto !important;
+  }
+  body #page-chat .chat-page-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto !important;
+  }
   #page-chat .uc-composer {
     padding-top: 6px !important;
     padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
