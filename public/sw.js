@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v69'; // bumped: ui-scale.js (whole app 25% smaller)
+const CACHE = 'uwl-v70'; // bumped: removed ui-scale (back to original size)
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
