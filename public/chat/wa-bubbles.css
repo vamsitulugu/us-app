@@ -1,0 +1,85 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   WhatsApp message bubbles — loaded LAST so it wins over chat.css, the theme
+   files and android-ui.css (they each restyled the bubbles: borders, gradients,
+   8px "square" corners). One place now owns the bubble look.
+
+   What makes it WhatsApp:
+   - soft rounded corners, no outline, a hair of drop shadow
+   - a curved tail on the FIRST bubble of a run (top corner, sender's side)
+   - tight padding, 14.5px regular-weight text, small time + ticks bottom-right
+   Colours stay the app's burgundy / grey. To get WhatsApp green instead,
+   change only --wa-out-bg and --wa-in-bg below.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+html:not(#_) #page-chat {
+  --wa-radius: 12px;
+  --wa-tail-w: 8px;
+  --wa-tail-h: 13px;
+  --wa-out-bg: #6B093A;          /* my bubbles   (WhatsApp dark: #005C4B) */
+  --wa-in-bg: #34343A;           /* their bubbles (WhatsApp dark: #202C33) */
+}
+html[data-theme="light"]:not(#_) #page-chat,
+html:not(#_) #page-chat[data-theme="light"] {
+  --wa-out-bg: var(--l-btn, #6B093A);   /* WhatsApp light: #D9FDD3 */
+  --wa-in-bg: #ffffff;
+}
+
+html:not(#_) #page-chat .chat-bubble {
+  border: 0 !important;
+  border-radius: var(--wa-radius) !important;
+  padding: 6px 8px 6px 9px !important;
+  font-size: 14.5px !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
+  box-shadow: 0 1px 0.5px rgba(0, 0, 0, .13) !important;
+  background-image: none !important;
+}
+html:not(#_) #page-chat .chat-bubble.mine {
+  --tail: var(--wa-out-bg);
+  background: var(--wa-out-bg) !important;
+}
+html:not(#_) #page-chat .chat-bubble.theirs {
+  --tail: var(--wa-in-bg);
+  background: var(--wa-in-bg) !important;
+}
+
+/* time + ticks, bottom-right, small */
+html:not(#_) #page-chat .chat-meta { font-size: 11px !important; gap: 3px; }
+html:not(#_) #page-chat .chat-text > .chat-meta { margin: 6px 0 -4px 10px; }
+
+/* things inside a bubble get matching, smaller radii */
+html:not(#_) #page-chat .chat-bubble .chat-quote { border-radius: 7px; }
+html:not(#_) #page-chat .chat-bubble .chat-img,
+html:not(#_) #page-chat .chat-bubble .chat-photo-grid,
+html:not(#_) #page-chat .chat-bubble .msg-file { border-radius: 8px; }
+
+/* ── tail: only the first / single bubble of a run, on the sender's side ── */
+html:not(#_) #page-chat .chat-row:not([data-group="mid"]):not([data-group="last"]) .chat-bubble.mine {
+  border-top-right-radius: 0 !important;
+}
+html:not(#_) #page-chat .chat-row:not([data-group="mid"]):not([data-group="last"]) .chat-bubble.theirs {
+  border-top-left-radius: 0 !important;
+}
+html:not(#_) #page-chat .chat-row:not([data-group="mid"]):not([data-group="last"]) .chat-bubble::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: var(--wa-tail-w);
+  height: var(--wa-tail-h);
+  background: var(--tail);
+  clip-path: none !important;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 13'><path d='M0 0H8C6.2 .4 5 2 4.2 5 3.4 8.2 2 11.2 0 13Z'/></svg>") center / 100% 100% no-repeat;
+          mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 13'><path d='M0 0H8C6.2 .4 5 2 4.2 5 3.4 8.2 2 11.2 0 13Z'/></svg>") center / 100% 100% no-repeat;
+}
+html:not(#_) #page-chat .chat-row:not([data-group="mid"]):not([data-group="last"]) .chat-bubble.mine::before {
+  right: calc(var(--wa-tail-w) * -1);
+  left: auto;
+}
+html:not(#_) #page-chat .chat-row:not([data-group="mid"]):not([data-group="last"]) .chat-bubble.theirs::before {
+  left: calc(var(--wa-tail-w) * -1);
+  right: auto;
+  transform: scaleX(-1);
+}
+
+/* deleted-message bubble keeps the plain pill, no tail */
+html:not(#_) #page-chat .chat-bubble.deleted-bubble::before { display: none !important; }
