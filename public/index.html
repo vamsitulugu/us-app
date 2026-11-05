@@ -10467,7 +10467,7 @@ const p = await Notification.requestPermission();
           const slot = { id: Date.now(), day: document.getElementById('slotDay').value, start: document.getElementById('slotStart').value, end: document.getElementById('slotEnd').value, subject, done: false };
           S.myTimetable.push(slot);
           if (S.role === 'user2') S.ptTimetable = [...S.myTimetable];
-          if (alarm) { if (!S.reminders) S.reminders = []; S.reminders.push({ id: Date.now() + 1, title: 'Study: ' + subject, time: slot.start, date: todayStr(), forWhom: alarm, note: slot.day + ' slot', fired: false }); }
+          if (alarm) { if (!S.reminders) S.reminders = []; S.reminders.push({ id: Date.now() + 1, title: 'Study: ' + subject, time: slot.start, date: todayStr(), forWhom: alarm, note: slot.day + ' slot', fired: false, by: S.role }); }
           ['slotStart', 'slotEnd', 'slotSubject'].forEach(id => document.getElementById(id).value = '');
           closeM('studySlotModal'); renderStudyPage(); scheduleSave(); toast('Slot added! 📚');
         }
@@ -10729,7 +10729,7 @@ const p = await Notification.requestPermission();
           const vis = document.getElementById('journalVisibility')?.value || 'self';
           S.journal.unshift({ id: Date.now(), date: todayStr(), mood: S.selectedMood, body, visibility: vis, by: S.role }); document.getElementById('journalBody').value = ''; renderJournal(); scheduleSave(); toast('Journal saved! 📖'); spawnPetals(4);
         }
-        function renderJournal() { const el = document.getElementById('myJournalEntries'); if (!S.journal.length) { PS.empty(el, { icon: 'book', title: "No entries yet", desc: "Write down today's memory \u2014 a feeling, a moment, anything worth keeping.", actionLabel: 'Write First Entry', onAction: () => document.getElementById('journalBody')?.focus() }); return; } el.innerHTML = S.journal.map((e) => `<div class="sd-selectable" data-journal-id="${e.id}" style="background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;position:relative;transition:var(--t)"><div class="sd-check"><i data-lucide="check"></i></div><div style="font-size:10px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">${fmtDate(e.date)}</div>${e.mood ? `<div style="display:inline-block;font-size:11px;background:var(--g2);color:var(--text);border-radius:10px;padding:2px 8px;margin-bottom:7px;border:1px solid var(--border)">${esc(e.mood)}</div>` : ''}<div style="font-size:13px;color:var(--text2);line-height:1.65">${esc(e.body)}</div><button class="del-btn" onclick="delJournal(${e.id})" style="position:absolute;top:12px;right:12px"><i data-lucide="trash-2"></i></button></div>`).join(''); if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } journalWireSelection(); }
+        function renderJournal() { const el = document.getElementById('myJournalEntries'); const visibleJournal = (S.journal || []).filter(canSeeJournal); if (!visibleJournal.length) { PS.empty(el, { icon: 'book', title: "No entries yet", desc: "Write down today's memory \u2014 a feeling, a moment, anything worth keeping.", actionLabel: 'Write First Entry', onAction: () => document.getElementById('journalBody')?.focus() }); return; } el.innerHTML = visibleJournal.map((e) => `<div class="sd-selectable" data-journal-id="${e.id}" style="background:var(--g1);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;position:relative;transition:var(--t)"><div class="sd-check"><i data-lucide="check"></i></div><div style="font-size:10px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">${fmtDate(e.date)}</div>${e.mood ? `<div style="display:inline-block;font-size:11px;background:var(--g2);color:var(--text);border-radius:10px;padding:2px 8px;margin-bottom:7px;border:1px solid var(--border)">${esc(e.mood)}</div>` : ''}<div style="font-size:13px;color:var(--text2);line-height:1.65">${esc(e.body)}</div><button class="del-btn" onclick="delJournal(${e.id})" style="position:absolute;top:12px;right:12px"><i data-lucide="trash-2"></i></button></div>`).join(''); if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } journalWireSelection(); }
         function delJournal(id) { confirmDelete({ itemType: 'journal entry', message: 'This journal entry will be permanently deleted.', onConfirm: () => { S.journal = S.journal.filter(e => e.id !== id); renderJournal(); scheduleSave(); } }); }
 
         /* ── Long-press multi-select for Journal (page-scoped) ── */
@@ -10939,13 +10939,13 @@ const p = await Notification.requestPermission();
           const v = document.getElementById('noteIn').value.trim(); if (!v) return;
           const rd = document.getElementById('noteReminderDate').value, rt = document.getElementById('noteReminderTime').value;
           const vis = document.getElementById('noteVisibility')?.value || 'both';
-          const note = { id: Date.now(), text: v, date: todayStr(), color: noteColors[S.notes.length % noteColors.length], me: true, visibility: vis, by: S.role }; if (rd) { note.reminderDate = rd; note.reminderTime = rt || '09:00'; note.alarmed = false; } S.notes.unshift(note); document.getElementById('noteIn').value = ''; document.getElementById('noteReminderDate').value = ''; document.getElementById('noteReminderTime').value = ''; renderNotes(); scheduleSave(); toast('Note added! ✨');
+          const note = { id: Date.now(), text: v, date: todayStr(), color: noteColors[S.notes.length % noteColors.length], visibility: vis, by: S.role }; if (rd) { note.reminderDate = rd; note.reminderTime = rt || '09:00'; note.alarmed = false; } S.notes.unshift(note); document.getElementById('noteIn').value = ''; document.getElementById('noteReminderDate').value = ''; document.getElementById('noteReminderTime').value = ''; renderNotes(); scheduleSave(); toast('Note added! ✨');
         }
         function delNote(id) { confirmDelete({ itemType: 'note', message: 'This note will be permanently deleted.', onConfirm: () => { S.notes = S.notes.filter(n => n.id !== id); renderNotes(); scheduleSave(); } }); }
         function renderNotes() {
           const el = document.getElementById('notesGrid'); if (!S.notes.length) { el.style.gridColumn = '1/-1'; PS.empty(el, { icon: 'heart', title: 'No notes yet', desc: 'Write something sweet \u2014 it\u2019ll show up here for both of you.', actionLabel: 'Write a Note', onAction: () => document.getElementById('noteIn')?.focus() }); return; } const visibleNotes = S.notes.filter(n => canSeeItem(n));
           el.innerHTML = visibleNotes.map((n) => {
-            return `<div class="note-card sd-selectable" data-note-id="${n.id}" style="background:${n.color}"><div class="sd-check"><i data-lucide="check"></i></div><div style="font-size:10px;color:var(--text3);margin-bottom:5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap">${privBadgeHtml(n.visibility)}<span>${n.me ? esc(S.myName) : esc(S.partnerName)} · ${fmtDateShort(n.date)}</span></div><div style="font-size:13px;color:var(--text)">${esc(n.text)}</div>${n.reminderDate ? `<div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--yellow-bg);color:var(--yellow);border-radius:8px;padding:3px 7px;margin-top:6px;border:1px solid rgba(251,191,36,0.3)">🔔 ${fmtDateShort(n.reminderDate)} ${n.reminderTime || ''}</div>` : ''}<button class="del-btn" onclick="delNote(${n.id})" style="position:absolute;top:9px;right:9px"><i data-lucide="trash-2"></i></button></div>`;}).join('');
+            return `<div class="note-card sd-selectable" data-note-id="${n.id}" style="background:${n.color}"><div class="sd-check"><i data-lucide="check"></i></div><div style="font-size:10px;color:var(--text3);margin-bottom:5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap">${privBadgeHtml(n.visibility)}<span>${(n.by ? n.by === S.role : n.me) ? esc(S.myName) : esc(S.partnerName)} · ${fmtDateShort(n.date)}</span></div><div style="font-size:13px;color:var(--text)">${esc(n.text)}</div>${n.reminderDate ? `<div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--yellow-bg);color:var(--yellow);border-radius:8px;padding:3px 7px;margin-top:6px;border:1px solid rgba(251,191,36,0.3)">🔔 ${fmtDateShort(n.reminderDate)} ${n.reminderTime || ''}</div>` : ''}<button class="del-btn" onclick="delNote(${n.id})" style="position:absolute;top:9px;right:9px"><i data-lucide="trash-2"></i></button></div>`;}).join('');
           if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
           notesWireSelection();
         }
@@ -11011,7 +11011,7 @@ const p = await Notification.requestPermission();
             }
           });
         }
-        function renderReminders() { const el = document.getElementById('remindersList'); if (!el) return; if (!S.reminders || !S.reminders.length) { PS.empty(el, { icon: 'generic', title: 'No reminders yet', desc: 'Set an alarm for something you don\u2019t want to forget.', actionLabel: 'Set a Reminder', onAction: () => document.getElementById('remTitle')?.focus() }); return; } const sorted = [...S.reminders].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)); el.innerHTML = sorted.map(r => `<div class="card sd-selectable" data-rem-id="${r.id}" style="margin-bottom:9px;padding:13px;position:relative"><div class="sd-check"><i data-lucide="check"></i></div><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:4px">🔔 ${esc(r.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(r.date)} at ${r.time || '—'}</div><div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--blue-bg);color:var(--blue);border-radius:7px;padding:2px 7px;margin-top:5px;border:1px solid rgba(107,9,58,0.3)">📣 ${r.forWhom === 'both' ? 'Both of us' : r.forWhom === 'self' ? 'Just me' : 'Partner only'}</div>${r.note ? `<div style="font-size:11px;color:var(--text3);margin-top:5px">${esc(r.note)}</div>` : ''}</div><button class="del-btn" onclick="delReminder(${r.id})"><i data-lucide="trash-2"></i></button></div></div>`).join(''); if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } remindersWireSelection(); }
+        function renderReminders() { const el = document.getElementById('remindersList'); if (!el) return; const visibleRems = (S.reminders || []).filter(canSeeReminder); if (!visibleRems.length) { PS.empty(el, { icon: 'generic', title: 'No reminders yet', desc: 'Set an alarm for something you don\u2019t want to forget.', actionLabel: 'Set a Reminder', onAction: () => document.getElementById('remTitle')?.focus() }); return; } const sorted = [...visibleRems].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)); el.innerHTML = sorted.map(r => `<div class="card sd-selectable" data-rem-id="${r.id}" style="margin-bottom:9px;padding:13px;position:relative"><div class="sd-check"><i data-lucide="check"></i></div><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:4px">🔔 ${esc(r.title)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(r.date)} at ${r.time || '—'}</div><div style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:var(--blue-bg);color:var(--blue);border-radius:7px;padding:2px 7px;margin-top:5px;border:1px solid rgba(107,9,58,0.3)">📣 ${r.forWhom === 'both' ? 'Both of us' : r.forWhom === 'self' ? 'Just me' : 'Partner only'}</div>${r.note ? `<div style="font-size:11px;color:var(--text3);margin-top:5px">${esc(r.note)}</div>` : ''}</div><button class="del-btn" onclick="delReminder(${r.id})"><i data-lucide="trash-2"></i></button></div></div>`).join(''); if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } remindersWireSelection(); }
 
         /* ── Long-press multi-select for Reminders (page-scoped) ──
            The toolbar markup and its onclick handlers already existed in
@@ -11082,10 +11082,10 @@ const p = await Notification.requestPermission();
 
       
         // ─── REMINDERS & ALARMS ──────────────────────────────────
-        function addReminder() { const title = document.getElementById('remTitle').value.trim(), date = document.getElementById('remDate').value, time = document.getElementById('remTime').value; if (!title || !date || !time) { toast('Fill in title, date and time'); return; } if (!S.reminders) S.reminders = []; S.reminders.push({ id: Date.now(), title, date, time, forWhom: document.getElementById('remFor').value, note: document.getElementById('remNote').value, fired: false });['remTitle', 'remDate', 'remTime', 'remNote'].forEach(id => document.getElementById(id).value = ''); renderReminders(); scheduleSave(); toast('Alarm set! 🔔'); }
+        function addReminder() { const title = document.getElementById('remTitle').value.trim(), date = document.getElementById('remDate').value, time = document.getElementById('remTime').value; if (!title || !date || !time) { toast('Fill in title, date and time'); return; } if (!S.reminders) S.reminders = []; S.reminders.push({ id: Date.now(), title, date, time, forWhom: document.getElementById('remFor').value, note: document.getElementById('remNote').value, fired: false, by: S.role });['remTitle', 'remDate', 'remTime', 'remNote'].forEach(id => document.getElementById(id).value = ''); renderReminders(); scheduleSave(); toast('Alarm set! 🔔'); }
         function delReminder(id) { S.reminders = (S.reminders || []).filter(r => r.id !== id); renderReminders(); scheduleSave(); }
         function startAlarmCheck() { if (alarmCheckInterval) clearInterval(alarmCheckInterval); checkAlarms(); alarmCheckInterval = setInterval(checkAlarms, 30000); }
-        function checkAlarms() { const now = new Date(); const ts = now.toISOString().slice(0, 10); const nt = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0'); (S.reminders || []).forEach(r => { if (r.fired) return; if (r.date !== ts) return; const rt = r.time || '00:00'; if (rt === nt || (rt <= nt && rt > padTime(nt, -2))) { if (r.forWhom === 'partner') return; r.fired = true; ringAlarm(r.title, r.note, 'For: ' + ({ both: 'Both of you', self: 'You', partner: 'Partner' }[r.forWhom] || 'You')); scheduleSave(); } }); (S.notes || []).forEach(n => { if (n.alarmed || !n.reminderDate) return; if (n.reminderDate !== ts) return; const nt2 = n.reminderTime || '09:00'; if (nt2 === nt || (nt2 < nt && nt2 >= padTime(nt, -1))) { n.alarmed = true; ringAlarm('📝 Note Reminder', n.text, 'For you'); scheduleSave(); } }); }
+        function checkAlarms() { const now = new Date(); const ts = now.toISOString().slice(0, 10); const nt = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0'); (S.reminders || []).forEach(r => { if (r.fired) return; if (r.date !== ts) return; const rt = r.time || '00:00'; if (rt === nt || (rt <= nt && rt > padTime(nt, -2))) { if (!reminderIsForMe(r)) return; r.fired = true; ringAlarm(r.title, r.note, 'For: ' + ({ both: 'Both of you', self: 'You', partner: 'Partner' }[r.forWhom] || 'You')); scheduleSave(); } }); (S.notes || []).forEach(n => { if (n.alarmed || !n.reminderDate) return; if (n.reminderDate !== ts) return; const nt2 = n.reminderTime || '09:00'; if (nt2 === nt || (nt2 < nt && nt2 >= padTime(nt, -1))) { n.alarmed = true; ringAlarm('📝 Note Reminder', n.text, 'For you'); scheduleSave(); } }); }
         function padTime(time, delta) { const [h, m] = time.split(':').map(Number); const t = h * 60 + m + delta; const nh = Math.floor(t / 60) % 24; const nm = t % 60; return nh.toString().padStart(2, '0') + ':' + nm.toString().padStart(2, '0'); }
         function ringAlarm(title, desc, forWhom) { document.getElementById('alarmTitle').textContent = title || 'Alarm!'; document.getElementById('alarmDesc').textContent = desc || ''; document.getElementById('alarmFor').textContent = forWhom || ''; document.getElementById('alarmRing').classList.add('active'); try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); function beep(f, s, d) { const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = f; g.gain.setValueAtTime(0.4, ctx.currentTime + s); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + s + d); o.start(ctx.currentTime + s); o.stop(ctx.currentTime + s + d); } for (let i = 0; i < 6; i++) { beep(880, i * 0.4, 0.25); beep(1100, i * 0.4 + 0.15, 0.15); } } catch (e) { } }
         function dismissAlarm() { document.getElementById('alarmRing').classList.remove('active'); }
@@ -11253,7 +11253,7 @@ const p = await Notification.requestPermission();
           const alarm = document.getElementById('evAlarm').value;
           const ev = { id: Date.now(), title, date, time: document.getElementById('evTime').value, note: document.getElementById('evNote').value, cat: document.getElementById('evCat').value, alarm };
           S.events.push(ev);
-          if (alarm && ev.time) { if (!S.reminders) S.reminders = []; S.reminders.push({ id: Date.now() + 1, title: '📅 ' + title, date, time: ev.time, forWhom: alarm, note: ev.note || '', fired: false, type: 'event' }); }
+          if (alarm && ev.time) { if (!S.reminders) S.reminders = []; S.reminders.push({ id: Date.now() + 1, title: '📅 ' + title, date, time: ev.time, forWhom: alarm, note: ev.note || '', fired: false, type: 'event', by: S.role }); }
           ['evTitle', 'evDate', 'evTime', 'evNote'].forEach(id => document.getElementById(id).value = '');
           closeM('eventModal'); renderCalendar(); scheduleSave(); toast('Event added! 📅'); spawnPetals(5);
           requestAnimationFrame(() => PM.eventAdded(document.querySelector('#eventList .bucket-row')));
@@ -12209,7 +12209,7 @@ const p = await Notification.requestPermission();
             const resp = await fetch(API + '/api/ai/chat/stream', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ message: question, myName: S.myName, partnerName: S.partnerName, anniversary: S.anniversary, recentMood: S.journal[0]?.mood || '' })
+              body: JSON.stringify({ message: question, myName: S.myName, partnerName: S.partnerName, anniversary: S.anniversary, recentMood: ((S.journal || []).find(j => !j.by || j.by === S.role) || {}).mood || '' })
             });
             if (!resp.ok || !resp.body) throw new Error('Stream unavailable (HTTP ' + resp.status + ')');
 
@@ -12249,7 +12249,7 @@ const p = await Notification.requestPermission();
             // Fall back to the non-streaming endpoint with a progressive
             // reveal so it never feels instant/robotic even without SSE.
             try {
-              const data = await api('POST', '/api/ai/chat', { message: question, myName: S.myName, partnerName: S.partnerName, anniversary: S.anniversary, recentMood: S.journal[0]?.mood || '' });
+              const data = await api('POST', '/api/ai/chat', { message: question, myName: S.myName, partnerName: S.partnerName, anniversary: S.anniversary, recentMood: ((S.journal || []).find(j => !j.by || j.by === S.role) || {}).mood || '' });
               full = data.reply || '';
               await progressiveReveal(full);
               bubbleEl.innerHTML = renderAiText(full);
@@ -13228,9 +13228,29 @@ function renderSurprises() {
         function canSeeItem(item) {
           const v = item.visibility || 'both';
           if (v === 'both') return true;
-          if (v === 'self') return item.by === S.role || item.me === true || !item.by;
-          if (v === 'partner') return item.by !== S.role && item.me !== true;
+          // `me` was saved from the author's phone, so it means "me" only on that phone.
+          // Trust `by` (the author's role); fall back to `me` only for old items without `by`.
+          if (v === 'self') return item.by ? item.by === S.role : true;
+          if (v === 'partner') return item.by ? item.by !== S.role : item.me !== true;
           return true;
+        }
+
+        // Journal: my own entries always; the partner's only when shared (Both / Partner Only)
+        function canSeeJournal(e) {
+          if (!e.by || e.by === S.role) return true;
+          return (e.visibility || 'both') !== 'self';
+        }
+
+        // Reminders: "both" = everyone, "self" = the person who made it, "partner" = the other person.
+        // Old reminders without `by` keep the old behaviour (self rings for me, partner never).
+        function reminderIsForMe(r) {
+          const w = r.forWhom || 'self';
+          if (w === 'both') return true;
+          if (!r.by) return w !== 'partner';
+          return w === 'self' ? r.by === S.role : r.by !== S.role;
+        }
+        function canSeeReminder(r) {
+          return reminderIsForMe(r) || !r.by || r.by === S.role;
         }
 
         // Returns true if the PARTNER can see this item (for sync filtering)
@@ -13432,7 +13452,7 @@ function doSearch(query) {
 
   // Notes
   if (searchFilter === 'all' || searchFilter === 'notes') {
-    (S.notes || []).filter(n => n.text && n.text.toLowerCase().includes(q))
+    (S.notes || []).filter(n => canSeeItem(n) && n.text && n.text.toLowerCase().includes(q))
       .slice(0, 5).forEach(n => results.push({
         cat: 'Notes', ico: '📝', title: n.text.slice(0, 80),
         sub: 'Note · ' + fmtDateShort(n.date),
@@ -13442,7 +13462,7 @@ function doSearch(query) {
 
   // Journal
   if (searchFilter === 'all' || searchFilter === 'journal') {
-    (S.journal || []).filter(j => j.body && j.body.toLowerCase().includes(q))
+    (S.journal || []).filter(j => canSeeJournal(j) && j.body && j.body.toLowerCase().includes(q))
       .slice(0, 5).forEach(j => results.push({
         cat: 'Journal', ico: '📖', title: j.body.slice(0, 80),
         sub: (j.mood || '') + ' · ' + fmtDateShort(j.date),
