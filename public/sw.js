@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v68'; // bumped: game voice call + chat (game-comms.js, games.html, index.html)
+const CACHE = 'uwl-v69'; // bumped: ui-scale.js (whole app 25% smaller)
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
