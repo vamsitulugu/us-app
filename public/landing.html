@@ -9,6 +9,15 @@
    signed-in session, skip the marketing landing page and show the app-style
    start screen instead. Runs before first paint so there is no flash. */
 (function(){
+  // Clean reset (sent by the loop breaker in index.html): forget stale local
+  // sign-in data, the offline cache and the service worker, and never bounce back.
+  var reset=/[?&]reset=1/.test(location.search);
+  if(reset){
+    try{ ['uwl_v5','uwl_accounts','uwl_active_user','uwl_nav_loop'].forEach(function(k){ localStorage.removeItem(k); }); sessionStorage.clear(); }catch(e){}
+    try{ if(window.caches) caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); }catch(e){}
+    try{ if(navigator.serviceWorker) navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }); }catch(e){}
+    try{ history.replaceState(null,'','/landing.html'); }catch(e){}
+  }
   try{
     var ua=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||'');
     var narrow=window.matchMedia&&window.matchMedia('(max-width: 820px)').matches;
@@ -18,7 +27,7 @@
     if((ua||narrow)&&!signedIn&&!forced) document.documentElement.classList.add('ms-on');
     // Signed-in phone users never need this page: go straight to the app
     // (replace, so landing is not left in the Back history).
-    if((ua||narrow)&&signedIn&&!forced&&!/[?&]newAccount=1/.test(location.search)){
+    if((ua||narrow)&&signedIn&&!reset&&!forced&&!/[?&]newAccount=1/.test(location.search)){
       try{ if(!sessionStorage.getItem('uwl_ls_bounce')){ sessionStorage.setItem('uwl_ls_bounce','1'); location.replace('/'); return; } }catch(e){}
     }
   }catch(e){}

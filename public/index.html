@@ -17,6 +17,17 @@
   // straight to the landing page instead of ever showing this page's
   // dashboard skeleton. Reads the same 'uwl_v5'/coupleId that the app's
   // own init() already reads later; nothing about auth itself changes.
+  // Loop breaker: if this page and landing.html keep sending the browser to each
+  // other (stale saved data), the 4th hop within 15 s goes to a clean reset instead.
+  window.__toLanding = function () {
+    var c = 0;
+    try {
+      var o = JSON.parse(localStorage.getItem('uwl_nav_loop') || '{}'), n = Date.now();
+      c = (o.t && n - o.t < 15000) ? (o.n || 0) + 1 : 1;
+      localStorage.setItem('uwl_nav_loop', JSON.stringify({ n: c, t: n }));
+    } catch (e) {}
+    location.replace(c > 3 ? '/landing.html?reset=1' : '/landing.html');
+  };
   (async function () {
     function readSession() {
       try {
@@ -31,7 +42,7 @@
 
     var session = readSession();
     if (!session) {
-      location.replace('/landing.html');
+      window.__toLanding();
       return;
     }
 
@@ -12411,7 +12422,7 @@ function logOut() {
                 if (remaining.length > 0) { AccountPicker.show(remaining); return; }
                 AppLoader.showAuthSkeleton();
                 AppLoader.ready('auth');
-                window.location.replace('/landing.html');
+                window.__toLanding();
                 return;
               }
               // Couldn't reach the backend right now — fall back to local
@@ -12426,7 +12437,7 @@ function logOut() {
                 toast('Could not connect. Check your internet and try again.');
                 const accounts = SessionManager ? SessionManager.getAccounts() : [];
                 if (accounts.length > 1) AccountPicker.show(accounts);
-                else window.location.replace('/landing.html');
+                else window.__toLanding();
               }
               return;
             }
@@ -12603,7 +12614,7 @@ function logOut() {
         if (accounts.length === 0) {
           AppLoader.showAuthSkeleton();
           AppLoader.ready('auth');
-          window.location.replace('/landing.html');
+          window.__toLanding();
           return;
         }
 
