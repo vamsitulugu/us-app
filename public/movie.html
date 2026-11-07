@@ -46,7 +46,12 @@
       </nav>
 
       <section class="wt-tabpane" id="tabHome">
-        <div id="mcBanner"></div>
+        <button type="button" class="wt-cinema-card" data-cinema-open>
+          <span class="wt-cinema-ico">🍿</span>
+          <span class="wt-cinema-txt"><b>Watch in Twin Cinema 3D</b><small>Open a private 3D theatre and invite your partner</small></span>
+          <span class="wt-cinema-go">›</span>
+        </button>
+<div id="mcBanner"></div>
         <div id="mcHomeRows"></div>
       </section>
 
@@ -68,6 +73,11 @@
       </section>
 
       <section class="wt-tabpane" id="tabWatch" hidden>
+      <button type="button" class="wt-cinema-card" data-cinema-open>
+          <span class="wt-cinema-ico">🍿</span>
+          <span class="wt-cinema-txt"><b>Watch in Twin Cinema 3D</b><small>Open a private 3D theatre and invite your partner</small></span>
+          <span class="wt-cinema-go">›</span>
+        </button>
       <!-- Mode switch: Direct Device Video (default, unchanged) | Shared Cloud Storage -->
       <div class="wt-mode-toggle" id="wtModeToggle">
         <button type="button" class="wt-chip-btn is-active" id="modeDirect" title="Direct Device Video"><i data-lucide="smartphone"></i><span>Direct Device</span></button>
@@ -406,5 +416,18 @@
 <script src="/movie-collection.js?v=3"></script>
 <script src="/js/pro-card.js?v=3"></script>
 <script src="/js/movie-search-ui.js?v=3"></script>
+<style>
+.wt-cinema-card{display:flex;align-items:center;gap:14px;width:100%;box-sizing:border-box;margin:0 0 14px;padding:14px 16px;border-radius:16px;border:1px solid rgba(255,79,160,.45);background:linear-gradient(135deg,rgba(214,51,138,.28),rgba(142,63,212,.28));color:#fff;font:inherit;text-align:left;cursor:pointer}
+.wt-cinema-card:active{transform:scale(.99)}
+.wt-cinema-ico{font-size:30px}.wt-cinema-txt{flex:1;display:flex;flex-direction:column;gap:2px}.wt-cinema-txt b{font-size:16px}.wt-cinema-txt small{opacity:.8;font-size:12.5px}.wt-cinema-go{font-size:26px;opacity:.8}
+</style>
+<script>
+/* Twin Cinema entry: this page runs inside an iframe of the app, so the invite logic lives in the parent (cinema-invite.js). */
+document.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('[data-cinema-open]'); if (!b) return;
+  var T = (window.parent && window.parent.TwinCinema) || window.TwinCinema;
+  if (T && T.open) T.open(); else alert('Open Twin Hearts and use Together → Twin Cinema.');
+});
+</script>
 </body>
 </html>
