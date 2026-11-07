@@ -1,0 +1,182 @@
+// ═══════════════════════════════════════════════════════
+//  routes/cinema.js — Twin Cinema movie-night invites
+//
+//  The 3D theatre lives in a separate Vercel project (twin-cinemas). This
+//  file only manages the INVITE: host opens a session, taps Invite, the
+//  partner gets a card (+ push), taps Accept, and both open the cinema with
+//  the session id as the private room. Realtime (presence, Start, playback)
+//  is handled inside the cinema over Supabase Realtime.
+//
+//  Identity follows the rest of this app: coupleId + role (user1|user2).
+//  Wire up in server.js:  app.use('/api/cinema', require('./routes/cinema'));
+// ═══════════════════════════════════════════════════════
+const express  = require('express');
+const supabase = require('../middleware/supabase');
+const router   = express.Router();
+
+let _sendPushToPartner, _sendFCMToPartner;
+try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch (_) {}
+try { _sendFCMToPartner  = require('./auth').sendFCMToPartner;  } catch (_) {}
+
+const CINEMA_URL    = (process.env.CINEMA_URL || 'https://twin-cinemas.vercel.app').replace(/\/+$/, '');
+const INVITE_TTL_MS = 10 * 60 * 1000;     // an invite stays open for 10 minutes
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ROLES = new Set(['user1', 'user2']);
+const other = r => (r === 'user1' ? 'user2' : 'user1');
+
+const noStore = (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); };
+router.use(noStore);
+
+// The cinema room code is the session id (an unguessable UUID). slot 1 = girl avatar, 2 = boy avatar.
+// Everything goes in the URL HASH (never sent to any server / referrer); the cinema strips it after reading.
+function cinemaUrl(session, slot, name, coupleId, role, isHost) {
+  const q = new URLSearchParams({ s: session.id, r: String(slot), n: name || '', c: coupleId, u: role, h: isHost ? '1' : '0' });
+  return `${CINEMA_URL}/#${q.toString()}`;
+}
+
+async function loadSession(id, coupleId) {
+  if (!UUID_RE.test(String(id || ''))) return { error: 'Invalid session', code: 400 };
+  const { data, error } = await supabase.from('cinema_sessions').select('*').eq('id', id).maybeSingle();
+  if (error) return { error: error.message, code: 500 };
+  if (!data || data.couple_id !== coupleId) return { error: 'Session not found', code: 404 };   // other couples can never see it
+  // lazily expire stale invites / old sessions
+  const now = Date.now();
+  const stale = (data.status === 'invited' && now - new Date(data.invited_at).getTime() > INVITE_TTL_MS)
+             || (['lobby', 'invited', 'accepted'].includes(data.status) && now > new Date(data.expires_at).getTime());
+  if (stale) {
+    await supabase.from('cinema_sessions').update({ status: 'expired' }).eq('id', id);
+    data.status = 'expired';
+  }
+  return { session: data };
+}
+
+async function names(coupleId) {
+  const { data } = await supabase.from('couples')
+    .select('user1_name, user2_name, user1_avatar, user2_avatar').eq('id', coupleId).maybeSingle();
+  return data || {};
+}
+
+function pushToPartner(coupleId, senderRole, payload) {
+  if (_sendPushToPartner) _sendPushToPartner(coupleId, senderRole, payload).catch(() => {});
+  if (_sendFCMToPartner)  _sendFCMToPartner(coupleId, senderRole, payload).catch(() => {});
+}
+
+// POST /api/cinema/create  { coupleId, role, slot, movie }
+// Reuses the host's still-open session so double taps never create duplicates.
+router.post('/create', async (req, res) => {
+  const { coupleId, role, movie } = req.body || {};
+  const slot = Number(req.body && req.body.slot) === 2 ? 2 : 1;
+  if (!coupleId || !ROLES.has(role)) return res.status(400).json({ error: 'Missing coupleId/role' });
+  if (String(coupleId).indexOf('solo_') === 0) return res.status(400).json({ error: 'Connect your partner first' });
+  try {
+    const { data: open } = await supabase.from('cinema_sessions').select('*')
+      .eq('couple_id', coupleId).eq('host_role', role).in('status', ['lobby', 'invited', 'accepted'])
+      .gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }).limit(1);
+    let session = open && open[0];
+    if (session) {
+      const patch = { host_slot: slot, movie: movie || session.movie || null };
+      if (session.status === 'invited' && Date.now() - new Date(session.invited_at).getTime() > INVITE_TTL_MS) patch.status = 'lobby';
+      const { data } = await supabase.from('cinema_sessions').update(patch).eq('id', session.id).select().single();
+      session = data || session;
+    } else {
+      const { data, error } = await supabase.from('cinema_sessions')
+        .insert({ couple_id: coupleId, host_role: role, host_slot: slot, movie: movie || null }).select().single();
+      if (error) return res.status(500).json({ error: error.message });
+      session = data;
+    }
+    const n = await names(coupleId);
+    const myName = role === 'user1' ? n.user1_name : n.user2_name;
+    return res.json({ session, url: cinemaUrl(session, session.host_slot, myName, coupleId, role, true) });
+  } catch (e) { return res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/cinema/:id/invite  { coupleId, role }   host → partner gets a card + push
+router.post('/:id/invite', async (req, res) => {
+  const { coupleId, role } = req.body || {};
+  if (!coupleId || !ROLES.has(role)) return res.status(400).json({ error: 'Missing coupleId/role' });
+  const r = await loadSession(req.params.id, coupleId);
+  if (r.error) return res.status(r.code).json({ error: r.error });
+  const s = r.session;
+  if (s.host_role !== role) return res.status(403).json({ error: 'Only the host can invite' });
+  if (['started', 'ended'].includes(s.status)) return res.status(409).json({ error: 'Session already ' + s.status });
+  // re-inviting after decline / expiry is allowed and simply re-opens the card
+  const { data, error } = await supabase.from('cinema_sessions')
+    .update({ status: 'invited', invited_at: new Date().toISOString(), expires_at: new Date(Date.now() + 2 * 3600 * 1000).toISOString() })
+    .eq('id', s.id).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+
+  const n = await names(coupleId);
+  const hostName = role === 'user1' ? n.user1_name : n.user2_name;
+  pushToPartner(coupleId, role, {
+    title: '🎬 Movie night invite',
+    body: `${hostName || 'Your partner'} is waiting for you in Twin Cinema${s.movie ? ' · ' + s.movie : ''}`,
+    icon: '/icons/icon-192.png', tag: 'cinema-invite', renotify: true,
+    url: '/?cinema=' + s.id, type: 'cinema_invite',
+    senderName: hostName || undefined, senderAvatar: (role === 'user1' ? n.user1_avatar : n.user2_avatar) || undefined
+  });
+  return res.json({ session: data });
+});
+
+// GET /api/cinema/pending/:coupleId?role=user2   → the invite waiting for ME (or null)
+router.get('/pending/:coupleId', async (req, res) => {
+  const { coupleId } = req.params, role = req.query.role;
+  if (!ROLES.has(role)) return res.status(400).json({ error: 'Missing role' });
+  const since = new Date(Date.now() - INVITE_TTL_MS).toISOString();
+  const { data, error } = await supabase.from('cinema_sessions').select('*')
+    .eq('couple_id', coupleId).eq('host_role', other(role)).eq('status', 'invited')
+    .gt('invited_at', since).order('invited_at', { ascending: false }).limit(1);
+  if (error) return res.status(500).json({ error: error.message });
+  const s = data && data[0];
+  if (!s) return res.json({ invite: null });
+  const n = await names(coupleId);
+  return res.json({ invite: {
+    id: s.id, movie: s.movie, invitedAt: s.invited_at,
+    hostName: (s.host_role === 'user1' ? n.user1_name : n.user2_name) || 'Your partner',
+    hostAvatar: (s.host_role === 'user1' ? n.user1_avatar : n.user2_avatar) || null
+  } });
+});
+
+// GET /api/cinema/:id?coupleId=...   → status (the host polls this to see accepted / declined)
+router.get('/:id', async (req, res) => {
+  const r = await loadSession(req.params.id, req.query.coupleId);
+  if (r.error) return res.status(r.code).json({ error: r.error });
+  return res.json({ status: r.session.status, session: r.session });
+});
+
+// POST /api/cinema/:id/accept  { coupleId, role }   guest → returns the guest's own cinema URL
+router.post('/:id/accept', async (req, res) => {
+  const { coupleId, role } = req.body || {};
+  if (!coupleId || !ROLES.has(role)) return res.status(400).json({ error: 'Missing coupleId/role' });
+  const r = await loadSession(req.params.id, coupleId);
+  if (r.error) return res.status(r.code).json({ error: r.error });
+  const s = r.session;
+  if (s.host_role === role) return res.status(403).json({ error: 'The host cannot accept their own invite' });
+  if (s.status === 'expired') return res.status(410).json({ error: 'This invite expired — ask your partner to invite you again' });
+  if (s.status === 'declined' || s.status === 'ended') return res.status(409).json({ error: 'This invite is no longer open' });
+  if (s.status === 'invited') await supabase.from('cinema_sessions').update({ status: 'accepted' }).eq('id', s.id);
+  const n = await names(coupleId);
+  const myName = role === 'user1' ? n.user1_name : n.user2_name;
+  return res.json({ ok: true, url: cinemaUrl(s, 3 - s.host_slot, myName, coupleId, role, false) });   // guest always gets the OTHER avatar
+});
+
+router.post('/:id/decline', async (req, res) => {
+  const { coupleId, role } = req.body || {};
+  if (!coupleId || !ROLES.has(role)) return res.status(400).json({ error: 'Missing coupleId/role' });
+  const r = await loadSession(req.params.id, coupleId);
+  if (r.error) return res.status(r.code).json({ error: r.error });
+  if (r.session.host_role === role) return res.status(403).json({ error: 'Not your invite to decline' });
+  if (r.session.status === 'invited') await supabase.from('cinema_sessions').update({ status: 'declined' }).eq('id', r.session.id);
+  return res.json({ ok: true });
+});
+
+// POST /api/cinema/:id/status { coupleId, role, status: 'started' | 'ended' }   (best-effort bookkeeping from the cinema/app)
+router.post('/:id/status', async (req, res) => {
+  const { coupleId, role, status } = req.body || {};
+  if (!coupleId || !ROLES.has(role) || !['started', 'ended'].includes(status)) return res.status(400).json({ error: 'Bad request' });
+  const r = await loadSession(req.params.id, coupleId);
+  if (r.error) return res.status(r.code).json({ error: r.error });
+  await supabase.from('cinema_sessions').update({ status }).eq('id', r.session.id);
+  return res.json({ ok: true });
+});
+
+module.exports = router;

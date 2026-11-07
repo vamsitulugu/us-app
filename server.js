@@ -155,6 +155,7 @@ app.use('/api/tracking', require('./routes/tracking'));
 app.use('/api/globe', require('./routes/globe'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/call', require('./routes/call'));
+app.use('/api/cinema', require('./routes/cinema'));   // Twin Cinema movie-night invites
 app.use('/api/music', require('./routes/music'));
 app.use('/api/pro', require('./routes/pro'));
 app.use('/api/rewards/cards', require('./routes/rewards-cards'));   // scratch cards won from couple games
