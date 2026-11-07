@@ -17,6 +17,7 @@ const router   = express.Router();
 let _sendPushToPartner, _sendFCMToPartner;
 try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch (_) {}
 try { _sendFCMToPartner  = require('./auth').sendFCMToPartner;  } catch (_) {}
+let _lib; try { _lib = require('./movie-library'); } catch (_) {}
 
 const CINEMA_URL    = (process.env.CINEMA_URL || 'https://twin-cinemas.vercel.app').replace(/\/+$/, '');
 const INVITE_TTL_MS = 10 * 60 * 1000;     // an invite stays open for 10 minutes
@@ -134,6 +135,29 @@ router.get('/pending/:coupleId', async (req, res) => {
     hostName: (s.host_role === 'user1' ? n.user1_name : n.user2_name) || 'Your partner',
     hostAvatar: (s.host_role === 'user1' ? n.user1_avatar : n.user2_avatar) || null
   } });
+});
+
+// GET /api/cinema/:id/movie?coupleId=...&role=user1
+// The movie the couple picked on the Watch Together page, so the cinema can play the same one:
+//   { mode:'cloud',  title, dur, url }  shared cloud movie → the cinema streams it from a short-lived signed URL
+//   { mode:'device', title, dur }       each phone has its own copy → the cinema asks both to choose their file (length must match)
+//   { mode:'none' }                     nothing picked (cinema opened from Together) → cinema works as before
+router.get('/:id/movie', async (req, res) => {
+  const coupleId = req.query.coupleId, role = ROLES.has(req.query.role) ? req.query.role : 'user1';
+  const r = await loadSession(req.params.id, coupleId);
+  if (r.error) return res.status(r.code).json({ error: r.error });
+  try {
+    const { data: w } = await supabase.from('watch_sessions').select('*').eq('couple_id', coupleId).maybeSingle();
+    if (!w) return res.json({ mode: 'none' });
+    const title = w[role + '_movie_title'] || w[other(role) + '_movie_title'] || r.session.movie || '';
+    const dur = Number(w[role + '_duration_sec'] || w[other(role) + '_duration_sec']) || 0;
+    if (w.shared_movie_id && _lib && _lib.signedPlaybackUrl) {
+      const u = await _lib.signedPlaybackUrl(coupleId, w.shared_movie_id).catch(() => null);
+      if (u && u.url) return res.json({ mode: 'cloud', title: title || u.title || '', dur: dur || u.durationSec || 0, url: u.url });
+    }
+    if (dur) return res.json({ mode: 'device', title, dur });
+    return res.json({ mode: 'none' });
+  } catch (e) { return res.status(500).json({ error: e.message }); }
 });
 
 // GET /api/cinema/:id?coupleId=...   → status (the host polls this to see accepted / declined)

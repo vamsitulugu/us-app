@@ -316,4 +316,12 @@ router.delete('/:coupleId/:movieId', requireCoupleMember, async (req, res) => {
   return res.json({ ok: true });
 });
 
+// Used by routes/cinema.js: a short-lived playback URL for a ready movie of this couple (null if missing).
+router.signedPlaybackUrl = async (coupleId, movieId) => {
+  const m = await getMovie(coupleId, movieId);
+  if (!m || m.status !== 'ready') return null;
+  const url = await getSignedUrl(s3(), new GetObjectCommand({ Bucket: R2_BUCKET, Key: m.object_key, ResponseContentType: m.mime_type }), { expiresIn: PLAYBACK_URL_TTL });
+  return { url, title: m.title || m.name || null, durationSec: Number(m.duration_sec) || 0 };
+};
+
 module.exports = router;

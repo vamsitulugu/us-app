@@ -86,6 +86,7 @@
 
   /* ── partner: invite card ── */
   function showInvite(inv) {
+    if (window.TwinCinema && window.TwinCinema.hold) return;      // movie page is auto-joining this one
     if (shown === inv.id || dismissed[inv.id]) return;
     shown = inv.id;
     var s = st(), name = esc(inv.hostName || s.partnerName || 'Your partner');
@@ -126,8 +127,43 @@
     document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });
   }
 
+  /* ── 3D movie from the Watch Together ready lobby (movie.html) ──
+     start3D: host side — open a session, invite the partner, enter the cinema lobby.
+     pending/joinNow: guest side — the partner is already on the same ready screen, so follow without a card. */
+  function banner(html) {
+    css(); close();
+    var d = document.createElement('div'); d.className = 'tcn-back'; d.id = 'tcn-ov'; d.dataset.lock = '1'; d.style.alignItems = 'center';
+    d.innerHTML = '<div class="tcn-card" style="border-radius:22px;margin:0 16px;text-align:center"><div class="tcn-ico" style="font-size:44px">🍿</div>' + html + '</div>';
+    document.body.appendChild(d); return d;
+  }
+  function start3D(o) {
+    if (!ready()) { say('Connect with your partner first 🎬'); return Promise.resolve(); }
+    var s = st();
+    banner('<h3>Opening the 3D theatre…</h3><p>Your partner will follow you in.</p>');
+    return call('POST', '/create', { coupleId: s.coupleId, role: s.role, slot: mySlot(), movie: (o && o.movie) || '' })
+      .then(function (r) {
+        return call('POST', '/' + r.session.id + '/invite', { coupleId: s.coupleId, role: s.role })
+          .then(function () { go(r.url + '&i=1'); });          // i=1: the cinema lobby opens with the invite already sent
+      })
+      .catch(function (e) { close(); say('Could not open the 3D theatre: ' + e.message); });
+  }
+  function pending() {
+    if (!ready()) return Promise.resolve(null);
+    var s = st();
+    return call('GET', '/pending/' + encodeURIComponent(s.coupleId) + '?role=' + encodeURIComponent(s.role)).then(function (r) { return r.invite || null; });
+  }
+  function joinNow(inv) {
+    var s = st(), name = esc(inv.hostName || s.partnerName || 'Your partner');
+    banner('<h3>' + name + ' chose 3D movie</h3><p>Taking you to the cinema lobby…</p>');
+    setTimeout(function () {
+      call('POST', '/' + inv.id + '/accept', { coupleId: s.coupleId, role: s.role })
+        .then(function (r) { dismissed[inv.id] = 1; go(r.url); })
+        .catch(function (e) { close(); dismissed[inv.id] = 1; say(e.status === 410 || e.status === 409 ? 'That 3D invite is no longer open — ask for a new one 🎬' : 'Could not join: ' + e.message); });
+    }, 1800);
+  }
+
   /* ── Together page entry (added without touching index.html's markup beyond one row) ── */
-  window.TwinCinema = { open: open, check: check };
+  window.TwinCinema = { open: open, check: check, start3D: start3D, pending: pending, joinNow: joinNow, hold: false };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 2500); });
   else setTimeout(start, 2500);
 })();

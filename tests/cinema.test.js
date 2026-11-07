@@ -3,7 +3,7 @@ const assert = require('assert');
 const path = require('path');
 
 /* ---- tiny in-memory Supabase fake (just what routes/cinema.js uses) ---- */
-const tables = { cinema_sessions: [], couples: [{ id: 'C1', user1_name: 'Asha', user2_name: 'Ravi', user1_avatar: null, user2_avatar: null }] };
+const tables = { cinema_sessions: [], watch_sessions: [], couples: [{ id: 'C1', user1_name: 'Asha', user2_name: 'Ravi', user1_avatar: null, user2_avatar: null }] };
 let idn = 0;
 function query(table) {
   let rows = tables[table], op = 'select', patch = null, filters = [], lim = null, single = false, maybe = false, ord = null;
@@ -40,6 +40,9 @@ const authPath = require.resolve('../routes/auth');
 const pushes = [];
 require.cache[authPath] = { id: authPath, filename: authPath, loaded: true, exports: Object.assign(() => {}, {
   sendPushToPartner: async (c, r, p) => pushes.push(['web', c, r, p.tag]), sendFCMToPartner: async (c, r, p) => pushes.push(['fcm', c, r, p.tag]) }) };
+
+const libPath = require.resolve('../routes/movie-library');
+require.cache[libPath] = { id: libPath, filename: libPath, loaded: true, exports: { signedPlaybackUrl: async (c, id) => id === 'M1' ? { url: 'https://r2.example/film.mp4?sig=1', title: 'Cloud Film', durationSec: 5400 } : null } };
 
 const express = require('express');
 const app = express(); app.use(express.json()); app.use('/api/cinema', require('../routes/cinema'));
@@ -97,6 +100,24 @@ const call = async (m, u, b) => { const r = await fetch(base + u, { method: m, h
     tables.cinema_sessions[0].invited_at = new Date(Date.now() - 11 * 60e3).toISOString();
     assert.equal((await call('GET', '/api/cinema/pending/C1?role=user2')).j.invite, null);
     assert.equal((await call('POST', `/api/cinema/${sid}/accept`, { coupleId: 'C1', role: 'user2' })).s, 410);
+  });
+  await t('movie lookup: nothing picked -> none', async () => {
+    assert.equal((await call('GET', `/api/cinema/${sid}/movie?coupleId=C1&role=user2`)).j.mode, 'none');
+  });
+  await t('movie lookup: each phone has its own copy -> device (title + length)', async () => {
+    tables.watch_sessions.push({ couple_id: 'C1', shared_movie_id: null, user1_movie_title: 'Titanic', user2_movie_title: 'Titanic', user1_duration_sec: 11640, user2_duration_sec: 11641 });
+    const j = (await call('GET', `/api/cinema/${sid}/movie?coupleId=C1&role=user2`)).j;
+    assert.deepEqual([j.mode, j.title, j.dur, j.url], ['device', 'Titanic', 11641, undefined]);
+  });
+  await t('movie lookup: shared cloud movie -> cloud with a signed url', async () => {
+    Object.assign(tables.watch_sessions[0], { shared_movie_id: 'M1' });
+    const j = (await call('GET', `/api/cinema/${sid}/movie?coupleId=C1&role=user1`)).j;
+    assert.equal(j.mode, 'cloud'); assert.ok(j.url.startsWith('https://r2.example/')); assert.equal(j.title, 'Titanic');
+  });
+  await t('movie lookup: a missing cloud movie falls back to device; other couples get nothing', async () => {
+    tables.watch_sessions[0].shared_movie_id = 'GONE';
+    assert.equal((await call('GET', `/api/cinema/${sid}/movie?coupleId=C1&role=user1`)).j.mode, 'device');
+    assert.equal((await call('GET', `/api/cinema/${sid}/movie?coupleId=OTHER&role=user1`)).s, 404);
   });
   await t('bad ids and solo accounts are rejected', async () => {
     assert.equal((await call('GET', '/api/cinema/not-a-uuid?coupleId=C1')).s, 400);
