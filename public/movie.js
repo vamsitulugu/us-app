@@ -690,6 +690,7 @@
   // Either partner can pick "3D movie". The picker opens the private 3D theatre (their avatar, partner already invited);
   // the other phone is on this same screen, notices the invite within ~2 s and follows automatically.
   const cinema = () => (window.parent && window.parent.TwinCinema) || window.TwinCinema || null;
+  window.TwinWatchFile = () => state.localFile || null;     // read by cinema-invite.js: the 3D theatre reuses the movie file picked on this page
   async function passGate(btn) {
     // same daily-free-movie / coin pass as the normal Start
     if (!window.AccessGate || (state.gateOk && Date.now() - state.gateOk < 600000)) return true;
@@ -708,7 +709,7 @@
     btn.disabled = true;
     const r = state.room || {};
     const title = r[`${ROLE}_movie_title`] || state.myTitle || '';
-    try { await T.start3D({ movie: title }); } finally { setTimeout(() => { btn.disabled = false; }, 4000); }
+    try { await T.start3D({ movie: title, file: state.localFile || null }); } finally { setTimeout(() => { btn.disabled = false; }, 4000); }
   };
   let watch3DTimer = null, watch3DBusy = false;
   function watch3D(on) {
@@ -719,7 +720,7 @@
       const T = cinema();
       if (watch3DBusy || document.hidden || !T || !T.pending) return;
       watch3DBusy = true;
-      try { const inv = await T.pending(); if (inv) { watch3D(false); T.joinNow(inv); } } catch (_) {}
+      try { const inv = await T.pending(); if (inv) { watch3D(false); T.joinNow(inv, { file: state.localFile || null }); } } catch (_) {}
       watch3DBusy = false;
     }, 2000);
   }
