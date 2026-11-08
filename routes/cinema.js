@@ -160,6 +160,27 @@ router.get('/:id/movie', async (req, res) => {
   } catch (e) { return res.status(500).json({ error: e.message }); }
 });
 
+// GET /api/cinema/:id/library?coupleId=...
+// The couple's Twin Hearts movie library (Movie → Library = movie_favorites) for the movie frames in the cinema lobby.
+// Same guard as the other cinema calls: the unguessable session id AND the couple id must match.
+//   { movies:[{ id, title, year, genre, posterUrl, backdropUrl, overview, rating, status }] }   newest first, max 60
+router.get('/:id/library', async (req, res) => {
+  const coupleId = req.query.coupleId;
+  const r = await loadSession(req.params.id, coupleId);
+  if (r.error) return res.status(r.code).json({ error: r.error });
+  try {
+    const { data, error } = await supabase.from('movie_favorites')
+      .select('id, title, year, genre, poster_url, backdrop_url, overview, rating, status, created_at')
+      .eq('couple_id', coupleId).order('created_at', { ascending: false }).limit(60);
+    if (error) throw error;
+    return res.json({ movies: (data || []).map(m => ({
+      id: m.id, title: m.title, year: m.year || '', genre: m.genre || '',
+      posterUrl: m.poster_url || '', backdropUrl: m.backdrop_url || '',
+      overview: m.overview || '', rating: m.rating, status: m.status
+    })) });
+  } catch (e) { return res.status(500).json({ error: 'Could not load the movie library' }); }
+});
+
 // GET /api/cinema/:id?coupleId=...   → status (the host polls this to see accepted / declined)
 router.get('/:id', async (req, res) => {
   const r = await loadSession(req.params.id, req.query.coupleId);

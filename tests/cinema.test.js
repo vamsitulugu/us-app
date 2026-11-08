@@ -3,7 +3,7 @@ const assert = require('assert');
 const path = require('path');
 
 /* ---- tiny in-memory Supabase fake (just what routes/cinema.js uses) ---- */
-const tables = { cinema_sessions: [], watch_sessions: [], couples: [{ id: 'C1', user1_name: 'Asha', user2_name: 'Ravi', user1_avatar: null, user2_avatar: null }] };
+const tables = { cinema_sessions: [], watch_sessions: [], movie_favorites: [], couples: [{ id: 'C1', user1_name: 'Asha', user2_name: 'Ravi', user1_avatar: null, user2_avatar: null }] };
 let idn = 0;
 function query(table) {
   let rows = tables[table], op = 'select', patch = null, filters = [], lim = null, single = false, maybe = false, ord = null;
@@ -118,6 +118,18 @@ const call = async (m, u, b) => { const r = await fetch(base + u, { method: m, h
     tables.watch_sessions[0].shared_movie_id = 'GONE';
     assert.equal((await call('GET', `/api/cinema/${sid}/movie?coupleId=C1&role=user1`)).j.mode, 'device');
     assert.equal((await call('GET', `/api/cinema/${sid}/movie?coupleId=OTHER&role=user1`)).s, 404);
+  });
+  await t('library: no movies -> empty list; own movies newest first with all details; other couples blocked', async () => {
+    assert.deepEqual((await call('GET', `/api/cinema/${sid}/library?coupleId=C1`)).j.movies, []);
+    tables.movie_favorites.push(
+      { id: 'F1', couple_id: 'C1', title: 'La La Land', year: '2016', genre: 'Romance', poster_url: 'https://image.tmdb.org/t/p/w500/a.jpg', backdrop_url: null, overview: 'Dreamers.', rating: 8.1, status: 'watchlist', created_at: '2026-01-01T00:00:00Z' },
+      { id: 'F2', couple_id: 'C1', title: 'Before Sunrise', year: null, genre: null, poster_url: null, backdrop_url: null, overview: null, rating: null, status: 'watched', created_at: '2026-02-01T00:00:00Z' },
+      { id: 'F3', couple_id: 'OTHER', title: 'Not yours', created_at: '2026-03-01T00:00:00Z' });
+    const r = await call('GET', `/api/cinema/${sid}/library?coupleId=C1`);
+    assert.equal(r.s, 200); assert.deepEqual(r.j.movies.map(m => m.title), ['Before Sunrise', 'La La Land']);
+    assert.deepEqual([r.j.movies[1].year, r.j.movies[1].genre, r.j.movies[1].posterUrl, r.j.movies[1].overview, r.j.movies[1].rating, r.j.movies[1].status], ['2016', 'Romance', 'https://image.tmdb.org/t/p/w500/a.jpg', 'Dreamers.', 8.1, 'watchlist']);
+    assert.equal((await call('GET', `/api/cinema/${sid}/library?coupleId=OTHER`)).s, 404);
+    assert.equal((await call('GET', '/api/cinema/not-a-uuid/library?coupleId=C1')).s, 400);
   });
   await t('bad ids and solo accounts are rejected', async () => {
     assert.equal((await call('GET', '/api/cinema/not-a-uuid?coupleId=C1')).s, 400);
