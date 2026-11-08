@@ -16,3 +16,11 @@ Notes
 
 ## Lobby movie frames
 The cinema lobby frames show the phone's own **Movie → Library** (browser storage `us_movies_v2`). `public/cinema-invite.js` adds it to the cinema link as `&lib=` (newest ≤40 movies, shrunk to ≤12 KB; uploaded `data:` posters are skipped → title card). The link hash never reaches a server and the cinema strips it after reading. An empty library shows "No movies yet". `GET /api/cinema/:id/library` (movie_favorites) is only the fallback when a link carries no `lib`.
+
+## Canteen = Twin Hearts Gold Coins
+The cinema canteen has no money: every order is paid with the buyer's **Gold Coins** (the Twin Rewards wallet).
+- `GET /api/cinema/:id/wallet?coupleId=&role=` → `{ balance }` (shown in the canteen header).
+- `POST /api/cinema/:id/canteen/order` `{ coupleId, role, clientId, for, lines:[{id,qty,sel}] }` — the server re-prices the order from `lib/canteen-menu.json`, then spends the coins with `reward_credit()` (kind `canteen_order`, idempotent per `clientId`). Not enough coins → `402 { code:'insufficient', balance, need }`.
+- Opened without the Twin Hearts hand-off (no wallet) the canteen shows the menu but ordering is disabled.
+- **Changing the menu / prices:** edit `src/menu.js` in twin-cinemas, then run `npm run export-menu` there (rewrites `lib/canteen-menu.json` here) and deploy both. The server only accepts items in that JSON.
+- No SQL migration needed (uses the existing `reward_wallets` / `coin_transactions`). Test: `npm run test:canteen`.

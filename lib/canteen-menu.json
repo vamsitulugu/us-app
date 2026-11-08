@@ -1,0 +1,2255 @@
+{
+ "v": 1,
+ "items": [
+  {
+   "id": "popcorn:Popcorn",
+   "name": "Popcorn",
+   "price": 10,
+   "groups": [
+    {
+     "name": "Flavour",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Salted",
+       "p": 0
+      },
+      {
+       "n": "Butter",
+       "p": 0
+      },
+      {
+       "n": "Caramel",
+       "p": 1
+      },
+      {
+       "n": "Cheese",
+       "p": 1
+      },
+      {
+       "n": "Peri-Peri",
+       "p": 1
+      },
+      {
+       "n": "Chocolate Drizzle",
+       "p": 2
+      }
+     ]
+    },
+    {
+     "name": "Size",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Small",
+       "p": 0
+      },
+      {
+       "n": "Medium",
+       "p": 5
+      },
+      {
+       "n": "Large",
+       "p": 10
+      },
+      {
+       "n": "Sharing Tub",
+       "p": 17
+      }
+     ]
+    },
+    {
+     "name": "Extras",
+     "multi": true,
+     "req": false,
+     "opts": [
+      {
+       "n": "Extra butter",
+       "p": 2
+      },
+      {
+       "n": "Extra cheese",
+       "p": 3
+      },
+      {
+       "n": "Caramel drizzle",
+       "p": 3
+      },
+      {
+       "n": "Mix two flavours",
+       "p": 3
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "popcorn:Love Bucket (heart, reusable)",
+   "name": "Love Bucket (heart, reusable)",
+   "price": 30,
+   "groups": [
+    {
+     "name": "Flavour",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Salted",
+       "p": 0
+      },
+      {
+       "n": "Butter",
+       "p": 0
+      },
+      {
+       "n": "Caramel",
+       "p": 1
+      },
+      {
+       "n": "Cheese",
+       "p": 1
+      },
+      {
+       "n": "Peri-Peri",
+       "p": 1
+      },
+      {
+       "n": "Chocolate Drizzle",
+       "p": 2
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "popcorn:Cheese Popcorn Boat",
+   "name": "Cheese Popcorn Boat",
+   "price": 17,
+   "groups": [
+    {
+     "name": "Spice",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Mild",
+       "p": 0
+      },
+      {
+       "n": "Medium",
+       "p": 0
+      },
+      {
+       "n": "Hot",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Size",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Regular",
+       "p": 0
+      },
+      {
+       "n": "Large",
+       "p": 6
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "combo:Couple Combo",
+   "name": "Couple Combo",
+   "price": 40,
+   "groups": [
+    {
+     "name": "Flavour",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Salted",
+       "p": 0
+      },
+      {
+       "n": "Butter",
+       "p": 0
+      },
+      {
+       "n": "Caramel",
+       "p": 1
+      },
+      {
+       "n": "Cheese",
+       "p": 1
+      },
+      {
+       "n": "Peri-Peri",
+       "p": 1
+      },
+      {
+       "n": "Chocolate Drizzle",
+       "p": 2
+      }
+     ]
+    },
+    {
+     "name": "Drink 1",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Cola",
+       "p": 0
+      },
+      {
+       "n": "Lime Soda",
+       "p": 0
+      },
+      {
+       "n": "Orange Fizz",
+       "p": 0
+      },
+      {
+       "n": "Iced Tea",
+       "p": 0
+      },
+      {
+       "n": "Cold Coffee",
+       "p": 0
+      },
+      {
+       "n": "Mango Shake",
+       "p": 0
+      },
+      {
+       "n": "Chocolate Shake",
+       "p": 0
+      },
+      {
+       "n": "Strawberry Shake",
+       "p": 0
+      },
+      {
+       "n": "Fresh Lime Juice",
+       "p": 0
+      },
+      {
+       "n": "Mineral Water",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Drink 2",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Cola",
+       "p": 0
+      },
+      {
+       "n": "Lime Soda",
+       "p": 0
+      },
+      {
+       "n": "Orange Fizz",
+       "p": 0
+      },
+      {
+       "n": "Iced Tea",
+       "p": 0
+      },
+      {
+       "n": "Cold Coffee",
+       "p": 0
+      },
+      {
+       "n": "Mango Shake",
+       "p": 0
+      },
+      {
+       "n": "Chocolate Shake",
+       "p": 0
+      },
+      {
+       "n": "Strawberry Shake",
+       "p": 0
+      },
+      {
+       "n": "Fresh Lime Juice",
+       "p": 0
+      },
+      {
+       "n": "Mineral Water",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Ice",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Regular ice",
+       "p": 0
+      },
+      {
+       "n": "Less ice",
+       "p": 0
+      },
+      {
+       "n": "No ice",
+       "p": 0
+      },
+      {
+       "n": "Extra ice",
+       "p": 0
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "combo:Date Night Combo",
+   "name": "Date Night Combo",
+   "price": 60,
+   "groups": [
+    {
+     "name": "Flavour",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Salted",
+       "p": 0
+      },
+      {
+       "n": "Butter",
+       "p": 0
+      },
+      {
+       "n": "Caramel",
+       "p": 1
+      },
+      {
+       "n": "Cheese",
+       "p": 1
+      },
+      {
+       "n": "Peri-Peri",
+       "p": 1
+      },
+      {
+       "n": "Chocolate Drizzle",
+       "p": 2
+      }
+     ]
+    },
+    {
+     "name": "Drink 1",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Cola",
+       "p": 0
+      },
+      {
+       "n": "Lime Soda",
+       "p": 0
+      },
+      {
+       "n": "Orange Fizz",
+       "p": 0
+      },
+      {
+       "n": "Iced Tea",
+       "p": 0
+      },
+      {
+       "n": "Cold Coffee",
+       "p": 0
+      },
+      {
+       "n": "Mango Shake",
+       "p": 0
+      },
+      {
+       "n": "Chocolate Shake",
+       "p": 0
+      },
+      {
+       "n": "Strawberry Shake",
+       "p": 0
+      },
+      {
+       "n": "Fresh Lime Juice",
+       "p": 0
+      },
+      {
+       "n": "Mineral Water",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Drink 2",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Cola",
+       "p": 0
+      },
+      {
+       "n": "Lime Soda",
+       "p": 0
+      },
+      {
+       "n": "Orange Fizz",
+       "p": 0
+      },
+      {
+       "n": "Iced Tea",
+       "p": 0
+      },
+      {
+       "n": "Cold Coffee",
+       "p": 0
+      },
+      {
+       "n": "Mango Shake",
+       "p": 0
+      },
+      {
+       "n": "Chocolate Shake",
+       "p": 0
+      },
+      {
+       "n": "Strawberry Shake",
+       "p": 0
+      },
+      {
+       "n": "Fresh Lime Juice",
+       "p": 0
+      },
+      {
+       "n": "Mineral Water",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Nacho dip",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Cheese",
+       "p": 0
+      },
+      {
+       "n": "Salsa",
+       "p": 0
+      },
+      {
+       "n": "Jalapeno",
+       "p": 0
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "combo:Sweetheart Combo",
+   "name": "Sweetheart Combo",
+   "price": 45,
+   "groups": [
+    {
+     "name": "Sundae flavour",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Vanilla",
+       "p": 0
+      },
+      {
+       "n": "Chocolate",
+       "p": 0
+      },
+      {
+       "n": "Strawberry",
+       "p": 0
+      },
+      {
+       "n": "Butterscotch",
+       "p": 0
+      },
+      {
+       "n": "Mango",
+       "p": 0
+      },
+      {
+       "n": "Choco Chip",
+       "p": 0
+      },
+      {
+       "n": "Pistachio",
+       "p": 0
+      },
+      {
+       "n": "Black Currant",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Flavour",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Salted",
+       "p": 0
+      },
+      {
+       "n": "Butter",
+       "p": 0
+      },
+      {
+       "n": "Caramel",
+       "p": 1
+      },
+      {
+       "n": "Cheese",
+       "p": 1
+      },
+      {
+       "n": "Peri-Peri",
+       "p": 1
+      },
+      {
+       "n": "Chocolate Drizzle",
+       "p": 2
+      }
+     ]
+    },
+    {
+     "name": "Drink 1",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Cola",
+       "p": 0
+      },
+      {
+       "n": "Lime Soda",
+       "p": 0
+      },
+      {
+       "n": "Orange Fizz",
+       "p": 0
+      },
+      {
+       "n": "Iced Tea",
+       "p": 0
+      },
+      {
+       "n": "Cold Coffee",
+       "p": 0
+      },
+      {
+       "n": "Mango Shake",
+       "p": 0
+      },
+      {
+       "n": "Chocolate Shake",
+       "p": 0
+      },
+      {
+       "n": "Strawberry Shake",
+       "p": 0
+      },
+      {
+       "n": "Fresh Lime Juice",
+       "p": 0
+      },
+      {
+       "n": "Mineral Water",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Drink 2",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Cola",
+       "p": 0
+      },
+      {
+       "n": "Lime Soda",
+       "p": 0
+      },
+      {
+       "n": "Orange Fizz",
+       "p": 0
+      },
+      {
+       "n": "Iced Tea",
+       "p": 0
+      },
+      {
+       "n": "Cold Coffee",
+       "p": 0
+      },
+      {
+       "n": "Mango Shake",
+       "p": 0
+      },
+      {
+       "n": "Chocolate Shake",
+       "p": 0
+      },
+      {
+       "n": "Strawberry Shake",
+       "p": 0
+      },
+      {
+       "n": "Fresh Lime Juice",
+       "p": 0
+      },
+      {
+       "n": "Mineral Water",
+       "p": 0
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "combo:Snack Feast Combo",
+   "name": "Snack Feast Combo",
+   "price": 65,
+   "groups": [
+    {
+     "name": "Burger",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Veg",
+       "p": 0
+      },
+      {
+       "n": "Paneer",
+       "p": 0
+      },
+      {
+       "n": "Chicken",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Fries",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Salted",
+       "p": 0
+      },
+      {
+       "n": "Peri-Peri",
+       "p": 0
+      },
+      {
+       "n": "Cheesy",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Drink 1",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Cola",
+       "p": 0
+      },
+      {
+       "n": "Lime Soda",
+       "p": 0
+      },
+      {
+       "n": "Orange Fizz",
+       "p": 0
+      },
+      {
+       "n": "Iced Tea",
+       "p": 0
+      },
+      {
+       "n": "Cold Coffee",
+       "p": 0
+      },
+      {
+       "n": "Mango Shake",
+       "p": 0
+      },
+      {
+       "n": "Chocolate Shake",
+       "p": 0
+      },
+      {
+       "n": "Strawberry Shake",
+       "p": 0
+      },
+      {
+       "n": "Fresh Lime Juice",
+       "p": 0
+      },
+      {
+       "n": "Mineral Water",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Drink 2",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Cola",
+       "p": 0
+      },
+      {
+       "n": "Lime Soda",
+       "p": 0
+      },
+      {
+       "n": "Orange Fizz",
+       "p": 0
+      },
+      {
+       "n": "Iced Tea",
+       "p": 0
+      },
+      {
+       "n": "Cold Coffee",
+       "p": 0
+      },
+      {
+       "n": "Mango Shake",
+       "p": 0
+      },
+      {
+       "n": "Chocolate Shake",
+       "p": 0
+      },
+      {
+       "n": "Strawberry Shake",
+       "p": 0
+      },
+      {
+       "n": "Fresh Lime Juice",
+       "p": 0
+      },
+      {
+       "n": "Mineral Water",
+       "p": 0
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "drinks:Cola",
+   "name": "Cola",
+   "price": 6,
+   "groups": [
+    {
+     "name": "Size",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Small",
+       "p": 0
+      },
+      {
+       "n": "Medium",
+       "p": 2
+      },
+      {
+       "n": "Large",
+       "p": 4
+      }
+     ]
+    },
+    {
+     "name": "Ice",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Regular ice",
+       "p": 0
+      },
+      {
+       "n": "Less ice",
+       "p": 0
+      },
+      {
+       "n": "No ice",
+       "p": 0
+      },
+      {
+       "n": "Extra ice",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Extras",
+     "multi": true,
+     "req": false,
+     "opts": [
+      {
+       "n": "Lemon wedge",
+       "p": 1
+      },
+      {
+       "n": "Mint",
+       "p": 1
+      },
+      {
+       "n": "Ice cream scoop (float)",
+       "p": 4
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "drinks:Cold Coffee",
+   "name": "Cold Coffee",
+   "price": 12,
+   "groups": [
+    {
+     "name": "Size",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Small",
+       "p": 0
+      },
+      {
+       "n": "Medium",
+       "p": 3
+      },
+      {
+       "n": "Large",
+       "p": 6
+      }
+     ]
+    },
+    {
+     "name": "Sugar",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Normal",
+       "p": 0
+      },
+      {
+       "n": "Less sugar",
+       "p": 0
+      },
+      {
+       "n": "No sugar",
+       "p": 0
+      },
+      {
+       "n": "Extra sweet",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Extras",
+     "multi": true,
+     "req": false,
+     "opts": [
+      {
+       "n": "Whipped cream",
+       "p": 2
+      },
+      {
+       "n": "Ice cream scoop",
+       "p": 4
+      },
+      {
+       "n": "Choco syrup",
+       "p": 2
+      },
+      {
+       "n": "Extra shot",
+       "p": 3
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "drinks:Mango Shake",
+   "name": "Mango Shake",
+   "price": 12,
+   "groups": [
+    {
+     "name": "Size",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Small",
+       "p": 0
+      },
+      {
+       "n": "Medium",
+       "p": 3
+      },
+      {
+       "n": "Large",
+       "p": 6
+      }
+     ]
+    },
+    {
+     "name": "Sugar",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Normal",
+       "p": 0
+      },
+      {
+       "n": "Less sugar",
+       "p": 0
+      },
+      {
+       "n": "No sugar",
+       "p": 0
+      },
+      {
+       "n": "Extra sweet",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Extras",
+     "multi": true,
+     "req": false,
+     "opts": [
+      {
+       "n": "Whipped cream",
+       "p": 2
+      },
+      {
+       "n": "Ice cream scoop",
+       "p": 4
+      },
+      {
+       "n": "Choco syrup",
+       "p": 2
+      },
+      {
+       "n": "Extra shot",
+       "p": 3
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "drinks:Chocolate Shake",
+   "name": "Chocolate Shake",
+   "price": 12,
+   "groups": [
+    {
+     "name": "Size",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Small",
+       "p": 0
+      },
+      {
+       "n": "Medium",
+       "p": 3
+      },
+      {
+       "n": "Large",
+       "p": 6
+      }
+     ]
+    },
+    {
+     "name": "Sugar",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Normal",
+       "p": 0
+      },
+      {
+       "n": "Less sugar",
+       "p": 0
+      },
+      {
+       "n": "No sugar",
+       "p": 0
+      },
+      {
+       "n": "Extra sweet",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Extras",
+     "multi": true,
+     "req": false,
+     "opts": [
+      {
+       "n": "Whipped cream",
+       "p": 2
+      },
+      {
+       "n": "Ice cream scoop",
+       "p": 4
+      },
+      {
+       "n": "Choco syrup",
+       "p": 2
+      },
+      {
+       "n": "Extra shot",
+       "p": 3
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "drinks:Strawberry Shake",
+   "name": "Strawberry Shake",
+   "price": 12,
+   "groups": [
+    {
+     "name": "Size",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Small",
+       "p": 0
+      },
+      {
+       "n": "Medium",
+       "p": 3
+      },
+      {
+       "n": "Large",
+       "p": 6
+      }
+     ]
+    },
+    {
+     "name": "Sugar",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Normal",
+       "p": 0
+      },
+      {
+       "n": "Less sugar",
+       "p": 0
+      },
+      {
+       "n": "No sugar",
+       "p": 0
+      },
+      {
+       "n": "Extra sweet",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Extras",
+     "multi": true,
+     "req": false,
+     "opts": [
+      {
+       "n": "Whipped cream",
+       "p": 2
+      },
+      {
+       "n": "Ice cream scoop",
+       "p": 4
+      },
+      {
+       "n": "Choco syrup",
+       "p": 2
+      },
+      {
+       "n": "Extra shot",
+       "p": 3
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "drinks:Fresh Lime Juice",
+   "name": "Fresh Lime Juice",
+   "price": 7,
+   "groups": [
+    {
+     "name": "Style",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Sweet",
+       "p": 0
+      },
+      {
+       "n": "Salted",
+       "p": 0
+      },
+      {
+       "n": "Sweet & salted",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Ice",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Regular ice",
+       "p": 0
+      },
+      {
+       "n": "Less ice",
+       "p": 0
+      },
+      {
+       "n": "No ice",
+       "p": 0
+      },
+      {
+       "n": "Extra ice",
+       "p": 0
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "hot:Cappuccino",
+   "name": "Cappuccino",
+   "price": 9,
+   "groups": [
+    {
+     "name": "Size",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Regular",
+       "p": 0
+      },
+      {
+       "n": "Large",
+       "p": 3
+      }
+     ]
+    },
+    {
+     "name": "Sugar",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Normal",
+       "p": 0
+      },
+      {
+       "n": "Less sugar",
+       "p": 0
+      },
+      {
+       "n": "No sugar",
+       "p": 0
+      },
+      {
+       "n": "Extra sweet",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Milk",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Regular",
+       "p": 0
+      },
+      {
+       "n": "Skimmed",
+       "p": 0
+      },
+      {
+       "n": "Soy",
+       "p": 2
+      },
+      {
+       "n": "Oat",
+       "p": 3
+      }
+     ]
+    },
+    {
+     "name": "Extras",
+     "multi": true,
+     "req": false,
+     "opts": [
+      {
+       "n": "Extra shot",
+       "p": 3
+      },
+      {
+       "n": "Whipped cream",
+       "p": 2
+      },
+      {
+       "n": "Cinnamon",
+       "p": 0
+      },
+      {
+       "n": "Chocolate sprinkle",
+       "p": 1
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "hot:Hot Chocolate",
+   "name": "Hot Chocolate",
+   "price": 9,
+   "groups": [
+    {
+     "name": "Size",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Regular",
+       "p": 0
+      },
+      {
+       "n": "Large",
+       "p": 3
+      }
+     ]
+    },
+    {
+     "name": "Sugar",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Normal",
+       "p": 0
+      },
+      {
+       "n": "Less sugar",
+       "p": 0
+      },
+      {
+       "n": "No sugar",
+       "p": 0
+      },
+      {
+       "n": "Extra sweet",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Milk",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Regular",
+       "p": 0
+      },
+      {
+       "n": "Skimmed",
+       "p": 0
+      },
+      {
+       "n": "Soy",
+       "p": 2
+      },
+      {
+       "n": "Oat",
+       "p": 3
+      }
+     ]
+    },
+    {
+     "name": "Extras",
+     "multi": true,
+     "req": false,
+     "opts": [
+      {
+       "n": "Extra shot",
+       "p": 3
+      },
+      {
+       "n": "Whipped cream",
+       "p": 2
+      },
+      {
+       "n": "Cinnamon",
+       "p": 0
+      },
+      {
+       "n": "Chocolate sprinkle",
+       "p": 1
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "hot:Masala Chai",
+   "name": "Masala Chai",
+   "price": 5,
+   "groups": [
+    {
+     "name": "Size",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Regular",
+       "p": 0
+      },
+      {
+       "n": "Large",
+       "p": 2
+      }
+     ]
+    },
+    {
+     "name": "Sugar",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Normal",
+       "p": 0
+      },
+      {
+       "n": "Less sugar",
+       "p": 0
+      },
+      {
+       "n": "No sugar",
+       "p": 0
+      },
+      {
+       "n": "Extra sweet",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Extras",
+     "multi": true,
+     "req": false,
+     "opts": [
+      {
+       "n": "Extra ginger",
+       "p": 0
+      },
+      {
+       "n": "Cardamom",
+       "p": 1
+      },
+      {
+       "n": "Lemon",
+       "p": 1
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ice:Ice Cream",
+   "name": "Ice Cream",
+   "price": 9,
+   "groups": [
+    {
+     "name": "Flavour",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Vanilla",
+       "p": 0
+      },
+      {
+       "n": "Chocolate",
+       "p": 0
+      },
+      {
+       "n": "Strawberry",
+       "p": 0
+      },
+      {
+       "n": "Butterscotch",
+       "p": 0
+      },
+      {
+       "n": "Mango",
+       "p": 0
+      },
+      {
+       "n": "Choco Chip",
+       "p": 0
+      },
+      {
+       "n": "Pistachio",
+       "p": 0
+      },
+      {
+       "n": "Black Currant",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Serve",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Cup",
+       "p": 0
+      },
+      {
+       "n": "Cone",
+       "p": 1
+      },
+      {
+       "n": "Waffle cone",
+       "p": 3
+      }
+     ]
+    },
+    {
+     "name": "Scoops",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "1 scoop",
+       "p": 0
+      },
+      {
+       "n": "2 scoops",
+       "p": 4
+      },
+      {
+       "n": "3 scoops",
+       "p": 8
+      }
+     ]
+    },
+    {
+     "name": "Toppings",
+     "multi": true,
+     "req": false,
+     "opts": [
+      {
+       "n": "Choco syrup",
+       "p": 2
+      },
+      {
+       "n": "Sprinkles",
+       "p": 1
+      },
+      {
+       "n": "Nuts",
+       "p": 2
+      },
+      {
+       "n": "Caramel",
+       "p": 2
+      },
+      {
+       "n": "Cherry",
+       "p": 1
+      },
+      {
+       "n": "Brownie bits",
+       "p": 3
+      },
+      {
+       "n": "Whipped cream",
+       "p": 2
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ice:Couple Heart Sundae (for two)",
+   "name": "Couple Heart Sundae (for two)",
+   "price": 35,
+   "groups": [
+    {
+     "name": "Flavour",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Vanilla",
+       "p": 0
+      },
+      {
+       "n": "Chocolate",
+       "p": 0
+      },
+      {
+       "n": "Strawberry",
+       "p": 0
+      },
+      {
+       "n": "Butterscotch",
+       "p": 0
+      },
+      {
+       "n": "Mango",
+       "p": 0
+      },
+      {
+       "n": "Choco Chip",
+       "p": 0
+      },
+      {
+       "n": "Pistachio",
+       "p": 0
+      },
+      {
+       "n": "Black Currant",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Sauce",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Chocolate",
+       "p": 0
+      },
+      {
+       "n": "Strawberry",
+       "p": 0
+      },
+      {
+       "n": "Caramel",
+       "p": 0
+      },
+      {
+       "n": "Butterscotch",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Extras",
+     "multi": true,
+     "req": false,
+     "opts": [
+      {
+       "n": "Brownie bits",
+       "p": 3
+      },
+      {
+       "n": "Nuts",
+       "p": 2
+      },
+      {
+       "n": "Cherry on top",
+       "p": 1
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ice:Brownie Sundae",
+   "name": "Brownie Sundae",
+   "price": 19,
+   "groups": [
+    {
+     "name": "Flavour",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Vanilla",
+       "p": 0
+      },
+      {
+       "n": "Chocolate",
+       "p": 0
+      },
+      {
+       "n": "Strawberry",
+       "p": 0
+      },
+      {
+       "n": "Butterscotch",
+       "p": 0
+      },
+      {
+       "n": "Mango",
+       "p": 0
+      },
+      {
+       "n": "Choco Chip",
+       "p": 0
+      },
+      {
+       "n": "Pistachio",
+       "p": 0
+      },
+      {
+       "n": "Black Currant",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Extras",
+     "multi": true,
+     "req": false,
+     "opts": [
+      {
+       "n": "Extra scoop",
+       "p": 4
+      },
+      {
+       "n": "Nuts",
+       "p": 2
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ice:Kulfi",
+   "name": "Kulfi",
+   "price": 8,
+   "groups": [
+    {
+     "name": "Flavour",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Malai",
+       "p": 0
+      },
+      {
+       "n": "Pista",
+       "p": 0
+      },
+      {
+       "n": "Mango",
+       "p": 0
+      },
+      {
+       "n": "Rabri",
+       "p": 0
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "snacks:Nachos",
+   "name": "Nachos",
+   "price": 13,
+   "groups": [
+    {
+     "name": "Dip",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Cheese",
+       "p": 0
+      },
+      {
+       "n": "Salsa",
+       "p": 0
+      },
+      {
+       "n": "Jalapeno cheese",
+       "p": 2
+      }
+     ]
+    },
+    {
+     "name": "Size",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Regular",
+       "p": 0
+      },
+      {
+       "n": "Large",
+       "p": 6
+      }
+     ]
+    },
+    {
+     "name": "Extras",
+     "multi": true,
+     "req": false,
+     "opts": [
+      {
+       "n": "Extra cheese",
+       "p": 3
+      },
+      {
+       "n": "Jalapeno",
+       "p": 1
+      },
+      {
+       "n": "Beans",
+       "p": 2
+      },
+      {
+       "n": "Onion & corn",
+       "p": 2
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "snacks:French Fries",
+   "name": "French Fries",
+   "price": 10,
+   "groups": [
+    {
+     "name": "Seasoning",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Salted",
+       "p": 0
+      },
+      {
+       "n": "Peri-Peri",
+       "p": 0
+      },
+      {
+       "n": "Cheesy",
+       "p": 0
+      },
+      {
+       "n": "Masala",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Size",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Regular",
+       "p": 0
+      },
+      {
+       "n": "Large",
+       "p": 5
+      }
+     ]
+    },
+    {
+     "name": "Dips",
+     "multi": true,
+     "req": false,
+     "opts": [
+      {
+       "n": "Ketchup",
+       "p": 0
+      },
+      {
+       "n": "Mayo",
+       "p": 0
+      },
+      {
+       "n": "Cheese dip",
+       "p": 2
+      },
+      {
+       "n": "Garlic dip",
+       "p": 1
+      },
+      {
+       "n": "Salsa",
+       "p": 1
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "snacks:Samosa (2 pcs)",
+   "name": "Samosa (2 pcs)",
+   "price": 5,
+   "groups": [
+    {
+     "name": "Chutney",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Green",
+       "p": 0
+      },
+      {
+       "n": "Tamarind",
+       "p": 0
+      },
+      {
+       "n": "Both",
+       "p": 0
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "snacks:Burger",
+   "name": "Burger",
+   "price": 15,
+   "groups": [
+    {
+     "name": "Patty",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Veg",
+       "p": 0
+      },
+      {
+       "n": "Paneer",
+       "p": 2
+      },
+      {
+       "n": "Chicken",
+       "p": 3
+      }
+     ]
+    },
+    {
+     "name": "Extras",
+     "multi": true,
+     "req": false,
+     "opts": [
+      {
+       "n": "Cheese slice",
+       "p": 2
+      },
+      {
+       "n": "Extra patty",
+       "p": 5
+      },
+      {
+       "n": "Jalapeno",
+       "p": 1
+      },
+      {
+       "n": "Fried egg",
+       "p": 2
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "snacks:Pizza Slice",
+   "name": "Pizza Slice",
+   "price": 13,
+   "groups": [
+    {
+     "name": "Topping",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Margherita",
+       "p": 0
+      },
+      {
+       "n": "Farmhouse",
+       "p": 2
+      },
+      {
+       "n": "Paneer Tikka",
+       "p": 3
+      },
+      {
+       "n": "Pepperoni",
+       "p": 4
+      }
+     ]
+    },
+    {
+     "name": "Extras",
+     "multi": true,
+     "req": false,
+     "opts": [
+      {
+       "n": "Extra cheese",
+       "p": 3
+      },
+      {
+       "n": "Oregano & chilli flakes",
+       "p": 0
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "snacks:Grilled Sandwich",
+   "name": "Grilled Sandwich",
+   "price": 11,
+   "groups": [
+    {
+     "name": "Filling",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Veg",
+       "p": 0
+      },
+      {
+       "n": "Cheese corn",
+       "p": 2
+      },
+      {
+       "n": "Chicken",
+       "p": 4
+      }
+     ]
+    },
+    {
+     "name": "Dips",
+     "multi": true,
+     "req": false,
+     "opts": [
+      {
+       "n": "Ketchup",
+       "p": 0
+      },
+      {
+       "n": "Mayo",
+       "p": 0
+      },
+      {
+       "n": "Cheese dip",
+       "p": 2
+      },
+      {
+       "n": "Garlic dip",
+       "p": 1
+      },
+      {
+       "n": "Salsa",
+       "p": 1
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "sweet:Brownie",
+   "name": "Brownie",
+   "price": 8,
+   "groups": [
+    {
+     "name": "Serve",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Plain",
+       "p": 0
+      },
+      {
+       "n": "Warm + hot fudge",
+       "p": 2
+      },
+      {
+       "n": "With ice cream",
+       "p": 5
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "sweet:Choco Lava Cake",
+   "name": "Choco Lava Cake",
+   "price": 10,
+   "groups": [
+    {
+     "name": "Serve",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Plain",
+       "p": 0
+      },
+      {
+       "n": "With ice cream",
+       "p": 5
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "sweet:Donut",
+   "name": "Donut",
+   "price": 6,
+   "groups": [
+    {
+     "name": "Flavour",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Glazed",
+       "p": 0
+      },
+      {
+       "n": "Chocolate",
+       "p": 0
+      },
+      {
+       "n": "Strawberry",
+       "p": 0
+      },
+      {
+       "n": "Cinnamon",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Pieces",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "1",
+       "p": 0
+      },
+      {
+       "n": "2",
+       "p": 5
+      },
+      {
+       "n": "4",
+       "p": 14
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "sweet:Churros",
+   "name": "Churros",
+   "price": 10,
+   "groups": [
+    {
+     "name": "Dip",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Chocolate",
+       "p": 0
+      },
+      {
+       "n": "Caramel",
+       "p": 0
+      },
+      {
+       "n": "Strawberry",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Pieces",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "4 pcs",
+       "p": 0
+      },
+      {
+       "n": "8 pcs",
+       "p": 7
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "sweet:Waffle",
+   "name": "Waffle",
+   "price": 13,
+   "groups": [
+    {
+     "name": "Topping",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Chocolate",
+       "p": 0
+      },
+      {
+       "n": "Honey & butter",
+       "p": 0
+      },
+      {
+       "n": "Strawberry",
+       "p": 0
+      },
+      {
+       "n": "Maple",
+       "p": 0
+      }
+     ]
+    },
+    {
+     "name": "Extras",
+     "multi": true,
+     "req": false,
+     "opts": [
+      {
+       "n": "Ice cream scoop",
+       "p": 4
+      },
+      {
+       "n": "Whipped cream",
+       "p": 2
+      },
+      {
+       "n": "Nuts",
+       "p": 2
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "sweet:Cookies (3 pcs)",
+   "name": "Cookies (3 pcs)",
+   "price": 7,
+   "groups": [
+    {
+     "name": "Type",
+     "multi": false,
+     "req": true,
+     "opts": [
+      {
+       "n": "Choco chip",
+       "p": 0
+      },
+      {
+       "n": "Oatmeal raisin",
+       "p": 0
+      },
+      {
+       "n": "Double chocolate",
+       "p": 0
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

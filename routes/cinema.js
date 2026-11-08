@@ -181,6 +181,64 @@ router.get('/:id/library', async (req, res) => {
   } catch (e) { return res.status(500).json({ error: 'Could not load the movie library' }); }
 });
 
+// ── Gold Coins at the cinema canteen ───────────────────────────────────────────────────────────────
+// Same guard as the other cinema calls (unguessable session id + couple id). The person is the couple's user with that role.
+// The server re-prices the order itself (lib/canteen-price.js) and spends the coins through reward_credit(), so a double tap
+// (same clientId) never pays twice and nobody can spend more than the wallet holds.
+//   GET  /api/cinema/:id/wallet?coupleId=&role=                      → { balance }
+//   POST /api/cinema/:id/canteen/order { coupleId, role, clientId, for, lines:[{id,qty,sel}] } → { ok, total, balance } | 402 { code:'insufficient', balance, need }
+const { priceOrder } = require('../lib/canteen-price');
+async function walletUser(coupleId, role) {
+  if (!ROLES.has(role)) return null;
+  const { data } = await supabase.from('users').select('id, account_status').eq('couple_id', coupleId).eq('role', role).maybeSingle();
+  if (!data || data.account_status === 'suspended' || data.account_status === 'disabled') return null;
+  return data;
+}
+async function balanceOf(userId) {
+  const { data } = await supabase.from('reward_wallets').select('balance').eq('user_id', userId).maybeSingle();
+  return (data && data.balance) || 0;
+}
+router.get('/:id/wallet', async (req, res) => {
+  const coupleId = String(req.query.coupleId || '');
+  const r = await loadSession(req.params.id, coupleId);
+  if (r.error) return res.status(r.code).json({ error: r.error });
+  try {
+    const u = await walletUser(coupleId, req.query.role);
+    if (!u) return res.status(403).json({ error: 'Please sign in again.' });
+    return res.json({ balance: await balanceOf(u.id) });
+  } catch (e) { return res.status(500).json({ error: 'Could not load your Gold Coins' }); }
+});
+router.post('/:id/canteen/order', async (req, res) => {
+  const b = req.body || {}, coupleId = String(b.coupleId || '');
+  const r = await loadSession(req.params.id, coupleId);
+  if (r.error) return res.status(r.code).json({ error: r.error });
+  if (r.session.status === 'expired') return res.status(410).json({ error: 'This cinema session has ended.' });
+  const clientId = typeof b.clientId === 'string' ? b.clientId.trim() : '';
+  if (!/^[A-Za-z0-9_.:-]{6,80}$/.test(clientId)) return res.status(400).json({ error: 'Missing or invalid data' });
+  const priced = priceOrder(b.lines);
+  if (!priced.ok) return res.status(400).json({ error: priced.error });
+  try {
+    const u = await walletUser(coupleId, b.role);
+    if (!u) return res.status(403).json({ error: 'Please sign in again.' });
+    const idem = 'canteen:' + clientId;
+    const { data, error } = await supabase.rpc('reward_credit', {
+      p_user: u.id, p_couple: coupleId, p_amount: -priced.total, p_kind: 'canteen_order', p_idem: idem,
+      p_meta: { session: req.params.id, for: ['me', 'partner', 'both'].includes(b.for) ? b.for : 'me', lines: priced.lines.map(l => ({ name: l.name, qty: l.qty, unit: l.unit })) }
+    });
+    if (error) throw error;
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!(row && row.applied)) {
+      const { data: prior } = await supabase.from('coin_transactions').select('id').eq('user_id', u.id).eq('idem_key', idem).maybeSingle();
+      if (!prior) return res.status(402).json({ error: 'Not enough Gold Coins for this order.', code: 'insufficient', balance: row ? row.balance : await balanceOf(u.id), need: priced.total });
+      return res.json({ ok: true, duplicate: true, total: priced.total, balance: await balanceOf(u.id) });
+    }
+    return res.json({ ok: true, total: priced.total, balance: await balanceOf(u.id) });
+  } catch (e) {
+    console.error('[cinema] canteen order failed:', e.message);
+    return res.status(500).json({ error: 'Payment failed. Your coins were not charged. Please try again.' });
+  }
+});
+
 // GET /api/cinema/:id?coupleId=...   → status (the host polls this to see accepted / declined)
 router.get('/:id', async (req, res) => {
   const r = await loadSession(req.params.id, req.query.coupleId);
