@@ -701,7 +701,9 @@
     if (ok) state.gateOk = Date.now();
     return ok;
   }
-  $('btnStart3D').onclick = async () => {
+  // The 3D button is not in movie.html yet. A missing element used to throw here and stop the whole script,
+  // so Start / Cancel / Accept / polling never got attached. Bind it only when it exists.
+  if ($('btnStart3D')) $('btnStart3D').onclick = async () => {
     const T = cinema();
     if (!T || !T.start3D) { toast('3D theatre is not available right now.'); return; }
     const btn = $('btnStart3D');
