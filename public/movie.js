@@ -726,20 +726,31 @@
   }
 
   $('btnStart').onclick = async () => {
-    // Free movie each day, then ONE small coin pass. A start in the last 10 minutes (e.g. after a cancel) is the same movie.
-    if (window.AccessGate && !(state.gateOk && Date.now() - state.gateOk < 600000)) {
-      const btn = $('btnStart'); btn.disabled = true;
-      let ok = true;
-      try { ok = await window.AccessGate.check('movie'); } catch (_) { ok = true; }
-      btn.disabled = false;
-      if (!ok) return;
-      state.gateOk = Date.now();
-    }
+    const btn = $('btnStart'); if (btn.disabled) return;
+    btn.disabled = true;
     try {
+      // The partner (e.g. on the Android app) may already have pressed Start. Look at the live room first:
+      // if so, show THEIR invite card instead of overwriting it with our own request.
+      try {
+        const fresh = await api('GET', `/${COUPLE_ID}`);
+        if (fresh) {
+          state.room = fresh; if (fresh.action_seq) state.lastActionSeq = Math.max(state.lastActionSeq, fresh.action_seq);
+          if (fresh.status === 'start_requested' && fresh.start_requested_by !== ROLE) { renderFromRoom(); return; }
+          if (fresh.status === 'countdown' || fresh.status === 'watching') { renderFromRoom(); return; }
+        }
+      } catch (_) { /* offline / cold server: carry on and let request-start report the error */ }
+      // Free movie each day, then ONE small coin pass. A start in the last 10 minutes (e.g. after a cancel) is the same movie.
+      if (window.AccessGate && !(state.gateOk && Date.now() - state.gateOk < 600000)) {
+        let ok = true;
+        try { ok = await window.AccessGate.check('movie'); } catch (_) { ok = true; }
+        if (!ok) { toast('Movie pass needed to start. Tap Start again to unlock.'); return; }
+        state.gateOk = Date.now();
+      }
       state.room = await api('POST', `/${COUPLE_ID}/request-start`, { role: ROLE });
       broadcastRoom(state.room);
       renderFromRoom();
     } catch (e) { toast('Could not start session: ' + e.message); }
+    finally { btn.disabled = false; }
   };
 
   // Leave the "I'm ready" lobby and return to the movie section without
@@ -2023,6 +2034,36 @@
     return false;
   }
   window.closeTopOverlayIfOpen = closeTopOverlayIfOpen;
+
+  // ═══════════════════════════════════════════════════════
+  // SECTION 16b — Room polling. The Android app cannot join the Supabase Realtime channel, so anything it does
+  // (ready, Start request, accept, play/pause, end) only reaches this page through the server. Poll every 2 s
+  // so the accept card, countdown and playback sync appear without waiting for a focus/resume event.
+  // ═══════════════════════════════════════════════════════
+  const roomSig = (r) => r ? [r.status, r.action_seq, r.updated_at, r.user1_ready, r.user2_ready, r.movies_match,
+    r.user1_duration_sec, r.user2_duration_sec, r.shared_movie_id, r.start_requested_by, r.scheduled_start_at].join('|') : '';
+  let pollBusy = false;
+  async function pollRoom() {
+    if (pollBusy || document.hidden || !COUPLE_ID || state.reconnectPending) return;
+    pollBusy = true;
+    try {
+      const room = await api('GET', `/${COUPLE_ID}`);
+      if (!room) return;
+      if (state.uiState === 'watching') {
+        if (room.status === 'idle' || room.status === 'ended') { state.room = room; renderFromRoom(); return; }
+        if (room.status === 'watching' && room.action_seq > state.lastActionSeq && room.updated_by && room.updated_by !== ROLE) {
+          applyRemoteState({ actionSeq: room.action_seq, playing: room.playing, positionSec: room.position_sec, updated_at: room.updated_at, updated_by: room.updated_by });
+        }
+        return;
+      }
+      if (roomSig(room) === roomSig(state.room)) return;
+      state.room = room;
+      if (room.action_seq && room.action_seq > state.lastActionSeq) state.lastActionSeq = room.action_seq;
+      renderFromRoom();
+    } catch (_) { /* next tick */ }
+    finally { pollBusy = false; }
+  }
+  setInterval(pollRoom, 2000);
 
   (async function init() {
     if (!COUPLE_ID) { toast('Could not find your couple pairing.'); showState('setup'); showSetupSub('empty'); return; }
