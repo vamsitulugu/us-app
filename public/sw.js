@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v76'; // bumped: topbar-actions.js
+const CACHE = 'uwl-v77'; // bumped: movie.js sync v2
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',

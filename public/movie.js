@@ -87,6 +87,9 @@
   function serverNow() { return Date.now() + clockOffsetMs; }
   // Sync as early as possible so it's ready before the first countdown.
   syncClock(3);
+  // Phones drift and networks change: refresh the shared clock every 45 s and whenever the page comes back.
+  setInterval(() => { if (!document.hidden) syncClock(3); }, 45000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) syncClock(3); });
   // Raw chat backend — reused as-is, no second messaging system created.
   async function chatApi(method, path, body) {
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
@@ -169,6 +172,7 @@
     lastActionSeq: 0,
     applyingRemote: false,
     countdownTimer: null,
+    holdBanner: false, preloaded: false, stalled: false, stallTimer: null, bufferHold: false, bufferSeq: 0, holdSince: 0, lastSeekAt: 0, playKick: 0,
     driftTimer: null,
     hideTimer: null,
     chatPollTimer: null,
@@ -203,7 +207,7 @@
     state.uiState = name;
     [els.setup, els.countdown, els.watching].forEach(el => { if (el) el.hidden = true; });
     document.getElementById('wtPage').classList.toggle('is-watching', name === 'watching');
-    if (name === 'setup') els.setup.hidden = false;
+    if (name === 'setup') { els.setup.hidden = false; state.preloaded = false; state.bufferHold = false; state.stalled = false; clearTimeout(state.stallTimer); }
     else if (name === 'countdown') els.countdown.hidden = false;
     else if (name === 'watching') { els.watching.hidden = false; if (typeof syncChatGap === 'function') requestAnimationFrame(syncChatGap); if (typeof syncReactionsAnchor === 'function') requestAnimationFrame(syncReactionsAnchor); }
   }
@@ -544,15 +548,12 @@
     if (state.cloudMovieId !== id) return; // session ended while the URL was being fetched
     els.video.addEventListener('loadedmetadata', function onMeta() {
       els.video.removeEventListener('loadedmetadata', onMeta);
-      const r = state.room || {};
+      const r = settleLocal(state.room || {});
       let target, play;
       if (resume) { target = resume.at; play = resume.playing; }
+      else if (r.status === 'countdown') { target = 0; play = false; }           // preloading during the countdown: first frames ready, do not start yet
       else if (r.status === 'watching' && !r.playing) { target = r.position_sec || 0; play = false; }
-      else {
-        const sinceStart = r.scheduled_start_at ? (serverNow() - new Date(r.scheduled_start_at).getTime()) / 1000 : 0;
-        target = r.playing ? expectedPosition(r) : Math.max(0, sinceStart) + expectedPosition(r);
-        play = true;
-      }
+      else { target = expectedPosition(r); play = true; }
       els.video.currentTime = Math.max(0, target);
       if (play) {
         els.video.play().catch(() => showBanner('Tap to start the movie.', [
@@ -797,7 +798,7 @@
   $('btnAcceptInvite').onclick = async () => {
     hideInviteModal();
     try {
-      state.room = await api('POST', `/${COUPLE_ID}/accept-start`, { role: ROLE, countdownMs: 4000 });
+      state.room = await api('POST', `/${COUPLE_ID}/accept-start`, { role: ROLE, countdownMs: 5000 });
       broadcastRoom(state.room);
       runCountdown(state.room.scheduled_start_at);
     } catch (e) { toast('Could not accept.'); }
@@ -819,6 +820,7 @@
     if (state.uiState === 'countdown' && state._countdownFor === startAtIso) return; // already running this one
     state._countdownFor = startAtIso;
     showState('countdown');
+    preloadMedia();
     const startAt = new Date(startAtIso).getTime();
     clearInterval(state.countdownTimer);
     // Re-sync right before the countdown that actually matters — accuracy
@@ -874,8 +876,17 @@
     registerWatchCallSession(room);
     $('wtNowTitle').textContent = state.myTitle || room[`${ROLE}_movie_title`] || 'Movie';
 
+    // The server starts the movie at scheduled_start_at. If our copy of the room still says "countdown", settle it
+    // locally the same way, so every device derives the SAME position from the SAME anchor.
+    room = settleLocal(room);
+    state.room = room;
+    state.lastActionSeq = Math.max(state.lastActionSeq, room.action_seq || 0);
+
     state.cloudMovieId = room.shared_movie_id || null;
-    if (state.cloudMovieId) {
+    if (state.preloaded && els.video.getAttribute('src')) {
+      // Already loading since the countdown — nothing to attach.
+      console.info('[WT] VIDEO source was preloaded');
+    } else if (state.cloudMovieId) {
       // Shared Cloud Storage: stream from a short-lived signed R2 URL.
       attachCloudSource(null);
     } else if (!state.localObjectUrl) {
@@ -896,10 +907,14 @@
     // Late-start correction: if this client's clock lands here later
     // than another (backgrounded tab, slow event delivery), compute how
     // far into playback we already are rather than starting from 0.
-    const elapsedSinceStart = room.scheduled_start_at ? (serverNow() - new Date(room.scheduled_start_at).getTime()) / 1000 : 0;
-    const target = Math.max(0, elapsedSinceStart) + expectedPosition(room);
-    els.video.currentTime = target;
-    els.video.play().then(() => console.info('[WT] play() resolved')).catch((e) => console.warn('[WT] play() rejected:', e && e.message));
+    const target = expectedPosition(room);
+    state.lastSeekAt = Date.now();
+    if (!state.cloudMovieId || !state.preloaded) els.video.currentTime = target;
+    if (room.playing === false) els.video.pause();
+    else els.video.play().then(() => console.info('[WT] play() resolved')).catch((e) => {
+      console.warn('[WT] play() rejected:', e && e.message);
+      showBanner('Tap to start the movie.', [{ label: '▶ Play', onClick: () => { hideBanner(); els.video.currentTime = expectedPosition(state.room); els.video.play().catch(() => {}); } }]);
+    });
     if (state.pendingResumeSec != null && state.localObjectUrl) {
       // Task 5 "Continue Watching": local-file architecture means we can't
       // silently resume from a saved file handle across a restart — the
@@ -909,11 +924,10 @@
       toast('Resumed from your last position');
       state.pendingResumeSec = null;
     }
-    if (!room.playing) {
-      // Countdown just finished — this is the moment playback truly begins.
-      sendAction(true, target);
-    }
+    // NOTE: nobody writes "play" here any more. The server already started the movie at scheduled_start_at;
+    // both phones writing it at once (each with its own position) is what made one phone stick and the other idle.
     startDriftLoop();
+    setTimeout(() => { if (state.uiState === 'watching') onVideoWaiting(); }, 1200);   // slow to load? tell the partner instead of drifting
     setupCallBridge();
     setupControlsAutoHide();
     startChatPolling();
@@ -929,6 +943,14 @@
     }
   }
 
+  // A countdown whose start time has passed is a movie that started at that exact moment (the server does the same).
+  function settleLocal(room) {
+    if (room && room.status === 'countdown' && room.scheduled_start_at && serverNow() >= new Date(room.scheduled_start_at).getTime()) {
+      return { ...room, status: 'watching', playing: true, position_sec: 0, playback_rate: 1, updated_at: room.scheduled_start_at, action_seq: (room.action_seq || 0) + 1 };
+    }
+    return room;
+  }
+
   function expectedPosition(room) {
     if (!room) return 0;
     if (!room.playing) return room.position_sec || 0;
@@ -936,38 +958,127 @@
     return (room.position_sec || 0) + Math.max(0, elapsed);
   }
 
+  // Start loading the movie while the countdown runs, so the first seconds are not spent staring at a black screen.
+  function preloadMedia() {
+    if (state.preloaded) return;
+    const r = state.room || {};
+    if (r.shared_movie_id) {
+      state.cloudMovieId = r.shared_movie_id;
+      state.preloaded = true;
+      attachCloudSource({ at: 0, playing: false });
+    } else if (state.localObjectUrl) {
+      state.preloaded = true;
+      els.video.preload = 'auto';
+      els.video.src = state.localObjectUrl;
+      try { els.video.load(); } catch (e) {}
+    }
+  }
+
   function nextSeq() { return (state.lastActionSeq = Math.max(state.lastActionSeq + 1, Date.now())); }
 
-  async function sendAction(playing, positionSec) {
+  // Send play / pause / seek. positionSec is where THIS video is right now, stamped with the shared clock so the
+  // server can compute the partner's position exactly (no network delay baked into it).
+  async function sendAction(playing, positionSec, reason, _retry) {
     const seq = nextSeq();
-    const payload = { role: ROLE, playing, positionSec, actionSeq: seq, updated_at: new Date().toISOString(), updated_by: ROLE };
+    if (reason === 'buffering') state.bufferSeq = seq;
+    const clientTs = Math.round(serverNow());
+    const payload = { role: ROLE, playing, positionSec, actionSeq: seq, updated_at: new Date(clientTs).toISOString(), updated_by: ROLE, reason: reason || null };
     broadcastState(payload);
-    try { state.room = await api('PATCH', `/${COUPLE_ID}/state`, { role: ROLE, playing, positionSec, actionSeq: seq }); }
-    catch (e) { /* durable write failed; broadcast may still have reached partner — reconciled on next reconnect */ }
+    try {
+      const row = await api('PATCH', `/${COUPLE_ID}/state`, { role: ROLE, playing, positionSec, actionSeq: seq, clientTs });
+      if (row && row.action_seq > seq && !_retry && row.status === 'watching') {
+        // The server holds a NEWER number (the other phone's clock runs ahead). Our action was ignored: send it again, numbered after it.
+        state.lastActionSeq = Math.max(state.lastActionSeq, row.action_seq);
+        return sendAction(playing, positionSec, reason, true);
+      }
+      if (row) { state.room = settleLocal(row); state.lastActionSeq = Math.max(state.lastActionSeq, row.action_seq || 0); }
+    } catch (e) { /* the broadcast may still have reached the partner; the poll / reconnect reconciles */ }
+    return seq;
   }
 
   function applyRemoteState(payload) {
     if (!payload || payload.actionSeq <= state.lastActionSeq) return; // stale/out-of-order — ignore
     state.lastActionSeq = payload.actionSeq;
-    state.room = { ...(state.room || {}), playing: payload.playing, position_sec: payload.positionSec, updated_at: payload.updated_at };
+    state.room = { ...(state.room || {}), status: 'watching', playing: payload.playing, position_sec: payload.positionSec, updated_at: payload.updated_at, updated_by: payload.updated_by, action_seq: payload.actionSeq };
+    if (state.bufferHold) { state.bufferHold = false; }                       // the partner took over: follow the room, do not fight it
+    if (state.uiState !== 'watching') return;
 
     state.applyingRemote = true;
     const target = expectedPosition(state.room);
-    if (Math.abs(els.video.currentTime - target) > 0.5) els.video.currentTime = target;
+    if (Math.abs(els.video.currentTime - target) > (payload.playing ? 0.6 : 0.25)) { els.video.currentTime = target; state.lastSeekAt = Date.now(); }
     if (payload.playing) els.video.play().catch(() => {}); else els.video.pause();
     setTimeout(() => { state.applyingRemote = false; }, 250);
 
     updatePlayPauseIcon();
-    if (!payload.playing) setStatusPill(payload.updated_by === ROLE ? 'Paused' : 'Paused by Partner', 'warn');
+    if (!payload.playing) setStatusPill(payload.updated_by === ROLE ? 'Paused' : (payload.reason === 'buffering' ? 'Partner is buffering…' : 'Paused by Partner'), 'warn');
     else setStatusPill(null);
     wakeControls();
   }
+
+  // ── Stalls: if MY video cannot keep up, say so and pause BOTH of us until it can, instead of drifting apart. ──
+  const STALL_REPORT_MS = 1500;
+  function bufferedAhead(v) {
+    try { for (let i = 0; i < v.buffered.length; i++) if (v.currentTime >= v.buffered.start(i) - 0.1 && v.currentTime <= v.buffered.end(i)) return v.buffered.end(i) - v.currentTime; } catch (e) {}
+    return 0;
+  }
+  function videoReady() { const v = els.video; return v.readyState >= 4 || (v.readyState >= 3 && bufferedAhead(v) >= 2); }
+  function onVideoWaiting() {
+    if (state.uiState !== 'watching' || state.bufferHold) return;
+    if (els.video.ended) return;
+    state.stalled = true;
+    clearTimeout(state.stallTimer);
+    state.stallTimer = setTimeout(() => {
+      if (state.uiState !== 'watching' || !state.stalled || state.bufferHold) return;
+      if (!state.room || !state.room.playing) return;
+      if (els.video.readyState >= 3) { state.stalled = false; return; }
+      holdForBuffering();
+    }, STALL_REPORT_MS);
+  }
+  function holdForBuffering() {
+    state.bufferHold = true; state.holdSince = Date.now();
+    els.video.pause();
+    updatePlayPauseIcon();
+    setStatusPill('Buffering… waiting for your video', 'warn');
+    sendAction(false, els.video.currentTime, 'buffering');
+  }
+  function onVideoRecovered(force) {
+    state.stalled = false;
+    clearTimeout(state.stallTimer);
+    if (!state.bufferHold) return;
+    if (force !== true && !videoReady()) return;
+    state.bufferHold = false;
+    hideBanner();
+    if (state.lastActionSeq === state.bufferSeq) {
+      // Nobody else acted while we were loading: we paused it, so we resume it — from where WE are.
+      els.video.play().catch(() => {});
+      sendAction(true, els.video.currentTime, 'resume');
+      setStatusPill(null);
+    } else {
+      // The partner (or a server tick) changed things meanwhile: just follow the room.
+      followRoom();
+    }
+    updatePlayPauseIcon();
+  }
+  // Bring this video to wherever the room says it should be (used after a stall / reconnect).
+  function followRoom() {
+    const r = state.room; if (!r) return;
+    const target = expectedPosition(r);
+    if (Math.abs(els.video.currentTime - target) > 0.6) { els.video.currentTime = target; state.lastSeekAt = Date.now(); }
+    if (r.playing) els.video.play().catch(() => {}); else els.video.pause();
+    updatePlayPauseIcon();
+  }
+  els.video.addEventListener('waiting', onVideoWaiting);
+  els.video.addEventListener('stalled', onVideoWaiting);
+  els.video.addEventListener('playing', onVideoRecovered);
+  els.video.addEventListener('canplay', onVideoRecovered);
+  els.video.addEventListener('canplaythrough', onVideoRecovered);
 
   function updatePlayPauseIcon() { setIcon($('playIcon'), els.video.paused ? 'play' : 'pause'); }
 
   $('btnPlayPause').onclick = () => {
     if (state.applyingRemote) return;
-    if (els.video.paused) { els.video.play(); sendAction(true, els.video.currentTime); setStatusPill(null); }
+    state.bufferHold = false;
+    if (els.video.paused) { els.video.play().catch(() => {}); sendAction(true, els.video.currentTime); setStatusPill(null); }
     else { els.video.pause(); sendAction(false, els.video.currentTime); setStatusPill('Paused', 'warn'); }
     updatePlayPauseIcon();
     wakeControls();
@@ -996,6 +1107,8 @@
   });
   function userSeek(t) {
     if (state.applyingRemote) return;
+    state.bufferHold = false;
+    state.lastSeekAt = Date.now();
     els.video.currentTime = Math.max(0, t);
     sendAction(!els.video.paused, els.video.currentTime);
   }
@@ -1014,7 +1127,11 @@
     // Previously silent — the screen just sat there with no video and no
     // explanation. Surface it with the same Error/retry pattern already
     // used when localObjectUrl is missing entirely.
-    showBanner('This movie file couldn\u2019t be played. Please reselect it.', [
+    const code = els.video.error && els.video.error.code;
+    const why = (code === 3 || code === 4)
+      ? 'This browser can\u2019t play this movie\u2019s format. MP4 (H.264 video + AAC audio) works everywhere \u2014 MKV/HEVC/AC3 often doesn\u2019t.'
+      : 'This movie file couldn\u2019t be played. Please reselect it.';
+    showBanner(why, [
       { label: 'Choose Movie', onClick: () => { showState('setup'); showSetupSub('empty'); hideBanner(); } }
     ]);
   });
@@ -1033,20 +1150,45 @@
   });
 
   // ── Periodic drift correction — reads only, never writes to server ──
+  // Rules that stop the "stuck / seeking over and over" problem:
+  //   • never touch a video that is loading, seeking or paused because it is buffering;
+  //   • after a hard seek wait 4 s (a stream needs time to re-buffer) before judging it again;
+  //   • small drift is fixed by speed (±5 %), only big drift (> 1.5 s) by a seek.
   function startDriftLoop() {
     clearInterval(state.driftTimer);
     state.driftTimer = setInterval(() => {
+      const v = els.video;
+      if (state.bufferHold) {
+        const held = Date.now() - state.holdSince;
+        if (videoReady() || (v.readyState >= 3 && held > 4000)) { onVideoRecovered(true); return; }
+        if (held > 25000 && !state.holdBanner) {
+          state.holdBanner = true;
+          showBanner('Your video is taking long to load.', [
+            { label: 'Reload video', onClick: () => { hideBanner(); state.holdBanner = false; state.holdSince = Date.now(); const at = v.currentTime; if (state.cloudMovieId) attachCloudSource({ at, playing: false }); else { const src = v.getAttribute('src'); v.src = src; v.currentTime = at; } } },
+            { label: 'Play without waiting', onClick: () => { hideBanner(); state.holdBanner = false; onVideoRecovered(true); } }
+          ]);
+        }
+        return;
+      }
       if (!state.room || !state.room.playing || state.applyingRemote || document.hidden || state.scrubbing) return;
+      if (v.paused) {
+        // The room is playing but this video is not (autoplay blocked, or a stray pause): try again, but not in a tight loop.
+        if (!v.seeking && v.readyState >= 2 && Date.now() - state.playKick > 3000) { state.playKick = Date.now(); followRoom(); }
+        return;
+      }
+      if (v.seeking || v.readyState < 3) return;
+      if (Date.now() - state.lastSeekAt < 4000) return;
       const expected = expectedPosition(state.room);
-      const diff = expected - els.video.currentTime;
+      const diff = expected - v.currentTime;
       const abs = Math.abs(diff);
-      if (abs < 0.5) {
-        els.video.playbackRate = 1;
-      } else if (abs < 2) {
-        els.video.playbackRate = diff > 0 ? 1.03 : 0.97;
+      if (abs < 0.4) {
+        if (v.playbackRate !== 1) v.playbackRate = 1;
+      } else if (abs < 1.5) {
+        v.playbackRate = diff > 0 ? 1.05 : 0.95;
       } else {
-        els.video.playbackRate = 1;
-        els.video.currentTime = expected;
+        v.playbackRate = 1;
+        v.currentTime = expected;
+        state.lastSeekAt = Date.now();
       }
     }, 1000);
   }
@@ -1067,6 +1209,7 @@
     const wasPlaying = !els.video.paused;
     const target = expectedPosition(state.room);
     els.video.currentTime = target;
+    state.lastSeekAt = Date.now();
     els.video.playbackRate = 1;
     if (wasPlaying) els.video.play().catch(() => {}); // never leave it paused
     setStatusPill('✓ In Sync', 'good');
@@ -1855,10 +1998,8 @@
       state.room = room;
       if (room.action_seq && room.action_seq > state.lastActionSeq) state.lastActionSeq = room.action_seq;
       if (state.uiState === 'watching') {
-        const target = expectedPosition(room);
-        if (Math.abs(els.video.currentTime - target) > 1) els.video.currentTime = target;
-        if (room.playing) els.video.play().catch(() => {}); else els.video.pause();
-        updatePlayPauseIcon();
+        state.room = settleLocal(room);
+        if (!state.bufferHold) followRoom();
       } else {
         renderFromRoom();
       }

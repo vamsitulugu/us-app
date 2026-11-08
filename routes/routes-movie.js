@@ -21,18 +21,49 @@ function computeMatch(row) {
   return Math.abs(row.user1_duration_sec - row.user2_duration_sec) <= DURATION_TOLERANCE_SEC;
 }
 
+// ── Sync v2 helpers ──────────────────────────────────────────────────────────
+// A playing room is described by ONE anchor: "at updated_at (server time) the movie was at position_sec".
+// Every device computes   expected = position_sec + (serverNow - updated_at)   so they all agree.
+// Previously the status stayed 'countdown' forever and nobody wrote the real start, so phones that only
+// poll (Android, background tabs) never saw pauses/seeks and each phone invented its own start position.
+const MAX_ANCHOR_SKEW_MS = 10000;   // a client-supplied anchor further than this from server time is ignored
+
+// Withhold server-only fields? none today. Adds the server clock so every poll also refines the client clock.
+const withNow = (row) => (row ? { ...row, server_now: Date.now() } : row);
+
+// When the countdown is over, the SERVER starts the movie: status 'watching', playing, position 0 anchored
+// exactly at scheduled_start_at. Both devices then derive the same position, and nobody has to write "play".
+async function settleCountdown(row) {
+  if (!row || row.status !== 'countdown' || !row.scheduled_start_at) return row;
+  const startMs = new Date(row.scheduled_start_at).getTime();
+  if (!(Date.now() >= startMs)) return row;
+  const { data } = await supabase.from('watch_sessions').update({
+    status: 'watching',
+    playing: true,
+    position_sec: 0,
+    playback_rate: 1,
+    updated_at: new Date(startMs).toISOString(),
+    action_seq: (row.action_seq || 0) + 1
+  }).eq('couple_id', row.couple_id).eq('status', 'countdown').select().maybeSingle();
+  if (data) return data;
+  // Lost the race to the partner's request: read what they wrote.
+  const { data: fresh } = await supabase.from('watch_sessions').select('*').eq('couple_id', row.couple_id).maybeSingle();
+  return fresh || row;
+}
+
 // GET /api/movie/time — authoritative server clock, used by movie.js to
 // compute each device's clock offset so the Start Together countdown and
 // playback-start timestamp are measured against ONE shared clock instead
 // of each device's own (frequently skewed by 1-2s) system clock.
-router.get('/time', (req, res) => { res.json({ now: Date.now() }); });
+router.get('/time', (req, res) => { res.setHeader('Cache-Control', 'no-store'); res.json({ now: Date.now() }); });
 
 // GET /api/movie/:coupleId — fetch current room (used on load + reconnect)
 router.get('/:coupleId', async (req, res) => {
   const { data, error } = await supabase
     .from('watch_sessions').select('*').eq('couple_id', req.params.coupleId).maybeSingle();
   if (error) return res.status(500).json({ error: error.message });
-  return res.json(data || null);
+  res.setHeader('Cache-Control', 'no-store');
+  return res.json(withNow(await settleCountdown(data)) || null);
 });
 
 // POST /api/movie/:coupleId/movie — a partner selected/cleared a local movie
@@ -66,9 +97,9 @@ router.post('/:coupleId/movie', async (req, res) => {
   if (existing && existing.shared_movie_id) {
     const { data: cleared } = await supabase.from('watch_sessions')
       .update({ shared_movie_id: null }).eq('couple_id', coupleId).select().single();
-    if (cleared) return res.json(cleared);
+    if (cleared) return res.json(withNow(cleared));
   }
-  return res.json(data);
+  return res.json(withNow(data));
 });
 
 // POST /api/movie/:coupleId/ready — toggle "I'm ready"
@@ -89,7 +120,7 @@ router.post('/:coupleId/ready', async (req, res) => {
 
   const { data, error } = await supabase.from('watch_sessions').update(merged).eq('couple_id', coupleId).select().single();
   if (error) return res.status(500).json({ error: error.message });
-  return res.json(data);
+  return res.json(withNow(data));
 });
 
 // POST /api/movie/:coupleId/request-start — the initiating partner asks
@@ -115,7 +146,7 @@ router.post('/:coupleId/request-start', async (req, res) => {
     updated_at: new Date().toISOString()
   }).eq('couple_id', coupleId).select().single();
   if (error) return res.status(500).json({ error: error.message });
-  return res.json(data);
+  return res.json(withNow(data));
 });
 
 // POST /api/movie/:coupleId/cancel-start — initiator cancels while
@@ -135,7 +166,7 @@ router.post('/:coupleId/cancel-start', async (req, res) => {
     updated_at: new Date().toISOString()
   }).eq('couple_id', coupleId).select().single();
   if (error) return res.status(500).json({ error: error.message });
-  return res.json(data);
+  return res.json(withNow(data));
 });
 
 // POST /api/movie/:coupleId/accept-start — the invited partner accepts.
@@ -146,7 +177,8 @@ router.post('/:coupleId/cancel-start', async (req, res) => {
 router.post('/:coupleId/accept-start', async (req, res) => {
   const { coupleId } = req.params;
   const { role, countdownMs } = req.body;
-  const startAt = new Date(Date.now() + (countdownMs || 4000)).toISOString();
+  const cd = Math.min(15000, Math.max(3000, Number(countdownMs) || 5000)); // time for both devices to load the movie
+  const startAt = new Date(Date.now() + cd).toISOString();
 
   const { data: existing } = await supabase.from('watch_sessions').select('action_seq').eq('couple_id', coupleId).maybeSingle();
 
@@ -163,7 +195,7 @@ router.post('/:coupleId/accept-start', async (req, res) => {
     })
     .eq('couple_id', coupleId).select().single();
   if (error) return res.status(500).json({ error: error.message });
-  return res.json(data);
+  return res.json(withNow(data));
 });
 
 // PATCH /api/movie/:coupleId/state — play/pause/seek control action.
@@ -176,30 +208,47 @@ router.post('/:coupleId/accept-start', async (req, res) => {
 // races, and stale reconnect payloads per the spec).
 router.patch('/:coupleId/state', async (req, res) => {
   const { coupleId } = req.params;
-  const { role, playing, positionSec, actionSeq, playbackRate } = req.body;
+  const { role, playing, positionSec, actionSeq, playbackRate, clientTs } = req.body;
   if (!role || actionSeq === undefined) return res.status(400).json({ error: 'Missing role/actionSeq' });
 
-  const { data: existing, error: fErr } = await supabase.from('watch_sessions').select('*').eq('couple_id', coupleId).maybeSingle();
+  const { data: found, error: fErr } = await supabase.from('watch_sessions').select('*').eq('couple_id', coupleId).maybeSingle();
   if (fErr) return res.status(500).json({ error: fErr.message });
-  if (!existing) return res.status(404).json({ error: 'No room' });
+  if (!found) return res.status(404).json({ error: 'No room' });
+  const existing = await settleCountdown(found);
 
-  if (actionSeq <= (existing.action_seq || 0)) {
-    // Stale/out-of-order — ignore write, but return current authoritative state
-    return res.json(existing);
+  // Nothing can be controlled before the countdown ends or after the movie ended.
+  if (existing.status === 'countdown' || existing.status === 'ended' || existing.status === 'idle') {
+    return res.json(withNow(existing));
   }
+  if (!(Number(actionSeq) > (existing.action_seq || 0))) {
+    // Stale/out-of-order — ignore write, but return current authoritative state
+    return res.json(withNow(existing));
+  }
+
+  // Anchor: the client says "at (shared-clock) time clientTs I was at positionSec". Using that instead of the
+  // moment the request ARRIVED removes the network delay from the position (it used to make the partner late).
+  const now = Date.now();
+  let anchorMs = now;
+  const ts = Number(clientTs);
+  if (Number.isFinite(ts) && Math.abs(ts - now) <= MAX_ANCHOR_SKEW_MS) anchorMs = Math.min(ts, now);
+
+  let pos = Number(positionSec);
+  if (!Number.isFinite(pos)) pos = Number(existing.position_sec) || 0;
+  pos = Math.max(0, pos);
+  const rate = Number(playbackRate);
 
   const patch = {
     playing: !!playing,
-    position_sec: positionSec ?? existing.position_sec,
-    playback_rate: playbackRate || 1,
-    action_seq: actionSeq,
-    status: existing.status === 'countdown' ? existing.status : 'watching',
+    position_sec: pos,
+    playback_rate: Number.isFinite(rate) && rate > 0 && rate <= 4 ? rate : 1,
+    action_seq: Number(actionSeq),
+    status: 'watching',
     updated_by: role,
-    updated_at: new Date().toISOString()
+    updated_at: new Date(anchorMs).toISOString()
   };
   const { data, error } = await supabase.from('watch_sessions').update(patch).eq('couple_id', coupleId).select().single();
   if (error) return res.status(500).json({ error: error.message });
-  return res.json(data);
+  return res.json(withNow(data));
 });
 
 // ── Movie Chat (Task 4) — deliberately a SEPARATE table/endpoint from
@@ -255,7 +304,7 @@ router.post('/:coupleId/end', async (req, res) => {
     status: 'ended', playing: false, updated_by: role, updated_at: new Date().toISOString()
   }).eq('couple_id', coupleId).select().single();
   if (error) return res.status(500).json({ error: error.message });
-  return res.json(data);
+  return res.json(withNow(data));
 });
 
 // POST /api/movie/:coupleId/reset — fully clear the room (new session)
