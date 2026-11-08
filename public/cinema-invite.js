@@ -36,10 +36,38 @@
     });
   }
 
+  // This phone's Movie → Library (browser storage 'us_movies_v2') rides in the link (#…&lib=…) so the cinema lobby's
+  // movie frames show it. The hash never reaches a server, and the cinema strips it after reading.
+  // → compact base64url JSON, newest 40 movies (shrunk until it is small), or null if it cannot be read.
+  function libParam() {
+    try {
+      var raw = JSON.parse(localStorage.getItem('us_movies_v2') || '[]'); if (!Array.isArray(raw)) raw = [];
+      var http = function (u) { u = typeof u === 'string' ? u : ''; return /^https?:\/\//i.test(u) && u.length <= 300 ? u : ''; };
+      var list = raw.filter(function (m) { return m && m.title; })
+        .sort(function (a, b) { return Number(b.id) - Number(a.id); }).slice(0, 40)
+        .map(function (m) {
+          var o = { i: String(m.id == null ? '' : m.id).slice(0, 24), t: String(m.title).slice(0, 80) };
+          if (m.year) o.y = String(m.year).slice(0, 8);
+          if (m.genre) o.g = String(m.genre).slice(0, 24);
+          if (m.rating != null && m.rating !== '' && isFinite(+m.rating)) o.r = +m.rating;
+          if (m.status) o.s = String(m.status);
+          if (m.review) o.v = String(m.review).slice(0, 220);
+          if (m.owner) o.o = String(m.owner);
+          if (m.fav) o.f = 1;
+          var p = http(m.poster) || http(m.backdrop); if (p) o.p = p;      // uploaded (data:) posters are too big for a link → title card
+          return o;
+        });
+      var enc = function (l) { return btoa(unescape(encodeURIComponent(JSON.stringify(l)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+      var out = enc(list);
+      while (out.length > 12000 && list.length > 1) { list.pop(); out = enc(list); }
+      return out;
+    } catch (_) { return null; }
+  }
+
   // The cinema gets a "back" link so Leave / ← Twin Hearts returns here.
   function go(url) {
-    var sep = url.indexOf('#') >= 0 ? '&' : '#';
-    window.location.href = url + sep + 'b=' + encodeURIComponent(location.origin + '/');
+    var sep = url.indexOf('#') >= 0 ? '&' : '#', lib = libParam();
+    window.location.href = url + sep + 'b=' + encodeURIComponent(location.origin + '/') + (lib === null ? '' : '&lib=' + lib);
   }
 
   /* ── styles (injected once) ── */
