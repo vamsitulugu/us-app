@@ -267,6 +267,7 @@
 
     if (state.localObjectUrl) URL.revokeObjectURL(state.localObjectUrl);
     state.localFile = file;
+    try { (window.top || window.parent).__twinMovieFile = file; } catch (_) { window.__twinMovieFile = file; }   // survives page changes: the 3D theatre can always take THIS file (no second 'choose movie')
     state.localObjectUrl = URL.createObjectURL(file);
 
     const probe = document.createElement('video');
@@ -765,6 +766,7 @@
       try { broadcastRoom(state.room); } catch (_) {}
       if (state.localObjectUrl) { try { URL.revokeObjectURL(state.localObjectUrl); } catch (_) {} state.localObjectUrl = null; }
       state.localFile = null; state.myTitle = null; state.myDuration = null;
+      try { (window.top || window.parent).__twinMovieFile = null; } catch (_) { window.__twinMovieFile = null; }
       renderFromRoom();
       toast('Movie Together cancelled');
     } catch (e) { toast('Could not cancel.'); }
@@ -1816,6 +1818,7 @@
     try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch (e) {}
 
     state.myTitle = null; state.myDuration = null; state.localFile = null;
+    try { (window.top || window.parent).__twinMovieFile = null; } catch (_) { window.__twinMovieFile = null; }
     movieChatLog.length = 0;
     if ($('movieChatLogBackdrop')) $('movieChatLogBackdrop').hidden = true;
     showState('setup'); showSetupSub('empty');

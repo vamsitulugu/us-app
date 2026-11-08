@@ -72,7 +72,7 @@
         try { var w = fr[i].contentWindow; if (w && typeof w.TwinWatchFile === 'function') { var f = w.TwinWatchFile(); if (f) return f; } } catch (_) {}
       }
     } catch (_) {}
-    return null;
+    return window.__twinMovieFile || null;      // set by movie.js when the file was picked: still there when the iframe lookup finds nothing
   }
 
   // The cinema opens in a full-screen frame INSIDE this page (e=1). That keeps the picked movie file alive: the cinema asks
