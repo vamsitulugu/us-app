@@ -136,7 +136,7 @@
   }
 
   function check() {
-    if (busy || document.hidden || !ready()) return;
+    if (busy || document.hidden || !ready() || (window.TwinCinema && window.TwinCinema.hold)) return;
     var s = st(); busy = true;
     call('GET', '/pending/' + encodeURIComponent(s.coupleId) + '?role=' + encodeURIComponent(s.role))
       .then(function (r) {
@@ -155,7 +155,34 @@
   }
 
   /* ── Together page entry (added without touching index.html's markup beyond one row) ── */
-  window.TwinCinema = { open: open, check: check };
+  /* ── 3D movie from the Watch Together lobby ──
+     start3D : host → open a cinema session, invite the partner, go to the lobby.
+     pending : partner → the invite waiting for me (or null).
+     joinNow : partner → accept it and go in. (A picked video file cannot survive the page change; the cinema asks for it.) */
+  function start3D(opts) {
+    if (!ready()) { say('Connect with your partner first 🎬'); return Promise.resolve(); }
+    var s = st(), movie = (opts && opts.movie) || '';
+    return call('POST', '/create', { coupleId: s.coupleId, role: s.role, slot: mySlot(), movie: movie })
+      .then(function (r) {
+        return call('POST', '/' + r.session.id + '/invite', { coupleId: s.coupleId, role: s.role })
+          .catch(function () {})            // the host can still invite again from the lobby
+          .then(function () { go(r.url); });
+      })
+      .catch(function (e) { say('Could not open the 3D cinema: ' + e.message); });
+  }
+  function pending() {
+    if (!ready()) return Promise.resolve(null);
+    var s = st();
+    return call('GET', '/pending/' + encodeURIComponent(s.coupleId) + '?role=' + encodeURIComponent(s.role))
+      .then(function (r) { return r.invite || null; });
+  }
+  function joinNow(inv) {
+    var s = st();
+    return call('POST', '/' + inv.id + '/accept', { coupleId: s.coupleId, role: s.role })
+      .then(function (r) { dismissed[inv.id] = 1; go(r.url); })
+      .catch(function (e) { say(e.status === 410 || e.status === 409 ? 'That invite is no longer open — ask for a new one 🎬' : 'Could not join: ' + e.message); });
+  }
+  window.TwinCinema = { open: open, check: check, start3D: start3D, pending: pending, joinNow: joinNow, hold: false };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 2500); });
   else setTimeout(start, 2500);
 })();
