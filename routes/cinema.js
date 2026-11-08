@@ -160,6 +160,38 @@ router.get('/:id/movie', async (req, res) => {
   } catch (e) { return res.status(500).json({ error: e.message }); }
 });
 
+// ── Auto-share: the cinema uploads the movie file ONCE (from whichever phone has it) so the partner never has to pick it again ──
+// POST /api/cinema/:id/share/init            { coupleId, role, title, size, mime, durationSec }
+// POST /api/cinema/:id/share/:movieId/parts  { coupleId, role, partNumbers:[1,2,..] }
+// POST /api/cinema/:id/share/:movieId/complete { coupleId, role, parts:[{PartNumber,ETag}] }   → sets the room's shared_movie_id
+// POST /api/cinema/:id/share/:movieId/abort  { coupleId, role }
+// Same guard as every cinema call (unguessable session id + matching couple id). Pro-gated like the cloud library unless CINEMA_AUTO_SHARE_FREE=1.
+async function shareGuard(req, res) {
+  const coupleId = (req.body || {}).coupleId, role = ROLES.has((req.body || {}).role) ? req.body.role : null;
+  if (!role) { res.status(400).json({ error: 'Invalid role' }); return null; }
+  const r = await loadSession(req.params.id, coupleId);
+  if (r.error) { res.status(r.code).json({ error: r.error }); return null; }
+  if (!_lib || !_lib.cinema) { res.status(503).json({ error: 'Shared cloud storage is not set up yet.', code: 'NO_STORAGE' }); return null; }
+  return { coupleId, role };
+}
+const send = (res, out) => res.status(out.status).json(out.body);
+router.post('/:id/share/init', async (req, res) => {
+  try { const g = await shareGuard(req, res); if (g) send(res, await _lib.cinema.init(g.coupleId, g.role, req.body || {})); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+router.post('/:id/share/:movieId/parts', async (req, res) => {
+  try { const g = await shareGuard(req, res); if (g) send(res, await _lib.cinema.parts(g.coupleId, req.params.movieId, (req.body || {}).partNumbers)); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+router.post('/:id/share/:movieId/complete', async (req, res) => {
+  try { const g = await shareGuard(req, res); if (g) send(res, await _lib.cinema.complete(g.coupleId, req.params.movieId, (req.body || {}).parts)); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+router.post('/:id/share/:movieId/abort', async (req, res) => {
+  try { const g = await shareGuard(req, res); if (g) send(res, await _lib.cinema.abort(g.coupleId, req.params.movieId)); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // GET /api/cinema/:id/library?coupleId=...
 // The couple's Twin Hearts movie library (Movie → Library = movie_favorites) for the movie frames in the cinema lobby.
 // Same guard as the other cinema calls: the unguessable session id AND the couple id must match.

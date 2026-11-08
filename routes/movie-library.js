@@ -324,4 +324,113 @@ router.signedPlaybackUrl = async (coupleId, movieId) => {
   return { url, title: m.title || m.name || null, durationSec: Number(m.duration_sec) || 0 };
 };
 
+
+// ═══════════════════════════════════════════════════════
+//  Twin Cinema auto-share (used by routes/cinema.js)
+//  When one of you has the movie on the phone, the cinema uploads it here ONCE (same R2 multipart flow as above),
+//  the room's shared_movie_id is set, and the partner's cinema streams it from a signed URL —
+//  nobody has to "choose the same file" a second time. Authorization is done by routes/cinema.js (session id + couple id).
+//  Movies uploaded this way are tagged uploaded_by = 'cinema:<role>' and are removed automatically after CINEMA_SHARE_TTL_HOURS (default 48).
+// ═══════════════════════════════════════════════════════
+const CINEMA_TAG = 'cinema:';
+const CINEMA_SHARE_TTL_MS = (Number(process.env.CINEMA_SHARE_TTL_HOURS) || 48) * 3600 * 1000;
+async function sweepOldCinemaShares(coupleId) {
+  const cutoff = new Date(Date.now() - CINEMA_SHARE_TTL_MS).toISOString();
+  const { data } = await supabase.from('shared_movies').select('*')
+    .eq('couple_id', coupleId).like('uploaded_by', CINEMA_TAG + '%').lt('created_at', cutoff);
+  for (const m of data || []) {
+    try { await s3().send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: m.object_key })); } catch (_) {}
+    await supabase.from('shared_movies').delete().eq('id', m.id);
+  }
+}
+const ok = body => ({ status: 200, body });
+const bad = (status, error, extra) => ({ status, body: { error, ...(extra || {}) } });
+
+router.cinema = {
+  configured: r2Configured,
+  /** { title, size, mime, durationSec } -> { movieId, partSize, totalParts } | { already:true } */
+  async init(coupleId, role, b) {
+    if (!r2Configured()) return bad(503, 'Shared cloud storage is not set up yet.', { code: 'NO_STORAGE' });
+    if (process.env.CINEMA_AUTO_SHARE_FREE !== '1') {
+      const { getProStatus } = require('../middleware/pro');
+      const st = await getProStatus(coupleId);
+      if (!st.isPro) return bad(402, 'This is a Pro feature.', { code: 'PRO_REQUIRED' });
+    }
+    const title = String(b.title || '').trim().slice(0, 200) || 'Movie';
+    const size = Number(b.size), durationSec = Number(b.durationSec);
+    let mime = String(b.mime || '').toLowerCase();
+    if (!MIME_EXT[mime]) mime = 'video/mp4';                     // phones often report '' for .mp4 / .mkv; R2 does not care, the browser sniffs
+    if (!Number.isFinite(size) || size <= 0) return bad(400, 'Invalid file size.');
+    if (!Number.isFinite(durationSec) || durationSec <= 0) return bad(400, 'Could not read the video duration.');
+    if (size > Math.min(MAX_FILE_BYTES, STORAGE_LIMIT_BYTES)) return bad(413, 'That file is too large to share.', { code: 'TOO_LARGE' });
+    try { await sweepStaleUploads(coupleId); await sweepOldCinemaShares(coupleId); } catch (_) {}
+
+    // Already shared (the partner got there first, or this exact movie was shared before)? Then nothing to upload.
+    const { data: ws } = await supabase.from('watch_sessions').select('shared_movie_id').eq('couple_id', coupleId).maybeSingle();
+    const { data: ready } = await supabase.from('shared_movies').select('*').eq('couple_id', coupleId).eq('status', 'ready').order('created_at', { ascending: false });
+    const same = (ready || []).find(m => Math.abs(Number(m.duration_sec) - durationSec) <= 3 && Number(m.size_bytes) === size);
+    if (same) {
+      if (!ws || ws.shared_movie_id !== same.id) await supabase.from('watch_sessions').update({ shared_movie_id: same.id }).eq('couple_id', coupleId);
+      return ok({ already: true, movieId: same.id });
+    }
+    const { data: busy } = await supabase.from('shared_movies').select('id,uploaded_by,created_at').eq('couple_id', coupleId).eq('status', 'uploading').like('uploaded_by', CINEMA_TAG + '%');
+    if (busy && busy.length && Date.now() - new Date(busy[0].created_at).getTime() < 30 * 60 * 1000) return bad(409, 'Your partner is already sharing a movie.', { code: 'BUSY' });
+    const used = await usageBytes(coupleId);
+    if (used + size > STORAGE_LIMIT_BYTES) return bad(413, 'Not enough shared storage left.', { code: 'NO_SPACE' });
+
+    const key = `movies/${coupleId}/${crypto.randomUUID()}.${MIME_EXT[mime]}`;
+    let uploadId;
+    try { uploadId = (await s3().send(new CreateMultipartUploadCommand({ Bucket: R2_BUCKET, Key: key, ContentType: mime }))).UploadId; }
+    catch (e) { console.error('[cinema-share] create multipart', e.message); return bad(502, 'Cloud storage is unavailable right now.'); }
+    const { data, error } = await supabase.from('shared_movies').insert({
+      couple_id: coupleId, title, object_key: key, mime_type: mime, size_bytes: size, duration_sec: durationSec,
+      status: 'uploading', upload_id: uploadId, uploaded_by: CINEMA_TAG + role
+    }).select().single();
+    if (error) { try { await s3().send(new AbortMultipartUploadCommand({ Bucket: R2_BUCKET, Key: key, UploadId: uploadId })); } catch (_) {} return bad(500, 'Something went wrong.'); }
+    return ok({ movieId: data.id, partSize: PART_SIZE, totalParts: Math.ceil(size / PART_SIZE) });
+  },
+  async parts(coupleId, movieId, partNumbers) {
+    const m = await getMovie(coupleId, movieId);
+    if (!m || m.status !== 'uploading' || !String(m.uploaded_by || '').startsWith(CINEMA_TAG)) return bad(404, 'Upload not found.');
+    const total = Math.ceil(Number(m.size_bytes) / PART_SIZE), nums = Array.isArray(partNumbers) ? partNumbers.map(Number) : [];
+    if (!nums.length || nums.length > 50 || nums.some(n => !Number.isInteger(n) || n < 1 || n > total)) return bad(400, 'Invalid part numbers.');
+    try {
+      const urls = {};
+      for (const n of nums) urls[n] = await getSignedUrl(s3(), new UploadPartCommand({ Bucket: R2_BUCKET, Key: m.object_key, UploadId: m.upload_id, PartNumber: n }), { expiresIn: PART_URL_TTL });
+      return ok({ urls });
+    } catch (e) { console.error('[cinema-share] sign', e.message); return bad(502, 'Cloud storage is unavailable right now.'); }
+  },
+  /** finishes the upload AND points the couple's room at it, so GET /api/cinema/:id/movie answers mode:'cloud' for both phones */
+  async complete(coupleId, movieId, parts) {
+    const m = await getMovie(coupleId, movieId);
+    if (!m || m.status !== 'uploading' || !String(m.uploaded_by || '').startsWith(CINEMA_TAG)) return bad(404, 'Upload not found.');
+    const total = Math.ceil(Number(m.size_bytes) / PART_SIZE);
+    const list = (Array.isArray(parts) ? parts : []).map(p => ({ PartNumber: Number(p.PartNumber), ETag: String(p.ETag || '') })).sort((a, b) => a.PartNumber - b.PartNumber);
+    if (list.length !== total || list.some((p, i) => p.PartNumber !== i + 1 || !p.ETag)) return bad(400, 'Upload is incomplete.');
+    try {
+      await s3().send(new CompleteMultipartUploadCommand({ Bucket: R2_BUCKET, Key: m.object_key, UploadId: m.upload_id, MultipartUpload: { Parts: list } }));
+      const head = await s3().send(new HeadObjectCommand({ Bucket: R2_BUCKET, Key: m.object_key }));
+      if (Number(head.ContentLength) !== Number(m.size_bytes)) {
+        try { await s3().send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: m.object_key })); } catch (_) {}
+        await supabase.from('shared_movies').delete().eq('id', m.id);
+        return bad(400, 'Upload was corrupted. Please try again.');
+      }
+    } catch (e) { console.error('[cinema-share] complete', e.message); return bad(502, 'Could not finish the upload.'); }
+    const { error } = await supabase.from('shared_movies').update({ status: 'ready', upload_id: null, completed_at: new Date().toISOString() }).eq('id', m.id);
+    if (error) return bad(500, 'Something went wrong.');
+    // point the room at it WITHOUT touching ready flags / status (the couple is already in the cinema)
+    const { data: ws } = await supabase.from('watch_sessions').select('couple_id').eq('couple_id', coupleId).maybeSingle();
+    if (ws) await supabase.from('watch_sessions').update({ shared_movie_id: m.id }).eq('couple_id', coupleId);
+    else await supabase.from('watch_sessions').insert({ couple_id: coupleId, user1_movie_title: m.title, user2_movie_title: m.title, user1_duration_sec: m.duration_sec, user2_duration_sec: m.duration_sec, movies_match: true, status: 'selecting', shared_movie_id: m.id });
+    return ok({ ok: true, movieId: m.id });
+  },
+  async abort(coupleId, movieId) {
+    const m = await getMovie(coupleId, movieId);
+    if (!m || m.status !== 'uploading' || !String(m.uploaded_by || '').startsWith(CINEMA_TAG)) return ok({ ok: true });
+    try { await s3().send(new AbortMultipartUploadCommand({ Bucket: R2_BUCKET, Key: m.object_key, UploadId: m.upload_id })); } catch (_) {}
+    await supabase.from('shared_movies').delete().eq('id', m.id);
+    return ok({ ok: true });
+  }
+};
+
 module.exports = router;

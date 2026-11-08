@@ -42,7 +42,7 @@ require.cache[authPath] = { id: authPath, filename: authPath, loaded: true, expo
   sendPushToPartner: async (c, r, p) => pushes.push(['web', c, r, p.tag]), sendFCMToPartner: async (c, r, p) => pushes.push(['fcm', c, r, p.tag]) }) };
 
 const libPath = require.resolve('../routes/movie-library');
-require.cache[libPath] = { id: libPath, filename: libPath, loaded: true, exports: { signedPlaybackUrl: async (c, id) => id === 'M1' ? { url: 'https://r2.example/film.mp4?sig=1', title: 'Cloud Film', durationSec: 5400 } : null } };
+require.cache[libPath] = { id: libPath, filename: libPath, loaded: true, exports: { cinema: { calls: [], async init(c, r, b) { this.calls.push(['init', c, r, b.size]); return b.size > 5e9 ? { status: 413, body: { error: 'too large', code: 'TOO_LARGE' } } : { status: 200, body: { movieId: 'MX', partSize: 16777216, totalParts: 2 } }; }, async parts(c, id, n) { this.calls.push(['parts', c, id, n]); return { status: 200, body: { urls: { 1: 'https://r2.example/put1' } } }; }, async complete(c, id, p) { this.calls.push(['complete', c, id, p.length]); tables.watch_sessions.find(w => w.couple_id === c).shared_movie_id = 'M1'; return { status: 200, body: { ok: true, movieId: id } }; }, async abort() { return { status: 200, body: { ok: true } }; } }, signedPlaybackUrl: async (c, id) => id === 'M1' ? { url: 'https://r2.example/film.mp4?sig=1', title: 'Cloud Film', durationSec: 5400 } : null } };
 
 const express = require('express');
 const app = express(); app.use(express.json()); app.use('/api/cinema', require('../routes/cinema'));
@@ -130,6 +130,21 @@ const call = async (m, u, b) => { const r = await fetch(base + u, { method: m, h
     assert.deepEqual([r.j.movies[1].year, r.j.movies[1].genre, r.j.movies[1].posterUrl, r.j.movies[1].overview, r.j.movies[1].rating, r.j.movies[1].status], ['2016', 'Romance', 'https://image.tmdb.org/t/p/w500/a.jpg', 'Dreamers.', 8.1, 'watchlist']);
     assert.equal((await call('GET', `/api/cinema/${sid}/library?coupleId=OTHER`)).s, 404);
     assert.equal((await call('GET', '/api/cinema/not-a-uuid/library?coupleId=C1')).s, 400);
+  });
+  await t('auto-share: guarded by session + couple + role, then init / parts / complete; the room then answers cloud for BOTH phones', async () => {
+    const lib = require('../routes/movie-library').cinema; lib.calls.length = 0;
+    tables.watch_sessions.length = 0; tables.watch_sessions.push({ couple_id: 'C1', user1_movie_title: 'Film', user1_duration_sec: 5400, user2_duration_sec: 5400, shared_movie_id: null });
+    assert.equal((await call('POST', `/api/cinema/${sid}/share/init`, { coupleId: 'OTHER', role: 'user1', size: 1e6 })).s, 404);       // other couples
+    assert.equal((await call('POST', `/api/cinema/${sid}/share/init`, { coupleId: 'C1', role: 'admin', size: 1e6 })).s, 400);          // bad role
+    assert.equal((await call('POST', '/api/cinema/not-a-uuid/share/init', { coupleId: 'C1', role: 'user1' })).s, 400);
+    assert.equal((await call('POST', `/api/cinema/${sid}/share/init`, { coupleId: 'C1', role: 'user2', size: 6e9, durationSec: 5400 })).j.code, 'TOO_LARGE');
+    const i = await call('POST', `/api/cinema/${sid}/share/init`, { coupleId: 'C1', role: 'user2', title: 'Film', size: 20e6, mime: 'video/mp4', durationSec: 5400 });
+    assert.equal(i.s, 200); assert.equal(i.j.movieId, 'MX');
+    assert.equal((await call('POST', `/api/cinema/${sid}/share/MX/parts`, { coupleId: 'C1', role: 'user2', partNumbers: [1] })).j.urls[1], 'https://r2.example/put1');
+    // before the upload finishes the phones still get "device"; after it, both get the signed cloud url
+    assert.equal((await call('GET', `/api/cinema/${sid}/movie?coupleId=C1&role=user1`)).j.mode, 'device');
+    assert.equal((await call('POST', `/api/cinema/${sid}/share/MX/complete`, { coupleId: 'C1', role: 'user2', parts: [{ PartNumber: 1, ETag: 'a' }, { PartNumber: 2, ETag: 'b' }] })).s, 200);
+    for (const role of ['user1', 'user2']) { const m = (await call('GET', `/api/cinema/${sid}/movie?coupleId=C1&role=${role}`)).j; assert.equal(m.mode, 'cloud'); assert.ok(m.url.startsWith('https://r2.example/')); }
   });
   await t('bad ids and solo accounts are rejected', async () => {
     assert.equal((await call('GET', '/api/cinema/not-a-uuid?coupleId=C1')).s, 400);

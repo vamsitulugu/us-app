@@ -24,3 +24,8 @@ The cinema canteen has no money: every order is paid with the buyer's **Gold Coi
 - Opened without the Twin Hearts hand-off (no wallet) the canteen shows the menu but ordering is disabled.
 - **Changing the menu / prices:** edit `src/menu.js` in twin-cinemas, then run `npm run export-menu` there (rewrites `lib/canteen-menu.json` here) and deploy both. The server only accepts items in that JSON.
 - No SQL migration needed (uses the existing `reward_wallets` / `coin_transactions`). Test: `npm run test:canteen`.
+
+## Auto-share the movie (nobody chooses the same file twice)
+The cinema uploads the movie once to your Cloudflare R2 bucket and the partner streams it. Needs the Shared Cloud Storage setup (`migrations/shared_movies.sql` + `R2_*` env vars) and **CORS on the R2 bucket** for the cinema site:
+`AllowedOrigins` = `https://twin-cinemas.vercel.app` (+ your web app origin) · `AllowedMethods` = `GET, HEAD, PUT` · `AllowedHeaders` = `*` · `ExposeHeaders` = `ETag, Content-Range, Content-Length, Accept-Ranges`.
+Optional env: `CINEMA_AUTO_SHARE_FREE=1` (let free couples auto-share; default Pro only) · `CINEMA_SHARE_TTL_HOURS=48` (auto-shared movies are deleted after this). Endpoints: `POST /api/cinema/:id/share/init | :movieId/parts | :movieId/complete | :movieId/abort`.
