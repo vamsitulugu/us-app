@@ -64,10 +64,62 @@
     } catch (_) { return null; }
   }
 
+  // The movie file picked on Watch Together lives inside the movie page (an iframe of this page): ask it.
+  function watchFile() {
+    try {
+      var fr = document.querySelectorAll('iframe');
+      for (var i = 0; i < fr.length; i++) {
+        try { var w = fr[i].contentWindow; if (w && typeof w.TwinWatchFile === 'function') { var f = w.TwinWatchFile(); if (f) return f; } } catch (_) {}
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  // The cinema opens in a full-screen frame INSIDE this page (e=1). That keeps the picked movie file alive: the cinema asks
+  // for it with postMessage ('ready') and gets the file straight back, so nobody has to choose the movie a second time.
+  // 'leave' (Leave theatre / ← Twin Hearts) just closes the frame. If a frame cannot be used we go there the old way.
+  var frame = null;
+  function closeFrame() {
+    if (!frame) return;
+    window.removeEventListener('message', frame.onMsg);
+    try { frame.box.remove(); } catch (_) {}
+    document.documentElement.style.overflow = frame.overflow;
+    frame = null;
+    if (window.TwinCinema) window.TwinCinema.hold = false;
+  }
+  function openFrame(url, file) {
+    var origin; try { origin = new URL(url).origin; } catch (_) { return false; }
+    if (!/^https?:$/.test(new URL(url).protocol)) return false;
+    closeFrame();
+    var box = document.createElement('div');
+    box.id = 'tcn-frame';
+    box.style.cssText = 'position:fixed;inset:0;z-index:99995;background:#000';
+    var f = document.createElement('iframe');
+    f.src = url; f.title = 'Twin Cinema 3D';
+    f.allow = 'autoplay; fullscreen; clipboard-write; screen-wake-lock';
+    f.setAttribute('allowfullscreen', '');
+    f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#000';
+    box.appendChild(f); document.body.appendChild(box);
+    var onMsg = function (e) {
+      if (e.source !== f.contentWindow || e.origin !== origin) return;
+      var d = e.data; if (!d || d.src !== 'twin-cinema') return;
+      if (d.type === 'ready') {
+        try { f.contentWindow.postMessage(file ? { src: 'twin-hearts', type: 'file', file: file } : { src: 'twin-hearts', type: 'nofile' }, origin); } catch (_) {}
+      } else if (d.type === 'leave') closeFrame();
+    };
+    window.addEventListener('message', onMsg);
+    frame = { box: box, onMsg: onMsg, overflow: document.documentElement.style.overflow };
+    document.documentElement.style.overflow = 'hidden';
+    if (window.TwinCinema) window.TwinCinema.hold = true;      // no invite card on top of the theatre
+    return true;
+  }
+
   // The cinema gets a "back" link so Leave / ← Twin Hearts returns here.
-  function go(url) {
+  function go(url, file) {
     var sep = url.indexOf('#') >= 0 ? '&' : '#', lib = libParam();
-    window.location.href = url + sep + 'b=' + encodeURIComponent(location.origin + '/') + (lib === null ? '' : '&lib=' + lib);
+    var full = url + sep + 'b=' + encodeURIComponent(location.origin + '/') + (lib === null ? '' : '&lib=' + lib);
+    if (file === undefined) file = watchFile();
+    if (!openFrame(full + '&e=1', file)) window.location.href = full;
   }
 
   /* ── styles (injected once) ── */
@@ -161,12 +213,12 @@
      joinNow : partner → accept it and go in. (A picked video file cannot survive the page change; the cinema asks for it.) */
   function start3D(opts) {
     if (!ready()) { say('Connect with your partner first 🎬'); return Promise.resolve(); }
-    var s = st(), movie = (opts && opts.movie) || '';
+    var s = st(), movie = (opts && opts.movie) || '', file = (opts && opts.file) || watchFile();
     return call('POST', '/create', { coupleId: s.coupleId, role: s.role, slot: mySlot(), movie: movie })
       .then(function (r) {
         return call('POST', '/' + r.session.id + '/invite', { coupleId: s.coupleId, role: s.role })
           .catch(function () {})            // the host can still invite again from the lobby
-          .then(function () { go(r.url); });
+          .then(function () { go(r.url, file || undefined); });
       })
       .catch(function (e) { say('Could not open the 3D cinema: ' + e.message); });
   }
@@ -176,10 +228,10 @@
     return call('GET', '/pending/' + encodeURIComponent(s.coupleId) + '?role=' + encodeURIComponent(s.role))
       .then(function (r) { return r.invite || null; });
   }
-  function joinNow(inv) {
+  function joinNow(inv, opts) {
     var s = st();
     return call('POST', '/' + inv.id + '/accept', { coupleId: s.coupleId, role: s.role })
-      .then(function (r) { dismissed[inv.id] = 1; go(r.url); })
+      .then(function (r) { dismissed[inv.id] = 1; go(r.url, (opts && opts.file) || undefined); })
       .catch(function (e) { say(e.status === 410 || e.status === 409 ? 'That invite is no longer open — ask for a new one 🎬' : 'Could not join: ' + e.message); });
   }
   window.TwinCinema = { open: open, check: check, start3D: start3D, pending: pending, joinNow: joinNow, hold: false };
