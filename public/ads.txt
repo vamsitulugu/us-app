@@ -1,2 +1,2 @@
-# Google AdSense. Confirm this publisher id in AdSense > Account > Settings before deploying.
+# Google AdSense — same publisher as the Twin Hearts app. Confirm in AdSense > Account > Settings; add THIS site (the cinema domain) in AdSense > Sites.
 google.com, pub-8220558701111236, DIRECT, f08c47fec0942fa0

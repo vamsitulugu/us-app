@@ -1,0 +1,216 @@
+diff --git a/.env.example b/.env.example
+index a3b95e9..b9d881c 100644
+--- a/.env.example
++++ b/.env.example
+@@ -40,6 +40,5 @@ METERED_API_KEY=a09e9e61fe66f81ba1809f60a904405fbe29
+ TMDB_API_KEY=your_tmdb_v3_api_key_here
+ # Optional but recommended: the long "API Read Access Token" (starts with eyJ)
+ TMDB_READ_TOKEN=your_tmdb_read_access_token_here
+-# ─── Twin Cinema (movie-night invites) ─────────────────
+-# Public address of the separate cinema deploy (no trailing slash).
+-CINEMA_URL=https://twin-cinemas.vercel.app
++# ─── Twin Cinema ─────────────────
++# Nothing to set: the cinema is part of the web app (served at /cinema/ on the same domain).
+diff --git a/.gitignore b/.gitignore
+index 875d3fa..01fc9f2 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -12,4 +12,9 @@ node_modules/
+ # APK is no longer stored in git — it's uploaded to Vercel Blob
+ # Storage by scripts/publish-apk.js. Only the small metadata JSON
+ # (public/downloads/app-meta.json) stays tracked.
+-public/downloads/*.apk
+\ No newline at end of file
++public/downloads/*.apk
++
++# 3D cinema: source lives in cinema/, Vercel builds it into public/cinema at deploy time
++public/cinema/
++cinema/node_modules/
++cinema/dist/
+diff --git a/CINEMA_SETUP.md b/CINEMA_SETUP.md
+index 6d4ae34..44599d8 100644
+--- a/CINEMA_SETUP.md
++++ b/CINEMA_SETUP.md
+@@ -2,10 +2,10 @@
+ 
+ Flow: **Together → Twin Cinema → (host) cinema lobby → Invite → (partner) invite card → Accept → host presses Start → both go in.**
+ 
++0. **The cinema is part of this repo now** — source in `cinema/` (Vite + Three.js), built by Vercel on every deploy into `public/cinema` and served at `/cinema/` on the same domain. No separate repo, no separate Vercel project, no cinema env vars. Local test: `npm run build:cinema`. Edit the menu: change `cinema/src/menu.js`, then `cd cinema && npm run export-menu`.
+ 1. **Supabase** → SQL Editor → run `migrations/cinema_sessions.sql`.
+-2. **Render** (this app's backend) → deploy this commit. Optional env var `CINEMA_URL` (default `https://twin-cinemas.vercel.app`) — use whichever cinema URL you keep as official.
+-3. **Vercel → twin-cinemas → Settings → Environment Variables** → add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (Supabase → Settings → API → *anon public* key, NOT the service key), then **redeploy**.
+-   Without these the cinema falls back to "local test mode" and the two phones can never meet (the lobby shows a warning).
++2. **Render** (this app's backend) → deploy this commit. Delete the old `CINEMA_URL` env var if you set it — it is ignored now (the server always sends `https://twinhearts.vercel.app/cinema`).
++3. ~~Vercel env vars for twin-cinemas~~ — not needed: the cinema reuses the web app's own public Supabase keys (`window.__SUPABASE_URL__`).
+ 
+ Test: `npm run test:cinema` (backend flow, no database needed).
+ 
+@@ -22,10 +22,10 @@ The cinema canteen has no money: every order is paid with the buyer's **Gold Coi
+ - `GET /api/cinema/:id/wallet?coupleId=&role=` → `{ balance }` (shown in the canteen header).
+ - `POST /api/cinema/:id/canteen/order` `{ coupleId, role, clientId, for, lines:[{id,qty,sel}] }` — the server re-prices the order from `lib/canteen-menu.json`, then spends the coins with `reward_credit()` (kind `canteen_order`, idempotent per `clientId`). Not enough coins → `402 { code:'insufficient', balance, need }`.
+ - Opened without the Twin Hearts hand-off (no wallet) the canteen shows the menu but ordering is disabled.
+-- **Changing the menu / prices:** edit `src/menu.js` in twin-cinemas, then run `npm run export-menu` there (rewrites `lib/canteen-menu.json` here) and deploy both. The server only accepts items in that JSON.
++- **Changing the menu / prices:** edit `cinema/src/menu.js`, then run `npm run export-menu` inside `cinema/` (rewrites `lib/canteen-menu.json`) and deploy. The server only accepts items in that JSON.
+ - No SQL migration needed (uses the existing `reward_wallets` / `coin_transactions`). Test: `npm run test:canteen`.
+ 
+ ## Auto-share the movie (nobody chooses the same file twice)
+ The cinema uploads the movie once to your Cloudflare R2 bucket and the partner streams it. Needs the Shared Cloud Storage setup (`migrations/shared_movies.sql` + `R2_*` env vars) and **CORS on the R2 bucket** for the cinema site:
+-`AllowedOrigins` = `https://twin-cinemas.vercel.app` (+ your web app origin) · `AllowedMethods` = `GET, HEAD, PUT` · `AllowedHeaders` = `*` · `ExposeHeaders` = `ETag, Content-Range, Content-Length, Accept-Ranges`.
++`AllowedOrigins` = `https://twinhearts.vercel.app` · `AllowedMethods` = `GET, HEAD, PUT` · `AllowedHeaders` = `*` · `ExposeHeaders` = `ETag, Content-Range, Content-Length, Accept-Ranges`.
+ Optional env: `CINEMA_AUTO_SHARE_FREE=1` (let free couples auto-share; default Pro only) · `CINEMA_SHARE_TTL_HOURS=48` (auto-shared movies are deleted after this). Endpoints: `POST /api/cinema/:id/share/init | :movieId/parts | :movieId/complete | :movieId/abort`.
+diff --git a/lib/canteen-price.js b/lib/canteen-price.js
+index 72fcfb2..820f537 100644
+--- a/lib/canteen-price.js
++++ b/lib/canteen-price.js
+@@ -1,5 +1,5 @@
+ // Twin Cinema canteen: the SERVER decides every price. The cinema only sends item ids + which options were picked.
+-// lib/canteen-menu.json is generated from the cinema repo (npm run export-menu in twin-cinemas). Prices are Gold Coins.
++// lib/canteen-menu.json is generated from cinema/src/menu.js (cd cinema && npm run export-menu). Prices are Gold Coins.
+ const menu = require('./canteen-menu.json');
+ const BY = new Map(menu.items.map(i => [i.id, i]));
+ const MAX_LINES = 12, MAX_QTY = 20, MAX_TOTAL = 2000;
+diff --git a/package.json b/package.json
+index 2b71806..b094ac2 100644
+--- a/package.json
++++ b/package.json
+@@ -8,6 +8,7 @@
+     "dev": "nodemon server.js",
+     "test:music": "node tests/music-backend.test.js",
+     "test:pro": "node tests/pro.test.js",
++    "build:cinema": "cd cinema && npm install && npm run build",
+     "test:cinema": "node tests/cinema.test.js",
+     "test:movie-sync": "node tests/movie-sync.test.js",
+     "test:canteen": "node tests/canteen-order.test.js"
+diff --git a/public/cinema-invite.js b/public/cinema-invite.js
+index 2270f03..a414769 100644
+--- a/public/cinema-invite.js
++++ b/public/cinema-invite.js
+@@ -5,7 +5,7 @@
+      (Accept → opens the cinema with their own avatar; Not now → host is told)
+    • Push taps arrive as /?cinema=<id>; the same check shows the card straight away.
+    Purely additive: nothing else in the app calls into this file.
+-   Backend: routes/cinema.js · Theatre: the separate twin-cinemas deploy.
++   Backend: routes/cinema.js · Theatre: public/cinema/ (built from the twin-cinemas repo, same domain).
+ ═══════════════════════════════════════════════════════════════ */
+ (function () {
+   'use strict';
+@@ -102,9 +102,10 @@
+   }
+ 
+   // The cinema gets a "back" link so Leave / ← Twin Hearts returns here.
++  // The theatre is part of this web app (/cinema/ on the same domain): whatever host the server's link names, we only keep its #hash.
+   function go(url) {
+-    var sep = url.indexOf('#') >= 0 ? '&' : '#', lib = libParam();
+-    var full = url + sep + 'b=' + encodeURIComponent(location.origin + '/') + (lib === null ? '' : '&lib=' + lib);
++    var h = String(url).indexOf('#'), hash = h >= 0 ? String(url).slice(h + 1) : '', lib = libParam();
++    var full = location.origin + '/cinema/#' + hash + (hash ? '&' : '') + 'b=' + encodeURIComponent(location.origin + '/') + (lib === null ? '' : '&lib=' + lib);
+     if (!openFrame(full + '&e=1')) window.location.href = full;
+   }
+ 
+@@ -132,22 +133,16 @@
+     document.body.appendChild(d); return d;
+   }
+ 
+-  /* ── host: Together → Twin Cinema ── */
++  /* ── host: Together → Twin Cinema — goes straight into the cinema lobby (no sheet, no link) ── */
++  var opening = false;
+   function open() {
++    if (opening) return;
+     if (!ready()) return say('Connect with your partner first to plan a movie night 🎬');
+-    var s = st(), pn = esc(s.partnerName || 'your partner');
+-    var d = sheet(
+-      '<div class="tcn-top"><span class="tcn-ico">🍿</span><div><h3>Movie night</h3></div></div>' +
+-      '<p>You will enter the cinema lobby first. Invite ' + pn + ' from there, and when they accept you both go in together.</p>' +
+-      '<input id="tcn-movie" maxlength="60" placeholder="What are you watching? (optional)">' +
+-      '<div class="tcn-row"><button id="tcn-no">Cancel</button><button id="tcn-go" class="go">Open cinema lobby</button></div>');
+-    d.querySelector('#tcn-no').onclick = close;
+-    d.querySelector('#tcn-go').onclick = function () {
+-      var b = this; b.disabled = true; b.textContent = 'Opening…';
+-      call('POST', '/create', { coupleId: s.coupleId, role: s.role, slot: mySlot(), movie: d.querySelector('#tcn-movie').value.trim() })
+-        .then(function (r) { go(r.url); })
+-        .catch(function (e) { b.disabled = false; b.textContent = 'Open cinema lobby'; say('Could not open the cinema: ' + e.message); });
+-    };
++    var s = st(); opening = true; say('Opening cinema… 🍿');
++    call('POST', '/create', { coupleId: s.coupleId, role: s.role, slot: mySlot(), movie: '' })
++      .then(function (r) { go(r.url); })
++      .catch(function (e) { say('Could not open the cinema: ' + e.message); })
++      .then(function () { opening = false; });
+   }
+ 
+   /* ── partner: invite card ── */
+diff --git a/public/index.html b/public/index.html
+index 0e921a3..c674607 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -13929,6 +13929,6 @@ init();
+ <script src="/livemap-screens.js"></script>
+ 
+ <script src="/topbar-actions.js?v=1"></script>
+-<script src="/cinema-invite.js?v=3"></script>
++<script src="/cinema-invite.js?v=4"></script>
+ </body>
+ </html>
+\ No newline at end of file
+diff --git a/public/sw.js b/public/sw.js
+index d8e62f3..aeb1288 100644
+--- a/public/sw.js
++++ b/public/sw.js
+@@ -1,5 +1,5 @@
+ // Service Worker for Twin Hearts 💕 PWA — v5
+-const CACHE = 'uwl-v78'; // bumped: cinema-invite.js passes the picked movie (no second choose)
++const CACHE = 'uwl-v79'; // bumped: cinema now lives inside the web app at /cinema/
+ const OFFLINE_ASSETS = [
+   '/',
+   '/index.html',
+@@ -29,6 +29,7 @@ self.addEventListener('fetch', e => {
+   if (url.origin !== self.location.origin) return;
+ 
+   if (url.pathname.startsWith('/api/')) return; // never intercept API
++  if (url.pathname.startsWith('/cinema/')) return; // 3D cinema: big media + range requests, let the browser handle it
+ 
+   // Static, fingerprint-free assets (styles/fonts/images/icons) are safe
+   // to serve cache-first with a background revalidation: they're purely
+diff --git a/routes/cinema.js b/routes/cinema.js
+index d9532d6..0298230 100644
+--- a/routes/cinema.js
++++ b/routes/cinema.js
+@@ -1,7 +1,7 @@
+ // ═══════════════════════════════════════════════════════
+ //  routes/cinema.js — Twin Cinema movie-night invites
+ //
+-//  The 3D theatre lives in a separate Vercel project (twin-cinemas). This
++//  The 3D theatre is now part of the web app itself (served from /cinema/ on twinhearts.vercel.app). This
+ //  file only manages the INVITE: host opens a session, taps Invite, the
+ //  partner gets a card (+ push), taps Accept, and both open the cinema with
+ //  the session id as the private room. Realtime (presence, Start, playback)
+@@ -19,7 +19,7 @@ try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch (_) {}
+ try { _sendFCMToPartner  = require('./auth').sendFCMToPartner;  } catch (_) {}
+ let _lib; try { _lib = require('./movie-library'); } catch (_) {}
+ 
+-const CINEMA_URL    = (process.env.CINEMA_URL || 'https://twin-cinemas.vercel.app').replace(/\/+$/, '');
++const CINEMA_URL    = 'https://twinhearts.vercel.app/cinema';   // the theatre is part of the web app (same domain); no env var, no separate deploy
+ const INVITE_TTL_MS = 10 * 60 * 1000;     // an invite stays open for 10 minutes
+ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+ const ROLES = new Set(['user1', 'user2']);
+diff --git a/vercel.json b/vercel.json
+index cee1232..0c756bc 100644
+--- a/vercel.json
++++ b/vercel.json
+@@ -1,11 +1,14 @@
+ {
+   "$schema": "https://openapi.vercel.sh/vercel.json",
+   "framework": null,
+-  "installCommand": "",
+-  "buildCommand": "",
++  "installCommand": "cd cinema && npm install",
++  "buildCommand": "cd cinema && npm run build",
+   "outputDirectory": "public",
+   "cleanUrls": false,
+   "rewrites": [
+-    { "source": "/api/:path*", "destination": "https://us-app-av6d.onrender.com/api/:path*" }
++    {
++      "source": "/api/:path*",
++      "destination": "https://us-app-av6d.onrender.com/api/:path*"
++    }
+   ]
+ }

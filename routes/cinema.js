@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 //  routes/cinema.js — Twin Cinema movie-night invites
 //
-//  The 3D theatre lives in a separate Vercel project (twin-cinemas). This
+//  The 3D theatre is now part of the web app itself (served from /cinema/ on twinhearts.vercel.app). This
 //  file only manages the INVITE: host opens a session, taps Invite, the
 //  partner gets a card (+ push), taps Accept, and both open the cinema with
 //  the session id as the private room. Realtime (presence, Start, playback)
@@ -19,7 +19,7 @@ try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch (_) {}
 try { _sendFCMToPartner  = require('./auth').sendFCMToPartner;  } catch (_) {}
 let _lib; try { _lib = require('./movie-library'); } catch (_) {}
 
-const CINEMA_URL    = (process.env.CINEMA_URL || 'https://twin-cinemas.vercel.app').replace(/\/+$/, '');
+const CINEMA_URL    = 'https://twinhearts.vercel.app/cinema';   // the theatre is part of the web app (same domain); no env var, no separate deploy
 const INVITE_TTL_MS = 10 * 60 * 1000;     // an invite stays open for 10 minutes
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ROLES = new Set(['user1', 'user2']);

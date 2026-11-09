@@ -1,0 +1,87 @@
+/* ============================================================================================
+   Twin Cinema × "US" app theme  (deep plum / magenta, Inter + DM Serif Display, pill buttons)
+   Applied ONLY to: buttons, some names (titles), some cards, and the canteen store.
+   The 3D theatre, studio navy scene and video player stay as they were.
+   Palette comes from us-app/public/theme-tokens.css (dark): brand #B0127A · #7C0A57 · #C21A8B
+   ============================================================================================ */
+:root{--us:#B0127A;--us-d:#7C0A57;--us-l:#C21A8B;--us-glow:rgba(176,18,122,.40);
+ --us-bg:#14030e;--us-bg2:#260519;--us-s:#2B061D;--us-s2:#3D0A2A;--us-b:rgba(194,26,139,.18);--us-b2:rgba(194,26,139,.30);
+ --us-t2:rgba(245,200,226,.72);--us-pink:#ffc1e3;--us-grad:linear-gradient(135deg,var(--us-l),var(--us) 55%,var(--us-d));
+ --serif:'DM Serif Display',Georgia,serif;--sans:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif}
+
+/* ---------- buttons ---------- */
+button:where(:not(.ib,.big,.skip,.tb,.mm-c)){font-family:var(--sans);font-weight:600;letter-spacing:.01em;color:#fff;
+ background:var(--us-s2);border:1px solid var(--us-b2);border-radius:999px;transition:transform .15s,box-shadow .2s,background .2s}
+button:where(:not(.ib,.big,.skip,.tb,.mm-c)):hover:not(:disabled){background:#4d0d35;box-shadow:0 0 0 3px rgba(194,26,139,.16)}
+button:where(:not(.ib,.big,.skip,.tb,.mm-c)):active:not(:disabled){transform:scale(.97)}
+button.main,#roles button.on,#st-rail button.on,.cn-tabs button.on,.chip.on,#st-anim,#open{background:var(--us-grad);border:0;color:#fff;
+ box-shadow:0 6px 18px var(--us-glow)}
+button.main{font-weight:700;border-radius:999px}
+#roles button{background:var(--us-s2);border:1px solid var(--us-b2)}#roles button.on{border:0}
+#st-rail button{background:rgba(43,6,29,.72);border:1px solid var(--us-b2);backdrop-filter:blur(8px)}
+#st-rail button.on{border:0}
+.stsq button{border-color:var(--us-l);color:var(--us-pink)}
+.btn,label.pick{border-color:var(--us-b2);color:var(--us-t2)}
+#mm-btn.on,#bagbtn:hover{box-shadow:0 0 14px var(--us-glow)}
+/* a Lucide icon inside a button sits in front of the text */
+button:has(>svg.lc),label.pick:has(>svg.lc),a.inv-b:has(>svg.lc),.btn:has(>svg.lc){display:inline-flex;align-items:center;justify-content:center;gap:7px}
+i>svg.lc,span>svg.lc,#ov>svg.lc{display:inline-block;vertical-align:-3px;margin-right:6px}i>svg.lc:only-child{margin:0}
+.cn-head b svg.lc,.cn-cart h3 svg.lc,.bp-h b svg.lc{display:inline-block;vertical-align:-3px;margin-right:8px;color:var(--us-l)}
+
+/* ---------- names ---------- */
+#door-ui h1,#st-user b,.cn-head b,.cn-card .t,.cn-sh-h b,.cn-cart h3,.cn-prep h3,.bp-h b,#mv-card h3{font-family:var(--serif);font-weight:400}
+#door-ui h1{letter-spacing:5px;text-shadow:0 0 24px var(--us-glow)}
+.cn-head b{letter-spacing:.5px;font-size:22px;color:#fff}.cn-card .t{font-size:16px;letter-spacing:.2px}.cn-sh-h b{font-size:20px}
+#st-user i{background:var(--us-grad)}
+
+/* ---------- cards ---------- */
+#mv-card{background:rgba(43,6,29,.96);border:1px solid var(--us-b2);box-shadow:0 14px 44px #000a,0 0 0 1px rgba(194,26,139,.08)}
+#mv-card h3{font-size:19px}#mv-card .mv-m{color:var(--us-t2)}#mv-card .mv-s{color:#fbbf24}
+#mv-card .mv-t{background:var(--us-grad);color:#fff}#mv-card .mv-o{background:rgba(194,26,139,.16);color:#f5c8e2}
+#bagpanel,#toast{background:rgba(43,6,29,.97);border:1px solid var(--us-b2);border-radius:18px}
+#toast{border-radius:999px}
+.bp-i{border-top-color:var(--us-b)}.bp-i .k{color:var(--us-pink)}
+
+/* ---------- canteen store ---------- */
+#canteen{background:radial-gradient(120% 80% at 50% 0,#3A0425 0,var(--us-bg2) 48%,var(--us-bg) 100%)}
+.cn-head{border-bottom:1px solid var(--us-b);background:rgba(20,3,14,.55);backdrop-filter:blur(10px)}.cn-head span{color:var(--us-t2)}
+.cn-foot{border-top:1px solid var(--us-b);background:rgba(20,3,14,.78);backdrop-filter:blur(10px)}
+.cn-tabs button{background:rgba(194,26,139,.10);border:1px solid var(--us-b);color:var(--us-t2)}.cn-tabs button.on{color:#fff}
+.cn-grid{grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:12px}
+.cn-card{gap:6px;padding:10px 10px 12px;min-height:0;border-radius:22px;background:linear-gradient(165deg,var(--us-s2),var(--us-s));border:1px solid var(--us-b);
+ box-shadow:0 8px 22px #0006;transition:transform .15s,border-color .2s,box-shadow .2s}
+.cn-card:hover{border-color:var(--us-b2);box-shadow:0 10px 26px #0008,0 0 0 3px rgba(194,26,139,.10)}
+.cn-card .e{width:100%;font-size:0}.cn-card .t{padding:2px 4px 0;line-height:1.2}.cn-card .d{padding:0 4px;color:var(--us-t2);font-family:var(--sans);line-height:1.35}
+.cn-card .p{margin:2px 0 0 4px;color:#fff;background:rgba(176,18,122,.35);border:1px solid var(--us-b2);border-radius:999px;padding:3px 11px;font-size:12.5px}
+.vd{margin-right:7px}
+
+/* item pictures: real photo from /food/<slug>.jpg, plum tile + Lucide icon until it loads (or if there is no photo yet) */
+.th{position:relative;display:block;width:100%;aspect-ratio:4/3;border-radius:16px;overflow:hidden;background:linear-gradient(145deg,var(--us-d),var(--us-s2) 60%,var(--us-s))}
+.th .ph{position:absolute;inset:0;display:grid;place-items:center;color:var(--us-pink);opacity:.85;font-style:normal}
+.th img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.cn-sh-h .e,.cn-line .e,.bp-i .e{font-size:0;flex:none}
+.cn-sh-h .e .th{width:76px;aspect-ratio:1;border-radius:18px}.cn-line .e .th{width:54px;aspect-ratio:1;border-radius:14px}.bp-i .e .th{width:46px;aspect-ratio:1;border-radius:12px}
+.cn-line .e .ph svg,.bp-i .e .ph svg{width:22px;height:22px}.cn-sh-h .e .ph svg{width:30px;height:30px}
+
+.cn-sh{background:var(--us-s);border:1px solid var(--us-b2);border-radius:26px 26px 0 0}.cn-sh-h{border-bottom:1px solid var(--us-b)}.cn-sh-h small{color:var(--us-t2)}
+.cn-sh-f{border-top:1px solid var(--us-b)}.cn-sheet{background:#000c}
+.grp h4{color:var(--us-pink);font-family:var(--sans);font-weight:700;letter-spacing:1.2px}.grp h4 small{color:var(--us-t2)}
+.chip{background:rgba(194,26,139,.10);border:1px solid var(--us-b);font-weight:500}.chip em{color:var(--us-pink)}
+.chip.on{font-weight:600}
+.cn-note{background:rgba(194,26,139,.08);border:1px solid var(--us-b2);border-radius:14px;color:#fff}
+.qty button{background:var(--us-s2);border-color:var(--us-b2)}
+.cn-line{border-bottom-color:var(--us-b)}.cn-line .lp{color:var(--us-pink)}.cn-line small,.cn-sum,.hint,.empty,.cn-prep p{color:var(--us-t2)}
+.cn-sum.big{border-top-color:var(--us-b2)}
+.cn-prep .big{color:var(--us-l);font-size:0}.cn-prep .big svg{width:64px;height:64px}
+.cn-prep .bar{background:rgba(194,26,139,.16)}
+.vd.v{color:#34d399}.vd.n{color:#f87171}
+
+/* ---------- Gold Coins ---------- */
+.co{display:inline-flex;align-items:center;gap:4px;color:#fbbf24;font-weight:700;white-space:nowrap}.co svg.lc{display:inline-block}
+.cn-card .p{display:inline-flex;align-items:center;gap:4px}.cn-card .p .co{color:#fff}.cn-card .p .co svg{color:#fbbf24}
+.cn-line .lp,.cn-sum.big b,.chip em,.cn-foot .main,.cn-sh-f .main{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.chip em .co{font-size:12px}.cn-line .lp .co{color:var(--us-pink)}
+.cn-bal{display:inline-flex;align-items:center;gap:6px;font-style:normal;padding:6px 12px;border-radius:999px;background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.35);color:#fbbf24;white-space:nowrap}
+.cn-bal i{font-style:normal;font-size:12.5px;color:#fde9a6}.cn-bal strong{font-size:15px;color:#fbbf24}
+.hint.warn{color:#fbbf24;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:14px;padding:10px 12px;margin:12px 0;line-height:1.4}
+@media(max-width:520px){.cn-head span{display:none}}
