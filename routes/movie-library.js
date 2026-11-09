@@ -316,6 +316,14 @@ router.delete('/:coupleId/:movieId', requireCoupleMember, async (req, res) => {
   return res.json({ ok: true });
 });
 
+// Used by routes/cinema.js: the couple's ready cloud movies (newest first) for the cinema's own "Cloud movies" picker.
+router.listReady = async (coupleId) => {
+  const { data, error } = await supabase.from('shared_movies').select('*')
+    .eq('couple_id', coupleId).eq('status', 'ready').order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data || []).map(m => ({ id: m.id, title: m.title || m.name || 'Movie', durationSec: Number(m.duration_sec) || 0, sizeBytes: Number(m.size_bytes) || 0 }));
+};
+
 // Used by routes/cinema.js: a short-lived playback URL for a ready movie of this couple (null if missing).
 router.signedPlaybackUrl = async (coupleId, movieId) => {
   const m = await getMovie(coupleId, movieId);

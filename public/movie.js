@@ -271,7 +271,6 @@
 
     if (state.localObjectUrl) URL.revokeObjectURL(state.localObjectUrl);
     state.localFile = file;
-    try { (window.top || window.parent).__twinMovieFile = file; } catch (_) { window.__twinMovieFile = file; }   // survives page changes: the 3D theatre can always take THIS file (no second 'choose movie')
     state.localObjectUrl = URL.createObjectURL(file);
 
     const probe = document.createElement('video');
@@ -671,7 +670,6 @@
 
     const bothReady = r.movies_match && r.user1_ready && r.user2_ready;
     $('bothReadyBlock').hidden = !bothReady;
-    watch3D(!!bothReady && r.status !== 'start_requested');
   }
 
   $('btnReady').onclick = async () => {
@@ -688,13 +686,10 @@
   // manually press Start after accepting — accept-start alone schedules
   // the shared countdown for BOTH clients.
   // ═══════════════════════════════════════════════════════
-  // ── 3D movie: same ready lobby, other way to watch ──────────────────────────────────────────
-  // Either partner can pick "3D movie". The picker opens the private 3D theatre (their avatar, partner already invited);
-  // the other phone is on this same screen, notices the invite within ~2 s and follows automatically.
+  // ── Twin Cinema 3D has its OWN movie picker + sync now (inside the theatre). This page only stays quiet while the theatre is open. ──
   const cinema = () => (window.parent && window.parent.TwinCinema) || window.TwinCinema || null;
-  // While the 3D theatre is open it plays this same room (twin-cinemas src/watch.js). This page must not start a second player under it.
+  // While the 3D theatre is open this page must not start a player under it.
   const cinemaOpen = () => { try { const T = cinema(); return !!(T && T.isOpen && T.isOpen()); } catch (_) { return false; } };
-  window.TwinWatchFile = () => state.localFile || null;     // read by cinema-invite.js: the 3D theatre reuses the movie file picked on this page
   async function passGate(btn) {
     // same daily-free-movie / coin pass as the normal Start
     if (!window.AccessGate || (state.gateOk && Date.now() - state.gateOk < 600000)) return true;
@@ -705,32 +700,6 @@
     if (ok) state.gateOk = Date.now();
     return ok;
   }
-  // The 3D button is not in movie.html yet. A missing element used to throw here and stop the whole script,
-  // so Start / Cancel / Accept / polling never got attached. Bind it only when it exists.
-  if ($('btnStart3D')) $('btnStart3D').onclick = async () => {
-    const T = cinema();
-    if (!T || !T.start3D) { toast('3D theatre is not available right now.'); return; }
-    const btn = $('btnStart3D');
-    if (!(await passGate(btn))) return;
-    btn.disabled = true;
-    const r = state.room || {};
-    const title = r[`${ROLE}_movie_title`] || state.myTitle || '';
-    try { await T.start3D({ movie: title, file: state.localFile || null }); } finally { setTimeout(() => { btn.disabled = false; }, 4000); }
-  };
-  let watch3DTimer = null, watch3DBusy = false;
-  function watch3D(on) {
-    if (!on) { clearInterval(watch3DTimer); watch3DTimer = null; const T = cinema(); if (T) T.hold = false; return; }
-    if (watch3DTimer) return;
-    const T0 = cinema(); if (T0) T0.hold = true;      // keep the normal invite card quiet; we join straight away
-    watch3DTimer = setInterval(async () => {
-      const T = cinema();
-      if (watch3DBusy || document.hidden || !T || !T.pending) return;
-      watch3DBusy = true;
-      try { const inv = await T.pending(); if (inv) { watch3D(false); T.joinNow(inv, { file: state.localFile || null }); } } catch (_) {}
-      watch3DBusy = false;
-    }, 2000);
-  }
-
   $('btnStart').onclick = async () => {
     const btn = $('btnStart'); if (btn.disabled) return;
     btn.disabled = true;
@@ -1225,7 +1194,7 @@
     wakeControls();
   };
 
-  function clearAllTimers() { watch3D(false); clearInterval(state.countdownTimer); clearInterval(state.driftTimer); clearTimeout(state.hideTimer); clearInterval(state.chatPollTimer); }
+  function clearAllTimers() { clearInterval(state.countdownTimer); clearInterval(state.driftTimer); clearTimeout(state.hideTimer); clearInterval(state.chatPollTimer); }
 
   // ═══════════════════════════════════════════════════════
   // SECTION 9 — Auto-hiding controls. Single timer, single source of

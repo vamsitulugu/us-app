@@ -160,6 +160,32 @@ router.get('/:id/movie', async (req, res) => {
   } catch (e) { return res.status(500).json({ error: e.message }); }
 });
 
+// ── The cinema's OWN movie picker (Cloud movies button inside the theatre) ──
+// GET /api/cinema/:id/cloud?coupleId=...&role=user1            → { movies:[{ id, title, durationSec, sizeBytes }] }  the couple's ready R2 movies, newest first
+// GET /api/cinema/:id/cloud/:movieId/url?coupleId=...&role=..  → { url, title, durationSec }  a fresh short-lived signed URL (each phone asks for its own)
+router.get('/:id/cloud', async (req, res) => {
+  const coupleId = req.query.coupleId, role = req.query.role;
+  if (!ROLES.has(role)) return res.status(400).json({ error: 'Missing role' });
+  const r = await loadSession(req.params.id, coupleId);
+  if (r.error) return res.status(r.code).json({ error: r.error });
+  if (!_lib || !_lib.listReady) return res.status(503).json({ error: 'Cloud storage is not available right now' });
+  try { return res.json({ movies: await _lib.listReady(coupleId) }); }
+  catch (e) { return res.status(502).json({ error: 'Could not load your cloud movies' }); }
+});
+router.get('/:id/cloud/:movieId/url', async (req, res) => {
+  const coupleId = req.query.coupleId, role = req.query.role;
+  if (!ROLES.has(role)) return res.status(400).json({ error: 'Missing role' });
+  if (!/^[\w-]{1,64}$/.test(String(req.params.movieId || ''))) return res.status(400).json({ error: 'Invalid movie' });
+  const r = await loadSession(req.params.id, coupleId);
+  if (r.error) return res.status(r.code).json({ error: r.error });
+  if (!_lib || !_lib.signedPlaybackUrl) return res.status(503).json({ error: 'Cloud storage is not available right now' });
+  try {
+    const u = await _lib.signedPlaybackUrl(coupleId, req.params.movieId);
+    if (!u || !u.url) return res.status(404).json({ error: 'That movie is no longer in your cloud' });
+    return res.json({ url: u.url, title: u.title || '', durationSec: u.durationSec || 0 });
+  } catch (e) { return res.status(502).json({ error: 'Cloud storage is unavailable right now' }); }
+});
+
 // ── Auto-share: the cinema uploads the movie file ONCE (from whichever phone has it) so the partner never has to pick it again ──
 // POST /api/cinema/:id/share/init            { coupleId, role, title, size, mime, durationSec }
 // POST /api/cinema/:id/share/:movieId/parts  { coupleId, role, partNumbers:[1,2,..] }
