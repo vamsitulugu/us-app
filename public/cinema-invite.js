@@ -118,7 +118,7 @@
   function go(url, file) {
     var sep = url.indexOf('#') >= 0 ? '&' : '#', lib = libParam();
     var full = url + sep + 'b=' + encodeURIComponent(location.origin + '/') + (lib === null ? '' : '&lib=' + lib);
-    if (file === undefined) file = watchFile();
+    if (!file) file = watchFile();      // also when the caller passed null: the picked movie is still on this page
     if (!openFrame(full + '&e=1', file)) window.location.href = full;
   }
 

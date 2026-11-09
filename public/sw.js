@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v77'; // bumped: movie.js sync v2
+const CACHE = 'uwl-v78'; // bumped: cinema-invite.js passes the picked movie (no second choose)
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
