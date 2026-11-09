@@ -983,6 +983,7 @@
   async function sendAction(playing, positionSec, reason, _retry) {
     const seq = nextSeq();
     if (reason === 'buffering') state.bufferSeq = seq;
+    state.roomReason = reason || null;
     const clientTs = Math.round(serverNow());
     const payload = { role: ROLE, playing, positionSec, actionSeq: seq, updated_at: new Date(clientTs).toISOString(), updated_by: ROLE, reason: reason || null };
     broadcastState(payload);
@@ -1003,13 +1004,14 @@
     if (!payload || payload.actionSeq <= state.lastActionSeq) return; // stale/out-of-order — ignore
     state.lastActionSeq = payload.actionSeq;
     state.room = { ...(state.room || {}), status: 'watching', playing: payload.playing, position_sec: payload.positionSec, updated_at: payload.updated_at, updated_by: payload.updated_by, action_seq: payload.actionSeq };
-    if (state.bufferHold) { state.bufferHold = false; }                       // the partner took over: follow the room, do not fight it
+    state.roomReason = payload.reason || null;
+    if (state.bufferHold && payload.reason !== 'buffering') { state.bufferHold = false; }   // the partner took over: follow the room. If they are only loading too, keep waiting for MY video
     if (state.uiState !== 'watching') return;
 
     state.applyingRemote = true;
     const target = expectedPosition(state.room);
-    if (Math.abs(els.video.currentTime - target) > (payload.playing ? 0.6 : 0.25)) { els.video.currentTime = target; state.lastSeekAt = Date.now(); }
-    if (payload.playing) els.video.play().catch(() => {}); else els.video.pause();
+    if (Math.abs(els.video.currentTime - target) > (payload.playing ? 1.5 : 0.25)) { els.video.currentTime = target; state.lastSeekAt = Date.now(); }
+    if (payload.playing) { state.playStartAt = Date.now(); els.video.play().catch(() => {}); } else els.video.pause();
     setTimeout(() => { state.applyingRemote = false; }, 250);
 
     updatePlayPauseIcon();
@@ -1019,7 +1021,8 @@
   }
 
   // ── Stalls: if MY video cannot keep up, say so and pause BOTH of us until it can, instead of drifting apart. ──
-  const STALL_REPORT_MS = 1500;
+  const STALL_REPORT_MS = 3000;   // was 1.5 s: a short hiccup must not pause both of you
+  const STALL_GRACE_MS = 6000;     // a rebuffer right after a seek / play start is normal
   function bufferedAhead(v) {
     try { for (let i = 0; i < v.buffered.length; i++) if (v.currentTime >= v.buffered.start(i) - 0.1 && v.currentTime <= v.buffered.end(i)) return v.buffered.end(i) - v.currentTime; } catch (e) {}
     return 0;
@@ -1028,12 +1031,15 @@
   function onVideoWaiting() {
     if (state.uiState !== 'watching' || state.bufferHold) return;
     if (els.video.ended) return;
+    if (els.video.seeking || Date.now() - Math.max(state.lastSeekAt || 0, state.playStartAt || 0) < STALL_GRACE_MS) {
+      clearTimeout(state.stallTimer); state.stallTimer = setTimeout(onVideoWaiting, 1000); return;   // our own seek / start: look again later instead of pausing both
+    }
     state.stalled = true;
     clearTimeout(state.stallTimer);
     state.stallTimer = setTimeout(() => {
       if (state.uiState !== 'watching' || !state.stalled || state.bufferHold) return;
       if (!state.room || !state.room.playing) return;
-      if (els.video.readyState >= 3) { state.stalled = false; return; }
+      if (els.video.readyState >= 3 || bufferedAhead(els.video) > 0.5) { state.stalled = false; return; }
       holdForBuffering();
     }, STALL_REPORT_MS);
   }
@@ -1051,7 +1057,7 @@
     if (force !== true && !videoReady()) return;
     state.bufferHold = false;
     hideBanner();
-    if (state.lastActionSeq === state.bufferSeq) {
+    if (state.lastActionSeq === state.bufferSeq || (state.room && !state.room.playing && state.roomReason === 'buffering')) {
       // Nobody else acted while we were loading: we paused it, so we resume it — from where WE are.
       els.video.play().catch(() => {});
       sendAction(true, els.video.currentTime, 'resume');
@@ -1066,8 +1072,8 @@
   function followRoom() {
     const r = state.room; if (!r) return;
     const target = expectedPosition(r);
-    if (Math.abs(els.video.currentTime - target) > 0.6) { els.video.currentTime = target; state.lastSeekAt = Date.now(); }
-    if (r.playing) els.video.play().catch(() => {}); else els.video.pause();
+    if (Math.abs(els.video.currentTime - target) > (r.playing ? 1.5 : 0.25)) { els.video.currentTime = target; state.lastSeekAt = Date.now(); }
+    if (r.playing) { state.playStartAt = Date.now(); els.video.play().catch(() => {}); } else els.video.pause();
     updatePlayPauseIcon();
   }
   els.video.addEventListener('waiting', onVideoWaiting);
@@ -1163,7 +1169,7 @@
       const v = els.video;
       if (state.bufferHold) {
         const held = Date.now() - state.holdSince;
-        if (videoReady() || (v.readyState >= 3 && held > 4000)) { onVideoRecovered(true); return; }
+        if (videoReady() || (v.readyState >= 3 && held > 4000) || (v.readyState >= 2 && held > 12000)) { onVideoRecovered(true); return; }
         if (held > 25000 && !state.holdBanner) {
           state.holdBanner = true;
           showBanner('Your video is taking long to load.', [
@@ -1180,14 +1186,14 @@
         return;
       }
       if (v.seeking || v.readyState < 3) return;
-      if (Date.now() - state.lastSeekAt < 4000) return;
+      if (Date.now() - state.lastSeekAt < 6000) return;
       const expected = expectedPosition(state.room);
       const diff = expected - v.currentTime;
       const abs = Math.abs(diff);
       if (abs < 0.4) {
         if (v.playbackRate !== 1) v.playbackRate = 1;
-      } else if (abs < 1.5) {
-        v.playbackRate = diff > 0 ? 1.05 : 0.95;
+      } else if (abs < 2.5) {
+        v.playbackRate = diff > 0 ? 1.06 : 0.94;
       } else {
         v.playbackRate = 1;
         v.currentTime = expected;
