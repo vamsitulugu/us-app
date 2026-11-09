@@ -72,6 +72,7 @@ const apiLimiter = rateLimit({
 const allowedOrigins = [
   'https://twinhearts.vercel.app',
   'https://useverythingtogether.vercel.app',
+  'https://appassets.androidplatform.net',   // the Android app runs the bundled cinema from this private address
   process.env.APP_URL || 'https://us-app-av6d.onrender.com',
   ...String(process.env.ALLOWED_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean)
 ];
