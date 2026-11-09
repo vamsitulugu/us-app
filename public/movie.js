@@ -692,6 +692,8 @@
   // Either partner can pick "3D movie". The picker opens the private 3D theatre (their avatar, partner already invited);
   // the other phone is on this same screen, notices the invite within ~2 s and follows automatically.
   const cinema = () => (window.parent && window.parent.TwinCinema) || window.TwinCinema || null;
+  // While the 3D theatre is open it plays this same room (twin-cinemas src/watch.js). This page must not start a second player under it.
+  const cinemaOpen = () => { try { const T = cinema(); return !!(T && T.isOpen && T.isOpen()); } catch (_) { return false; } };
   window.TwinWatchFile = () => state.localFile || null;     // read by cinema-invite.js: the 3D theatre reuses the movie file picked on this page
   async function passGate(btn) {
     // same daily-free-movie / coin pass as the normal Start
@@ -997,6 +999,7 @@
   }
 
   function applyRemoteState(payload) {
+    if (cinemaOpen()) return;                                         // the theatre is playing the room
     if (!payload || payload.actionSeq <= state.lastActionSeq) return; // stale/out-of-order — ignore
     state.lastActionSeq = payload.actionSeq;
     state.room = { ...(state.room || {}), status: 'watching', playing: payload.playing, position_sec: payload.positionSec, updated_at: payload.updated_at, updated_by: payload.updated_by, action_seq: payload.actionSeq };
@@ -1989,7 +1992,7 @@
   // SECTION 16 — Reconnect handling (network + app resume)
   // ═══════════════════════════════════════════════════════
   async function reconcile() {
-    if (!COUPLE_ID || state.reconnectPending) return;
+    if (!COUPLE_ID || state.reconnectPending || cinemaOpen()) return;
     state.reconnectPending = true;
     try {
       const room = await api('GET', `/${COUPLE_ID}`);
@@ -2190,7 +2193,7 @@
     r.user1_duration_sec, r.user2_duration_sec, r.shared_movie_id, r.start_requested_by, r.scheduled_start_at].join('|') : '';
   let pollBusy = false;
   async function pollRoom() {
-    if (pollBusy || document.hidden || !COUPLE_ID || state.reconnectPending) return;
+    if (pollBusy || document.hidden || !COUPLE_ID || state.reconnectPending || cinemaOpen()) return;
     pollBusy = true;
     try {
       const room = await api('GET', `/${COUPLE_ID}`);

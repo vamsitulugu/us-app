@@ -234,7 +234,7 @@
       .then(function (r) { dismissed[inv.id] = 1; go(r.url, (opts && opts.file) || undefined); })
       .catch(function (e) { say(e.status === 410 || e.status === 409 ? 'That invite is no longer open — ask for a new one 🎬' : 'Could not join: ' + e.message); });
   }
-  window.TwinCinema = { open: open, check: check, start3D: start3D, pending: pending, joinNow: joinNow, hold: false };
+  window.TwinCinema = { open: open, check: check, start3D: start3D, pending: pending, joinNow: joinNow, hold: false, isOpen: function () { return !!frame; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 2500); });
   else setTimeout(start, 2500);
 })();
