@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v79'; // bumped: cinema now lives inside the web app at /cinema/
+const CACHE = 'uwl-v78'; // bumped: cinema-invite.js passes the picked movie (no second choose)
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
@@ -29,7 +29,6 @@ self.addEventListener('fetch', e => {
   if (url.origin !== self.location.origin) return;
 
   if (url.pathname.startsWith('/api/')) return; // never intercept API
-  if (url.pathname.startsWith('/cinema/')) return; // 3D cinema: big media + range requests, let the browser handle it
 
   // Static, fingerprint-free assets (styles/fonts/images/icons) are safe
   // to serve cache-first with a background revalidation: they're purely

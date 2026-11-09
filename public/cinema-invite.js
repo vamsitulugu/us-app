@@ -5,7 +5,7 @@
      (Accept → opens the cinema with their own avatar; Not now → host is told)
    • Push taps arrive as /?cinema=<id>; the same check shows the card straight away.
    Purely additive: nothing else in the app calls into this file.
-   Backend: routes/cinema.js · Theatre: public/cinema/ (built from the twin-cinemas repo, same domain).
+   Backend: routes/cinema.js · Theatre: the separate twin-cinemas deploy.
 ═══════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -102,10 +102,9 @@
   }
 
   // The cinema gets a "back" link so Leave / ← Twin Hearts returns here.
-  // The theatre is part of this web app (/cinema/ on the same domain): whatever host the server's link names, we only keep its #hash.
   function go(url) {
-    var h = String(url).indexOf('#'), hash = h >= 0 ? String(url).slice(h + 1) : '', lib = libParam();
-    var full = location.origin + '/cinema/#' + hash + (hash ? '&' : '') + 'b=' + encodeURIComponent(location.origin + '/') + (lib === null ? '' : '&lib=' + lib);
+    var sep = url.indexOf('#') >= 0 ? '&' : '#', lib = libParam();
+    var full = url + sep + 'b=' + encodeURIComponent(location.origin + '/') + (lib === null ? '' : '&lib=' + lib);
     if (!openFrame(full + '&e=1')) window.location.href = full;
   }
 
@@ -133,16 +132,22 @@
     document.body.appendChild(d); return d;
   }
 
-  /* ── host: Together → Twin Cinema — goes straight into the cinema lobby (no sheet, no link) ── */
-  var opening = false;
+  /* ── host: Together → Twin Cinema ── */
   function open() {
-    if (opening) return;
     if (!ready()) return say('Connect with your partner first to plan a movie night 🎬');
-    var s = st(); opening = true; say('Opening cinema… 🍿');
-    call('POST', '/create', { coupleId: s.coupleId, role: s.role, slot: mySlot(), movie: '' })
-      .then(function (r) { go(r.url); })
-      .catch(function (e) { say('Could not open the cinema: ' + e.message); })
-      .then(function () { opening = false; });
+    var s = st(), pn = esc(s.partnerName || 'your partner');
+    var d = sheet(
+      '<div class="tcn-top"><span class="tcn-ico">🍿</span><div><h3>Movie night</h3></div></div>' +
+      '<p>You will enter the cinema lobby first. Invite ' + pn + ' from there, and when they accept you both go in together.</p>' +
+      '<input id="tcn-movie" maxlength="60" placeholder="What are you watching? (optional)">' +
+      '<div class="tcn-row"><button id="tcn-no">Cancel</button><button id="tcn-go" class="go">Open cinema lobby</button></div>');
+    d.querySelector('#tcn-no').onclick = close;
+    d.querySelector('#tcn-go').onclick = function () {
+      var b = this; b.disabled = true; b.textContent = 'Opening…';
+      call('POST', '/create', { coupleId: s.coupleId, role: s.role, slot: mySlot(), movie: d.querySelector('#tcn-movie').value.trim() })
+        .then(function (r) { go(r.url); })
+        .catch(function (e) { b.disabled = false; b.textContent = 'Open cinema lobby'; say('Could not open the cinema: ' + e.message); });
+    };
   }
 
   /* ── partner: invite card ── */

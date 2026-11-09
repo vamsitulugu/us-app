@@ -2,10 +2,10 @@
 
 Flow: **Together → Twin Cinema → (host) cinema lobby → Invite → (partner) invite card → Accept → host presses Start → both go in.**
 
-0. **The cinema is part of this repo now** — source in `cinema/` (Vite + Three.js), built by Vercel on every deploy into `public/cinema` and served at `/cinema/` on the same domain. No separate repo, no separate Vercel project, no cinema env vars. Local test: `npm run build:cinema`. Edit the menu: change `cinema/src/menu.js`, then `cd cinema && npm run export-menu`.
 1. **Supabase** → SQL Editor → run `migrations/cinema_sessions.sql`.
-2. **Render** (this app's backend) → deploy this commit. Delete the old `CINEMA_URL` env var if you set it — it is ignored now (the server always sends `https://twinhearts.vercel.app/cinema`).
-3. ~~Vercel env vars for twin-cinemas~~ — not needed: the cinema reuses the web app's own public Supabase keys (`window.__SUPABASE_URL__`).
+2. **Render** (this app's backend) → deploy this commit. Optional env var `CINEMA_URL` (default `https://twin-cinemas.vercel.app`) — use whichever cinema URL you keep as official.
+3. **Vercel → twin-cinemas → Settings → Environment Variables** → add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (Supabase → Settings → API → *anon public* key, NOT the service key), then **redeploy**.
+   Without these the cinema falls back to "local test mode" and the two phones can never meet (the lobby shows a warning).
 
 Test: `npm run test:cinema` (backend flow, no database needed).
 
@@ -22,10 +22,10 @@ The cinema canteen has no money: every order is paid with the buyer's **Gold Coi
 - `GET /api/cinema/:id/wallet?coupleId=&role=` → `{ balance }` (shown in the canteen header).
 - `POST /api/cinema/:id/canteen/order` `{ coupleId, role, clientId, for, lines:[{id,qty,sel}] }` — the server re-prices the order from `lib/canteen-menu.json`, then spends the coins with `reward_credit()` (kind `canteen_order`, idempotent per `clientId`). Not enough coins → `402 { code:'insufficient', balance, need }`.
 - Opened without the Twin Hearts hand-off (no wallet) the canteen shows the menu but ordering is disabled.
-- **Changing the menu / prices:** edit `cinema/src/menu.js`, then run `npm run export-menu` inside `cinema/` (rewrites `lib/canteen-menu.json`) and deploy. The server only accepts items in that JSON.
+- **Changing the menu / prices:** edit `src/menu.js` in twin-cinemas, then run `npm run export-menu` there (rewrites `lib/canteen-menu.json` here) and deploy both. The server only accepts items in that JSON.
 - No SQL migration needed (uses the existing `reward_wallets` / `coin_transactions`). Test: `npm run test:canteen`.
 
 ## Auto-share the movie (nobody chooses the same file twice)
 The cinema uploads the movie once to your Cloudflare R2 bucket and the partner streams it. Needs the Shared Cloud Storage setup (`migrations/shared_movies.sql` + `R2_*` env vars) and **CORS on the R2 bucket** for the cinema site:
-`AllowedOrigins` = `https://twinhearts.vercel.app` · `AllowedMethods` = `GET, HEAD, PUT` · `AllowedHeaders` = `*` · `ExposeHeaders` = `ETag, Content-Range, Content-Length, Accept-Ranges`.
+`AllowedOrigins` = `https://twin-cinemas.vercel.app` (+ your web app origin) · `AllowedMethods` = `GET, HEAD, PUT` · `AllowedHeaders` = `*` · `ExposeHeaders` = `ETag, Content-Range, Content-Length, Accept-Ranges`.
 Optional env: `CINEMA_AUTO_SHARE_FREE=1` (let free couples auto-share; default Pro only) · `CINEMA_SHARE_TTL_HOURS=48` (auto-shared movies are deleted after this). Endpoints: `POST /api/cinema/:id/share/init | :movieId/parts | :movieId/complete | :movieId/abort`.

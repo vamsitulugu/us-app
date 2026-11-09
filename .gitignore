@@ -13,8 +13,3 @@ node_modules/
 # Storage by scripts/publish-apk.js. Only the small metadata JSON
 # (public/downloads/app-meta.json) stays tracked.
 public/downloads/*.apk
-
-# 3D cinema: source lives in cinema/, Vercel builds it into public/cinema at deploy time
-public/cinema/
-cinema/node_modules/
-cinema/dist/
