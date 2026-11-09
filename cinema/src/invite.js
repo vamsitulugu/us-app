@@ -8,7 +8,9 @@
 import {ONLINE} from './net.js';
 import {iconize} from './icons.js';
 import {decodeLib} from './lib-codec.js';
-export const API=(import.meta.env&&import.meta.env.VITE_API_BASE)||'';   // same domain as the web app (/api/* is proxied to the backend by vercel.json); set VITE_API_BASE only for local dev
+// Same backend as the Twin Hearts web app: the cinema runs in a same-origin frame, so it reuses the web app's own API address (window.API); VITE_API_BASE overrides it for local dev.
+const pickApi=()=>{const e=import.meta.env&&import.meta.env.VITE_API_BASE;if(e)return e;try{if(window.parent&&window.parent!==window&&window.parent.API)return window.parent.API}catch(_){}return window.API||'https://us-app-av6d.onrender.com'};
+export const API=pickApi();
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function read(){
  try{const q=new URLSearchParams(location.hash.slice(1)),s=q.get('s'),r=+q.get('r');
