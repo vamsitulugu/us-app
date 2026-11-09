@@ -71,7 +71,7 @@ router.post('/create', async (req, res) => {
   if (String(coupleId).indexOf('solo_') === 0) return res.status(400).json({ error: 'Connect your partner first' });
   try {
     const { data: open } = await supabase.from('cinema_sessions').select('*')
-      .eq('couple_id', coupleId).eq('host_role', role).in('status', ['lobby', 'invited', 'accepted'])
+      .eq('couple_id', coupleId).eq('host_role', role).in('status', ['lobby', 'invited', 'accepted', 'started'])
       .gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }).limit(1);
     let session = open && open[0];
     if (session) {
@@ -119,19 +119,21 @@ router.post('/:id/invite', async (req, res) => {
 });
 
 // GET /api/cinema/pending/:coupleId?role=user2   → the invite waiting for ME (or null)
+// Also returns accepted / started sessions so a partner who closed the app can get back in ("Rejoin").
 router.get('/pending/:coupleId', async (req, res) => {
   const { coupleId } = req.params, role = req.query.role;
   if (!ROLES.has(role)) return res.status(400).json({ error: 'Missing role' });
   const since = new Date(Date.now() - INVITE_TTL_MS).toISOString();
   const { data, error } = await supabase.from('cinema_sessions').select('*')
-    .eq('couple_id', coupleId).eq('host_role', other(role)).eq('status', 'invited')
-    .gt('invited_at', since).order('invited_at', { ascending: false }).limit(1);
+    .eq('couple_id', coupleId).eq('host_role', other(role)).in('status', ['invited', 'accepted', 'started'])
+    .gt('expires_at', new Date().toISOString()).order('invited_at', { ascending: false }).limit(5);
   if (error) return res.status(500).json({ error: error.message });
-  const s = data && data[0];
+  // a fresh invite must be inside its 10-minute window; accepted / started sessions stay open until they expire
+  const s = (data || []).find(x => x.status !== 'invited' || (x.invited_at && x.invited_at > since));
   if (!s) return res.json({ invite: null });
   const n = await names(coupleId);
   return res.json({ invite: {
-    id: s.id, movie: s.movie, invitedAt: s.invited_at,
+    id: s.id, movie: s.movie, invitedAt: s.invited_at, status: s.status,
     hostName: (s.host_role === 'user1' ? n.user1_name : n.user2_name) || 'Your partner',
     hostAvatar: (s.host_role === 'user1' ? n.user1_avatar : n.user2_avatar) || null
   } });
@@ -246,9 +248,13 @@ router.get('/:id/library', async (req, res) => {
 //   GET  /api/cinema/:id/wallet?coupleId=&role=                      → { balance }
 //   POST /api/cinema/:id/canteen/order { coupleId, role, clientId, for, lines:[{id,qty,sel}] } → { ok, total, balance } | 402 { code:'insufficient', balance, need }
 const { priceOrder } = require('../lib/canteen-price');
-async function walletUser(coupleId, role) {
+// Same sign-in check as /api/rewards: the x-user-id header must be a real, active member of this couple, and must be
+// the user holding the role the cinema claims. The session UUID alone can no longer spend coins.
+async function walletUser(req, coupleId, role) {
   if (!ROLES.has(role)) return null;
-  const { data } = await supabase.from('users').select('id, account_status').eq('couple_id', coupleId).eq('role', role).maybeSingle();
+  const uid = req.get('x-user-id');
+  if (!uid) return null;
+  const { data } = await supabase.from('users').select('id, account_status').eq('id', uid).eq('couple_id', coupleId).eq('role', role).maybeSingle();
   if (!data || data.account_status === 'suspended' || data.account_status === 'disabled') return null;
   return data;
 }
@@ -261,7 +267,7 @@ router.get('/:id/wallet', async (req, res) => {
   const r = await loadSession(req.params.id, coupleId);
   if (r.error) return res.status(r.code).json({ error: r.error });
   try {
-    const u = await walletUser(coupleId, req.query.role);
+    const u = await walletUser(req, coupleId, req.query.role);
     if (!u) return res.status(403).json({ error: 'Please sign in again.' });
     return res.json({ balance: await balanceOf(u.id) });
   } catch (e) { return res.status(500).json({ error: 'Could not load your Gold Coins' }); }
@@ -270,13 +276,13 @@ router.post('/:id/canteen/order', async (req, res) => {
   const b = req.body || {}, coupleId = String(b.coupleId || '');
   const r = await loadSession(req.params.id, coupleId);
   if (r.error) return res.status(r.code).json({ error: r.error });
-  if (r.session.status === 'expired') return res.status(410).json({ error: 'This cinema session has ended.' });
+  if (['expired', 'ended'].includes(r.session.status)) return res.status(410).json({ error: 'This cinema session has ended.' });
   const clientId = typeof b.clientId === 'string' ? b.clientId.trim() : '';
   if (!/^[A-Za-z0-9_.:-]{6,80}$/.test(clientId)) return res.status(400).json({ error: 'Missing or invalid data' });
   const priced = priceOrder(b.lines);
   if (!priced.ok) return res.status(400).json({ error: priced.error });
   try {
-    const u = await walletUser(coupleId, b.role);
+    const u = await walletUser(req, coupleId, b.role);
     if (!u) return res.status(403).json({ error: 'Please sign in again.' });
     const idem = 'canteen:' + clientId;
     const { data, error } = await supabase.rpc('reward_credit', {

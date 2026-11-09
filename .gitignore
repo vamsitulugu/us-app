@@ -17,3 +17,7 @@ public/downloads/*.apk
 # 3D cinema: source lives in cinema/; the built copy in public/cinema/ IS committed (run: npm run build:cinema)
 cinema/node_modules/
 cinema/dist/
+
+# local tool folders (per-machine, never commit)
+.vercel/
+.vscode/

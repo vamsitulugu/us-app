@@ -1,0 +1,19 @@
+# Fails a push/PR when cinema/ source was changed but public/cinema/ (the copy Vercel serves) was not rebuilt.
+name: cinema-build-check
+on:
+  push:
+    paths: ['cinema/**', 'public/cinema/**', 'public/index.html']
+  pull_request:
+    paths: ['cinema/**', 'public/cinema/**', 'public/index.html']
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm run build:cinema
+      - name: Built output must match what is committed
+        run: |
+          git add -A public/cinema
+          git diff --cached --exit-code --stat public/cinema || { echo "::error::public/cinema is out of date - run 'npm run build:cinema' and commit it"; exit 1; }

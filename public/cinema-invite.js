@@ -3,7 +3,7 @@
    • "Twin Cinema" row (Together page) → host sheet → opens the cinema lobby
    • Partner side: polls /api/cinema/pending and shows an invite card
      (Accept → opens the cinema with their own avatar; Not now → host is told)
-   • Push taps arrive as /?cinema=<id>; the same check shows the card straight away.
+   • Push taps arrive as /?cinema=<id>; deepLink() below reads it and runs the check straight away.
    Purely additive: nothing else in the app calls into this file.
    Backend: routes/cinema.js · Theatre: public/cinema/ (built from cinema/, same domain).
 ═══════════════════════════════════════════════════════════════ */
@@ -29,7 +29,7 @@
   }
 
   function call(method, path, body) {
-    var opt = { method: method, headers: { 'Content-Type': 'application/json' }, cache: 'no-store' };
+    var opt = { method: method, headers: { 'Content-Type': 'application/json', 'x-user-id': st().userId || '' }, cache: 'no-store' };
     if (body) opt.body = JSON.stringify(body);
     return fetch(api() + '/api/cinema' + path, opt).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) { var e = new Error(j.error || ('HTTP ' + r.status)); e.status = r.status; throw e; } return j; });
@@ -105,7 +105,7 @@
   // The theatre is part of this web app (/cinema/ on the same domain): whatever host the server's link names, we only keep its #hash.
   function go(url) {
     var h = String(url).indexOf('#'), hash = h >= 0 ? String(url).slice(h + 1) : '', lib = libParam();
-    var full = location.origin + '/cinema/#' + hash + (hash ? '&' : '') + 'b=' + encodeURIComponent(location.origin + '/') + (lib === null ? '' : '&lib=' + lib);
+    var full = location.origin + '/cinema/#' + hash + (hash ? '&' : '') + 'x=' + encodeURIComponent(st().userId || '') + '&b=' + encodeURIComponent(location.origin + '/') + (lib === null ? '' : '&lib=' + lib);
     if (!openFrame(full + '&e=1')) window.location.href = full;
   }
 
@@ -148,12 +148,12 @@
   function showInvite(inv) {
     if (shown === inv.id || dismissed[inv.id]) return;
     shown = inv.id;
-    var s = st(), name = esc(inv.hostName || s.partnerName || 'Your partner');
+    var s = st(), name = esc(inv.hostName || s.partnerName || 'Your partner'), rejoin = inv.status === 'accepted' || inv.status === 'started';
     var av = inv.hostAvatar && /^(https?:|data:image\/|\/)/.test(inv.hostAvatar) ? '<img class="tcn-av" src="' + esc(inv.hostAvatar) + '" alt="">' : '<span class="tcn-ico">🎬</span>';
     var d = sheet(
       '<div class="tcn-top">' + av + '<div><h3>' + name + ' invited you</h3></div></div>' +
-      '<p>🍿 Movie night in Twin Cinema' + (inv.movie ? ' · <b>' + esc(inv.movie) + '</b>' : '') + '. They are already waiting in the lobby.</p>' +
-      '<div class="tcn-row"><button id="tcn-dec">Not now</button><button id="tcn-acc" class="go">Accept ♥</button></div>');
+      '<p>🍿 Movie night in Twin Cinema' + (inv.movie ? ' · <b>' + esc(inv.movie) + '</b>' : '') + (rejoin ? '. Your movie night is still going — jump back in.' : '. They are already waiting in the lobby.') + '</p>' +
+      '<div class="tcn-row"><button id="tcn-dec">Not now</button><button id="tcn-acc" class="go">' + (rejoin ? 'Rejoin ♥' : 'Accept ♥') + '</button></div>');
     d.dataset.lock = '1';
     d.querySelector('#tcn-dec').onclick = function () {
       dismissed[inv.id] = 1; close();
@@ -179,8 +179,20 @@
       .then(function () { busy = false; });
   }
 
+  // A tapped push opens /?cinema=<id>: check straight away (no waiting for the 6 s poll) and tidy the address bar.
+  function deepLink() {
+    try {
+      var u = new URL(location.href);
+      if (!u.searchParams.get('cinema')) return false;
+      u.searchParams.delete('cinema');
+      history.replaceState(null, '', u.pathname + (u.search || '') + u.hash);
+      return true;
+    } catch (_) { return false; }
+  }
+
   function start() {
     if (timer) return;
+    if (deepLink()) { dismissed = {}; var tries = 0, t = setInterval(function () { tries++; if (ready() || tries > 20) { clearInterval(t); check(); } }, 500); }
     check();
     timer = setInterval(check, POLL_MS);
     document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });

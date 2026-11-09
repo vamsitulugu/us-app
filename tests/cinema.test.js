@@ -93,7 +93,18 @@ const call = async (m, u, b) => { const r = await fetch(base + u, { method: m, h
     const r = await call('POST', `/api/cinema/${sid}/accept`, { coupleId: 'C1', role: 'user2' });
     assert.equal(r.s, 200); assert.ok(r.j.url.includes('r=2') && r.j.url.includes('n=Ravi') && r.j.url.includes('s='+sid) && r.j.url.includes('u=user2'));
     assert.equal((await call('GET', `/api/cinema/${sid}?coupleId=C1`)).j.status, 'accepted');
-    assert.equal((await call('GET', '/api/cinema/pending/C1?role=user2')).j.invite, null);
+    // the partner can get back in after Accept (rejoin card), it is not hidden any more
+    const p = (await call('GET', '/api/cinema/pending/C1?role=user2')).j.invite;
+    assert.ok(p && p.id === sid && p.status === 'accepted');
+  });
+  await t('rejoin mid-movie: partner still sees the session, host /create reuses it', async () => {
+    await call('POST', `/api/cinema/${sid}/status`, { coupleId: 'C1', role: 'user1', status: 'started' });
+    const p = (await call('GET', '/api/cinema/pending/C1?role=user2')).j.invite;
+    assert.ok(p && p.id === sid && p.status === 'started');
+    assert.equal((await call('POST', `/api/cinema/${sid}/accept`, { coupleId: 'C1', role: 'user2' })).s, 200);   // rejoin returns a URL, status stays started
+    const c = await call('POST', '/api/cinema/create', { coupleId: 'C1', role: 'user1', slot: 1 });
+    assert.equal(c.j.session.id, sid); assert.equal(tables.cinema_sessions.length, 1);   // same room, no second session
+    tables.cinema_sessions[0].status = 'accepted';
   });
   await t('an invite older than 10 minutes expires', async () => {
     tables.cinema_sessions[0].status = 'invited';

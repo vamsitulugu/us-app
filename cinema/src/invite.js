@@ -17,12 +17,12 @@ function read(){
   if(!UUID.test(s||'')||(r!==1&&r!==2))return null;
   let back=null;try{const u=new URL(q.get('b')||'');if(/^https?:$/.test(u.protocol))back=u.href}catch(e){}
   let backOrigin='';try{backOrigin=new URL(back).origin}catch(e){}
-  const a={invited:q.get('i')==='1',session:s,slot:r,name:(q.get('n')||'').slice(0,30),couple:q.get('c')||'',user:q.get('u')||'',host:q.get('h')==='1',back,backOrigin,embed:q.get('e')==='1'&&window.parent!==window&&!!backOrigin,lib:decodeLib(q.get('lib')),};   // lib = this phone's Twin Hearts movie library (null = not sent)
+  const a={uid:(q.get('x')||'').slice(0,64),invited:q.get('i')==='1',session:s,slot:r,name:(q.get('n')||'').slice(0,30),couple:q.get('c')||'',user:q.get('u')||'',host:q.get('h')==='1',back,backOrigin,embed:q.get('e')==='1'&&window.parent!==window&&!!backOrigin,lib:decodeLib(q.get('lib')),};   // lib = this phone's Twin Hearts movie library (null = not sent)
   if(!a.couple||!/^user[12]$/.test(a.user))return null;
   history.replaceState(0,'',location.pathname+'#'+s);   // couple id never stays in the address bar / history; the room code stays
   return a}catch(e){return null}}
 export const APP=read();                                 // null = normal (manual) mode
-const post=(path,body)=>fetch(API+'/api/cinema/'+APP.session+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({coupleId:APP.couple,role:APP.user,...body}),keepalive:true}).then(r=>r.json().then(j=>({ok:r.ok,j})));
+const post=(path,body)=>fetch(API+'/api/cinema/'+APP.session+path,{method:'POST',headers:{'content-type':'application/json','x-user-id':APP.uid||''},body:JSON.stringify({coupleId:APP.couple,role:APP.user,...body}),keepalive:true}).then(r=>r.json().then(j=>({ok:r.ok,j})));
 /** The couple's cloud movies (Cloudflare R2) -> {movies:[{id,title,durationSec,sizeBytes}]} | {err} */
 export async function fetchCloudList(){if(!APP)return{err:'Open the cinema from Twin Hearts to use your cloud movies'};
  try{const r=await fetch(API+'/api/cinema/'+APP.session+'/cloud?coupleId='+encodeURIComponent(APP.couple)+'&role='+APP.user,{cache:'no-store'}),j=await r.json().catch(()=>null);
@@ -37,7 +37,7 @@ export async function fetchLibrary(){if(!APP)return null;
  try{const r=await fetch(API+'/api/cinema/'+APP.session+'/library?coupleId='+encodeURIComponent(APP.couple),{cache:'no-store'});if(!r.ok)return null;const j=await r.json();return Array.isArray(j.movies)?j.movies:null}catch(e){return null}}
 /** Gold Coins = the couple's Twin Hearts wallet. Only available when the cinema was opened from the app (APP set). The server prices and charges every order itself. */
 export async function fetchBalance(){if(!APP)return null;
- try{const r=await fetch(API+'/api/cinema/'+APP.session+'/wallet?coupleId='+encodeURIComponent(APP.couple)+'&role='+APP.user,{cache:'no-store'});if(!r.ok)return null;const j=await r.json();return typeof j.balance==='number'?j.balance:null}catch(e){return null}}
+ try{const r=await fetch(API+'/api/cinema/'+APP.session+'/wallet?coupleId='+encodeURIComponent(APP.couple)+'&role='+APP.user,{cache:'no-store',headers:{'x-user-id':APP.uid||''}});if(!r.ok)return null;const j=await r.json();return typeof j.balance==='number'?j.balance:null}catch(e){return null}}
 /** order = {id (one per attempt, so a double tap never pays twice), for, lines:[{id,qty,sel}]} -> {ok:true,balance} | {ok:false,error,code,balance,need} */
 export async function payOrder(o){const {ok,j}=await post('/canteen/order',{clientId:o.id,for:o.for,lines:o.lines});
  return ok?{ok:true,balance:j.balance}:{ok:false,error:j.error,code:j.code,balance:j.balance,need:j.need}}

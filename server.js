@@ -67,24 +67,21 @@ const apiLimiter = rateLimit({
 });
 
 // ── CORS ──────────────────────────────────────────────
+// Only YOUR sites may call the API from a browser. Add preview deployments with
+// ALLOWED_ORIGINS="https://my-preview.vercel.app,https://other.example.com" (comma separated) on Render.
 const allowedOrigins = [
   'https://twinhearts.vercel.app',
   'https://useverythingtogether.vercel.app',
   process.env.APP_URL || 'https://us-app-av6d.onrender.com',
-  'http://localhost',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  'http://localhost:3001',
-  'http://127.0.0.1:3001'
+  ...String(process.env.ALLOWED_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean)
 ];
 app.use(cors({
   origin: function(origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
     try {
+      // the Android / local WebView shells run on localhost
       const host = new URL(origin).hostname;
-      if (host === 'localhost' || host === '127.0.0.1' || host.endsWith('.vercel.app')) {
-        return callback(null, true);
-      }
+      if (host === 'localhost' || host === '127.0.0.1') return callback(null, true);
     } catch (e) { /* ignore invalid origin */ }
     callback(null, false);
   },

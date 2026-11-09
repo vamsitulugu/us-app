@@ -30,7 +30,12 @@ require.cache[libPath] = { id: libPath, filename: libPath, loaded: true, exports
 const express = require('express');
 const app = express(); app.use(express.json()); app.use('/api/cinema', require('../routes/cinema'));
 let base;
-const call = async (m, u, b) => { const r = await fetch(base + u, { method: m, headers: { 'content-type': 'application/json' }, body: b ? JSON.stringify(b) : undefined }); return { s: r.status, j: await r.json() }; };
+// like the real app: every wallet / order call carries the signed-in user's id in x-user-id (override with hdr; null = no header)
+const call = async (m, u, b, hdr) => {
+  const role = (b && b.role) || (u.match(/role=(\w+)/) || [])[1], uid = hdr === undefined ? ({ user1: 'U1', user2: 'U2' })[role] : hdr;
+  const h = { 'content-type': 'application/json' }; if (uid) h['x-user-id'] = uid;
+  const r = await fetch(base + u, { method: m, headers: h, body: b ? JSON.stringify(b) : undefined }); return { s: r.status, j: await r.json() };
+};
 const order = (over = {}) => call('POST', `/api/cinema/${SID}/canteen/order`, { coupleId: 'C1', role: 'user1', clientId: 'order-aaaa-1', for: 'me',
   lines: [{ id: 'popcorn:Popcorn', qty: 1, sel: [[0], [1], []] }], ...over });   // Salted, Medium = 10 + 5 = 15 coins
 
@@ -44,6 +49,14 @@ const order = (over = {}) => call('POST', `/api/cinema/${SID}/canteen/order`, { 
   await t('other couples / wrong role cannot use the session', async () => {
     assert.equal((await call('GET', `/api/cinema/${SID}/wallet?coupleId=C2&role=user1`)).s, 404);
     assert.equal((await call('GET', `/api/cinema/${SID}/wallet?coupleId=C1&role=admin`)).s, 403);
+  });
+  await t('knowing the session id is not enough: no / wrong x-user-id is refused', async () => {
+    assert.equal((await call('GET', `/api/cinema/${SID}/wallet?coupleId=C1&role=user1`, null, null)).s, 403);
+    assert.equal((await call('GET', `/api/cinema/${SID}/wallet?coupleId=C1&role=user1`, null, 'U2')).s, 403);   // partner's id, wrong role
+    assert.equal((await call('GET', `/api/cinema/${SID}/wallet?coupleId=C1&role=user1`, null, 'nobody')).s, 403);
+    const r = await order({ clientId: 'order-noauth-9' }); assert.equal(r.s, 200); tables.reward_wallets[0].balance += 15;   // (control: signed-in order works; refund the 15 to keep later numbers)
+    const bad = await call('POST', `/api/cinema/${SID}/canteen/order`, { coupleId: 'C1', role: 'user1', clientId: 'order-noauth-8', for: 'me', lines: [{ id: 'popcorn:Popcorn', qty: 1, sel: [[0], [1], []] }] }, null);
+    assert.equal(bad.s, 403); assert.equal(tables.reward_wallets[0].balance, 40);
   });
   await t('an order is priced by the server and charged once', async () => {
     const r = await order(); assert.equal(r.s, 200); assert.equal(r.j.total, 15); assert.equal(r.j.balance, 25);
@@ -64,6 +77,13 @@ const order = (over = {}) => call('POST', `/api/cinema/${SID}/canteen/order`, { 
     assert.equal((await order({ clientId: 'order-dddd-6', lines: [{ id: 'fake:Item', qty: 1, sel: [] }] })).s, 400);
     assert.equal((await order({ clientId: 'order-dddd-7', lines: [{ id: 'popcorn:Popcorn', qty: -3, sel: [[0], [1], []] }] })).s, 400);
     assert.equal((await order({ clientId: 'x' })).s, 400);
+    assert.equal(tables.reward_wallets[0].balance, 25);
+  });
+  await t('no orders once the movie has ended or expired', async () => {
+    for (const st of ['ended', 'expired']) {
+      tables.cinema_sessions[0].status = st;
+      assert.equal((await order({ clientId: 'order-late-' + st })).s, 410);
+    }
     assert.equal(tables.reward_wallets[0].balance, 25);
   });
   console.log(`\n${ok} passed`); srv.close();
