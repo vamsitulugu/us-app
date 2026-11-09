@@ -759,7 +759,10 @@ async function sendPushToUser(userId, payload) {
             url: payload.url || '/',
             tag: payload.tag || '',
             ...extra
-          }
+          },
+          // Same reasoning as sendFCMToPartner: without high priority Android may hold the push
+          // for minutes while the phone sleeps. Kept for a day if the phone is off.
+          android: { priority: 'high', ttl: 24 * 60 * 60 * 1000 }
         });
         result.fcm = { sent: true, messageId };
         console.log(`[push:fcm] user=${userId} sent OK messageId=${messageId} (${Date.now() - t0}ms)`);

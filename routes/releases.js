@@ -21,10 +21,19 @@
 //      the app" independent of any single release's configured type.
 // ═══════════════════════════════════════════════════════════════
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const supabase = require('../middleware/supabase');
 const { compareVersions, isOlderThan } = require('../lib/version');
 
 const router = express.Router();
+
+// The APK that scripts/publish-apk.js last uploaded. Used as the download link when a release
+// has none of its own, so the Android popup always has something to open.
+function apkMeta() {
+  try { return JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'public', 'downloads', 'app-meta.json'), 'utf8')); }
+  catch (_) { return null; }
+}
 
 // ── GET /api/releases/check ──────────────────────────────────────
 // Query params: version (required), build (optional), platform
@@ -86,7 +95,7 @@ router.get('/check', async (req, res) => {
         title: latest.title,
         message: latest.message,
         notes: latest.notes,
-        updateUrl: latest.update_url,
+        updateUrl: latest.update_url || (platform !== 'web' && apkMeta() ? apkMeta().downloadUrl : null) || null,
         publishedAt: latest.published_at
       }
     });
@@ -102,3 +111,4 @@ router.get('/check', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.apkMeta = apkMeta;

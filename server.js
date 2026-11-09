@@ -194,6 +194,7 @@ app.use('/api/admin/users', require('./routes/admin-users'));
 app.use('/api/admin/couples', require('./routes/admin-couples'));
 app.use('/api/admin/releases', require('./routes/admin-releases'));
 app.use('/api/admin/notifications', require('./routes/admin-notifications'));
+app.use('/api/cron', require('./routes/cron'));   // external pinger for scheduled pushes (needs CRON_SECRET)
 app.use('/api/admin/flags', require('./routes/admin-flags'));
 app.use('/api/admin/health', require('./routes/admin-health'));
 app.use('/api/admin/support', require('./routes/admin-support'));
@@ -224,6 +225,14 @@ app.use((err, req, res, next) => {
 });
 // ── Start ──────────────────────────────────────────────
 app.listen(PORT, async () => {
+  // Scheduled / repeating admin pushes: check once a minute while the server is awake.
+  // (A sleeping free-tier server is woken by /api/cron/notifications — see routes/cron.js.)
+  const { runDueNotifications } = require('./routes/admin-notifications');
+  const tick = () => runDueNotifications().then(r => { if (r.length) console.log('[scheduler] sent', JSON.stringify(r)); })
+    .catch(e => console.error('[scheduler] failed:', e.message));
+  setTimeout(tick, 15 * 1000).unref();
+  setInterval(tick, 60 * 1000).unref();
+
   console.log(`\n💕 Twin Hearts server running!`);
   console.log(`   Local:   http://localhost:${PORT}`);
   console.log(`   Health:  http://localhost:${PORT}/api/health`);

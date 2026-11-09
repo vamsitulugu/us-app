@@ -13,13 +13,16 @@
   window.__appTelemetryLoaded = true;
 
   var API_HOST = 'us-app-av6d.onrender.com';
-  var WEB_VERSION = '1.0.0';   // bump when you deploy a web release you want to track
+  var WEB_VERSION = '0.3.0';   // bump when you deploy a web release you want to track
   var isTop = (function () { try { return window.top === window; } catch (e) { return false; } })();
   var KIND = 'web';
   var version = WEB_VERSION;
 
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
+  // The update banner is hidden only for THIS visit (sessionStorage): it comes back the next time the app is opened.
+  function ssGet(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
+  function ssSet(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* private mode */ } }
   function userId() {
     try { return (window.S && window.S.userId) || lsGet('uwl_active_user') || ''; } catch (e) { return ''; }
   }
@@ -108,7 +111,7 @@
   function showUpdate(type, rel) {
     if (document.getElementById('thUpdate')) return;
     var forced = type === 'required';
-    if (!forced && lsGet('th_update_dismissed') === rel.version) return;
+    if (!forced && ssGet('th_update_dismissed') === rel.version) return;
     var el = document.createElement('div'); el.id = 'thUpdate';
     el.style.cssText = forced
       ? 'position:fixed;inset:0;z-index:2147483647;background:rgba(10,2,8,.96);color:#fff;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,sans-serif;text-align:center'
@@ -130,7 +133,7 @@
       box.style.flex = '1'; el.appendChild(box); el.appendChild(btn);
       var x = document.createElement('button'); x.textContent = '✕'; x.setAttribute('aria-label', 'Dismiss');
       x.style.cssText = 'background:none;border:0;color:#fff;opacity:.6;font-size:16px';
-      x.onclick = function () { lsSet('th_update_dismissed', rel.version); el.remove(); };
+      x.onclick = function () { ssSet('th_update_dismissed', rel.version); el.remove(); };
       el.appendChild(x);
     }
     document.body.appendChild(el);

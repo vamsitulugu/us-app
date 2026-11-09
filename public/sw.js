@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v80'; // bumped: cinema-invite.js cleanup
+const CACHE = 'uwl-v81'; // bumped: web version 0.3.0 + update banner per visit
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',

@@ -11,7 +11,8 @@
     "build:cinema": "cd cinema && npm install && npm run build",
     "test:cinema": "node tests/cinema.test.js",
     "test:movie-sync": "node tests/movie-sync.test.js",
-    "test:canteen": "node tests/canteen-order.test.js"
+    "test:canteen": "node tests/canteen-order.test.js",
+    "test:admin": "node tests/admin-smoke.test.js && node tests/admin-notifications.test.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1149.0",

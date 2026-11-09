@@ -518,3 +518,27 @@ tbody tr:hover { background: rgba(255,255,255,.04); }
 @media (max-width: 860px) {
   .sidebar { height: 100vh; height: 100dvh; }
 }
+
+/* ── Notifications: scheduled / repeating pushes + picture ───────── */
+.badge.scheduled { background: rgba(96,165,250,.14); color: #93c5fd; border: 1px solid rgba(96,165,250,.30); }
+.badge.paused    { background: rgba(251,191,36,.13); color: var(--amber); border: 1px solid rgba(251,191,36,.28); }
+.badge.completed { background: rgba(52,211,153,.14); color: var(--green); border: 1px solid rgba(52,211,153,.28); }
+.badge.cancelled { background: rgba(255,255,255,.08); color: var(--text3); border: 1px solid rgba(255,255,255,.14); }
+.notif-thumb { width: 38px; height: 38px; border-radius: 8px; object-fit: cover; vertical-align: middle; margin-right: 10px; border: 1px solid var(--border); }
+.notif-sub { font-size: 12px; color: var(--text3); margin-top: 3px; }
+.notif-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.img-drop { border: 1px dashed var(--border); border-radius: 12px; padding: 12px; text-align: center; font-size: 13px; color: var(--text2); cursor: pointer; }
+.img-drop:hover { border-color: var(--accent); }
+.img-preview { position: relative; display: none; }
+.img-preview img { width: 100%; max-height: 190px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); display: block; }
+.img-preview button { position: absolute; top: 8px; right: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chip { background: var(--panel2); border: 1px solid var(--border); color: var(--text2); border-radius: 999px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
+.chip.on, .chip:hover { border-color: var(--accent); color: var(--text); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.sched-box { border: 1px solid var(--border); border-radius: 12px; padding: 12px 12px 2px; margin-bottom: 14px; }
+.sched-box[hidden] { display: none; }
+.push-preview { display: flex; gap: 10px; background: var(--panel2); border: 1px solid var(--border); border-radius: 14px; padding: 10px; margin-bottom: 14px; }
+.push-preview .pp-logo { width: 34px; height: 34px; border-radius: 50%; background: #B0127A; flex-shrink: 0; display:flex;align-items:center;justify-content:center; color:#fff; font-size:16px; }
+.push-preview .pp-t { font-weight: 600; font-size: 13px; } .push-preview .pp-b { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.push-preview img { width: 100%; border-radius: 10px; margin-top: 8px; max-height: 150px; object-fit: cover; }

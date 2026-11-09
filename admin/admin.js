@@ -483,6 +483,8 @@ async function loadReleases() {
       <div class="kv"><span class="k">Version</span><span>${esc(current.release.version)}</span></div>
       <div class="kv"><span class="k">Title</span><span>${esc(current.release.title)}</span></div>
       <div class="kv"><span class="k">Published</span><span>${fmtDate(current.release.published_at)}</span></div>
+      <div class="kv"><span class="k">Update type</span><span><span class="badge ${esc(current.release.update_type)}">${esc(current.release.update_type)}</span></span></div>
+      <div class="kv"><span class="k">Download link</span><span>${current.release.update_url ? 'set ✓' : '<span class="text-muted">not set (the uploaded APK link is used)</span>'}</span></div>
     ` : `<div class="empty-state">No release has been published yet.</div>`;
   } catch (e) { document.getElementById('currentReleaseCard').innerHTML = `<div class="error-state">${esc(e.message)}</div>`; }
 
@@ -491,16 +493,17 @@ async function loadReleases() {
   try {
     const data = await api('/releases');
     if (!data.releases.length) { listEl.innerHTML = `<div class="empty-state">No releases yet — create your first one.</div>`; return; }
-    listEl.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Version</th><th>Title</th><th>Type</th><th>Status</th><th>Created</th><th></th></tr></thead><tbody>
+    listEl.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Version</th><th>Title</th><th>Type</th><th>Platform</th><th>Status</th><th>Created</th><th></th></tr></thead><tbody>
       ${data.releases.map(r => `<tr>
         <td>${esc(r.version)}${r.build ? ' (' + r.build + ')' : ''}</td>
         <td>${esc(r.title)}</td>
         <td><span class="badge ${r.update_type}">${esc(r.update_type)}</span></td>
+        <td>${r.platform === 'all' || !r.platform ? '<span class="text-muted">Android + Web</span>' : platBadge(r.platform)}</td>
         <td><span class="badge ${r.status}">${esc(r.status)}</span></td>
         <td>${fmtDate(r.created_at)}</td>
         <td>
           ${r.status === 'draft' ? `<button class="btn secondary small" data-edit="${r.id}">Edit</button> <button class="btn small" data-publish="${r.id}">Publish</button> <button class="btn danger small" data-delrel="${r.id}">Delete</button>` : ''}
-          ${r.status === 'published' ? `<button class="btn secondary small" data-unpublish="${r.id}">Unpublish</button> <button class="btn secondary small" data-archive="${r.id}">Archive</button>` : ''}
+          ${r.status === 'published' ? `<button class="btn secondary small" data-edit="${r.id}">Edit</button> <button class="btn secondary small" data-unpublish="${r.id}">Unpublish</button> <button class="btn secondary small" data-archive="${r.id}">Archive</button>` : ''}
         </td>
       </tr>`).join('')}
     </tbody></table></div>`;
@@ -547,12 +550,31 @@ function openReleaseForm(existing) {
         <option value="required" ${existing?.update_type === 'required' ? 'selected' : ''}>Required</option>
       </select>
     </div>
-    <div class="field"><label>Download / update URL</label><input id="relUrl" value="${esc(existing?.update_url || '')}" placeholder="https://…/twin-hearts.apk"></div>
+    <div class="field"><label>Platform</label>
+      <select id="relPlatform">
+        <option value="all" ${(existing?.platform || 'all') === 'all' ? 'selected' : ''}>Android + Web (same version number)</option>
+        <option value="android" ${existing?.platform === 'android' ? 'selected' : ''}>Android only</option>
+        <option value="web" ${existing?.platform === 'web' ? 'selected' : ''}>Web only</option>
+      </select>
+    </div>
+    <div class="field"><label>Download / update URL</label><input id="relUrl" value="${esc(existing?.update_url || '')}" placeholder="https://…/twin-hearts.apk">
+      <div class="hint"><a href="#" id="relUseApk">Use the latest uploaded APK</a> <span id="relApkInfo"></span></div></div>
     <div class="field"><label>Minimum supported version (optional)</label><input id="relMin" value="${esc(existing?.min_supported_version || '')}" placeholder="1.5"></div>
     <div class="hint">Recommended/Required updates cannot be published without a download URL.</div>
     <div class="modal-actions"><button class="btn secondary" id="relCancel">Cancel</button><button class="btn" id="relSave">${isEdit ? 'Save changes' : 'Create draft'}</button></div>`;
   openDrawer(html);
   document.getElementById('relCancel').addEventListener('click', closeDrawer);
+  document.getElementById('relUseApk').addEventListener('click', async (ev) => {
+    ev.preventDefault();
+    try {
+      const { meta } = await api('/releases/apk-meta');
+      if (!meta || !meta.downloadUrl) { toast('No APK has been uploaded yet (run scripts/publish-apk.js)', 'error'); return; }
+      document.getElementById('relUrl').value = meta.downloadUrl;
+      if (!document.getElementById('relVersion').value) document.getElementById('relVersion').value = meta.version || '';
+      if (!document.getElementById('relBuild').value) document.getElementById('relBuild').value = meta.build || '';
+      document.getElementById('relApkInfo').textContent = `— APK ${meta.version} (build ${meta.build}), ${meta.size}, uploaded ${meta.updated}`;
+    } catch (e) { toast(e.message, 'error'); }
+  });
   document.getElementById('relSave').addEventListener('click', async () => {
     const payload = {
       version: document.getElementById('relVersion').value.trim(),
@@ -562,6 +584,7 @@ function openReleaseForm(existing) {
       notes: document.getElementById('relNotes').value.trim(),
       update_type: document.getElementById('relType').value,
       update_url: document.getElementById('relUrl').value.trim(),
+      platform: document.getElementById('relPlatform').value,
       min_supported_version: document.getElementById('relMin').value.trim()
     };
     try {
@@ -578,95 +601,253 @@ function openReleaseForm(existing) {
    ═══════════════════════════════════════════════════════════════ */
 renderers.notifications = async (el) => {
   el.innerHTML = `
-    <div class="page-header"><div><h2>Notifications</h2><p>Announcements and release pushes</p></div>
+    <div class="page-header"><div><h2>Notifications</h2><p>Announcements, pictures and repeating pushes</p></div>
       <button class="btn small" id="newNotifBtn">+ Compose</button></div>
     <div class="card"><h3>History</h3><div id="notifList"><div class="loading-state">Loading…</div></div></div>`;
-  document.getElementById('newNotifBtn').addEventListener('click', openNotifComposer);
+  document.getElementById('newNotifBtn').addEventListener('click', () => openNotifComposer());
   loadNotifs();
 };
+
+function scheduleText(n) {
+  if (n.repeat_every_hours) {
+    const h = Number(n.repeat_every_hours);
+    const bits = [`every ${h} h`];
+    if (n.repeat_until) bits.push(`until ${new Date(n.repeat_until).toLocaleDateString()}`);
+    return bits.join(' ');
+  }
+  return n.status === 'scheduled' ? 'one time' : '';
+}
 
 async function loadNotifs() {
   const el = document.getElementById('notifList');
   el.innerHTML = skeletonRows(3, 5);
   try {
     const data = await api('/notifications');
-    if (!data.notifications.length) { el.innerHTML = `<div class="empty-state">No notifications sent yet.</div>`; return; }
-    el.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Title</th><th>Audience</th><th>Status</th><th>Created</th><th>Sent</th><th></th></tr></thead><tbody>
-      ${data.notifications.map(n => `<tr>
-        <td>${esc(n.title)}</td><td>${esc(n.audience)}</td>
+    if (!data.notifications.length) { el.innerHTML = `<div class="empty-state">No notifications yet.</div>`; return; }
+    el.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Notification</th><th>Audience</th><th>Status</th><th>Schedule</th><th>Last sent</th><th></th></tr></thead><tbody>
+      ${data.notifications.map(n => {
+        const live = n.status === 'scheduled' || n.status === 'paused';
+        const r = n.result || {};
+        return `<tr>
+        <td>${n.image_url ? `<img class="notif-thumb" src="${esc(n.image_url)}" alt="">` : ''}<strong>${esc(n.title)}</strong><div class="notif-sub">${esc(n.message)}</div>${n.last_error ? `<div class="notif-sub" style="color:var(--red)">Last error: ${esc(n.last_error)}</div>` : ''}</td>
+        <td>${esc(n.audience)}</td>
         <td><span class="badge ${n.status}">${esc(n.status)}</span></td>
-        <td>${fmtDate(n.created_at)}</td><td>${fmtDate(n.sent_at)}</td>
-        <td>${n.status === 'draft' ? `<button class="btn small" data-send="${n.id}">Send</button> <button class="btn danger small" data-delnotif="${n.id}">Delete</button>` : (n.result?.recipientCount !== undefined ? `${n.result.recipientCount} recipients` : '')}</td>
-      </tr>`).join('')}
+        <td>${esc(scheduleText(n))}${n.status === 'scheduled' && n.next_run_at ? `<div class="notif-sub">next: ${fmtDate(n.next_run_at)}</div>` : ''}${n.run_count ? `<div class="notif-sub">sent ${n.run_count}×</div>` : ''}</td>
+        <td>${fmtDate(n.sent_at)}${r.recipientCount !== undefined ? `<div class="notif-sub">${r.deliveredCount !== undefined ? r.deliveredCount + ' of ' : ''}${r.recipientCount} recipients</div>` : ''}</td>
+        <td><div class="notif-actions">
+          ${n.status === 'draft' || n.status === 'failed' ? `<button class="btn small" data-send="${n.id}">Send now</button>` : ''}
+          ${['draft', 'failed', 'scheduled', 'paused'].includes(n.status) ? `<button class="btn secondary small" data-editnotif="${n.id}">Edit</button>` : ''}
+          ${n.status === 'scheduled' ? `<button class="btn secondary small" data-pause="${n.id}">Pause</button>` : ''}
+          ${n.status === 'paused' ? `<button class="btn small" data-resume="${n.id}">Resume</button>` : ''}
+          ${live ? `<button class="btn danger small" data-stop="${n.id}">Stop</button>` : ''}
+          ${['draft', 'failed', 'cancelled'].includes(n.status) ? `<button class="btn danger small" data-delnotif="${n.id}">Delete</button>` : ''}
+        </div></td>
+      </tr>`; }).join('')}
     </tbody></table></div>`;
-    el.querySelectorAll('[data-send]').forEach(b => b.addEventListener('click', async () => {
+    const byId = (id) => data.notifications.find(n => n.id === id);
+    const act = (sel, attr, fn) => el.querySelectorAll(sel).forEach(b => b.addEventListener('click', () => fn(b.dataset[attr])));
+    const call = async (path, method, okMsg) => { try { await api(path, { method }); toast(okMsg); loadNotifs(); } catch (e) { toast(e.message, 'error'); } };
+
+    act('[data-send]', 'send', async (id) => {
       const ok = await confirmDialog({ title: 'Send this notification now?', body: 'This pushes to every matching recipient immediately and cannot be undone.', confirmLabel: 'Send now' });
-      if (!ok) return;
-      try { await api(`/notifications/${b.dataset.send}/send`, { method: 'POST' }); toast('Notification sent'); loadNotifs(); }
-      catch (e) { toast(e.message, 'error'); }
-    }));
-    el.querySelectorAll('[data-delnotif]').forEach(b => b.addEventListener('click', async () => {
-      try { await api(`/notifications/${b.dataset.delnotif}`, { method: 'DELETE' }); toast('Draft deleted'); loadNotifs(); }
-      catch (e) { toast(e.message, 'error'); }
-    }));
+      if (ok) call(`/notifications/${id}/send`, 'POST', 'Notification sent');
+    });
+    act('[data-editnotif]', 'editnotif', (id) => openNotifComposer(byId(id)));
+    act('[data-pause]', 'pause', (id) => call(`/notifications/${id}/pause`, 'POST', 'Paused'));
+    act('[data-resume]', 'resume', (id) => call(`/notifications/${id}/resume`, 'POST', 'Resumed'));
+    act('[data-stop]', 'stop', async (id) => {
+      const ok = await confirmDialog({ title: 'Stop this notification?', body: 'No more pushes will be sent for it. You can delete it afterwards.', confirmLabel: 'Stop' });
+      if (ok) call(`/notifications/${id}/stop`, 'POST', 'Stopped');
+    });
+    act('[data-delnotif]', 'delnotif', async (id) => {
+      const ok = await confirmDialog({ title: 'Delete this notification?', body: 'This permanently removes it.', confirmLabel: 'Delete' });
+      if (ok) call(`/notifications/${id}`, 'DELETE', 'Deleted');
+    });
   } catch (e) { el.innerHTML = `<div class="error-state">${esc(e.message)}</div>`; }
 }
 
-function openNotifComposer() {
-  const html = `
-    <h3>Compose notification</h3>
-    <div class="field"><label>Title</label><input id="notifTitle" placeholder="Twinhearts 1.5 is available"></div>
-    <div class="field"><label>Message</label><textarea id="notifMessage" rows="3" placeholder="A new version with improvements and fixes is ready."></textarea></div>
-    <div class="field"><label>Type</label>
-      <select id="notifType">
-        <option value="announcement">Announcement</option>
-        <option value="new_release">New release</option>
-        <option value="maintenance">Maintenance</option>
-        <option value="info">Info</option>
-      </select>
+// <input type="datetime-local"> wants local "YYYY-MM-DDTHH:mm"
+function toLocalInput(iso) {
+  if (!iso) return '';
+  const d = new Date(iso); if (Number.isNaN(d.getTime())) return '';
+  const p = (x) => String(x).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function fromLocalInput(v) { return v ? new Date(v).toISOString() : null; }
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = () => reject(new Error('Could not read the file')); r.readAsDataURL(file); });
+}
+// Shrinks big photos in the browser (max 1280px wide, JPEG) so the upload is small and the push loads fast.
+function shrinkImage(dataUrl, maxW = 1280, quality = 0.85) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxW / img.width);
+      const c = document.createElement('canvas'); c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      resolve(c.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+function openNotifComposer(existing) {
+  const isEdit = !!existing;
+  const scheduledEdit = isEdit && ['scheduled', 'paused'].includes(existing.status);
+  const startMode = scheduledEdit ? 'schedule' : 'now';
+  const repeatOn = !!(existing && existing.repeat_every_hours);
+  const interval = existing && existing.repeat_every_hours ? Number(existing.repeat_every_hours) : 4;
+  const sel = (a, b) => a === b ? 'selected' : '';
+
+  openDrawer(`
+    <h3>${isEdit ? 'Edit notification' : 'Compose notification'}</h3>
+    <div class="push-preview" id="pushPreview"><div class="pp-logo">♥</div><div style="flex:1;min-width:0"><div class="pp-t" id="ppTitle">Title</div><div class="pp-b" id="ppBody">Message</div><img id="ppImg" alt="" style="display:none"></div></div>
+    <div class="field"><label>Title</label><input id="notifTitle" maxlength="120" value="${esc(existing?.title || '')}" placeholder="Twinhearts 0.3 is available"></div>
+    <div class="field"><label>Message</label><textarea id="notifMessage" rows="3" maxlength="500" placeholder="A new version with improvements and fixes is ready.">${esc(existing?.message || '')}</textarea></div>
+    <div class="field"><label>Picture (optional)</label>
+      <div class="img-drop" id="imgDrop">📷 Tap to choose a picture (JPG / PNG / WebP)</div>
+      <input type="file" id="imgFile" accept="image/jpeg,image/png,image/webp" style="display:none">
+      <div class="img-preview" id="imgPreview"><img id="imgPreviewImg" alt=""><button class="btn danger small" id="imgRemove" type="button">Remove</button></div>
+      <div class="hint" id="imgHint">Android shows it as a big picture under the text; the web app shows it as a banner.</div>
     </div>
-    <div class="field"><label>Audience</label>
-      <select id="notifAudience"><option value="all">Everyone</option><option value="user1">User 1 role</option><option value="user2">User 2 role</option><option value="android">Android app users</option><option value="web">Web app users</option></select>
+    <div class="row2">
+      <div class="field"><label>Type</label>
+        <select id="notifType">${['announcement', 'new_release', 'maintenance', 'info'].map(t => `<option value="${t}" ${sel(existing?.type || 'announcement', t)}>${t === 'new_release' ? 'New release' : t[0].toUpperCase() + t.slice(1)}</option>`).join('')}</select></div>
+      <div class="field"><label>Audience</label>
+        <select id="notifAudience">${[['all', 'Everyone'], ['user1', 'User 1 role'], ['user2', 'User 2 role'], ['android', 'Android app users'], ['web', 'Web app users']].map(([v, l]) => `<option value="${v}" ${sel(existing?.audience || 'all', v)}>${l}</option>`).join('')}</select></div>
+    </div>
+    <div class="field"><label>When</label>
+      <select id="notifWhen">
+        ${scheduledEdit ? '' : `<option value="now" ${sel(startMode, 'now')}>Send now</option>`}
+        <option value="schedule" ${sel(startMode, 'schedule')}>Schedule (later and/or repeat)</option>
+      </select></div>
+    <div class="sched-box" id="schedBox" ${startMode === 'schedule' ? '' : 'hidden'}>
+      <div class="field"><label>First push at</label><input type="datetime-local" id="notifStart" value="${toLocalInput(existing?.start_at)}"><div class="hint">Leave empty to start right away.</div></div>
+      <div class="field"><label><input type="checkbox" id="notifRepeat" ${repeatOn ? 'checked' : ''}> Repeat</label></div>
+      <div id="repeatBox" ${repeatOn ? '' : 'hidden'}>
+        <div class="row2">
+          <div class="field"><label>Every (hours)</label><input type="number" id="notifEvery" min="0.5" max="336" step="0.5" value="${interval}">
+            <div class="chips">${[2, 3, 4, 5, 6, 8, 12, 24].map(h => `<span class="chip ${h === interval ? 'on' : ''}" data-h="${h}">${h} h</span>`).join('')}</div></div>
+          <div class="field"><label>Keep pushing until</label><input type="datetime-local" id="notifUntil" value="${toLocalInput(existing?.repeat_until)}"></div>
+        </div>
+        <div class="hint" style="margin-bottom:12px">You can change the hours or the end date later with Edit — the new interval applies from the last push. Use Pause or Stop any time.</div>
+      </div>
     </div>
     <div id="notifPreview" class="hint"></div>
     <div class="modal-actions">
       <button class="btn secondary" id="notifCancel">Cancel</button>
-      <button class="btn secondary" id="notifSaveDraft">Save draft</button>
-      <button class="btn" id="notifSendNow">Send now</button>
-    </div>`;
-  openDrawer(html);
-  document.getElementById('notifCancel').addEventListener('click', closeDrawer);
+      ${scheduledEdit ? '' : '<button class="btn secondary" id="notifSaveDraft">Save draft</button>'}
+      <button class="btn" id="notifGo"></button>
+    </div>`);
 
-  async function updatePreview() {
-    const title = document.getElementById('notifTitle').value.trim();
-    const message = document.getElementById('notifMessage').value.trim();
-    const audience = document.getElementById('notifAudience').value;
-    if (!title || !message) { document.getElementById('notifPreview').textContent = ''; return; }
-    try {
-      const data = await api('/notifications/preview', { method: 'POST', body: JSON.stringify({ title, message, audience }) });
-      document.getElementById('notifPreview').textContent = `Will reach ${data.preview.recipientCount} recipient(s).`;
-    } catch (e) { /* silent — preview is best-effort */ }
+  let imageUrl = existing?.image_url || null;
+  const $ = (id) => document.getElementById(id);
+  $('notifCancel').addEventListener('click', closeDrawer);
+
+  // ── live mini preview of the push ──
+  function refreshPreview() {
+    $('ppTitle').textContent = $('notifTitle').value || 'Title';
+    $('ppBody').textContent = $('notifMessage').value || 'Message';
+    $('ppImg').style.display = imageUrl ? 'block' : 'none';
+    if (imageUrl) $('ppImg').src = imageUrl;
+    $('imgPreview').style.display = imageUrl ? 'block' : 'none';
+    if (imageUrl) $('imgPreviewImg').src = imageUrl;
+    $('imgDrop').style.display = imageUrl ? 'none' : 'block';
   }
-  ['notifTitle', 'notifMessage', 'notifAudience'].forEach(id => document.getElementById(id).addEventListener('input', debounce(updatePreview, 300)));
+  const when = () => $('notifWhen').value;
+  function refreshButtons() {
+    const sched = when() === 'schedule';
+    $('schedBox').hidden = !sched;
+    $('repeatBox').hidden = !$('notifRepeat').checked;
+    $('notifGo').textContent = sched ? (scheduledEdit ? (existing.status === 'paused' ? 'Save & resume' : 'Save changes') : 'Schedule') : 'Send now';
+  }
+  ['notifTitle', 'notifMessage'].forEach(id => $(id).addEventListener('input', refreshPreview));
+  $('notifWhen').addEventListener('change', refreshButtons);
+  $('notifRepeat').addEventListener('change', refreshButtons);
+  document.querySelectorAll('.chip[data-h]').forEach(c => c.addEventListener('click', () => {
+    $('notifEvery').value = c.dataset.h;
+    document.querySelectorAll('.chip[data-h]').forEach(x => x.classList.toggle('on', x === c));
+  }));
+  $('notifEvery').addEventListener('input', () => document.querySelectorAll('.chip[data-h]').forEach(x => x.classList.toggle('on', Number(x.dataset.h) === Number($('notifEvery').value))));
+
+  // ── picture upload ──
+  $('imgDrop').addEventListener('click', () => $('imgFile').click());
+  $('imgRemove').addEventListener('click', () => { imageUrl = null; $('imgFile').value = ''; refreshPreview(); });
+  $('imgFile').addEventListener('change', async () => {
+    const f = $('imgFile').files[0]; if (!f) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(f.type)) { toast('Choose a JPG, PNG or WebP picture', 'error'); return; }
+    $('imgHint').textContent = 'Uploading…';
+    try {
+      const small = await shrinkImage(await readFileAsDataUrl(f));
+      const r = await api('/notifications/upload-image', { method: 'POST', body: JSON.stringify({ dataUrl: small }) });
+      imageUrl = r.url; $('imgHint').textContent = 'Picture ready ✓';
+    } catch (e) { toast(e.message, 'error'); $('imgHint').textContent = 'Upload failed — try again.'; }
+    refreshPreview();
+  });
+
+  // ── audience reach ──
+  async function updateReach() {
+    const title = $('notifTitle').value.trim(), message = $('notifMessage').value.trim();
+    if (!title || !message) { $('notifPreview').textContent = ''; return; }
+    try {
+      const data = await api('/notifications/preview', { method: 'POST', body: JSON.stringify({ title, message, audience: $('notifAudience').value }) });
+      $('notifPreview').textContent = `Will reach ${data.preview.recipientCount} recipient(s).`;
+    } catch (e) { /* preview is best-effort */ }
+  }
+  ['notifTitle', 'notifMessage', 'notifAudience'].forEach(id => $(id).addEventListener('input', debounce(updateReach, 300)));
 
   function collect() {
-    return {
-      title: document.getElementById('notifTitle').value.trim(),
-      message: document.getElementById('notifMessage').value.trim(),
-      type: document.getElementById('notifType').value,
-      audience: document.getElementById('notifAudience').value
+    const body = {
+      title: $('notifTitle').value.trim(),
+      message: $('notifMessage').value.trim(),
+      type: $('notifType').value,
+      audience: $('notifAudience').value,
+      image_url: imageUrl
     };
+    if (when() === 'schedule') {
+      body.start_at = fromLocalInput($('notifStart').value);
+      if ($('notifRepeat').checked) { body.repeat_every_hours = Number($('notifEvery').value); body.repeat_until = fromLocalInput($('notifUntil').value); }
+      else { body.repeat_every_hours = null; body.repeat_until = null; }
+    }
+    return body;
   }
-  document.getElementById('notifSaveDraft').addEventListener('click', async () => {
-    try { await api('/notifications', { method: 'POST', body: JSON.stringify(collect()) }); toast('Draft saved'); closeDrawer(); loadNotifs(); }
-    catch (e) { toast(e.message, 'error'); }
+  const done = (msg) => { toast(msg); closeDrawer(); loadNotifs(); };
+
+  const saveDraft = $('notifSaveDraft');
+  if (saveDraft) saveDraft.addEventListener('click', async () => {
+    try {
+      const body = collect();
+      if (isEdit) await api(`/notifications/${existing.id}`, { method: 'PUT', body: JSON.stringify(body) });
+      else await api('/notifications', { method: 'POST', body: JSON.stringify({ ...body, mode: 'draft' }) });
+      done('Draft saved');
+    } catch (e) { toast(e.message, 'error'); }
   });
-  document.getElementById('notifSendNow').addEventListener('click', async () => {
-    const ok = await confirmDialog({ title: 'Send immediately?', body: 'This pushes to matching recipients right now.', confirmLabel: 'Send now' });
-    if (!ok) return;
-    try { await api('/notifications', { method: 'POST', body: JSON.stringify({ ...collect(), sendNow: true }) }); toast('Notification sent'); closeDrawer(); loadNotifs(); }
-    catch (e) { toast(e.message, 'error'); }
+
+  $('notifGo').addEventListener('click', async () => {
+    try {
+      const body = collect();
+      if (when() === 'schedule') {
+        if (scheduledEdit) {
+          await api(`/notifications/${existing.id}`, { method: 'PUT', body: JSON.stringify(body) });
+          if (existing.status === 'paused') await api(`/notifications/${existing.id}/resume`, { method: 'POST' });
+          return done('Changes saved');
+        }
+        if (isEdit) await api(`/notifications/${existing.id}/schedule`, { method: 'POST', body: JSON.stringify(body) });
+        else await api('/notifications', { method: 'POST', body: JSON.stringify({ ...body, mode: 'schedule' }) });
+        return done($('notifRepeat').checked ? `Scheduled: every ${body.repeat_every_hours} h` : 'Scheduled');
+      }
+      const ok = await confirmDialog({ title: 'Send immediately?', body: 'This pushes to matching recipients right now.', confirmLabel: 'Send now' });
+      if (!ok) return;
+      if (isEdit) {
+        await api(`/notifications/${existing.id}`, { method: 'PUT', body: JSON.stringify(body) });
+        await api(`/notifications/${existing.id}/send`, { method: 'POST' });
+      } else await api('/notifications', { method: 'POST', body: JSON.stringify({ ...body, mode: 'now' }) });
+      done('Notification sent');
+    } catch (e) { toast(e.message, 'error'); }
   });
+
+  refreshPreview(); refreshButtons(); updateReach();
 }
 
 /* ═══════════════════════════════════════════════════════════════

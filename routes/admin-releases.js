@@ -93,6 +93,14 @@ router.get('/current', async (req, res) => {
   }
 });
 
+// ── GET /api/admin/releases/apk-meta ────────────────────────────
+// The APK that scripts/publish-apk.js last uploaded (version, size, download link). The release
+// form uses it to fill the download URL so the admin never pastes a link by hand.
+router.get('/apk-meta', (req, res) => {
+  const meta = require('./releases').apkMeta();
+  res.json({ meta: meta || null });
+});
+
 // ── GET /api/admin/releases/:id ─────────────────────────────────
 router.get('/:id', async (req, res) => {
   try {
