@@ -60,6 +60,8 @@ const vaultLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   skipSuccessfulRequests: true,
+  // A server hiccup (5xx) is not a wrong guess, so it must not use up the person's attempts.
+  requestWasSuccessful: (req, res) => res.statusCode < 400 || res.statusCode >= 500,
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
@@ -73,8 +75,9 @@ const vaultLimiter = rateLimit({
 // Tells the app whether the couple still has to choose a vault PIN.
 router.get('/vault-status/:coupleId', async (req, res) => {
   try {
-    const { data: couple } = await supabase
+    const { data: couple, error: dbError } = await supabase
       .from('couples').select('vault_pin').eq('id', req.params.coupleId).maybeSingle();
+    if (dbError) return res.status(503).json({ error: 'The server is busy. Please try again in a moment.' });
     if (!couple) return res.status(404).json({ error: 'Not found' });
     return res.json({ needsSetup: await isVaultPinUnset(couple.vault_pin) });
   } catch (e) {
@@ -89,8 +92,9 @@ router.post('/verify-pin', vaultLimiter, async (req, res) => {
     const { coupleId, pin } = req.body;
     if (!coupleId || !pin) return res.status(400).json({ error: 'Missing data' });
 
-    const { data: couple } = await supabase
+    const { data: couple, error: dbError } = await supabase
       .from('couples').select('vault_pin').eq('id', coupleId).maybeSingle();
+    if (dbError) return res.status(503).json({ error: 'The server is busy. Please try again in a moment.' });
     if (!couple) return res.status(404).json({ error: 'Not found' });
 
     // The old default (or no PIN) never unlocks anything.

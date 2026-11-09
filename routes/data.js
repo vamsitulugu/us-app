@@ -23,7 +23,8 @@ router.get('/state/:coupleId', async (req, res) => {
     .maybeSingle();
 
   if (error && error.code !== 'PGRST116') {
-    return res.status(500).json({ error: error.message });
+    console.error('[data/state] read failed:', error.message);
+    return res.status(503).json({ error: 'The server is busy. Please try again in a moment.' });
   }
   res.set('Cache-Control', 'no-store');
   return res.json(data?.state || null);
@@ -219,8 +220,15 @@ async function saveStateHandler(req, res) {
   const { coupleId, state, senderRole, myName } = req.body;
   if (!coupleId || !state) return res.status(400).json({ error: 'Missing data' });
 
-  const { data: prevRow } = await supabase
+  const { data: prevRow, error: readError } = await supabase
     .from('app_state').select('state').eq('couple_id', coupleId).maybeSingle();
+  // If the read failed (database slow / waking up), we do NOT know what is saved. Merging into
+  // "nothing" would overwrite the couple's whole state with this small save, so stop here and let
+  // the app retry (503 = "try again", which the Android app repeats quietly).
+  if (readError && readError.code !== 'PGRST116') {
+    console.error('[data/state] read before save failed:', readError.message);
+    return res.status(503).json({ error: 'The server is busy. Please try again in a moment.' });
+  }
   const prevState = prevRow?.state || null;
 
   // MERGE instead of REPLACE — this was wiping your whole DB on every call signal
@@ -280,7 +288,10 @@ async function saveStateHandler(req, res) {
     catch (e) { console.warn('Notify diff error:', e.message); }
   }
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) {
+    console.error('[data/state] save failed:', error.message);
+    return res.status(503).json({ error: 'Could not save right now. Please try again in a moment.' });
+  }
   return res.json({ ok: true, savedAt: new Date().toISOString() });
 }
 
