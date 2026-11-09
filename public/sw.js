@@ -1,5 +1,5 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v79'; // bumped: cinema now lives inside the web app at /cinema/
+const CACHE = 'uwl-v80'; // bumped: cinema-invite.js cleanup
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',

@@ -2,10 +2,10 @@
 
 Flow: **Together → Twin Cinema → (host) cinema lobby → Invite → (partner) invite card → Accept → host presses Start → both go in.**
 
-0. **The cinema is part of this repo now** — source in `cinema/` (Vite + Three.js), built by Vercel on every deploy into `public/cinema` and served at `/cinema/` on the same domain. No separate repo, no separate Vercel project, no cinema env vars. Local test: `npm run build:cinema`. Edit the menu: change `cinema/src/menu.js`, then `cd cinema && npm run export-menu`.
+0. **The cinema is part of this repo.** Source: `cinema/` (Vite + Three.js). The built copy is committed in `public/cinema/` and served at `/cinema/` on the same domain — no separate repo, Vercel project or cinema env vars. After changing anything in `cinema/`, run `npm run build:cinema` and commit `public/cinema`. Edit the canteen menu: change `cinema/src/menu.js`, then `cd cinema && npm run export-menu`.
 1. **Supabase** → SQL Editor → run `migrations/cinema_sessions.sql`.
 2. **Render** (this app's backend) → deploy this commit. Delete the old `CINEMA_URL` env var if you set it — it is ignored now (the server always sends `https://twinhearts.vercel.app/cinema`).
-3. ~~Vercel env vars for twin-cinemas~~ — not needed: the cinema reuses the web app's own public Supabase keys (`window.__SUPABASE_URL__`).
+3. Vercel needs no cinema env vars: the cinema reuses the web app's own public Supabase keys.
 
 Test: `npm run test:cinema` (backend flow, no database needed).
 

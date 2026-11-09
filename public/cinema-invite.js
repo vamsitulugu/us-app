@@ -5,7 +5,7 @@
      (Accept → opens the cinema with their own avatar; Not now → host is told)
    • Push taps arrive as /?cinema=<id>; the same check shows the card straight away.
    Purely additive: nothing else in the app calls into this file.
-   Backend: routes/cinema.js · Theatre: public/cinema/ (built from the twin-cinemas repo, same domain).
+   Backend: routes/cinema.js · Theatre: public/cinema/ (built from cinema/, same domain).
 ═══════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -118,7 +118,6 @@
       '.tcn-card{width:min(440px,100%);background:linear-gradient(160deg,#2a0f3d,#4a1457);color:#fff;border-radius:22px 22px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -10px 40px rgba(0,0,0,.45);animation:tcnU .22s ease}' +
       '.tcn-top{display:flex;align-items:center;gap:12px;margin-bottom:6px}.tcn-ico{font-size:34px}.tcn-av{width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid #ff4fa0}' +
       '.tcn-card h3{margin:0;font-size:19px}.tcn-card p{margin:4px 0 14px;color:#e4c9f2;font-size:14px;line-height:1.4}' +
-      '.tcn-card input{width:100%;box-sizing:border-box;padding:12px 14px;border-radius:12px;border:1px solid #7b3d99;background:rgba(255,255,255,.08);color:#fff;font:inherit;margin-bottom:14px}' +
       '.tcn-row{display:flex;gap:10px}.tcn-row button{flex:1;padding:13px;border-radius:14px;border:1px solid #7b3d99;background:rgba(255,255,255,.1);color:#fff;font:inherit;font-weight:600;cursor:pointer}' +
       '.tcn-row button.go{background:linear-gradient(135deg,#d6338a,#8e3fd4);border-color:transparent}.tcn-row button:disabled{opacity:.6}' +
       '@keyframes tcnF{from{opacity:0}to{opacity:1}}@keyframes tcnU{from{transform:translateY(40px)}to{transform:none}}';
