@@ -612,7 +612,7 @@ async function sendFCMToPartner(coupleId, senderRole, payload) {
   // reaching Firebase fine (Stage4 OK every time in the logs) but never
   // arriving on the closed app. Calls already got this; Touch is the
   // same class of "must land immediately" signal and needs it too.
-  const isTimeSensitive = isIncomingCall || payload.tag === 'touch';
+  const isTimeSensitive = true; // every Twin Hearts push must land at once
 
   // CENTRALIZED sender identity lookup — every notification type in the
   // app funnels through here with (coupleId, senderRole), so this is the
@@ -668,7 +668,9 @@ async function sendFCMToPartner(coupleId, senderRole, payload) {
       token: tokenRow.token,
       data: fcmData,
       android: {
-        priority: isTimeSensitive ? 'high' : undefined,
+        priority: 'high',
+        // Calls are useless after a minute; everything else is kept up to a day if the phone is off.
+        ttl: isIncomingCall ? 60 * 1000 : 24 * 60 * 60 * 1000,
       }
     });
     console.log(`[NOTIF-DEBUG][fcm] Stage4 OK — Firebase accepted, messageId=${messageId} (${Date.now() - t0}ms) couple=${coupleId} role=${partnerRole}`);
