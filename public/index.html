@@ -8069,7 +8069,11 @@ function saveLocal() {
                 checkPendingPartnerRequest();
                 loadPendingRequestsList();
               })
-              .on('broadcast', { event: 'partner_accepted' }, () => {
+              .on('broadcast', { event: 'partner_accepted' }, async () => {
+                // Re-read the couple from the server NOW so this side flips to "Connected"
+                // immediately (before: it only repainted and waited for the next 5s poll).
+                await checkPairStatus();
+                if (S.paired) { loadFromCloud().then(() => { renderAll(); pushMyProfile(); pullPartnerProfile(); }); }
                 renderSettingsWaitingCard();
                 updatePairStatus();
               })
@@ -8400,7 +8404,16 @@ saveLocal();
 }
 
     // nowPaired is false
-    if (!was) { saveLocal(); return; } // was never paired, nothing to do
+    if (!was) {
+      // Never paired. Also learn from the server whether an invitation is waiting, so a
+      // second device / fresh login shows "Waiting for partner" instead of the empty form.
+      try {
+        const st = await api('GET', '/api/partner/status/' + S.userId);
+        const waiting = !!(st && st.status === 'waiting');
+        if (waiting !== !!S.partnerRequestSent) { S.partnerRequestSent = waiting; updatePairStatus(); }
+      } catch (_) {}
+      saveLocal(); return;
+    } // was never paired, nothing more to do
 
     if (inGracePeriod) {
       console.warn('Ignoring unpair signal — still in post-pair grace period');

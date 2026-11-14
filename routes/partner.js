@@ -56,10 +56,18 @@ router.post('/request', async (req, res) => {
     .select('id, sender_id, receiver_id')
     .or(`and(sender_id.eq.${sender.id},receiver_id.eq.${receiver.id}),and(sender_id.eq.${receiver.id},receiver_id.eq.${sender.id})`)
     .eq('status', 'pending')
+    .limit(1)
     .maybeSingle();
   if (existingReq) {
     return res.status(409).json({ error: 'You already have a pending request.' });
   }
+
+  // A sender can only be waiting on ONE person. Without this, typing a wrong number and then
+  // the right one left two pending rows, and everything that looks up "my pending request"
+  // got confused (the waiting card and status disappeared).
+  await supabase.from('partner_requests').update({
+    status: 'cancelled', updated_at: new Date().toISOString()
+  }).eq('sender_id', sender.id).eq('status', 'pending');
 
   const tInsertStart = Date.now();
   console.log(`[partner:request] db insert start t=${tInsertStart} (+${tInsertStart - t0}ms validation)`);
@@ -221,7 +229,8 @@ router.get('/status/:userId', async (req, res) => {
   }
 
   const { data: sent } = await supabase
-    .from('partner_requests').select('id, receiver_id, created_at').eq('sender_id', user.id).eq('status', 'pending').maybeSingle();
+    .from('partner_requests').select('id, receiver_id, created_at').eq('sender_id', user.id).eq('status', 'pending')
+    .order('created_at', { ascending: false }).limit(1).maybeSingle();
   if (sent) {
     const { data: receiver } = await supabase.from('users').select('name, phone_number').eq('id', sent.receiver_id).maybeSingle();
     return res.json({
@@ -234,7 +243,8 @@ router.get('/status/:userId', async (req, res) => {
   }
 
   const { data: received } = await supabase
-    .from('partner_requests').select('id, sender_id').eq('receiver_id', user.id).eq('status', 'pending').maybeSingle();
+    .from('partner_requests').select('id, sender_id').eq('receiver_id', user.id).eq('status', 'pending')
+    .order('created_at', { ascending: false }).limit(1).maybeSingle();
   if (received) {
     const { data: sender } = await supabase.from('users').select('name').eq('id', received.sender_id).maybeSingle();
     return res.json({ status: 'invitation_received', senderName: sender ? sender.name : 'Someone' });
