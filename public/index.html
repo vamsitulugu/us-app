@@ -8426,7 +8426,18 @@ if (_unpairStrikes < 4) {
       return; // require 2 consecutive confirmations before trusting it
     }
 
-    // Confirmed unpair
+    // Confirmed unpair. Ask the server which couple this account belongs to NOW. When the
+    // OTHER person removed the connection, I may have been moved to a brand-new couple
+    // (whatever my role was). Staying on the old coupleId would keep showing and writing
+    // the ex-partner's shared data, so sign out to a clean session in that case.
+    try {
+      const mine = await api('GET', '/api/auth/session/' + S.userId);
+      if (mine && mine.coupleId && mine.coupleId !== S.coupleId) {
+        toast('💔 The partner connection was removed.', 4000);
+        setTimeout(() => { localStorage.removeItem('uwl_v5'); window.location.replace('/landing.html'); }, 2500);
+        return;
+      }
+    } catch (_) {}
     S.paired = false;
     S._pairToastShown = false;
     S.partnerRequestSent = false;

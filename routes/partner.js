@@ -219,6 +219,11 @@ router.get('/status/:userId', async (req, res) => {
     .from('users').select('id, couple_id, role').eq('id', req.params.userId).maybeSingle();
   if (!user) return res.status(404).json({ error: 'Account not found' });
 
+  // Every answer carries the account's REAL couple + role. After a partner removes you the
+  // server moves you to a fresh couple; a client that kept its old coupleId would otherwise
+  // keep reading and writing the ex-partner's shared data.
+  const ident = { coupleId: user.couple_id, role: user.role || 'user1' };
+
   if (user.couple_id) {
     const { data: couple } = await supabase
       .from('couples').select('user1_name, user2_name, paired, updated_at').eq('id', user.couple_id).maybeSingle();
@@ -234,6 +239,7 @@ router.get('/status/:userId', async (req, res) => {
   if (sent) {
     const { data: receiver } = await supabase.from('users').select('name, phone_number').eq('id', sent.receiver_id).maybeSingle();
     return res.json({
+      ...ident,
       status: 'waiting',
       requestId: sent.id,
       receiverName: receiver ? receiver.name : 'Someone',
@@ -247,10 +253,10 @@ router.get('/status/:userId', async (req, res) => {
     .order('created_at', { ascending: false }).limit(1).maybeSingle();
   if (received) {
     const { data: sender } = await supabase.from('users').select('name').eq('id', received.sender_id).maybeSingle();
-    return res.json({ status: 'invitation_received', senderName: sender ? sender.name : 'Someone' });
+    return res.json({ ...ident, status: 'invitation_received', senderName: sender ? sender.name : 'Someone' });
   }
 
-  return res.json({ status: 'not_connected' });
+  return res.json({ ...ident, status: 'not_connected' });
 });
 
 // ── POST /api/partner/accept ───────────────────────────
