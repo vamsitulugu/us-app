@@ -4,7 +4,7 @@ const path = require('path');
 
 /* ---- tiny in-memory Supabase fake (just what routes/cinema.js uses) ---- */
 const tables = { cinema_sessions: [], watch_sessions: [], movie_favorites: [], couples: [{ id: 'C1', user1_name: 'Asha', user2_name: 'Ravi', user1_avatar: null, user2_avatar: null }] };
-let idn = 0;
+let idn = 0, jitter = false;      // jitter = random latency per query, so two requests really interleave like a network database
 function query(table) {
   let rows = tables[table], op = 'select', patch = null, filters = [], lim = null, single = false, maybe = false, ord = null;
   const api = {
@@ -18,7 +18,7 @@ function query(table) {
     limit(n) { lim = n; return api; },
     single() { single = true; return api; },
     maybeSingle() { maybe = true; return api; },
-    then(res, rej) { return Promise.resolve(run()).then(res, rej); }
+    then(res, rej) { return (jitter ? new Promise(r => setTimeout(r, Math.random() * 6)) : Promise.resolve()).then(run).then(res, rej); }
   };
   function run() {
     let m = rows.filter(r => filters.every(f => f(r)));
@@ -169,6 +169,106 @@ const call = async (m, u, b) => { const r = await fetch(base + u, { method: m, h
   await t('bad ids and solo accounts are rejected', async () => {
     assert.equal((await call('GET', '/api/cinema/not-a-uuid?coupleId=C1')).s, 400);
     assert.equal((await call('POST', '/api/cinema/create', { coupleId: 'solo_1', role: 'user1' })).s, 400);
+  });
+
+  /* ---- both partners entering the cinema (the "one sees Invite, the other sees Waiting" bug) ---- */
+  const reset = () => { tables.cinema_sessions.length = 0; };
+  const live = () => tables.cinema_sessions.filter(r => !['ended', 'expired'].includes(r.status));
+  await t('both open the cinema at the SAME moment: one room, one host, one guest (no invite needed)', async () => {
+    reset();
+    const [a, b] = await Promise.all([
+      call('POST', '/api/cinema/create', { coupleId: 'C1', role: 'user1', slot: 1 }),
+      call('POST', '/api/cinema/create', { coupleId: 'C1', role: 'user2', slot: 2 })]);
+    assert.equal(a.s, 200); assert.equal(b.s, 200);
+    assert.equal(a.j.session.id, b.j.session.id, 'both phones must land in the same session');
+    assert.equal(live().length, 1, 'exactly one live row');
+    assert.deepEqual([a.j.role, b.j.role].sort(), ['guest', 'host']);
+    const host = a.j.role === 'host' ? a : b, guest = a.j.role === 'host' ? b : a;
+    assert.ok(host.j.url.includes('h=1') && guest.j.url.includes('h=0'));
+    assert.notEqual(new URLSearchParams(host.j.url.split('#')[1]).get('r'), new URLSearchParams(guest.j.url.split('#')[1]).get('r'), 'different avatars');
+  });
+  await t('partner opens the cinema while the other is already in the lobby: joins as guest straight away', async () => {
+    reset();
+    const h = await call('POST', '/api/cinema/create', { coupleId: 'C1', role: 'user2', slot: 2 });
+    assert.equal(h.j.role, 'host');
+    const g = await call('POST', '/api/cinema/create', { coupleId: 'C1', role: 'user1', slot: 1 });
+    assert.equal(g.j.role, 'guest'); assert.equal(g.j.session.id, h.j.session.id); assert.equal(live().length, 1);
+    assert.ok(g.j.url.includes('r=1') && g.j.url.includes('h=0') && g.j.url.includes('u=user1'));
+    assert.equal(tables.cinema_sessions[0].status, 'accepted');
+    // the guest tapping the card again (double tap / reopen) still lands in the same room as guest
+    const g2 = await call('POST', '/api/cinema/create', { coupleId: 'C1', role: 'user1', slot: 1 });
+    assert.equal(g2.j.role, 'guest'); assert.equal(live().length, 1);
+  });
+  await t('invite still works as before when the partner is not there yet, and the host can invite again any time', async () => {
+    reset();
+    const h = await call('POST', '/api/cinema/create', { coupleId: 'C1', role: 'user1', slot: 1 }), id = h.j.session.id;
+    assert.equal((await call('POST', `/api/cinema/${id}/invite`, { coupleId: 'C1', role: 'user1' })).s, 200);
+    assert.equal((await call('POST', `/api/cinema/${id}/invite`, { coupleId: 'C1', role: 'user1' })).s, 200);   // second tap / retry is fine
+    assert.equal((await call('GET', '/api/cinema/pending/C1?role=user2')).j.invite.id, id);
+  });
+  await t('invite works even when the previous movie night was left in "started" (was a 409 = "invite not going")', async () => {
+    reset();
+    const h = await call('POST', '/api/cinema/create', { coupleId: 'C1', role: 'user1', slot: 1 }), id = h.j.session.id;
+    await call('POST', `/api/cinema/${id}/status`, { coupleId: 'C1', role: 'user1', status: 'started' });
+    assert.equal(tables.cinema_sessions[0].status, 'started');
+    const r = await call('POST', `/api/cinema/${id}/invite`, { coupleId: 'C1', role: 'user1' });
+    assert.equal(r.s, 200);
+    assert.equal((await call('GET', '/api/cinema/pending/C1?role=user2')).j.invite.id, id);
+  });
+  await t('an ended or timed-out movie night gives a readable error and the next create opens a fresh room', async () => {
+    reset();
+    const h = await call('POST', '/api/cinema/create', { coupleId: 'C1', role: 'user1', slot: 1 }), id = h.j.session.id;
+    await call('POST', `/api/cinema/${id}/status`, { coupleId: 'C1', role: 'user1', status: 'ended' });
+    assert.equal((await call('POST', `/api/cinema/${id}/invite`, { coupleId: 'C1', role: 'user1' })).s, 409);
+    const n = await call('POST', '/api/cinema/create', { coupleId: 'C1', role: 'user2', slot: 2 });
+    assert.equal(n.j.role, 'host'); assert.notEqual(n.j.session.id, id);
+  });
+  await t('a dead session (host vanished, nobody pinged for 30 min) is NOT joined: the new arrival becomes host', async () => {
+    reset();
+    const h = await call('POST', '/api/cinema/create', { coupleId: 'C1', role: 'user2', slot: 2 });
+    tables.cinema_sessions[0].expires_at = new Date(Date.now() - 1000).toISOString();
+    const n = await call('POST', '/api/cinema/create', { coupleId: 'C1', role: 'user1', slot: 1 });
+    assert.equal(n.j.role, 'host'); assert.notEqual(n.j.session.id, h.j.session.id);
+  });
+  await t('heartbeat keeps a session alive, only the host can end it, ended stays ended', async () => {
+    reset();
+    const h = await call('POST', '/api/cinema/create', { coupleId: 'C1', role: 'user1', slot: 1 }), id = h.j.session.id;
+    tables.cinema_sessions[0].expires_at = new Date(Date.now() + 1000).toISOString();
+    assert.equal((await call('POST', `/api/cinema/${id}/status`, { coupleId: 'C1', role: 'user2', status: 'ping' })).s, 200);
+    assert.ok(new Date(tables.cinema_sessions[0].expires_at).getTime() > Date.now() + 20 * 60 * 1000);
+    await call('POST', `/api/cinema/${id}/status`, { coupleId: 'C1', role: 'user2', status: 'ended' });      // the guest leaving must not end the host's night
+    assert.notEqual(tables.cinema_sessions[0].status, 'ended');
+    await call('POST', `/api/cinema/${id}/status`, { coupleId: 'C1', role: 'user1', status: 'ended' });
+    assert.equal(tables.cinema_sessions[0].status, 'ended');
+    await call('POST', `/api/cinema/${id}/status`, { coupleId: 'C1', role: 'user2', status: 'started' });    // cannot revive an ended night
+    assert.equal(tables.cinema_sessions[0].status, 'ended');
+  });
+  await t('create with invite:true opens the room AND sends the invite+push in one call; the host url says the invite is out (i=1)', async () => {
+    reset(); pushes.length = 0;
+    const h = await call('POST', '/api/cinema/create', { coupleId: 'C1', role: 'user1', slot: 1, invite: true });
+    assert.equal(h.j.role, 'host'); assert.equal(h.j.invited, true); assert.ok(h.j.url.includes('i=1'));
+    assert.equal(tables.cinema_sessions[0].status, 'invited');
+    await new Promise(r => setTimeout(r, 20));
+    assert.ok(pushes.some(x => x[0] === 'web' && x[3] === 'cinema-invite'));
+    assert.equal((await call('GET', '/api/cinema/pending/C1?role=user2')).j.invite.id, h.j.session.id);
+    // partner already in the room + invite:true from the partner's side = just join, no invite to nobody
+    const g = await call('POST', '/api/cinema/create', { coupleId: 'C1', role: 'user2', slot: 2, invite: true });
+    assert.equal(g.j.role, 'guest'); assert.ok(!g.j.url.includes('i=1'));
+  });
+  await t('stress: 40 simultaneous double-entries always end with ONE live room, ONE host, ONE guest', async () => {
+    let raced = 0; jitter = true;
+    for (let i = 0; i < 40; i++) {
+      reset();
+      const [a, b] = await Promise.all([
+        call('POST', '/api/cinema/create', { coupleId: 'C1', role: 'user1', slot: 1 }),
+        call('POST', '/api/cinema/create', { coupleId: 'C1', role: 'user2', slot: 2 })]);
+      assert.equal(a.j.session.id, b.j.session.id); assert.equal(live().length, 1);
+      assert.deepEqual([a.j.role, b.j.role].sort(), ['guest', 'host']);
+      if (tables.cinema_sessions.length > 1) raced++;          // a second row was inserted and then dropped = the tie-break path ran
+    }
+    jitter = false;
+    console.log('    (tie-break path exercised in ' + raced + ' of 40 rounds)');
+    assert.ok(raced > 3, 'the race must actually have been exercised');
   });
   console.log(`\n${ok} passed`); srv.close(); process.exit(0);
 })().catch(e => { console.error('FAIL', e); process.exit(1); });

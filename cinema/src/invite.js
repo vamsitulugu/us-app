@@ -22,7 +22,17 @@ function read(){
   history.replaceState(0,'',location.pathname+'#'+s);   // couple id never stays in the address bar / history; the room code stays
   return a}catch(e){return null}}
 export const APP=read();                                 // null = normal (manual) mode
-const post=(path,body)=>fetch(API+'/api/cinema/'+APP.session+path,{method:'POST',headers:{'content-type':'application/json','x-user-id':APP.uid||''},body:JSON.stringify({coupleId:APP.couple,role:APP.user,...body}),keepalive:true}).then(r=>r.json().then(j=>({ok:r.ok,j})));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+/** POST to this session. tries>1 retries timeouts, network errors and 5xx (a sleeping Render server needs a few seconds); a 4xx answer is final and returned as {ok:false,j,status}. onRetry(n) lets the screen say "trying again". */
+async function post(path,body,{tries=1,timeout=25000,onRetry}={}){let last;
+ for(let i=0;i<tries;i++){const ctl=typeof AbortController==='function'?new AbortController():null,tm=ctl?setTimeout(()=>ctl.abort(),timeout):0;
+  try{const r=await fetch(API+'/api/cinema/'+APP.session+path,{method:'POST',headers:{'content-type':'application/json','x-user-id':APP.uid||''},body:JSON.stringify({coupleId:APP.couple,role:APP.user,...body}),keepalive:tries===1,signal:ctl?ctl.signal:undefined});
+   const j=await r.json().catch(()=>({}));clearTimeout(tm);
+   if(r.ok||(r.status>=400&&r.status<500&&r.status!==408&&r.status!==429))return{ok:r.ok,j,status:r.status};
+   last=new Error((j&&j.error)||'The server is busy ('+r.status+')')}
+  catch(e){clearTimeout(tm);last=e&&e.name==='AbortError'?new Error('The server is waking up'):e}
+  if(i<tries-1){onRetry&&onRetry(i+1);await sleep(1200*(i+1))}}
+ throw last||new Error('failed')}
 /** The couple's cloud movies (Cloudflare R2) -> {movies:[{id,title,durationSec,sizeBytes}]} | {err} */
 export async function fetchCloudList(){if(!APP)return{err:'Open the cinema from Twin Hearts to use your cloud movies'};
  try{const r=await fetch(API+'/api/cinema/'+APP.session+'/cloud?coupleId='+encodeURIComponent(APP.couple)+'&role='+APP.user,{cache:'no-store'}),j=await r.json().catch(()=>null);
@@ -41,7 +51,7 @@ export async function fetchBalance(){if(!APP)return null;
 /** order = {id (one per attempt, so a double tap never pays twice), for, lines:[{id,qty,sel}]} -> {ok:true,balance} | {ok:false,error,code,balance,need} */
 export async function payOrder(o){const {ok,j}=await post('/canteen/order',{clientId:o.id,for:o.for,lines:o.lines});
  return ok?{ok:true,balance:j.balance}:{ok:false,error:j.error,code:j.code,balance:j.balance,need:j.need}}
-export const markEnded=()=>{if(APP&&APP.host)post('/status',{status:'ended'}).catch(()=>{})};
+export const markEnded=()=>{if(APP&&APP.host)post('/status',{status:'ended'},{tries:2}).catch(()=>{})};
 /* ---- embedded in the Twin Hearts app (e=1): talk to the page that holds us, only ever to/from the app's own origin ---- */
 const toApp=m=>{try{window.parent.postMessage({src:'twin-cinema',...m},APP.backOrigin)}catch(e){}};
 /** Leave to the app: closes the frame when embedded, otherwise goes to the back link. false = nothing to go back to. */
@@ -52,14 +62,14 @@ export function mountInvite(ctx){
  const el=document.createElement('div');el.id='inv';document.body.appendChild(el);
  const btn=(t,fn,main)=>{const b=document.createElement('button');iconize(b,t);b.onclick=fn;if(main)b.className='main';return b};
  document.body.classList.add('app');                      // hides the old one-line status; this panel replaces it
- let phase=APP.invited?'invited':'lobby',msg='',inviting=false,started=false,poll=null;       // phase: lobby | invited | declined | expired
+ let phase=APP.invited?'invited':'lobby',msg='',inviting=false,started=false,poll=null,goTimer=null,acked=false,beat=null;       // phase: lobby | invited | declined | expired
  const here=()=>!!ctx.sync()?.present;
  function status(){
   if(!ONLINE)return'⚠ Live sync is not set up yet (missing Supabase keys) — your partner cannot join';
   if(msg)return msg;
   if(here())return APP.host?'Your partner is here ♥ Press Start when you are both ready':'You are in! Waiting for the host to start the movie…';
   if(APP.host)return phase==='invited'?'Invite sent — waiting for your partner to accept…':phase==='declined'?'Your partner is not available right now':phase==='expired'?'The invite expired — send it again':'You are in the lobby. Invite your partner to join you';
-  return'Waiting for the host…'}
+  return'Connecting to your partner…'}
  function render(){
   if(started||(ctx.hidden&&ctx.hidden())){el.style.display='none';return}
   el.style.display='flex';el.textContent='';
@@ -72,14 +82,19 @@ export function mountInvite(ctx){
   if(APP.back){const a=document.createElement('a');a.href=APP.back;iconize(a,'← Twin Hearts');a.className='inv-b';if(APP.embed)a.onclick=e=>{e.preventDefault();markEnded();leaveApp()};row.appendChild(a)}}
  async function invite(){
   inviting=true;msg='';render();
-  try{const r=await post('/invite',{});if(!r.ok)throw new Error(r.j&&r.j.error||'failed');phase='invited';watch()}
-  catch(e){msg='Could not send the invite: '+(e.message||'check your connection')}
+  try{const r=await post('/invite',{},{tries:4,onRetry:()=>{msg='Server is waking up — sending your invite again…';render()}});if(!r.ok)throw new Error(r.j&&r.j.error||'failed');phase='invited';msg='';watch()}
+  catch(e){msg='Could not send the invite: '+(e.message||'check your connection')+'. Tap Invite again.'}
   inviting=false;render()}
  function watch(){clearInterval(poll);let n=0;                                  // the host sees accepted / declined without reloading
   poll=setInterval(async()=>{if(here()||started||++n>160){clearInterval(poll);return}
    try{const r=await fetch(API+'/api/cinema/'+APP.session+'?coupleId='+encodeURIComponent(APP.couple),{cache:'no-store'}),j=await r.json();
     if(j.status==='declined'||j.status==='expired'){phase=j.status;msg='';clearInterval(poll);render()}
     else if(j.status==='accepted'){msg='Your partner accepted — they are joining…';render()}}catch(e){}},3500)}
- function start(){if(!here()||started)return;started=true;ctx.sync().send({t:'go'});post('/status',{status:'started'}).catch(()=>{});el.style.display='none';ctx.enter()}
+ /** Start: the host walks in AND keeps telling the partner "go" every 1.5 s until the partner answers (or 60 s). One lost realtime message can no longer leave the partner standing in the lobby. */
+ function sendGo(){clearInterval(goTimer);let n=0;const one=()=>{if(acked||++n>40){clearInterval(goTimer);return}ctx.sync()?.send({t:'go'})};one();goTimer=setInterval(one,1500)}
+ function alive(){post('/status',{status:'started'},{tries:3}).catch(()=>{});clearInterval(beat);beat=setInterval(()=>post('/status',{status:'ping'}).catch(()=>{}),4*60*1000)}   // keeps this movie night "live" on the server
+ function start(){if(!here()||started)return;started=true;acked=false;sendGo();alive();el.style.display='none';ctx.enter()}
  setInterval(()=>{if(!started)render()},700);render();if(APP.invited&&APP.host)watch();
- return{onGo:()=>{if(started)return;started=true;el.style.display='none';ctx.enter()},isStarted:()=>started}}
+ beat=setInterval(()=>post('/status',{status:'ping'}).catch(()=>{}),4*60*1000);      // lobby heartbeat: the room stays joinable while you wait
+ return{onGo:()=>{ctx.sync()?.send({t:'goack'});if(started)return;started=true;el.style.display='none';ctx.enter()},   // the partner pressed Start: walk in and tell them we heard it
+  onAck:()=>{acked=true;clearInterval(goTimer)},isStarted:()=>started}}

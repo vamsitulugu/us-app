@@ -426,7 +426,7 @@
 document.addEventListener('click', function (e) {
   var b = e.target.closest && e.target.closest('[data-cinema-open]'); if (!b) return;
   var T = (window.parent && window.parent.TwinCinema) || window.TwinCinema;
-  if (T && T.open) T.open(); else alert('Open Twin Hearts and use Together → Twin Cinema.');
+  if (T && T.open) T.open({ invite: true }); else alert('Open Twin Hearts and use Together → Twin Cinema.');
 });
 </script>
 </body>

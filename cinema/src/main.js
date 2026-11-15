@@ -50,7 +50,7 @@ const startGate=()=>!APP&&!movie.media?'':pick.gate();       // opened on its ow
 const ads=createAdBreak({movie,send:m=>sync?.send(m),present:()=>!!sync?.present,leader:()=>role===1||!sync?.present,
  onBegin:()=>{if(role===1||!sync?.present)movie.send(false,'ad')},      // the room pauses while the ad runs, so nobody loses movie time to it
  onResume:()=>{if(role===1||!sync?.present)movie.send(true);movie.follow()}});     // ad breaks: your own video, then Google ads (src/ads-config.js)
-let inStudio=false,pHere=false,lobbyGo=false;      // app mode: the avatar banner (studio) comes first; lobbyGo = we already left it for the lobby
+let inStudio=false,pHere=false,lobbyGo=false,pendingGo=false;      // app mode: the avatar banner (studio) comes first; lobbyGo = we already left it for the lobby
 hall.lobbyMode=true;                                   // the hall starts with the couple outside, in the lobby (keeps the lobby floor limits from the very first step)
 let bagPrev={popcorn:false,drink:false};
 const canteen=createCanteen({balance:APP?fetchBalance:undefined,pay:APP?payOrder:undefined,canGift:()=>!!sync?.present,sfx:n=>audio[n]?.(),
@@ -181,7 +181,7 @@ m.on(s=>{if(s!==S.WATCH)movie.onstatus('')});
 function onMsg(q){
  if(q.t==='ad')return ads.remote();if(q.t==='adend')return ads.partnerEnd();if(ads.active&&q.t==='ctl')return;
  if(q.t==='ctl'){applying=true;m.go(q.s);applying=false}
- else if(q.t==='chat'){show(partner,q.x);audio.chat()}else if(q.t==='pop')partner.setPop(q.on),buttons();else if(q.t==='emo')doEmote(partner,q.e);else if(q.t==='order')canteen.receive(q.items||[]);else if(q.t==='lobby'&&APP)toLobby(true);else if(q.t==='go'&&APP){toLobby(true);inv?.onGo()}else if(q.t==='meme')memes?.remote(q.id,q.p)}
+ else if(q.t==='chat'){show(partner,q.x);audio.chat()}else if(q.t==='pop')partner.setPop(q.on),buttons();else if(q.t==='emo')doEmote(partner,q.e);else if(q.t==='order')canteen.receive(q.items||[]);else if(q.t==='lobby'&&APP)toLobby(true);else if(q.t==='go'&&APP){toLobby(true);if(inv)inv.onGo();else pendingGo=true}else if(q.t==='goack'&&APP){inv?.onAck()}else if(q.t==='meme')memes?.remote(q.id,q.p)}
 /** the movie starts for both: back at 0:00, playing, written to the room so your partner's screen starts at the same moment */
 function startRoom(){movie.seek(0);movie.play();movie.send(true)}
 function endOverlay(){const ov=$('ov');if(m.state!==S.END)return;ov.textContent='';
@@ -334,4 +334,4 @@ memes=createMemes({audio,send:m=>sync?.send(m),present:()=>!!sync?.present});   
 await wait(300);$('loading').classList.add('off');m.go(S.DOOR);setView('door');$('door-ui').style.display='flex';
 addEventListener('beforeunload',()=>sync?.close());
 if(APP){mountOrient();
- await join(APP.slot);inv=mountInvite({sync:()=>sync,enter:startEnter,stat,hidden:()=>inStudio})}
+ await join(APP.slot);inv=mountInvite({sync:()=>sync,enter:startEnter,stat,hidden:()=>inStudio});if(pendingGo){pendingGo=false;inv.onGo()}}

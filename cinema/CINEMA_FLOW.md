@@ -4,8 +4,8 @@ The theatre has its **own** movie picker and its **own** video sync. Nothing abo
 (no "3D movie" button, no file hand-over, no Twin Hearts room). Files: `src/watch.js` (engine), `src/moviepick.js` (picker panel), `tests/watch-sync.test.mjs`.
 
 ## Flow
-1. One partner opens the cinema (Together → Twin Cinema), walks in and **invites** the other. The invite card in Twin Hearts opens the cinema for the partner.
-2. Both go to the lobby, the host presses *Start movie night*, both walk into the hall.
+1. One partner opens the cinema (Together → Twin Cinema, or Movie → Watch in Twin Cinema 3D), walks in and **invites** the other (the Movie page button invites automatically). The invite card in Twin Hearts opens the cinema for the partner. **If the partner opens the cinema on their own (or at the very same moment), the server puts them in the same room as the guest: no invite needed.**
+2. Both go to the lobby, the host presses *Start movie night*, both walk into the hall (the host keeps sending `go` until the partner's phone answers `goack`; a partner who joins late is sent in as soon as they appear).
 3. Inside the hall (walking / sitting) the **movie panel** (top centre) has two buttons:
    - **🎞 Choose movie**: a file on this device. The partner is asked to choose the same file (length must match within 3 s; otherwise "use THIS file instead?").
    - **☁️ Cloud movies**: the couple's Cloudflare R2 library. One tap, the partner loads the same movie by itself (each phone streams its own signed URL).

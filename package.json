@@ -9,7 +9,7 @@
     "test:music": "node tests/music-backend.test.js",
     "test:pro": "node tests/pro.test.js",
     "build:cinema": "cd cinema && npm install && npm run build",
-    "test:cinema": "node tests/cinema.test.js",
+    "test:cinema": "node tests/cinema.test.js && node cinema/tests/handshake.test.mjs",
     "test:movie-sync": "node tests/movie-sync.test.js",
     "test:canteen": "node tests/canteen-order.test.js",
     "test:admin": "node tests/admin-smoke.test.js && node tests/admin-notifications.test.js"

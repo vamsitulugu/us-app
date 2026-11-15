@@ -28,12 +28,31 @@
     return s.role === 'user1' ? 1 : 2;
   }
 
-  function call(method, path, body) {
-    var opt = { method: method, headers: { 'Content-Type': 'application/json', 'x-user-id': st().userId || '' }, cache: 'no-store' };
-    if (body) opt.body = JSON.stringify(body);
-    return fetch(api() + '/api/cinema' + path, opt).then(function (r) {
-      return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) { var e = new Error(j.error || ('HTTP ' + r.status)); e.status = r.status; throw e; } return j; });
-    });
+  // One request, retried on network errors / timeouts / 5xx (the Render server sleeps and needs a few seconds to wake up).
+  // A 4xx answer is final (expired, not found...) and is thrown right away with the server's own readable message.
+  function call(method, path, body, tries) {
+    tries = tries || 3;
+    var attempt = function (n) {
+      var ctl = typeof AbortController === 'function' ? new AbortController() : null, tm = ctl ? setTimeout(function () { ctl.abort(); }, 25000) : 0;
+      var opt = { method: method, headers: { 'Content-Type': 'application/json', 'x-user-id': st().userId || '' }, cache: 'no-store', signal: ctl ? ctl.signal : undefined };
+      if (body) opt.body = JSON.stringify(body);
+      return fetch(api() + '/api/cinema' + path, opt).then(function (r) {
+        clearTimeout(tm);
+        return r.json().catch(function () { return {}; }).then(function (j) {
+          if (r.ok) return j;
+          var e = new Error(j.error || ('HTTP ' + r.status)); e.status = r.status;
+          if (r.status >= 500 || r.status === 408 || r.status === 429) e.retry = true;
+          throw e;
+        });
+      }, function (err) {
+        clearTimeout(tm);
+        var e = new Error(err && err.name === 'AbortError' ? 'The server is waking up, please try again' : 'No connection — check your internet'); e.retry = true; throw e;
+      }).catch(function (e) {
+        if (e.retry && n < tries) return new Promise(function (res) { setTimeout(res, 1200 * n); }).then(function () { return attempt(n + 1); });
+        throw e;
+      });
+    };
+    return attempt(1);
   }
 
   // This phone's Movie → Library (browser storage 'us_movies_v2') rides in the link (#…&lib=…) so the cinema lobby's
@@ -134,12 +153,14 @@
 
   /* ── host: Together → Twin Cinema — goes straight into the cinema lobby (no sheet, no link) ── */
   var opening = false;
-  function open() {
+  // opts.invite = true (Movie page "Watch in Twin Cinema 3D"): open the theatre AND invite my partner in the same request.
+  // Either way, if my partner is already inside (or arrives at the same moment) the server puts me in THEIR room as the guest: no invite needed.
+  function open(opts) {
     if (opening) return;
     if (!ready()) return say('Connect with your partner first to plan a movie night 🎬');
-    var s = st(); opening = true; say('Opening cinema… 🍿');
-    call('POST', '/create', { coupleId: s.coupleId, role: s.role, slot: mySlot(), movie: '' })
-      .then(function (r) { go(r.url); })
+    var s = st(), invite = !!(opts && opts.invite === true); opening = true; say('Opening cinema… 🍿');
+    call('POST', '/create', { coupleId: s.coupleId, role: s.role, slot: mySlot(), movie: '', invite: invite })
+      .then(function (r) { if (r.role === 'guest') say('Your partner is already inside — joining them ♥'); go(r.url); })
       .catch(function (e) { say('Could not open the cinema: ' + e.message); })
       .then(function () { opening = false; });
   }
@@ -199,7 +220,7 @@
   }
 
   /* ── Together page entry (added without touching index.html's markup beyond one row) ── */
-  window.TwinCinema = { open: open, check: check, hold: false, isOpen: function () { return !!frame; } };
+  window.TwinCinema = { open: function (o) { return open(o); }, check: check, hold: false, isOpen: function () { return !!frame; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 2500); });
   else setTimeout(start, 2500);
 })();
