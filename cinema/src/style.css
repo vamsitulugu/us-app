@@ -306,3 +306,34 @@ body.pl-hide #rail:not(:has(.on)){opacity:0;pointer-events:none}
 #mp-sheet .mps-m{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:12px 14px;border-radius:12px;border:1px solid #ffffff26;background:#ffffff12;color:#fff;font:inherit;cursor:pointer}
 #mp-sheet .mps-m.on{border-color:#ff9a2e;background:#ff9a2e26}#mp-sheet .mps-t{font-weight:700}#mp-sheet .mps-s{font-size:12px;opacity:.7}
 body.pl #mp{display:none!important}
+
+/* ---- cinema voice / video call windows (src/callui.js) — same look as the movie page's Watch Together call UI ---- */
+#cc{position:fixed;inset:0;z-index:13;pointer-events:none}
+#cc [hidden]{display:none!important}
+#cc .wt-voice-bar,#cc .wt-voice-pill,#cc .wt-video-win,#cc .wt-video-bubble{pointer-events:auto;color:#fff;font-family:system-ui,sans-serif}
+#cc .wt-voice-bar{position:absolute;top:max(64px,calc(env(safe-area-inset-top) + 56px));left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));display:flex;align-items:center;gap:8px;min-height:48px;padding:8px 12px;background:rgba(14,5,10,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;border:1px solid rgba(255,255,255,.12);box-shadow:0 4px 16px rgba(0,0,0,.35)}
+#cc .wt-voice-bar-icon{display:flex;color:#34d399;flex-shrink:0}
+#cc .wt-voice-bar-name{flex:1;min-width:0;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#cc .wt-voice-bar-time{font-size:12px;color:#ccc;font-variant-numeric:tabular-nums}
+#cc .wt-voice-bar button{width:44px;height:44px;min-width:44px;border-radius:50%;border:none;padding:0;background:rgba(255,255,255,.1);color:#fff;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
+#cc .wt-voice-bar-end{background:#6B093A!important}
+#cc .wt-voice-pill{position:absolute;top:max(64px,calc(env(safe-area-inset-top) + 56px));right:max(12px,env(safe-area-inset-right));display:flex;align-items:center;gap:6px;min-height:36px;padding:6px 12px;border-radius:20px;border:none;background:rgba(15,15,15,.7);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font-size:12px}
+#cc .wt-voice-pill svg{color:#34d399}
+#cc .wt-video-win{position:absolute;top:max(64px,calc(env(safe-area-inset-top) + 56px));right:max(12px,env(safe-area-inset-right));width:108px;aspect-ratio:9/16;max-height:38%;touch-action:none;cursor:grab}
+#cc .wt-video-win-frame{position:relative;width:100%;height:100%;border-radius:16px;overflow:hidden;border:1.5px solid rgba(255,255,255,.35);box-shadow:0 4px 16px rgba(0,0,0,.4);background:#111}
+#cc .wt-video-win video{width:100%;height:100%;object-fit:cover;display:block}
+#cc .wt-video-win-avatar-fallback,#cc .wt-video-bubble-avatar-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);font-weight:700;font-size:22px}
+#cc .wt-video-runtime{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:6px;z-index:2;display:flex;align-items:center;gap:5px;border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:5px 11px;background:rgba(15,15,15,.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 3px 10px rgba(0,0,0,.35);color:#fff;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+#cc .wt-video-runtime svg{color:#34d399}
+#cc .wt-video-vmenu{position:absolute;left:50%;transform:translateX(-50%);top:100%;margin-top:44px;z-index:2;display:flex;flex-direction:column;align-items:center;gap:8px;background:rgba(15,15,15,.85);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:0 8px;width:52px;max-height:0;opacity:0;overflow:hidden;pointer-events:none;transition:max-height .22s ease,opacity .18s ease,padding .22s ease}
+#cc .wt-video-vmenu.is-open{max-height:330px;opacity:1;padding:10px 8px;pointer-events:auto}
+#cc .wt-video-vmenu.opens-up{top:auto;bottom:100%;margin-top:0;margin-bottom:44px}
+#cc .wt-video-vmenu button{width:42px;height:42px;flex-shrink:0;border:none;border-radius:50%;padding:0;background:rgba(255,255,255,.1);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+#cc .wt-video-vmenu button label{font-size:7px;font-weight:600;color:#ddd;pointer-events:none}
+#cc .wt-video-vmenu button.wt-video-vmenu-danger{background:#6B093A}
+#cc .wt-video-vmenu button.wt-video-vmenu-danger label{color:#fff}
+#cc .wt-video-vmenu button.is-active{background:rgba(255,180,60,.25)}
+#cc .wt-video-bubble{position:absolute;top:max(64px,calc(env(safe-area-inset-top) + 56px));right:max(12px,env(safe-area-inset-right));width:120px;height:120px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,.5);box-shadow:0 4px 16px rgba(0,0,0,.4);touch-action:none;cursor:grab;background:#111}
+#cc .wt-video-bubble video{width:100%;height:100%;object-fit:cover}
+/* a lit Voice / Video button while a call is on */
+#player .tb.on{color:#34d399}

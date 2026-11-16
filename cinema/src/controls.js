@@ -2,7 +2,7 @@
    Cinema media player UI. Shown while the movie is playing, paused or on a break.
    Working now: play/pause, -10/+10, seek, sound, full screen, camera, Sync, Message (opens the chat), Log (activity + chat),
    😊 reactions, End, More.
-   UI only (waiting for Twin Hearts): Voice, Video. They call c.hooks.voice() / c.hooks.video().
+   Voice, Video: call c.hooks.voice() / c.hooks.video() (wired to the Twin Hearts call engine in main.js + src/callui.js).
    Use the returned setActive(name,bool) / setBadge(name,bool) to light a button or show its red dot.
 ------------------------------------------------------------------- */
 const ic=(p,s=22)=>`<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;

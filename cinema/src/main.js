@@ -13,6 +13,7 @@ import {COUNTER_Z,LW,LD} from './lobby.js';
 import {createLobbyCrowd} from './crowd.js';
 import {createStudio} from './studio.js';
 import {createPlayer} from './controls.js';
+import {createCall} from './callui.js';
 import {APP,fetchBalance,payOrder,mountInvite,markEnded,leaveApp,fetchLibrary,fetchCloudList,fetchCloudUrl} from './invite.js';
 import {createMoviePick} from './moviepick.js';
 import {ic,iconize,mountIcons,Heart,ArrowRight} from './icons.js';mountIcons();
@@ -187,7 +188,7 @@ function startRoom(){movie.seek(0);movie.play();movie.send(true)}
 function endOverlay(){const ov=$('ov');if(m.state!==S.END)return;ov.textContent='';
  const h=document.createElement('div');h.className='end-h';h.append('The End',ic(Heart,26,1));ov.appendChild(h);
  const a=document.createElement('button');a.className='main';iconize(a,'↻ Watch again');a.onclick=()=>{hall.setCurtains(1);m.go(S.WATCH)};a.disabled=!!startGate();ov.appendChild(a);      // the picker (top of the screen) stays open here: choose another movie, then Watch again
- const l=document.createElement('button');l.className='ghost';iconize(l,'✕ Leave theatre');l.onclick=()=>{endSession();markEnded();sync?.close();if(!leaveApp())location.reload()};ov.appendChild(l);ov.style.display='flex'}
+ const l=document.createElement('button');l.className='ghost';iconize(l,'✕ Leave theatre');l.onclick=()=>{cc.unregister();endSession();markEnded();sync?.close();if(!leaveApp())location.reload()};ov.appendChild(l);ov.style.display='flex'}
 /** ends the Twin Hearts session for both (watch history), once */
 let sessionDone=false;function endSession(){if(sessionDone||!APP)return;sessionDone=true;return movie.finish()}
 m.on(s=>pick.vis(m.is(S.EXPLORE,S.SEATED,S.END)));
@@ -248,7 +249,10 @@ const pl=createPlayer({movie,fmt,
   ['🍿 '+(me?.popcorn?'Put popcorn away':'Popcorn'),togglePop],[muted?'🔔 Alerts on':'🔕 Alerts off',toggleAlerts],['🎚 Sound mixer',()=>vol.toggle()],['🎵 Music on/off',()=>audio.musicToggle()],['⏭ Next song',()=>audio.next()],['🚪 Leave theatre',leaveTheatre]],
  reactions:()=>REACT.map(([k,label])=>[k==='wave'?'👋':EMO[k],label,()=>emote(k)]),
  log:()=>chatLog,get extra(){return null},
- hooks:{message:()=>toggleChat()}});                                // voice / video: not built yet, the player shows "coming soon"
+ hooks:{message:()=>toggleChat(),voice:()=>cc.start('voice'),video:()=>cc.start('video')}});     // Voice / Video: the Twin Hearts call engine (window.parent.Call), same as the movie page
+const cc=createCall({sessionId:APP?'cinema:'+APP.session:null,partnerName:()=>{try{return window.parent.S?.partnerName||'Partner'}catch(e){return'Partner'}},toast:t=>pl.toast(t),setActive:(n,on)=>pl.setActive(n,on)});
+m.on(s=>{if([S.WATCH,S.PAUSED,S.BREAK].includes(s))cc.register();else if(s===S.END||s===S.DOOR)cc.unregister()});       // a call lives only while the movie does (End / back to the lobby hangs it up)
+addEventListener('pagehide',()=>cc.unregister());
 m.on((s,p)=>{const who=applying?'Your partner':'You',vt=movie.time;
  pl.setState(s,p,applying?'partner':'you');
  if(s===S.WATCH)logAdd('sys',p===S.SEATED?'The movie started':p===S.PAUSED?`${who} resumed`:p===S.BREAK?`${who} ended the break`:p===S.END?'Watching again':'Playing',!applying);
@@ -292,7 +296,7 @@ function doEmote(p,e){if(e==='wave')p.av.emote('wave');else{const ch=EMO[e]||'�
   for(let i=0;i<n;i++)setTimeout(()=>{head.copy(p.pos);head.y+=2.2;head.project(camera);const f=document.createElement('div');f.className='fl';f.textContent=ch;f.style.left=((head.x*.5+.5)*innerWidth+(n>1?(i-1)*38:0))+'px';f.style.top=(-head.y*.5+.5)*innerHeight+'px';document.body.appendChild(f);setTimeout(()=>f.remove(),2000)},i*150)}
  if(e==='heart'||e==='love'||e==='kiss')audio.heart()}
 function emote(e){doEmote(me,e);sync?.send({t:'emo',e})}
-function leaveTheatre(){if(confirm('Leave the theatre?')){markEnded();sync?.close();if(!leaveApp())location.reload()}}$('leave').onclick=leaveTheatre;let muted=false;function toggleAlerts(){muted=!muted;audio.mute(muted);$('snd').textContent=muted?'🔕':'🔔'}$('snd').onclick=toggleAlerts;
+function leaveTheatre(){if(confirm('Leave the theatre?')){cc.unregister();markEnded();sync?.close();if(!leaveApp())location.reload()}}$('leave').onclick=leaveTheatre;let muted=false;function toggleAlerts(){muted=!muted;audio.mute(muted);$('snd').textContent=muted?'🔕':'🔔'}$('snd').onclick=toggleAlerts;
 m.on((s,p)=>{$('top-r').style.display=s===S.DOOR?'none':(s===S.ENTER?'none':'flex');joyShow(s);
  audio.ambient(s===S.WATCH?.015:.05);audio.mix(s===S.WATCH?MIX.watch:m.is(S.DOOR,S.ENTER)?MIX.out:MIX.in,s===S.WATCH?3:2);if(s===S.END)audio.chime()});
 {const joy=$('joy'),kn=joy.firstElementChild;let pid=null;
