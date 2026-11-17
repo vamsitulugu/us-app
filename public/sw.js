@@ -1,13 +1,43 @@
 // Service Worker for Twin Hearts 💕 PWA — v5
-const CACHE = 'uwl-v81'; // bumped: web version 0.3.0 + update banner per visit
+const CACHE = 'uwl-v82'; // bumped: weak-network resilience (timeouts + offline fallback + outbox module)
 const OFFLINE_ASSETS = [
   '/',
   '/index.html',
+  '/net-resilience.js?v=1',
+  '/chat/chat.js?v=2',
+  '/manifest.json',
   'https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap'
 ];
 
+// How long we wait for the network before using the saved copy (when we have one).
+// On a weak connection a request can hang for a minute; the saved copy is instant.
+const NAV_TIMEOUT_MS = 4000;
+const ASSET_TIMEOUT_MS = 6000;
+
+// Network first, but never wait longer than `ms` if a saved copy exists. The slow request keeps
+// running in the background and refreshes the saved copy for next time.
+async function networkFirstWithTimeout(request, ms, fallbackUrl) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(request);
+  const network = fetch(request).then(res => {
+    if (res && res.status === 200 && request.method === 'GET') cache.put(request, res.clone());
+    return res;
+  });
+  try {
+    if (!cached) return await network;
+    return await Promise.race([
+      network,
+      new Promise((_, rej) => setTimeout(() => rej(new Error('sw-timeout')), ms))
+    ]);
+  } catch (err) {
+    network.catch(() => {}); // avoid an unhandled rejection from the background request
+    return cached || (fallbackUrl && await cache.match(fallbackUrl)) || Response.error();
+  }
+}
+
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(OFFLINE_ASSETS)));
+  // Add each file on its own: one missing file must not stop the whole install.
+  e.waitUntil(caches.open(CACHE).then(c => Promise.all(OFFLINE_ASSETS.map(u => c.add(u).catch(() => {})))));
   self.skipWaiting();
 });
 
@@ -67,15 +97,15 @@ self.addEventListener('fetch', e => {
   }
 
   if (isScript && e.request.method === 'GET') {
-    e.respondWith(
-      fetch(e.request).then(res => {
-        if (res && res.status === 200) {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-        }
-        return res;
-      }).catch(() => caches.match(e.request))
-    );
+    // Still network-first (so a fresh deploy is picked up at once), but a slow network no longer
+    // freezes the page: after ASSET_TIMEOUT_MS the saved copy is used.
+    e.respondWith(networkFirstWithTimeout(e.request, ASSET_TIMEOUT_MS));
+    return;
+  }
+
+  if (isNavigation && e.request.method === 'GET') {
+    // The app shell opens from the saved copy when the network is slow or gone.
+    e.respondWith(networkFirstWithTimeout(e.request, NAV_TIMEOUT_MS, '/index.html'));
     return;
   }
 

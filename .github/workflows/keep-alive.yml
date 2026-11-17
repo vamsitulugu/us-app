@@ -1,0 +1,28 @@
+# Keeps the free Render server awake so the app answers fast on weak networks.
+# Render's free web service sleeps after ~15 minutes without traffic, and the first request after
+# that can take up to a minute. This pings /api/health every ~10 minutes. Free for public repos.
+#
+# Optional setup: repo → Settings → Secrets and variables → Actions → Variables → add
+#   SERVER_URL   e.g. https://us-app-av6d.onrender.com   (the default below is used when empty)
+#
+# Notes:
+# - GitHub may delay scheduled runs by a few minutes, and pauses scheduled workflows in a repo with
+#   no activity for 60 days (a new commit, or "Enable workflow" on the Actions tab, turns it back on).
+# - For a second, independent pinger, add a free monitor at https://uptimerobot.com or
+#   https://cron-job.org that opens  <your server>/api/health  every 5 minutes.
+name: keep-alive
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+permissions: {}
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping /api/health
+        env:
+          SERVER_URL: ${{ vars.SERVER_URL || secrets.SERVER_URL || 'https://us-app-av6d.onrender.com' }}
+        run: |
+          curl -fsS --retry 4 --retry-delay 15 --retry-all-errors --max-time 70 "$SERVER_URL/api/health" || echo "server did not answer (it may be waking up)"

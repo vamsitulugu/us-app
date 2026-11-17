@@ -65,6 +65,7 @@ const Chat = (function () {
     presenceInterval = setInterval(() => {
       // Backgrounded tab: skip entirely, no network call.
       if (document.hidden) return;
+      if (window.Net && !Net.online()) return;
       sendPresence('online');
     }, 15000);
 
@@ -167,6 +168,7 @@ const Chat = (function () {
       if (Array.isArray(saved) && saved.length) {
         msgs = saved;
         lastMsgTs = msgs[msgs.length - 1].created_at;
+        await restoreQueued();
         render();
         scrollToBottom(false);
       }
@@ -177,6 +179,7 @@ const Chat = (function () {
     msgs = rows || [];
     try { localStorage.setItem(CHAT_CACHE_KEY(), JSON.stringify(msgs.slice(-200))); } catch (e) {} // quota full: skip
     lastMsgTs = msgs.length ? msgs[msgs.length - 1].created_at : null;
+    await restoreQueued(); // keep messages still waiting to be sent visible
     render();
     scrollToBottom(false);
     reanchorAfterImages();
@@ -232,6 +235,7 @@ function reanchorAfterImages() {
 }
 
   async function pollNew() {
+    if (window.Net && !Net.online()) return; // offline: nothing to ask the server, saved chat stays on screen
   if (!coupleId()) return;
   try {
     const q = lastMsgTs ? '?after=' + encodeURIComponent(lastMsgTs) : '';
@@ -1146,6 +1150,14 @@ function reanchorAfterImages() {
         sortMsgs();
         lastMsgId = Math.max(lastMsgId, confirmed.id);
         render();
+      } else if (window.Net && Net.isNetworkError(e)) {
+        // Weak signal / offline: keep the message (clock icon) and send it on its own
+        // when the network is back — even if the app is closed and re-opened first.
+        // The server saves by client_id, so a late duplicate attempt can't double-send.
+        await queueForLater(clientId, payload, optimistic);
+        if (idx > -1) msgs[idx]._queued = true;
+        render();
+        if (!queueToastShown) { queueToastShown = true; toast("No connection — message will send automatically"); setTimeout(() => { queueToastShown = false; }, 20000); }
       } else {
         if (idx > -1) msgs[idx]._failed = true;
         render();
@@ -1154,6 +1166,55 @@ function reanchorAfterImages() {
       }
     }
   }
+
+  // ─── OFFLINE OUTBOX (text, gif, sticker, location, … — media is uploaded before this point) ───
+  let queueToastShown = false;
+  async function queueForLater(clientId, payload, optimistic) {
+    try {
+      await Net.outbox.add({
+        id: clientId, kind: 'chat', coupleId: coupleId(),
+        body: { coupleId: coupleId(), clientId, senderRole: myRole(), ...payload },
+        optimistic
+      });
+    } catch (_) {}
+  }
+  async function restoreQueued() {
+    if (!window.Net) return;
+    try {
+      const items = await Net.outbox.all('chat');
+      items.forEach(it => {
+        if (it.coupleId !== coupleId() || !it.optimistic) return;
+        if (!msgs.some(m => m.client_id === it.id)) msgs.push(Object.assign({}, it.optimistic, { _queued: true }));
+      });
+      if (items.length) sortMsgs();
+    } catch (_) {}
+  }
+  let _flushingChat = false;
+  async function flushChatOutbox() {
+    if (!window.Net || _flushingChat) return;
+    _flushingChat = true;
+    try {
+      const items = await Net.outbox.all('chat');
+      for (const it of items) {
+        if (it.coupleId !== coupleId()) continue; // belongs to another account on this device
+        try {
+          const saved = await api('POST', '/api/chat', it.body, { retries: 1 });
+          await Net.outbox.remove(it.id);
+          const idx = msgs.findIndex(m => m.client_id === it.id);
+          if (idx > -1) msgs[idx] = saved; else if (!msgs.some(m => m.id === saved.id)) msgs.push(saved);
+          sortMsgs();
+          lastMsgId = Math.max(lastMsgId, saved.id);
+          render();
+        } catch (e) {
+          if (Net.isNetworkError(e)) break; // still no network: keep order, try again later
+          await Net.outbox.remove(it.id);   // the server refused it: stop retrying, show as failed
+          const idx = msgs.findIndex(m => m.client_id === it.id);
+          if (idx > -1) { msgs[idx]._queued = false; msgs[idx]._failed = true; render(); }
+        }
+      }
+    } finally { _flushingChat = false; }
+  }
+  if (window.Net) Net.onFlush(flushChatOutbox);
 
   // ─── DRAFT PERSISTENCE ─────────────────────────────────
   // Per-couple, per-device (localStorage, not synced) so leaving the chat
@@ -1255,10 +1316,30 @@ function reanchorAfterImages() {
     const form = new FormData();
     form.append('file', fileOrBlob, filename || 'upload');
     form.append('coupleId', coupleId());
-    const r = await fetch(API + '/api/media/upload', { method: 'POST', body: form });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(data.error || 'Upload failed');
-    return data.url;
+    // A stalled upload used to hang for ever on a weak network. Now: a time limit per try
+    // (longer on slow networks) and up to 3 tries with a short pause between them.
+    // (Re-sending the same file is harmless: it just gets a new hosted URL.)
+    const limitMs = 90000 * ((window.Net && Net.timeoutScale()) || 1);
+    let lastErr;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      if (window.Net && !Net.online()) throw new Error('No connection — please try again when you are online');
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), limitMs);
+      try {
+        const r = await fetch(API + '/api/media/upload', { method: 'POST', body: form, signal: ctl.signal });
+        clearTimeout(timer);
+        const data = await r.json().catch(() => ({}));
+        if (r.ok) return data.url;
+        lastErr = new Error(data.error || 'Upload failed');
+        if (r.status < 500 && r.status !== 429) throw lastErr; // the server said no: retrying won't help
+      } catch (e) {
+        clearTimeout(timer);
+        lastErr = e.name === 'AbortError' ? new Error('Upload timed out — check your connection') : e;
+        if (e === lastErr && !(e instanceof TypeError)) throw e; // a real server answer: stop
+      }
+      if (attempt < 3) await new Promise(res => setTimeout(res, 1200 * attempt));
+    }
+    throw lastErr || new Error('Upload failed');
   }
 
   // Formatting toolbar — wraps the current textarea selection (or inserts
@@ -3207,7 +3288,7 @@ function menuItemsHtml(m, id, includeSelect) {
     startRealtime();
     fetchPresence();
     // Keep the partner's Online / Away label fresh on every page, not only inside chat.
-    setInterval(() => { if (!document.hidden) fetchPresence(); }, 10000);
+    setInterval(() => { if (!document.hidden && !(window.Net && !Net.online())) fetchPresence(); }, 10000);
     initSwipeToReply();
     setStaticScreenHeight();
     initViewportKeyboardFix();

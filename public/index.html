@@ -329,6 +329,7 @@
   <meta name="twitter:description" content="Twin Hearts is a private space built for two — chat, memories, calls, journals, games and more, just for you and your partner.">
   <meta name="twitter:image" content="https://twinhearts.vercel.app/icons/icon-512.png">
   <link rel="manifest" href="/manifest.json">
+  <script src="/net-resilience.js?v=1"></script>
   <meta name="theme-color" content="#14030e" id="themeColorMeta">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" href="/icons/icon-192.png" type="image/png" sizes="192x192">
@@ -7941,8 +7942,13 @@ function saveLocal() {
         // still just `await api(...)` / `catch` exactly as before —
         // nothing about the call sites needs to change.
         async function api(method, path, body, apiOpts) {
-          const timeoutMs = (apiOpts && apiOpts.timeoutMs) || 12000;
+          // Slow network (2G/3G/data saver): give each request more time instead of cutting it off.
+          const scale = (window.Net && Net.timeoutScale()) || 1;
+          const timeoutMs = ((apiOpts && apiOpts.timeoutMs) || 12000) * scale;
           const maxRetries = (apiOpts && apiOpts.retries != null) ? apiOpts.retries : 2;
+          // Airplane mode / no network at all: fail at once (callers fall back to saved data or the
+          // offline outbox) instead of waiting through retries that cannot succeed.
+          if (window.Net && !Net.online()) { const oe = new TypeError('Offline'); throw oe; }
           let attempt = 0;
           for (;;) {
             const controller = new AbortController();
@@ -7952,6 +7958,7 @@ function saveLocal() {
               if (body) opts.body = JSON.stringify(body);
               const r = await fetch(API + path, opts);
               clearTimeout(timer);
+              if (window.Net) Net.reportNetworkSuccess();
               let data = {};
               try { data = await r.json(); } catch (_) {}
               if (!r.ok) {
@@ -12756,6 +12763,7 @@ function logOut() {
 // just those three small keys every 3 seconds while the app is open and visible.
 async function pollLoveSignals() {
   if (!S.coupleId || !S.paired || document.hidden) return;
+  if (window.Net && !Net.online()) return; // offline: skip, resumes by itself
   if (Date.now() - _loveSentAt < 5000) return; // my own tap is still being saved: don't overwrite it
   try {
     const r = await fetch(API + '/api/data/love-signals/' + S.coupleId, { cache: 'no-store' });
@@ -12781,6 +12789,7 @@ function startSyncLoop() {
 
     // Tab not visible: skip this tick entirely, no network calls at all.
     if (document.hidden) return;
+    if (window.Net && !Net.online()) return; // offline: keep the saved copy, resume when back
 
     // On pages with their own sync mechanism (chat/games/music/etc.),
     // only run the full-state cloud sync every 4th tick (~20s instead
@@ -13762,6 +13771,7 @@ if (navigator.serviceWorker) {
 
   async function pollForInvite() {
     if (!S.coupleId) return;
+    if (window.Net && !Net.online()) return;
     // If the Music page is already open, its own iframe script shows the card — skip here to avoid duplicates.
     const musicPageActive = document.getElementById('page-music')?.classList.contains('active');
     if (musicPageActive) return;
