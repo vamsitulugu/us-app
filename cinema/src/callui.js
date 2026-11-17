@@ -121,4 +121,9 @@ export function createCall(o){
   const st=C.getWatchState&&C.getWatchState();
   if(st&&st.active&&(st.callType==='video'||type==='voice')){o.toast('You are already in a call');return}   // voice -> video is the only allowed change (an upgrade of the same call)
   try{C.startWatchCall(type)}catch(e){o.toast('Could not start the call')}}
- return{start,register,unregister,end:()=>{call('endWatchCall');refresh()},refresh}}
+ /** my side of the call for the avatar badge: {on,muted,level,cam} or null. cam: 1 camera on, 0 camera off, -1 no video. Android supplies getMicState itself (its calls are native). */
+ function mic(){try{const C=getCall();if(!C)return null;
+  if(typeof C.getMicState==='function'){const s=C.getMicState();return s&&s.on?s:null}
+  const st=typeof C.getWatchState==='function'?C.getWatchState():null;if(!st||!st.active)return null;
+  return{on:1,muted:!!st.muted,level:typeof C.getLocalLevel==='function'?+C.getLocalLevel()||0:0,cam:st.callType==='video'?(st.camOn?1:0):-1}}catch(e){return null}}
+ return{start,register,unregister,end:()=>{call('endWatchCall');refresh()},refresh,mic}}

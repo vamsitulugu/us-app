@@ -1347,6 +1347,32 @@ async function initSignalCursor() {
     return t.readyState === 'live' && !t.muted;
   }
   function getState() { return { muted: isMuted, camOn: !isCamOff, callType, speakerOn: isSpeakerOn }; }
+  // Loudness of MY microphone (0..~0.5, 0 = silence), for the "who is speaking" badge over the avatar in the Twin Cinema.
+  // One AnalyserNode on the live local stream; made on first use and dropped with the call.
+  let lvlCtx = null, lvlAn = null, lvlBuf = null, lvlStream = null;
+  function getLocalLevel() {
+    try {
+      if (!localStream || !localStream.getAudioTracks().length) return 0;
+      if (lvlStream !== localStream) {
+        if (lvlCtx) { try { lvlCtx.close(); } catch (e) {} }
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return 0;
+        lvlCtx = new AC();
+        const src = lvlCtx.createMediaStreamSource(localStream);
+        lvlAn = lvlCtx.createAnalyser(); lvlAn.fftSize = 512;
+        src.connect(lvlAn);
+        lvlBuf = new Uint8Array(lvlAn.fftSize); lvlStream = localStream;
+      }
+      lvlAn.getByteTimeDomainData(lvlBuf);
+      let sum = 0;
+      for (let i = 0; i < lvlBuf.length; i++) { const d = (lvlBuf[i] - 128) / 128; sum += d * d; }
+      return Math.sqrt(sum / lvlBuf.length);
+    } catch (e) { return 0; }
+  }
+  function dropLocalLevel() {
+    if (lvlCtx) { try { lvlCtx.close(); } catch (e) {} }
+    lvlCtx = null; lvlAn = null; lvlBuf = null; lvlStream = null;
+  }
 
   // ══════════════════════════════════════════════════════════════════
   // WATCH TOGETHER — direct-join media session.
@@ -1522,6 +1548,7 @@ async function initSignalCursor() {
     watchMediaSessionId = null;
     watchMediaStartedAt = null;
     callContext = 'chat';
+    dropLocalLevel();
     detachWatchRemoteAudio();
     window.dispatchEvent(new CustomEvent('uwl:call-stream-changed'));
   }
@@ -1533,7 +1560,7 @@ async function initSignalCursor() {
   }
 
   return {
-    startCall, acceptCall, declineCall, endCall, toggleMute, toggleCam, toggleSpeaker, flipCamera, minimize, restore, toggleMoreMenu, openChatDuringCall, acceptVideoUpgrade, declineVideoUpgrade, openMap, consumeNativeAnswer, getRemoteStream, getRemoteCamOn, getState,
+    startCall, acceptCall, declineCall, endCall, toggleMute, toggleCam, toggleSpeaker, flipCamera, minimize, restore, toggleMoreMenu, openChatDuringCall, acceptVideoUpgrade, declineVideoUpgrade, openMap, consumeNativeAnswer, getRemoteStream, getRemoteCamOn, getState, getLocalLevel,
     // Watch Together bridge — presentation lives in movie.js, not here
     registerWatchSession, clearWatchSession, startWatchCall, endWatchCall, getWatchState: watchState
   };

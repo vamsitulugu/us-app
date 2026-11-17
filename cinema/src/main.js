@@ -5,7 +5,8 @@ import {Player} from './player.js';
 import {createVolume} from './volume.js';
 import {loadAvatars,makeAvatar,seatAudience,seatedChatter} from './avatar.js';
 import {createMachine,S} from './state.js';
-import {createSync,ONLINE} from './net.js';
+import {createSync,ONLINE,onNet,netUp} from './net.js';
+import {createSubs} from './subs.js';
 import {Watch,fmt} from './watch.js';
 import {audio} from './audio.js';
 import {createCanteen} from './canteen.js';
@@ -149,11 +150,12 @@ async function join(r){if(role)return;role=r;if(APP)inStudio=true;else leaveStud
  setView('follow',{yaw:Math.PI,pitch:.5,dist:4.5});canteen.showBag(true);hint(LOBBY_TIP);
  sync=await createSync(code,r,{
   onJoin(){partner.group.visible=true;pHere=true;stat('Your partner is in the lobby ♥');hint(m.state===S.DOOR?LOBBY_TIP:'');buttons();studioRefresh()},
-  onHello(){sync?.send({t:'pos',...snap()});if(lobbyGo)sync?.send({t:'lobby'});if(APP&&inv?.isStarted())sync?.send({t:'go'})},onMsg,
+  onReconnect(){sync?.send({t:'ask'});micSent=''},                                           // the link came back (lost internet / locked phone): ask the partner where the scene is
+  onHello(){micSent='';sync?.send({t:'pos',...snap()});if(lobbyGo)sync?.send({t:'lobby'});if(APP&&inv?.isStarted())sync?.send({t:'go'})},onMsg,
   onPos(q){if(!partner.tgt)partner.net(q,true);else partner.net(q);partner.group.visible=true;{const dz=q.z-DOOR_Z;if(Math.abs(dz)<.8)openDoor(dz>0?1:-1)}
    if(q.s&&!partnerSeat)partnerSit(q.s);else if(!q.s&&partnerSeat&&!partner.script)partnerStand();if(!!q.pc!==!!partner.popcorn)partner.setPop(!!q.pc);if(!!q.dr!==!!partner.drink)partner.setDrink(!!q.dr)},
   onSit:q=>partnerSit(q.id),onStand:()=>partnerStand(),
-  onLeave(){partnerGone();pHere=false;studioRefresh();stat('Your partner left');tip('Your partner left the theatre');partner.group.visible=false;if(partnerSeat){hall.taken.delete(partnerSeat.id);hall.setSeatHighlight(partnerSeat.id,0);partnerSeat=null}partner.busy=false;buttons()},
+  onLeave(){theirMic=null;partnerGone();pHere=false;studioRefresh();stat('Your partner left');tip('Your partner left the theatre');partner.group.visible=false;if(partnerSeat){hall.taken.delete(partnerSeat.id);hall.setSeatHighlight(partnerSeat.id,0);partnerSeat=null}partner.busy=false;buttons()},
   onConflict(){stat('That seat in the room is already taken — reload and pick the other person');blocked=true;sync?.close()}});
  movie.connect(code,r);                      // the movie's own channel (separate from the scene's)
  stat('Waiting for your partner at the door…');studioRefresh()}
@@ -194,12 +196,23 @@ let applying=false,fullOn=false;const fv=$('fv'),fc=$('fc');
 const bufEl=document.createElement('div');bufEl.style.cssText='position:fixed;left:50%;top:max(70px,env(safe-area-inset-top));transform:translateX(-50%);z-index:70;padding:9px 18px;border-radius:999px;font:600 14px system-ui,sans-serif;color:#fff;background:rgba(43,6,29,.9);border:1px solid rgba(194,26,139,.45);pointer-events:none;display:none;white-space:nowrap';document.body.appendChild(bufEl);
 movie.onstatus=t=>{bufEl.textContent=t||'';bufEl.style.display=t?'block':'none'};
 movie.onfail=msg=>tip(msg);
+/* ---- reconnect + resume (src/net.js): a small badge while the link is down; the channels re-open by themselves and the movie jumps back to the shared timeline ---- */
+const recoEl=document.createElement('div');recoEl.id='reco';recoEl.innerHTML='<i></i>Reconnecting…';document.body.appendChild(recoEl);
+onNet(up=>recoEl.classList.toggle('on',!up));if(!netUp())recoEl.classList.add('on');
+/* ---- subtitles (src/subs.js): either of you loads an .srt / .vtt, it is shared, each turns it on / off ---- */
+const subs=createSubs({movie,toast:t=>pl.toast(t)});subs.onChange(()=>{const q=subs.state();pl.setActive('subs',q.loaded&&q.on)});
+/* ---- pause request: one tap pauses the movie for both and tells your partner who paused ---- */
+let pauseWhy=null,remoteWho=null;const myName=((APP&&APP.name)||'').trim().slice(0,24);
+function pauseForMe(){if(m.state!==S.WATCH){pl.toast(m.state===S.PAUSED?'The movie is already paused':'The movie is not playing');return}
+ pauseWhy='pause:'+myName;m.go(S.PAUSED);pauseWhy=null;pl.toast('Paused for both of you')}
 /** your partner played / paused / sought (web: realtime, Android: the server): the scene follows the room. A "loading" pause keeps the scene as it is, like the movie page. */
-movie.onremote=({playing,reason})=>{if(reason==='buffering'||ads.active)return;applying=true;
- if(playing&&[S.PAUSED,S.BREAK].includes(m.state))m.go(S.WATCH);else if(!playing&&m.state===S.WATCH&&reason!=='end')m.go(reason==='break'?S.BREAK:S.PAUSED);applying=false};
+movie.onremote=({playing,reason})=>{if(reason==='buffering'||ads.active)return;const named=typeof reason==='string'&&reason.startsWith('pause:');remoteWho=named?(reason.slice(6)||'Your partner'):null;applying=true;
+ if(playing&&[S.PAUSED,S.BREAK].includes(m.state))m.go(S.WATCH);else if(!playing&&m.state===S.WATCH&&reason!=='end')m.go(reason==='break'?S.BREAK:S.PAUSED);applying=false;if(named&&!playing){pl.toast('⏸ '+remoteWho+' paused');tip(remoteWho+' paused the movie ♥')}remoteWho=null};
 function partnerGone(){movie.partnerLeft()}
-m.on(s=>{if(s!==S.WATCH)movie.onstatus('')});
+m.on(s=>{if(s!==S.WATCH)movie.onstatus('');subs.vis([S.WATCH,S.PAUSED,S.BREAK].includes(s))});
 function onMsg(q){
+ if(q.t==='ask'){if([S.WATCH,S.PAUSED,S.BREAK,S.END].includes(m.state))sync?.send({t:'ctl',s:m.state});sync?.send({t:'pos',...snap()});micSent='';return}    // my partner is back from a drop: tell them where the scene is (one way only, so two phones never overwrite each other)
+ if(q.t==='mic'){theirMic=q.on?{muted:!!q.m,speak:!!q.s,camOff:!!q.v}:null;return}
  if(q.t==='ad')return ads.remote();if(q.t==='adend')return ads.partnerEnd();if(ads.active&&q.t==='ctl')return;
  if(q.t==='ctl'){applying=true;m.go(q.s);applying=false}
  else if(q.t==='chat'){show(partner,q.x);audio.chat()}else if(q.t==='pop')partner.setPop(q.on),buttons();else if(q.t==='emo')doEmote(partner,q.e);else if(q.t==='order')canteen.receive(q.items||[]);else if(q.t==='lobby'&&APP)toLobby(true);else if(q.t==='go'&&APP){toLobby(true);if(inv)inv.onGo();else pendingGo=true}else if(q.t==='goack'&&APP){inv?.onAck()}else if(q.t==='meme')memes?.remote(q.id,q.p)}
@@ -218,7 +231,7 @@ m.on((s,p)=>{movie.live=[S.WATCH,S.PAUSED,S.BREAK].includes(s);
   else if(p===S.END){movie.seek(0);if(!applying){movie.play();movie.send(true)}}                                           // watch again
   else if(applying)movie.follow();                                                                                          // the partner resumed: the room already says where we are
   else{movie.play();movie.send(true)}}                                                                                      // I resumed / ended the break
- else if(s===S.PAUSED||s===S.BREAK){movie.pause();if(!applying)movie.send(false,s===S.BREAK?'break':null)}
+ else if(s===S.PAUSED||s===S.BREAK){movie.pause();if(!applying)movie.send(false,s===S.BREAK?'break':pauseWhy)}
  else if(s===S.END){movie.pause();if(!applying)movie.send(false,'end')}
  if(s!==S.WATCH&&fullOn)exitFull();if(s===S.DOOR||s===S.ENTER||s===S.EXPLORE||s===S.SEATED)movie.pause();
  if(!applying&&sync&&[S.WATCH,S.PAUSED,S.BREAK,S.END].includes(s))sync.send({t:'ctl',s});      // the scene (camera, curtains, controls); the movie itself goes through the room
@@ -266,14 +279,25 @@ const pl=createPlayer({movie,fmt,
  mute:{get:()=>movie.muted,set:v=>{movie.muted=v}},
  more:()=>[['🎥 Next camera · '+viewLabel(),nextAngle],['🪟 Choose a view',openViews],
   [m.state===S.BREAK?'▶ End the break':'☕ Take a break',()=>m.go(m.state===S.BREAK?S.WATCH:S.BREAK)],
-  ['🍿 '+(me?.popcorn?'Put popcorn away':'Popcorn'),togglePop],[muted?'🔔 Alerts on':'🔕 Alerts off',toggleAlerts],['🎚 Sound mixer',()=>vol.toggle()],['🎵 Music on/off',()=>audio.musicToggle()],['⏭ Next song',()=>audio.next()],['🚪 Leave theatre',leaveTheatre]],
+  ['🍿 '+(me?.popcorn?'Put popcorn away':'Popcorn'),togglePop],[muted?'🔔 Alerts on':'🔕 Alerts off',toggleAlerts],['📝 Load subtitles (.srt / .vtt)',()=>subs.pick()],['📝 Subtitles earlier (−0.5 s)',()=>subs.shift(-.5)],['📝 Subtitles later (+0.5 s)',()=>subs.shift(.5)],['🎚 Sound mixer',()=>vol.toggle()],['🎵 Music on/off',()=>audio.musicToggle()],['⏭ Next song',()=>audio.next()],['🚪 Leave theatre',leaveTheatre]],
  reactions:()=>REACT.map(([k,label])=>[k==='wave'?'👋':EMO[k],label,()=>emote(k)]),
  log:()=>chatLog,get extra(){return null},
- hooks:{message:()=>toggleChat(),voice:()=>cc.start('voice'),video:()=>cc.start('video')}});     // Voice / Video: the Twin Hearts call engine (window.parent.Call), same as the movie page
+ hooks:{message:()=>toggleChat(),voice:()=>cc.start('voice'),video:()=>cc.start('video'),subs:()=>subs.button(),pausefor:pauseForMe}});     // Voice / Video: the Twin Hearts call engine (window.parent.Call), same as the movie page
 const cc=createCall({sessionId:APP?'cinema:'+APP.session:null,partnerName:()=>{try{return window.parent.S?.partnerName||'Partner'}catch(e){return'Partner'}},toast:t=>pl.toast(t),setActive:(n,on)=>pl.setActive(n,on)});
 m.on(s=>{if([S.WATCH,S.PAUSED,S.BREAK].includes(s))cc.register();else if(s===S.END||s===S.DOOR)cc.unregister()});       // a call lives only while the movie does (End / back to the lobby hangs it up)
 addEventListener('pagehide',()=>cc.unregister());
-m.on((s,p)=>{const who=applying?'Your partner':'You',vt=movie.time;
+/* ---- mic / camera indicator: each phone says whether it is in the call, muted, speaking, camera off; a small badge floats over that avatar ---- */
+const MIC_T=.04,micEls=new Map();let micSent='',micAt=0,micHold=0,mineMic=null,theirMic=null;
+function micDraw(p,s,showIdle){let b=micEls.get(p);if(!b){b=document.createElement('div');b.className='micb';b.innerHTML='<span>🎙</span><span class="off" hidden>📷</span>';document.body.appendChild(b);micEls.set(p,b)}
+ if(!s||!p.group.visible||!(showIdle||s.muted||s.camOff)){b.style.opacity=0;return}
+ b.classList.toggle('speak',!!s.speak&&!s.muted);b.classList.toggle('muted',!!s.muted);const mi=b.firstChild,ico=s.muted?'🔇':'🎙';if(mi.textContent!==ico)mi.textContent=ico;mi.classList.toggle('idle',!s.muted&&!s.speak);b.lastChild.hidden=!s.camOff;
+ head.copy(p.pos);head.y+=p.av.sit>.5?1.45:1.85;head.project(camera);b.style.left=(head.x*.5+.5)*innerWidth+'px';b.style.top=(-head.y*.5+.5)*innerHeight+'px';b.style.opacity=head.z<1?1:0}
+function micTick(){if(!me)return;micDraw(me,mineMic,false);if(partner)micDraw(partner,theirMic,true)}
+setInterval(()=>{const s=cc.mic(),now=performance.now();
+ if(!s||!s.on)mineMic=null;else{if(!s.muted&&s.level>MIC_T)micHold=now;mineMic={muted:!!s.muted,speak:!s.muted&&now-micHold<600,camOff:s.cam===0}}
+ const k=mineMic?'1'+(+mineMic.muted)+(+mineMic.speak)+(+mineMic.camOff):'0';
+ if(sync&&(k!==micSent||now-micAt>6000)){micSent=k;micAt=now;sync.send(mineMic?{t:'mic',on:1,m:+mineMic.muted,s:+mineMic.speak,v:+mineMic.camOff}:{t:'mic',on:0})}},350);
+m.on((s,p)=>{const who=applying?(remoteWho||'Your partner'):'You',vt=movie.time;
  pl.setState(s,p,applying?'partner':'you');
  if(s===S.WATCH)logAdd('sys',p===S.SEATED?'The movie started':p===S.PAUSED?`${who} resumed`:p===S.BREAK?`${who} ended the break`:p===S.END?'Watching again':'Playing',!applying);
  else if(s===S.PAUSED)logAdd('sys',`${who} paused`,!applying);
@@ -341,13 +365,13 @@ renderer.setAnimationLoop(()=>{const raw=clock.getDelta(),dt=Math.min(raw,.05),t
  if(me&&!studio.on&&m.state===S.DOOR&&!me.script&&!canteen.isOpen&&!me.seated){const lx=me.pos.x,lz=me.pos.z-DOOR_Z,nearC=lz>COUNTER_Z-.7&&Math.abs(lx)<3.5;
   if(nearC&&!atCounter){atCounter=true;target=null;me.face(0,1);canteen.open();crowd.greet(me.pos.x)}else if(!nearC&&lz<COUNTER_Z-1.4)atCounter=false;
   if(lz<1.25&&Math.abs(lx)<1&&role&&(!APP||inv?.isStarted()))startEnter()}
- movie.tick(dt);movie.suspend=ads.active;ads.tick(m.state===S.WATCH&&!applying);const now=performance.now();
+ movie.tick(dt);subs.tick(movie.time);movie.suspend=ads.active;ads.tick(m.state===S.WATCH&&!applying);const now=performance.now();
  if(movie.dur&&now-lastUI>200){lastUI=now;const v=movie.time/movie.dur*1000,tc=fmt(movie.time),td=fmt(movie.dur);if(!UI.sk.matches(':active'))UI.sk.value=v;if(!UI.fsk.matches(':active'))UI.fsk.value=v;
   if(UI.tcT!==tc){UI.tcT=tc;UI.tc.textContent=UI.ftc.textContent=tc}if(UI.tdT!==td){UI.tdT=td;UI.td.textContent=td}pl.tick()}
  hall.doorTick(dt);doorLogic(dt);pushHands(me);pushHands(partner);chatter.update(dt,t,m.is(S.WATCH));aud.forEach(a=>a.update(dt,t));if(me){me.update(dt,t);partner.update(dt,t);rig.ctx.me.copy(me.pos);rig.ctx.couple.copy(me.pos);if(partner.group.visible)rig.ctx.couple.add(partner.pos).multiplyScalar(.5);sync?.tick(performance.now(),me.av.walk,snap)}{const cx=rig.ctx,[sw,sh]=hall.dims();cx.sw=sw;cx.sh=sh;cx.sy=hall.screen.position.y;if(me){cx.chatT.copy(me.pos);if(partner.group.visible&&me.pos.distanceTo(partner.pos)<2.6)cx.chatT.add(partner.pos).multiplyScalar(.5);if(now-lastPlace>1000){lastPlace=now;placeChat()}}}
  rig.ctx.seated=!!(me&&me.seated);rig.ctx.taken=hall.taken;rig.ctx.mine=mySeat?.id||null;rig.ctx.lobbyY=floorY(DOOR_Z);rig.ctx.lobby=m.state===S.DOOR;if(!studio.on&&m.is(S.DOOR,S.ENTER)){hall.lobby.update(t);crowd.update(dt,t,camera,[me,partner&&partner.group.visible?partner:null])}
  {const fr=hall.lobby.frames,k=m.state===S.DOOR&&me&&!me.seated?fr.near(me.pos):-1;fr.hold=k>=0;mvCard(k>=0?fr.movie(k):null)}
- bubbleTick(now);if(!(movie.src&&m.is(S.WATCH,S.PAUSED,S.BREAK,S.END))&&now-lastScr>66){lastScr=now;hall.drawScreen(t,m.is(S.WATCH,S.PAUSED,S.BREAK),movie.dur?movie.time/movie.dur:0)}
+ bubbleTick(now);micTick();if(!(movie.src&&m.is(S.WATCH,S.PAUSED,S.BREAK,S.END))&&now-lastScr>66){lastScr=now;hall.drawScreen(t,m.is(S.WATCH,S.PAUSED,S.BREAK),movie.dur?movie.time/movie.dur:0)}
  rig.update(dt,t);finder.update(dt,t);seatCardTick(performance.now());
  if(studio.on){renderer.shadowMap.autoUpdate=true;shAcc=1;studio.render(dt,t)}
  else{renderer.shadowMap.autoUpdate=false;shAcc+=dt;const dyn=!!me&&(moving(me)||(partner.group.visible&&moving(partner)));

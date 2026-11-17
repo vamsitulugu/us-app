@@ -19,7 +19,7 @@ export class Watch{
   this.cloudUrl=o.cloudUrl||null;this.role=0;
   this.v=document.createElement('video');Object.assign(this.v,{playsInline:true,preload:'auto',className:'hv'});document.body.appendChild(this.v);
   this.tex=null;this.src=false;this.meta=null;this.demo={t:0,playing:false,dur:30};this.url=null;this.loading=false;
-  this.onend=null;this.onblocked=null;this.onfail=null;this.onstatus=null;this.onmedia=null;this.onremote=null;     // onstatus(text|'') partner note · onmedia(): what is chosen / who is ready changed · onremote({playing,reason,by}): the partner acted
+  this.onend=null;this.onblocked=null;this.onfail=null;this.onstatus=null;this.onmedia=null;this.onremote=null;this.onsub=null;this.onwant=null;     // onstatus(text|'') partner note · onmedia(): what is chosen / who is ready changed · onremote({playing,reason,by}): the partner acted
   this.media=null;this.haveMid=0;this.pReady=false;this.pMid=0;this.pBuf=false;this.picking=false;this.problem='';this._tok=0;
   this.ref={seq:0,playing:false,pos:0,at:0,by:0};this.reason=null;
   this.live=false;this.suspend=false;this.applying=false;this.buffering=false;this.stallT=0;
@@ -118,16 +118,18 @@ export class Watch{
  tick(dt){if(!this.src&&this.demo.playing){this.demo.t+=dt;if(this.demo.t>=this.demo.dur){this.demo.t=this.demo.dur;this.demo.playing=false;this.onend?.()}}}
  /* ---------- the channel ---------- */
  async connect(room,role){this.role=role;if(this.closed)return;
-  try{this.ch=await openChannel(room+'~movie',m=>this._rx(m))}catch(e){this.ch=null}
+  try{this.ch=await openChannel(room+'~movie',m=>this._rx(m),()=>this._back())}catch(e){this.ch=null}
   const every=(f,ms)=>this.timers.push(setInterval(f,ms));
   every(()=>{if(this.ref.seq&&this.ref.by===this.role)this._hb()},HB_MS);every(()=>this._drift(),DRIFT_MS);
   this._wake=()=>{if(document.visibilityState==='hidden')return;this._tx({k:'want'});this.retry();this.follow()};   // back from a sleeping phone / lost connection: ask, then go where the timeline is
-  addEventListener('online',this._wake);addEventListener('focus',this._wake);addEventListener('pageshow',this._wake);document.addEventListener('visibilitychange',this._wake);
+  addEventListener('online',this._wake);addEventListener('focus',this._wake);addEventListener('pageshow',this._wake);addEventListener('twin:resume',this._wake);document.addEventListener('visibilitychange',this._wake);
   this._tx({k:'want',hello:1})}
  close(){this.closed=true;this.timers.forEach(clearInterval);this.timers=[];clearTimeout(this.stallT);
-  if(this._wake){removeEventListener('online',this._wake);removeEventListener('focus',this._wake);removeEventListener('pageshow',this._wake);document.removeEventListener('visibilitychange',this._wake)}
+  if(this._wake){removeEventListener('online',this._wake);removeEventListener('focus',this._wake);removeEventListener('pageshow',this._wake);removeEventListener('twin:resume',this._wake);document.removeEventListener('visibilitychange',this._wake)}
   try{this.ch?.close()}catch(e){}this.ch=null}
  _tx(m){try{this.ch?.send({...m,r:this.role})}catch(e){}}
+ /** the movie channel came back after a drop (lost internet / locked phone): tell the partner what I have, ask what they have, then go where the timeline is */
+ _back(){if(this.closed)return;this._tx({k:'want',hello:1});if(this.media){this._sendMedia();this._sendReady()}this.retry();this.follow()}
  /** the partner left the room: forget their ready flag */
  partnerLeft(){this.pReady=false;this.pBuf=false;this._status();this._note()}
  _rx(m){if(!m||m.r===this.role||this.closed)return;
@@ -135,8 +137,9 @@ export class Watch{
   else if(m.k==='med')this._rxMedia(m.media);
   else if(m.k==='rdy'){this.pReady=!!m.on;this.pMid=m.mid||0;this._note()}
   else if(m.k==='buf'){this.pBuf=!!m.on;this._status()}
+  else if(m.k==='sub')this.onsub?.(m)
   else if(m.k==='want'){if(m.hello){this.pReady=false;this.pBuf=false;this._status();this._note()}     // they (re)started: forget what they had until they say so again
-   if(this.media){this._sendMedia();this._sendReady()}if(this.ref.seq)this._hb()}}
+   if(this.media){this._sendMedia();this._sendReady()}if(this.ref.seq)this._hb();this.onwant?.()}}
  /* ---------- the shared timeline ---------- */
  _seq(){return Math.max(this.ref.seq+1,Date.now())}
  expected(r=this.ref){if(!r.seq)return this.time;if(!r.playing)return r.pos||0;return(r.pos||0)+Math.max(0,(Date.now()-r.at)/1000)}

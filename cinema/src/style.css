@@ -147,8 +147,8 @@ body.pl-hide{cursor:none}
 .sk::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:15px;height:15px;margin-top:-6px;border-radius:50%;background:#fff;border:3.5px solid #e5322d;box-shadow:0 0 0 1px #0006}
 .sk::-moz-range-track{height:3px;border-radius:3px;background:#ffffff55}.sk::-moz-range-progress{height:3px;border-radius:3px;background:#e5322d}
 .sk::-moz-range-thumb{width:9px;height:9px;border-radius:50%;background:#fff;border:3.5px solid #e5322d}
-.pl-row{display:flex;justify-content:space-around;width:min(100%,900px);margin:0 auto}
-.tb{position:relative;flex:1;max-width:120px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px 4px;font-size:10px;line-height:1.1;opacity:.92;transition:transform .12s,color .2s}
+.pl-row{display:flex;justify-content:space-around;width:min(100%,980px);margin:0 auto;overflow-x:auto;scrollbar-width:none}.pl-row::-webkit-scrollbar{display:none}
+.tb{position:relative;flex:1;min-width:52px;max-width:120px;white-space:nowrap;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px 4px;font-size:10px;line-height:1.1;opacity:.92;transition:transform .12s,color .2s}
 .tb:active{transform:scale(.92)}.tb.on{color:var(--accent)}.tb.sel{color:var(--p1)}
 .dot{display:none;position:absolute;top:3px;left:calc(50% + 6px);width:9px;height:9px;border-radius:50%;background:#ff3b30;border:1.5px solid #000;font-style:normal}
 /* panels: More / reactions / log */
@@ -372,3 +372,13 @@ body.pl #find .fd-toast{bottom:120px}
 #seatcard button{margin-top:4px;padding:4px 16px;border-radius:999px;border:0;background:linear-gradient(180deg,#ff9a2e,#f26b1d);color:#fff;font:700 12px/1 system-ui,sans-serif;cursor:pointer}
 #seatcard button:active{transform:scale(.94)}
 #seatcard::after{content:"";position:absolute;left:50%;bottom:-6px;margin-left:-6px;border:6px solid transparent;border-bottom:0;border-top-color:#0b0d1ce6}
+
+/* ---- subtitles (src/subs.js): a caption low on the screen, the same place the in-movie chat appears ---- */
+#subs{position:fixed;left:50%;bottom:calc(max(14px,env(safe-area-inset-bottom)) + 104px);transform:translateX(-50%);z-index:90;max-width:min(86vw,900px);padding:6px 14px;border-radius:10px;background:rgba(0,0,0,.62);color:#fff;font:600 clamp(14px,2.3vw,24px)/1.3 system-ui,sans-serif;text-align:center;white-space:pre-line;text-shadow:0 1px 3px #000;pointer-events:none;opacity:0;transition:opacity .15s,bottom .25s}
+#subs.on{opacity:1}body.pl-hide #subs{bottom:calc(max(14px,env(safe-area-inset-bottom)) + 26px)}
+/* ---- reconnect badge + mic / camera indicators ---- */
+#reco{position:fixed;left:50%;top:max(14px,env(safe-area-inset-top));transform:translateX(-50%);z-index:95;display:none;align-items:center;gap:8px;padding:7px 15px;border-radius:999px;font:600 13px system-ui,sans-serif;color:#fff;background:rgba(43,6,29,.92);border:1px solid rgba(251,191,36,.6);pointer-events:none;white-space:nowrap}
+#reco.on{display:flex}#reco i{width:10px;height:10px;border-radius:50%;border:2px solid #fbbf24;border-top-color:transparent;animation:rspin .8s linear infinite}@keyframes rspin{to{transform:rotate(360deg)}}
+.micb{position:fixed;z-index:7;transform:translate(-50%,-100%);display:flex;gap:4px;align-items:center;padding:3px 7px;border-radius:999px;font-size:13px;line-height:1;background:rgba(15,15,20,.78);border:1px solid #ffffff30;pointer-events:none;opacity:0;transition:opacity .25s,box-shadow .2s}
+.micb.speak{border-color:#34d399;box-shadow:0 0 0 3px rgba(52,211,153,.35),0 0 12px rgba(52,211,153,.6);animation:micp .8s ease-in-out infinite}@keyframes micp{50%{box-shadow:0 0 0 6px rgba(52,211,153,.12),0 0 18px rgba(52,211,153,.7)}}
+.micb.muted{border-color:#f87171;background:rgba(127,29,29,.85)}.micb .idle{opacity:.55}.micb .off{position:relative;opacity:.9}.micb .off::after{content:'';position:absolute;left:-1px;right:-1px;top:50%;height:2px;background:#f87171;transform:rotate(-35deg)}
