@@ -7865,7 +7865,9 @@ function resetForNewAccount() {
   Object.assign(S, freshAppState());
   localStorage.removeItem('uwl_v5');
   ['uwl_lastTouchSeen','uwl_lastMissSeen','uwl_lastHugSeen',
-   'uwl_lastHugResultSeen','uwl_justPairedAt'].forEach(k => localStorage.removeItem(k));
+   'uwl_lastHugResultSeen','uwl_justPairedAt',
+   'us_movies_v2'  // Movie collection + posters live only in browser storage; clear on logout / account switch
+  ].forEach(k => localStorage.removeItem(k));
 }
         let camStream = null, camFacing = 'environment', pinEntry = [], autoSaveTimer = null, alarmCheckInterval = null;
         // ─── PROFILE SYNC (role-tagged, prevents name/bday clobbering) ──
@@ -12342,6 +12344,7 @@ const p = await Notification.requestPermission();
           if (!confirm('Log out and clear all local data?\n\n(Cloud data in Supabase is preserved.)')) return;
           if (window.SessionManager && S.userId) SessionManager.forgetAccount(S.userId);
           localStorage.removeItem('uwl_v5');
+          localStorage.removeItem('us_movies_v2');
           location.reload();
         }
 function logOut() {

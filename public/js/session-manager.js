@@ -99,7 +99,9 @@
   function clearAuthData({ keepOtherAccounts } = {}) {
     localStorage.removeItem('uwl_v5');
     ['uwl_lastTouchSeen', 'uwl_lastMissSeen', 'uwl_lastHugSeen',
-     'uwl_lastHugResultSeen', 'uwl_justPairedAt'].forEach(k => localStorage.removeItem(k));
+     'uwl_lastHugResultSeen', 'uwl_justPairedAt',
+     'us_movies_v2'  // Movie collection (+ posters) is stored only in this browser; wipe it with the session
+    ].forEach(k => localStorage.removeItem(k));
     if (!keepOtherAccounts) {
       localStorage.removeItem(ACCOUNTS_KEY);
       localStorage.removeItem(ACTIVE_KEY);
