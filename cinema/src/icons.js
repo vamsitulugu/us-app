@@ -1,7 +1,7 @@
 import {createElement,Play,RotateCcw,LogOut,Cloud,FolderOpen,Mail,ArrowRight,ArrowLeft,Heart,
  Coins,Popcorn,HeartHandshake,Hand,Sparkles,Armchair,Hourglass,Clapperboard,Pause,Maximize,VolumeX,Volume1,Volume2,Coffee,DoorOpen,
  MessageCircle,Bell,BellOff,Send,SlidersHorizontal,Music,SkipForward,Film,X,ScanFace,Users,User,RefreshCw,Target,Search,Eye,
- Binoculars,Monitor,Building2,Smile,Laugh,Footprints,Megaphone,Smartphone,Star,TriangleAlert,Moon,PersonStanding,Video,
+ Binoculars,MapPin,Monitor,Building2,Smile,Laugh,Footprints,Megaphone,Smartphone,Star,TriangleAlert,Moon,PersonStanding,Video,
  PanelsTopLeft,ShoppingCart,ShoppingBasket,Gift,ChefHat,Plus,Square,ArrowLeftFromLine,ArrowRightFromLine,Layers,
  IceCreamCone,CupSoda,Sandwich,Pizza,Croissant,Donut,Cake,Candy,Lollipop,Citrus,GlassWater,Cookie,Utensils,Drumstick,Wheat,Beef,Cherry,Dessert,Flame,HandHeart,Ticket,Rotate3d,Milk} from 'lucide';
 
@@ -19,7 +19,7 @@ const MAP={
  '👋':[Hand],'👏':[HandHeart],'🪟':[PanelsTopLeft],'🎚':[SlidersHorizontal],'🎵':[Music],'⏭':[SkipForward],'😂':[Laugh],'😊':[Smile],
  '🎯':[Target],'🔍':[Search],'🦅':[Binoculars],'⬅':[ArrowLeftFromLine],'➡':[ArrowRightFromLine],'👀':[Eye],'👫':[Users],'🏛':[Building2],'🖥':[Monitor],
  '🛒':[ShoppingCart],'🧺':[ShoppingBasket],'🙋':[User],'🎁':[Gift],'👩‍🍳':[ChefHat],'😋':[Utensils],'➕':[Plus],'📢':[Megaphone],'📱':[Smartphone],
- '⭐':[Star,1],'★':[Star,1],'⚠':[TriangleAlert],'🌙':[Moon],'👥':[Users],'👣':[Footprints],'🎟':[Ticket],'🔭':[Binoculars],'✨':[Sparkles]
+ '⭐':[Star,1],'★':[Star,1],'⚠':[TriangleAlert],'🌙':[Moon],'👥':[Users],'👣':[Footprints],'🎟':[Ticket],'🔭':[Binoculars],'📍':[MapPin],'✨':[Sparkles]
 };
 const KEYS=Object.keys(MAP).sort((a,b)=>b.length-a.length);
 const clean=s=>s.replace(/\uFE0F/g,'');

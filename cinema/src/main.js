@@ -16,10 +16,12 @@ import {createPlayer} from './controls.js';
 import {createCall} from './callui.js';
 import {APP,fetchBalance,payOrder,mountInvite,markEnded,leaveApp,fetchLibrary,fetchCloudList,fetchCloudUrl} from './invite.js';
 import {createMoviePick} from './moviepick.js';
-import {ic,iconize,mountIcons,Heart,ArrowRight} from './icons.js';mountIcons();
+import {ic,iconize,mountIcons,Heart,ArrowRight} from './icons.js';mountIcons();mountLabels();
 import {mountOrient} from './orient.js';
 import {createMemes} from './memes.js';
 import {createAdBreak} from './adbreak.js';
+import {mountLabels} from './labels.js';
+import {createFinder} from './finder.js';
 const $=id=>document.getElementById(id),wait=ms=>new Promise(r=>setTimeout(r,ms));
 const tween=(ms,f)=>new Promise(r=>{const s=performance.now();(function k(){const u=Math.min(1,(performance.now()-s)/ms);f(u*u*(3-2*u));u<1?requestAnimationFrame(k):r()})()});
 /* renderer / scene */
@@ -45,7 +47,10 @@ const SPAWN_Z=DOOR_Z+7.2;                                       // middle of the
 const spawn=(kind,h,color,x)=>{const p=new Player(makeAvatar(gl[kind],{height:h,walker:true,relaxed:true,style:kind==='cf'?'f':'m'}),color);scene.add(p.group);p.pos.set(x,floorY(SPAWN_Z),SPAWN_Z);p.group.rotation.y=0;return p};
 let me=null,partner=null,role=0,sync=null,partnerSeat=null,doorOpen=false,inv=null,memes=null;
 /* the movie picker (src/moviepick.js): 🎞 Choose movie (a file on each phone) + ☁️ Cloud movies (the couple's R2). Start stays locked until BOTH phones have the movie. */
-const pick=createMoviePick({movie,fetchList:fetchCloudList,present:()=>!!sync?.present,ask:t=>confirm(t)});
+let pickOpen=false;      // the movie picker is closed until the 🎞 Movie button is tapped (it used to cover the top of the hall all the time)
+const pickShow=()=>pick.vis(pickOpen&&m.is(S.EXPLORE,S.SEATED,S.END));
+const pick=createMoviePick({movie,fetchList:fetchCloudList,present:()=>!!sync?.present,ask:t=>confirm(t),onClose:()=>{pickOpen=false;pickShow();buttons()}});
+const finder=createFinder({scene,camera,target:()=>partner&&partner.group.visible&&sync?.present?partner.pos:null,from:()=>me?.pos});finder.onchange=()=>buttons();
 const startGate=()=>!APP&&!movie.media?'':pick.gate();       // opened on its own with nothing chosen: the 30 s demo clock still works
 {const r=movie.onmedia;movie.onmedia=()=>{r();buttons();if(m.state===S.END)endOverlay()}}
 const ads=createAdBreak({movie,send:m=>sync?.send(m),present:()=>!!sync?.present,leader:()=>role===1||!sync?.present,
@@ -191,7 +196,7 @@ function endOverlay(){const ov=$('ov');if(m.state!==S.END)return;ov.textContent=
  const l=document.createElement('button');l.className='ghost';iconize(l,'✕ Leave theatre');l.onclick=()=>{cc.unregister();endSession();markEnded();sync?.close();if(!leaveApp())location.reload()};ov.appendChild(l);ov.style.display='flex'}
 /** ends the Twin Hearts session for both (watch history), once */
 let sessionDone=false;function endSession(){if(sessionDone||!APP)return;sessionDone=true;return movie.finish()}
-m.on(s=>pick.vis(m.is(S.EXPLORE,S.SEATED,S.END)));
+m.on(()=>{if(!m.is(S.EXPLORE,S.SEATED,S.END))pickOpen=false;pickShow()});
 m.on((s,p)=>{movie.live=[S.WATCH,S.PAUSED,S.BREAK].includes(s);
  if(s===S.WATCH){if(movie.src){hall.setScreenMap(movie.tex);hall.fitScreen(movie.aspect)}
   if(p===S.SEATED){movie.seek(0);movie.pause();if(!applying)setTimeout(()=>{if(m.state===S.WATCH)startRoom()},3200)}      // curtains open, then the movie starts for BOTH through the room
@@ -328,7 +333,7 @@ renderer.setAnimationLoop(()=>{const raw=clock.getDelta(),dt=Math.min(raw,.05),t
  rig.ctx.seated=!!(me&&me.seated);rig.ctx.taken=hall.taken;rig.ctx.mine=mySeat?.id||null;rig.ctx.lobbyY=floorY(DOOR_Z);rig.ctx.lobby=m.state===S.DOOR;if(!studio.on&&m.is(S.DOOR,S.ENTER)){hall.lobby.update(t);crowd.update(dt,t,camera,[me,partner&&partner.group.visible?partner:null])}
  {const fr=hall.lobby.frames,k=m.state===S.DOOR&&me&&!me.seated?fr.near(me.pos):-1;fr.hold=k>=0;mvCard(k>=0?fr.movie(k):null)}
  bubbleTick(now);if(!(movie.src&&m.is(S.WATCH,S.PAUSED,S.BREAK,S.END))&&now-lastScr>66){lastScr=now;hall.drawScreen(t,m.is(S.WATCH,S.PAUSED,S.BREAK),movie.dur?movie.time/movie.dur:0)}
- rig.update(dt,t);
+ rig.update(dt,t);finder.update(dt,t);
  if(studio.on){renderer.shadowMap.autoUpdate=true;shAcc=1;studio.render(dt,t)}
  else{renderer.shadowMap.autoUpdate=false;shAcc+=dt;const dyn=!!me&&(moving(me)||(partner.group.visible&&moving(partner)));
   if(m.state!==S.DOOR&&(dyn||shAcc>=(m.is(S.WATCH)?.5:.25))){shAcc=0;renderer.shadowMap.needsUpdate=true}renderer.render(scene,camera)}

@@ -337,3 +337,29 @@ body.pl #mp{display:none!important}
 #cc .wt-video-bubble video{width:100%;height:100%;object-fit:cover}
 /* a lit Voice / Video button while a call is on */
 #player .tb.on{color:#34d399}
+
+/* ---- tiny names under every icon-only button (src/labels.js) ---- */
+.bl{position:absolute;left:50%;top:calc(100% + 2px);transform:translateX(-50%);font:600 8px/1 system-ui,sans-serif;letter-spacing:.2px;color:#fff;text-shadow:0 1px 3px #000,0 0 2px #000;white-space:nowrap;pointer-events:none;z-index:2}
+#bar{gap:18px!important}#rail{gap:18px!important}#top-r{gap:18px}
+#player .big .bl,#player .skip .bl{top:calc(100% + 3px);font-size:9px}
+#fc button{position:relative}#fc{padding-bottom:max(22px,env(safe-area-inset-bottom))}
+#player .pl-top .ib{position:relative;margin-bottom:8px}
+
+/* ---- movie picker: closed until the Movie button is tapped ---- */
+#mp .mp-x{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;border:0;background:#ffffff1c;color:#fff;font-size:14px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
+
+/* ---- find my partner (src/finder.js) ---- */
+#find{position:fixed;inset:0;z-index:8;pointer-events:none;overflow:hidden}
+#find .fd-pin,#find .fd-arr{position:absolute;left:0;top:0;display:none;place-items:center;will-change:transform}
+#find .fd-pin{width:34px;height:34px;border-radius:50% 50% 50% 0;rotate:-45deg}
+#find .fd-pin{display:none}
+#find .fd-pin i{font-style:normal}
+#find .fd-pin::before{content:"";position:absolute;inset:0;border-radius:50% 50% 50% 0;background:#ff5c8a;border:2px solid #fff;box-shadow:0 0 14px #ffd27acc;animation:fdp 1s ease-in-out infinite}
+#find .fd-pin i{position:relative;rotate:45deg;color:#fff;font-size:15px;line-height:1}
+#find .fd-arr{width:40px;height:40px;border-radius:50%;background:#e8620f;border:2px solid #ffd2a3;color:#fff;box-shadow:0 0 16px #f5821faa;animation:fdp 1s ease-in-out infinite}
+#find .fd-arr i{font-style:normal;font-size:18px;line-height:1}
+#find .fd-lab{position:absolute;left:0;top:0;display:none;padding:3px 9px;border-radius:999px;background:#0b0d1cdd;border:1px solid #ffffff33;color:#fff;font:600 11px system-ui,sans-serif;white-space:nowrap}
+#find .fd-toast{position:absolute;left:50%;bottom:calc(max(14px,env(safe-area-inset-bottom)) + 70px);transform:translateX(-50%);padding:8px 14px;border-radius:12px;background:#0b0d1cee;border:1px solid #ffffff33;color:#fff;font:600 13px system-ui,sans-serif;opacity:0;transition:opacity .25s}
+#find .fd-toast.on{opacity:1}
+@keyframes fdp{50%{transform:scale(1.12)}}
+body.pl #find .fd-toast{bottom:120px}

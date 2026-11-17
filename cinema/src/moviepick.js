@@ -6,11 +6,11 @@ import {fmt} from './watch.js';
 const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
 const size=b=>!b?'':b>=1e9?(b/1e9).toFixed(1)+' GB':Math.round(b/1e6)+' MB';
 /** movie = the Watch engine · fetchList() -> {movies:[{id,title,durationSec,sizeBytes}]} | {err} · present() = partner is in the room · ask(text) -> boolean (confirm) */
-export function createMoviePick({movie,fetchList,present,ask}){
+export function createMoviePick({movie,fetchList,present,ask,onClose}){
  const root=el('div');root.id='mp';root.style.display='none';
  const head=el('div','mp-h'),chips=el('div','mp-c'),row=el('div','mp-r'),note=el('div','mp-n');root.append(head,chips,row,note);
  const lab=el('label','mp-b'),inp=el('input');inp.type='file';inp.accept='video/*,.mkv,.mp4,.m4v,.mov,.webm';lab.append(el('span',0,'🎞 Choose movie'),inp);
- const cb=el('button','mp-b','☁️ Cloud movies');row.append(lab,cb);document.body.appendChild(root);
+ const cb=el('button','mp-b','☁️ Cloud movies');row.append(lab,cb);const xb=el('button','mp-x','✕');xb.setAttribute('aria-label','Close');xb.onclick=()=>onClose?.();root.appendChild(xb);document.body.appendChild(root);
  /* ---- what is missing before the movie can start (empty string = ready) ---- */
  function gate(){const m=movie.media;
   if(!m)return'Choose a movie: from this device, or from your cloud';
