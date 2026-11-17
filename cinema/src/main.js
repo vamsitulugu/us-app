@@ -334,10 +334,21 @@ function sendChat(){const i=$('ci'),v=i.value.trim();if(!v||!me)return;show(me,v
 $('ci').onkeydown=e=>{e.stopPropagation();if(e.key==='Enter')sendChat();else if(e.key==='Escape')closeChat()};$('cs').onclick=sendChat;addEventListener('resize',placeChat);
 function togglePop(){const on=!me.popcorn;me.setPop(on);sync?.send({t:'pop',on});if(on)audio.crunch();buttons()}
 /* reactions: key -> emoji floated above the head (wave is the avatar animation). Your partner gets the same key; an older version just shows a clap. */
-const EMO={heart:'❤️',clap:'👏',laugh:'😂',rofl:'🤣',love:'😍',blush:'🥰',kiss:'😘',hug:'🤗',wow:'😮',scared:'😱',cry:'😢',broken:'💔',fire:'🔥',party:'🎉',like:'👍',cool:'😎',shy:'🙈',thanks:'🙏',sleepy:'😴'};
-const REACT=[['heart','Send love'],['wave','Wave'],['clap','Clap'],['laugh','Laugh'],['rofl','Dying of laughter'],['love','Love it'],['blush','Adore'],['kiss','Kiss'],['hug','Hug'],['wow','Wow'],['scared','Scared'],['cry','Cry'],['broken','Heartbreak'],['fire','Fire'],['party','Celebrate'],['like','Like'],['cool','Cool'],['shy','Shy'],['thanks','Thank you'],['sleepy','Sleepy']];
-function doEmote(p,e){if(e==='wave')p.av.emote('wave');else{const ch=EMO[e]||'👏',n=e==='party'||e==='fire'?3:1;
-  for(let i=0;i<n;i++)setTimeout(()=>{head.copy(p.pos);head.y+=2.2;head.project(camera);const f=document.createElement('div');f.className='fl';f.textContent=ch;f.style.left=((head.x*.5+.5)*innerWidth+(n>1?(i-1)*38:0))+'px';f.style.top=(-head.y*.5+.5)*innerHeight+'px';document.body.appendChild(f);setTimeout(()=>f.remove(),2000)},i*150)}
+const EMO={heart:'❤️',clap:'👏',laugh:'😂',rofl:'🤣',love:'😍',blush:'🥰',kiss:'😘',hug:'🤗',wow:'😮',scared:'😱',cry:'😢',broken:'💔',fire:'🔥',party:'🎉',like:'👍',cool:'😎',shy:'🙈',thanks:'🙏',sleepy:'😴',hi:'👋',funny:'🤪',sad:'😞',enjoy:'😌',dance:'💃',hold:'🤝',think:'🤔',bow:'🙇',cheer:'🙌'};
+const REACT=[['heart','Send love'],['wave','Hi'],['laugh','Laugh'],['rofl','Dying of laughter'],['funny','Funny'],['sad','Sad'],['cry','Cry'],['enjoy','Enjoy'],['dance','Dance'],['hug','Hug together'],['hold','Hold hands'],['clap','Clap'],['cheer','Cheer'],['love','Love it'],['blush','Adore'],['kiss','Blow a kiss'],['wow','Wow'],['scared','Scared'],['broken','Heartbreak'],['fire','Fire'],['party','Celebrate'],['like','Thumbs up'],['think','Thinking'],['bow','Bow'],['cool','Cool'],['shy','Shy'],['thanks','Thank you'],['sleepy','Sleepy']];
+/* body moves (avatar.js MV): the avatar acts it out; the little emoji floats up too. COUPLE moves are played by BOTH avatars (on both phones) and reach toward each other. */
+const BODY={laugh:'laugh',rofl:'laugh',funny:'funny',sad:'sad',cry:'sad',enjoy:'enjoy',dance:'dance',clap:'clap',cheer:'cheer',party:'cheer',kiss:'blowkiss',like:'thumbs',shy:'shy',thanks:'bow',bow:'bow',think:'think',hug:'hug',hold:'hold'},COUPLE=new Set(['hug','hold']);
+const toward=(a,b)=>{const ry=a.group.rotation.y,dx=b.pos.x-a.pos.x,dz=b.pos.z-a.pos.z;return[dx*Math.cos(ry)-dz*Math.sin(ry),dx*Math.sin(ry)+dz*Math.cos(ry)]};   // where b is, in a's own frame
+function float(p,ch,n=1){for(let i=0;i<n;i++)setTimeout(()=>{head.copy(p.pos);head.y+=2.2;head.project(camera);const f=document.createElement('div');f.className='fl';f.textContent=ch;f.style.left=((head.x*.5+.5)*innerWidth+(n>1?(i-1)*38:0))+'px';f.style.top=(-head.y*.5+.5)*innerHeight+'px';document.body.appendChild(f);setTimeout(()=>f.remove(),2000)},i*150)}
+/** standing in the lobby / hall: both walk toward each other, then the couple move starts (sitting side by side it starts at once) */
+let meeting=false;
+async function meetUp(){const d=Math.hypot(partner.pos.x-me.pos.x,partner.pos.z-me.pos.z);if(meeting||d<1.1||d>5||me.seated||me.script||!m.is(S.DOOR,S.EXPLORE))return;meeting=true;
+ try{const k=(d-.6)/2/d;await me.walk([[me.pos.x+(partner.pos.x-me.pos.x)*k,me.pos.z+(partner.pos.z-me.pos.z)*k]],1.2)}catch(e){}meeting=false}
+async function doEmote(p,e){
+ if(COUPLE.has(e)&&me&&partner&&partner.group.visible){if(p===me||p===partner){if(p===partner||!me.seated)await meetUp();for(const a of[me,partner]){const o=a===me?partner:me;a.av.emote(BODY[e],{to:toward(a,o)})}float(me,EMO[e]);float(partner,EMO[e]);audio.heart();return}}
+ if(e==='wave'){p.av.emote('wave');float(p,'👋');return}
+ if(BODY[e])p.av.emote(BODY[e],{to:null});
+ float(p,EMO[e]||'👏',e==='party'||e==='fire'?3:1);
  if(e==='heart'||e==='love'||e==='kiss')audio.heart()}
 function emote(e){doEmote(me,e);sync?.send({t:'emo',e})}
 function leaveTheatre(){if(confirm('Leave the theatre?')){cc.unregister();markEnded();sync?.close();if(!leaveApp())location.reload()}}$('leave').onclick=leaveTheatre;let muted=false;function toggleAlerts(){muted=!muted;audio.mute(muted);$('snd').textContent=muted?'🔕':'🔔'}$('snd').onclick=toggleAlerts;

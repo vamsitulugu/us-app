@@ -96,13 +96,38 @@ export function makeAvatar(gltf,{height=1.7,look,hide=[],walker=false,seated=fal
   rotW(B.Neck,nod*.4,g*.35,(sp?.02:.04)*s1);rotW(B.Head,nod*.6,g*.5,(sp?.02:.04)*s2);
   CB.forEach((b,i)=>{CQ[i].copy(b.quaternion);b.quaternion.copy(SB.get(b)).slerp(CQ[i],cw)});   // blend with the seated pose
   return true};
- let lastPose=-1;const av={group,sit:seated?1:0,walk:0,amp:0,ph:0,wave:0,act:'',talk:0,tly:0,tlp:0,wear,speak:false,listen:false,gaze:0,gest:'talk',emote(n){if(n==='wave')av.wave=2.2},
+ /* ---- reaction moves (av.emote(name, {to:[x,z]})): whole-body animations on top of the normal pose. k = 0..1 fade in / out, tt = seconds since the move began.
+        'to' = where the partner is, in this avatar's own frame (x sideways, z forward): the couple moves (hug, hold) reach toward it. ---- */
+ const both=(f)=>{arm('Left',...f(1));arm('Right',...f(-1))},ease=(tt,d)=>Math.max(0,Math.min(1,tt/.35,(d-tt)/.45));
+ const reach=(o,hug)=>{const to=o||[0,1],l=Math.hypot(to[0],to[1])||1,dx=to[0]/l,dz=to[1]/l,side=dx>=0?1:-1;
+  for(const S of['Left','Right']){const mine=sg[S]===side;
+   if(hug){A(B[S+'Arm'],B[S+'ForeArm'],VT(dx*.8+(mine?0:.1*sg[S]),.12,dz*.8+(mine?0:.35)));A(B[S+'ForeArm'],B[S+'Hand'],VT(dx*.7,.05,dz*.7+.25))}
+   else if(mine){A(B[S+'Arm'],B[S+'ForeArm'],VT(dx*.85,-.45,dz*.85));A(B[S+'ForeArm'],B[S+'Hand'],VT(dx*.9,-.3,dz*.9))}}};
+ const MV={
+  laugh:{d:3.2,f:(t,k)=>{rotW(B.Spine1,-.1*k-.04*k*Math.abs(sn(t*20)),0,0);rotW(B.Spine2,-.06*k,0,.03*k*sn(t*20));rotW(B.Head,-.3*k,0,.06*k*sn(t*10));both(x=>[.12,-.85,.5,-.35,.1,.95])}},
+  funny:{d:3.4,f:(t,k)=>{rotW(B.Head,0,.15*k*sn(t*4),.3*k*sn(t*4));rotW(B.Spine2,0,.2*k*sn(t*4),0);arm('Left',.7,.45+.25*sn(t*9),.25,.3,.9,.1);arm('Right',.7,.45-.25*sn(t*9),.25,.3,.9,.1)}},
+  sad:{d:4,f:(t,k)=>{rotW(B.Spine,.1*k,0,0);rotW(B.Spine1,.14*k,0,0);rotW(B.Neck,.25*k,0,0);rotW(B.Head,.35*k,0,0);arm('Right',.2,-.1,.75,-.15,.95+.05*sn(t*5),.2);arm('Left',.1,-.95,.1,-.1,-.5,.3)}},
+  enjoy:{d:4.5,f:(t,k)=>{const w=sn(t*2.4);rotW(hips,0,0,.1*k*w);rotW(B.Spine1,0,.1*k*w,-.08*k*w);rotW(B.Head,.06*k*sn(t*4.8),0,.08*k*w);arm('Left',.8,.3+.15*w,.2,.2,.9,.1);arm('Right',.8,.3-.15*w,.2,.2,.9,.1)}},
+  dance:{d:5,f:(t,k)=>{const w=sn(t*5);rotW(hips,0,.35*k*w,.12*k*w);rotW(B.Spine1,0,-.2*k*w,0);rotW(B.Head,.05*k*Math.abs(w),0,.1*k*w);arm('Left',.6,.6+.35*w,.2,.3,.8,.1);arm('Right',.6,.6-.35*w,.2,.3,.8,.1)}},
+  clap:{d:2.6,f:(t,k)=>{const u=.5+.5*sn(t*13);both(x=>[.2,-.3,.85,.35-.8*u,.15,.95])}},
+  cheer:{d:2.8,f:(t,k)=>{const j=Math.abs(sn(t*6));rotW(B.Spine2,-.08*k,0,0);rotW(B.Head,-.2*k,0,0);arm('Left',.35,1,.1,.1+.1*j,1,.05);arm('Right',.35,1,.1,.1+.1*j,1,.05)}},
+  blowkiss:{d:2.6,f:(t,k)=>{if(t<.9)arm('Right',.2,-.2,.7,-.2,.9,.5);else arm('Right',.4,.3+.2*Math.min(1,(t-.9)*2),.8,.3,.3,.9);rotW(B.Head,-.05*k,0,.08*k)}},
+  thumbs:{d:2.4,f:(t,k)=>{arm('Right',.25,-.35,.8,-.1,.6+.05*sn(t*8),.9);rotW(B.Head,.1*k*Math.max(0,sn(t*7)),0,0)}},
+  shy:{d:3,f:(t,k)=>{rotW(B.Spine1,.1*k,0,0);rotW(B.Head,.25*k,.15*k*sn(t*2),.08*k);both(x=>[.2,-.3,.75,-.15,.95,.25])}},
+  bow:{d:2.6,f:(t,k)=>{rotW(hips,.45*k,0,0);rotW(B.Spine1,.3*k,0,0);rotW(B.Head,.2*k,0,0);both(x=>[.15,-.9,.3,-.1,-.3,.9])}},
+  think:{d:3.6,f:(t,k)=>{rotW(B.Head,.05*k,.1*k,.2*k);arm('Right',.2,-.25,.75,-.1,1,.25)}},
+  hug:{d:4.2,f:(t,k,o)=>{rotW(B.Spine1,.12*k,0,0);rotW(B.Head,.1*k,0,.12*k*sn(t*1.5));reach(o,true)}},
+  hold:{d:5,f:(t,k,o)=>{rotW(B.Head,0,0,.06*k*sn(t*1.2));reach(o,false)}}};
+ const playMove=(dt,t)=>{const v=av.mv,d=MV[v.n];if(!d){av.mv=null;return}v.t+=dt;if(v.t>=d.d){av.mv=null;return}
+  if(av.sit>.5)for(const b of[B.Spine1,B.Spine2,B.Neck,B.Head])b.quaternion.copy(SB.get(b));          // seated: start from the seated pose, so the turns never pile up
+  d.f(v.t,ease(v.t,d.d),v.to)};
+ let lastPose=-1;const av={mv:null,group,sit:seated?1:0,walk:0,amp:0,ph:0,wave:0,act:'',talk:0,tly:0,tlp:0,wear,speak:false,listen:false,gaze:0,gest:'talk',emote(n,o){if(n==='wave')av.wave=2.2;else if(MV[n])av.mv={n,t:0,to:o&&o.to||null}},
   walkPose(t=0){wb.forEach(([b,q])=>b.quaternion.copy(q));const a=av.amp;if(ST)stylePose(a,t,av.ph);
    ['Left','Right'].forEach((n,i)=>{const f=av.ph+i*Math.PI,k=sg[n],th=P.sw*a*Math.sin(f),ps=th-(P.knee+P.lift*a*Math.max(0,Math.cos(f))),al=-P.as*a*Math.sin(f);
     A(B[n+'UpLeg'],B[n+'Leg'],VT(.03*k,-Math.cos(th),Math.sin(th)));A(B[n+'Leg'],B[n+'Foot'],VT(0,-Math.cos(ps),Math.sin(ps)));A(B[n+'Foot'],B[n+'ToeBase'],VT(0,-.1,1));
     A(B[n+'Arm'],B[n+'ForeArm'],VT(P.spread*k,-Math.cos(al),Math.sin(al)));A(B[n+'ForeArm'],B[n+'Hand'],VT((P.spread*.6)*k,-Math.cos(al+P.fore+(ST?ST.bend*a*Math.max(0,-Math.sin(f))+.12*a:0)),Math.sin(al+P.fore+(ST?ST.bend*a*Math.max(0,-Math.sin(f))+.12*a:0))))});
    m.position.y=my-leg*a*(1-Math.cos(P.sw*Math.abs(Math.sin(av.ph))))+(ST?ST.bob*a*Math.cos(2*av.ph):0)},
-  update(dt,t){if(walker){av.amp+=((av.walk&&av.sit<.5?1:0)-av.amp)*Math.min(1,dt*8);av.ph+=dt*(ST?ST.cad:6.8)*av.amp;if(av.sit<1&&(av.amp>.02||av.walk||av.sit>0||t-lastPose>.045||t<lastPose)){lastPose=t;av.walkPose(t);bodyLang(dt,t)}   // only a fully idle, standing avatar is refreshed at ~22 Hz
+  update(dt,t){if(walker){av.amp+=((av.walk&&av.sit<.5?1:0)-av.amp)*Math.min(1,dt*8);av.ph+=dt*(ST?ST.cad:6.8)*av.amp;if(av.sit<1&&(av.amp>.02||av.walk||av.sit>0||t-lastPose>.045||t<lastPose||av.mv)){lastPose=t;av.walkPose(t);bodyLang(dt,t)}   // only a fully idle, standing avatar is refreshed at ~22 Hz
     hips.position.copy(hrest).lerp(hsit,av.sit);if(av.sit>0)for(const s of sb)s.b.quaternion.slerp(s.q,av.sit)}
    const mouthOn=av.talk||av.speak;
    if(jaw.length&&(mouthOn||tk>.002)){const v=mouthOn?.1+.3*Math.abs(sn(t*9+seed))*(.55+.45*sn(t*2.3+seed)):0;tk+=(v-tk)*Math.min(1,dt*18);for(const j of jaw)j[0].morphTargetInfluences[j[1]]=tk}
@@ -112,7 +137,8 @@ export function makeAvatar(gltf,{height=1.7,look,hide=[],walker=false,seated=fal
     if(!mouthOn&&vCur<0&&vis.every(q=>q.v<.003))vT=0}
    if(smi.length){const tg=av.listen&&sn(t*.5+seed*2)>.35?.45:av.speak?.2:0;sm+=(tg-sm)*Math.min(1,dt*3);for(const x of smi)x[0].morphTargetInfluences[x[1]]=sm}
    if(av.sit>.98){if(!(av.speak||av.listen||cw>.004)||!chatPose(dt,t,av.speak||av.listen?1:0))B.Head.quaternion.copy(headQ).multiply(yq.setFromAxisAngle(YA,Math.sin(t*.6+seed)*.3))}
-   if(av.wave>0){av.wave-=dt;const k=sg.Right,s=Math.sin(t*11);A(B.RightArm,B.RightForeArm,VT(.55*k,.65,.25));A(B.RightForeArm,B.RightHand,VT((.2+.5*s)*k,.9,.15))}}};
+   if(av.wave>0){av.wave-=dt;const k=sg.Right,s=Math.sin(t*11);A(B.RightArm,B.RightForeArm,VT(.55*k,.65,.25));A(B.RightForeArm,B.RightHand,VT((.2+.5*s)*k,.9,.15))}
+   if(av.mv)playMove(dt,t)}};
  if(seated){sb.forEach(s=>s.b.quaternion.copy(s.q));hips.position.copy(hsit)}
  return av}
 /** Fill the already-taken seats with a varied crowd. Never uses the couple's avatars: 4 different people models (+ any in /models/audience), shared out evenly, each with its own skin, hair, clothes, height and face proportions. */
