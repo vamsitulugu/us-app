@@ -51,6 +51,7 @@ let me=null,partner=null,role=0,sync=null,partnerSeat=null,doorOpen=false,inv=nu
 let pickOpen=false;      // the movie picker is closed until the 🎞 Movie button is tapped (it used to cover the top of the hall all the time)
 const pickShow=()=>pick.vis(pickOpen&&m.is(S.EXPLORE,S.SEATED,S.END));
 const pick=createMoviePick({movie,fetchList:fetchCloudList,present:()=>!!sync?.present,ask:t=>confirm(t),onClose:()=>{pickOpen=false;pickShow();buttons()}});
+const togglePick=()=>{pickOpen=!pickOpen;pickShow();buttons()};      // the Movie button: 1st tap opens the movie popup, 2nd tap closes it
 const finder=createFinder({scene,camera,target:()=>partner&&partner.group.visible&&sync?.present?partner.pos:null,from:()=>me?.pos});finder.onchange=()=>buttons();
 const startGate=()=>!APP&&!movie.media?'':pick.gate();       // opened on its own with nothing chosen: the 30 s demo clock still works
 {const r=movie.onmedia;movie.onmedia=()=>{r();buttons();if(m.state===S.END)endOverlay()}}
@@ -91,7 +92,11 @@ const B=(icon,title,fn,cls)=>{const b=document.createElement('button');b.textCon
 function buttons(){bar.innerHTML='';const s=m.state;
  if(s===S.EXPLORE&&pending)B('🪑','Sit here',sitDown,'main');
  if(s===S.DOOR&&me&&!inStudio&&APP&&inv?.isStarted())B('🎟','Go to the hall',startEnter,'main');      // back in the canteen after the movie night started: one tap (or walk through the door) takes you in again
- if(s===S.SEATED){const wait2=sync?.present&&!partnerSeat,g=wait2?'':startGate();const rs=!wait2&&!g?resumeAt():0;B(wait2?'⏳':g?'🎞':'🎬',wait2?'Waiting for partner to sit':g||(rs?'Resume '+hms(rs):'Start movie'),()=>{startOver=false;m.go(S.WATCH)},'main').disabled=wait2||!!g;if(rs)B('⏮','Start over',()=>{startOver=true;m.go(S.WATCH)});B('🧍','Stand up',standUp)}
+ if(s===S.SEATED){const wait2=sync?.present&&!partnerSeat,g=wait2?'':startGate();const rs=!wait2&&!g?resumeAt():0;const choosing=!wait2&&!!g;      // nothing to start yet: this button opens / closes the movie popup instead (it used to be a dead, greyed-out button)
+  B(wait2?'⏳':choosing?'🎞':'🎬',wait2?'Waiting for partner to sit':g||(rs?'Resume '+hms(rs):'Start movie'),choosing?togglePick:()=>{startOver=false;m.go(S.WATCH)},'main'+(choosing&&pickOpen?' on':'')).disabled=wait2;
+  if(!wait2&&!choosing)B('🎞','Change movie',togglePick,pickOpen?'on':'');      // movie is ready: Start stays first, and the movie can still be changed
+  if(rs)B('⏮','Start over',()=>{startOver=true;m.go(S.WATCH)});B('🧍','Stand up',standUp)}
+ if(s===S.EXPLORE||s===S.END)B('🎞','Choose movie',togglePick,pickOpen?'on':'');      // the popup is also allowed while walking around the hall / after the movie
  if([S.WATCH,S.PAUSED,S.BREAK].includes(s)){B(s===S.WATCH?'⏸':'▶',s===S.WATCH?'Pause':'Play',()=>m.go(s===S.WATCH?S.PAUSED:S.WATCH),'main');B('🎥','Next camera angle · '+viewLabel(),nextAngle);B('⛶','Full screen · choose a view',openViews);B(movie.muted?'🔇':'🔊',movie.muted?'Sound off':'Sound on',()=>{movie.muted=!movie.muted;buttons()});B('☕','Break',()=>m.go(S.BREAK))}
  if(me&&m.is(S.SEATED,S.WATCH,S.PAUSED,S.BREAK))B('🍿',me.popcorn?'Put popcorn away':'Popcorn',togglePop,me.popcorn?'on':'');
  if(me&&!m.is(S.DOOR,S.ENTER,S.END)){B('❤️','Send love',()=>emote('heart'));B('👋','Wave',()=>emote('wave'));B('👏','Clap',()=>emote('clap'))}
