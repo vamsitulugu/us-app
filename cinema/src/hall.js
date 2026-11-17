@@ -131,7 +131,7 @@ export function buildHall(scene,renderer){
  /* ---------- seats ---------- */
  const rbs=sg=>(w,h,d,r,x,y,z,rx=0)=>{const g=new RoundedBoxGeometry(w,h,d,sg,r);if(rx)g.rotateX(rx);g.translate(x,y,z);return g};
  const rb=rbs(2),rbd=rbs(1);   // seat bevels: 2 segments on the big cushions, 1 on the tiny frame bars (looks identical, ~5x fewer triangles per seat)
- const cushGeo=mergeGeometries([rb(.52,.13,.5,.05,0,.47,-.03),rb(.52,.8,.13,.06,0,.98,.27,.13),rb(.42,.24,.15,.06,0,1.38,.32,.13)]);
+ const cushGeo=mergeGeometries([rb(.52,.13,.5,.05,0,.47,-.03),rb(.52,.634,.13,.06,0,.897,.27,.13),rb(.42,.24,.15,.06,0,1.214,.32,.13)]);
  const darkGeo=mergeGeometries([rbd(.07,.07,.56,.025,-.3,.66,-.02),rbd(.07,.07,.56,.025,.3,.66,-.02),rbd(.06,.2,.1,.02,-.3,.54,.2),rbd(.06,.2,.1,.02,.3,.54,.2),rbd(.12,.42,.24,.03,0,.21,.14),rbd(.1,.04,.66,.015,0,.02,0)]);
  const redBase=M(0xa51d1d,{roughness:.9,bumpMap:bumpS,bumpScale:.25}),greyBase=M(0x453e3c,{roughness:.9,bumpMap:bumpS,bumpScale:.25});
  const darkParts=[],seats=new Map(),boxes=[],taken=new Set(['A3','A13','B2','B6','B13','C5','C10','C14','D3','D9','D12','E4','E12','F2','F7','F14','G3','G10','H6','H9','H13','I4','I8','I12']),picks=[];

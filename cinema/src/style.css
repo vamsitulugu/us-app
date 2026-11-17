@@ -363,3 +363,12 @@ body.pl #mp{display:none!important}
 #find .fd-toast.on{opacity:1}
 @keyframes fdp{50%{transform:scale(1.12)}}
 body.pl #find .fd-toast{bottom:120px}
+
+/* ---- seat card: seat number + small Sit button above the seat you walk up to / tap ---- */
+#seatcard{position:fixed;left:0;top:0;z-index:7;display:none;flex-direction:column;align-items:center;gap:1px;padding:5px 8px 6px;border-radius:12px;background:#0b0d1ce6;border:1px solid #ffffff33;color:#fff;font-family:system-ui,sans-serif;box-shadow:0 4px 14px #0008;will-change:transform;margin-top:-6px}
+#seatcard.on{display:flex}
+#seatcard b{font-size:14px;line-height:1.1}
+#seatcard small{font-size:9px;opacity:.7;line-height:1.1}
+#seatcard button{margin-top:4px;padding:4px 16px;border-radius:999px;border:0;background:linear-gradient(180deg,#ff9a2e,#f26b1d);color:#fff;font:700 12px/1 system-ui,sans-serif;cursor:pointer}
+#seatcard button:active{transform:scale(.94)}
+#seatcard::after{content:"";position:absolute;left:50%;bottom:-6px;margin-left:-6px;border:6px solid transparent;border-bottom:0;border-top-color:#0b0d1ce6}

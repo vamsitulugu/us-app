@@ -172,6 +172,21 @@ async function exitHall(){if(leaving||!me||m.state!==S.EXPLORE||me.script||me.se
  hall.setRoom(false);openDoor(-1);await wait(350);                                                        // push: the leaves swing out into the lobby
  await me.walk([[x,DOOR_Z+1.7]],1.3);                                                                     // straight through
  m.go(S.DOOR);leaving=false}
+/* ---- seat card: walk up to a free seat (or tap one) -> its number floats above it with a small Sit button ---- */
+const seatCardEl=document.createElement('div');seatCardEl.id='seatcard';seatCardEl.innerHTML='<b></b><small></small><button type="button">Sit</button>';document.body.appendChild(seatCardEl);
+let scSeat=null,scT=0;const scV=new THREE.Vector3();
+seatCardEl.querySelector('button').onclick=()=>{const s=scSeat;if(!s||hall.taken.has(s.id)||m.state!==S.EXPLORE)return;if(pending&&pending!==s.id)hall.setSeatHighlight(pending,0);pending=s.id;hall.setSeatHighlight(s.id,0xffb0c8);sitDown()};
+function seatCardTick(now){
+ let seat=null;
+ if(me&&m.state===S.EXPLORE&&!me.script&&!me.seated&&!leaving){
+  if(pending)seat=hall.seats.get(pending)||null;
+  else if(now-scT>90){scT=now;let best=.62;for(const s of hall.seats.values()){if(hall.taken.has(s.id))continue;const d=Math.hypot(s.x-me.pos.x,s.aisle.z-me.pos.z);if(d<best){best=d;seat=s}}scSeat=seat||null}
+  else seat=scSeat}
+ if(!seat||m.state!==S.EXPLORE){if(scSeat||seatCardEl.classList.contains('on')){scSeat=null;seatCardEl.classList.remove('on')}return}
+ scSeat=seat;camera.updateMatrixWorld();scV.set(seat.x,seat.y+1.15,seat.z).project(camera);
+ if(scV.z>1||Math.abs(scV.x)>1.05||Math.abs(scV.y)>1.05){seatCardEl.classList.remove('on');return}
+ const b=seatCardEl.firstChild;if(b.textContent!==seat.id){b.textContent='Seat '+seat.id;seatCardEl.children[1].textContent='Row '+seat.id[0]+' · No. '+seat.id.slice(1)}
+ seatCardEl.style.transform=`translate(${(scV.x*.5+.5)*innerWidth}px,${(-scV.y*.5+.5)*innerHeight}px) translate(-50%,-100%)`;seatCardEl.classList.add('on')}
 async function standUp(){sync?.send({t:'stand'});hall.setSeatHighlight(mySeat.id,0);await me.stand(mySeat);mySeat=null;m.go(S.EXPLORE)}
 /* ---- movie: sync, full screen, seek ---- */
 /* ---- movie: the Twin Hearts Watch Together engine (src/watch.js) — shared room, shared clock, buffering hold, drift correction ---- */
@@ -333,7 +348,7 @@ renderer.setAnimationLoop(()=>{const raw=clock.getDelta(),dt=Math.min(raw,.05),t
  rig.ctx.seated=!!(me&&me.seated);rig.ctx.taken=hall.taken;rig.ctx.mine=mySeat?.id||null;rig.ctx.lobbyY=floorY(DOOR_Z);rig.ctx.lobby=m.state===S.DOOR;if(!studio.on&&m.is(S.DOOR,S.ENTER)){hall.lobby.update(t);crowd.update(dt,t,camera,[me,partner&&partner.group.visible?partner:null])}
  {const fr=hall.lobby.frames,k=m.state===S.DOOR&&me&&!me.seated?fr.near(me.pos):-1;fr.hold=k>=0;mvCard(k>=0?fr.movie(k):null)}
  bubbleTick(now);if(!(movie.src&&m.is(S.WATCH,S.PAUSED,S.BREAK,S.END))&&now-lastScr>66){lastScr=now;hall.drawScreen(t,m.is(S.WATCH,S.PAUSED,S.BREAK),movie.dur?movie.time/movie.dur:0)}
- rig.update(dt,t);finder.update(dt,t);
+ rig.update(dt,t);finder.update(dt,t);seatCardTick(performance.now());
  if(studio.on){renderer.shadowMap.autoUpdate=true;shAcc=1;studio.render(dt,t)}
  else{renderer.shadowMap.autoUpdate=false;shAcc+=dt;const dyn=!!me&&(moving(me)||(partner.group.visible&&moving(partner)));
   if(m.state!==S.DOOR&&(dyn||shAcc>=(m.is(S.WATCH)?.5:.25))){shAcc=0;renderer.shadowMap.needsUpdate=true}renderer.render(scene,camera)}
