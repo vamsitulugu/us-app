@@ -472,7 +472,16 @@ const DELETE_COUPLE_TABLES = [
   'partner_requests', 'reward_wallets', 'reward_cards', 'reward_checkins', 'reward_equipped', 'reward_purchases',
   'reward_scratches', 'reward_spins', 'reward_access', 'coin_transactions', 'app_state', 'profiles'
 ];
-router.post('/delete-account', resetSubmitLimiter, async (req, res) => {
+// Its own limiter, defined BEFORE the route: the shared resetSubmitLimiter is created much further
+// down this file, and using it here crashed the server at startup ("before initialization").
+const deleteAccountLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10, // delete-account attempts per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many attempts. Please wait a while and try again.' }
+});
+router.post('/delete-account', deleteAccountLimiter, async (req, res) => {
   try {
     const { email, password, confirm } = req.body || {};
     if (!email || !password) return res.status(400).json({ error: 'Email and password are required.' });
