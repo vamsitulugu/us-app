@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Delete your account - Twin Hearts</title>
+  <style>
+    body{font-family:system-ui,sans-serif;max-width:520px;margin:40px auto;padding:0 20px;line-height:1.55;color:#222}
+    h1{color:#c2185b;font-size:26px} label{display:block;margin:14px 0 4px;font-weight:600}
+    input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #ccc;border-radius:10px;font-size:16px}
+    button{margin-top:20px;width:100%;padding:14px;border:0;border-radius:12px;background:#d32f2f;color:#fff;font-size:16px;font-weight:700;cursor:pointer}
+    button:disabled{opacity:.6} .box{background:#fff4f4;border:1px solid #f1c0c0;border-radius:10px;padding:12px 14px;font-size:14px}
+    #msg{margin-top:16px;font-weight:600} .ok{color:#2e7d32} .err{color:#c62828}
+  </style>
+</head>
+<body>
+  <h1>Delete your Twin Hearts account</h1>
+  <div class="box">
+    <b>This cannot be undone.</b> Your account, and everything your couple saved in the app (chats, photos, memories, movie history, rewards,
+    locations and settings), is deleted. Your partner keeps their own account with a fresh empty space.
+    Payment records are kept only as long as tax and legal rules require.
+  </div>
+  <label for="email">Email</label><input id="email" type="email" autocomplete="username">
+  <label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password">
+  <label for="cf">Type DELETE to confirm</label><input id="cf" autocomplete="off">
+  <button id="go">Delete my account and data</button>
+  <div id="msg"></div>
+  <p style="margin-top:28px;font-size:13px"><a href="/privacy-policy.html">Privacy policy</a> &middot; Need help? vamsitulugu71@gmail.com</p>
+<script>
+document.getElementById('go').onclick=async function(){
+  var b=this,m=document.getElementById('msg');m.className='';m.textContent='';b.disabled=true;
+  try{
+    var r=await fetch('/api/auth/delete-account',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email:document.getElementById('email').value,password:document.getElementById('pw').value,confirm:document.getElementById('cf').value})});
+    var j=await r.json().catch(function(){return{}});
+    if(r.ok&&j.ok){m.className='ok';m.textContent='Your account and data have been deleted.';try{localStorage.clear()}catch(e){}}
+    else{m.className='err';m.textContent=j.error||'Something went wrong.'}
+  }catch(e){m.className='err';m.textContent='No internet connection. Please try again.'}
+  b.disabled=false};
+</script>
+</body>
+</html>

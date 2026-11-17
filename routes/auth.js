@@ -453,6 +453,80 @@ async function sendPushToPartner(coupleId, senderRole, payload) {
   }
 }
 
+
+// ═══════════════════════════════════════════════════════
+//  POST /api/auth/delete-account   { email, password, confirm: "DELETE" }
+//  Google Play requires a way to delete an account AND its data (the app opens public/delete-account.html).
+//  - Needs the account's password and the word DELETE.
+//  - The partner is NOT deleted: like /unpair, they get a fresh empty couple space and keep their own account.
+//  - Everything stored for the couple is removed. Each table is tried on its own, so one missing table/column never
+//    stops the rest. Payment records (pro_payments) are kept on purpose (tax / legal rules).
+//  - If the users row cannot be removed (foreign keys), it is anonymised instead (no name, email, phone or password).
+// ═══════════════════════════════════════════════════════
+const DELETE_COUPLE_TABLES = [
+  'chat_messages', 'chat_scheduled_messages', 'chat_settings', 'chat_presence', 'call_signals',
+  'watch_sessions', 'watch_history', 'movie_chat_messages', 'shared_movies', 'movie_favorites', 'cinema_sessions',
+  'both_rounds', 'both_sessions', 'both_submissions', 'both_results', 'daily_routines', 'personal_recordings',
+  'music_playlists', 'music_user_state', 'highlights', 'globe_memories', 'route_points', 'route_history_prefs',
+  'place_visits', 'known_places', 'geofence_events', 'live_locations', 'live_location_history', 'meetup_plans',
+  'partner_requests', 'reward_wallets', 'reward_cards', 'reward_checkins', 'reward_equipped', 'reward_purchases',
+  'reward_scratches', 'reward_spins', 'reward_access', 'coin_transactions', 'app_state', 'profiles'
+];
+router.post('/delete-account', resetSubmitLimiter, async (req, res) => {
+  try {
+    const { email, password, confirm } = req.body || {};
+    if (!email || !password) return res.status(400).json({ error: 'Email and password are required.' });
+    if (String(confirm || '').trim().toUpperCase() !== 'DELETE') return res.status(400).json({ error: 'Type DELETE to confirm.' });
+    const { data: user } = await supabase.from('users')
+      .select('id, name, email, password_hash, couple_id, role')
+      .eq('email', String(email).toLowerCase().trim()).maybeSingle();
+    if (!user || !user.password_hash || !(await bcrypt.compare(String(password), user.password_hash))) {
+      return res.status(401).json({ error: 'Incorrect email or password.' });
+    }
+    const coupleId = user.couple_id;
+    const now = new Date().toISOString();
+
+    // 1) my partner keeps a fresh solo space (same as /unpair)
+    let partnerKept = false;
+    if (coupleId) {
+      const { data: others } = await supabase.from('users').select('id, name').eq('couple_id', coupleId).neq('id', user.id);
+      for (const other of (others || [])) {
+        const newCoupleId = uuid();
+        const { error: e1 } = await supabase.from('couples').insert({ id: newCoupleId, user1_name: other.name, user2_name: 'Partner', paired: false, created_at: now });
+        if (!e1) { await supabase.from('users').update({ couple_id: newCoupleId, role: 'user1', updated_at: now }).eq('id', other.id); partnerKept = true; }
+      }
+    }
+
+    // 2) my push tokens, then everything the couple stored (best effort, table by table)
+    const tryDel = async (fn) => { try { await fn(); } catch (_) {} };
+    if (coupleId) {
+      await tryDel(() => supabase.from('fcm_tokens').delete().eq('couple_id', coupleId).eq('role', user.role));
+      await tryDel(() => supabase.from('push_subscriptions').delete().eq('couple_id', coupleId).eq('role', user.role));
+      for (const t of DELETE_COUPLE_TABLES) await tryDel(() => supabase.from(t).delete().eq('couple_id', coupleId));
+    }
+    for (const t of ['fcm_tokens', 'push_subscriptions', 'reward_wallets', 'music_user_state']) {
+      await tryDel(() => supabase.from(t).delete().eq('user_id', user.id));
+    }
+
+    // 3) the couple row, then the account itself (anonymise if a foreign key stops the delete)
+    if (coupleId) {
+      const { error: ce } = await supabase.from('couples').delete().eq('id', coupleId);
+      if (ce) await tryDel(() => supabase.from('couples').update({ user1_name: 'Deleted', user2_name: 'Deleted', paired: false, updated_at: now }).eq('id', coupleId));
+    }
+    const { error: de } = await supabase.from('users').delete().eq('id', user.id);
+    if (de) {
+      const { error: ae } = await supabase.from('users').update({
+        name: 'Deleted user', email: 'deleted+' + user.id + '@deleted.invalid', phone_number: null,
+        password_hash: 'x', account_status: 'deleted', updated_at: now
+      }).eq('id', user.id);
+      if (ae) return res.status(500).json({ error: 'Could not delete the account. Please email us.' });
+    }
+    return res.json({ ok: true, partnerKept });
+  } catch (e) {
+    return res.status(500).json({ error: 'Could not delete the account. Please try again.' });
+  }
+});
+
 module.exports = router;
 module.exports.sendPushToPartner = sendPushToPartner;
 

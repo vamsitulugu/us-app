@@ -91,7 +91,7 @@ const B=(icon,title,fn,cls)=>{const b=document.createElement('button');b.textCon
 function buttons(){bar.innerHTML='';const s=m.state;
  if(s===S.EXPLORE&&pending)B('🪑','Sit here',sitDown,'main');
  if(s===S.DOOR&&me&&!inStudio&&APP&&inv?.isStarted())B('🎟','Go to the hall',startEnter,'main');      // back in the canteen after the movie night started: one tap (or walk through the door) takes you in again
- if(s===S.SEATED){const wait2=sync?.present&&!partnerSeat,g=wait2?'':startGate();B(wait2?'⏳':g?'🎞':'🎬',wait2?'Waiting for partner to sit':g||'Start movie',()=>m.go(S.WATCH),'main').disabled=wait2||!!g;B('🧍','Stand up',standUp)}
+ if(s===S.SEATED){const wait2=sync?.present&&!partnerSeat,g=wait2?'':startGate();const rs=!wait2&&!g?resumeAt():0;B(wait2?'⏳':g?'🎞':'🎬',wait2?'Waiting for partner to sit':g||(rs?'Resume '+hms(rs):'Start movie'),()=>{startOver=false;m.go(S.WATCH)},'main').disabled=wait2||!!g;if(rs)B('⏮','Start over',()=>{startOver=true;m.go(S.WATCH)});B('🧍','Stand up',standUp)}
  if([S.WATCH,S.PAUSED,S.BREAK].includes(s)){B(s===S.WATCH?'⏸':'▶',s===S.WATCH?'Pause':'Play',()=>m.go(s===S.WATCH?S.PAUSED:S.WATCH),'main');B('🎥','Next camera angle · '+viewLabel(),nextAngle);B('⛶','Full screen · choose a view',openViews);B(movie.muted?'🔇':'🔊',movie.muted?'Sound off':'Sound on',()=>{movie.muted=!movie.muted;buttons()});B('☕','Break',()=>m.go(S.BREAK))}
  if(me&&m.is(S.SEATED,S.WATCH,S.PAUSED,S.BREAK))B('🍿',me.popcorn?'Put popcorn away':'Popcorn',togglePop,me.popcorn?'on':'');
  if(me&&!m.is(S.DOOR,S.ENTER,S.END)){B('❤️','Send love',()=>emote('heart'));B('👋','Wave',()=>emote('wave'));B('👏','Clap',()=>emote('clap'))}
@@ -216,8 +216,17 @@ function onMsg(q){
  if(q.t==='ad')return ads.remote();if(q.t==='adend')return ads.partnerEnd();if(ads.active&&q.t==='ctl')return;
  if(q.t==='ctl'){applying=true;m.go(q.s);applying=false}
  else if(q.t==='chat'){show(partner,q.x);audio.chat()}else if(q.t==='pop')partner.setPop(q.on),buttons();else if(q.t==='emo')doEmote(partner,q.e);else if(q.t==='order')canteen.receive(q.items||[]);else if(q.t==='lobby'&&APP)toLobby(true);else if(q.t==='go'&&APP){toLobby(true);if(inv)inv.onGo();else pendingGo=true}else if(q.t==='goack'&&APP){inv?.onAck()}else if(q.t==='meme')memes?.remote(q.id,q.p)}
-/** the movie starts for both: back at 0:00, playing, written to the room so your partner's screen starts at the same moment */
-function startRoom(){movie.seek(0);movie.play();movie.send(true)}
+/* ---- continue where you left off: this phone remembers how far each movie got; "Start movie" becomes "Resume 1:12:30" next time ---- */
+const RKEY='tw_resume_v1';let startOver=false;
+const mvKey=()=>{const a=movie.media;return a?(a.kind==='cloud'&&a.id?'c:'+a.id:'d:'+(a.title||'')+':'+(a.size||0)):null};
+const rGet=()=>{try{return JSON.parse(localStorage.getItem(RKEY)||'{}')}catch(e){return{}}};
+const rSet=o=>{try{const k=Object.keys(o).sort((a,b)=>o[b].at-o[a].at).slice(0,25),n={};k.forEach(x=>n[x]=o[x]);localStorage.setItem(RKEY,JSON.stringify(n))}catch(e){}};
+function resumeAt(){const k=mvKey();if(!k)return 0;const e=rGet()[k];if(!e||Date.now()-e.at>45*864e5)return 0;const d=movie.dur||e.d||0;return e.t>=60&&(!d||d-e.t>90)?e.t:0}
+function resumeSave(){const k=mvKey();if(!k||!movie.src||!m.is(S.WATCH,S.PAUSED,S.BREAK))return;const t=movie.time,d=movie.dur||0;if(!(t>5))return;const o=rGet();if(d&&d-t<60)delete o[k];else o[k]={t:Math.floor(t),d:Math.floor(d),at:Date.now()};rSet(o)}
+setInterval(resumeSave,5000);addEventListener('pagehide',resumeSave);
+const hms=t=>{t=Math.max(0,Math.floor(t));const h=Math.floor(t/3600),mi=Math.floor(t%3600/60),sc=t%60;return(h?h+':'+String(mi).padStart(2,'0'):mi)+':'+String(sc).padStart(2,'0')};
+/** the movie starts for both: at 0:00 (or where you stopped last time), playing, written to the room so your partner's screen starts at the same moment */
+function startRoom(){const t=startOver?0:resumeAt();startOver=false;movie.seek(t);movie.play();movie.send(true);if(t>0)pl.toast('▶ Resuming at '+hms(t))}
 function endOverlay(){const ov=$('ov');if(m.state!==S.END)return;ov.textContent='';
  const h=document.createElement('div');h.className='end-h';h.append('The End',ic(Heart,26,1));ov.appendChild(h);
  const a=document.createElement('button');a.className='main';iconize(a,'↻ Watch again');a.onclick=()=>{hall.setCurtains(1);m.go(S.WATCH)};a.disabled=!!startGate();ov.appendChild(a);      // the picker (top of the screen) stays open here: choose another movie, then Watch again

@@ -8,14 +8,24 @@ let _sendPushToPartner, _sendFCMToPartner;
 try { _sendPushToPartner = require('./auth').sendPushToPartner; } catch (_) {}
 try { _sendFCMToPartner = require('./auth').sendFCMToPartner; } catch (_) {}
 
+// Used only while METERED_API_KEY is missing (or Metered is down): public STUN plus Metered's free shared "Open Relay"
+// TURN. It is rate-limited and shared by everyone, so treat it as a safety net, not as the real setup: set METERED_API_KEY.
+const FALLBACK_ICE = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:openrelay.metered.ca:80' },
+  { urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turn:openrelay.metered.ca:443?transport=tcp'],
+    username: 'openrelayproject', credential: 'openrelayproject' }
+];
+
 // GET /api/call/turn-creds — fetch short-lived TURN credentials
 router.get('/turn-creds', async (req, res) => {
   try {
     const key = process.env.METERED_API_KEY;
     if (!key) {
       // Fallback to public STUN only — calls will work on same-network / good NAT, may fail cross-network
+      console.warn('[call] METERED_API_KEY is not set: calls between different networks (phone data <-> home Wi-Fi) can fail. Set it on the server.');
       return res.json({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+        iceServers: FALLBACK_ICE,
         turnConfigured: false
       });
     }
@@ -23,7 +33,7 @@ router.get('/turn-creds', async (req, res) => {
     const iceServers = await r.json();
     return res.json({ iceServers, turnConfigured: true });
   } catch (e) {
-    return res.json({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }], turnConfigured: false });
+    return res.json({ iceServers: FALLBACK_ICE, turnConfigured: false });
   }
 });
 

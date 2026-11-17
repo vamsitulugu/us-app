@@ -8,7 +8,7 @@ const RULES=[
  [/find.*partner/,'Partner'],[/waiting for (your )?partner to sit/,'Waiting'],[/sit here/,'Sit'],[/go to the hall/,'Hall'],[/stand up/,'Stand'],
  [/^back 10/,'Back'],[/^forward 10/,'Forward'],[/^pause/,'Pause'],[/^play/,'Play'],[/exit full/,'Exit'],[/full screen|choose a view/,'Full'],
  [/camera/,'Camera'],[/sound controls|sound: songs/,'Volume'],[/^sound|mute/,'Sound'],[/popcorn/,'Popcorn'],[/send love/,'Love'],[/^wave/,'Wave'],[/^clap/,'Clap'],
- [/chat/,'Chat'],[/alert/,'Alerts'],[/leave/,'Leave'],[/snack/,'Snacks'],[/meme/,'Memes'],[/^start movie/,'Start'],[/movie|“|partner/,'Movie']];
+ [/chat/,'Chat'],[/alert/,'Alerts'],[/leave/,'Leave'],[/snack/,'Snacks'],[/meme/,'Memes'],[/^start over/,'Restart'],[/^resume/,'Resume'],[/^start movie/,'Start'],[/movie|“|partner/,'Movie']];
 const SEL='#bar button,#rail>button,#top-r button,#fc button,#vw-fs,#player .ib,#player .big,#player .skip';
 function nameOf(b){
  if(BY_ID[b.id])return BY_ID[b.id];
